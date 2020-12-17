@@ -74,7 +74,6 @@ class sdf(_analyzer):
         analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
     """
     def __init__(self, mc, filename, xmax, dx, navg, period, overwrite=False, phase=0):
-        hoomd.util.print_status_line();
 
         # initialize base class
         _analyzer.__init__(self);
@@ -96,7 +95,7 @@ class sdf(_analyzer):
         elif isinstance(mc, integrate.convex_spheropolygon):
             cls =_hpmc.AnalyzerSDFSpheropolygon;
         else:
-            hoomd.context.msg.error("analyze.sdf: Unsupported integrator.\n");
+            hoomd.context.current.device.cpp_msg.error("analyze.sdf: Unsupported integrator.\n");
             raise runtime_error("Error initializing analyze.sdf");
 
         self.cpp_analyzer = cls(hoomd.context.current.system_definition,

@@ -12,7 +12,7 @@
 #ifndef MPCD_BOUNCE_BACK_NVE_GPU_H_
 #define MPCD_BOUNCE_BACK_NVE_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -145,8 +145,8 @@ void export_BounceBackNVEGPU(pybind11::module& m)
     namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName() + "GPU";
 
-    py::class_<BounceBackNVEGPU<Geometry>, std::shared_ptr<BounceBackNVEGPU<Geometry>>>
-        (m, name.c_str(), py::base<BounceBackNVE<Geometry>>())
+    py::class_<BounceBackNVEGPU<Geometry>, BounceBackNVE<Geometry>, std::shared_ptr<BounceBackNVEGPU<Geometry>>>
+        (m, name.c_str())
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<const Geometry>>())
         ;
     }

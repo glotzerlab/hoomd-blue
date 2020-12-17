@@ -17,7 +17,7 @@
 #include "DEM3DForceComputeGPU.h"
 
 #include <iterator>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 void export_params(pybind11::module& m);
 

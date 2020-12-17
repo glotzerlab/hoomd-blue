@@ -15,11 +15,11 @@
     \brief Declares a base class for all energy minimization methods
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview

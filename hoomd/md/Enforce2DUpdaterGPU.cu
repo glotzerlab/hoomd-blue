@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -47,7 +48,7 @@ void gpu_enforce2d_kernel(const unsigned int N,
     \param d_vel Particle velocities to constrain to xy plane
     \param d_accel Particle accelerations to constrain to xy plane
 */
-cudaError_t gpu_enforce2d(const unsigned int N,
+hipError_t gpu_enforce2d(const unsigned int N,
                           Scalar4 *d_vel,
                           Scalar3 *d_accel)
     {
@@ -57,7 +58,7 @@ cudaError_t gpu_enforce2d(const unsigned int N,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_enforce2d_kernel<<< grid, threads >>>(N, d_vel, d_accel);
+    hipLaunchKernelGGL((gpu_enforce2d_kernel), dim3(grid), dim3(threads ), 0, 0, N, d_vel, d_accel);
 
-    return cudaSuccess;
+    return hipSuccess;
     }

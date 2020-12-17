@@ -102,7 +102,7 @@ class _citation(object):
     # \brief Get the citation in human readable format
     # \note Deriving classes \b must implement this method themselves.
     def __str__(self):
-        hoomd.context.msg.error('Bug in hoomd.cite: each deriving class must implement its own string method\n')
+        hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: each deriving class must implement its own string method\n')
         raise RuntimeError('Citation does not implement string method')
 
     ## \internal
@@ -110,7 +110,7 @@ class _citation(object):
     def validate(self):
         for entry in self.required_entries:
             if getattr(self,entry) is None:
-                hoomd.context.msg.error('Bug in hoomd.cite: required field %s not set, please report\n' % entry)
+                hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: required field %s not set, please report\n' % entry)
                 raise RuntimeError('Required citation field not set')
 
     ## \internal
@@ -139,7 +139,7 @@ class _citation(object):
     # If no note is set for the citation, a default note identifying the HOOMD feature used is generated.
     def bibtex(self):
         if self.bibtex_type is None:
-            hoomd.context.msg.error('Bug in hoomd.cite: BibTeX record type must be set, please report\n')
+            hoomd.context.current.device.cpp_msg.error('Bug in hoomd.cite: BibTeX record type must be set, please report\n')
             raise RuntimeError()
 
         lines = ['@%s{%s,' % (self.bibtex_type, self.cite_key)]
@@ -326,7 +326,7 @@ class bibliography(object):
                     cite_str += 'Please cite the following:\n'
                     cite_str += log_str
                     cite_str += '-'*5 + '\n'
-                    hoomd.context.msg.notice(1, cite_str)
+                    hoomd.context.current.device.cpp_msg.notice(1, cite_str)
 
         # print each feature set together
         for feature in citations:
@@ -334,7 +334,7 @@ class bibliography(object):
             cite_str += 'You are using %s. Please cite the following:\n' % feature
             cite_str += ''.join(citations[feature])
             cite_str += '-'*5 + '\n'
-            hoomd.context.msg.notice(1, cite_str)
+            hoomd.context.current.device.cpp_msg.notice(1, cite_str)
 
         # after adding, we need to update the file
         self.updated = True
@@ -376,7 +376,7 @@ class bibliography(object):
     # \brief Determines if the current rank should save the bibliography file
     def should_save(self):
         # only the root rank should save the bibliography
-        if len(self.entries) == 0 or hoomd.comm.get_rank() != 0:
+        if len(self.entries) == 0 or hoomd.context.current.device.comm.rank != 0:
             return False
 
         # otherwise, check if the bibliography has been updated since last save
@@ -400,38 +400,18 @@ def _ensure_global_bib():
     if hoomd.context.bib is None:
         hoomd.context.bib = bibliography()
         # the hoomd bibliography always includes the following citations
-        hoomd_base = article(cite_key = 'anderson2008',
-                        author = ['J A Anderson','C D Lorenz','A Travesset'],
-                        title = 'General purpose molecular dynamics simulations fully implemented on graphics processing units',
-                        journal = 'Journal of Computational Physics',
-                        volume = 227,
-                        number = 10,
-                        pages = '5342--5359',
-                        year = 2008,
-                        month = 'may',
-                        doi = '10.1016/j.jcp.2008.01.047',
+        hoomd_base = article(cite_key = 'Anderson2020',
+                        author = ['J A Anderson','J Glaser','S C Glotzer'],
+                        title = 'HOOMD-blue: A Python package for high-performance molecular dynamics and hard particle Monte Carlo simulations',
+                        journal = 'Computational Materials Science',
+                        volume = 173,
+                        pages = '109363',
+                        year = 2020,
+                        month = 'feb',
+                        doi = '10.1016/j.commatsci.2019.109363',
                         feature = 'HOOMD-blue')
 
-        hoomd_mpi = article(cite_key = 'glaser2015',
-                        author = ['J Glaser',
-                                  'T D Nguyen',
-                                  'J A Anderson',
-                                  'P Lui',
-                                  'F Spiga',
-                                  'J A Millan',
-                                  'D C Morse',
-                                  'S C Glotzer'],
-                        title = 'Strong scaling of general-purpose molecular dynamics simulations on GPUs',
-                        journal = 'Computer Physics Communications',
-                        volume = 192,
-                        pages = '97--107',
-                        year = 2015,
-                        month = 'july',
-                        doi = '10.1016/j.cpc.2015.02.028',
-                        feature = 'HOOMD-blue')
-
-
-        hoomd.context.bib.add([hoomd_base, hoomd_mpi])
+        hoomd.context.bib.add([hoomd_base])
         hoomd.context.bib.add(_extra_default_entries)
 
     return hoomd.context.bib
@@ -451,8 +431,6 @@ def save(file='hoomd.bib'):
         cite.save()
         cite.save(file='cite.bib')
     """
-
-    hoomd.util.print_status_line()
 
     # force a bibliography to exist
     bib = _ensure_global_bib()

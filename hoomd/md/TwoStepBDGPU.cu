@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -80,7 +81,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const bool d_noiseless_r,
                                   const unsigned int offset)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
@@ -272,7 +273,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
 
     This is just a driver for gpu_brownian_step_one_kernel(), see it for details.
 */
-cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
+hipError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   int3 *d_image,
                                   const BoxDim& box,
@@ -309,8 +310,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_brownian_step_one_kernel<<< grid, threads, (unsigned int)(sizeof(Scalar)*langevin_args.n_types + sizeof(Scalar3)*langevin_args.n_types)>>>
-                                    (d_pos,
+        hipLaunchKernelGGL((gpu_brownian_step_one_kernel), dim3(grid), dim3(threads), (unsigned int)(sizeof(Scalar)*langevin_args.n_types + sizeof(Scalar3)*langevin_args.n_types), 0, d_pos,
                                      d_vel,
                                      d_image,
                                      box,
@@ -339,5 +339,5 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                      range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

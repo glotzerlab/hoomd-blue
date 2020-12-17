@@ -4,8 +4,7 @@
 R"""Various helper utilities for geometry.
 """
 
-from collections import Counter, defaultdict, deque
-from itertools import chain
+from collections import defaultdict
 import numpy as np
 
 def _normalize(vector):

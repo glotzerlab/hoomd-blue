@@ -11,11 +11,11 @@
     \brief Declares the NeighborListBinned class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLISTBINNED_H__
 #define __NEIGHBORLISTBINNED_H__

@@ -14,7 +14,7 @@ class pair_fourier_test (unittest.TestCase):
     def setUp(self):
         print
         snapshot = data.make_snapshot(N=2, box=data.boxdim(L=100))
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             # suppose spherical particles
             snapshot.particles.position[0] = [0.0, 0.0, 0.0]
             snapshot.particles.position[1] = [0.5, 0.75, 1.0]

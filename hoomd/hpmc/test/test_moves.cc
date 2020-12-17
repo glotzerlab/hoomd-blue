@@ -15,7 +15,7 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 using namespace std;
@@ -37,7 +37,7 @@ UP_TEST( rand_rotate_3d )
         {
         // move the shape
         quat<Scalar> prev = a;
-        move_rotate(a, rng, 1.0, 3);
+        move_rotate<3>(a, rng, 1.0);
         quat<Scalar> delta(prev.s - a.s, prev.v - a.v);
 
         // check that all coordinates moved
@@ -64,7 +64,7 @@ UP_TEST( rand_rotate_2d )
         {
         // move the shape
         quat<Scalar> prev = o;
-        move_rotate(o, rng, a, 2);
+        move_rotate<2>(o, rng, a);
         quat<Scalar> delta(prev.s - o.s, prev.v - o.v);
 
         // check that the angle coordinate moved and that the 0 components stayed 0

@@ -7,7 +7,7 @@
 #ifndef __BOND_EVALUATOR_HARMONIC_H__
 #define __BOND_EVALUATOR_HARMONIC_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -19,7 +19,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -78,7 +78,7 @@ class EvaluatorBondHarmonic
 
             // if the result is not finite, it is likely because of a division by 0, setting force_divr to 0 will
             // correctly result in a 0 force in this case
-            #ifdef NVCC
+            #ifdef __HIPCC__
             if (!isfinite(force_divr))
             #else
             if (!std::isfinite(force_divr))
@@ -91,7 +91,7 @@ class EvaluatorBondHarmonic
             return true;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.

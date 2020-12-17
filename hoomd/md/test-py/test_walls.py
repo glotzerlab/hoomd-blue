@@ -15,7 +15,7 @@ class wall_group_tests(unittest.TestCase):
                                       box=data.boxdim(L=20),
                                       particle_types=['A']);
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snapshot.particles.position[:] = [[0,0,-1], [0,0,1]];
 
         init.read_snapshot(snapshot)
@@ -138,7 +138,7 @@ class wall_shift_tests (unittest.TestCase):
     def setUp(self):
         snap= data.make_snapshot(N=4, box=data.boxdim(L=10))
         coords=[[1.1,0.0,0.0],[2.1,1.0,1.0],[4.0,-2.0,1.0],[-2.1,1.0,-0.5]];
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             for i in range(4):
                 snap.particles.position[i]=coords[i]
         self.s=init.read_snapshot(snap)

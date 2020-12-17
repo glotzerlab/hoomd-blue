@@ -35,7 +35,7 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
             bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
     #endif
 
-    GPUArray<hpmc_counters_t> counters(1, this->m_exec_conf);
+    GlobalArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
 
     GPUVector<Scalar> d(this->m_pdata->getNTypes(), this->m_exec_conf);
@@ -312,7 +312,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
 
 void export_IntegratorHPMC(py::module& m)
     {
-   py::class_<IntegratorHPMC, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC", py::base<Integrator>())
+   py::class_<IntegratorHPMC, Integrator, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("setD", &IntegratorHPMC::setD)
     .def("setA", &IntegratorHPMC::setA)

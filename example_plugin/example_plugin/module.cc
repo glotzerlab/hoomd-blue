@@ -4,7 +4,7 @@
 // Include the defined classes that are to be exported to python
 #include "ExampleUpdater.h"
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 // specify the python module. Note that the name must explicitly match the PROJECT() name provided in CMakeLists
 // (with an underscore in front)
@@ -12,7 +12,7 @@ PYBIND11_MODULE(_example_plugin, m)
     {
     export_ExampleUpdater(m);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     export_ExampleUpdaterGPU(m);
     #endif
     }

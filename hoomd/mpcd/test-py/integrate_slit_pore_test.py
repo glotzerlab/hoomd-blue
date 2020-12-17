@@ -23,12 +23,12 @@ class integrate_slit_pore_tests(unittest.TestCase):
         hoomd.context.initialize()
 
         # set the decomposition in z for mpi builds
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             hoomd.comm.decomposition(nz=2)
 
         # default testing configuration
         snap = hoomd.data.make_snapshot(N=2, box=hoomd.data.boxdim(L=10.))
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [[4.95,-4.95,3.85],[0.,0.,-3.8]]
             snap.particles.velocity[:] = [[1.,-1.,1.],[-1.,-1.,-1.]]
             snap.particles.mass[:] = [1.,2.]

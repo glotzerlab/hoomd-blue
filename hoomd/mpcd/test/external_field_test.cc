@@ -13,9 +13,9 @@
 
 #include "hoomd/GPUPolymorph.h"
 #include "hoomd/mpcd/ExternalField.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "external_field_test.cuh"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include <vector>
 
@@ -52,7 +52,7 @@ void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf
         }
 
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         UP_ASSERT(field->get(access_location::device) != nullptr);
@@ -77,7 +77,7 @@ void test_external_field(std::shared_ptr<const ExecutionConfiguration> exec_conf
         {
         UP_ASSERT(field->get(access_location::device) == nullptr);
         }
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
     }
 
 //! Test constant force on CPU
@@ -108,7 +108,7 @@ UP_TEST( sine_force_cpu )
     test_external_field(exec_conf, field, ref_pos, ref_force);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Test constant force on GPU
 UP_TEST( constant_force_gpu )
     {
@@ -136,4 +136,4 @@ UP_TEST( sine_force_gpu )
 
     test_external_field(exec_conf, field, ref_pos, ref_force);
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

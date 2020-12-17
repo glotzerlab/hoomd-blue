@@ -104,7 +104,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
                 Scalar4 postype_i = h_postype.data[i];
                 unsigned int typ_i = __scalar_as_int(postype_i.w);
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                
+
                 dE += energy(box_new, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
                 dE -= energy(*box_old, typ_i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), h_diameter.data[i], h_charge.data[i]);
                 }
@@ -187,8 +187,8 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
 template< class Shape>
 void export_ExternalFieldJIT(pybind11::module &m, std::string name)
     {
-    pybind11::class_<ExternalFieldJIT<Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str(), pybind11::base< hpmc::ExternalFieldMono <Shape> >())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, 
+    pybind11::class_<ExternalFieldJIT<Shape>, hpmc::ExternalFieldMono <Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string& >())
             .def("energy", &ExternalFieldJIT<Shape>::energy);

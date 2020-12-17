@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -56,9 +56,9 @@ struct ell_params : param_base
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
 
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
         {
         // default implementation does nothing
         }
@@ -96,18 +96,6 @@ struct ShapeEllipsoid
         return OverlapReal(0.0);
         }
 
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << axes.x <<
-                    ", \"b\": " << axes.y <<
-                    ", \"c\": " << axes.z <<
-                    "}";
-        return shapedef.str();
-        }
-    #endif
-
     //! Support function of the shape (in local coordinates), used in getAABB
     /*! \param n Vector to query support function (must be normalized)
     */
@@ -116,6 +104,13 @@ struct ShapeEllipsoid
         vec3<Scalar> numerator(axes.x*axes.x*n.x, axes.y*axes.y*n.y, axes.z*axes.z*n.z);
         vec3<Scalar> dvec(axes.x*n.x, axes.y*n.y, axes.z*n.z);
         return numerator / fast::sqrt(dot(dvec, dvec));
+        }
+
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
         }
 
     //! Return the bounding box of the shape in world coordinates
@@ -146,6 +141,12 @@ struct ShapeEllipsoid
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
@@ -402,31 +403,13 @@ DEVICE inline int test_overlap_ellipsoids(OverlapReal *M1, OverlapReal *M2)
 
 }; // end namespace detail
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeEllipsoid& a,
-    const ShapeEllipsoid &b)
-    {
-    //otherwise actually check circumspheres for earl exit
-    vec3<OverlapReal> dr(r_ab);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 //! Ellipsoid overlap test
 /*!
     \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a Shape a
     \param b Shape b
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true if the two particles overlap
 
     \ingroup shape
@@ -435,7 +418,9 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err)
+                                                               unsigned int& err,
+                                                               Scalar sweep_radius_a,
+                                                               Scalar sweep_radius_b)
     {
 
     // matrix representations of the two ellipsoids
@@ -460,6 +445,19 @@ DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar
 
     return ret_val == ELLIPSOID_OVERLAP_TRUE;
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeEllipsoid& ellipsoid)
+    {
+    std::ostringstream shapedef;
+    shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << ellipsoid.axes.x <<
+                ", \"b\": " << ellipsoid.axes.y <<
+                ", \"c\": " << ellipsoid.axes.z <<
+                "}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

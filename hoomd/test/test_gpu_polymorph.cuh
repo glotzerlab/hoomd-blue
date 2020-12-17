@@ -6,7 +6,9 @@
 #ifndef HOOMD_TEST_TEST_GPU_POLYMORPH_CUH_
 #define HOOMD_TEST_TEST_GPU_POLYMORPH_CUH_
 
-#ifdef NVCC
+#include <hip/hip_runtime.h>
+
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE

@@ -99,7 +99,7 @@ class pair_lj1208_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0, 0, 0)
             snap.particles.position[1] = (1.5, 0, 0)
             snap.particles.position[2] = (-0.75, 0, 0)

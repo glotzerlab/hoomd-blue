@@ -7,7 +7,6 @@
     \brief Defines Variant and related classes
 */
 
-
 #include "Variant.h"
 
 #include <iostream>
@@ -98,10 +97,10 @@ void PYBIND11_EXPORT export_Variant(py::module& m)
     .def("getValue", &Variant::getValue)
     .def("setOffset", &Variant::setOffset);
 
-    py::class_<VariantConst, std::shared_ptr<VariantConst> >(m,"VariantConst",py::base<Variant>())
+    py::class_<VariantConst, Variant, std::shared_ptr<VariantConst> >(m,"VariantConst")
     .def(py::init< double >());
 
-    py::class_<VariantLinear, std::shared_ptr<VariantLinear> >(m,"VariantLinear",py::base<Variant>())
+    py::class_<VariantLinear, Variant, std::shared_ptr<VariantLinear> >(m,"VariantLinear")
     .def(py::init< >())
     .def("setPoint", &VariantLinear::setPoint);
     }

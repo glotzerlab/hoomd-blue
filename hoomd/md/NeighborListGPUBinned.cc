@@ -47,12 +47,12 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
 
-    const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    const unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
-        while (s <= max_tpp)
+        while (s <= warp_size)
             {
             valid_params.push_back(block_size*10000 + s);
             s = s * 2;
@@ -159,6 +159,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_r_listsq(m_r_listsq, access_location::device, access_mode::read);
 
+    #ifdef __HIP_PLATFORM_NVCC__
     auto& gpu_map = m_exec_conf->getGPUIds();
 
     // prefetch some cell list arrays
@@ -173,6 +174,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    #endif
 
     m_exec_conf->beginMultiGPU();
 
@@ -223,7 +225,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUBinned(py::module& m)
     {
-    py::class_<NeighborListGPUBinned, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned", py::base<NeighborListGPU>())
+    py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned")
                     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                      ;

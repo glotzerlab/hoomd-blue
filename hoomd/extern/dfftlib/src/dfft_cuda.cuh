@@ -1,7 +1,7 @@
 #include <dfft_lib_config.h>
 #include "dfft_local_fft_config.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && 0
 #define EXTERN_DFFT extern "C"
 #else
 #define EXTERN_DFFT

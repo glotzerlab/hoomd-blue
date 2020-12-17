@@ -12,14 +12,12 @@
 
 #ifdef ENABLE_MPI
 
-#include <iterator>
+#include <hipcub/hipcub.hpp>
 
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
-
-#include "hoomd/extern/kernels/scan.cuh"
 
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(
@@ -203,29 +201,90 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
                     unsigned int *d_tmp,
-                    mgpu::ContextPtr mgpu_context,
+                    CachedAllocator& alloc,
                     GPUPartition& gpu_partition)
     {
+    if (!N) return 0;
+
+    assert(d_pos);
+    assert(d_vel);
+    assert(d_accel);
+    assert(d_charge);
+    assert(d_diameter);
+    assert(d_image);
+    assert(d_body);
+    assert(d_orientation);
+    assert(d_angmom);
+    assert(d_inertia);
+    assert(d_net_force);
+    assert(d_net_torque);
+    assert(d_net_virial);
+    assert(d_tag);
+    assert(d_rtag);
+    assert(d_pos_alt);
+    assert(d_vel_alt);
+    assert(d_accel_alt);
+    assert(d_charge_alt);
+    assert(d_diameter_alt);
+    assert(d_image_alt);
+    assert(d_body_alt);
+    assert(d_orientation_alt);
+    assert(d_angmom_alt);
+    assert(d_inertia_alt);
+    assert(d_net_force_alt);
+    assert(d_net_torque_alt);
+    assert(d_net_virial_alt);
+    assert(d_tag_alt);
+    assert(d_out);
+    assert(d_comm_flags);
+    assert(d_comm_flags_out);
+    assert(d_tmp);
+
     unsigned int n_out;
 
     // partition particle data into local and removed particles
-    unsigned int block_size =512;
+    unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size+1;
 
     // select nonzero communication flags
-    gpu_select_sent_particles<<<n_blocks, block_size>>>(
+    hipLaunchKernelGGL(gpu_select_sent_particles, dim3(n_blocks), dim3(block_size), 0, 0,
         N,
         d_comm_flags,
         d_tmp);
 
     // perform a scan over the array of ones and zeroes
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
-        N, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
 
-    // NOTE: the call in the line above assumes that a cudaDeviceSynchronize() with the host is performed
-    // in mgpu.  If this call is ever replaced by a device-level primitive which does not synchronize, e.g. CUB,
-    // we will need to perform an explicit sync between devices in multi-GPU simulations here
+    // determine size of temporary storage
+    unsigned int *d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
+    assert(d_scan);
+
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+
+    d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
+    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    alloc.deallocate((char *)d_temp_storage);
+
+    // determine total number of sent particles
+    d_temp_storage = NULL;
+    temp_storage_bytes = 0;
+    unsigned int *d_n_out = (unsigned int *) alloc.getTemporaryBuffer<unsigned int>(1);
+    assert(d_n_out);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_tmp,
+        d_n_out,
+        N);
+    d_temp_storage = alloc.allocate(temp_storage_bytes);
+    hipcub::DeviceReduce::Sum(d_temp_storage,
+        temp_storage_bytes,
+        d_tmp,
+        d_n_out,
+        N);
+    alloc.deallocate((char *) d_temp_storage);
+    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    alloc.deallocate((char *) d_n_out);
 
     // Don't write past end of buffer
     if (n_out <= max_n_out)
@@ -238,10 +297,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             unsigned int nwork = range.second - range.first;
             unsigned int offset = range.first;
 
-            unsigned int block_size =512;
+            unsigned int block_size = 256;
             unsigned int n_blocks = nwork/block_size+1;
 
-            gpu_scatter_particle_data_kernel<<<n_blocks, block_size>>>(
+            hipLaunchKernelGGL(gpu_scatter_particle_data_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
                 nwork,
                 d_pos,
                 d_vel,
@@ -276,10 +335,13 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                 d_out,
                 d_comm_flags,
                 d_comm_flags_out,
-                d_tmp,
+                d_scan,
                 offset);
             }
         }
+
+    // free temp buf
+    alloc.deallocate((char *)d_scan);
 
     // return elements written to output stream
     return n_out;
@@ -374,10 +436,28 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
                     const pdata_element *d_in,
                     unsigned int *d_comm_flags)
     {
-    unsigned int block_size = 512;
+    assert(d_pos);
+    assert(d_vel);
+    assert(d_accel);
+    assert(d_charge);
+    assert(d_diameter);
+    assert(d_image);
+    assert(d_body);
+    assert(d_orientation);
+    assert(d_angmom);
+    assert(d_inertia);
+    assert(d_net_force);
+    assert(d_net_torque);
+    assert(d_net_virial);
+    assert(d_tag);
+    assert(d_rtag);
+    assert(d_in);
+
+    unsigned int block_size = 256;
     unsigned int n_blocks = num_add_ptls/block_size + 1;
 
-    gpu_pdata_add_particles_kernel<<<n_blocks, block_size>>>(old_nparticles,
+    hipLaunchKernelGGL(gpu_pdata_add_particles_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
+        old_nparticles,
         num_add_ptls,
         d_pos,
         d_vel,

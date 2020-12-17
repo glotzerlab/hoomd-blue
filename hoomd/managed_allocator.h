@@ -6,8 +6,8 @@
 
 #pragma once
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 #include <iostream>
@@ -59,15 +59,15 @@ class managed_allocator
             {
             void *result = nullptr;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
                 size_t allocation_bytes = n*sizeof(T);
 
-                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
-                if (error != cudaSuccess)
+                hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
                 }
@@ -97,7 +97,7 @@ class managed_allocator
             {
             void *result = nullptr;
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
                 allocation_bytes = n*sizeof(T);
@@ -105,10 +105,10 @@ class managed_allocator
                 if (align_size)
                     allocation_bytes = ((n*sizeof(T))/align_size + 1)*align_size;
 
-                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
-                if (error != cudaSuccess)
+                hipError_t error = hipMallocManaged(&result, allocation_bytes, hipMemAttachGlobal);
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
 
@@ -118,9 +118,9 @@ class managed_allocator
                     {
                     // align to align_size
                     #ifndef NO_STD_ALIGN
-                    result = std::align(align_size,n*sizeof(T),result,allocation_bytes);
+                    std::align(align_size,n*sizeof(T),result,allocation_bytes);
                     #else
-                    result = my_align(align_size,n*sizeof(T),result,allocation_bytes);
+                    my_align(align_size,n*sizeof(T),result,allocation_bytes);
                     #endif
 
                     if (!result)
@@ -130,22 +130,31 @@ class managed_allocator
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
-                if (retval != 0)
+                if (align_size > 0)
                     {
-                    throw std::runtime_error("Error allocating aligned memory");
+                    int retval = posix_memalign((void **) &result, align_size, n*sizeof(T));
+                    if (retval != 0)
+                        {
+                        throw std::runtime_error("Error allocating aligned memory");
+                        }
+                    }
+                else
+                    {
+                    result = malloc(n*sizeof(T));
+                    if (!result)
+                        throw std::runtime_error("Error allocating memory");
                     }
                 allocation_bytes = n*sizeof(T);
                 allocation_ptr = result;
                 }
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
-                cudaError_t error = cudaDeviceSynchronize();
-                if (error != cudaSuccess)
+                hipError_t error = hipDeviceSynchronize();
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error on device sync during allocate_construct");
                     }
                 }
@@ -160,13 +169,17 @@ class managed_allocator
 
         void deallocate(value_type *ptr, std::size_t N)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_use_device)
                 {
-                cudaError_t error = cudaFree(ptr);
-                if (error != cudaSuccess)
+                #ifdef __HIP_PLATFORM_NVCC__
+                hipError_t error = hipFree(ptr);
+                #elif __HIP_PLATFORM_HCC__
+                hipError_t error = hipHostFree(ptr);
+                #endif
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }
@@ -186,13 +199,13 @@ class managed_allocator
         static void deallocate_destroy_aligned(value_type *ptr, std::size_t N, bool use_device,
             void *allocation_ptr)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
-                cudaError_t error = cudaDeviceSynchronize();
-                if (error != cudaSuccess)
+                hipError_t error = hipDeviceSynchronize();
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error on device sync during deallocate_destroy");
                     }
                 }
@@ -204,13 +217,17 @@ class managed_allocator
                 ptr[i].~value_type();
                 }
 
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (use_device)
                 {
-                cudaError_t error = cudaFree(allocation_ptr);
-                if (error != cudaSuccess)
+                #ifdef __HIP_PLATFORM_NVCC__
+                hipError_t error = hipFree(allocation_ptr);
+                #elif __HIP_PLATFORM_HCC__
+                hipError_t error = hipHostFree(allocation_ptr);
+                #endif
+                if (error != hipSuccess)
                     {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    std::cerr << hipGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }

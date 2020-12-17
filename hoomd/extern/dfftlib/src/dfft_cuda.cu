@@ -1,4 +1,5 @@
-#include <cuda.h>
+#include "hip/hip_runtime.h"
+#include <hip/hip_runtime.h>
 #include "dfft_cuda.cuh"
 
 // redistribute between group-cyclic distributions with different cycles 
@@ -14,7 +15,7 @@ __global__ void gpu_b2c_pack_kernel_nd(unsigned int local_size,
                                     cuda_cpx_t *send_data
                                     )
     {
-    extern __shared__ int nidx_shared[];
+    HIP_DYNAMIC_SHARED( int, nidx_shared)
     // index of local component
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -168,7 +169,7 @@ void gpu_b2c_pack_nd(unsigned int local_size,
     if (local_size % block_size) n_blocks++;
 
     int shared_size = ndim*block_size*sizeof(int);
-    gpu_b2c_pack_kernel_nd<<<n_blocks, block_size,shared_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_b2c_pack_kernel_nd, dim3(n_blocks), dim3(block_size), shared_size, 0, local_size,
                                                   d_c0,
                                                   d_c1,
                                                   ndim,
@@ -194,7 +195,7 @@ void gpu_b2c_unpack_nd(unsigned int local_size,
     unsigned int n_blocks = local_size/block_size;
     if (local_size % block_size) n_blocks++;
 
-    gpu_b2c_unpack_kernel_nd<<<n_blocks, block_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_b2c_unpack_kernel_nd, dim3(n_blocks), dim3(block_size), 0, 0, local_size,
                              d_c0,
                              d_c1,
                              ndim,
@@ -235,7 +236,7 @@ __global__ void gpu_c2b_pack_kernel_nd(unsigned int local_size,
                                     cuda_cpx_t *send_data
                                     )
     {
-    extern __shared__ int nidx_shared[];
+    HIP_DYNAMIC_SHARED( int, nidx_shared)
     // index of local component
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -461,7 +462,7 @@ void gpu_c2b_pack_nd(unsigned int local_size,
     if (local_size % block_size) n_blocks++;
 
     int shared_size = ndim*block_size*sizeof(int);
-    gpu_c2b_pack_kernel_nd<<<n_blocks, block_size,shared_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_c2b_pack_kernel_nd, dim3(n_blocks), dim3(block_size), shared_size, 0, local_size,
                                                   d_c0,
                                                   d_c1,
                                                   ndim,
@@ -493,7 +494,7 @@ void gpu_c2b_unpack_nd(unsigned int local_size,
     unsigned int n_blocks = local_size/block_size;
     if (local_size % block_size) n_blocks++;
 
-    gpu_c2b_unpack_kernel_nd<<<n_blocks, block_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_c2b_unpack_kernel_nd, dim3(n_blocks), dim3(block_size), 0, 0, local_size,
                              d_c0,
                              d_c1,
                              ndim,
@@ -544,7 +545,7 @@ void gpu_b2c_pack(unsigned int local_size,
     unsigned int n_blocks = local_size/block_size;
     if (local_size % block_size) n_blocks++;
 
-    gpu_b2c_pack_kernel<<<n_blocks, block_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_b2c_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0, local_size,
                                                   ratio,
                                                   size,
                                                   npackets,
@@ -644,7 +645,7 @@ void gpu_twiddle(unsigned int local_size,
     unsigned int n_block = local_size/block_size;
     if (local_size % block_size ) n_block++;
 
-    gpu_twiddle_kernel<<<n_block, block_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_twiddle_kernel, dim3(n_block), dim3(block_size), 0, 0, local_size,
                                                 length,
                                                 stride,
                                                 alpha,
@@ -666,7 +667,7 @@ void gpu_twiddle_nd(unsigned int local_size,
     unsigned int n_block = local_size/block_size;
     if (local_size % block_size ) n_block++;
 
-    gpu_twiddle_kernel_nd<<<n_block, block_size>>>(local_size, ndim, d_embed,
+    hipLaunchKernelGGL(gpu_twiddle_kernel_nd, dim3(n_block), dim3(block_size), 0, 0, local_size, ndim, d_embed,
         d_length, d_alpha, d_in, d_out, inv);
     }
  
@@ -721,7 +722,7 @@ void gpu_c2b_unpack(const unsigned int local_size,
     unsigned int n_block = local_size/block_size;
     if (local_size % block_size ) n_block++;
 
-    gpu_c2b_unpack_kernel<<<n_block, block_size>>>(local_size,
+    hipLaunchKernelGGL(gpu_c2b_unpack_kernel, dim3(n_block), dim3(block_size), 0, 0, local_size,
                                                    length,
                                                    c0,
                                                    c1,
@@ -792,7 +793,7 @@ void gpu_transpose(const unsigned int size,
     unsigned int n_block = size/block_size;
     if (size % block_size ) n_block++;
     
-//    gpu_transpose_kernel<<<n_block, block_size>>>(size, length, stride, embed, in, out);
+//    hipLaunchKernelGGL(gpu_transpose_kernel, dim3(n_block), dim3(block_size), 0, 0, size, length, stride, embed, in, out);
     int size_x = stride;
     int size_y = length;
     int nblocks_x = size_x/TILE_DIM;
@@ -801,7 +802,7 @@ void gpu_transpose(const unsigned int size,
     if (size_y%TILE_DIM) nblocks_y++;
     dim3 grid(nblocks_x, nblocks_y), threads(TILE_DIM,BLOCK_ROWS);
     if (stride == 1 || length ==1 )
-        cudaMemcpy(out,in,sizeof(cuda_cpx_t)*stride*length,cudaMemcpyDefault);
+        hipMemcpy(out,in,sizeof(cuda_cpx_t)*stride*length,hipMemcpyDefault);
     else
-        transpose_sdk<<<grid, threads>>>(out,in, size_x, size_y,embed);
+        hipLaunchKernelGGL(transpose_sdk, dim3(grid), dim3(threads), 0, 0, out,in, size_x, size_y,embed);
     }

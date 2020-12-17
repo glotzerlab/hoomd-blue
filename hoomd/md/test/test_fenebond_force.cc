@@ -392,7 +392,7 @@ std::shared_ptr<PotentialBondFENE> base_class_bf_creator(std::shared_ptr<SystemD
     return std::shared_ptr<PotentialBondFENE>(new PotentialBondFENE(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialBondFENE creator for bond_force_basic_tests()
 std::shared_ptr<PotentialBondFENE> gpu_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -407,7 +407,7 @@ UP_TEST( PotentialBondFENE_basic )
     bond_force_basic_tests(bf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( PotentialBondFENEGPU_basic )
     {

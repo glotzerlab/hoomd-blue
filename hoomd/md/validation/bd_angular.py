@@ -20,7 +20,7 @@ class bd_angular_test(unittest.TestCase):
 
         context.initialize()
         snap = data.make_snapshot(N=1,particle_types=['A'], box = data.boxdim(L=10))
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.orientation[0] = (1,0,0,0)
             snap.particles.moment_inertia[0] = (0,1,1)

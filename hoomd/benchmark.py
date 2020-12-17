@@ -24,7 +24,7 @@ def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     """
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("Cannot tune r_buff before initialization\n");
+        raise RuntimeError("Cannot tune r_buff before initialization\n");
 
     tps_list = [];
 

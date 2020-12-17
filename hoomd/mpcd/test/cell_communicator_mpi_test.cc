@@ -223,7 +223,7 @@ UP_TEST( mpcd_cell_communicator_overdecompose )
     cell_communicator_overdecompose_test(exec_conf_cpu);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! dimension test case for MPCD CellList class
 UP_TEST( mpcd_cell_communicator_gpu )
     {
@@ -250,4 +250,4 @@ UP_TEST( mpcd_cell_communicator_gpu )
         cell_communicator_reduce_test(exec_conf_gpu, true, true, true);
         }
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

@@ -20,19 +20,19 @@ if (ENABLE_MPI)
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=cpu" LABELS "validation")
     set_tests_properties(${TEST_NAME}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-    if (ENABLE_CUDA)
+    if (ENABLE_HIP)
         add_test(NAME ${TEST_NAME}-gpu
                  COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                          ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=gpu" LABELS "validation")
     set_tests_properties(${TEST_NAME}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-    endif (ENABLE_CUDA)
+    endif (ENABLE_HIP)
 else ()
     add_test(NAME ${TEST_NAME}-cpu COMMAND ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=cpu" LABELS "validation")
     set_tests_properties(${TEST_NAME}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-    if (ENABLE_CUDA)
+    if (ENABLE_HIP)
         add_test(NAME ${TEST_NAME}-gpu COMMAND ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=gpu" LABELS "validation")
         set_tests_properties(${TEST_NAME}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-    endif (ENABLE_CUDA)
+    endif (ENABLE_HIP)
 endif()
 
 endmacro(add_hoomd_script_test)
@@ -49,12 +49,12 @@ add_test(NAME ${TEST_NAME}-mpi-cpu
          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
          ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=cpu" LABELS "validation")
 set_tests_properties(${TEST_NAME}-mpi-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 add_test(NAME ${TEST_NAME}-mpi-gpu
          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
          ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${TEST_FILE} "--mode=gpu" LABELS "validation")
 set_tests_properties(${TEST_NAME}-mpi-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 endmacro(add_hoomd_script_test_mpi)
 ###############################
 

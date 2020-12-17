@@ -12,7 +12,7 @@
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/TempRescaleUpdater.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/ComputeThermoGPU.h"
 #endif
 
@@ -58,7 +58,7 @@ UP_TEST( ComputeThermo_basic )
     MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case to verify proper operation of ComputeThermoGPU
 UP_TEST( ComputeThermoGPU_basic )
     {

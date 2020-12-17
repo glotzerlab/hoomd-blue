@@ -11,7 +11,7 @@
 
 #include "hoomd/md/FIREEnergyMinimizer.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/FIREEnergyMinimizerGPU.h"
 #include "hoomd/md/TwoStepNVEGPU.h"
 #endif
@@ -45,7 +45,7 @@ std::shared_ptr<TwoStepNVE> base_class_nve_creator(std::shared_ptr<SystemDefinit
     return std::shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! TwoStepNVEGPU factory for the unit tests
 std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
     {
@@ -539,7 +539,7 @@ UP_TEST( FIREEnergyMinimizer_smallsystem_test )
     fire_smallsystem_test(base_class_fire_creator, base_class_nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Sees if a single particle's trajectory is being calculated correctly
 UP_TEST( FIREEnergyMinimizerGPU_twoparticle_test )
     {

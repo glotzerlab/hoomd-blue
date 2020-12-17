@@ -4,9 +4,9 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/Sorter.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/SorterGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -338,7 +338,7 @@ UP_TEST( mpcd_sorter_virtual_test )
     {
     sorter_virtual_test<mpcd::Sorter>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( mpcd_sorter_test_gpu )
     {
     sorter_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -347,4 +347,4 @@ UP_TEST( mpcd_sorter_virtual_test_gpu )
     {
     sorter_virtual_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

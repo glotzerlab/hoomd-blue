@@ -3,6 +3,7 @@
 
 // Maintainer: mspells
 
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "DEMEvaluator.h"
@@ -14,11 +15,12 @@
 #ifndef __DEM2DFORCEGPU_CUH__
 #define __DEM2DFORCEGPU_CUH__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 
 //! Kernel driver that computes 2D DEM forces on the GPU for DEM2DForceComputeGPU
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
-cudaError_t gpu_compute_dem2d_forces(
+hipError_t gpu_compute_dem2d_forces(
         Scalar4* d_force,
         Scalar4* d_torque,
         Scalar* d_virial,

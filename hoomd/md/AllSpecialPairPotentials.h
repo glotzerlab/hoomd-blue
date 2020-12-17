@@ -11,7 +11,7 @@
 #include "EvaluatorSpecialPairLJ.h"
 #include "EvaluatorSpecialPairCoulomb.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialSpecialPairGPU.h"
 #include "AllDriverPotentialSpecialPairGPU.cuh"
 #endif
@@ -20,7 +20,7 @@
     \brief Handy list of typedefs for all of the templated special pair potentials in hoomd
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -29,7 +29,7 @@ typedef PotentialSpecialPair<EvaluatorSpecialPairLJ> PotentialSpecialPairLJ;
 //! Special pair potential force compute for Coulomb forces
 typedef PotentialSpecialPair<EvaluatorSpecialPairCoulomb> PotentialSpecialPairCoulomb;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Special potential force compute for LJ forces on the GPU
 typedef PotentialSpecialPairGPU< EvaluatorSpecialPairLJ, gpu_compute_lj_forces > PotentialSpecialPairLJGPU;
 //! Special potential force compute for Coulomb forces on the GPU

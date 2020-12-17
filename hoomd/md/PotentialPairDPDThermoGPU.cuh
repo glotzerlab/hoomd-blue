@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -15,13 +16,17 @@
 #include "hoomd/ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 #include <cassert>
 
-//! Maximum number of threads (width of a dpd_warp)
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_dpd_pair_force_max_tpp = 64;
+#endif
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
@@ -101,7 +106,7 @@ struct dpd_pair_args_t
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -165,10 +170,10 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -333,8 +338,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 template<typename T>
 int dpd_get_max_block_size(T func)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void *)func);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void *)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_dpd_pair_force_max_tpp;
@@ -380,9 +385,7 @@ struct DPDForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
 
-            gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>
-                                <<<grid, block_size, shared_bytes>>>
-                                (args.d_force,
+            hipLaunchKernelGGL((gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>), dim3(grid), dim3(block_size), shared_bytes, 0, args.d_force,
                                 args.d_virial,
                                 args.virial_pitch,
                                 args.N,
@@ -425,7 +428,7 @@ struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nli
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
+hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                    const typename evaluator::param_type *d_params)
     {
     assert(d_params);
@@ -448,7 +451,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 break;
                 }
             default:
-                return cudaErrorUnknown;
+                return hipErrorUnknown;
             }
         }
     else
@@ -466,11 +469,11 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 break;
                 }
             default:
-                return cudaErrorUnknown;
+                return hipErrorUnknown;
             }
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

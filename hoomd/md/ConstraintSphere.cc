@@ -186,7 +186,7 @@ void ConstraintSphere::validate()
 
 void export_ConstraintSphere(py::module& m)
     {
-    py::class_< ConstraintSphere, std::shared_ptr<ConstraintSphere> >(m, "ConstraintSphere", py::base<ForceConstraint>())
+    py::class_< ConstraintSphere, ForceConstraint, std::shared_ptr<ConstraintSphere> >(m, "ConstraintSphere")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                      std::shared_ptr<ParticleGroup>,
                      Scalar3,

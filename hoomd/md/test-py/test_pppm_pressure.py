@@ -51,7 +51,7 @@ class pppm_pressure_tests (unittest.TestCase):
         def log_callback(timestep):
             v = log.query('pressure');
             pressure_measure.append(v)
-            if comm.get_rank() == 0:
+            if context.current.device.comm.rank == 0:
                 print('pressure =', v);
 
         run(5000,callback=log_callback, callback_period=50)

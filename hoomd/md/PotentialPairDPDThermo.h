@@ -16,7 +16,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -304,7 +304,7 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
 */
 template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())
+    pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
         .def("setSeed", &T::setSeed)
         .def("setT", &T::setT)

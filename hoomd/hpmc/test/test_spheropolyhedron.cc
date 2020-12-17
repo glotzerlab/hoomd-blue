@@ -12,10 +12,12 @@ HOOMD_UP_MAIN();
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapeSpheropolyhedron.h"
 
+#include "hoomd/extern/quickhull/QuickHull.hpp"
+
 #include <iostream>
 #include <string>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 using namespace hpmc;
@@ -51,6 +53,31 @@ poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sw
     // set the diameter
     result.diameter = 2*(sqrt(radius_sq)+sweep_radius);
 
+    if (vlist.size() >= 3)
+        {
+        // compute convex hull of vertices
+        typedef quickhull::Vector3<OverlapReal> vec;
+
+        std::vector<vec> qh_pts;
+        for (unsigned int i = 0; i < vlist.size(); i++)
+            {
+            vec vert;
+            vert.x = vlist[i].x;
+            vert.y = vlist[i].y;
+            vert.z = vlist[i].z;
+            qh_pts.push_back(vert);
+            }
+
+        quickhull::QuickHull<OverlapReal> qh;
+        auto hull = qh.getConvexHull(qh_pts, false, true);
+        auto indexBuffer = hull.getIndexBuffer();
+
+        result.hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), false);
+        result.n_hull_verts = indexBuffer.size();
+
+        for (unsigned int i = 0; i < indexBuffer.size(); i++)
+             result.hull_verts[i] = indexBuffer[i];
+        }
     return result;
     }
 
@@ -90,7 +117,6 @@ UP_TEST( support )
     {
     // Find the support of a tetrahedron
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -100,7 +126,7 @@ UP_TEST( support )
     poly3d_verts verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
-    SupportFuncSpheropolyhedron sa = SupportFuncSpheropolyhedron(verts);
+    SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron(verts,verts.sweep_radius);
     vec3<OverlapReal> v1, v2;
 
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -122,7 +148,6 @@ UP_TEST( composite_support )
     {
     // Find the support of the Minkowski difference of two offset cubes
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
@@ -162,7 +187,6 @@ UP_TEST( sphere )
     // test sphere: zero-vertex special case
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a sphere
     vector< vec3<OverlapReal> > vlist;
@@ -211,7 +235,6 @@ UP_TEST( overlap_octahedron_no_rot )
     // first set of simple overlap checks is two octahedra at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -296,7 +319,6 @@ UP_TEST( overlap_cube_no_rot )
     // first set of simple overlap checks is two squares at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -404,8 +426,6 @@ UP_TEST( overlap_cube_rot1 )
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
 
-    BoxDim box(100);
-
     // build a square
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
@@ -485,8 +505,6 @@ UP_TEST( overlap_cube_rot2 )
     quat<Scalar> o_a;
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
-
-    BoxDim box(100);
 
     // build a cube
     vector< vec3<OverlapReal> > vlist;
@@ -570,8 +588,6 @@ UP_TEST( overlap_cube_rot3 )
     const quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(1,0,0));
     const quat<Scalar> q2(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1));
     quat<Scalar> o_b(q2 * q1);
-
-    BoxDim box(100);
 
     // build a cube
     vector< vec3<OverlapReal> > vlist;
@@ -687,7 +703,6 @@ UP_TEST( overlap_cube_precise )
     // test two squares just touching and barely separated to test precision
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     // build a cube
@@ -840,3 +855,71 @@ UP_TEST( overlap_cube_precise )
     UP_ASSERT(test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     }
+
+UP_TEST( closest_pt_rounded_cube_no_rot )
+    {
+    vec3<Scalar> r_ij;
+    quat<Scalar> o;
+
+    // build a cube
+    vector< vec3<OverlapReal> > vlist;
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
+
+    OverlapReal R = 0.5;
+    poly3d_verts verts = setup_verts(vlist,R);
+
+    ShapeSpheropolyhedron a(o, verts);
+
+    ProjectionFuncConvexPolyhedron P(verts,verts.sweep_radius);
+
+    // a point inside
+    vec3<OverlapReal> p = P(vec3<OverlapReal>(0,0,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the x axis
+    p = P(vec3<OverlapReal>(1.25,0,0));
+    MY_CHECK_CLOSE(p.x,1,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the y axis
+    p = P(vec3<OverlapReal>(0,2,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,1,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the z axis
+    p = P(vec3<OverlapReal>(0,0,3));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,1,tol);
+
+    // a point nearest to the +yz face
+    p = P(vec3<OverlapReal>(1.5,.25,.25));
+    MY_CHECK_CLOSE(p.x,1,tol);
+    MY_CHECK_CLOSE(p.y,0.25,tol);
+    MY_CHECK_CLOSE(p.z,0.25,tol);
+
+    // a point nearest to a corner
+    p = P(vec3<OverlapReal>(2,2,2));
+    MY_CHECK_CLOSE(p.x,0.5+0.5/sqrt(3),tol);
+    MY_CHECK_CLOSE(p.y,0.5+0.5/sqrt(3),tol);
+    MY_CHECK_CLOSE(p.z,0.5+0.5/sqrt(3),tol);
+
+    // a point close to, but inside, the surface
+    p = P(vec3<OverlapReal>(0.75,0,0));
+    std::cout << p.x << " " << p.y << " " << p.z << std::endl;
+    MY_CHECK_CLOSE(p.x,0.75,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+    }
+

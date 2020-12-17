@@ -7,7 +7,6 @@
     \brief Defines the BoxResizeUpdater class
 */
 
-
 #include "BoxResizeUpdater.h"
 
 #include <math.h>
@@ -138,7 +137,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
 
 void export_BoxResizeUpdater(py::module& m)
     {
-    py::class_<BoxResizeUpdater, std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater",py::base<Updater>())
+    py::class_<BoxResizeUpdater, Updater, std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition>,
      std::shared_ptr<Variant>,
      std::shared_ptr<Variant>,

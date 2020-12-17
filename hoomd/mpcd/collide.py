@@ -37,17 +37,16 @@ class _collision_method(hoomd.meta._metadata):
     def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.collide: system must be initialized before collision method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.collide: system must be initialized before collision method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._collide is not None:
-            hoomd.context.msg.error('mpcd.collide: only one collision method can be created.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
@@ -60,9 +59,7 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = True
         self._cpp = None
 
-        hoomd.util.quiet_status()
         self.enable()
-        hoomd.util.unquiet_status()
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
@@ -89,7 +86,6 @@ class _collision_method(hoomd.meta._metadata):
             method.embed(polymer)
 
         """
-        hoomd.util.print_status_line()
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
@@ -107,7 +103,6 @@ class _collision_method(hoomd.meta._metadata):
         first before switching.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = True
         hoomd.context.current.mpcd._collide = self
@@ -124,7 +119,6 @@ class _collision_method(hoomd.meta._metadata):
         use this method to remove the current collision method before adding another.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
@@ -151,11 +145,10 @@ class _collision_method(hoomd.meta._metadata):
             hoomd.set_period(period=4)
 
         """
-        hoomd.util.print_status_line()
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
             raise RuntimeError('collision period can only be changed on multiple of current and new period')
 
         self._cpp.setPeriod(cur_tstep, period)
@@ -206,13 +199,12 @@ class at(_collision_method):
 
     """
     def __init__(self, seed, period, kT, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.ATCollisionMethod
             thermo_class = _mpcd.CellThermoCompute
         else:
@@ -234,10 +226,8 @@ class at(_collision_method):
                                   hoomd.context.current.mpcd._at_thermo,
                                   self.kT.cpp_variant)
 
-        hoomd.util.quiet_status()
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -254,7 +244,6 @@ class at(_collision_method):
             srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
 
         """
-        hoomd.util.print_status_line()
 
         if shift is not None:
             self.shift = shift
@@ -321,12 +310,11 @@ class srd(_collision_method):
 
     """
     def __init__(self, seed, period, angle, kT=False, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['angle','kT']
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
         else:
             collide_class = _mpcd.SRDCollisionMethodGPU
@@ -337,11 +325,9 @@ class srd(_collision_method):
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
-        hoomd.util.quiet_status()
         self.set_params(angle=angle, kT=kT)
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, angle=None, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -362,7 +348,6 @@ class srd(_collision_method):
             srd.set_params(kT=False)
 
         """
-        hoomd.util.print_status_line()
 
         if angle is not None:
             self.angle = angle

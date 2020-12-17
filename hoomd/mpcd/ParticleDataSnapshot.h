@@ -11,14 +11,14 @@
  * \brief Declaration of mpcd::ParticleDataSnapshot
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/VectorMath.h"
 // pybind11
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 #include <string>
 #include <vector>

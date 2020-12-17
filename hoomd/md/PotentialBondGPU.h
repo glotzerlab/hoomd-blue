@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_BOND_GPU_H__
 #define __POTENTIAL_BOND_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialBond.h"
 #include "PotentialBondGPU.cuh"
@@ -18,7 +18,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -30,7 +30,7 @@
 
     \sa export_PotentialBondGPU()
 */
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 class PotentialBondGPU : public PotentialBond<evaluator>
@@ -61,7 +61,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         virtual void computeForces(unsigned int timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -75,11 +75,11 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
         throw std::runtime_error("Error initializing PotentialBondGPU");
         }
 
-     // allocate and zero device memory
+    // allocate and zero device memory
     GPUArray<typename evaluator::param_type> params(this->m_bond_data->getNTypes(), this->m_exec_conf);
     this->m_params.swap(params);
 
-     // allocate flags storage on the GPU
+    // allocate flags storage on the GPU
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
@@ -87,10 +87,11 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_bond", this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_bond", this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
@@ -169,10 +170,10 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timeste
 */
 template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
             ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_GPU_H__

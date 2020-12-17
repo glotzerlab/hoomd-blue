@@ -231,7 +231,7 @@ void TwoStepBD::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepBD(py::module& m)
     {
-    py::class_<TwoStepBD, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD", py::base<TwoStepLangevinBase>())
+    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,

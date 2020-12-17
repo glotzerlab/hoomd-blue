@@ -72,7 +72,7 @@ void LogHDF5::setLoggedQuantities(const std::vector< std::string >& quantities)
 
 void export_LogHDF5(py::module& m)
     {
-    py::class_<LogHDF5, std::shared_ptr<LogHDF5> >(m,"LogHDF5", py::base<LogMatrix>())
+    py::class_<LogHDF5, LogMatrix, std::shared_ptr<LogHDF5> >(m,"LogHDF5")
         .def(py::init< std::shared_ptr<SystemDefinition>, pybind11::function >())
         .def("get_quantity_array",&LogHDF5::getQuantitiesArray,py::return_value_policy::copy)
         ;

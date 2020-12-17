@@ -10,14 +10,14 @@
     \brief Defines the driver functions for computing all types of anisotropic pair forces on the GPU
 */
 
-cudaError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t& pair_args,
+hipError_t gpu_compute_pair_aniso_forces_gb(const a_pair_args_t& pair_args,
             const EvaluatorPairGB::param_type* d_param,
             const EvaluatorPairGB::shape_param_type* d_shape_param)
     {
     return gpu_compute_pair_aniso_forces<EvaluatorPairGB>(pair_args, d_param, d_shape_param);
     }
 
-cudaError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t& pair_args,
+hipError_t gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t& pair_args,
             const EvaluatorPairDipole::param_type* d_param,
             const EvaluatorPairDipole::shape_param_type* d_shape_param)
     {

@@ -16,7 +16,7 @@ HOOMD_UP_MAIN();
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
 #include "hoomd/LoadBalancer.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/LoadBalancerGPU.h"
 #endif
 
@@ -395,7 +395,7 @@ UP_TEST( LoadBalancer_test_ghost)
     test_load_balancer_ghost<LoadBalancer>(exec_conf, BoxDim(1.0,-.6,.7,.5));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Tests basic particle redistribution on the GPU
 UP_TEST( LoadBalancerGPU_test_basic)
     {
@@ -431,6 +431,6 @@ UP_TEST( LoadBalancerGPU_test_ghost)
     // triclinic box 2
     test_load_balancer_ghost<LoadBalancerGPU>(exec_conf, BoxDim(1.0,-.6,.7,.5));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // ENABLE_MPI

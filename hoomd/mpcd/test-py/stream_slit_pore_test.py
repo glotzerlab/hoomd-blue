@@ -16,7 +16,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         hoomd.context.initialize()
 
         # set the decomposition in z for mpi builds
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             hoomd.comm.decomposition(nz=2)
 
         # default testing configuration
@@ -93,7 +93,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         # take one step, and everything should collide and bounce back
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-3.05,-4,-4.11])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [-1., 1.,-1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [ 3.05, 4, 4.11])
@@ -116,7 +116,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         # take another step where nothing hits now
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-3.15,-3.9,-4.21])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [ 3.15, 3.9, 4.21])
             np.testing.assert_array_almost_equal(snap.particles.position[2], [-3.15,-2, 4.21])
@@ -133,7 +133,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         # take one step, and everything should collide and bounce back
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-3.05,-4.1,-4.01])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [-1.,-1.,1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [ 3.05, 4.1, 4.01])
@@ -156,7 +156,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
         # take another step where nothing hits now
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-3.15,-4.2,-3.91])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [ 3.15, 4.2, 3.91])
             np.testing.assert_array_almost_equal(snap.particles.position[2], [-3.15,-2, 3.91])
@@ -170,7 +170,7 @@ class mpcd_stream_slit_pore_test(unittest.TestCase):
     def test_validate_box(self):
         # zero velocities to stop particles moving during testing
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.velocity[:] = 0.
         self.s.restore_snapshot(snap)
 

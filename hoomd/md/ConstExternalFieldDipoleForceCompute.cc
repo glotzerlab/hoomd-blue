@@ -97,7 +97,7 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
 
 void export_ConstExternalFieldDipoleForceCompute(py::module& m)
     {
-    py::class_< ConstExternalFieldDipoleForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute", py::base<ForceCompute>())
+    py::class_< ConstExternalFieldDipoleForceCompute, ForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
     .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams)
     ;

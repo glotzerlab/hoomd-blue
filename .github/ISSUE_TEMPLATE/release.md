@@ -17,5 +17,4 @@ Release checklist:
   - [Build status](https://readthedocs.org/projects/hoomd-blue/builds/)
   - [Output](https://hoomd-blue.readthedocs.io/en/latest/)
 - [ ] Tag and push.
-- [ ] Build tarball.
 - [ ] Update conda-forge recipe.

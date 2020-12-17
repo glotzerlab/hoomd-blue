@@ -13,7 +13,7 @@
 #include "hoomd/md/AllPairPotentials.h"
 
 #include "hoomd/md/TwoStepNVE.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNVEGPU.h"
 #endif
 
@@ -78,7 +78,7 @@ UP_TEST( DPD_ForceConservative_Test )
     dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( DPD_GPU_ForceConservative_Test )
     {
     dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -174,7 +174,7 @@ UP_TEST( DPD_Temp_Test )
     dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( DPD_GPU_Temp_Test )
     {
     dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

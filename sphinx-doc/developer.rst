@@ -1,44 +1,52 @@
 Developer Topics
 ================
 
-Plugins and Components
-----------------------
+Components
+----------
 
-HOOMD-Blue can be tuned for particular use cases in several ways. Many smaller workloads and higher-level use
-cases can be handled through python-level :py:func:`hoomd.run` callbacks. For heavier-duty work such as pair
-potential evaluation, HOOMD-Blue can be extended through ``components``. Components provide sets of
-functionality with a common overarching goal; for example, the :py:mod:`hoomd.hpmc` component provides code
-for hard particle Monte Carlo methods within HOOMD-Blue.
+Extend HOOMD-blue with a **component** implemented in C++ for performance-critical tasks, such as pair potential
+evaluation. A component provides a number of related functionalities. For example, the :py:mod:`hoomd.hpmc` component
+enables hard particle Monte Carlo methods with HOOMD-blue.
 
-Components can be compiled and installed as **builtin** components or as **external** components. Builtin
-components are built and installed alongside the rest of HOOMD-Blue, while external components are compiled
-after HOOMD-Blue has already been compiled and installed at its destination. They have the same capabilities,
-but builtin components are simpler to build while external components are more flexible for packaging
-purposes.
+Components can be compiled and installed as **built-in** components or as **external** components. The build process
+compiles HOOMD-blue and all built-in components together, requiring one ``cmake`` and ``make``. External components
+compile and link against a HOOMD-blue installation with a separate invocation of ``cmake`` and ``make install``. A
+properly configured component may be compiled either way. When the end user is compiling HOOMD-blue and components from
+source, built-in components compile and install everything at once which minimizes chances for errors (e.g. building
+HOOMD-blue against python 3.6, but the component against python 3.7). External components provide more flexibility for
+packaging purposes.
 
-The HOOMD-Blue source provides an example component template in the `example_plugin` subdirectory which
-supports installation either as a builtin component or as an external component, depending on how it is
-configured.
+The HOOMD-Blue source provides an example component template in the ``example_plugin`` subdirectory. ``example_plugin``
+demonstrates how to add a new ``update`` command with both CPU and GPU implementations. Use this as a template when
+developing your component.
 
-To set up the example component as a builtin component, simply create a symbolic link to the **internal**
-`example_plugin` directory (`example_plugin/example_plugin`) inside the `hoomd` subdirectory::
+Built-in components
+^^^^^^^^^^^^^^^^^^^
 
-  $ cd /path/to/hoomd-blue/hoomd
-  $ ln -s ../example_plugin/example_plugin example_plugin
-  $ cd ../build && make install
+You can fork HOOMD-blue and add your component directly, or you can create a separate source repository for your
+component. Create a symbolic link to the component in the ``hoomd`` source directory to compile it as a built-in
+component::
 
-Note that this has already been done for the case of the example component.
+  ▶  cd /path/to/hoomd-blue/hoomd
+  ▶  ln -s /path/to/your_component/your_component your_component
+  ▶  cd ../build
+  ▶  make
 
-Alternatively, one can use the example component as an external component. This relies on the
-`FindHOOMD.cmake` cmake script to set up cmake in a way that closely mirrors the cmake environment that HOOMD
-Blue was originally compiled with. The process is very similar to the process of installing HOOMD Blue
-itself. For ease of configuration, it is best to make sure that the `hoomd` module that is automatically
-imported by python is the one you wish to configure the component against and install to::
+Built-in components may be used directly from the ``build`` directory or installed.
 
-  $ cd /path/to/component
-  $ mkdir build && cd build
-  $ # This python command should print the location you wish to install into
-  $ python -c 'import hoomd;print(hoomd.__file__)'
-  $ # Add any extra cmake arguments you need here (like -DPYTHON_EXECUTABLE)
-  $ cmake ..
-  $ make install
+External components
+^^^^^^^^^^^^^^^^^^^
+
+To compile an external component, you must first install HOOMD-blue. Then, configure your component with ``cmake`` and
+``make install`` it into the hoomd python library. Point ``CMAKE_PREFIX_PATH`` at your virtual environment (if needed)
+so that cmake can find HOOMD::
+
+  ▶  cd /path/to/your_component
+  ▶  mkdir build && cd build
+  ▶  CMAKE_PREFIX_PATH=/path/to/virtual/environment cmake ..
+  ▶  make install
+
+The component build environment, including the compiler, CUDA, MPI, python, and other libraries, must match exactly with
+those used to build HOOMD-blue.
+
+External components must be installed before use.

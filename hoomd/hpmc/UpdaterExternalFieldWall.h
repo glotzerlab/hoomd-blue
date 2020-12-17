@@ -16,8 +16,8 @@
 #include "ExternalField.h"
 #include "ExternalFieldWall.h" // do we need anything else?
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -192,7 +192,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
 template< class Shape >
 void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     {
-   pybind11::class_< UpdaterExternalFieldWall<Shape>, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str(), pybind11::base< Updater >())
+   pybind11::class_< UpdaterExternalFieldWall<Shape>, Updater, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, std::shared_ptr< ExternalFieldWall<Shape> >, pybind11::object, Scalar, unsigned int >())
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)

@@ -16,11 +16,11 @@
     \brief Declares MPIConfiguration, which initializes the MPI environment
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Defines the MPI configuration for the simulation
 /*! \ingroup data_structs
@@ -133,6 +133,6 @@ class PYBIND11_EXPORT MPIConfiguration
 
 
 //! Exports MPIConfiguration to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_MPIConfiguration(pybind11::module& m);
 #endif

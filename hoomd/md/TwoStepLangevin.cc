@@ -427,7 +427,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepLangevin(py::module& m)
     {
-    py::class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin", py::base<TwoStepLangevinBase>())
+    py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,

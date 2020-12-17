@@ -11,7 +11,7 @@
 
 #include "hoomd/md/HarmonicDihedralForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/HarmonicDihedralForceComputeGPU.h"
 #endif
 
@@ -548,7 +548,7 @@ std::shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(std::shared_
     return std::shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! DihedralForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -565,7 +565,7 @@ UP_TEST( HarmonicDihedralForceCompute_basic )
     dihedral_force_phase_shift(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for dihedral forces on the GPU
 UP_TEST( HarmonicDihedralForceComputeGPU_basic )
     {

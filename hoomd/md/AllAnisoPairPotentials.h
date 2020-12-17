@@ -12,7 +12,7 @@
 #include "EvaluatorPairGB.h"
 #include "EvaluatorPairDipole.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "AnisoPotentialPairGPU.h"
 #include "AnisoPotentialPairGPU.cuh"
 #include "AllDriverAnisoPotentialPairGPU.cuh"
@@ -27,7 +27,7 @@ typedef AnisoPotentialPair<EvaluatorPairGB> AnisoPotentialPairGB;
 //! Pair potential force compute for dipole forces and torques
 typedef AnisoPotentialPair<EvaluatorPairDipole> AnisoPotentialPairDipole;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Pair potential force compute for Gay-Berne forces and torques on the GPU
 typedef AnisoPotentialPairGPU<EvaluatorPairGB,gpu_compute_pair_aniso_forces_gb> AnisoPotentialPairGBGPU;
 //! Pair potential force compute for dipole forces and torques on the GPU

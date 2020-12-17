@@ -6,6 +6,8 @@
 
 #include <stdlib.h>
 
+#pragma GCC visibility push(default)
+
 //#define FFT1D_SUPPORTS_THREADS
 
 typedef struct { float real, imag; } float2_dfft;
@@ -64,4 +66,6 @@ void dfft_local_1dfft(
     cpx_t *out,
     plan_t p,
     int dir);
+
+#pragma GCC visibility pop
 #endif

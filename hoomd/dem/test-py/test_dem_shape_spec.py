@@ -15,7 +15,7 @@ class dem_shape_spec_base(unittest.TestCase):
 
     def setUp(self):
         hoomd.context.initialize()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             tmp = tempfile.mkstemp(suffix='.test.gsd');
             self.tmp_file = tmp[1];
         else:
@@ -28,7 +28,7 @@ class dem_shape_spec_base(unittest.TestCase):
             system = hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=5.50),n=5);
         snapshot = system.take_snapshot(all=True)
         bindex = np.random.choice(range(5**dim),int(0.5*5**dim),replace=False)
-        if comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snapshot.particles.types = ['A', 'B']
             snapshot.particles.typeid[bindex] = 1
         hoomd.context.initialize()
@@ -42,8 +42,8 @@ class dem_shape_spec_base(unittest.TestCase):
         dumper.dump_shape(obj);
         steps = 5
         hoomd.run(steps);
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, 0, False);
-        if comm.get_rank() == 0:
+        reader = _hoomd.GSDReader(hoomd.context.current.device.cpp_exec_conf, filename, 0, False);
+        if hoomd.context.current.device.comm.rank == 0:
             for i in range(steps):
                 shape_spec = parse_shape_spec(reader.readTypeShapesPy(i));
                 self.assertEqual(shape_spec[0], expected_shapespec[0]);
@@ -97,7 +97,7 @@ class dem_shape_spec_base(unittest.TestCase):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
     def test_swca_2d(self):
-        if comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             return
         sq_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
         trg_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5]];
@@ -109,7 +109,7 @@ class dem_shape_spec_base(unittest.TestCase):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
     def test_swca_2d_with_sphere(self):
-        if comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             return
         sq_verts = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
         sph_verts = [[-0.5, -0.5]];
@@ -121,7 +121,7 @@ class dem_shape_spec_base(unittest.TestCase):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=2);
 
     def test_swca_3d(self):
-        if comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             return
         cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], \
                       [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]];
@@ -137,7 +137,7 @@ class dem_shape_spec_base(unittest.TestCase):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
     def test_swca_3d_with_sphere(self):
-        if comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             return
         cube_verts = [[-0.5, -0.5, -0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [-0.5, 0.5, 0.5], \
                       [0.5, -0.5, -0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5], [0.5, 0.5, 0.5]];
@@ -152,9 +152,8 @@ class dem_shape_spec_base(unittest.TestCase):
                           expected_shapespec=expected_shapespec, filename=self.tmp_file, dim=3);
 
     def tearDown(self):
-        if comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             os.remove(self.tmp_file);
-        comm.barrier_all();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

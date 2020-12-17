@@ -53,7 +53,7 @@ class pair_ewald_tests (unittest.TestCase):
 class test_pair_reaction_field_potential(unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(N=2, box=data.boxdim(L=10),particle_types=['A'])
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.particles.charge[0] = 1
             snap.particles.charge[1] = 2
             snap.particles.position[0] = (0,0,0)

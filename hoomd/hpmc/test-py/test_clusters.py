@@ -23,7 +23,7 @@ class test_clusters_spheres (unittest.TestCase):
     def test_integrate(self):
         run(100)
 
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             self.assertAlmostEqual(self.clusters.get_pivot_acceptance(),1.0)
         else:
             # in MPI, there are inactive boundaries
@@ -39,7 +39,7 @@ class test_clusters_spheres (unittest.TestCase):
 
         g = group.type(type='B',name='B')
         self.assertTrue(len(g) > 0)
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             self.assertAlmostEqual(self.clusters.get_swap_acceptance(),1.0)
         else:
             self.assertTrue(self.clusters.get_swap_acceptance() > 0)

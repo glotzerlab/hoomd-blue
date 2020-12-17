@@ -350,7 +350,7 @@ UP_TEST( getter_setter_tests )
 /*UP_TEST( run_tests )
     {
     Py_Initialize();
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     g_gpu_error_checking = true;
     #endif
 

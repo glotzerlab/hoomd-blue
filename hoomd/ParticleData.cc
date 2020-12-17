@@ -7,6 +7,7 @@
 /*! \file ParticleData.cc
     \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
+
 #include "ParticleData.h"
 #include "Profiler.h"
 
@@ -14,12 +15,12 @@
 #include "HOOMDMPI.h"
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CachedAllocator.h"
 #include "GPUPartition.cuh"
 #endif
 
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+#include <pybind11/numpy.h>
 
 #include <iostream>
 #include <cassert>
@@ -95,7 +96,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // initialize box dimensions on all processors
     setGlobalBox(global_box);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
@@ -122,14 +123,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -170,7 +163,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         throw runtime_error("Error initializing ParticleData");
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
@@ -197,14 +190,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 
@@ -260,7 +245,7 @@ const BoxDim & ParticleData::getGlobalBox() const
 */
 void ParticleData::notifyParticleSort()
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         // need to update GPUPartition if particle number changes
@@ -423,7 +408,7 @@ void ParticleData::allocate(unsigned int N)
     m_comm_flags.swap(comm_flags);
     TAG_ALLOCATION(m_comm_flags);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -541,8 +526,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
         memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
         }
 
-
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -579,7 +563,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
     // we have changed the global particle number, notify subscribers
     m_global_particle_num_signal.emit();
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -599,7 +583,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 void ParticleData::resize(unsigned int new_nparticles)
     {
     // update the partition information, so it is available to subscribers of various signals early
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_gpu_partition.setN(new_nparticles);
     #endif
@@ -680,7 +664,7 @@ void ParticleData::reallocate(unsigned int max_n)
 
     m_comm_flags.resize(max_n);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -730,7 +714,7 @@ void ParticleData::reallocate(unsigned int max_n)
             memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
             }
 
-        #ifdef ENABLE_CUDA
+        #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
         if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
             {
             auto gpu_map = m_exec_conf->getGPUIds();
@@ -1522,8 +1506,12 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(img, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1548,7 +1536,9 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1571,7 +1561,9 @@ Scalar3 ParticleData::getAcceleration(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1598,8 +1590,12 @@ int3 ParticleData::getImage(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1746,7 +1742,10 @@ Scalar4 ParticleData::getOrientation(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1769,7 +1768,10 @@ Scalar4 ParticleData::getAngularMomentum(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1792,7 +1794,9 @@ Scalar3 ParticleData::getMomentsOfInertia(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1815,7 +1819,10 @@ Scalar4 ParticleData::getPNetForce(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1839,7 +1846,10 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -2866,7 +2876,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
     notifyParticleSort();
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Pack particle data into a buffer (GPU version)
 /*! \note This method may only be used during communication or when
  *        no ghost particles are present, because ghost particle values
@@ -2981,7 +2991,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
                            d_comm_flags_out.data,
                            max_n_out,
                            d_tmp.data,
-                           m_mgpu_context,
+                           m_exec_conf->getCachedAllocatorManaged(),
                            m_gpu_partition);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -3093,12 +3103,12 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
 void ParticleData::setGPUAdvice()
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled())
         {
         // only call CUDA API when necessary

@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -33,7 +34,7 @@ void gpu_zero_velocities_kernel(Scalar4 *d_vel, unsigned int N)
     \param N Number of particles
     This is just a driver for gpu_zero_velocities_kernel(), see it for the details
 */
-cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
+hipError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -41,9 +42,9 @@ cudaError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_zero_velocities_kernel<<< grid, threads >>>(d_vel, N);
+    hipLaunchKernelGGL(gpu_zero_velocities_kernel, dim3(grid), dim3(threads ), 0, 0, d_vel, N);
 
     // this method always succeeds. If you had a cuda* call in this driver, you could return its error code if not
-    // cudaSuccess
-    return cudaSuccess;
+    // hipSuccess
+    return hipSuccess;
     }

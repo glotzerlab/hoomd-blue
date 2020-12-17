@@ -25,8 +25,7 @@ class _variant:
     def __init__(self):
         # check if initialization has occurred
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("Cannot create a variant before initialization\n");
-            raise RuntimeError('Error creating variant');
+            raise RuntimeError('Cannot create a variant before initialization\n');
 
         self.cpp_variant = None;
 
@@ -104,10 +103,10 @@ class linear_interp(_variant):
         else:
             # validate zero
             if zero < 0:
-                hoomd.context.msg.error("Cannot create a linear_interp variant with a negative zero\n");
+                hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with a negative zero\n");
                 raise RuntimeError('Error creating variant');
             if zero > hoomd.context.current.system.getCurrentTimeStep():
-                hoomd.context.msg.error("Cannot create a linear_interp variant with a zero in the future\n");
+                hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with a zero in the future\n");
                 raise RuntimeError('Error creating variant');
 
             zero = int(zero)
@@ -115,12 +114,12 @@ class linear_interp(_variant):
 
         # set the points
         if len(points) == 0:
-            hoomd.context.msg.error("Cannot create a linear_interp variant with 0 points\n");
+            hoomd.context.current.device.cpp_msg.error("Cannot create a linear_interp variant with 0 points\n");
             raise RuntimeError('Error creating variant');
 
         for (t, v) in points:
             if t < 0:
-                hoomd.context.msg.error("Negative times are not allowed in variant.linear_interp\n");
+                hoomd.context.current.device.cpp_msg.error("Negative times are not allowed in variant.linear_interp\n");
                 raise RuntimeError('Error creating variant');
 
             self.cpp_variant.setPoint(int(t), v);
@@ -147,5 +146,5 @@ def _setup_variant_input(v):
         try:
             return _constant(float(v));
         except ValueError:
-            hoomd.context.msg.error("Value must either be a scalar value or a the result of a variant command\n");
+            hoomd.context.current.device.cpp_msg.error("Value must either be a scalar value or a the result of a variant command\n");
             raise RuntimeError('Error creating variant');

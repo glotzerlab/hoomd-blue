@@ -110,7 +110,7 @@ std::shared_ptr<AnisoPotentialPairDipole> base_class_dipole_creator(std::shared_
     return std::shared_ptr<AnisoPotentialPairDipole>(new AnisoPotentialPairDipole(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<AnisoPotentialPairDipoleGPU> gpu_dipole_creator(std::shared_ptr<SystemDefinition> sysdef,
                                           std::shared_ptr<NeighborList> nlist)
@@ -127,7 +127,7 @@ UP_TEST( AnisoPotentialPairDipole_particle )
     dipole_force_particle_test(dipole_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( AnisoPotentialPairDipoleGPU_particle )
     {

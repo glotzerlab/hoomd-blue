@@ -23,7 +23,7 @@ class angle_table_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.angles.resize(10);
 
             for i in range(10):

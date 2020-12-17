@@ -9,9 +9,9 @@
  */
 
 #include "SystemData.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CellListGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 /*!
  * \param sysdef System definition
@@ -28,13 +28,13 @@ mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
      * There is limited overhead to automatically creating a cell list (it is not sized
      * until first compute), so we always make one.
      */
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_sysdef->getParticleData()->getExecConf()->isCUDAEnabled())
         {
         m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
         }
     else
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
         {
         m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
         }
@@ -62,13 +62,13 @@ mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
      * There is limited overhead to automatically creating a cell list (it is not sized
      * until first compute), so we always make one.
      */
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (snapshot->getExecutionConfiguration()->isCUDAEnabled())
         {
         m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
         }
     else
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
         {
         m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
         }

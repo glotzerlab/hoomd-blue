@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #include "TwoStepBerendsen.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 
@@ -148,7 +148,7 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
 void export_Berendsen(py::module& m)
     {
-    py::class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<ParticleGroup>,
                          std::shared_ptr<ComputeThermo>,

@@ -8,8 +8,6 @@
     \brief Defines the DCDDumpWriter class and related helper functions
 */
 
-
-
 #include "DCDDumpWriter.h"
 #include "Filesystem.h"
 #include "time.h"
@@ -411,7 +409,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
 
 void export_DCDDumpWriter(py::module& m)
     {
-    py::class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter",py::base<Analyzer>())
+    py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)

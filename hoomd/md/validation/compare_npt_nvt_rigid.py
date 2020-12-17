@@ -78,7 +78,7 @@ class npt_rigid_validation(unittest.TestCase):
         P_avg = np.mean(np.array(Pval))
         i, P_err = block.get_error_estimate()
 
-        context.msg.notice(1,'rho={:.3f} P = {:.5f}+-{:.5f}\n'.format(rho,P_avg,P_err))
+        context.current.device.cpp_msg.notice(1,'rho={:.3f} P = {:.5f}+-{:.5f}\n'.format(rho,P_avg,P_err))
         nvt.disable()
 
         # re-initialize
@@ -98,7 +98,7 @@ class npt_rigid_validation(unittest.TestCase):
         rho_avg = np.mean(np.array(rho_val))
         i, rho_err = block.get_error_estimate()
 
-        context.msg.notice(1,'P={:.5f} rho_avg = {:.5f}+-{:.5f}\n'.format(P_avg,rho_avg,rho_err))
+        context.current.device.cpp_msg.notice(1,'P={:.5f} rho_avg = {:.5f}+-{:.5f}\n'.format(P_avg,rho_avg,rho_err))
 
         # max error 0.5 %
         self.assertLessEqual(rho_err/rho_avg,0.005)

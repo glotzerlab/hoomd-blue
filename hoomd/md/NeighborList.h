@@ -18,11 +18,11 @@
     \brief Declares the NeighborList class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
@@ -534,7 +534,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         #endif
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Reset memory usage hints
         void unsetMemoryMapping();
 
@@ -589,7 +589,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_need_reallocate_exlist = true;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };

@@ -413,11 +413,15 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MP
             {
             if( ms->rank == 0)
                 {
-                  recv(*vel,tmp.i,ms->comm);
+                  recv(vel->x,tmp.i,ms->comm);
+                  recv(vel->y,tmp.i,ms->comm);
+                  recv(vel->z,tmp.i,ms->comm);
                 }
             if( ms->rank == tmp.i)
                 {
-                  send(*vel, 0 , ms->comm);
+                  send(vel->x, 0 , ms->comm);
+                  send(vel->y, 0 , ms->comm);
+                  send(vel->z, 0 , ms->comm);
                 }
             }
         //ms->rank == 0 has the definite answer
@@ -425,7 +429,9 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MP
     //Broadcast the result to every rank.
     //This way, each rank can check, whether
     //it needs to update and can determine the exchanged momentum.
-    bcast( *vel, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->x, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->y, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->z, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
     }
 
 void MuellerPlatheFlow::mpi_exchange_velocity(void)
@@ -443,8 +449,8 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 
 void export_MuellerPlatheFlow(py::module& m)
     {
-    py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >
-        flow (m,"MuellerPlatheFlow",py::base<Updater>());
+    py::class_< MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow> >
+        flow (m,"MuellerPlatheFlow");
     flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
              std::shared_ptr<Variant>, const flow_enum::Direction, const flow_enum::Direction,
              const unsigned int, const unsigned int, const unsigned int >() )

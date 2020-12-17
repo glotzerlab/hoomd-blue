@@ -200,10 +200,10 @@ double CellList::benchmark(unsigned int num_iters)
     // warm up run
     computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -213,9 +213,9 @@ double CellList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -286,9 +286,9 @@ void CellList::initializeMemory()
         {
         // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
         uint3 n_unique_neighbors = m_dim;
-        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.z;
 
         unsigned int n_adj;
         if (m_sysdef->getNDimensions() == 2)
@@ -562,7 +562,7 @@ void CellList::computeCellList()
             }
         else
             {
-            conditions.x = max(conditions.x, offset+1);
+            conditions.x = max((unsigned int)conditions.x, offset+1);
             }
 
         // increment the cell occupancy counter
@@ -682,7 +682,7 @@ void CellList::printStats()
 
 void export_CellList(py::module& m)
     {
-    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+    py::class_<CellList, Compute, std::shared_ptr<CellList> >(m,"CellList")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)

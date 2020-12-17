@@ -7,6 +7,7 @@
 /*! \file SystemDefinition.cc
     \brief Defines SystemDefinition
 */
+
 #include "SystemDefinition.h"
 
 #include "SnapshotSystemData.h"

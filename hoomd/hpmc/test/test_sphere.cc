@@ -11,7 +11,7 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 using namespace hpmc;
@@ -109,3 +109,50 @@ UP_TEST( overlap_boundaries )
     UP_ASSERT(test_overlap(rij,a,c,err_count));
     UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }
+
+ UP_TEST( overlap_three_spheres )
+    {
+    // parameters
+    quat<Scalar> o;
+    sph_params par;
+    par.radius=0.5;
+    par.ignore = 0;
+    par.isOriented = false;
+
+    // place three non-overlapping test spheres
+    vec3<Scalar> r_ab(0,0,1.5);
+    vec3<Scalar> r_ac(0,1.5,0);
+    ShapeSphere a(o, par);
+    ShapeSphere b(o, par);
+    ShapeSphere c(o, par);
+    UP_ASSERT(!test_overlap_intersection(a,b,c,r_ab,r_ac,err_count));
+
+    // place three circles with pairwise, but no joint overlap
+    sph_params par2;
+    par2.radius = 0.77;
+    par2.ignore = 0;
+    par2.isOriented = false;
+    r_ab = vec3<Scalar>(-.5,-.5,0);
+    vec3<Scalar> r_ad = vec3<Scalar>(.7,-.9,0);
+
+    ShapeSphere d(o,par2);
+    UP_ASSERT(test_overlap(r_ab,a,b,err_count));
+    UP_ASSERT(test_overlap(r_ad,a,d,err_count));
+    UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
+    UP_ASSERT(!test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
+
+    // move one of the spheres slightly so as to create triple overlap
+    r_ad.x = 0.5;
+    UP_ASSERT(test_overlap(r_ab,a,b,err_count));
+    UP_ASSERT(test_overlap(r_ad,a,d,err_count));
+    UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
+    UP_ASSERT(test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
+
+    // place one of the spheres on top of the other
+    r_ad.x = r_ad.y = 0;
+    UP_ASSERT(test_overlap(r_ab,a,b,err_count));
+    UP_ASSERT(test_overlap(r_ad,a,d,err_count));
+    UP_ASSERT(test_overlap(r_ad-r_ab,b,d,err_count));
+    UP_ASSERT(test_overlap_intersection(a,b,d,r_ab,r_ad,err_count));
+    }
+

@@ -8,7 +8,7 @@
 #include "EvaluatorPairBuckingham.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
-cudaError_t gpu_compute_buckingham_forces(const pair_args_t & args,
+hipError_t gpu_compute_buckingham_forces(const pair_args_t & args,
                                                 const Scalar4 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairBuckingham>(args,

@@ -7,7 +7,7 @@
     \brief Declares the Variant and related classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -18,7 +18,7 @@
 #include "HOOMDMath.h"
 
 #include <map>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Base type for time varying quantities
 /*! Virtual base class for variables specified to vary over time. The base class provides

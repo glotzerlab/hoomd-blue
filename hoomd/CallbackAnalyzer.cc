@@ -8,8 +8,6 @@
     \brief Defines the CallbackAnalyzer class
 */
 
-
-
 #include "CallbackAnalyzer.h"
 
 #ifdef ENABLE_MPI
@@ -47,7 +45,7 @@ void CallbackAnalyzer::analyze(unsigned int timestep)
 
 void export_CallbackAnalyzer(py::module& m)
     {
-    py::class_<CallbackAnalyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer",py::base<Analyzer>())
+    py::class_<CallbackAnalyzer, Analyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer")
     .def(py::init< std::shared_ptr<SystemDefinition>, py::object>())
     ;
     }

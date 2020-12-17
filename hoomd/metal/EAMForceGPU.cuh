@@ -21,7 +21,6 @@ struct EAMTexInterData
     int ntypes;             //!< number of potential element types
     int nrho;               //!< number of tabulated values of F(rho)
     int nr;                 //!< number of tabulated values of rho(r), r*phi(r)
-    int block_size;         //!< block size, for GPU kernel
     Scalar dr;              //!< interval of r
     Scalar rdr;             //!< 1.0 / dr
     Scalar drho;            //!< interval of rho
@@ -31,10 +30,11 @@ struct EAMTexInterData
     };
 
 //! Kernel driver that computes EAM forces on the GPU for EAMForceComputeGPU
-cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial, const unsigned int virial_pitch,
+hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial, const unsigned int virial_pitch,
         const unsigned int N, const Scalar4 *d_pos, const BoxDim& box, const unsigned int *d_n_neigh,
         const unsigned int *d_nlist, const unsigned int *d_head_list, const unsigned int size_nlist,
-        const EAMTexInterData& eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
-        const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi);
+        const EAMTexInterData *d_eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
+        const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi,
+        const unsigned int block_size);
 
 #endif

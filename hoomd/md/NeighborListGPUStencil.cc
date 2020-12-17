@@ -58,7 +58,8 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     std::vector<unsigned int> valid_params;
 
     const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
@@ -192,7 +193,7 @@ void NeighborListGPUStencil::sortTypes()
 
         if (swap)
             {
-            cudaMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+            hipMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), hipMemcpyDeviceToDevice);
             }
         }
 
@@ -325,7 +326,7 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUStencil(py::module& m)
     {
-    py::class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil", py::base<NeighborListGPU>())
+    py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

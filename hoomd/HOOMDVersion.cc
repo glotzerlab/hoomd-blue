@@ -9,8 +9,8 @@
 #include <sstream>
 #include <string>
 
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
 using namespace std;
@@ -25,11 +25,17 @@ std::string hoomd_compile_flags()
     {
     ostringstream o;
 
-    #ifdef ENABLE_CUDA
-    int cudart_major = CUDART_VERSION / 1000;
-    int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+    #ifdef ENABLE_HIP
+    int hip_major = HIP_VERSION_MAJOR;
+    int hip_minor = HIP_VERSION_MINOR;
 
-    o << "CUDA (" << cudart_major << "." << cudart_minor << ") ";
+    o << "GPU [";
+    #if defined(__HIP_PLATFORM_NVCC__)
+    o << "CUDA";
+    #elif defined(__HIP_PLATFORM_HCC__)
+    o << "ROCm";
+    #endif
+    o << "] (" << hip_major << "." << hip_minor << ") ";
     #endif
 
     #ifdef SINGLE_PRECISION
@@ -107,10 +113,5 @@ string output_version_info()
     o << endl << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 #endif
 
-#ifdef ENABLE_CUDA
-#ifdef _DEVICEEMU
-    o << endl << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
-#endif
-#endif
     return o.str();
     }

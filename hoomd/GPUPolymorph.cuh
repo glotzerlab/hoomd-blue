@@ -12,7 +12,7 @@
 #define HOOMD_GPU_POLYMORPH_CUH_
 
 #include <type_traits>
-#include <cuda_runtime.h>
+#include <hip/hip_runtime.h>
 
 namespace hoomd
 {
@@ -27,7 +27,7 @@ T* device_new(Args... args);
 template<class T>
 void device_delete(T* data);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 namespace kernel
 {
 //! Kernel to initialize and place object into allocated memory.
@@ -79,9 +79,9 @@ template<class T, typename ...Args>
 T* device_new(Args... args)
     {
     T* data;
-    cudaMalloc((void**)&data, sizeof(T));
+    hipMalloc((void**)&data, sizeof(T));
     kernel::device_construct<T,typename std::remove_reference<Args>::type...><<<1,1>>>(data, args...);
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
     return data;
     }
 
@@ -99,11 +99,11 @@ void device_delete(T* data)
     if (data)
         {
         kernel::device_destroy<<<1,1>>>(data);
-        cudaDeviceSynchronize();
-        cudaFree((void*)data);
+        hipDeviceSynchronize();
+        hipFree((void*)data);
         }
     }
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace gpu
 } // end namespace hoomd

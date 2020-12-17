@@ -12,7 +12,7 @@
 #include <fstream>
 
 #include "hoomd/md/PPPMForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/PPPMForceComputeGPU.h"
 #endif
 
@@ -207,7 +207,7 @@ std::shared_ptr<PPPMForceCompute> base_class_pppm_creator(std::shared_ptr<System
     return std::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PPPMForceComputeGPU creator for unit tests
 std::shared_ptr<PPPMForceCompute> gpu_pppm_creator(std::shared_ptr<SystemDefinition> sysdef,
                                               std::shared_ptr<NeighborList> nlist,
@@ -234,7 +234,7 @@ UP_TEST( PPPMForceCompute_triclinic )
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( PPPMForceComputeGPU_basic )
     {

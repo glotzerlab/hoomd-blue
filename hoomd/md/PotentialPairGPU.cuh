@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -11,9 +12,9 @@
 
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 
 #include <assert.h>
 #include <type_traits>
@@ -26,7 +27,12 @@
 #define __POTENTIAL_PAIR_GPU_CUH__
 
 //! Maximum number of threads (width of a warp)
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_pair_force_max_tpp = 64;
+#endif
 
 
 //! Wraps arguments to gpu_cgpf
@@ -101,7 +107,7 @@ struct pair_args_t
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -163,11 +169,11 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
-    Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(Scalar))]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
+    Scalar *s_ronsq = (Scalar *)(&s_data[num_typ_parameters*(sizeof(typename evaluator::param_type) + sizeof(Scalar))]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -372,8 +378,8 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 template<typename T>
 int get_max_block_size(T func)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void *)func);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void *)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_pair_force_max_tpp;
@@ -424,8 +430,7 @@ struct PairForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1, 1, 1);
 
-            gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>
-              <<<grid, block_size, shared_bytes>>>(pair_args.d_force, pair_args.d_virial,
+            hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator, shift_mode, compute_virial, tpp>), dim3(grid), dim3(block_size), shared_bytes, 0, pair_args.d_force, pair_args.d_virial,
               pair_args.virial_pitch, N, pair_args.d_pos, pair_args.d_diameter,
               pair_args.d_charge, pair_args.box, pair_args.d_n_neigh, pair_args.d_nlist,
               pair_args.d_head_list, d_params, pair_args.d_rcutsq, pair_args.d_ronsq, pair_args.ntypes, offset);
@@ -454,7 +459,7 @@ struct PairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     This is just a driver function for gpu_compute_pair_forces_shared_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
+hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
                                     const typename evaluator::param_type *d_params)
     {
     assert(d_params);
@@ -516,7 +521,7 @@ cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             }
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 #endif // __POTENTIAL_PAIR_GPU_CUH__

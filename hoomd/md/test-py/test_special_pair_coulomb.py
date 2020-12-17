@@ -18,7 +18,7 @@ class special_pair_coulomb_tests (unittest.TestCase):
                                   dihedral_types = [],
                                   improper_types = [])
 
-        if comm.get_rank() == 0:
+        if context.current.device.comm.rank == 0:
             snap.pairs.resize(3);
             snap.particles.position[0] = (0, 0, 0)
             snap.particles.position[1] = (0, 0, 3.5)
@@ -72,7 +72,7 @@ class special_pair_coulomb_tests (unittest.TestCase):
         md.integrate.nve(all);
         # remove a particle
         del(self.s.particles[0])
-        if comm.get_num_ranks() == 1:
+        if context.current.device.comm.num_ranks == 1:
             self.assertRaises(RuntimeError, run, 100);
         else:
             # in MPI simulations, we cannot check for an assertion during a simulation

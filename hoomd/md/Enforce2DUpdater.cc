@@ -63,7 +63,7 @@ void Enforce2DUpdater::update(unsigned int timestep)
 
 void export_Enforce2DUpdater(py::module& m)
     {
-    py::class_<Enforce2DUpdater, std::shared_ptr<Enforce2DUpdater> >(m, "Enforce2DUpdater", py::base<Updater>())
+    py::class_<Enforce2DUpdater, Updater, std::shared_ptr<Enforce2DUpdater> >(m, "Enforce2DUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

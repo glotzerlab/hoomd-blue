@@ -380,7 +380,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
 
 void export_FIREEnergyMinimizerGPU(py::module& m)
     {
-    py::class_<FIREEnergyMinimizerGPU, std::shared_ptr<FIREEnergyMinimizerGPU> >(m, "FIREEnergyMinimizerGPU", py::base<FIREEnergyMinimizer>())
+    py::class_<FIREEnergyMinimizerGPU, FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizerGPU> >(m, "FIREEnergyMinimizerGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         ;
     }

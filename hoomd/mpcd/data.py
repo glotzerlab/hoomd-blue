@@ -126,8 +126,7 @@ class snapshot(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
 
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-            raise RuntimeError("HOOMD system not initialized")
+            raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
         self.sys_snap = sys_snap
 
@@ -156,16 +155,15 @@ class snapshot(hoomd.meta._metadata):
         otherwise.
 
         """
-        hoomd.util.print_status_line()
 
         nx = int(nx)
         ny = int(ny)
         nz = int(nz)
         if nx == ny == nz == 1:
-            hoomd.context.msg.warning("mpcd: all replication factors are one, ignoring.\n")
+            hoomd.context.current.device.cpp_msg.warning("mpcd: all replication factors are one, ignoring.\n")
             return
         elif nx <= 0 or ny <=0 or nz <= 0:
-            hoomd.context.msg.error("mpcd: all replication factors must be positive.\n")
+            hoomd.context.current.device.cpp_msg.error("mpcd: all replication factors must be positive.\n")
             raise ValueError("Replication factors must be positive integers")
 
         self.sys_snap.replicate(nx, ny, nz)
@@ -187,7 +185,7 @@ class system(hoomd.meta._metadata):
         hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
 
         # create a cell thermo for the system for collision method and logger
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self._thermo = _mpcd.CellThermoCompute(self.data)
         else:
             self._thermo = _mpcd.CellThermoComputeGPU(self.data)
@@ -196,8 +194,8 @@ class system(hoomd.meta._metadata):
         self._at_thermo = None
 
         # if MPI is enabled, automatically add a communicator to the system
-        if hoomd.comm.get_num_ranks() > 1:
-            if not hoomd.context.exec_conf.isCUDAEnabled():
+        if hoomd.context.current.device.comm.num_ranks > 1:
+            if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
                 self.comm = _mpcd.Communicator(self.data)
             else:
                 self.comm = _mpcd.CommunicatorGPU(self.data)
@@ -205,9 +203,7 @@ class system(hoomd.meta._metadata):
             self.comm = None
 
         self.sorter = None
-        hoomd.util.quiet_status()
         self.sorter = update.sort(self)
-        hoomd.util.unquiet_status()
 
         # no stream rule by default
         self._stream = None
@@ -238,7 +234,6 @@ class system(hoomd.meta._metadata):
             mpcd_sys.restore_snapshot(snap)
 
         """
-        hoomd.util.print_status_line()
 
         self.data.initializeFromSnapshot(snapshot.sys_snap)
 
@@ -271,7 +266,6 @@ class system(hoomd.meta._metadata):
             snap = mpcd_sys.take_snapshot()
 
         """
-        hoomd.util.print_status_line()
         return snapshot(self.data.takeSnapshot(particles))
 
 def make_snapshot(N=0):
@@ -294,8 +288,7 @@ def make_snapshot(N=0):
 
     """
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     snap = snapshot(_mpcd.SystemDataSnapshot(hoomd.context.current.system_definition))
     snap.particles.resize(N)

@@ -8,7 +8,6 @@
     \brief Contains code for the ComputeThermoGPU class
 */
 
-
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
 #include "GPUPartition.cuh"
@@ -40,15 +39,15 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing ComputeThermoGPU");
         }
 
-    m_block_size = 512;
+    m_block_size = 256;
 
-    cudaEventCreate(&m_event, cudaEventDisableTiming);
+    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
     }
 
 //! Destructor
 ComputeThermoGPU::~ComputeThermoGPU()
     {
-    cudaEventDestroy(m_event);
+    hipEventDestroy(m_event);
     }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop, on the GPU.
@@ -78,6 +77,7 @@ void ComputeThermoGPU::computeProperties()
 
     if (m_scratch.size() != old_size)
         {
+        #ifdef __HIP_PLATFORM_NVCC__
         if (m_exec_conf->allConcurrentManagedAccess())
             {
             auto& gpu_map  = m_exec_conf->getGPUIds();
@@ -91,15 +91,16 @@ void ComputeThermoGPU::computeProperties()
                 }
             CHECK_CUDA_ERROR();
             }
+        #endif
 
         // reset to zero, to be on the safe side
         ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot, access_location::device, access_mode::overwrite);
 
-        cudaMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
-        cudaMemset(d_scratch_pressure_tensor.data, 0, sizeof(Scalar)*m_scratch_pressure_tensor.size());
-        cudaMemset(d_scratch_rot.data, 0, sizeof(Scalar)*m_scratch_rot.size());
+        hipMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
+        hipMemset(d_scratch_pressure_tensor.data, 0, sizeof(Scalar)*m_scratch_pressure_tensor.size());
+        hipMemset(d_scratch_rot.data, 0, sizeof(Scalar)*m_scratch_rot.size());
         }
 
     // access the particle data
@@ -195,25 +196,9 @@ void ComputeThermoGPU::computeProperties()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-#ifdef ENABLE_MPI
-void ComputeThermoGPU::reduceProperties()
-    {
-    if (m_properties_reduced) return;
-
-    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::readwrite);
-
-    // reduce properties
-    MPI_Allreduce(MPI_IN_PLACE, h_properties.data, thermo_index::num_quantities, MPI_HOOMD_SCALAR,
-            MPI_SUM, m_exec_conf->getMPICommunicator());
-
-    m_properties_reduced = true;
-    }
-#endif
-
-
 void export_ComputeThermoGPU(py::module& m)
     {
-    py::class_<ComputeThermoGPU, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU",py::base<ComputeThermo>())
+    py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
          std::shared_ptr<ParticleGroup>,
          const std::string& >())

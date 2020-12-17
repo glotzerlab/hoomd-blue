@@ -15,12 +15,14 @@
 #include "PotentialBondGPU.cuh"
 
 //! Compute LJ bond forces on the GPU with BondEvaluatorLJ
-cudaError_t gpu_compute_lj_forces(const bond_args_t& bond_args,
-                                    const Scalar3 *d_params,
-                                    unsigned int *d_flags);
+hipError_t __attribute__((visibility("default")))
+gpu_compute_lj_forces(const bond_args_t& bond_args,
+                      const Scalar3 *d_params,
+                      unsigned int *d_flags);
 
 //! Compute Coulomb bond forces on the GPU with BondEvaluatorCoulomb
-cudaError_t gpu_compute_coulomb_forces(const bond_args_t& bond_args,
-                                    const Scalar2 *d_params,
-                                    unsigned int *d_flags);
+hipError_t __attribute__((visibility("default")))
+gpu_compute_coulomb_forces(const bond_args_t& bond_args,
+                      const Scalar2 *d_params,
+                      unsigned int *d_flags);
 #endif

@@ -15,16 +15,16 @@
 */
 
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
+hipError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size);
 
-cudaError_t gpu_fire_zero_angmom(Scalar4 *d_angmom,
+hipError_t gpu_fire_zero_angmom(Scalar4 *d_angmom,
                             unsigned int *d_group_members,
                             unsigned int group_size);
 
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
+hipError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
                             Scalar4* d_net_force,
                             Scalar* d_sum_pe,
@@ -33,7 +33,7 @@ cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int num_blocks);
 
 //! Kernel driver for summing over P, vsq, and asq called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
+hipError_t gpu_fire_compute_sum_all(const unsigned int N,
                             const Scalar4 *d_vel,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
@@ -45,7 +45,7 @@ cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
                             unsigned int block_size,
                             unsigned int num_blocks);
 
-cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
+hipError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                     const Scalar4 *d_orientation,
                                     const Scalar3 *d_inertia,
                                     const Scalar4 *d_angmom,
@@ -60,14 +60,14 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                     unsigned int num_blocks);
 
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
+hipError_t gpu_fire_update_v(Scalar4 *d_vel,
                             const Scalar3 *d_accel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             Scalar alpha,
                             Scalar factor_t);
 
-cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
+hipError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
                               const Scalar4 *d_orientation,
                               const Scalar3 *d_inertia,
                               Scalar4 *d_angmom,

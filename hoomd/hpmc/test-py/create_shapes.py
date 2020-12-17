@@ -215,29 +215,6 @@ class convex_spheropolyhedron_union_test(unittest.TestCase):
         # verify that there are no overlaps
         self.assertEqual(self.mc.count_overlaps(), 0);
 
-    def test_convexpolyhedron_union(self):
-        self.mc = hpmc.integrate.convex_polyhedron_union(seed=10);
-        self.mc.shape_param.set('A', vertices=[self.cube_verts, self.cube_verts], centers=self.cubes, orientations=self.cube_ors,sweep_radii=self.sweep_radii);
-        self.mc.shape_param.set('B', vertices=[self.cube_verts], centers=[(0,0,0)], orientations=[(1,0,0,0)]);
-
-        # verify that the particle is created correctly
-        run(1);
-
-        # verify that there are no overlaps
-        self.assertEqual(self.mc.count_overlaps(), 0);
-
-    def test_convexpolyhedron_union_implicit_new(self):
-        self.mc = hpmc.integrate.convex_spheropolyhedron_union(seed=10,implicit=True, depletant_mode='overlap_regions');
-        self.mc.shape_param.set('A', vertices=[self.cube_verts, self.cube_verts], centers=self.cubes, orientations=self.cube_ors,sweep_radii=self.sweep_radii);
-        self.mc.shape_param.set('B', vertices=[self.cube_verts], centers=[(0,0,0)], orientations=[(1,0,0,0)]);
-        self.mc.set_params(nR=0, depletant_type='B')
-
-        # verify that the particle is created correctly
-        run(1);
-
-        # verify that there are no overlaps
-        self.assertEqual(self.mc.count_overlaps(), 0);
-
     def tearDown(self):
         del self.mc
         del self.system

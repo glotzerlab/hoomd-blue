@@ -16,11 +16,11 @@
     \brief Declares an integrator for performing two-step integration on multiple groups
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates the system forward one step with possibly multiple methods
 /*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely

@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -67,7 +67,7 @@ struct ShapeSimplePolygon
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -87,8 +87,21 @@ struct ShapeSimplePolygon
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
+
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
@@ -279,30 +292,13 @@ DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
 
 }; // end namespace detail
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSimplePolygon& a,
-    const ShapeSimplePolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 //! Simple polygon overlap test
 /*!
     \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a Shape a
     \param b Shape b
     \param err in/out variable incremented when error conditions occur in the overlap test
+    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true if the two shapes overlap
     \ingroup shape
 */
@@ -310,7 +306,9 @@ template <>
 DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeSimplePolygon& a,
                                                                        const ShapeSimplePolygon& b,
-                                                                       unsigned int& err)
+                                                                       unsigned int& err,
+                                                                       Scalar sweep_radius_a,
+                                                                       Scalar sweep_radius_b)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
     vec2<OverlapReal> dr(r_ab.x, r_ab.y);
@@ -321,6 +319,22 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                quat<OverlapReal>(a.orientation),
                                                quat<OverlapReal>(b.orientation));
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

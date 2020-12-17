@@ -75,8 +75,6 @@ class param_dict(dict):
             then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
 
         """
-        # hoomd.util.print_status_line();
-
         # listify the input
         types = hoomd.util.listify(types)
 
@@ -107,13 +105,6 @@ class _param(object):
 
     def set(self, **params):
         self.is_set = True;
-
-        # backwards compatibility
-        if 'ignore_overlaps' in params:
-            # ugly workaround
-            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
-            # do not pass to C++
-            params.pop('ignore_overlaps',None)
 
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
@@ -238,7 +229,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
 
         for face in faces:
             if len(face) != 3 and len(face) != 1:
-                hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
+                hoomd.context.current.device.cpp_msg.error("Only triangulated shapes and spheres are supported.\n")
                 raise RuntimeError('Error setting shape parameters')
             face_offs.append(offs)
             for face_idx in face:
@@ -254,7 +245,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
             overlap = [1 for f in faces]
 
         if sweep_radius < 0.0:
-            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.current.device.cpp_msg.warning("A rounding radius < 0 does not make sense.\n")
 
         if len(origin) != 3:
             hoomd.context.error("Origin must be a coordinate triple.\n")

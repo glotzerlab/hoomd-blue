@@ -404,7 +404,7 @@ std::shared_ptr<PotentialPairGauss> base_class_gauss_creator(std::shared_ptr<Sys
     return std::shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialPairGaussGPU creator for unit tests
 std::shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<NeighborList> nlist)
@@ -436,7 +436,7 @@ UP_TEST( GaussForce_shift )
     gauss_force_shift_test(gauss_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( GaussForceGPU_particle )
     {

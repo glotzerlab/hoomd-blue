@@ -1033,7 +1033,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
 void export_ForceComposite(py::module& m)
     {
-    py::class_< ForceComposite, std::shared_ptr<ForceComposite> >(m, "ForceComposite", py::base<MolecularForceCompute>())
+    py::class_< ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite> >(m, "ForceComposite")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)

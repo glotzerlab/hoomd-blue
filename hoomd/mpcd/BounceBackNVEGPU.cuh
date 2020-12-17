@@ -62,7 +62,7 @@ cudaError_t nve_bounce_step_two(Scalar4 *d_vel,
                                 const unsigned int N,
                                 const unsigned int block_size);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 namespace kernel
 {
 //! Kernel for applying first step of velocity Verlet algorithm with bounce-back
@@ -172,7 +172,7 @@ cudaError_t nve_bounce_step_one(const bounce_args_t& args, const Geometry& geom)
 
     return cudaSuccess;
     }
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace gpu
 } // end namespace mpcd

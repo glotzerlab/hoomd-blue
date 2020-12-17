@@ -43,7 +43,7 @@ class mpcd_force_sine_test(unittest.TestCase):
         bulk.set_force(f)
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], (1.1,-1.2,0.2))
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], (1.+0.5*0.1*2.*np.sin(k0*0.2), -2.0, 2.))
 
@@ -51,7 +51,7 @@ class mpcd_force_sine_test(unittest.TestCase):
         bulk.remove_force()
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], (1.+0.5*0.1*2.*np.sin(k0*0.2), -2.0, 2.))
 
     def tearDown(self):

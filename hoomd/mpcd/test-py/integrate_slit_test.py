@@ -17,12 +17,12 @@ class integrate_slit_tests(unittest.TestCase):
         hoomd.context.initialize()
 
         # set the decomposition in z for mpi builds
-        if hoomd.comm.get_num_ranks() > 1:
+        if hoomd.context.current.device.comm.num_ranks > 1:
             hoomd.comm.decomposition(nz=2)
 
         # default testing configuration
         snap = hoomd.data.make_snapshot(N=2, box=hoomd.data.boxdim(L=10.))
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [[4.95,-4.95,3.85],[0.,0.,-3.8]]
             snap.particles.velocity[:] = [[1.,-1.,1.],[-1.,-1.,-1.]]
             snap.particles.mass[:] = [1.,2.]
@@ -80,7 +80,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take one step
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.95,4.95,3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.,-1.,1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.1,-0.1,-3.9])
@@ -89,7 +89,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take another step where one particle will now hit the wall
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.95,4.95,3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [-1.,1.,-1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.2,-0.2,-4.0])
@@ -98,7 +98,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take another step, wrapping the second particle through the boundary
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [4.95,-4.95,3.85])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [-1.,1.,-1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.1,-0.1,-3.9])
@@ -110,14 +110,14 @@ class integrate_slit_tests(unittest.TestCase):
 
         # change velocity of lower particle so it is translating relative to wall
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.velocity[1] = [-2.,-1.,-1.]
         self.s.restore_snapshot(snap)
 
         # run one step and check bounce back of particles
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             # the first particle is matched exactly to the wall speed, and so it will translate at
             # same velocity along +x. It will bounce back in y and z to where it started.
             # (vx stays the same, and vy and vz flip.)
@@ -136,7 +136,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take one step
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.95,4.95,3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.,-1.,1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.1,-0.1,-3.9])
@@ -145,7 +145,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take another step where one particle will now hit the wall
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.85,4.85,3.95])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.,-1.,-1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.2,-0.2,-4.0])
@@ -154,7 +154,7 @@ class integrate_slit_tests(unittest.TestCase):
         # take another step, wrapping the second particle through the boundary
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.75,4.75,3.85])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.,-1.,-1.])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.3,-0.3,-3.9])
@@ -166,13 +166,13 @@ class integrate_slit_tests(unittest.TestCase):
         md.force.constant(fx=2.,fy=-2.,fz=4.)
 
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             snap.particles.position[:] = [[0,0,0],[0,0,0]]
         self.s.restore_snapshot(snap)
 
         hoomd.run(1)
         snap = self.s.take_snapshot()
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [0.11,-0.11,0.12])
             np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.2,-1.2,1.4])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.095,-0.105,-0.09])

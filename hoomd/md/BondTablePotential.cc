@@ -293,7 +293,7 @@ void BondTablePotential::computeForces(unsigned int timestep)
 //! Exports the BondTablePotential class to python
 void export_BondTablePotential(py::module& m)
     {
-    py::class_<BondTablePotential, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential", py::base<ForceCompute>())
+    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential")
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &BondTablePotential::setTable)
     ;

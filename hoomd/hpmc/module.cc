@@ -4,7 +4,6 @@
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 
 #include "ShapeSphere.h"
 #include "ShapeConvexPolygon.h"
@@ -25,7 +24,7 @@
 
 #include "GPUTree.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #endif
 

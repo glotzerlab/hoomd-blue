@@ -14,12 +14,13 @@
 #include <memory>
 
 #include "MPIConfiguration.h"
+#include "HOOMDMPI.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
@@ -143,7 +144,13 @@ class PYBIND11_EXPORT Messenger
         */
         unsigned int getNoticeLevel() const
             {
-            return m_notice_level;
+            unsigned int level = m_notice_level;
+
+            #ifdef ENABLE_MPI
+            bcast(level, 0, m_mpi_config->getCommunicator());
+            #endif
+
+            return level;
             }
 
         //! Set the notice level

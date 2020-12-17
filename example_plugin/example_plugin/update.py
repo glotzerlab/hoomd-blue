@@ -29,13 +29,11 @@ class example(hoomd.update._updater):
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
-        hoomd.util.print_status_line();
-
         # initialize base class
         hoomd.update._updater.__init__(self);
 
         # initialize the reflected c++ class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_updater = _example_plugin.ExampleUpdater(hoomd.context.current.system_definition);
         else:
             self.cpp_updater = _example_plugin.ExampleUpdaterGPU(hoomd.context.current.system_definition);

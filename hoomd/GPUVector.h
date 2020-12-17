@@ -8,12 +8,11 @@
     \brief Defines the GPUVector and GlobalVector classes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #pragma once
-
 #include "GPUArray.h"
 #include <algorithm>
 
@@ -144,7 +143,7 @@ class GPUVectorBase : public Array
         //! Constructs a GPUVectorBase
         GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
         //! Constructs an empty GPUVectorBase
         GPUVectorBase(std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
 
@@ -319,7 +318,7 @@ void GPUVectorBase<T, Array>::clear()
 template<class T, class Array>
 ArrayHandleDispatch<T> GPUVectorBase<T,Array>::acquireHost(const access_mode::Enum mode) const
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     return GPUArrayBase<T,Array>::acquire(access_location::host, access_mode::readwrite, false);
     #else
     return Array::acquire(access_location::host, access_mode::readwrite);

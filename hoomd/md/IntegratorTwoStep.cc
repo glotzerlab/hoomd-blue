@@ -133,7 +133,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
         }
 
     // compute the net force on all particles
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
         computeNetForceGPU(timestep+1);
     else
@@ -383,7 +383,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         }
 
         // compute the net force on all particles
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
         computeNetForceGPU(timestep);
     else
@@ -461,7 +461,7 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
 
 void export_IntegratorTwoStep(py::module& m)
     {
-    py::class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep", py::base<Integrator>())
+    py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)

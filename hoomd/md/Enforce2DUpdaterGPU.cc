@@ -57,7 +57,7 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
 
 void export_Enforce2DUpdaterGPU(py::module& m)
     {
-    py::class_<Enforce2DUpdaterGPU, std::shared_ptr<Enforce2DUpdaterGPU> >(m, "Enforce2DUpdaterGPU", py::base<Enforce2DUpdater>())
+    py::class_<Enforce2DUpdaterGPU, Enforce2DUpdater, std::shared_ptr<Enforce2DUpdaterGPU> >(m, "Enforce2DUpdaterGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

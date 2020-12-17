@@ -20,15 +20,15 @@ class mpcd_init_make_random(unittest.TestCase):
 
         # check number of particles
         self.assertEqual(s.particles.N_global, 3)
-        if hoomd.comm.get_num_ranks() > 1:
-            if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.num_ranks > 1:
+            if hoomd.context.current.device.comm.rank == 0:
                 self.assertEqual(s.particles.N, 2)
             else:
                 self.assertEqual(s.particles.N, 1)
 
         # check tags
-        if hoomd.comm.get_num_ranks() > 1:
-            if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.num_ranks > 1:
+            if hoomd.context.current.device.comm.rank == 0:
                 self.assertEqual(s.particles.getTag(0), 0)
                 self.assertEqual(s.particles.getTag(1), 1)
             else:
@@ -49,7 +49,7 @@ class mpcd_init_make_random(unittest.TestCase):
         s = mpcd.init.make_random(N=100000, kT=0.5, seed=7)
         snap = s.take_snapshot()
 
-        if hoomd.comm.get_rank() == 0:
+        if hoomd.context.current.device.comm.rank == 0:
             # histogram particles long x, y, and z and check uniform with loose tol
             pos = snap.particles.position
             hist,_ = np.histogram(pos[:,0], bins=10, range=(-5.,5.))

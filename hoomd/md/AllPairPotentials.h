@@ -28,7 +28,7 @@
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairLJGauss.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialPairGPU.h"
 #include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
@@ -39,7 +39,7 @@
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -84,7 +84,7 @@ typedef PotentialPair<EvaluatorPairFourier> PotentialPairFourier;
 //! Pair potential force compute for LJGauss forces
 typedef PotentialPair<EvaluatorPairLJGauss> PotentialPairLJGauss;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
 //! Pair potential force compute for gaussian forces on the GPU

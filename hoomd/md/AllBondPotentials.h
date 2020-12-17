@@ -11,7 +11,7 @@
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondFENE.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialBondGPU.h"
 #include "AllDriverPotentialBondGPU.cuh"
 #endif
@@ -20,7 +20,7 @@
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -29,7 +29,7 @@ typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
 typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Bond potential force compute for harmonic forces on the GPU
 typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces > PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU

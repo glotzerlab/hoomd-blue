@@ -10,7 +10,7 @@ import unittest;
 def not_on_mpi(f):
     def noop(*args, **kwargs):
         return;
-    if hoomd.comm.get_num_ranks() > 1:
+    if hoomd.context.current.device.comm.num_ranks > 1:
         return noop;
     else:
         return f;
@@ -99,7 +99,7 @@ class basic(unittest.TestCase):
         hoomd.context.initialize();
 
     def tearDown(self):
-        hoomd.comm.barrier();
+        hoomd.context.current.device.comm.barrier();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test_basic.py', '-v']);

@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+#include "hip/hip_runtime.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 
@@ -14,7 +15,7 @@
 #ifndef __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 #define __ACTIVE_FORCE_COMPUTE_GPU_CUH__
 
-cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
+hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int *d_rtag,
                                            unsigned int *d_groupTags,
                                            Scalar4 *d_force,
@@ -33,7 +34,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            const unsigned int N,
                                            unsigned int block_size);
 
-cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
+hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_size,
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
@@ -47,7 +48,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    Scalar rz,
                                                    unsigned int block_size);
 
-cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
+hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
                                                        unsigned int *d_rtag,
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,

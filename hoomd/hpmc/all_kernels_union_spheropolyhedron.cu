@@ -3,8 +3,6 @@
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
-#include "IntegratorHPMCMonoImplicitGPU.cuh"
-#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapeSpheropolyhedron.h"
 #include "ShapeUnion.h"
@@ -14,20 +12,21 @@ namespace hpmc
 
 namespace detail
 {
-
 //! HPMC kernels for ShapeUnion<ShapeSpheropolyhedron>
-template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_free_volume_args_t &args,
                                                   const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_implicit_args_new_t& args,
-                                                  const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
-}; // end namespace detail
+}
+
+namespace gpu
+{
+//! Driver for kernel::hpmc_gen_moves()
+template void hpmc_gen_moves<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args, const ShapeUnion<ShapeSpheropolyhedron>::param_type *params);
+//! Driver for kernel::hpmc_narrow_phase()
+template void hpmc_narrow_phase<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args, const ShapeUnion<ShapeSpheropolyhedron>::param_type *params);
+//! Driver for kernel::hpmc_insert_depletants()
+template void hpmc_insert_depletants<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const ShapeUnion<ShapeSpheropolyhedron>::param_type *params);
+//! Driver for kernel::hpmc_update_pdata()
+template void hpmc_update_pdata<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_update_args_t& args, const ShapeUnion<ShapeSpheropolyhedron> ::param_type *params);
+}
 
 } // end namespace hpmc
