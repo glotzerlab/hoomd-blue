@@ -286,6 +286,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
             double dE = 0.0;
             for(size_t i = 0; i < m_pdata->getN(); i++)
                 {
+
                 Scalar old_E = calcE(i, quat<Scalar>(*(quat_l_old+i)), quat<Scalar>(*(quat_r_old+i)), scaleOld);
                 Scalar new_E = calcE(i, quat<Scalar>(*(quat_l_new+i)), quat<Scalar>(*(quat_r_new+i)), scaleNew);
                 dE += new_E - old_E;

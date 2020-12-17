@@ -35,6 +35,7 @@ struct RNGIdentifier
     static const uint32_t UpdaterMuVT = 0x186df7ba;
     static const uint32_t UpdaterMuVTBox1 = 0x05d4a502;
     static const uint32_t UpdaterMuVTBox2 = 0xa74201bd;
+    static const uint32_t UpdaterRemoveDrift = 0xf9c2d2ef;
     static const uint32_t ActiveForceCompute = 0x7edf0a42;
     static const uint32_t EvaluatorPairDPDThermo = 0x4a84f5d0;
     static const uint32_t IntegrationMethodTwoStep = 0x11df5642;

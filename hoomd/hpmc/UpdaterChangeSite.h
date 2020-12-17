@@ -650,7 +650,7 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
             if (!overlap && hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(patch_field_energy_diff))
                 {
                 // update the position of the particle in the tree for future updates
-                std::cout << "Change " << i << std::endl;
+                std::cout << "Change " << i << " " << patch_field_energy_diff << std::endl;
                 aabb_tree.update(i, aabb_i);
 
                 h_quat_l.data[i] = quat_to_scalar4(shape_i.quat_l);
