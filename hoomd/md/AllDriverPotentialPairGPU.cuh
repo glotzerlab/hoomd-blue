@@ -112,8 +112,9 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_fourier_forces(const pair_args_t & pair_args,
                            const typename EvaluatorPairFourier::param_type *d_params);
 
-//! Compute gauss pair forces on the GPU with EvaluatorPairLJGauss
-cudaError_t gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
-                                        const Scalar3 *d_params);
+//! Compute lj gauss potential pair forces on the GPU with EvaluatorLJGauss
+hipError_t __attribute__((visibility("default")))
+gpu_compute_lj_gauss_forces(const pair_args_t& pair_args,
+                            const Scalar3 *d_params);
 
 #endif

@@ -11,7 +11,7 @@ import os
 class pair_ljgauss_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_lattice(lattice.sc(a=1.0),n=[5,5,4]); #target a packing fraction of 0.05
+        self.s = init.create_lattice(lattice.sc(a=1.0),n=[5,5,4]); #target a packing fraction of 0.05
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

@@ -3044,7 +3044,6 @@ class ljgauss(pair):
         ljg.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=.5, sigma=0.15, r0=1.4)
     """
     def __init__(self, r_cut, nlist, name=None):
-        hoomd.util.print_status_line();
 
         # tell the base class how we operate
 
@@ -3052,7 +3051,7 @@ class ljgauss(pair):
         pair.__init__(self, r_cut, nlist, name);
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PotentialPairLJGauss(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
             self.cpp_class = _md.PotentialPairLJGauss;
         else:
