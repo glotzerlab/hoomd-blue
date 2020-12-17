@@ -89,7 +89,7 @@ class PYBIND11_EXPORT Sorter
         GPUVector<unsigned int> m_rorder;   //!< Maps old particle indexes onto new sorted indexes
 
         unsigned int m_period;          //!< Sorting period
-        unsigned int m_next_timestep;   //!< Next step to apply sorting
+        uint64_t m_next_timestep;   //!< Next step to apply sorting
 
         //! Compute the sorting order at the current timestep
         virtual void computeOrder(uint64_t timestep);

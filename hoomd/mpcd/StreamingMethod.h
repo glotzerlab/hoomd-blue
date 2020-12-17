@@ -107,7 +107,7 @@ class PYBIND11_EXPORT StreamingMethod
 
         Scalar m_mpcd_dt;               //!< Integration time step
         unsigned int m_period;          //!< Number of MD timesteps between streaming steps
-        unsigned int m_next_timestep;   //!< Timestep next streaming step should be performed
+        uint64_t m_next_timestep;   //!< Timestep next streaming step should be performed
 
         std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> m_field;  //!< External field
 

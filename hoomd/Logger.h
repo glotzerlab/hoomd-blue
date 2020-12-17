@@ -107,7 +107,7 @@ class __attribute__((visibility("default"))) Logger : public Analyzer
 
     private:
         //! Helper function to get a value for a given quantity
-        Scalar getValue(const std::string &quantity, int timestep);
+        Scalar getValue(const std::string &quantity, uint64_t timestep);
     };
 
 //! exports the Logger class to python

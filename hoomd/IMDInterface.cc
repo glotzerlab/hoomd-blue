@@ -442,7 +442,7 @@ void IMDInterface::sendCoords(uint64_t timestep)
 
     // setup and send the energies structure
     IMDEnergies energies;
-    energies.tstep = timestep;
+    energies.tstep = (int32_t)timestep;
     energies.T = 0.0f;
     energies.Etot = 0.0f;
     energies.Epot = 0.0f;

@@ -181,7 +181,7 @@ Scalar Logger::getQuantity(const std::string &quantity, uint64_t timestep, bool 
 /*! \param quantity Quantity to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-Scalar Logger::getValue(const std::string &quantity, int timestep)
+Scalar Logger::getValue(const std::string &quantity, uint64_t timestep)
     {
     // first see if it is the built-in time quantity
     if (quantity == "time")

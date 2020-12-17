@@ -266,7 +266,7 @@ namespace getardump{
             /// Write a quantity with the given name using the given
             /// string, as a dynamic property with the given timestep
             /// (timesteps <0 indicate to dump a static quantity)
-            void writeStr(const std::string &name, const std::string &contents, int timestep);
+            void writeStr(const std::string &name, const std::string &contents, uint64_t timestep);
 
         private:
             /// Write any GetarDumpDescription for the given timestep

@@ -339,7 +339,7 @@ namespace getardump{
 
     void GetarDumpWriter::analyze(uint64_t timestep)
         {
-        const unsigned int shiftedTimestep(timestep - m_offset);
+        const uint64_t shiftedTimestep(timestep - m_offset);
         bool neededSnapshots[9] = {false, false, false, false, false,
                                    false, false, false, false};
         bool ranThisStep(false);
@@ -873,7 +873,7 @@ namespace getardump{
             }
         }
 
-    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, int timestep)
+    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, uint64_t timestep)
         {
         bool dynamic(timestep >= 0);
         gtar::Record rec("", name, "", gtar::Constant, gtar::UInt8, gtar::Text);
