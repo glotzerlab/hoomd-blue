@@ -29,7 +29,7 @@ unsigned int err_count = 0;
 // helper function to compute poly radius
 PolyhedronVertices setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
     {
-    PolyhedronVertices result(vlist.size(), false);
+    PolyhedronVertices result((unsigned int)vlist.size(), false);
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 
@@ -43,7 +43,7 @@ PolyhedronVertices setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapR
         result.z[i] = vert.z;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < result.N; i++)
+    for (unsigned int i = (unsigned int)vlist.size(); i < result.N; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -72,11 +72,11 @@ PolyhedronVertices setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapR
         auto hull = qh.getConvexHull(qh_pts, false, true);
         auto indexBuffer = hull.getIndexBuffer();
 
-        result.hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), false);
-        result.n_hull_verts = indexBuffer.size();
+        result.hull_verts = ManagedArray<unsigned int>((unsigned int)indexBuffer.size(), false);
+        result.n_hull_verts = (unsigned int)indexBuffer.size();
 
         for (unsigned int i = 0; i < indexBuffer.size(); i++)
-             result.hull_verts[i] = indexBuffer[i];
+             result.hull_verts[i] = (unsigned int)indexBuffer[i];
         }
     return result;
     }
@@ -132,13 +132,13 @@ UP_TEST( support )
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-0.1, 0.1, 0.1));
+    v1 = sa(vec3<OverlapReal>(-OverlapReal(0.1), OverlapReal(0.1), OverlapReal(0.1)));
     v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
     v1 = sa(vec3<OverlapReal>(1, -1, 1));
     v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(0.51, 0.49, -0.1));
+    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), -OverlapReal(0.1)));
     v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
@@ -242,8 +242,8 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
-    vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
-    vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548)));
+    vlist.push_back(vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548)));
     PolyhedronVertices verts = setup_verts(vlist, 0.0);
 
     ShapeSpheropolyhedron a(o, verts);
@@ -715,7 +715,7 @@ UP_TEST( overlap_cube_precise )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    PolyhedronVertices verts = setup_verts(vlist, R);
+    PolyhedronVertices verts = setup_verts(vlist, OverlapReal(R));
 
     ShapeSpheropolyhedron a(o, verts);
     ShapeSpheropolyhedron b(o, verts);

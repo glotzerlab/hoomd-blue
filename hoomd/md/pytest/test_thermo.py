@@ -10,9 +10,9 @@ _thermo_qtys = [
     ('translational_kinetic_energy', float),
     ('rotational_kinetic_energy', float),
     ('potential_energy', float),
-    ('degrees_of_freedom', int),
-    ('translational_degrees_of_freedom', int),
-    ('rotational_degrees_of_freedom', int),
+    ('degrees_of_freedom', float),
+    ('translational_degrees_of_freedom', float),
+    ('rotational_degrees_of_freedom', float),
     ('num_particles', int),
 ]
 

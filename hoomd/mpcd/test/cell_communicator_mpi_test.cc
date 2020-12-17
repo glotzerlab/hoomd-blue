@@ -192,7 +192,9 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
 UP_TEST( mpcd_cell_communicator )
     {
     if (!exec_conf_cpu)
+        {
         exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        }
 
     // mpi in 1d
         {
@@ -228,7 +230,9 @@ UP_TEST( mpcd_cell_communicator_overdecompose )
 UP_TEST( mpcd_cell_communicator_gpu )
     {
     if (!exec_conf_gpu)
+        {
         exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        }
 
     // mpi in 1d
         {

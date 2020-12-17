@@ -6,10 +6,13 @@
 #include "hip/hip_runtime.h"
 #include "NeighborListGPUTree.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/remove.h>
 #include <hipcub/hipcub.hpp>
+#pragma GCC diagnostic pop
 
 #include <neighbor/neighbor.h>
 

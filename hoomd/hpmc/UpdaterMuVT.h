@@ -55,7 +55,7 @@ class UpdaterMuVT : public Updater
             m_max_vol_rescale = fac;
             }
 
-        //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves) 
+        //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves)
         void setVolumeMoveProbability(Scalar volume_move_probability)
             {
             if (volume_move_probability < Scalar(0.0) || volume_move_probability > Scalar(1.0))
@@ -370,7 +370,7 @@ unsigned int UpdaterMuVT<Shape>::getNthTypeTag(unsigned int type, unsigned int t
     if (m_pdata->getDomainDecomposition())
         {
         // get number of particles of given type
-        unsigned int nptl = m_type_map[type].size();
+        unsigned int nptl = (unsigned int)(m_type_map[type].size());
 
         // have to initialize correctly for prefix sum
         unsigned int begin_offs=0;
@@ -413,7 +413,7 @@ template<class Shape>
 unsigned int UpdaterMuVT<Shape>::getNumParticlesType(unsigned int type)
     {
     assert(type < m_type_map.size());
-    unsigned int nptl_type = m_type_map[type].size();
+    unsigned int nptl_type = (unsigned int)m_type_map[type].size();
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -606,7 +606,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
                 detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0,0,0));
 
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -894,7 +894,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (! m_gibbs)
                 {
                 // choose a random particle type out of those being inserted or removed
-                type = m_transfer_types[hoomd::UniformIntDistribution(m_transfer_types.size()-1)(rng)];
+                type = m_transfer_types[hoomd::UniformIntDistribution((unsigned int)(m_transfer_types.size()-1))(rng)];
                 }
             else
                 {
@@ -1063,7 +1063,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
             // choose a random particle type out of those being transferred
             assert(m_transfer_types.size() > 0);
-            unsigned int type = m_transfer_types[hoomd::UniformIntDistribution(m_transfer_types.size()-1)(rng_local)];
+            unsigned int type = m_transfer_types[hoomd::UniformIntDistribution((unsigned int)(m_transfer_types.size()-1))(rng_local)];
 
             // choose a random particle of that type
             unsigned int nptl_type = getNumParticlesType(type);
@@ -1101,7 +1101,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     std::string type_name = m_pdata->getNameByType(type);
 
                     // send particle type to other rank
-                    unsigned int n = type_name.size()+1;
+                    unsigned int n = (unsigned int)(type_name.size()+1);
                     MPI_Send(&n, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                     char s[n];
                     memcpy(s,type_name.c_str(),n);
@@ -1433,12 +1433,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                 // Check particle against AABB tree for neighbors
                 Scalar r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
 
-                OverlapReal R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+                Scalar R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/2.0);
                 detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
                 Scalar r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
 
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_image = pos + image_list[cur_image];
@@ -1452,12 +1452,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                             lnboltzmann += patch->energy(r_ij,
                                 type,
                                 quat<float>(orientation),
-                                diameter,
-                                charge,
+                                float(diameter),
+                                float(charge),
                                 type,
                                 quat<float>(orientation),
-                                diameter,
-                                charge);
+                                float(diameter),
+                                float(charge));
                             }
                         }
 
@@ -1494,12 +1494,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                                         lnboltzmann += patch->energy(r_ij,
                                             type,
                                             quat<float>(orientation),
-                                            diameter,
-                                            charge,
+                                            float(diameter),
+                                            float(charge),
                                             typ_j,
                                             quat<float>(orientation_j),
-                                            h_diameter.data[j],
-                                            h_charge.data[j]);
+                                            float(h_diameter.data[j]),
+                                            float(h_charge.data[j]));
                                         }
                                     }
                                 }
@@ -1638,7 +1638,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         {
         // get some data structures from the integrator
         auto& image_list = m_mc->updateImageList();
-        const unsigned int n_images = image_list.size();
+        const unsigned int n_images = (unsigned int)image_list.size();
         auto& params = m_mc->getParams();
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
@@ -1648,7 +1648,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
 
         if (patch)
             {
-            r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+            r_cut_patch = OverlapReal(patch->getRCut() + 0.5*patch->getAdditiveCutoff(type));
             r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
             }
 
@@ -1762,12 +1762,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                                     lnboltzmann -= patch->energy(r_ij,
                                         type,
                                         quat<float>(orientation),
-                                        1.0, // diameter i
-                                        0.0, // charge i
+                                        float(1.0), // diameter i
+                                        float(0.0), // charge i
                                         typ_j,
                                         quat<float>(orientation_j),
-                                        h_diameter.data[j],
-                                        h_charge.data[j]);
+                                        float(h_diameter.data[j]),
+                                        float(h_charge.data[j]));
                                     }
                                 }
                             }
@@ -2021,7 +2021,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
 
                 // draw random radial coordinate in test sphere
                 Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+                Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
@@ -2040,7 +2040,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2191,7 +2191,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
 
                 // draw random radial coordinate in test sphere
                 Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+                Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
@@ -2210,7 +2210,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2376,7 +2376,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
 
             // draw random radial coordinate in test sphere
             Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+            Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
@@ -2395,7 +2395,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
 
             unsigned int err_count = 0;
             // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2532,7 +2532,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, u
 
             // draw random radial coordinate in test sphere
             Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+            Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;

@@ -59,7 +59,7 @@ template<typename Real, typename Real4, typename Evaluator>
 __global__ void gpu_compute_dem3d_forces_kernel(
     const Scalar4* d_pos, const Scalar4* d_quat,
     Scalar4* d_force, Scalar4* d_torque, Scalar* d_virial,
-    const unsigned int virial_pitch, const unsigned int N,
+    const size_t virial_pitch, const unsigned int N,
     const unsigned int *d_nextFaces, const unsigned int *d_firstFaceVertices,
     const unsigned int *d_nextVertices, const unsigned int *d_realVertices,
     const Real4 *d_vertices, const Scalar *d_diam, const Scalar4 *d_velocity,
@@ -482,7 +482,7 @@ __global__ void gpu_compute_dem3d_forces_kernel(
 template<typename Real, typename Real4, typename Evaluator>
 hipError_t gpu_compute_dem3d_forces(
     Scalar4* d_force, Scalar4* d_torque, Scalar* d_virial,
-    const unsigned int virial_pitch, const unsigned int N, const unsigned int n_ghosts,
+    const size_t virial_pitch, const unsigned int N, const unsigned int n_ghosts,
     const Scalar4 *d_pos, const Scalar4 *d_quat, const unsigned int *d_nextFaces,
     const unsigned int *d_firstFaceVertices, const unsigned int *d_nextVertices,
     const unsigned int *d_realVertices, const Real4 *d_vertices,

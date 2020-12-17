@@ -157,7 +157,7 @@ void ComputeThermoHMA::computeProperties()
     double pe_total = 0.0, p_HMA = 0.0;
     double fV = (m_harmonicPressure/m_temperature - group_size/box.getVolume())/(D*(group_size-1));
     double W = 0;
-    unsigned int virial_pitch = net_virial.getPitch();
+    size_t virial_pitch = net_virial.getPitch();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);

@@ -259,17 +259,17 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 
         // <--------------- Degree of Freedom Data
 
-        unsigned int getNDOF()
+        double getNDOF()
             {
             return m_group->getTranslationalDOF() + m_group->getRotationalDOF();
             }
 
-        unsigned int getTranslationalDOF()
+        double getTranslationalDOF()
             {
             return m_group->getTranslationalDOF();
             }
 
-        unsigned int getRotationalDOF()
+        double getRotationalDOF()
             {
             return m_group->getRotationalDOF();
             }

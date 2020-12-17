@@ -133,6 +133,9 @@ namespace cereal
     }
 #endif
 
+/// Get a default type name given a type id
+std::string getDefaultTypeName(unsigned int id);
+
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData
@@ -507,7 +510,7 @@ class PYBIND11_EXPORT ParticleData
         */
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)(m_type_mapping.size());
             }
 
         //! Get the origin for the particle system

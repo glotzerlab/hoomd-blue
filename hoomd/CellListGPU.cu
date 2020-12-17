@@ -6,8 +6,11 @@
 
 #include "CellListGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/sort.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU

@@ -76,7 +76,7 @@ IntegratorHPMC::~IntegratorHPMC()
 void IntegratorHPMC::slotNumTypesChange()
     {
     // old size of arrays
-    unsigned int old_ntypes = m_a.size();
+    unsigned int old_ntypes = (unsigned int)m_a.size();
     assert(m_a.size() == m_d.size());
 
     unsigned int ntypes = m_pdata->getNTypes();
@@ -138,8 +138,6 @@ std::vector< std::string > IntegratorHPMC::getProvidedLogQuantities()
 */
 Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    hpmc_counters_t counters = getCounters(2);
-
     if (quantity == "hpmc_sweep")
         {
         hpmc_counters_t counters_total = getCounters(0);

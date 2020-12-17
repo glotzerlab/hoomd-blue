@@ -290,7 +290,7 @@ void MolecularForceCompute::initMolecules()
         local_molecules_sorted[lowest_idx].insert(tag);
         }
 
-    n_local_molecules = local_molecules_sorted.size();
+    n_local_molecules = (unsigned int)local_molecules_sorted.size();
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules" << std::endl;
 
@@ -308,7 +308,7 @@ void MolecularForceCompute::initMolecules()
     unsigned int i = 0;
     for (auto it = local_molecules_sorted.begin(); it != local_molecules_sorted.end(); ++it)
         {
-        h_molecule_length.data[i++] = it->second.size();
+        h_molecule_length.data[i++] = (unsigned int)it->second.size();
         }
 
     // find maximum length

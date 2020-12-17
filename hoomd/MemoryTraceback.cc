@@ -19,10 +19,10 @@
 //! Maximum number of symbols to trace back
 #define MAX_TRACEBACK 4
 
-void MemoryTraceback::registerAllocation(const void *ptr, unsigned int nbytes, const std::string& type_hint, const std::string& tag) const
+void MemoryTraceback::registerAllocation(const void *ptr, size_t nbytes, const std::string& type_hint, const std::string& tag) const
     {
     // insert element into list of allocations
-    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
 
     m_traces[idx] = std::vector<void *>(MAX_TRACEBACK, nullptr);
     m_type_hints[idx] = type_hint;
@@ -34,27 +34,28 @@ void MemoryTraceback::registerAllocation(const void *ptr, unsigned int nbytes, c
     m_traces[idx].resize(num_symbols);
     }
 
-void MemoryTraceback::unregisterAllocation(const void *ptr, unsigned int nbytes) const
+void MemoryTraceback::unregisterAllocation(const void *ptr, size_t nbytes) const
     {
     // remove element from list of allocations
-    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
 
     m_traces.erase(idx);
     m_type_hints.erase(idx);
     m_tags.erase(idx);
     }
 
-void MemoryTraceback::updateTag(const void *ptr, unsigned int nbytes, const std::string& tag) const
+void MemoryTraceback::updateTag(const void *ptr, size_t nbytes, const std::string& tag) const
     {
-    std::pair<const void *, unsigned int> idx = std::make_pair(ptr, nbytes);
+    std::pair<const void *, size_t> idx = std::make_pair(ptr, nbytes);
 
     if (m_tags.find(idx) != m_tags.end())
         m_tags[idx] = tag;
     }
 
 //! Pretty print number of bytes
-inline std::string pretty_bytes(double size_bytes)
+inline std::string pretty_bytes(size_t bytes)
     {
+    double size_bytes = double(bytes);
     int i = 0;
     const char* units[] = {"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
     std::string unit = units[0];
@@ -110,15 +111,15 @@ void MemoryTraceback::outputTraces(std::shared_ptr<Messenger> msg) const
         msg->notice(2) << oss.str() << std::endl;
 
         // translate symbol addresses into array of strings
-        unsigned int size = it_trace->second.size();
-        char **symbols = backtrace_symbols(&it_trace->second.front(), size);
+        size_t size = it_trace->second.size();
+        char **symbols = backtrace_symbols(&it_trace->second.front(), (unsigned int)size);
 
         if (! symbols)
             throw std::runtime_error("Out of memory while trying to obtain stacktrace.");
 
         // https://gist.github.com/fmela/591333
         // begin trace in the calling function
-        for (unsigned int i = 1; i < size; ++i)
+        for (size_t i = 1; i < size; ++i)
             {
             Dl_info info;
             std::ostringstream oss;

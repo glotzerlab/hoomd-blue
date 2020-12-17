@@ -191,7 +191,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     MPI_Comm_rank(mpi_comm, &rank);
 
     char *buf = NULL;
-    int recv_count;
+    unsigned int recv_count;
     if (rank == (int)root)
         {
         std::stringstream s(std::ios_base::out | std::ios_base::binary);
@@ -205,7 +205,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
 
         // copy string to send buffer
         std::string str = s.str();
-        recv_count = str.size();
+        recv_count = (unsigned int)str.size();
         buf = new char[recv_count];
         str.copy(buf, recv_count);
         }
@@ -254,7 +254,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
         unsigned int len = 0;
         for (it = in_values.begin(); it!= in_values.end(); ++it)
             {
-            unsigned int idx = it - in_values.begin();
+            unsigned int idx = (unsigned int)(it - in_values.begin());
             std::stringstream s(std::ios_base::out | std::ios_base::binary);
             cereal::BinaryOutputArchive ar(s);
 
@@ -264,7 +264,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
             str.push_back(s.str());
 
             displs[idx] = (idx > 0) ? displs[idx-1]+send_counts[idx-1] : 0;
-            send_counts[idx] = str[idx].length();
+            send_counts[idx] = (unsigned int)(str[idx].length());
             len += send_counts[idx];
             }
 
@@ -316,7 +316,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
 
     // copy into send buffer
     std::string str = s.str();
-    unsigned int send_count = str.length();
+    unsigned int send_count = (unsigned int)str.length();
 
     int *recv_counts = NULL;
     int *displs = NULL;
@@ -380,7 +380,7 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
 
     // copy into send buffer
     std::string str = s.str();
-    unsigned int send_count = str.length();
+    unsigned int send_count = (unsigned int)str.length();
 
     // allocate memory for buffer lengths
     out_values.resize(size);
@@ -438,7 +438,7 @@ void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
 
     // copy string to send buffer
     std::string str = s.str();
-    recv_count = str.size();
+    recv_count = (unsigned int)str.size();
     buf = new char[recv_count];
     str.copy(buf, recv_count);
 

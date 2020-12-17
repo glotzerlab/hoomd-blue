@@ -264,11 +264,11 @@ void System::setupProfiling()
     m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->setProfiler(m_profiler);
+    for (auto &analyzer_trigger_pair: m_analyzers)
+        analyzer_trigger_pair.first->setProfiler(m_profiler);
 
     // updaters
-	for (auto &updater_trigger_pair: m_updaters)
+    for (auto &updater_trigger_pair: m_updaters)
         {
         if (!updater_trigger_pair.first)
             throw runtime_error("Invalid updater_trigger_pair");
@@ -292,8 +292,8 @@ void System::resetStats()
         m_integrator->resetStats();
 
     // analyzers
-	for (auto &analyzer_trigger_pair: m_analyzers)
-		analyzer_trigger_pair.first->resetStats();
+    for (auto &analyzer_trigger_pair: m_analyzers)
+        analyzer_trigger_pair.first->resetStats();
 
     // updaters
     for (auto &updater_trigger_pair: m_updaters)

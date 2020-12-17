@@ -207,9 +207,8 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             order xx, xy, xz, yy, yz, zz
          */
         GlobalArray<Scalar>  m_virial;
-        unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
+        size_t m_virial_pitch;    //!< The pitch of the 2D virial array
         GlobalArray<Scalar4> m_torque;    //!< per-particle torque
-        int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
