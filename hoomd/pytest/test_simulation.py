@@ -275,3 +275,14 @@ def test_initial_timestep_range(simulation_factory):
         sim.timestep = 2**64
 
     sim.timestep = 2**64 - 1
+
+
+def test_run_limit(simulation_factory, lattice_snapshot_factory):
+    """Test limits of Simulation.run()."""
+    sim = simulation_factory(lattice_snapshot_factory())
+
+    with pytest.raises(ValueError):
+        sim.run(2**64 - 1)
+
+    with pytest.raises(ValueError):
+        sim.run(-1)
