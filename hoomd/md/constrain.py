@@ -327,7 +327,7 @@ class Rigid(ConstraintForce):
                 diameter_vec.append(1.0)
 
         # set parameters in C++ force
-        self.cpp_force.setParam(
+        self._cpp_obj.setParam(
             type_id,
             type_vec,
             pos_vec,
@@ -343,13 +343,13 @@ class Rigid(ConstraintForce):
             create (bool): When True, create rigid bodies, otherwise validate
                 existing ones.
         """
-        self.cpp_force.validateRigidBodies(create)
+        self._cpp_obj.validateRigidBodies(create)
 
     def validate_bodies(self):
         R"""Validate that bodies are well defined and prepare for the
         simulation run.
         """
-        self.cpp_force.validateRigidBodies(False)
+        self._cpp_obj.validateRigidBodies(False)
 
     ## \internal
     # \brief updates force coefficients
