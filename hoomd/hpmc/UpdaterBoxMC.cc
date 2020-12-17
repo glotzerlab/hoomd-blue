@@ -3,6 +3,8 @@
 
 #include "UpdaterBoxMC.h"
 #include "hoomd/RNGIdentifiers.h"
+#include <numeric>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -412,45 +414,50 @@ void UpdaterBoxMC::update(unsigned int timestep)
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
-    // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
-    Scalar range = m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight;
-    if (range == 0.0)
+    auto weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
+    auto weight_partial_sums = std::partial_sum(weights.cbegin(), weights.cend(), weight_sums.begin());
+    auto weight_total = weight_partial_sums.back();
+    if (weight_total == 0.0)
         {
-        // Attempt to execute with no move types set.
+        // Attempt to execute with all move weights equal to zero.
         m_exec_conf->msg->warning() << "No move types with non-zero weight. UpdaterBoxMC has nothing to do." << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
-    Scalar move_type_select = hoomd::detail::generate_canonical<Scalar>(rng) * range; // generate a number on (0, range]
+    auto selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, sum_of_weights];
+    int move_type_select = std::distance(
+        weight_partial_sums.cbegin(),
+        std::lower_bound(weight_partial_sums.cbegin(), weight_partial_sums.cend(), selected)
+    );
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select < m_volume_weight)
+    if (move_type_select == 0)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight)
+    else if (move_type_select == 1)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
         update_lnV(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight)
+    else if (move_type_select == 2)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight)
+    else if (move_type_select == 3)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight)
+    else if (move_type_select == 4)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
