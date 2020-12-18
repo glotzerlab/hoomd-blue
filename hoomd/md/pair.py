@@ -2377,3 +2377,57 @@ class Fourier(Pair):
             TypeParameterDict(a=list, b=list,
             _defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
         self._add_typeparam(params)
+
+
+class OPP(Pair):
+    r"""Oscillating pair potential.
+
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
+
+    `OPP` specifies that an oscillating pair potential should be applied between
+    every non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{equation*}
+        V_{\mathrm{OPP}}(r) = \frac{1}{r^{15}}
+            + \frac{1}{r^{3}} \cos{\left(k(r - 1.25) - \phi\right)}
+        \\end{equation*}
+
+    See :py:class:`Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use `params` dictionary
+    to set potential coefficients. The coefficients must be set per
+    unique pair of particle types.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The LJ potential parameters. The dictionary has the following keys:
+
+            * ``k`` (`float`, **required**) -
+              oscillation frequency :math:`k` (inverse distance units)
+
+            * ``phi`` (`float`, **required**) -
+              potential phase shift :math:`\\phi` (unitless)
+
+    Example::
+
+        nl = nlist.Cell()
+        opp = pair.OPP(nl, r_cut=3.0)
+        opp.params[('A', 'A')] = {'k': 1.0, 'phi': 3.14}
+        opp.r_cut[('A', 'B')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairOPP"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(k=float, phi=float,
+                                                 len_keys=2)
+                               )
+        self._add_typeparam(params)
