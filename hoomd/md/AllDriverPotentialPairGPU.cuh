@@ -131,6 +131,6 @@ gpu_compute_fourier_forces(const pair_args_t & pair_args,
 //! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
 hipError_t __attribute__((visibility("default")))
 gpu_compute_opp_forces(const pair_args_t & pair_args,
-                           const EvaluatorPairOPP::param_type *d_params);
+                       const EvaluatorPairOPP::param_type *d_params);
 
 #endif
