@@ -2380,7 +2380,7 @@ class Fourier(Pair):
 
 
 class OPP(Pair):
-    r"""Oscillating pair potential.
+    """Oscillating pair potential.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
@@ -2389,18 +2389,19 @@ class OPP(Pair):
         mode (str): energy shifting/smoothing mode
 
     `OPP` specifies that an oscillating pair potential should be applied between
-    every non-excluded particle pair in the simulation.
+    every non-excluded particle pair in the simulation. The OPP potential can
+    be used to model metallic interactions.
 
     .. math::
         :nowrap:
 
-        \begin{equation*}
-        V_{\mathrm{OPP}}(r) = \frac{1}{r^{15}}
-            + \frac{1}{r^{3}} \cos{\left(k(r - 1.25) - \phi\right)}
+        \\begin{equation*}
+        V_{\\mathrm{OPP}}(r) = C_1 r^{-\\eta_1}
+            + C_2 r^{-\\eta_2} \\cos{\\left(k(r - b) - \\phi\\right)}
         \\end{equation*}
 
     See :py:class:`Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use `params` dictionary
+    available energy shifting and smoothing modes.  Use ~`params` dictionary
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
@@ -2408,7 +2409,21 @@ class OPP(Pair):
         params (`TypeParameter` [\
             `tuple` [``particle_type``, ``particle_type``],\
             `dict`]):
-            The LJ potential parameters. The dictionary has the following keys:
+            The OPP potential parameters. The dictionary has the following keys:
+
+            * ``C1`` (`float`, **required**) -
+              Energy scale of the first term :math:`C_1` (energy units)
+
+            * ``C2`` (`float`, **required**) -
+              Energy scale of the second term :math:`C_2` (energy units)
+
+            * ``eta1`` (`float`, **required**) -
+              The inverse power to take :math:`r` to in the first term,
+              :math:`\\eta_1` (unitless).
+
+            * ``eta2`` (`float`, **required**) -
+              The inverse power to take :math:`r` to in the second term
+              :math:`\\eta_2` (unitless).
 
             * ``k`` (`float`, **required**) -
               oscillation frequency :math:`k` (inverse distance units)
@@ -2416,18 +2431,24 @@ class OPP(Pair):
             * ``phi`` (`float`, **required**) -
               potential phase shift :math:`\\phi` (unitless)
 
+            * ``b`` (`float`, **required**) -
+              shift to :math:`r` in cos argument. 
+
     Example::
 
         nl = nlist.Cell()
         opp = pair.OPP(nl, r_cut=3.0)
-        opp.params[('A', 'A')] = {'k': 1.0, 'phi': 3.14}
+        opp.params[('A', 'A')] = {
+            'C1': 1., 'C2': 1., 'eta1': 15, 'eta2': 3,
+            'k': 1.0, 'phi': 3.14, 'b': 1.25}
         opp.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairOPP"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(k=float, phi=float,
-                                                 len_keys=2)
+                               TypeParameterDict(
+                                   C1=float, C2=float, eta1=float, eta2=float,
+                                   k=float, phi=float, b=float, len_keys=2)
                                )
         self._add_typeparam(params)

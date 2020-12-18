@@ -27,8 +27,8 @@
 
     EvaluatorPairOPP evaluates the function:
     \f{equation*}
-    V_{\mathrm{OPP}}(r)  = - \frac{1}{r^{15}} + \frac{1}{r^{3}}
-                             \cos(k ( r - 1.25) - \phi)
+    V_{\mathrm{OPP}}(r)  = - C_1 r^{\eta_1} + C_2 r^{\eta_2}
+                             \cos(k ( r - b) - \phi)
     \f}
 
 */
@@ -38,8 +38,13 @@ class EvaluatorPairOPP
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
+            Scalar C1;
+            Scalar C2;
+            Scalar eta1;
+            Scalar eta2;
             Scalar k;
             Scalar phi;
+            Scalar b;
 
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
@@ -50,28 +55,34 @@ class EvaluatorPairOPP
             #endif
 
             #ifndef __HIPCC__
-            param_type() : k(0), phi(0) {}
+            param_type() :
+                C1(0), C2(0), eta1(0), eta2(0), k(0), phi(0), b(0) {}
 
             param_type(pybind11::dict v)
                 {
+                C1 = v["C1"].cast<Scalar>();
+                C2 = v["C2"].cast<Scalar>();
+                eta1 = v["eta1"].cast<Scalar>();
+                eta2 = v["eta2"].cast<Scalar>();
                 k = v["k"].cast<Scalar>();
                 phi = v["phi"].cast<Scalar>();
+                b = v["b"].cast<Scalar>();
                 }
 
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
+                v["C1"] = C1;
+                v["C2"] = C2;
+                v["eta1"] = eta1;
+                v["eta2"] = eta2;
                 v["k"] = k;
                 v["phi"] = phi;
+                v["b"] = b;
                 return v;
                 }
             #endif
-            }
-            #ifdef SINGLE_PRECISION
-            __attribute__((aligned(8)));
-            #else
-            __attribute__((aligned(16)));
-            #endif
+            };
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -83,8 +94,7 @@ class EvaluatorPairOPP
                                 const param_type& _params)
             : rsq(_rsq),
               rcutsq(_rcutsq),
-              k(_params.k),
-              phi(_params.phi)
+              params(_params)
             {
             }
 
@@ -124,30 +134,29 @@ class EvaluatorPairOPP
                 // Get quantities need for both energy and force calculation
                 Scalar r(fast::sqrt(rsq));
                 Scalar eval_sin, eval_cos;
-                fast::sincos(k * (r - 1.25) - phi, eval_sin, eval_cos);
+                fast::sincos(params.k * (r - params.b) - params.phi,
+                             eval_sin, eval_cos);
 
                 // Compute energy
-                Scalar inv_r_3(fast::pow(rsq, -1.5));
-                Scalar inv_r_15 = inv_r_3 * inv_r_3 * inv_r_3
-                                  * inv_r_3 * inv_r_3;
-                pair_eng = inv_r_15 - (inv_r_3 * eval_cos);
+                Scalar r_eta1_arg(params.C1 * fast::pow(r, -params.eta1));
+                Scalar r_to_eta2(fast::pow(r, -params.eta2));
+                Scalar r_eta2_arg(params.C2 * r_to_eta2 * eval_cos);
+                pair_eng = r_eta1_arg + r_eta2_arg;
 
                 // Compute force
-                Scalar inv_r_4 = 1 / (rsq * rsq);
-                Scalar inv_r_16 = 1 / (inv_r_4 * inv_r_4 * inv_r_4 * inv_r_4);
-                force_divr = (k * eval_sin * inv_r_3)
-                             - (3 * eval_cos * inv_r_4) - (15 * inv_r_16);
+                force_divr = -(r_eta1_arg * params.eta1
+                              + r_eta2_arg * params.eta2) / r
+                    - (params.C2 * params.k * r_to_eta2  * eval_sin);
                 if (energy_shift)
                     {
                     Scalar r_cut(fast::sqrt(rcutsq));
-
-                    // Compute energy
-                    Scalar inv_r_cut_3(fast::pow(rsq, -1.5));
-                    Scalar inv_r_cut_15 = inv_r_cut_3 * inv_r_cut_3
-                                          * inv_r_cut_3 * inv_r_cut_3
-                                          * inv_r_cut_3;
-                    pair_eng -= inv_r_cut_15 - 
-                        (inv_r_cut_3 * fast::cos(k * (r_cut - 1.25) - phi));
+                    Scalar r_cut_eta1_arg(
+                        params.C1 * fast::pow(r_cut, params.eta1));
+                    Scalar r_cut_eta2_arg(
+                        params.C2 * fast::pow(r_cut, params.eta2)
+                        * fast::cos(params.k * (r_cut - params.b) - params.phi)
+                    );
+                    pair_eng -= r_cut_eta1_arg + r_cut_eta2_arg;
                     }
 
                 return true;
@@ -176,10 +185,9 @@ class EvaluatorPairOPP
         #endif
 
     protected:
-        Scalar rsq;     //!< Stored rsq from the constructor
-        Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar k;       //!< frequency term in potential
-        Scalar phi;     //!< phase shift in potential
+        Scalar rsq;        /// Stored rsq from the constructor
+        Scalar rcutsq;     /// Stored rcutsq from the constructor
+        param_type params; /// Stored pair parameters for a given type pair
     };
 
 
