@@ -9,11 +9,10 @@ def test_brownian_attributes():
     """Test attributes of the Brownian integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
-    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant, seed=2)
+    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant)
 
     assert brownian.filter is all_
     assert brownian.kT is constant
-    assert brownian.seed == 2
     assert brownian.alpha is None
 
     type_A = hoomd.filter.Type(['A'])
@@ -24,9 +23,6 @@ def test_brownian_attributes():
     brownian.kT = ramp
     assert brownian.kT is ramp
 
-    brownian.seed = 10
-    assert brownian.seed == 10
-
     brownian.alpha = 0.125
     assert brownian.alpha == 0.125
 
@@ -36,7 +32,7 @@ def test_brownian_attributes_attached(simulation_factory,
     """Test attributes of the Brownian integrator after attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
-    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant, seed=2)
+    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
@@ -44,7 +40,6 @@ def test_brownian_attributes_attached(simulation_factory,
 
     assert brownian.filter is all_
     assert brownian.kT is constant
-    assert brownian.seed == 2
     assert brownian.alpha is None
 
     type_A = hoomd.filter.Type(['A'])
@@ -58,12 +53,6 @@ def test_brownian_attributes_attached(simulation_factory,
     brownian.kT = ramp
     assert brownian.kT is ramp
 
-    with pytest.raises(AttributeError):
-        # seed cannot be set after scheduling
-        brownian.seed = 10
-
-    assert brownian.seed == 2
-
     brownian.alpha = 0.125
     assert brownian.alpha == 0.125
 
@@ -72,11 +61,10 @@ def test_langevin_attributes():
     """Test attributes of the Langevin integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
-    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant, seed=2)
+    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant)
 
     assert langevin.filter is all_
     assert langevin.kT is constant
-    assert langevin.seed == 2
     assert langevin.alpha is None
     assert (not langevin.tally_reservoir_energy)
 
@@ -87,9 +75,6 @@ def test_langevin_attributes():
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
     langevin.kT = ramp
     assert langevin.kT is ramp
-
-    langevin.seed = 10
-    assert langevin.seed == 10
 
     langevin.alpha = 0.125
     assert langevin.alpha == 0.125
@@ -103,7 +88,7 @@ def test_langevin_attributes_attached(simulation_factory,
     """Test attributes of the Langevin integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
-    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant, seed=2)
+    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin])
@@ -111,7 +96,6 @@ def test_langevin_attributes_attached(simulation_factory,
 
     assert langevin.filter is all_
     assert langevin.kT is constant
-    assert langevin.seed == 2
     assert langevin.alpha is None
     assert (not langevin.tally_reservoir_energy)
 
@@ -125,12 +109,6 @@ def test_langevin_attributes_attached(simulation_factory,
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
     langevin.kT = ramp
     assert langevin.kT is ramp
-
-    with pytest.raises(AttributeError):
-        # seed cannot be set after scheduling
-        langevin.seed = 10
-
-    assert langevin.seed == 2
 
     langevin.alpha = 0.125
     assert langevin.alpha == 0.125
@@ -316,7 +294,7 @@ def test_npt_thermalize_thermostat_and_barostat_dof(
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
     sim.operations._schedule()
 
-    npt.thermalize_thermostat_and_barostat_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof()
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -354,7 +332,7 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
                                                     aniso=True)
     sim.run(0)
 
-    npt.thermalize_thermostat_and_barostat_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof()
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -512,7 +490,7 @@ def test_nvt_thermalize_thermostat_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
     sim.operations._schedule()
 
-    nvt.thermalize_thermostat_dof(100)
+    nvt.thermalize_thermostat_dof()
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -539,7 +517,7 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
                                                     aniso=True)
     sim.run(0)
 
-    nvt.thermalize_thermostat_dof(100)
+    nvt.thermalize_thermostat_dof()
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0

@@ -25,8 +25,7 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
         /// Constructs the integration method and associates it with the system
         TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
                             std::shared_ptr<ParticleGroup> group,
-                            std::shared_ptr<Variant> T,
-                            unsigned int seed);
+                            std::shared_ptr<Variant> T);
         virtual ~TwoStepLangevinBase();
 
         /** Set a new temperature
@@ -67,12 +66,6 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
         /// Gets alpha
         pybind11::object getAlpha();
 
-        /// Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
-
         //! Return true if the method is momentum conserving
         virtual bool isMomentumConserving() const
             {
@@ -82,9 +75,6 @@ class PYBIND11_EXPORT TwoStepLangevinBase : public IntegrationMethodTwoStep
     protected:
         /// The Temperature of the Stochastic Bath
         std::shared_ptr<Variant> m_T;
-
-        /// The seed for the RNG of the Stochastic Bath
-        unsigned int m_seed;
 
         /// flag to enable gamma to be a scaled version of the diameter
         bool m_use_alpha;

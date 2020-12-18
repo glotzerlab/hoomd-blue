@@ -48,8 +48,8 @@ struct dpd_pair_args_t
                     const size_t _size_nlist,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
-                    const unsigned int _seed,
-                    const unsigned int _timestep,
+                    const uint16_t _seed,
+                    const uint64_t _timestep,
                     const Scalar _deltaT,
                     const Scalar _T,
                     const unsigned int _shift_mode,
@@ -97,7 +97,7 @@ struct dpd_pair_args_t
     const size_t size_nlist;  //!< Total length of the neighbor list
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
-    const unsigned int seed;        //!< user provided seed for PRNG
+    const uint16_t seed;        //!< user provided seed for PRNG
     const uint64_t timestep;    //!< timestep of simulation
     const Scalar deltaT;             //!< timestep size
     const Scalar T;                  //!< temperature
@@ -160,8 +160,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               const unsigned int *d_head_list,
                                               const typename evaluator::param_type *d_params,
                                               const Scalar *d_rcutsq,
-                                              const unsigned int d_seed,
-                                              const unsigned int d_timestep,
+                                              const uint16_t d_seed,
+                                              const uint64_t d_timestep,
                                               const Scalar d_deltaT,
                                               const Scalar d_T,
                                               const int ntypes)

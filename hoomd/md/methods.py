@@ -154,7 +154,7 @@ class NVT(_Method):
             raise RuntimeError(
                 "Call Simulation.run(0) before thermalize_thermostat_dof")
 
-        self._cpp_obj.thermalizeThermostatDOF(seed, self._simulation.timestep)
+        self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
 
 class NPT(_Method):
@@ -414,11 +414,8 @@ class NPT(_Method):
         else:
             return (value,value,value,0,0,0)
 
-    def thermalize_thermostat_and_barostat_dof(self, seed):
+    def thermalize_thermostat_and_barostat_dof(self):
         r"""Set the thermostat and barostat momenta to random values.
-
-        Args:
-            seed (int): Random number seed
 
         `thermalize_thermostat_and_barostat_dof` sets a random value for the
         momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
@@ -433,10 +430,6 @@ class NPT(_Method):
             prepare a newly created `Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
-
-        Note:
-            The seed for the pseudorandom number stream includes the
-            simulation timestep and the provided *seed*.
         """
         if not self._attached:
             raise RuntimeError(
@@ -444,7 +437,7 @@ class NPT(_Method):
                 "thermalize_thermostat_and_barostat_dof")
 
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
-            seed, self._simulation.timestep)
+            self._simulation.timestep)
 
 
 class nph(NPT):
@@ -584,9 +577,6 @@ class Langevin(_Method):
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
 
-        seed (`int`): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
-
         alpha (`float`): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
@@ -620,21 +610,6 @@ class Langevin(_Method):
     temperature, :math:`T`.  When :math:`kT=0`, the random force
     :math:`\vec{F}_\mathrm{R}=0`.
 
-    `Langevin` generates random numbers by hashing together the
-    particle tag, user seed, and current time step index. See `C. L. Phillips
-    et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ for more
-    information.
-
-    .. attention::
-
-        Change the seed if you reset the simulation time step to 0.
-        If you keep the same seed, the simulation will continue with the same
-        sequence of random numbers used previously and may cause unphysical
-        correlations.
-
-        For MPI runs: all ranks other than 0 ignore the seed input and use the
-        value of rank 0.
-
     Langevin dynamics includes the acceleration term in the Langevin equation
     and is useful for gently thermalizing systems using a small gamma. This
     assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
@@ -662,14 +637,13 @@ class Langevin(_Method):
     Examples::
 
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
-        seed=1, alpha=1.0)
+        alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
-        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
+        langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2)
         langevin.gamma.default = 2.0
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
@@ -679,9 +653,6 @@ class Langevin(_Method):
 
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
-
-        seed (int): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
@@ -699,14 +670,13 @@ class Langevin(_Method):
 
     """
 
-    def __init__(self, filter, kT, seed, alpha=None,
+    def __init__(self, filter, kT, alpha=None,
                  tally_reservoir_energy=False):
 
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
         )
@@ -735,7 +705,7 @@ class Langevin(_Method):
 
         self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
-                                 self.kT, self.seed)
+                                 self.kT)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -750,9 +720,6 @@ class Brownian(_Method):
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
             simulation (in energy units).
-
-        seed (`int`): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
@@ -784,19 +751,6 @@ class Brownian(_Method):
     theorem to be consistent with the specified drag and temperature, :math:`T`.
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
 
-    `Brownian` generates random numbers by hashing together the particle tag,
-    user seed, and current time step index. See
-    `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
-    for more information.
-
-    .. attention::
-        Change the seed if you reset the simulation time step to 0. If you keep
-        the same seed, the simulation will continue with the same sequence of
-        random numbers used previously and may cause unphysical correlations.
-
-        For MPI runs: all ranks other than 0 ignore the seed input and use the
-        value of rank 0.
-
     `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
     Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
     , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
@@ -827,15 +781,14 @@ class Brownian(_Method):
     Examples::
 
         brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1, alpha=1.0)
+        alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
 
     Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
 
-        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2,
-        seed=1)
+        brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=0.2)
         brownian.gamma.default = 2.0
         brownian.gamma_r.default = [1.0, 2.0, 3.0]
 
@@ -846,9 +799,6 @@ class Brownian(_Method):
 
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
-
-        seed (int): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
@@ -865,13 +815,12 @@ class Brownian(_Method):
             tuple is either positive float or zero.
     """
 
-    def __init__(self, filter, kT, seed, alpha=None):
+    def __init__(self, filter, kT, alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
@@ -896,11 +845,11 @@ class Brownian(_Method):
         if isinstance(sim.device, hoomd.device.CPU):
             self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
-                                          self.kT, self.seed)
+                                          self.kT)
         else:
             self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
                                              sim.state._get_group(self.filter),
-                                             self.kT, self.seed)
+                                             self.kT)
 
         # Attach param_dict and typeparam_dict
         super()._attach()

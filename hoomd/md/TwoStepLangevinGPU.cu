@@ -57,7 +57,7 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  bool use_alpha,
                                  Scalar alpha,
                                  uint64_t timestep,
-                                 unsigned int seed,
+                                 uint16_t seed,
                                  Scalar T,
                                  bool noiseless_t,
                                  Scalar deltaT,
@@ -117,7 +117,8 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(-1, 1);
 
         Scalar randomx = uniform(rng);
@@ -256,7 +257,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              unsigned int n_types,
                              unsigned int group_size,
                              uint64_t timestep,
-                             unsigned int seed,
+                             uint16_t seed,
                              Scalar T,
                              bool noiseless_r,
                              Scalar deltaT,
@@ -307,7 +308,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
+                                hoomd::Counter(ptag));
             Scalar rand_x = NormalDistribution<Scalar>(sigma_r.x)(rng);
             Scalar rand_y = NormalDistribution<Scalar>(sigma_r.y)(rng);
             Scalar rand_z = NormalDistribution<Scalar>(sigma_r.z)(rng);

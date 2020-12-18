@@ -212,7 +212,7 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         /// Randomize the thermostat and barostat variables
-        void thermalizeThermostatAndBarostatDOF(unsigned int seed, uint64_t timestep);
+        void thermalizeThermostatAndBarostatDOF(uint64_t timestep);
 
         /// Get the translational thermostat degrees of freedom
         pybind11::tuple getTranslationalThermostatDOF();

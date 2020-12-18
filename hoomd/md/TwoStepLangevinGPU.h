@@ -23,8 +23,7 @@ class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
         //! Constructs the integration method and associates it with the system
         TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed);
+                           std::shared_ptr<Variant> T);
         virtual ~TwoStepLangevinGPU() {};
 
         //! Performs the first step of the integration

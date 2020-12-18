@@ -24,7 +24,7 @@ struct langevin_step_two_args
     Scalar alpha;             //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
     uint64_t timestep;    //!< Current timestep
-    unsigned int seed;        //!< User chosen random number seed
+    uint16_t seed;        //!< User chosen random number seed
     Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size

@@ -178,7 +178,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
                                             timestep,
-                                            m_sysdef->getSeed()),
+                                            seed),
                                 hoomd::Counter(ptag));
 
     if (is2D) // 2D

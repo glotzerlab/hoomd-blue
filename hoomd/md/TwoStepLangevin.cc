@@ -16,9 +16,8 @@ using namespace hoomd;
 
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed)
-    : TwoStepLangevinBase(sysdef, group, T, seed), m_reservoir_energy(0),
+                           std::shared_ptr<Variant> T)
+    : TwoStepLangevinBase(sysdef, group, T), m_reservoir_energy(0),
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
@@ -247,13 +246,16 @@ void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
 
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    uint16_t seed = m_sysdef->getSeed();
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
 
         // first, calculate the BD forces
         // Generate three random numbers
@@ -407,8 +409,7 @@ void export_TwoStepLangevin(py::module& m)
     py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<Variant>,
-                            unsigned int>())
+                            std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy", &TwoStepLangevin::getTallyReservoirEnergy,
                                                 &TwoStepLangevin::setTallyReservoirEnergy)
         .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy)

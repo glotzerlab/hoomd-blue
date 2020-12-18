@@ -24,12 +24,10 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
             @param sysdef SystemDefinition this method will act on. Must not be NULL.
             @param group The group of particles this integration method is to work on
             @param T Temperature set point as a function of time
-            @param seed Random seed to use in generating random numbers
         */
         TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<Variant> T,
-                     unsigned int seed);
+                     std::shared_ptr<Variant> T);
         virtual ~TwoStepLangevin();
 
         /** Turn on or off Tally

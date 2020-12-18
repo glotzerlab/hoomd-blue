@@ -15,13 +15,11 @@ using namespace std;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
 */
 TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
-                                       std::shared_ptr<Variant> T,
-                                       unsigned int seed)
-    : TwoStepLangevin(sysdef, group, T, seed)
+                                       std::shared_ptr<Variant> T)
+    : TwoStepLangevin(sysdef, group, T)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -159,7 +157,7 @@ void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
         args.alpha = m_alpha;
         args.T = (*m_T)(timestep);
         args.timestep = timestep;
-        args.seed = m_seed;
+        args.seed = m_sysdef->getSeed();
         args.d_sum_bdenergy = d_sumBD.data;
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
@@ -237,7 +235,6 @@ void export_TwoStepLangevinGPU(py::module& m)
     py::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
-                               std::shared_ptr<Variant>,
-                               unsigned int>())
+                               std::shared_ptr<Variant>>())
         ;
     }

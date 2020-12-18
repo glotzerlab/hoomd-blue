@@ -140,7 +140,7 @@ class Seed
 
         id seed1 seed0 timestep4 | timestep3 timestep2 timestep1 timestep0
     */
-    Seed(RNGIdentifier id, uint64_t timestep, uint16_t seed)
+    DEVICE Seed(RNGIdentifier id, uint64_t timestep, uint16_t seed)
         {
         m_key = {{uint32_t(id) << 24 | uint32_t(seed) << 8
                       | uint32_t((timestep & 0x000000ff00000000) >> 32),
@@ -148,7 +148,7 @@ class Seed
         }
 
     /// Get the key
-    const r123::Philox4x32::key_type& getKey() const
+    DEVICE const r123::Philox4x32::key_type& getKey() const
         {
         return m_key;
         }
@@ -169,12 +169,12 @@ class Counter
 
     Constructs a 0 valued counter.
     */
-    Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0) : m_ctr({{0, c, b, a}})
+    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0) : m_ctr({{0, c, b, a}})
         {
         }
 
     /// Get the counter
-    const r123::Philox4x32::ctr_type& getCounter() const
+    DEVICE const r123::Philox4x32::ctr_type& getCounter() const
         {
         return m_ctr;
         }

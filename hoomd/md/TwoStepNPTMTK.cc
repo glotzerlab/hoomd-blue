@@ -981,14 +981,17 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     return couple;
     }
 
-void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(unsigned int seed, uint64_t timestep)
+void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing thermostat and barostat DOF"
         << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTMTK,
+                                           timestep,
+                                           m_sysdef->getSeed()),
+                               hoomd::Counter());
 
     bool master = m_exec_conf->getRank() == 0;
 

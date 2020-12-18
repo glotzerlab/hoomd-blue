@@ -174,7 +174,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(uint64_t ti
                              this->m_nlist->getNListArray().getPitch(),
                              this->m_pdata->getNTypes(),
                              block_size,
-                             this->m_seed,
+                             this->m_sysdef->getSeed(),
                              timestep,
                              this->m_deltaT,
                              (*this->m_T)(timestep),
