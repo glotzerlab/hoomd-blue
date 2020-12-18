@@ -423,7 +423,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, sum_of_weights];
+    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, weight_total];
     auto const move_type_select = std::distance(
         m_weight_partial_sums.cbegin(),
         std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected)
