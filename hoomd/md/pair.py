@@ -2397,7 +2397,7 @@ class OPP(Pair):
 
         \\begin{equation*}
         V_{\\mathrm{OPP}}(r) = C_1 r^{-\\eta_1}
-            + C_2 r^{-\\eta_2} \\cos{\\left(k(r - b) - \\phi\\right)}
+            + C_2 r^{-\\eta_2} \\cos{\\left(k r - \\phi\\right)}
         \\end{equation*}
 
     See :py:class:`Pair` for details on how forces are calculated and the
@@ -2431,16 +2431,13 @@ class OPP(Pair):
             * ``phi`` (`float`, **required**) -
               potential phase shift :math:`\\phi` (unitless)
 
-            * ``b`` (`float`, **required**) -
-              shift to :math:`r` in cos argument. 
-
     Example::
 
         nl = nlist.Cell()
         opp = pair.OPP(nl, r_cut=3.0)
         opp.params[('A', 'A')] = {
-            'C1': 1., 'C2': 1., 'eta1': 15, 'eta2': 3,
-            'k': 1.0, 'phi': 3.14, 'b': 1.25}
+            'C1': 1., 'C2': 1., 'eta1': 15,
+            'eta2': 3, 'k': 1.0, 'phi': 3.14}
         opp.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairOPP"
@@ -2449,6 +2446,6 @@ class OPP(Pair):
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(
                                    C1=float, C2=float, eta1=float, eta2=float,
-                                   k=float, phi=float, b=float, len_keys=2)
+                                   k=float, phi=float, len_keys=2)
                                )
         self._add_typeparam(params)
