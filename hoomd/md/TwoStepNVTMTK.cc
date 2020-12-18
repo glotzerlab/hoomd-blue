@@ -440,7 +440,7 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, uint64_t timestep)
+void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
@@ -451,7 +451,10 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, uint64_t timestep
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK,
+                                           timestep,
+                                           m_sysdef->getSeed()),
+                                      hoomd::Counter());
 
     if (master)
         {

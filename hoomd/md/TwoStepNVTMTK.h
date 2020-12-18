@@ -122,7 +122,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             }
 
         /// Randomize the thermostat variables
-        void thermalizeThermostatDOF(unsigned int seed, uint64_t timestep);
+        void thermalizeThermostatDOF(uint64_t timestep);
 
         /// Get the translational thermostat degrees of freedom
         pybind11::tuple getTranslationalThermostatDOF();

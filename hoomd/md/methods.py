@@ -136,11 +136,8 @@ class NVT(_Method):
                                  "")
         super()._attach()
 
-    def thermalize_thermostat_dof(self, seed):
+    def thermalize_thermostat_dof(self):
         r"""Set the thermostat momenta to random values.
-
-        Args:
-            seed (int): Random number seed
 
         `thermalize_extra_dof` sets a random value for the momentum :math:`\xi`.
         When `Integrator.aniso` is `True`, it also sets a random value for the
@@ -152,10 +149,6 @@ class NVT(_Method):
             Call ``run(steps=0)`` to prepare a newly created `Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
-
-        Note:
-            The seed for the pseudorandom number stream includes the
-            simulation timestep and the provided *seed*.
         """
         if not self._attached:
             raise RuntimeError(

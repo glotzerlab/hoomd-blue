@@ -14,6 +14,7 @@
 #define HOOMD_RANDOM_NUMBERS_H_
 
 #include "HOOMDMath.h"
+#include "RNGIdentifiers.h"
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -139,7 +140,7 @@ class Seed
 
         id seed1 seed0 timestep4 | timestep3 timestep2 timestep1 timestep0
     */
-    Seed(uint8_t id, uint64_t timestep, uint16_t seed)
+    Seed(RNGIdentifier id, uint64_t timestep, uint16_t seed)
         {
         m_key = {{uint32_t(id) << 24 | uint32_t(seed) << 8
                       | uint32_t((timestep & 0x000000ff00000000) >> 32),

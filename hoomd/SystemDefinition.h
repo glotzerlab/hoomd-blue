@@ -104,6 +104,17 @@ class PYBIND11_EXPORT SystemDefinition
         void setSeed(uint16_t seed)
             {
             m_seed = seed;
+
+            #ifdef ENABLE_MPI
+            // In case of MPI run, every rank should be initialized with the same seed.
+            // Broadcast the seed of rank 0 to all ranks to correct cases where the user provides
+            // different seeds
+
+            if( this->m_particle_data->getDomainDecomposition() )
+                bcast(m_seed,
+                      0,
+                      this->m_particle_data->getExecConf()->getMPICommunicator());
+            #endif
             }
 
         /// Get the random number seed

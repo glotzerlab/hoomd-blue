@@ -254,8 +254,6 @@ class Active(Force):
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
-        seed (int): required user-specified seed number for random number
-            generator.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
             all particles in the group.
         active_force (tuple): active force vector in reference to the
@@ -288,22 +286,21 @@ class Active(Force):
 
 
         all = filter.All()
-        active = hoomd.md.force.Active(filter=hoomd.filter.All(), seed=1,rotation_diff=0.01)
+        active = hoomd.md.force.Active(filter=hoomd.filter.All(),rotation_diff=0.01)
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
     """
 
-    def __init__(self, filter, seed, rotation_diff=0.1):
+    def __init__(self, filter, rotation_diff=0.1):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
-            seed=int(seed),
             rotation_diff=float(rotation_diff),
             constraint=OnlyType(ConstraintForce, allow_none=True,
                                 preprocess=ellip_preprocessing),
             )
         param_dict.update(dict(constraint=None,
-                               rotation_diff=rotation_diff, seed=seed, filter=filter))
+                               rotation_diff=rotation_diff, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -324,7 +321,7 @@ class Active(Force):
         self._cpp_obj = my_class(
             self._simulation.state._cpp_sys_def,
             self._simulation.state._get_group(self.filter),
-            self.seed, self.rotation_diff,
+            self.rotation_diff,
             _hoomd.make_scalar3(0, 0, 0), 0, 0, 0)
 
         # Attach param_dict and typeparam_dict

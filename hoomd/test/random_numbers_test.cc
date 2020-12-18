@@ -424,9 +424,9 @@ UP_TEST( poisson_large_float_test )
 //! Test that Seed initializes correctly
 UP_TEST( seed_fromIDStepSeed )
     {
-    auto s = hoomd::Seed(0xfa, 0xabcdef1234567890, 0x5eed);
+    auto s = hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, 0xabcdef1234567890, 0x5eed);
 
-    UP_ASSERT_EQUAL(s.getKey()[0], 0xfa5eed12);
+    UP_ASSERT_EQUAL(s.getKey()[0], 0x015eed12);
     UP_ASSERT_EQUAL(s.getKey()[1], 0x34567890);
     }
 
@@ -464,11 +464,11 @@ UP_TEST( counter )
 
 UP_TEST( rng_seeding )
     {
-    auto s = hoomd::Seed(0xfa, 0xabcdef1234567890, 0x5eed);
+    auto s = hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, 0xabcdef1234567890, 0x5eed);
     auto c = hoomd::Counter(0x9876, 0x5432, 0x10fe);
 
     auto g = hoomd::RandomGenerator(s, c);
-    UP_ASSERT_EQUAL(g.getKey()[0], 0xfa5eed12);
+    UP_ASSERT_EQUAL(g.getKey()[0], 0x015eed12);
     UP_ASSERT_EQUAL(g.getKey()[1], 0x34567890);
 
     UP_ASSERT_EQUAL(g.getCounter()[0], 0);

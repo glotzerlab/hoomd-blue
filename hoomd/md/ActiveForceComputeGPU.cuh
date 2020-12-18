@@ -54,7 +54,7 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                        bool is2D,
                                                        const Scalar rotationDiff,
                                                        const uint64_t timestep,
-                                                       const int seed,
+                                                       const uint16_t seed,
                                                        unsigned int block_size);
 
 
