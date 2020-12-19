@@ -423,7 +423,11 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total; // generate a number on (0, weight_total];
+
+    // Generate a number between (0, weight_total]
+    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total;
+    // Select the first move type whose partial sum of weights is greater than
+    // or equal to the generated value.
     auto const move_type_select = std::distance(
         m_weight_partial_sums.cbegin(),
         std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected)
