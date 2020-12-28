@@ -111,41 +111,63 @@ class Snapshot:
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
 
     @classmethod
-    def _from_gsd_snapshot(cls, gsd_snapshot):
-        gsd_snapshot.validate()
+    def _from_gsd_snapshot(cls, gsd_snap):
+        gsd_snap.validate()
         if self._device.communicator.rank == 0:
             snap = cls(communicator=self._device.communicator)
-            # Set all particle attributes in snap from gsd_snapshot
-            for key in vars(gsd_snapshot.particles):
-                val = vars(gsd_snapshot.particles)[key]
-                if val is not None:
-                    try:
-                        setattr(snap.particles, key, val)
-                    except AttributeError:
-                        try:
-                            # Some attributes exist but aren't setable
-                            # without [:]
-                            x = getattr(snap.particles,key)
-                            x[:] = val
-                        except AttributeError:
-                            # The attribute doesn't exist in hoomd.Snapshot
-                            pass
+
+            # Set all particle attributes in snap from gsd_snap
+            snap.particles.N = gsd_snap.particles.N
+            snap.particles.types = gsd_snap.particles.types
+            snap.particles.angmom[:] = gsd_snap.particles.angmom
+            snap.particles.body[:] = gsd_snap.particles.body
+            snap.particles.charge[:] = gsd_snap.particles.charge
+            snap.particles.diameter[:] = gsd_snap.particles.diameter
+            snap.particles.image[:] = gsd_snap.particles.image
+            snap.particles.mass[:] = gsd_snap.particles.mass
+            snap.particles.moment_inertia[:] = gsd_snap.particles.moment_inertia
+            snap.particles.orientation[:] = gsd_snap.particles.orientation
+            snap.particles.position[:] = gsd_snap.particles.position
+            snap.particles.typeid[:] = gsd_snap.particles.typeid
+            snap.particles.velocity[:] = gsd_snap.particles.velocity
 
             # Set all bond attributes
-            for key in vars(gsd_snapshot.bonds):
-                val = vars(gsd_snapshot.bonds)[key]
-                if val is not None:
-                    try:
-                        setattr(snap.bonds, key, val)
-                    except AttributeError:
-                        try:
-                            x = getattr(snap.bonds,key)
-                            x[:] = val
-                        except AttributeError:
-                            pass
+            snap.bonds.N = gsd_snap.bonds.N
+            snap.bonds.types = gsd_snap.bonds.types
+            snap.bonds.group[:] = gsd_snap.bonds.group
+            snap.bonds.typeid[:] = gsd_snap.bonds.typeid
+
+            # Set all angle attributes
+            snap.angles.N = gsd_snap.angles.N
+            snap.angles.types = gsd_snap.angles.types
+            snap.angles.group[:] = gsd_snap.angles.group
+            snap.angles.typeid[:] = gsd_snap.angles.typeid
+
+            # Set all dihedral attributes
+            snap.dihedrals.N = gsd_snap.dihedrals.N
+            snap.dihedrals.types = gsd_snap.dihedrals.types
+            snap.dihedrals.group[:] = gsd_snap.dihedrals.group
+            snap.dihedrals.typeid[:] = gsd_snap.dihedrals.typeid
+
+            # Set all improper attributes
+            snap.impropers.N = gsd_snap.impropers.N
+            snap.impropers.types = gsd_snap.impropers.types
+            snap.impropers.group[:] = gsd_snap.impropers.group
+            snap.impropers.typeid[:] = gsd_snap.impropers.typeid
+
+            # Set all pair attributes
+            snap.pairs.N = gsd_snap.pairs.N
+            snap.pairs.types = gsd_snap.pairs.types
+            snap.pairs.group[:] = gsd_snap.pairs.group
+            snap.pairs.typeid[:] = gsd_snap.pairs.typeid
+
+            # Set all constraint attributes
+            snap.constraints.N = gsd_snap.constraints.N
+            snap.constraints.group[:] = gsd_snap.constraints.group
+            snap.constraints.value[:] = gsd_snap.constraints.value
 
             # Set box attribute
-            snap.configuration.box = gsd_snapshot.configuration.box
-            if gsd_snapshot.configuration.dimensions == 2:
+            snap.configuration.box = gsd_snap.configuration.box
+            if gsd_snap.configuration.dimensions == 2:
                 snap.configuration.box[3] = 0
         return snap
