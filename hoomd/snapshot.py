@@ -112,6 +112,7 @@ class Snapshot:
 
     @classmethod
     def _from_gsd_snapshot(cls, gsd_snapshot):
+        gsd_snapshot.validate()
         if self._device.communicator.rank == 0:
             snap = cls(communicator=self._device.communicator)
             # Set all particle attributes in snap from gsd_snapshot
