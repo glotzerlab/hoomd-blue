@@ -246,7 +246,7 @@ UP_TEST( GlobalArray_resize_tests )
    unsigned int width=3;
    unsigned int height=2;
    GlobalArray<unsigned int> c(width, height,exec_conf);
-   unsigned int pitch = c.getPitch();
+   size_t pitch = c.getPitch();
        {
        // write some data to it
        ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::overwrite);

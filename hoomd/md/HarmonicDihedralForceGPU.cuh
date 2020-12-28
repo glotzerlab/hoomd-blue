@@ -19,7 +19,7 @@
 //! Kernel driver that computes harmonic dihedral forces for HarmonicDihedralForceComputeGPU
 hipError_t gpu_compute_harmonic_dihedral_forces(Scalar4* d_force,
                                                  Scalar* d_virial,
-                                                 const unsigned int virial_pitch,
+                                                 const size_t virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const BoxDim& box,

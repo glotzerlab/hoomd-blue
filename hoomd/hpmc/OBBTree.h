@@ -160,7 +160,7 @@ class OBBTree
         */
         inline unsigned int getNodeNumParticles(unsigned int node) const
             {
-            return (m_nodes[node].particles.size());
+            return ((unsigned int)m_nodes[node].particles.size());
             }
 
         //! Get the particles in a given node
@@ -372,7 +372,7 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
         OverlapReal split_proj(0.0);
         for (unsigned int i = 0; i < len; ++i)
             {
-            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/len;
+            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/OverlapReal(len);
             }
 
         // split on x direction according to object mean

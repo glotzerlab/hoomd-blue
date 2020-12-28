@@ -27,7 +27,7 @@ struct bond_args_t
     //! Construct a bond_args_t
     bond_args_t(Scalar4 *_d_force,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              const size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
@@ -58,7 +58,7 @@ struct bond_args_t
 
     Scalar4 *d_force;                   //!< Force to write out
     Scalar *d_virial;                   //!< Virial to write out
-    const unsigned int virial_pitch;   //!< pitch of 2D array of virial matrix elements
+    const size_t virial_pitch;   //!< pitch of 2D array of virial matrix elements
     unsigned int N;                    //!< number of particles
     unsigned int n_max;                //!< Size of local pdata arrays
     const Scalar4 *d_pos;              //!< particle positions
@@ -101,7 +101,7 @@ struct bond_args_t
 template< class evaluator >
 __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_charge,
@@ -276,8 +276,8 @@ hipError_t gpu_compute_bond_forces(const bond_args_t& bond_args,
     dim3 grid( bond_args.N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    unsigned int shared_bytes = sizeof(typename evaluator::param_type) *
-                                bond_args.n_bond_types;
+    unsigned int shared_bytes = (unsigned int)(sizeof(typename evaluator::param_type) *
+                                bond_args.n_bond_types);
 
     // run the kernel
     hipLaunchKernelGGL(gpu_compute_bond_forces_kernel<evaluator>, grid, threads, shared_bytes, 0,

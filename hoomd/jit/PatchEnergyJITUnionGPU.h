@@ -32,7 +32,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
             m_gpu_factory.setAlphaUnionPtr(&m_alpha_union.front());
             m_gpu_factory.setUnionParamsPtr(&m_d_union_params.front());
-            m_gpu_factory.setRCutUnion(m_rcut_union);
+            m_gpu_factory.setRCutUnion(float(m_rcut_union));
 
             // tuning params for patch narrow phase
             std::vector<unsigned int> valid_params_patch;

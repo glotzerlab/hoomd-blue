@@ -55,7 +55,7 @@ void gpu_apply_sorted_order(
         Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
-        unsigned int virial_pitch,
+        size_t virial_pitch,
         const Scalar4 *d_net_force,
         Scalar4 *d_net_force_alt,
         const Scalar4 *d_net_torque,

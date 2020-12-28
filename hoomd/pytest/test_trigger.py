@@ -3,220 +3,142 @@
 # License.
 
 """Test the Trigger classes."""
+import itertools
+from inspect import isclass
+import pickle
+
+import pytest
 
 import hoomd
 import hoomd.trigger
 
 
-def test_periodic_properties():
-    """Test construction and properties of Periodic."""
-    a = hoomd.trigger.Periodic(123)
+class CustomTrigger(hoomd.trigger.Trigger):
+    def __init__(self):
+        hoomd.trigger.Trigger.__init__(self)
 
-    assert a.period == 123
-    assert a.phase == 0
+    def compute(self, timestep):
+        return (timestep**(1 / 2)).is_integer()
 
-    a.period = 10000000000
+    def __str__(self):
+        return "CustomTrigger()"
 
-    assert a.period == 10000000000
-    assert a.phase == 0
-
-    a.phase = 6000000000
-
-    assert a.period == 10000000000
-    assert a.phase == 6000000000
-
-    b = hoomd.trigger.Periodic(phase=3, period=456)
-
-    assert b.period == 456
-    assert b.phase == 3
+    def __eq__(self, other):
+        return isinstance(other, CustomTrigger)
 
 
-def test_periodic_str():
-    """Test the Periodic __str__ method."""
-    b = hoomd.trigger.Periodic(phase=456, period=3)
-    assert str(b) == "hoomd.trigger.Periodic(period=3, phase=456)"
+# List of trigger classes
+_classes = [
+    hoomd.trigger.Periodic,
+    hoomd.trigger.Before,
+    hoomd.trigger.After,
+    hoomd.trigger.On,
+    hoomd.trigger.Not,
+    hoomd.trigger.And,
+    hoomd.trigger.Or,
+    CustomTrigger
+]
 
 
-def test_periodic_eval():
-    """Test the Periodic trigger evaluation."""
-    a = hoomd.trigger.Periodic(period=456, phase=18)
+# List of kwargs for the class constructors
+_kwargs = [
+    {'period': (456, 10000000000), 'phase': (18, 60000000000)},
+    {'timestep': (100, 10000000000)},
+    {'timestep': (100, 10000000000)},
+    {'timestep': (100, 10000000000)},
+    {'trigger': (hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100))},
+    {'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
+                  (hoomd.trigger.After(100), hoomd.trigger.On(101)))},
+    {'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
+                  (hoomd.trigger.After(100), hoomd.trigger.On(101)))},
+    {}
+]
 
+
+def _cartesian(grid):
+    for values in itertools.product(*grid.values()):
+        yield dict(zip(grid.keys(), values))
+
+
+def _test_name(arg):
+    if not isinstance(arg, hoomd.trigger.Trigger):
+        return None
+    else:
+        if isclass(arg):
+            return arg.__name__
+        else:
+            return arg.__class__.__name__
+
+
+# Go over all class and constructor pairs
+@pytest.mark.parametrize(
+    'cls, kwargs',
+    ((cls, kwarg) for cls, kwargs in zip(_classes, _kwargs)
+        for kwarg in _cartesian(kwargs)),
+    ids=_test_name)
+def test_properties(cls, kwargs):
+    instance = cls(**kwargs)
+    for key, value in kwargs.items():
+        assert getattr(instance, key) == value
+
+
+_strings_beginning = (
+    "hoomd.trigger.Periodic(",
+    "hoomd.trigger.Before(",
+    "hoomd.trigger.After(",
+    "hoomd.trigger.On(",
+    "hoomd.trigger.Not(",
+    "hoomd.trigger.And(",
+    "hoomd.trigger.Or(",
+    "CustomTrigger()"
+)
+
+
+# Trigger instanace for the first arguments in _kwargs
+def triggers():
+    _single_kwargs = [next(_cartesian(kwargs)) for kwargs in _kwargs]
+    return (cls(**kwargs) for cls, kwargs in zip(_classes, _single_kwargs))
+
+
+@pytest.mark.parametrize('trigger, instance_string',
+                         zip(triggers(), _strings_beginning),
+                         ids=_test_name)
+def test_str(trigger, instance_string):
+    assert str(trigger).startswith(instance_string)
+
+
+_eval_funcs = [
+    lambda x: (x - 18) % 456 == 0,  # periodic
+    lambda x: x < 100,  # before
+    lambda x: x > 100,  # after
+    lambda x: x == 100,  # on
+    lambda x: not (x - 1) % 10 == 0,  # not
+    lambda x: (x - 1) % 10 == 0 and x < 100,  # and
+    lambda x: (x - 1) % 10 == 0 or x < 100,  # or
+    lambda x: (x ** (1 / 2)).is_integer()
+]
+
+
+@pytest.mark.parametrize('trigger, eval_func',
+                         zip(triggers(), _eval_funcs),
+                         ids=_test_name)
+def test_eval(trigger, eval_func):
     for i in range(10000):
-        assert a(i) == ((i - 18) % 456 == 0)
-
+        assert trigger(i) == eval_func(i)
     # Test values greater than 2^32
     for i in range(10000000000, 10000010000):
-        assert a(i) == ((i - 18) % 456 == 0)
-
-    # Test trigger with values greater than 2^32
-    b = hoomd.trigger.Periodic(period=10000000000, phase=6000000000)
-
-    assert b(6000000000)
-    assert not b(6000000001)
-    assert b(16000000000)
-    assert not b(16000000001)
+        assert trigger(i) == eval_func(i)
 
 
-def test_before_str():
-    """Test the Before __str__ method."""
-    a = hoomd.trigger.Before(1000)
-    assert str(a) == "hoomd.trigger.Before(timestep=1000)"
-
-
-def test_before_eval():
-    """Test the Before trigger."""
-    a = hoomd.trigger.Before(1000)
-
-    assert all(a(i) for i in range(1000))
-    assert not any(a(i) for i in range(1000, 10000))
-
-    # tests for values greater than 2^32
-    assert not any(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.Before(10000000000)
-    assert all(a(i) for i in range(9999990000, 10000000000))
-    assert not any(a(i) for i in range(10000000000, 10000010000))
-
-
-def test_after_str():
-    """Test the After __str__ method."""
-    a = hoomd.trigger.After(1000)
-    assert str(a) == "hoomd.trigger.After(timestep=1000)"
-
-
-def test_after_eval():
-    """Test the After trigger."""
-    a = hoomd.trigger.After(1000)
-
-    assert not any(a(i) for i in range(1001))
-    assert all(a(i) for i in range(1001, 10000))
-
-    # tests for values greater than 2^32
-    assert all(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.After(10000000000)
-    assert not any(a(i) for i in range(9999990000, 10000000001))
-    assert all(a(i) for i in range(10000000001, 10000010000))
-
-
-def test_on_str():
-    """Test the On __str__ method."""
-    a = hoomd.trigger.On(1000)
-    assert str(a) == "hoomd.trigger.On(timestep=1000)"
-
-
-def test_on_eval():
-    """Test the On trigger."""
-    a = hoomd.trigger.On(1000)
-
-    assert not any(a(i) for i in range(1000))
-    assert a(1000)
-    assert not any(a(i) for i in range(1001, 10000))
-
-    # tests for values greater than 2^32
-    assert not any(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.On(10000000000)
-    assert not any(a(i) for i in range(9999990000, 10000000000))
-    assert a(10000000000)
-    assert not any(a(i) for i in range(10000000001, 10000010000))
-
-
-def test_not_str():
-    """Test the Not __str__ method."""
-    a = hoomd.trigger.Not(hoomd.trigger.After(1000))
-    assert str(a).startswith("hoomd.trigger.Not(")
-
-
-def test_not_eval():
-    """Test the Not Trigger."""
-    a = hoomd.trigger.Not(hoomd.trigger.After(1000))
-    assert str(a).startswith("hoomd.trigger.Not(")
-
-    assert all(a(i) for i in range(1001))
-    assert not any(a(i) for i in range(1001, 10000))
-
-    # tests for values greater than 2^32
-    assert not any(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.Not(hoomd.trigger.After(10000000000))
-    assert all(a(i) for i in range(9999990000, 10000000001))
-    assert not any(a(i) for i in range(10000000001, 10000010000))
-
-
-def test_and_str():
-    """Test the And __str__ method."""
-    a = hoomd.trigger.And(
-        [hoomd.trigger.Before(1000),
-         hoomd.trigger.After(1000)])
-    assert str(a).startswith("hoomd.trigger.And(")
-
-
-def test_and_eval():
-    """Test the And trigger."""
-    a = hoomd.trigger.And(
-        [hoomd.trigger.Before(1000),
-         hoomd.trigger.After(1000)])
-
-    assert not any(a(i) for i in range(1000))
-    assert not any(a(i) for i in range(1000, 10000))
-
-    # tests for values greater than 2^32
-    assert not any(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.And(
-        [hoomd.trigger.Before(10000000000),
-         hoomd.trigger.After(10000000000)])
-    assert not any(a(i) for i in range(9999990000, 10000010000))
-
-
-def test_or_str():
-    """Test the Or __str__ method."""
-    a = hoomd.trigger.Or([
-        hoomd.trigger.Before(1000),
-        hoomd.trigger.On(1000),
-        hoomd.trigger.After(1000)
-    ])
-    assert str(a).startswith("hoomd.trigger.Or(")
-
-
-def test_or_eval():
-    """Test the Or trigger."""
-    a = hoomd.trigger.Or([
-        hoomd.trigger.Before(1000),
-        hoomd.trigger.On(1000),
-        hoomd.trigger.After(1000)
-    ])
-
-    assert all(a(i) for i in range(10000))
-
-    # tests for values greater than 2^32
-    assert all(a(i) for i in range(10000000000, 10000010000))
-    a = hoomd.trigger.Or([
-        hoomd.trigger.Before(10000000000),
-        hoomd.trigger.On(10000000000),
-        hoomd.trigger.After(10000000000)
-    ])
-    assert all(a(i) for i in range(9999990000, 10000010000))
+@pytest.mark.parametrize('trigger', triggers(), ids=_test_name)
+def test_pickling(trigger):
+    pkled_trigger = pickle.loads(pickle.dumps(trigger))
+    assert trigger == pkled_trigger
 
 
 def test_custom():
-    """Test CustomTrigger."""
-    class CustomTrigger(hoomd.trigger.Trigger):
-
-        def __init__(self):
-            hoomd.trigger.Trigger.__init__(self)
-
-        def compute(self, timestep):
-            return (timestep**(1 / 2)).is_integer()
-
     c = CustomTrigger()
 
     # test that the custom trigger can be called from c++
     assert hoomd._hoomd._test_trigger_call(c, 0)
-    assert hoomd._hoomd._test_trigger_call(c, 1)
-    assert not hoomd._hoomd._test_trigger_call(c, 2)
-    assert not hoomd._hoomd._test_trigger_call(c, 3)
-    assert hoomd._hoomd._test_trigger_call(c, 4)
-    assert not hoomd._hoomd._test_trigger_call(c, 5)
-    assert not hoomd._hoomd._test_trigger_call(c, 6)
-    assert not hoomd._hoomd._test_trigger_call(c, 7)
-    assert not hoomd._hoomd._test_trigger_call(c, 8)
-    assert hoomd._hoomd._test_trigger_call(c, 9)
-    assert hoomd._hoomd._test_trigger_call(c, 250000000000)
     assert not hoomd._hoomd._test_trigger_call(c, 250000000001)

@@ -50,11 +50,11 @@ struct HOOMDHostBuffer : public HOOMDBuffer
     {
     static const auto device = access_location::host;
     ssize_t m_itemsize;
-    int m_dimensions;
+    ssize_t m_dimensions;
 
     HOOMDHostBuffer(void* data, std::string typestr,
                     std::vector<ssize_t> shape, std::vector<ssize_t> strides,
-                    bool read_only, ssize_t itemsize, int dimensions)
+                    bool read_only, ssize_t itemsize, ssize_t dimensions)
         : HOOMDBuffer(data, typestr, shape, strides, read_only),
           m_itemsize(itemsize), m_dimensions(dimensions) {}
 

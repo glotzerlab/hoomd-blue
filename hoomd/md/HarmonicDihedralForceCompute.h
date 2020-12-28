@@ -67,7 +67,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual ~HarmonicDihedralForceCompute();
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0);
+        virtual void setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
 
         virtual void setParamsPython(std::string type, pybind11::dict params);
 

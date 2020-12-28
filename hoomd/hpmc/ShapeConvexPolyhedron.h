@@ -69,11 +69,11 @@ struct PolyhedronVertices : ShapeParams
                        OverlapReal sweep_radius_,
                        unsigned int ignore_,
                        bool managed=false)
-        : x(verts.size(), managed),
-          y(verts.size(), managed),
-          z(verts.size(), managed),
+        : x((unsigned int)verts.size(), managed),
+          y((unsigned int)verts.size(), managed),
+          z((unsigned int)verts.size(), managed),
           n_hull_verts(0),
-          N(verts.size()),
+          N((unsigned int)verts.size()),
           diameter(0.0),
           sweep_radius(sweep_radius_),
           ignore(ignore_)
@@ -91,7 +91,7 @@ struct PolyhedronVertices : ShapeParams
     void setVerts(const std::vector<vec3<OverlapReal>>& verts,
                   OverlapReal sweep_radius_)
         {
-        N = verts.size();
+        N = (unsigned int)verts.size();
         diameter = 0;
         sweep_radius = sweep_radius_;
         bool managed = x.isManaged();
@@ -138,11 +138,11 @@ struct PolyhedronVertices : ShapeParams
             auto hull = qh.getConvexHull(qh_pts, false, true);
             auto indexBuffer = hull.getIndexBuffer();
 
-            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), managed);
-            n_hull_verts = indexBuffer.size();
+            hull_verts = ManagedArray<unsigned int>((unsigned int)indexBuffer.size(), managed);
+            n_hull_verts = (unsigned int)indexBuffer.size();
 
             for (unsigned int i = 0; i < indexBuffer.size(); i++)
-                 hull_verts[i] = indexBuffer[i];
+                 hull_verts[i] = (unsigned int)indexBuffer[i];
             }
 
         if (N >= 1)
@@ -805,11 +805,11 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
-                                  detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
+    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,OverlapReal(sweep_radius_a)),
+                                  detail::SupportFuncConvexPolyhedron(b.verts,OverlapReal(sweep_radius_b)),
                                   rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                   conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                                  DaDb/2.0,
+                                  DaDb/OverlapReal(2.0),
                                   err);
 
     /*
@@ -840,12 +840,12 @@ DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
-        detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
-        detail::SupportFuncConvexPolyhedron(c.verts,sweep_radius_c),
-        detail::ProjectionFuncConvexPolyhedron(a.verts,sweep_radius_a),
-        detail::ProjectionFuncConvexPolyhedron(b.verts,sweep_radius_b),
-        detail::ProjectionFuncConvexPolyhedron(c.verts,sweep_radius_c),
+        detail::SupportFuncConvexPolyhedron(a.verts,OverlapReal(sweep_radius_a)),
+        detail::SupportFuncConvexPolyhedron(b.verts,OverlapReal(sweep_radius_b)),
+        detail::SupportFuncConvexPolyhedron(c.verts,OverlapReal(sweep_radius_c)),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,OverlapReal(sweep_radius_a)),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,OverlapReal(sweep_radius_b)),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,OverlapReal(sweep_radius_c)),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
         err);

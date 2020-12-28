@@ -12,6 +12,8 @@
 
 #include "ParticleData.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #if __CUDACC_VER_MAJOR__ >= 11
 #include <cub/device/device_partition.cuh>
 #include <cub/iterator/counting_input_iterator.cuh>
@@ -19,6 +21,7 @@
 #include "hoomd/extern/cub/cub/device/device_partition.cuh"
 #include "hoomd/extern/cub/cub/iterator/counting_input_iterator.cuh"
 #endif
+#pragma GCC diagnostic pop
 
 namespace mpcd
 {

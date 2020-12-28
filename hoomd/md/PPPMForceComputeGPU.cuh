@@ -110,7 +110,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
 
 hipError_t gpu_fix_exclusions(Scalar4 *d_force,
                            Scalar *d_virial,
-                           const unsigned int virial_pitch,
+                           const size_t virial_pitch,
                            const unsigned int N,
                            const Scalar4 *d_pos,
                            const Scalar *d_charge,
