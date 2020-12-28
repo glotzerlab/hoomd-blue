@@ -112,35 +112,39 @@ class Snapshot:
 
     @classmethod
     def _from_gsd_snapshot(cls, gsd_snapshot):
-        snap = cls(communicator=self._device.communicator)
-        # Set all particle attributes in snap from gsd_snapshot
-        for key in vars(gsd_snapshot.particles):
-            val = vars(gsd_snapshot.particles)[key]
-            if val is not None:
-                try:
-                    setattr(snap.particles, key, val)
-                except AttributeError:
+        if self._device.communicator.rank == 0:
+            snap = cls(communicator=self._device.communicator)
+            # Set all particle attributes in snap from gsd_snapshot
+            for key in vars(gsd_snapshot.particles):
+                val = vars(gsd_snapshot.particles)[key]
+                if val is not None:
                     try:
-                        # Some attributes exist but aren't setable without [:]
-                        x = getattr(snap.particles,key)
-                        x[:] = val
+                        setattr(snap.particles, key, val)
                     except AttributeError:
-                        # The attribute doesn't exist in hoomd.Snapshot
-                        pass
+                        try:
+                            # Some attributes exist but aren't setable
+                            # without [:]
+                            x = getattr(snap.particles,key)
+                            x[:] = val
+                        except AttributeError:
+                            # The attribute doesn't exist in hoomd.Snapshot
+                            pass
 
-        # Set all bond attributes
-        for key in vars(gsd_snapshot.bonds):
-            val = vars(gsd_snapshot.bonds)[key]
-            if val is not None:
-                try:
-                    setattr(snap.bonds, key, val)
-                except AttributeError:
+            # Set all bond attributes
+            for key in vars(gsd_snapshot.bonds):
+                val = vars(gsd_snapshot.bonds)[key]
+                if val is not None:
                     try:
-                        x = getattr(snap.bonds,key)
-                        x[:] = val
+                        setattr(snap.bonds, key, val)
                     except AttributeError:
-                        pass
+                        try:
+                            x = getattr(snap.bonds,key)
+                            x[:] = val
+                        except AttributeError:
+                            pass
 
-        # Set box attribute
-        snap.configuration.box = gsd_snapshot.configuration.box
+            # Set box attribute
+            snap.configuration.box = gsd_snapshot.configuration.box
+            if gsd_snapshot.configuration.dimensions == 2:
+                snap.configuration.box[3] = 0
         return snap
