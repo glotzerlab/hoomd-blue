@@ -112,7 +112,7 @@ class Snapshot:
 
     @classmethod
     def _from_gsd_snapshot(cls, gsd_snapshot):
-        snap = cls()
+        snap = cls(communicator=self._device.communicator)
         # Set all particle attributes in snap from gsd_snapshot
         for key in vars(gsd_snapshot.particles):
             val = vars(gsd_snapshot.particles)[key]
