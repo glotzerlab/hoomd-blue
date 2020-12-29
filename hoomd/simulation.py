@@ -126,7 +126,7 @@ class Simulation(metaclass=Loggable):
 
         Args:
             snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
-                the state from. A ``gsd.hoomd.Snapshot`` will first be
+                the state from. A `gsd.hoomd.Snapshot` will first be
                 converted to a `hoomd.Snapshot`.
 
 
