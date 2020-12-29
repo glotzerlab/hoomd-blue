@@ -111,10 +111,10 @@ class Snapshot:
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
 
     @classmethod
-    def _from_gsd_snapshot(cls, gsd_snap):
+    def _from_gsd_snapshot(cls, gsd_snap, communicator):
         gsd_snap.validate()
-        if self._device.communicator.rank == 0:
-            snap = cls(communicator=self._device.communicator)
+        if communicator.rank == 0:
+            snap = cls(communicator=communicator)
 
             # Set all particle attributes in snap from gsd_snap
             snap.particles.N = gsd_snap.particles.N

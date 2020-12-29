@@ -141,7 +141,9 @@ class Simulation(metaclass=Loggable):
             self._state = State(self, snapshot)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
-            snapshot = Snapshot._from_gsd_snapshot(snapshot)
+            snapshot = Snapshot._from_gsd_snapshot(
+                    snapshot, self._device.communicator
+                    )
             self._state = State(self, snapshot)
         else:
             raise TypeError(
