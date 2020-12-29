@@ -3,6 +3,7 @@
 # License.
 
 """Define the Simulation class."""
+import inspect
 
 import hoomd._hoomd as _hoomd
 from hoomd.logging import log, Loggable
@@ -124,26 +125,28 @@ class Simulation(metaclass=Loggable):
         """Create the simulations state from a `Snapshot`.
 
         Args:
-            snapshot (Snapshot): Snapshot to initialize the state from.
+            snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
+                the state from. A ``gsd.hoomd.Snapshot`` will first be
+                converted to a `hoomd.Snapshot`.
+
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
-
-        Note:
-            *snapshot* must be either a `hoomd.Snapshot` or a
-            ``gsd.hoomd.Snapshot``. A ``gsd.hoomd.Snapshot`` will first be
-            converted to a `hoomd.Snapshot`.
         """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
-        try:
+        if isinstance(snapshot, Snapshot):
             # snapshot is hoomd.Snapshot
             self._state = State(self, snapshot)
-        except AttributeError:
+        elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
             snapshot = Snapshot._from_gsd_snapshot(snapshot)
             self._state = State(self, snapshot)
+        else:
+            raise TypeError(
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
+            )
 
         step = 0
         if self.timestep is not None:
@@ -396,3 +399,8 @@ class Simulation(metaclass=Loggable):
         if self.device.communicator.rank == 0:
             with open(filename, 'w') as f:
                 json.dump(debug_data, f, default=lambda v: str(v), indent=4)
+
+
+def _match_class_path(obj, *matches):
+     return any(cls.__module__ + '.' + cls.__name__ in matches
+             for cls in inspect.getmro(type(obj)))
