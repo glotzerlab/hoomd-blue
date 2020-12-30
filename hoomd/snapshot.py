@@ -117,57 +117,94 @@ class Snapshot:
             snap = cls(communicator=communicator)
 
             # Set all particle attributes in snap from gsd_snap
-            snap.particles.N = gsd_snap.particles.N
-            snap.particles.types = gsd_snap.particles.types
-            snap.particles.angmom[:] = gsd_snap.particles.angmom
-            snap.particles.body[:] = gsd_snap.particles.body
-            snap.particles.charge[:] = gsd_snap.particles.charge
-            snap.particles.diameter[:] = gsd_snap.particles.diameter
-            snap.particles.image[:] = gsd_snap.particles.image
-            snap.particles.mass[:] = gsd_snap.particles.mass
-            snap.particles.moment_inertia[:] = gsd_snap.particles.moment_inertia
-            snap.particles.orientation[:] = gsd_snap.particles.orientation
-            snap.particles.position[:] = gsd_snap.particles.position
-            snap.particles.typeid[:] = gsd_snap.particles.typeid
-            snap.particles.velocity[:] = gsd_snap.particles.velocity
+            if gsd_snap.particles.N:
+                snap.particles.N = gsd_snap.particles.N
+            if gsd_snap.particles.types:
+                snap.particles.types = gsd_snap.particles.types
+            if gsd_snap.particles.angmom is not None:
+                snap.particles.angmom[:] = gsd_snap.particles.angmom
+            if gsd_snap.particles.body is not None:
+                snap.particles.body[:] = gsd_snap.particles.body
+            if gsd_snap.particles.charge is not None:
+                snap.particles.charge[:] = gsd_snap.particles.charge
+            if gsd_snap.particles.diameter is not None:
+                snap.particles.diameter[:] = gsd_snap.particles.diameter
+            if gsd_snap.particles.image is not None:
+                snap.particles.image[:] = gsd_snap.particles.image
+            if gsd_snap.particles.mass is not None:
+                snap.particles.mass[:] = gsd_snap.particles.mass
+            if gsd_snap.particles.moment_inertia is not None:
+                snap.particles.moment_inertia[:] = gsd_snap.particles.moment_inertia
+            if gsd_snap.particles.orientation is not None:
+                snap.particles.orientation[:] = gsd_snap.particles.orientation
+            if gsd_snap.particles.position is not None:
+                snap.particles.position[:] = gsd_snap.particles.position
+            if gsd_snap.particles.typeid is not None:
+                snap.particles.typeid[:] = gsd_snap.particles.typeid
+            if gsd_snap.particles.velocity is not None:
+                snap.particles.velocity[:] = gsd_snap.particles.velocity
 
             # Set all bond attributes
-            snap.bonds.N = gsd_snap.bonds.N
-            snap.bonds.types = gsd_snap.bonds.types
-            snap.bonds.group[:] = gsd_snap.bonds.group
-            snap.bonds.typeid[:] = gsd_snap.bonds.typeid
+            if gsd_snap.bonds.N:
+                snap.bonds.N = gsd_snap.bonds.N
+            if gsd_snap.bonds.types:
+                snap.bonds.types = gsd_snap.bonds.types
+            if gsd_snap.bonds.group is not None:
+                snap.bonds.group[:] = gsd_snap.bonds.group
+            if gsd_snap.bonds.typeid is not None:
+                snap.bonds.typeid[:] = gsd_snap.bonds.typeid
 
             # Set all angle attributes
-            snap.angles.N = gsd_snap.angles.N
-            snap.angles.types = gsd_snap.angles.types
-            snap.angles.group[:] = gsd_snap.angles.group
-            snap.angles.typeid[:] = gsd_snap.angles.typeid
+            if gsd_snap.angles.N:
+                snap.angles.N = gsd_snap.angles.N
+            if gsd_snap.angles.types:
+                snap.angles.types = gsd_snap.angles.types
+            if gsd_snap.angles.group is not None:
+                snap.angles.group[:] = gsd_snap.angles.group
+            if gsd_snap.angles.typeid is not None:
+                snap.angles.typeid[:] = gsd_snap.angles.typeid
 
             # Set all dihedral attributes
-            snap.dihedrals.N = gsd_snap.dihedrals.N
-            snap.dihedrals.types = gsd_snap.dihedrals.types
-            snap.dihedrals.group[:] = gsd_snap.dihedrals.group
-            snap.dihedrals.typeid[:] = gsd_snap.dihedrals.typeid
+            if gsd_snap.dihedrals.N:
+                snap.dihedrals.N = gsd_snap.dihedrals.N
+            if gsd_snap.dihedrals.types:
+                snap.dihedrals.types = gsd_snap.dihedrals.types
+            if gsd_snap.dihedrals.group is not None:
+                snap.dihedrals.group[:] = gsd_snap.dihedrals.group
+            if gsd_snap.dihedrals.typeid is not None:
+                snap.dihedrals.typeid[:] = gsd_snap.dihedrals.typeid
 
             # Set all improper attributes
-            snap.impropers.N = gsd_snap.impropers.N
-            snap.impropers.types = gsd_snap.impropers.types
-            snap.impropers.group[:] = gsd_snap.impropers.group
-            snap.impropers.typeid[:] = gsd_snap.impropers.typeid
+            if gsd_snap.impropers.N:
+                snap.impropers.N = gsd_snap.impropers.N
+            if gsd_snap.impropers.types:
+                snap.impropers.types = gsd_snap.impropers.types
+            if gsd_snap.impropers.group is not None:
+                snap.impropers.group[:] = gsd_snap.impropers.group
+            if gsd_snap.impropers.typeid is not None:
+                snap.impropers.typeid[:] = gsd_snap.impropers.typeid
 
             # Set all pair attributes
-            snap.pairs.N = gsd_snap.pairs.N
-            snap.pairs.types = gsd_snap.pairs.types
-            snap.pairs.group[:] = gsd_snap.pairs.group
-            snap.pairs.typeid[:] = gsd_snap.pairs.typeid
+            if gsd_snap.pairs.N:
+                snap.pairs.N = gsd_snap.pairs.N
+            if gsd_snap.pairs.types:
+                snap.pairs.types = gsd_snap.pairs.types
+            if gsd_snap.pairs.group is not None:
+                snap.pairs.group[:] = gsd_snap.pairs.group
+            if gsd_snap.pairs.typeid is not None:
+                snap.pairs.typeid[:] = gsd_snap.pairs.typeid
 
             # Set all constraint attributes
-            snap.constraints.N = gsd_snap.constraints.N
-            snap.constraints.group[:] = gsd_snap.constraints.group
-            snap.constraints.value[:] = gsd_snap.constraints.value
+            if gsd_snap.constraints.N:
+                snap.constraints.N = gsd_snap.constraints.N
+            if gsd_snap.constraints.group is not None:
+                snap.constraints.group[:] = gsd_snap.constraints.group
+            if gsd_snap.constraints.value is not None:
+                snap.constraints.value[:] = gsd_snap.constraints.value
 
             # Set box attribute
-            snap.configuration.box = gsd_snap.configuration.box
-            if gsd_snap.configuration.dimensions == 2:
-                snap.configuration.box[3] = 0
+            if gsd_snap.configuration.box is not None:
+                snap.configuration.box = gsd_snap.configuration.box
+                if gsd_snap.configuration.dimensions == 2:
+                    snap.configuration.box[3] = 0
         return snap
