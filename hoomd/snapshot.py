@@ -1,3 +1,4 @@
+import numpy as np
 import hoomd
 from hoomd import _hoomd
 
@@ -206,5 +207,7 @@ class Snapshot:
             if gsd_snap.configuration.box is not None:
                 snap.configuration.box = gsd_snap.configuration.box
                 if gsd_snap.configuration.dimensions == 2:
-                    snap.configuration.box[3] = 0
+                    box = np.array(snap.configuration.box)
+                    box[3] = 0
+                    snap.configuration.box = box
         return snap
