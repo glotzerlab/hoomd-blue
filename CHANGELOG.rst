@@ -9,7 +9,6 @@ v3.0.0-beta.3 (not yet released)
 
 *Added*
 
-- Oscillating pair potential for MD in ``hoomd.md.pair.OPP``.
 - ``hoomd.variant.Variant`` objects are picklable.
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
