@@ -425,9 +425,13 @@ class Box:
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
 #     def wrap(self, v, image=(0, 0, 0)):
