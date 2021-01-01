@@ -87,7 +87,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, and `from_matrix`. See the method documentation for usage.
+    `square`, `from_matrix`, and `from_box`. See the method documentation for
+    usage.
 
     Examples:
 
@@ -174,9 +175,9 @@ class Box:
         .. note:: Objects that can be converted to HOOMD-blue boxes include
                   lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
                   dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
+                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
                   objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
+                  :code:`Lx, Ly, Lz, xy, xz, yz,
                   3x3 matrices (see `from_matrix`),
                   or existing :class:`hoomd.Box` objects.
 
