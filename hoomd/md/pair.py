@@ -52,8 +52,7 @@ class Pair(force.Force):
         \\end{eqnarray*}
 
     where :math:`\\vec{r}` is the vector pointing from one particle to the other
-    in the pair, and :math:`V(r)` is chosen by a mode switch (see
-    ``set_params()``):
+    in the pair, and :math:`V(r)` is chosen by a mode switch:
 
     .. math::
         :nowrap:
@@ -1166,7 +1165,7 @@ class ForceShiftedLJ(Pair):
         \\Delta V(r) = -(r - r_{\\mathrm{cut}}) \\frac{\\partial
           V_{\\mathrm{LJ}}}{\\partial r}(r_{\\mathrm{cut}})
 
-    See :py:class:`Pair` for details on how forces are calculated and the
+    See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1893,7 +1892,7 @@ class dipole(ai_pair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    See :py:class:`Pair` for details on how forces are calculated and the
+    See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
@@ -2400,10 +2399,13 @@ class OPP(Pair):
             + C_2 r^{-\\eta_2} \\cos{\\left(k r - \\phi\\right)}
         \\end{equation*}
 
-    See :py:class:`Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use ~`params` dictionary
-    to set potential coefficients. The coefficients must be set per
-    unique pair of particle types.
+    See `Pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.  Use `params` dictionary to set potential
+    coefficients. The coefficients must be set per unique pair of particle
+    types.
+
+    The potential comes from
+    `Marek Mihalkovič and C. L. Henley 2012 <https://dx.doi.org/10.1103/PhysRevB.85.092102>`_.
 
     Attributes:
         params (`TypeParameter` [\
