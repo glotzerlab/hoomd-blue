@@ -277,19 +277,28 @@ def test_from_gsd_snapshot_empty(s, device):
 @skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
     s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-    s.particles.N = 5
-    s.particles.types = ['A', 'B']
-    s.bonds.N = 5
-    s.bonds.types = ['A', 'B']
-    s.angles.N = 5
-    s.angles.types = ['A', 'B']
-    s.dihedrals.N = 5
-    s.dihedrals.types = ['A', 'B']
-    s.impropers.N = 5
-    s.impropers.types = ['A', 'B']
-    s.pairs.N = 5
-    s.pairs.types = ['A', 'B']
+    for section in (
+            'particles', 'bonds', 'angles', 'dihedrals', 'impropers', 'pairs'
+            ):
+            setattr(getattr(s, section), 'N', 5)
+            setattr(getattr(s, section), 'types', ['A', 'B'])
+
+    for prop in (
+            'angmom', 'body', 'charge', 'diameter', 'image', 'mass',
+            'moment_inertia', 'orientation', 'position', 'typeid',
+            'velocity'
+            ):
+        attr = getattr(s.particles, prop)
+        attr[:] = numpy.random.rand(*attr.shape)
+    for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
+        for prop in ('group', 'typeid'):
+            attr = getattr(getattr(s, section), prop)
+            attr[:] = numpy.random.rand(*attr.shape)
     s.constraints.N = 3
+    for prop in ('group', 'value'):
+        attr = getattr(s.constraints, prop)
+        attr[:] = numpy.random.rand(*attr.shape)
+
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
