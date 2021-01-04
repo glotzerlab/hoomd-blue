@@ -24,7 +24,7 @@ unsigned int err_count;
  */
 
 // helper function to compute poly radius
-void set_radius(poly3d_data& data)
+void set_radius(TriangleMesh& data)
     {
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < data.n_verts; i++)
@@ -36,7 +36,7 @@ void set_radius(poly3d_data& data)
     data.diameter = 2*(sqrt(radius_sq)+data.sweep_radius);
     }
 
-GPUTree build_tree(poly3d_data &data)
+GPUTree build_tree(TriangleMesh &data)
     {
     OBBTree tree;
     hpmc::detail::OBB *obbs;
@@ -75,12 +75,12 @@ UP_TEST( construction )
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    poly3d_data data(4,1,4,false);
+    TriangleMesh data(4,1,4,false);
     data.sweep_radius=0.0f;
     data.verts[0] = vec3<OverlapReal>(0,0,0);
     data.verts[1] = vec3<OverlapReal>(1,0,0);
     data.verts[2] = vec3<OverlapReal>(0,1.25,0);
-    data.verts[3] = vec3<OverlapReal>(0,0,1.1);
+    data.verts[3] = vec3<OverlapReal>(0,0,OverlapReal(1.1));
     data.face_verts[0] = 0;
     data.face_verts[1] = 1;
     data.face_verts[2] = 2;
@@ -130,15 +130,15 @@ UP_TEST( overlap_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data(6,8,24,false);
+    TriangleMesh data(6,8,24,false);
     data.sweep_radius=0.0f;
 
     data.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -242,15 +242,15 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data(6,8,24,false);
+    TriangleMesh data(6,8,24,false);
     data.sweep_radius=0.1f;
 
     data.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -359,7 +359,7 @@ UP_TEST( overlap_octahedron_sphere )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data_a(6,8,24,false);
+    TriangleMesh data_a(6,8,24,false);
 
     memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*6);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*9);
@@ -371,8 +371,8 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data_a.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data_a.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data_a.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data_a.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data_a.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data_a.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0; data_a.face_verts[1] = 4; data_a.face_verts[2] = 1;
     data_a.face_offs[1] = 3;
@@ -393,7 +393,7 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.ignore = 0;
     set_radius(data_a);
 
-    poly3d_data data_b(1,1,1,false);
+    TriangleMesh data_b(1,1,1,false);
 
     memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*1);
     memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*1);

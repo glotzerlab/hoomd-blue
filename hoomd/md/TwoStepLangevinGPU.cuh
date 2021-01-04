@@ -20,8 +20,8 @@ struct langevin_step_two_args
     {
     Scalar *d_gamma;          //!< Device array listing per-type gammas
     unsigned int n_types;     //!< Number of types in \a d_gamma
-    bool use_lambda;          //!< Set to true to scale diameters by lambda to get gamma
-    Scalar lambda;            //!< Scale factor to convert diameter to lambda
+    bool use_alpha;           //!< Set to true to scale diameters by alpha to get gamma
+    Scalar alpha;             //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
     unsigned int timestep;    //!< Current timestep
     unsigned int seed;        //!< User chosen random number seed

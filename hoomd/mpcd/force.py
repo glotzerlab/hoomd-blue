@@ -17,7 +17,7 @@ required to maintain temperature control in the driven system (see
 .. note::
 
     The external force **must** be attached to a streaming method
-    (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+    (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
     On its own, the force object will not affect the system.
 
 """
@@ -27,7 +27,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
-class _force(hoomd.meta._metadata):
+class _force():
     r""" Base external force field.
 
     This base class does some basic initialization tests, and then constructs the
@@ -47,9 +47,7 @@ class _force(hoomd.meta._metadata):
             hoomd.context.current.device.cpp_msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
             raise RuntimeError('MPCD system not initialized')
 
-        hoomd.meta._metadata.__init__(self)
         self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_exec_conf)
-        self.metadata_fields = []
 
 class block(_force):
     r""" Block force.
@@ -94,7 +92,7 @@ class block(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
@@ -123,7 +121,6 @@ class block(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','H','w']
         self._F = F
         self._H = H
         self._w = w
@@ -169,7 +166,7 @@ class constant(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
@@ -187,7 +184,6 @@ class constant(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F']
         self._F = F
 
         # initialize c++
@@ -230,7 +226,7 @@ class sine(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
@@ -240,7 +236,6 @@ class sine(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','k']
         self._F = F
         self._k = k
 

@@ -83,7 +83,7 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
         }
 
     // random velocities are drawn for each particle and stored into the "alternate" arrays
-    const Scalar T = m_T->getValue(timestep);
+    const Scalar T = (*m_T)(timestep);
     for (unsigned int idx=0; idx < N_tot; ++idx)
         {
         unsigned int pidx;

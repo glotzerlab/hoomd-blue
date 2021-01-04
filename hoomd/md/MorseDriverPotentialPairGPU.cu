@@ -9,7 +9,7 @@
 
 
 hipError_t gpu_compute_morse_forces(const pair_args_t& pair_args,
-                                      const Scalar4 *d_params)
+                                      const EvaluatorPairMorse::param_type *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairMorse>(pair_args,
                                                        d_params);

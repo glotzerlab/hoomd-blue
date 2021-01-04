@@ -14,51 +14,81 @@
 
 #include "Updater.h"
 #include "Variant.h"
+#include "BoxDim.h"
 
 #include <memory>
+#include <string>
+#include <stdexcept>
 #include <pybind11/pybind11.h>
 
 #ifndef __BOXRESIZEUPDATER_H__
 #define __BOXRESIZEUPDATER_H__
 
-//! Updates the simulation box over time
-/*! This simple updater gets the box lengths from specified variants and sets those box sizes
-    over time. As an option, particles can be rescaled with the box lengths or left where they are.
-
-    \ingroup updaters
+/// Updates the simulation box over time
+/** This simple updater gets the box lengths from specified variants and sets
+ * those box sizes over time. As an option, particles can be rescaled with the
+ * box lengths or left where they are. Note: rescaling particles does not work
+ * properly in MPI simulations.
+ * \ingroup updaters
 */
 class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     {
     public:
-        //! Constructor
+        /// Constructor
         BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<Variant> Lx,
-                         std::shared_ptr<Variant> Ly,
-                         std::shared_ptr<Variant> Lz,
-                         std::shared_ptr<Variant> xy,
-                         std::shared_ptr<Variant> xz,
-                         std::shared_ptr<Variant> yz);
+                         pybind11::object box1,
+                         pybind11::object box2,
+                         std::shared_ptr<Variant> variant);
 
-        //! Destructor
+        /// Destructor
         virtual ~BoxResizeUpdater();
 
-        //! Sets parameter flags
-        void setParams(bool scale_particles);
+        /// Sets particle scaling. When true, particle positions are scaled with the box.
+        void setScaleParticles(bool scale_particles)
+            {
+            m_scale_particles = scale_particles;
+            }
 
-        //! Take one timestep forward
+        /// Gets particle scaling setting
+        bool getScaleParticles() {return m_scale_particles;}
+
+        /// Set a new initial box from a python object
+        void setPyBox1(pybind11::object box1);
+
+        /// Get the final box
+        pybind11::object getPyBox1() {return m_py_box1;}
+
+        /// Set a new final box from a python object
+        void setPyBox2(pybind11::object box2);
+
+        /// Get the final box
+        pybind11::object getPyBox2() {return m_py_box2;}
+
+        /// Set the variant for interpolation
+        void setVariant(std::shared_ptr<Variant> variant) {m_variant = variant;}
+
+        /// Get the variant for interpolation
+        std::shared_ptr<Variant> getVariant() {return m_variant;}
+
+        /// Get the current box for the given timestep
+        BoxDim getCurrentBox(unsigned int timestep);
+
+        /// Update box interpolation based on provided timestep
         virtual void update(unsigned int timestep);
 
     private:
-        std::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
-        std::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
-        std::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
-        std::shared_ptr<Variant> m_xy;    //!< Box xy tilt factor vs time
-        std::shared_ptr<Variant> m_xz;    //!< Box xz tilt factor vs time
-        std::shared_ptr<Variant> m_yz;    //!< Box yz tilt factor vs time
-        bool m_scale_particles;                //!< Set to true if particle positions are to be scaled as well
+        pybind11::object m_py_box1;  ///< The python box assoc with min
+        pybind11::object m_py_box2;  ///< The python box assoc with max
+        BoxDim& m_box1;  ///< C++ box assoc with min
+        BoxDim& m_box2;  ///< C++ box assoc with max
+        std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
+        bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
     };
 
-//! Export the BoxResizeUpdater to python
+/// Export the BoxResizeUpdater to python
 void export_BoxResizeUpdater(pybind11::module& m);
+
+/// Get a BoxDim object from a pybind11::object or raise error
+BoxDim& getBoxDimFromPyObject(pybind11::object box);
 
 #endif

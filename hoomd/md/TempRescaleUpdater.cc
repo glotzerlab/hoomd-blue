@@ -60,7 +60,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
     else
         {
         // calculate a fraction to scale the momenta by
-        Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+        Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
         // scale the free particle velocities
         assert(m_pdata);
@@ -88,7 +88,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
         else
             {
             // calculate a fraction to scale the momenta by
-            Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+            Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
             // scale the free particle velocities
             assert(m_pdata);

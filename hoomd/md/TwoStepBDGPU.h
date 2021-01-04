@@ -1,17 +1,9 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 #include "TwoStepBD.h"
 
-#ifndef __TWO_STEP_BD_GPU_H__
-#define __TWO_STEP_BD_GPU_H__
-
-/*! \file TwoStepBDGPU.h
-    \brief Declares the TwoStepBDGPU class
-*/
+#pragma once
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -31,11 +23,7 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
         TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
                      std::shared_ptr<Variant> T,
-                     unsigned int seed,
-                     bool use_lambda,
-                     Scalar lambda,
-                     bool noiseless_t,
-                     bool noiseless_r);
+                     unsigned int seed);
 
         virtual ~TwoStepBDGPU() {};
 
@@ -51,5 +39,3 @@ class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
 
 //! Exports the TwoStepBDGPU class to python
 void export_TwoStepBDGPU(pybind11::module& m);
-
-#endif // #ifndef __TWO_STEP_BD_GPU_H__

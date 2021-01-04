@@ -30,7 +30,7 @@
 extern "C" __global__
 void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
                                                  Scalar* d_virial,
-                                                 const unsigned int virial_pitch,
+                                                 const size_t virial_pitch,
                                                  const unsigned int N,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_params,
@@ -309,7 +309,7 @@ void gpu_compute_opls_dihedral_forces_kernel(Scalar4* d_force,
 */
 hipError_t gpu_compute_opls_dihedral_forces(Scalar4* d_force,
                                                 Scalar* d_virial,
-                                                const unsigned int virial_pitch,
+                                                const size_t virial_pitch,
                                                 const unsigned int N,
                                                 const Scalar4 *d_pos,
                                                 const BoxDim& box,

@@ -41,8 +41,22 @@ class PotentialSpecialPair : public ForceCompute
         //! Destructor
         virtual ~PotentialSpecialPair();
 
+        /// Validate the given type
+        virtual void validateType(unsigned int type, std::string action);
+
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
+
+        virtual void setParamsPython(std::string type, pybind11::dict param);
+
+        /// Set the r_cut for a given type
+        virtual void setRCut(std::string type, Scalar r_cut);
+
+        /// Get the r_cut for a given type
+        virtual Scalar getRCut(std::string type);
+
+        /// Get the parameters for a specific type
+        virtual pybind11::dict getParams(std::string type);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -92,6 +106,18 @@ PotentialSpecialPair< evaluator >::~PotentialSpecialPair()
     m_exec_conf->msg->notice(5) << "Destroying PotentialSpecialPair<" << evaluator::getName() << ">" << std::endl;
     }
 
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::validateType(unsigned int type,
+                                                     std::string action)
+    {
+    if (type >= m_pair_data->getNTypes())
+        {
+        std::string err("Invalid pair type specified: ");
+        throw std::runtime_error(err + "Error " + action +
+                                 " in PotentialSpecialPair");
+        }
+    }
+
 /*! \param type Type of the pair to set parameters for
     \param param Parameter to set
 
@@ -101,15 +127,71 @@ template<class evaluator >
 void PotentialSpecialPair< evaluator >::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
-    if (type >= m_pair_data->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "Invalid pair type specified" << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialSpecialPair");
-        }
-
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
+    validateType(type, "setting parameters");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
     h_params.data[type] = param;
     }
+
+/*! \param type String of the type of the pair to set parameters for
+    \param param Parameters to set in a python dictionary
+
+    Sets the parameters for the potential of a particular pair type
+*/
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::setParamsPython(std::string type,
+                                                        pybind11::dict param)
+    {
+    // TODO getTypeByName validates types already, so this twice validates types
+    auto typ = m_pair_data->getTypeByName(type);
+    param_type _param(param);
+    setParams(typ, _param);
+    }
+
+/*! \param type String of the type of the pair to get parameters for
+
+    gets the parameters for the potential of a particular pair type
+*/
+template<class evaluator >
+pybind11::dict PotentialSpecialPair< evaluator >::getParams(std::string type)
+    {
+    // make sure the type is valid
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "getting parameters");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[typ].asDict();
+    }
+
+/*! \param type String of the type of the pair to set r_cut for
+    \param r_cut r_cut to set
+
+    Sets the r_cut for the potential of a particular pair type
+*/
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::setRCut(std::string type, Scalar r_cut)
+    {
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "setting r_cut");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
+    h_params.data[typ].r_cutsq = r_cut * r_cut;
+    }
+
+/*! \param type String of the type of the pair to get r_cut for
+
+    Gets the r_cut for the potential of a particular pair type
+*/
+template<class evaluator >
+Scalar PotentialSpecialPair< evaluator >::getRCut(std::string type)
+    {
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "getting r_cut");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return sqrt(h_params.data[typ].r_cutsq);
+    }
+
 
 /*! PotentialSpecialPair provides
     - \c special_pair_"name"_energy
@@ -179,7 +261,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
     for (unsigned int i = 0; i< 6; i++)
@@ -337,7 +419,10 @@ template < class T > void export_PotentialSpecialPair(pybind11::module& m, const
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
-        .def("setParams", &T::setParams)
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
+        .def("setRCut", &T::setRCut)
+        .def("getRCut", &T::getRCut)
         ;
     }
 

@@ -21,7 +21,8 @@ Write, test, and optimize your GPU kernels on the latest generation of GPUs.
 
 ## Base your work off the correct branch
 
-Bug fixes should be based on `maint`. New features should be based on `master`.
+During the v3.0.0-beta release cycle, all work must be based on `master`.
+<!--- Bug fixes should be based on `maint`. New features should be based on `master`. -->
 
 ## Propose a minimal set of related changes
 
@@ -37,7 +38,7 @@ their pull request can be merged.
 
 ## Use a consistent style
 
-[SourceConventions.md](SourceConventions.md) defines the style guidelines for **HOOMD-blue** code.
+The **Code style** section of the documentation sets the style guidelines for **HOOMD-blue** code.
 
 ## Document code with comments
 

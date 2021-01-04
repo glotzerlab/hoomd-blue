@@ -8,8 +8,6 @@
 #include "NeighborListGPUTree.cuh"
 
 #include "hoomd/Autotuner.h"
-#include "hoomd/extern/neighbor/neighbor/LBVH.h"
-#include "hoomd/extern/neighbor/neighbor/LBVHTraverser.h"
 
 /*! \file NeighborListGPUTree.h
     \brief Declares the NeighborListGPUTree class
@@ -66,6 +64,23 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
 
             m_copy_tuner->setPeriod(period/10);
             m_copy_tuner->setEnabled(enable);
+
+            /* These may be null pointers if the first compute has not occurred, since construction of these tuners
+               is deferred until the first neighbor list build (in order to get the tuner parameters from the
+               LBVHWrapper and LBVHTraverserWrapper). When initialized, the period and enabled must be borrowed
+               from one of the tuners above to keep everything synced.
+             */
+            if (m_build_tuner)
+                {
+                m_build_tuner->setPeriod(period/10);
+                m_build_tuner->setEnabled(enable);
+                }
+
+            if (m_traverse_tuner)
+                {
+                m_traverse_tuner->setPeriod(period/10);
+                m_traverse_tuner->setEnabled(enable);
+                }
             }
 
     protected:
@@ -76,6 +91,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for the type mark kernel
         std::unique_ptr<Autotuner> m_count_tuner;   //!< Tuner for the type-count kernel
         std::unique_ptr<Autotuner> m_copy_tuner;    //!< Tuner for the primitive-copy kernel
+        std::unique_ptr<Autotuner> m_build_tuner;   //!< Tuner for LBVH builds
+        std::unique_ptr<Autotuner> m_traverse_tuner;//!< Tuner for LBVH traversers
 
         GPUArray<unsigned int> m_types;             //!< Particle types (for sorting)
         GPUArray<unsigned int> m_sorted_types;      //!< Sorted particle types
@@ -87,8 +104,8 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
         GPUArray<unsigned int> m_type_last;         //!< Last index of each particle type in sorted list
 
         GPUFlags<unsigned int> m_lbvh_errors;       //!< Error flags during particle marking (e.g., off rank)
-        std::vector< std::unique_ptr<neighbor::LBVH> > m_lbvhs;                 //!< Array of LBVHs per-type
-        std::vector< std::unique_ptr<neighbor::LBVHTraverser> > m_traversers;   //!< Array of LBVH traverers per-type
+        std::vector< std::unique_ptr<LBVHWrapper> > m_lbvhs;                 //!< Array of LBVHs per-type
+        std::vector< std::unique_ptr<LBVHTraverserWrapper> > m_traversers;   //!< Array of LBVH traverers per-type
         std::vector<hipStream_t> m_streams;                                    //!< Array of CUDA streams per-type
 
         GlobalVector<Scalar3> m_image_list; //!< List of translation vectors for traversal

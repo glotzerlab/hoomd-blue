@@ -56,7 +56,7 @@ class GPUVectorBase : public Array
         /*!
           \returns the current size of the vector
         */
-        unsigned int size() const
+        size_t size() const
             {
             return m_size;
             }
@@ -64,13 +64,16 @@ class GPUVectorBase : public Array
         //! Resize the GPUVectorBase
         /*! \param new_size New number of elements
         */
-        virtual void resize(unsigned int new_size);
+        virtual void resize(size_t new_size);
 
-        //! Resize the GPUVectorBase
-        /*! \param new_size New number of elements
-         *  \param const value to initialize newly added elements with
-         */
-        virtual void resize(unsigned int new_size, const T& value);
+        //! Resizing a vector as a matrix is not supported
+        /*!
+        */
+        virtual void resize(size_t width, size_t height)
+            {
+            this->m_exec_conf->msg->error() << "Cannot change a GPUVectorBase into a matrix." << std::endl;
+            throw std::runtime_error("Error resizing GPUVectorBase.");
+            }
 
         //! Insert an element at the end of the vector
         /*! \param val The new element
@@ -81,7 +84,7 @@ class GPUVectorBase : public Array
         virtual void pop_back();
 
         //! Remove an element by index
-        virtual void erase(unsigned int i);
+        virtual void erase(size_t i);
 
         //! Clear the list
         virtual void clear();
@@ -91,7 +94,7 @@ class GPUVectorBase : public Array
             {
             public:
                 //! Constructor
-                data_proxy(const GPUVectorBase<T, Array> & _vec, const unsigned int _n)
+                data_proxy(const GPUVectorBase<T, Array> & _vec, const size_t _n)
                     : vec(_vec), n(_n) { }
 
                 //! Type cast
@@ -114,18 +117,18 @@ class GPUVectorBase : public Array
 
             private:
                 const GPUVectorBase<T, Array>& vec; //!< The vector that is accessed
-                unsigned int n;          //!< The index of the element to access
+                size_t n;          //!< The index of the element to access
             };
 
         //! Get a proxy-reference to a list element
-        data_proxy operator [] (unsigned int n)
+        data_proxy operator [] (size_t n)
             {
             assert(n < m_size);
             return data_proxy(*this, n);
             }
 
         //! Get a proxy-reference to a list element (const version)
-        data_proxy operator [] (unsigned int n) const
+        data_proxy operator [] (size_t n) const
             {
             assert(n < m_size);
             return data_proxy(*this, n);
@@ -137,25 +140,22 @@ class GPUVectorBase : public Array
         //! Constructs an empty GPUVectorBase
         GPUVectorBase(std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
-        //! Constructs a GPUVectorBase of given size
-        GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
-
-        //! Constructs a GPUVectorBase of given size, initialized with a constant value
-        GPUVectorBase(unsigned int size, const T& value, std::shared_ptr<const ExecutionConfiguration> exec_conf);
+        //! Constructs a GPUVectorBase
+        GPUVectorBase(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
     #ifdef ENABLE_HIP
         //! Constructs an empty GPUVectorBase
         GPUVectorBase(std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
 
         //! Constructs a GPUVectorBase
-        GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+        GPUVectorBase(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
     #endif
 
     private:
-        unsigned int m_size;                    //!< Number of elements
+        size_t m_size;                    //!< Number of elements
 
         //! Helper function to reallocate the GPUArray (using amortized array resizing)
-        void reallocate(unsigned int new_size);
+        void reallocate(size_t new_size);
 
         //! Acquire the underlying GPU array on the host
         ArrayHandleDispatch<T> acquireHost(const access_mode::Enum mode) const;
@@ -190,7 +190,7 @@ GPUVectorBase<T, Array>::GPUVectorBase(std::shared_ptr<const ExecutionConfigurat
     \param exec_conf Shared pointer to the execution configuration
 */
 template<class T, class Array>
-GPUVectorBase<T, Array>::GPUVectorBase(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+GPUVectorBase<T, Array>::GPUVectorBase(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
      : Array(size, exec_conf), m_size(size)
     {
     }
@@ -246,16 +246,16 @@ void GPUVectorBase<T, Array>::swap(GPUVectorBase<T, Array>& from)
  * i.e. if the requested size is larger than the current size, which is a power of two.
  */
 template<class T, class Array>
-void GPUVectorBase<T, Array>::reallocate(unsigned int size)
+void GPUVectorBase<T, Array>::reallocate(size_t size)
     {
     if (size > Array::getNumElements())
         {
         // reallocate
-        unsigned int new_allocated_size = Array::getNumElements() ? Array::getNumElements() : 1;
+        size_t new_allocated_size = Array::getNumElements() ? Array::getNumElements() : 1;
 
         // double the size as often as necessary
         while (size > new_allocated_size)
-            new_allocated_size = ((unsigned int) (((float) new_allocated_size) * RESIZE_FACTOR)) + 1 ;
+            new_allocated_size = ((size_t) (((double) new_allocated_size) * RESIZE_FACTOR)) + 1 ;
 
         // actually resize the underlying GPUArray
         Array::resize(new_allocated_size);
@@ -268,7 +268,7 @@ void GPUVectorBase<T, Array>::reallocate(unsigned int size)
        e.g. using clear()
 */
 template<class T, class Array>
-void GPUVectorBase<T, Array>::resize(unsigned int new_size)
+void GPUVectorBase<T, Array>::resize(size_t new_size)
     {
     // allocate memory by amortized O(N) resizing
     if (new_size > 0)
@@ -317,14 +317,14 @@ void GPUVectorBase<T, Array>::pop_back()
 
 //! Remove an element in the middle
 template<class T, class Array>
-void GPUVectorBase<T, Array>::erase(unsigned int i)
+void GPUVectorBase<T, Array>::erase(size_t i)
     {
     assert(i < m_size);
     auto dispatch = acquireHost(access_mode::readwrite);
 
     T *data = dispatch.get();
     T *res = data;
-    for (unsigned int n = 0; n < m_size; ++n)
+    for (size_t n = 0; n < m_size; ++n)
         {
         if (n != i)
             {
@@ -380,7 +380,7 @@ class GPUVector : public GPUVectorBase<T, GPUArray<T> >
             { }
 
         //! Constructs a GPUVector
-        GPUVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        GPUVector(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : GPUVectorBase<T, GPUArray<T> >(size, exec_conf)
             { }
 
@@ -407,8 +407,8 @@ class GlobalVector : public GPUVectorBase<T, GlobalArray<T> >
             : GPUVectorBase<T, GlobalArray<T> >(exec_conf)
             { }
 
-        //! Constructs a GlobalVector
-        GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        //! Constructs a GPUVector
+        GlobalVector(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : GPUVectorBase<T, GlobalArray<T> >(size, exec_conf)
             { }
 

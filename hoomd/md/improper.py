@@ -68,7 +68,7 @@ class coeff:
         by name, and parameters are also added by name. Which parameters you need to specify depends on the improper
         force you are setting these coefficients for, see the corresponding documentation.
 
-        All possible improper types as defined in the simulation box must be specified before executing :py:mod:`hoomd.run()`.
+        All possible improper types as defined in the simulation box must be specified before executing ```hoomd.run```.
         You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
         improper types that do not exist in the simulation. This can be useful in defining a force field for many
         different types of impropers even when some simulations only include a subset.

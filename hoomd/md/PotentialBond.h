@@ -38,11 +38,19 @@ class PotentialBond : public ForceCompute
         //! Destructor
         virtual ~PotentialBond();
 
-        //! Set the parameters
+        /// Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
+        virtual void setParamsPython(std::string type,
+                                     pybind11::dict param);
+
+        /// Get the parameters
+        pybind11::dict getParams(std::string type);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
+
+        /// Validate bond type
+        virtual void validateType(unsigned int type, std::string action);
 
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
@@ -94,18 +102,56 @@ PotentialBond< evaluator >::~PotentialBond()
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator >
-void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
+template< class evaluator >
+void PotentialBond< evaluator >::validateType(unsigned int type,
+                                              std::string action)
     {
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "Invalid bond type specified" << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialBond");
+        std::string err = "Invalid bond type specified.";
+        err += "Error " + action + " in PotentialBond";
+        throw std::runtime_error(err);
         }
+    }
 
+template<class evaluator >
+void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
+    {
+    // make sure the type is valid
+    validateType(type, "setting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = param;
+    }
+
+
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
+*/
+template<class evaluator >
+void PotentialBond< evaluator >::setParamsPython(std::string type,
+                                                 pybind11::dict param)
+    {
+    auto itype = m_bond_data->getTypeByName(type);
+    auto struct_param = param_type(param);
+    setParams(itype, struct_param);
+    }
+
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
+*/
+template<class evaluator >
+pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
+    {
+    auto itype = m_bond_data->getTypeByName(type);
+    validateType(itype, "getting params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[itype].asDict();
     }
 
 /*! PotentialBond provides
@@ -176,7 +222,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
     for (unsigned int i = 0; i< 6; i++)
@@ -189,6 +235,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getN();
+
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -240,13 +287,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         // calculate r_ab squared
         Scalar rsq = dot(dx,dx);
 
-        // get parameters for this bond type
-        param_type param = h_params.data[h_typeval.data[i].type];
-
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
-        evaluator eval(rsq, param);
+        evaluator eval(rsq, h_params.data[h_typeval.data[i].type]);
         if (evaluator::needsDiameter())
             eval.setDiameter(diameter_a,diameter_b);
         if (evaluator::needsCharge())
@@ -334,7 +378,8 @@ template < class T > void export_PotentialBond(pybind11::module& m, const std::s
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
-        .def("setParams", &T::setParams)
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
         ;
     }
 

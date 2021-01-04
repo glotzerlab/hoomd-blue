@@ -37,6 +37,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
+                    UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
                     )
 
@@ -77,7 +78,6 @@ set(_hpmc_headers
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
-    ShapeProxy.h
     ShapeSimplePolygon.h
     ShapeSphere.h
     ShapeSpheropolygon.h
@@ -90,6 +90,7 @@ set(_hpmc_headers
     UpdaterClustersGPUDepletants.cuh
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
+    UpdaterQuickCompress.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
@@ -142,7 +143,7 @@ add_library(HOOMD::_hpmc ALIAS _hpmc)
 if (APPLE)
 set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 if(ENABLE_HIP)
@@ -166,20 +167,8 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/hpmc/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files   analyze.py
             compute.py
-            data.py
             __init__.py
             integrate.py
             update.py
@@ -191,22 +180,21 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hpmc ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hpmc" "*.py")
 
 # install headers in installation target
 install(FILES ${_hpmc_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
        )
 
+add_subdirectory(pytest)
+add_subdirectory(tune)
+
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

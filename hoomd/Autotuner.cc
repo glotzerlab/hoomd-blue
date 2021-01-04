@@ -290,7 +290,7 @@ unsigned int Autotuner::computeOptimalParameter()
                 float sum = 0.0f;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     sum += *it;
-                m_sample_median[i] = sum/v.size();
+                m_sample_median[i] = sum/float(v.size());
                 }
             else if (m_mode == mode_max)
                 {

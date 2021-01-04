@@ -106,7 +106,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+    if (flags[pdata_flag::pressure_tensor])
         {
         compute_virial = true;
         }
@@ -363,7 +363,7 @@ void ForceCompositeGPU::findRigidCenters()
 
     m_rigid_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-    unsigned int old_size = m_lookup_center.getNumElements();
+    size_t old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     #ifdef __HIP_PLATFORM_NVCC__

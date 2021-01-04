@@ -4,6 +4,8 @@ set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
+                   ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
@@ -55,6 +57,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
+                ComputeThermoGPU.cuh
+                ComputeThermoGPU.h
+                ComputeThermoHMAGPU.cuh
+                ComputeThermoHMAGPU.h
+                ComputeThermo.h
+                ComputeThermoHMA.h
+                ComputeThermoTypes.h
+                ComputeThermoHMATypes.h
                 ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
@@ -166,6 +176,8 @@ if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
+                           ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
@@ -202,6 +214,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
+                      ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       DLVODriverPotentialPairGPU.cu
                       DPDLJThermoDriverPotentialPairGPU.cu
                       DPDThermoDriverPotentialPairGPU.cu
@@ -263,18 +277,18 @@ add_library(HOOMD::_md ALIAS _md)
 if(APPLE)
 set_target_properties(_md PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_md PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_md PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
     target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
+else()
+    target_link_libraries(_md PUBLIC _hoomd)
 endif()
-target_link_libraries(_md PUBLIC _hoomd)
-
 if (ENABLE_HIP)
-    target_link_libraries(_md PUBLIC _neighbor)
+    target_link_libraries(_md PRIVATE neighbor)
 endif()
 
 fix_cudart_rpath(_md)
@@ -286,27 +300,18 @@ install(TARGETS _md EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/md/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files __init__.py
           angle.py
           bond.py
           charge.py
+          compute.py
           constrain.py
           dihedral.py
           external.py
           force.py
           improper.py
           integrate.py
+          methods.py
           nlist.py
           pair.py
           update.py
@@ -318,11 +323,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_md ALL DEPENDS ${files})
+copy_files_to_build("${files}" "md" "*.py")
 
 # install headers in installation target
 install(FILES ${_md_headers}
@@ -330,10 +331,12 @@ install(FILES ${_md_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
+add_subdirectory(pytest)
+
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

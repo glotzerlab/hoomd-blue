@@ -12,6 +12,8 @@
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
 #include <thrust/sort.h>
@@ -24,6 +26,7 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
@@ -140,7 +143,7 @@ void gpu_stage_particles(const unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_select_particle_migrate), dim3(n_blocks), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_select_particle_migrate), dim3(n_blocks), dim3(block_size), 0, 0,
         N,
         d_pos,
         d_comm_flag,
@@ -387,7 +390,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
-    unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
+    unsigned int shared_bytes = (unsigned int)(2 *sizeof(Scalar3) * ntypes);
 
     hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel, dim3(n_blocks), dim3(block_size), shared_bytes, 0,
         N,
@@ -607,7 +610,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(
         d_total,
         N);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&total, d_total, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_total);
 
@@ -896,55 +899,58 @@ void gpu_exchange_ghosts_pack(
     const BoxDim& box)
     {
     assert(d_ghost_idx_adj);
-    assert(d_tag);
-    assert(d_pos);
-    assert(d_img);
-    assert(d_vel);
-    assert(d_charge);
-    assert(d_diameter);
-    assert(d_body);
-    assert(d_orientation);
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out/block_size + 1;
     if (send_tag)
         {
+        assert(d_tag);
         assert(d_tag_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_tag, d_tag_sendbuf);
         }
     if (send_pos)
         {
+        assert(d_pos);
         assert(d_pos_sendbuf);
+        if (send_image)
+            {
+            assert(d_img);
+            }
         hipLaunchKernelGGL(gpu_pack_wrap_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_pos, d_img, d_pos_sendbuf, send_image ? d_img_sendbuf : 0, di, my_pos, box);
         }
     if (send_vel)
         {
+        assert(d_vel);
         assert(d_vel_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
            n_out, d_ghost_idx_adj, d_vel, d_vel_sendbuf);
         }
     if (send_charge)
         {
+        assert(d_charge);
         assert(d_charge_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_charge, d_charge_sendbuf);
         }
     if (send_diameter)
         {
+        assert(d_diameter);
         assert(d_diameter_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_diameter, d_diameter_sendbuf);
         }
     if (send_body)
         {
+        assert(d_body);
         assert(d_body_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_body, d_body_sendbuf);
         }
     if (send_orientation)
         {
+        assert(d_orientation);
         assert(d_orientation_sendbuf);
         hipLaunchKernelGGL(gpu_pack_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
             n_out, d_ghost_idx_adj, d_orientation, d_orientation_sendbuf);
@@ -1319,7 +1325,7 @@ void gpu_exchange_ghost_groups_copy_buf(
         d_n_keep,
         nrecv);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_n_keep);
 
@@ -1558,7 +1564,7 @@ void gpu_mark_groups(
         d_n_out,
         n_groups);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_n_out);
     }
@@ -1682,7 +1688,7 @@ void gpu_scatter_ranks_and_mark_send_groups(
         d_n_send,
         n_groups);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&n_send, d_n_send, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_n_send);
     }
@@ -1954,7 +1960,7 @@ void gpu_remove_groups(unsigned int n_groups,
         d_new_ngroups,
         n_groups);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_new_ngroups);
 
@@ -2122,7 +2128,7 @@ void gpu_add_groups(unsigned int n_groups,
         d_n_unique,
         n_recv);
     alloc.deallocate((char *) d_temp_storage);
- 
+
     hipMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), hipMemcpyDeviceToHost);
     alloc.deallocate((char *)d_n_unique);
 

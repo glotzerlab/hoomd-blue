@@ -3,16 +3,21 @@ md.special_pair
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.special_pair
 
 .. autosummary::
     :nosignatures:
 
-    md.special_pair.lj
-    md.special_pair.coulomb
+    SpecialPair
+    LJ
+    Coulomb
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.special_pair
     :synopsis: Pair potentials between special pairs of particles
-    :members:
+    :members: SpecialPair,
+              LJ,
+              Coulomb
+    :no-inherited-members:
+    :show-inheritance:

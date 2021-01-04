@@ -29,7 +29,7 @@
 extern "C" __global__
 void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
-                                                 const unsigned int virial_pitch,
+                                                 const size_t virial_pitch,
                                                  const unsigned int *d_group_members,
                                                  unsigned int group_size,
                                                  const unsigned int N,
@@ -96,7 +96,7 @@ void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
 */
 hipError_t gpu_compute_one_d_constraint_forces(Scalar4* d_force,
                                                 Scalar* d_virial,
-                                                const unsigned int virial_pitch,
+                                                const size_t virial_pitch,
                                                 const unsigned int *d_group_members,
                                                 unsigned int group_size,
                                                 const unsigned int N,

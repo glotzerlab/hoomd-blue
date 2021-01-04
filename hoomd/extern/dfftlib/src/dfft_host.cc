@@ -98,8 +98,8 @@ void dfft_redistribute_block_to_cyclic_1d(
             }
 
         int rank = proc_map[destproc];
-        dfft_nsend[rank] = size*sizeof(cpx_t);
-        dfft_offset_send[rank] = offset*sizeof(cpx_t);
+        dfft_nsend[rank] = (unsigned int)(size*sizeof(cpx_t));
+        dfft_offset_send[rank] = (unsigned int)(offset*sizeof(cpx_t));
         int r;
         for(r=0; r< (size/stride); r++)
             for (k=0; k < stride; k++)
@@ -139,8 +139,8 @@ void dfft_redistribute_block_to_cyclic_1d(
 
         int rank = proc_map[srcproc];
 
-        dfft_nrecv[rank] = size*sizeof(cpx_t);
-        dfft_offset_recv[rank] = offset*sizeof(cpx_t);
+        dfft_nrecv[rank] = (unsigned int)(size*sizeof(cpx_t));
+        dfft_offset_recv[rank] = (unsigned int)(offset*sizeof(cpx_t));
         }
 
     /* synchronize */
@@ -297,19 +297,19 @@ void dfft_redistribute_cyclic_to_block_1d(int *dim,
 
         int rank = proc_map[destproc];
 
-        dfft_offset_send[rank] = (send ? (stride*j1*sizeof(cpx_t)) : 0);
+        dfft_offset_send[rank] = (unsigned int)(send ? (stride*j1*sizeof(cpx_t)) : 0);
         if (rev && (length > c0/c1))
             {
             /* we are directly receving into the work buf */
-            dfft_offset_recv[rank] = stride*j0_remote*length/c0*sizeof(cpx_t);
+            dfft_offset_recv[rank] = (unsigned int)(stride*j0_remote*length/c0*sizeof(cpx_t));
             }
         else
             {
-            dfft_offset_recv[rank] = offset*sizeof(cpx_t);
+            dfft_offset_recv[rank] = (unsigned int)(offset*sizeof(cpx_t));
             }
 
-        dfft_nsend[rank] = send_size*sizeof(cpx_t);
-        dfft_nrecv[rank] = recv_size*sizeof(cpx_t);
+        dfft_nsend[rank] = (unsigned int)(send_size*sizeof(cpx_t));
+        dfft_nrecv[rank] = (unsigned int)(recv_size*sizeof(cpx_t));
         offset += (recv ? size : 0);
         }
 
@@ -343,11 +343,11 @@ void dfft_redistribute_cyclic_to_block_1d(int *dim,
 
             int rank = proc_map[destproc];
 
-            int j1_offset = dfft_offset_send[rank]/sizeof(cpx_t)/stride;
+            int j1_offset = int(dfft_offset_send[rank]/sizeof(cpx_t)/stride);
 
             /* we are sending from a tmp buffer/stride */
-            dfft_offset_send[rank] = offset*sizeof(cpx_t)*stride;
-            int n = dfft_nsend[rank]/stride/sizeof(cpx_t);
+            dfft_offset_send[rank] = int(offset*sizeof(cpx_t)*stride);
+            int n = (unsigned int)(dfft_nsend[rank]/stride/sizeof(cpx_t));
             int j;
             for (j = 0; j < n; j++)
                 for (k = 0; k < stride; ++ k)
@@ -456,11 +456,11 @@ void mpifft1d_dif(int *dim,
             {
             double theta = -(double)2.0 * (double)M_PI * alpha/(double) length;
             cpx_t w;
-            RE(w) = cos((double)j*theta);
-            IM(w) = sin((double)j*theta);
+            RE(w) = float(cos((double)j*theta));
+            IM(w) = float(sin((double)j*theta));
 
             double sign = ((inverse) ? (-1.0) : 1.0);
-            IM(w) *=sign;
+            IM(w) *= float(sign);
 
             int r;
             for (r = 0; r < stride; ++r)

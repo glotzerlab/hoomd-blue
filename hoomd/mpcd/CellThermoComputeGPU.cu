@@ -15,7 +15,6 @@
 #include "CellCommunicator.cuh"
 #include "ReductionOperators.h"
 
-#include "hoomd/extern/cub/cub/cub.cuh"
 #include "hoomd/WarpTools.cuh"
 
 namespace mpcd
@@ -782,9 +781,9 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
                                    void *d_tmp,
                                    size_t& tmp_bytes,
                                    const mpcd::detail::cell_thermo_element *d_tmp_thermo,
-                                   const unsigned int Ncell)
+                                   const size_t Ncell)
     {
-    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, Ncell);
+    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, (unsigned int)Ncell);
     return cudaSuccess;
     }
 

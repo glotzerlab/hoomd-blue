@@ -63,7 +63,7 @@ void OneDConstraint::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -108,11 +108,10 @@ void OneDConstraint::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
-/*! OneDConstraint removes 2 degrees of freedom per particle in the group
-*/
-unsigned int OneDConstraint::getNDOFRemoved()
+Scalar OneDConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
-    return m_group->getNumMembersGlobal();
+    // OneDConstraint removes 2 degrees of freedom per particle in the group
+    return m_group->intersectionSize(query)*2;
     }
 
 void export_OneDConstraint(py::module& m)

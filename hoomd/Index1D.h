@@ -203,6 +203,12 @@ struct Index2DUpperTriangular
             return m_w*(m_w+1) / 2;
             }
 
+        /// Get the width
+        HOSTDEVICE inline unsigned int getW()
+            {
+            return m_w;
+            }
+
     private:
         unsigned int m_w;     //!< Width of the 2D upper triangular array
         unsigned int m_term;  //!< Precomputed term of the equation for efficiency

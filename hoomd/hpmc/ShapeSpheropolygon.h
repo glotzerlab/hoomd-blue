@@ -44,7 +44,7 @@ class SupportFuncSpheropolygon
         //! Construct a support function for a spheropolygon
         /*! \param _verts Polygon vertices
         */
-        DEVICE SupportFuncSpheropolygon(const poly2d_verts& _verts)
+        DEVICE SupportFuncSpheropolygon(const PolygonVertices& _verts)
             : verts(_verts)
             {
             }
@@ -64,13 +64,13 @@ class SupportFuncSpheropolygon
             }
 
     private:
-        const poly2d_verts& verts;      //!< Vertices of the polygon
+        const PolygonVertices& verts;      //!< Vertices of the polygon
     };
 
 }; // end namespace detail
 
 //! Spheropolygon shape template
-/*! ShapeSpheropolygon represents a convex polygon swept out by a sphere. For simplicity, it uses the same poly2d_verts
+/*! ShapeSpheropolygon represents a convex polygon swept out by a sphere. For simplicity, it uses the same PolygonVertices
     struct as ShapeConvexPolygon. ShapeSpheropolygon interprets two fields in that struct that ShapeConvexPolygon
     ignores. The first is sweep_radius which defines the radius of the sphere to sweep around the polygon. The 2nd
     is ignore. When two shapes are checked for overlap, if both of them have ignore set to true (non-zero) then
@@ -86,7 +86,7 @@ class SupportFuncSpheropolygon
 struct ShapeSpheropolygon
     {
     //! Define the parameter type
-    typedef detail::poly2d_verts param_type;
+    typedef detail::PolygonVertices param_type;
 
     //! Temporary storage for depletant insertion
     typedef struct {} depletion_storage_type;
@@ -150,7 +150,7 @@ struct ShapeSpheropolygon
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
-    const detail::poly2d_verts& verts;     //!< Vertices
+    const detail::PolygonVertices& verts;     //!< Vertices
     };
 
 //! Convex polygon overlap test
@@ -168,7 +168,7 @@ DEVICE inline bool test_overlap<ShapeSpheropolygon,ShapeSpheropolygon>(const vec
                                                                        const ShapeSpheropolygon& b,
                                                                        unsigned int& err)
     {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     /*return detail::gjke_2d(detail::SupportFuncSpheropolygon(a.verts),
                            detail::SupportFuncSpheropolygon(b.verts),

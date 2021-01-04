@@ -36,7 +36,7 @@ void slit_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // create slit channel with half width 5
     auto slit = std::make_shared<const mpcd::detail::SlitGeometry>(5.0, 1.0, mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConst>(1.5);
+    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.5);
     std::shared_ptr<mpcd::SlitGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, 42, slit);
 
     /*

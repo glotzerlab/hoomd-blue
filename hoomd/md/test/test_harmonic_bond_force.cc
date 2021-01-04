@@ -44,7 +44,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // create the bond force compute to check
     std::shared_ptr<PotentialBondHarmonic> fc_2 = bf_creator(sysdef_2);
-    fc_2->setParams(0, make_scalar2(1.5, 0.75));
+    fc_2->setParams(0, harmonic_params(1.5, 0.75));
 
     // compute the force and check the results
     fc_2->compute(0);
@@ -52,7 +52,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     GlobalArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
 
     {
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     // check that the force is correct, it should be 0 since we haven't created any bonds yet
@@ -76,7 +76,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     // this time there should be a force
     GlobalArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, 0.225, tol);
@@ -160,9 +160,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
     std::shared_ptr<PotentialBondHarmonic> fc_6 = bf_creator(sysdef_6);
-    fc_6->setParams(0, make_scalar2( 1.5, 0.75));
-    fc_6->setParams(1, make_scalar2(2.0*1.5, 0.75));
-    fc_6->setParams(2, make_scalar2(1.5, 0.5));
+    fc_6->setParams(0, harmonic_params( 1.5, 0.75));
+    fc_6->setParams(1, harmonic_params(2.0*1.5, 0.75));
+    fc_6->setParams(2, harmonic_params(1.5, 0.5));
 
     sysdef_6->getBondData()->addBondedGroup(Bond(0, 0,1));
     sysdef_6->getBondData()->addBondedGroup(Bond(1, 2,3));
@@ -174,7 +174,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     // check that the forces are correctly computed
     GlobalArray<Scalar4>& force_array_5 =  fc_6->getForceArray();
     GlobalArray<Scalar>& virial_array_5 =  fc_6->getVirialArray();
-    unsigned int pitch = virial_array_5.getPitch();
+    size_t pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_5.data[0].x, -0.075, tol);
@@ -256,7 +256,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // build the bond force compute and try it out
     std::shared_ptr<PotentialBondHarmonic> fc_4 = bf_creator(sysdef_4);
-    fc_4->setParams(0, make_scalar2(1.5, 1.75));
+    fc_4->setParams(0, harmonic_params(1.5, 1.75));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,0));
@@ -267,7 +267,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     {
     GlobalArray<Scalar4>& force_array_6 =  fc_4->getForceArray();
     GlobalArray<Scalar>& virial_array_6 =  fc_4->getVirialArray();
-    unsigned int pitch = virial_array_6.getPitch();
+    size_t pitch = virial_array_6.getPitch();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
     // the right two particles shoul only have a force pulling them right
@@ -323,8 +323,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 
     std::shared_ptr<PotentialBondHarmonic> fc1 = bf_creator1(sysdef);
     std::shared_ptr<PotentialBondHarmonic> fc2 = bf_creator2(sysdef);
-    fc1->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
-    fc2->setParams(0, make_scalar2(Scalar(300.0), Scalar(1.6)));
+    fc1->setParams(0, harmonic_params(Scalar(300.0), Scalar(1.6)));
+    fc2->setParams(0, harmonic_params(Scalar(300.0), Scalar(1.6)));
 
     // add bonds
     for (unsigned int i = 0; i < N-1; i++)
@@ -340,7 +340,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     {
     GlobalArray<Scalar4>& force_array_7 =  fc1->getForceArray();
     GlobalArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
-    unsigned int pitch = virial_array_7.getPitch();
+    size_t pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
     GlobalArray<Scalar4>& force_array_8 =  fc2->getForceArray();
@@ -397,7 +397,7 @@ void const_force_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     GlobalArray<Scalar4>& force_array_9 =  fc.getForceArray();
     GlobalArray<Scalar>& virial_array_9 =  fc.getVirialArray();
-    unsigned int pitch = virial_array_9.getPitch();
+    size_t pitch = virial_array_9.getPitch();
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_9.data[0].x, -1.3, tol);
@@ -422,7 +422,7 @@ void const_force_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     GlobalArray<Scalar4>& force_array_10 =  fc.getForceArray();
     GlobalArray<Scalar>& virial_array_10 =  fc.getVirialArray();
-    unsigned int pitch = virial_array_10.getPitch();
+    size_t pitch = virial_array_10.getPitch();
     ArrayHandle<Scalar4> h_force_10(force_array_10,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_10(virial_array_10,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_10.data[0].x, 67.54, tol);

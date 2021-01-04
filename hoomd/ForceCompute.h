@@ -90,6 +90,30 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         //! Sum all virial terms for a group
         std::vector<Scalar> calcVirialGroup(std::shared_ptr<ParticleGroup> group);
 
+        /** Get per particle energies
+
+            @returns a Numpy array with per particle energies in increasing tag order.
+        */
+        pybind11::object getEnergiesPython();
+
+        /** Get per particle forces
+
+            @returns a Numpy array with per particle forces in increasing tag order.
+        */
+        pybind11::object getForcesPython();
+
+        /** Get per particle torques
+
+            @returns a Numpy array with per particle torques in increasing tag order.
+        */
+        pybind11::object getTorquesPython();
+
+        /** Get per particle virials
+
+            @returns a Numpy array with per particle virials in increasing tag order.
+        */
+        pybind11::object getVirialsPython();
+
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
 
@@ -183,12 +207,14 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             order xx, xy, xz, yy, yz, zz
          */
         GlobalArray<Scalar>  m_virial;
-        unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
+        size_t m_virial_pitch;    //!< The pitch of the 2D virial array
         GlobalArray<Scalar4> m_torque;    //!< per-particle torque
-        int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
+
+        /// Store the particle data flags used during the last computation
+        PDataFlags m_computed_flags;
 
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by

@@ -9,6 +9,7 @@
 HOOMD_UP_MAIN();
 
 #include "hoomd/System.h"
+#include "hoomd/Trigger.h"
 
 #include <memory>
 #include <functional>
@@ -73,7 +74,8 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
     lb->setMaxIterations(2);
 
@@ -178,7 +180,8 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
     lb->enableDimension(1, false);
     lb->setMaxIterations(100);
@@ -314,7 +317,8 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
 
     // migrate atoms and check placement

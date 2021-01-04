@@ -10,6 +10,7 @@
 #endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -289,7 +290,7 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     collide->setRotationAngle(rot_angle);
 
     // embed the particle group into the mpcd system
-    std::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_one));
     collide->setEmbeddedGroup(group_all);
 
@@ -340,7 +341,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
 
     // set the temperature to 2.0 and check
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(2.0);
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(2.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i=0; i < N; ++i)
@@ -354,7 +355,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
 
     // change the temperature and check again
         {
-        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(4.0);
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(4.0);
         collide->setTemperature(T);
         double mean(0.0);
         for (unsigned int i=0; i < N; ++i)

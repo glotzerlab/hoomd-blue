@@ -79,6 +79,29 @@ void CosineSqAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
         m_exec_conf->msg->warning() << "angle.cosinesq: specified t_0 <= 0" << endl;
     }
 
+void CosineSqAngleForceCompute::setParamsPython(std::string type,
+                                                pybind11::dict params)
+    {
+    auto typ = m_angle_data->getTypeByName(type);
+    auto _params = cosinesq_params(params);
+    setParams(typ, _params.k, _params.t_0);
+    }
+
+pybind11::dict CosineSqAngleForceCompute::getParams(std::string type)
+    {
+    auto typ = m_angle_data->getTypeByName(type);
+    if (typ >= m_angle_data->getNTypes())
+        {
+        m_exec_conf->msg->error() << "angle.cosinesq: Invalid angle type specified" << endl;
+        throw runtime_error("Error setting parameters in CosineSqAngleForceCompute");
+        }
+
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["t0"] = m_t_0[typ];
+    return params;
+    }
+
 /*! AngleForceCompute provides
     - \c angle_cosinesq_energy
 */
@@ -122,7 +145,7 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

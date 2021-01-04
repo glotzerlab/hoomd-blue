@@ -3,6 +3,9 @@
 #include <sstream>
 #include "ExternalFieldEvalFactory.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
@@ -16,6 +19,8 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include "llvm/Support/raw_os_ostream.h"
+
+#pragma GCC diagnostic pop
 
 //! C'tor
 ExternalFieldEvalFactory::ExternalFieldEvalFactory(const std::string& llvm_ir)

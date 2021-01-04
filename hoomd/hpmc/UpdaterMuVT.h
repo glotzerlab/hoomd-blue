@@ -55,14 +55,14 @@ class UpdaterMuVT : public Updater
             m_max_vol_rescale = fac;
             }
 
-        //! Set ratio of volume moves to exchange/transfer moves (Gibbs ensemble only)
-        void setMoveRatio(Scalar move_ratio)
+        //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves)
+        void setVolumeMoveProbability(Scalar volume_move_probability)
             {
-            if (move_ratio < Scalar(0.0) || move_ratio > Scalar(1.0))
+            if (volume_move_probability < Scalar(0.0) || volume_move_probability > Scalar(1.0))
                 {
                 throw std::runtime_error("Move ratio has to be between 0 and 1.\n");
                 }
-            m_move_ratio = move_ratio;
+            m_volume_move_probability = volume_move_probability;
             }
 
         //! List of types that are inserted/removed/transferred
@@ -76,31 +76,6 @@ class UpdaterMuVT : public Updater
             m_transfer_types = transfer_types;
             }
 
-
-        //! Print statistics about the muVT ensemble
-        void printStats()
-            {
-            hpmc_muvt_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC muVT stats:" << std::endl;
-            if (counters.insert_accept_count + counters.insert_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average insert acceptance: " << counters.getInsertAcceptance() << std::endl;
-                }
-            if (counters.remove_accept_count + counters.remove_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average remove acceptance: " << counters.getRemoveAcceptance() << "\n";
-                }
-            if (counters.exchange_accept_count + counters.exchange_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average exchange acceptance: " << counters.getExchangeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total transfer/exchange moves attempted: " << counters.getNExchangeMoves() << std::endl;
-            if (counters.volume_accept_count + counters.volume_reject_count > 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << "\n";
-                }
-            m_exec_conf->msg->notice(2) << "Total volume moves attempted: " << counters.getNVolumeMoves() << std::endl;
-            }
 
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities()
@@ -147,7 +122,7 @@ class UpdaterMuVT : public Updater
         GPUVector<Scalar4> m_postype_backup;                  //!< Backup of postype array
 
         Scalar m_max_vol_rescale;                             //!< Maximum volume ratio rescaling factor
-        Scalar m_move_ratio;                                  //!< Ratio between exchange/transfer and volume moves
+        Scalar m_volume_move_probability;                                  //!< Ratio between exchange/transfer and volume moves
 
         unsigned int m_gibbs_other;                           //!< The root-rank of the other partition
 
@@ -233,7 +208,7 @@ class UpdaterMuVT : public Updater
          * \param n_insert Number of depletants to insert
          * \param delta Sphere diameter
          * \param pos Position of inserted particle
-         * \param orientation Orientationof inserted particle
+         * \param orientation Orientation of inserted particle
          * \param type Type of inserted particle
          * \param n_trial Number of insertion trials per depletant
          * \param lnboltzmann Log of Boltzmann factor for insertion (return value)
@@ -296,7 +271,7 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     unsigned int seed,
     unsigned int npartition)
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
-      m_max_vol_rescale(0.1), m_move_ratio(0.5), m_gibbs_other(0),
+      m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0),
       m_n_trial(1)
     {
     // broadcast the seed from rank 0 to all other ranks.
@@ -305,7 +280,7 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
     #endif
 
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
     m_pdata->getNumTypesChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
@@ -395,7 +370,7 @@ unsigned int UpdaterMuVT<Shape>::getNthTypeTag(unsigned int type, unsigned int t
     if (m_pdata->getDomainDecomposition())
         {
         // get number of particles of given type
-        unsigned int nptl = m_type_map[type].size();
+        unsigned int nptl = (unsigned int)(m_type_map[type].size());
 
         // have to initialize correctly for prefix sum
         unsigned int begin_offs=0;
@@ -438,7 +413,7 @@ template<class Shape>
 unsigned int UpdaterMuVT<Shape>::getNumParticlesType(unsigned int type)
     {
     assert(type < m_type_map.size());
-    unsigned int nptl_type = m_type_map[type].size();
+    unsigned int nptl_type = (unsigned int)m_type_map[type].size();
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -454,7 +429,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::slotNumTypesChange()
     {
     // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
     }
 
@@ -529,7 +504,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     m_mc->communicate(false);
 
     // check for overlaps
-    bool overlap = m_mc->countOverlaps(timestep, true);
+    bool overlap = m_mc->countOverlaps(true);
 
     if (!overlap && patch)
         {
@@ -634,7 +609,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
                 detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0,0,0));
 
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -868,7 +843,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             }
 
         // order the expanded ensembles
-        volume_move = hoomd::detail::generate_canonical<Scalar>(rng) < m_move_ratio;
+        volume_move = hoomd::detail::generate_canonical<Scalar>(rng) < m_volume_move_probability;
 
         if (active && m_exec_conf->getRank() == 0)
             {
@@ -926,7 +901,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (! m_gibbs)
                 {
                 // choose a random particle type out of those being inserted or removed
-                type = m_transfer_types[hoomd::UniformIntDistribution(m_transfer_types.size()-1)(rng)];
+                type = m_transfer_types[hoomd::UniformIntDistribution((unsigned int)(m_transfer_types.size()-1))(rng)];
                 }
             else
                 {
@@ -991,7 +966,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 else
                     {
                     // get fugacity value
-                    Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                    Scalar fugacity = (*m_fugacity[type])(timestep);
 
                     // sanity check
                     if (fugacity <= Scalar(0.0))
@@ -1095,7 +1070,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
 
             // choose a random particle type out of those being transferred
             assert(m_transfer_types.size() > 0);
-            unsigned int type = m_transfer_types[hoomd::UniformIntDistribution(m_transfer_types.size()-1)(rng_local)];
+            unsigned int type = m_transfer_types[hoomd::UniformIntDistribution((unsigned int)(m_transfer_types.size()-1))(rng_local)];
 
             // choose a random particle of that type
             unsigned int nptl_type = getNumParticlesType(type);
@@ -1113,7 +1088,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             if (!m_gibbs)
                 {
                 // get fugacity value
-                Scalar fugacity = m_fugacity[type]->getValue(timestep);
+                Scalar fugacity = (*m_fugacity[type])(timestep);
 
                 // sanity check
                 if (fugacity <= Scalar(0.0))
@@ -1133,7 +1108,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                     std::string type_name = m_pdata->getNameByType(type);
 
                     // send particle type to other rank
-                    unsigned int n = type_name.size()+1;
+                    unsigned int n = (unsigned int)(type_name.size()+1);
                     MPI_Send(&n, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                     char s[n];
                     memcpy(s,type_name.c_str(),n);
@@ -1465,12 +1440,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                 // Check particle against AABB tree for neighbors
                 Scalar r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
 
-                OverlapReal R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+                Scalar R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/2.0);
                 detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
                 Scalar r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
 
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_image = pos + image_list[cur_image];
@@ -1484,12 +1459,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                             lnboltzmann += patch->energy(r_ij,
                                 type,
                                 quat<float>(orientation),
-                                diameter,
-                                charge,
+                                float(diameter),
+                                float(charge),
                                 type,
                                 quat<float>(orientation),
-                                diameter,
-                                charge);
+                                float(diameter),
+                                float(charge));
                             }
                         }
 
@@ -1526,12 +1501,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                                         lnboltzmann += patch->energy(r_ij,
                                             type,
                                             quat<float>(orientation),
-                                            diameter,
-                                            charge,
+                                            float(diameter),
+                                            float(charge),
                                             typ_j,
                                             quat<float>(orientation_j),
-                                            h_diameter.data[j],
-                                            h_charge.data[j]);
+                                            float(h_diameter.data[j]),
+                                            float(h_charge.data[j]));
                                         }
                                     }
                                 }
@@ -1555,7 +1530,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         }
 
     // Depletants
+    #ifdef ENABLE_MPI
     auto& params = this->m_mc->getParams();
+    #endif
 
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
@@ -1571,6 +1548,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         if (m_mc->getDepletantFugacity(type_d,type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
+        #ifdef ENABLE_MPI
         // Depletant and colloid diameter
         quat<Scalar> o;
         Scalar d_dep;
@@ -1578,8 +1556,6 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
             Shape tmp(o, params[type_d]);
             d_dep = tmp.getCircumsphereDiameter();
             }
-
-        #ifdef ENABLE_MPI
 
         // number of depletants to insert
         unsigned int n_insert = 0;
@@ -1672,7 +1648,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         {
         // get some data structures from the integrator
         auto& image_list = m_mc->updateImageList();
-        const unsigned int n_images = image_list.size();
+        const unsigned int n_images = (unsigned int)image_list.size();
         auto& params = m_mc->getParams();
 
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
@@ -1682,7 +1658,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
 
         if (patch)
             {
-            r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+            r_cut_patch = OverlapReal(patch->getRCut() + 0.5*patch->getAdditiveCutoff(type));
             r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
             }
 
@@ -1796,12 +1772,12 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                                     lnboltzmann -= patch->energy(r_ij,
                                         type,
                                         quat<float>(orientation),
-                                        1.0, // diameter i
-                                        0.0, // charge i
+                                        float(1.0), // diameter i
+                                        float(0.0), // charge i
                                         typ_j,
                                         quat<float>(orientation_j),
-                                        h_diameter.data[j],
-                                        h_charge.data[j]);
+                                        float(h_diameter.data[j]),
+                                        float(h_charge.data[j]));
                                     }
                                 }
                             }
@@ -2061,7 +2037,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
 
                 // draw random radial coordinate in test sphere
                 Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+                Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
@@ -2080,7 +2056,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2231,7 +2207,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
 
                 // draw random radial coordinate in test sphere
                 Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-                Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+                Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
@@ -2250,7 +2226,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
 
                 unsigned int err_count = 0;
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)(image_list.size());
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2416,7 +2392,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
 
             // draw random radial coordinate in test sphere
             Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+            Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
@@ -2435,7 +2411,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
 
             unsigned int err_count = 0;
             // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
@@ -2572,7 +2548,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, u
 
             // draw random radial coordinate in test sphere
             Scalar r3 = hoomd::detail::generate_canonical<Scalar>(rng);
-            Scalar r = Scalar(0.5)*delta*powf(r3,1.0/3.0);
+            Scalar r = Scalar(0.5)*delta*slow::pow(r3,Scalar(1.0/3.0));
 
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
@@ -2672,7 +2648,7 @@ template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std:
           .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
-          .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)
+          .def("setVolumeMoveProbability", &UpdaterMuVT<Shape>::setVolumeMoveProbability)
           .def("setTransferTypes", &UpdaterMuVT<Shape>::setTransferTypes)
           .def("setNTrial",&hpmc::UpdaterMuVT<Shape>::setNTrial)
           ;

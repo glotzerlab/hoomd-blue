@@ -44,31 +44,27 @@ struct hpmc_counters_t
         overlap_err_count = 0;
         }
 
+    # ifndef NVCC
     //! Get the translate acceptance
-    /*! \returns The ratio of translation moves that are accepted, or 0 if there are no translation moves
+    /*! \returns The number of translation moves that are accepted and rejected.
     */
-    DEVICE double getTranslateAcceptance()
+    std::pair<unsigned long long int, unsigned long long int> getTranslateCounts()
         {
-        if (translate_reject_count + translate_accept_count == 0)
-            return 0.0;
-        else
-            return double(translate_accept_count) / double(translate_reject_count + translate_accept_count);
+        return std::make_pair(translate_accept_count, translate_reject_count);
         }
 
     //! Get the rotate acceptance
-    /*! \returns The ratio of rotation moves that are accepted, or 0 if there are no rotation moves
+    /*! \returns The number of rotation moves that are accepted and rejected.
     */
-    DEVICE double getRotateAcceptance()
+    std::pair<unsigned long long int, unsigned long long int> getRotateCounts()
         {
-        if (rotate_reject_count + rotate_accept_count == 0)
-            return 0.0;
-        else
-            return double(rotate_accept_count) / double(rotate_reject_count + rotate_accept_count);
+        return std::make_pair(rotate_accept_count, rotate_reject_count);
         }
 
     //! Get the number of moves
     /*! \return The total number of moves
     */
+    # endif
     DEVICE unsigned long long int getNMoves()
         {
         return translate_accept_count + translate_reject_count + rotate_accept_count + rotate_reject_count;

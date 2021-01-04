@@ -412,8 +412,8 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
     dim3 threads(args.stride, args.group_size, n_groups);
     dim3 grid( args.n_sample / n_groups + 1, 1, 1);
 
-    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
-        + args.overlap_idx.getNumElements()*sizeof(unsigned int);
+    unsigned int shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
+        + args.overlap_idx.getNumElements()*sizeof(unsigned int));
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
 
@@ -428,7 +428,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
 
     shared_bytes += extra_bytes;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, 0, 
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, 0,
                                                      args.n_sample,
                                                      args.type,
                                                      args.d_postype,

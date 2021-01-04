@@ -172,6 +172,13 @@ BoxDim
             m_hi = L/Scalar(2.0);
             m_lo = -m_hi;
             m_Linv = Scalar(1.0)/L;
+
+            // avoid NaN when Lz == 0
+            if (L.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
+
             m_L = L;
             }
 
@@ -199,7 +206,13 @@ BoxDim
             {
             m_hi = hi;
             m_lo = lo;
+
+            // avoid NaN when Lz == 0
             m_Linv = Scalar(1.0)/(m_hi - m_lo);
+            if (m_hi.z == Scalar(0.0) && m_lo.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
             m_L = m_hi - m_lo;
             }
 
@@ -286,7 +299,7 @@ BoxDim
             #ifdef __HIPCC__
             if (m_periodic.z)
                 {
-                Scalar img = rintf(w.z * m_Linv.z);
+                Scalar img = rint(w.z * m_Linv.z);
                 w.z -= L.z * img;
                 w.y -= L.z * m_yz * img;
                 w.x -= L.z * m_xz * img;
@@ -294,17 +307,17 @@ BoxDim
 
             if (m_periodic.y)
                 {
-                Scalar img = rintf(w.y * m_Linv.y);
+                Scalar img = rint(w.y * m_Linv.y);
                 w.y -= L.y * img;
                 w.x -= L.y * m_xy * img;
                 }
 
             if (m_periodic.x)
                 {
-                w.x -= L.x * rintf(w.x * m_Linv.x);
+                w.x -= L.x * rint(w.x * m_Linv.x);
                 }
             #else
-            // on the cpu, branches are faster than calling rintf
+            // on the cpu, branches are faster than calling rint
             if (m_periodic.z)
                 {
                 if (w.z >= m_hi.z)
@@ -325,13 +338,13 @@ BoxDim
                 {
                 if (w.y >= m_hi.y)
                     {
-                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(w.y*m_Linv.y+Scalar(0.5));
                     w.y -= (Scalar)i*L.y;
                     w.x -= (Scalar)i*L.y * m_xy;
                     }
                 else if (w.y < m_lo.y)
                     {
-                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(-w.y*m_Linv.y+Scalar(0.5));
                     w.y += (Scalar)i*L.y;
                     w.x += (Scalar)i*L.y * m_xy;
                     }
@@ -341,12 +354,12 @@ BoxDim
                 {
                 if (w.x >= m_hi.x)
                     {
-                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(w.x*m_Linv.x+Scalar(0.5));
                     w.x -= (Scalar)i*L.x;
                     }
                 else if (w.x < m_lo.x)
                     {
-                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(-w.x*m_Linv.x+Scalar(0.5));
                     w.x += (Scalar)i*L.x;
                     }
                 }
@@ -516,6 +529,12 @@ BoxDim
             dist.y = m_L.y*fast::rsqrt(Scalar(1.0) + m_yz*m_yz);
             dist.z = m_L.z;
 
+            // avoid NaN when Lz == 0
+            if (m_L.z == Scalar(0.0))
+                {
+                dist.z = Scalar(1.0);
+                }
+
             return dist;
             }
 
@@ -554,6 +573,25 @@ BoxDim
             return make_scalar3(0.0,0.0,0.0);
             }
 
+        HOSTDEVICE bool operator==(const BoxDim& other) const
+            {
+            Scalar3 L1 = getL();
+            Scalar3 L2 = other.getL();
+
+            Scalar xy1 = getTiltFactorXY();
+            Scalar xy2 = other.getTiltFactorXY();
+            Scalar xz1 = getTiltFactorXZ();
+            Scalar xz2 = other.getTiltFactorXZ();
+            Scalar yz1 = getTiltFactorYZ();
+            Scalar yz2 = other.getTiltFactorYZ();
+
+            return L1 == L2 && xy1 == xy2 && xz1 == xz2 && yz1 == yz2;
+            }
+
+        HOSTDEVICE bool operator!=(const BoxDim& other) const
+            {
+            return !((*this) == other);
+            }
         #ifdef ENABLE_MPI
         //! Serialization method
         template<class Archive>

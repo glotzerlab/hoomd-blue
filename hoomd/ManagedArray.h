@@ -197,15 +197,18 @@ class ManagedArray
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
+
+            Note: shared memory spaces are relatively small, computing sizes with 32-bit
+            numbers is sufficient.
          */
         HOSTDEVICE void* allocate_shared(char *& s_ptr, unsigned int &available_bytes) const
             {
             // size in ints (round up)
-            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            size_t size_int = (sizeof(T)*N)/sizeof(int);
             if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
             // align ptr to size of data type
-            unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
+            size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
             char *ptr_align = (char *)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
@@ -213,7 +216,7 @@ class ManagedArray
 
             // increment pointer
             s_ptr = ptr_align + size_int*sizeof(int);
-            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+            available_bytes -= (unsigned int)(size_int*sizeof(int)+max_align_bytes);
 
             return (void *)ptr_align;
             }

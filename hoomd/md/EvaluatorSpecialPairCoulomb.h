@@ -29,6 +29,42 @@
 #define DEVICE
 #endif
 
+struct special_coulomb_params
+    {
+    Scalar alpha;
+    Scalar r_cutsq;
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        // default implementation does nothing
+        }
+    #endif
+
+    #ifndef __HIPCC__
+    special_coulomb_params(): alpha(0.), r_cutsq(0.){}
+
+    special_coulomb_params(pybind11::dict v)
+        {
+        alpha = v["alpha"].cast<Scalar>();
+        r_cutsq = 0.;
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["alpha"] = alpha;
+        return v;
+        }
+    #endif
+    }
+    #ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+    #else
+    __attribute__((aligned(16)));
+    #endif
+
 //! Class for evaluating the Coulomb bond potential
 /*! See the EvaluatorPairLJ class for the meaning of the parameters
  */
@@ -36,14 +72,14 @@ class EvaluatorSpecialPairCoulomb
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef special_coulomb_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorSpecialPairCoulomb(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq), scale(_params.x), rcutsq(_params.y)
+            : rsq(_rsq), scale(_params.alpha), rcutsq(_params.r_cutsq)
             {
             }
 

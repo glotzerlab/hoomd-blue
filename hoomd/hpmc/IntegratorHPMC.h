@@ -21,6 +21,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 #ifdef ENABLE_HIP
@@ -221,23 +222,27 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Change maximum displacement
-        /*! \param d new d to set
-         *! \param typ type to which d will be set
+        /*! \param typ Name of type to set
+         *! \param d new d to set
         */
-        void setD(Scalar d,unsigned int typ)
+        inline void setD(std::string name, Scalar d)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
+
                 {
                 ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-                h_d.data[typ] = d;
+                h_d.data[id] = d;
                 }
+
             updateCellWidth();
             }
 
-        //! Get maximum displacement (by type)
-        inline Scalar getD(unsigned int typ)
+        //! Get maximum displacement (by type name)
+        inline Scalar getD(std::string name)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-            return h_d.data[typ];
+            return h_d.data[id];
             }
 
         //! Get array of translation move sizes
@@ -262,21 +267,39 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return maxD;
             }
 
-        //! Change maximum rotation
-        /*! \param a new a to set
-         *! \param type type to which d will be set
-        */
-        void setA(Scalar a,unsigned int typ)
+        //! Get the minimum particle translational move size
+        virtual Scalar getMinTransMoveSize()
             {
-            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-            h_a.data[typ] = a;
+            // access the type parameters
+            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+            // for each type, create a temporary shape and return the maximum diameter
+            Scalar minD = h_d.data[0];
+            for (unsigned int typ = 1; typ < this->m_pdata->getNTypes(); typ++)
+                {
+                minD = std::max(minD, h_d.data[typ]);
+                }
+
+            return minD;
             }
 
-        //! Get maximum rotation
-        inline Scalar getA(unsigned int typ)
+        //! Change maximum rotation
+        /*! \param name Type name to set
+         *! \param a new a to set
+        */
+        inline void setA(std::string name, Scalar a)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
+            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
+            h_a.data[id] = a;
+            }
+
+        //! Get maximum rotation by name
+        inline Scalar getA(std::string name)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-            return h_a.data[typ];
+            return h_a.data[id];
             }
 
         //! Get array of rotation move sizes
@@ -285,19 +308,19 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_a;
             }
 
-        //! Change move ratio
-        /*! \param move_ratio new move_ratio to set
+        //! Change translation move probability.
+        /*! \param translation_move_probability new translation_move_probability to set
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setTranslationMoveProbability(Scalar translation_move_probability)
             {
-            m_move_ratio = unsigned(move_ratio*65536);
+            m_translation_move_probability = unsigned(translation_move_probability*65536);
             }
 
-        //! Get move ratio
-        //! \returns ratio of translation versus rotation move attempts
-        inline double getMoveRatio()
+        //! Get translation move probability.
+        //! \returns Fraction of moves that are translation moves.
+        inline double getTranslationMoveProbability()
             {
-            return m_move_ratio/65536.0;
+            return m_translation_move_probability/65536.0;
             }
 
         //! Set nselect
@@ -316,32 +339,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_nselect;
             }
 
-        //! Print statistics about the hmc steps taken
-        virtual void printStats()
-            {
-            hpmc_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateAcceptance() << "\n";
-            if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateAcceptance() << "\n";
-                }
-
-            // elapsed time
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            uint64_t total_moves = counters.getNMoves();
-            m_exec_conf->msg->notice(2) << "Trial moves per second:        " << double(total_moves) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per second:     " << double(counters.overlap_checks) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per trial move: " << double(counters.overlap_checks) / double(total_moves) << std::endl;
-            m_exec_conf->msg->notice(2) << "Number of overlap errors:      " << double(counters.overlap_err_count) << std::endl;
-            }
-
         //! Get performance in moves per second
         virtual double getMPS()
             {
-            hpmc_counters_t counters = getCounters(1);
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            return double(counters.getNMoves()) / cur_time;
+            return m_mps;
             }
 
         //! Reset statistics counters
@@ -363,7 +364,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             \param early_exit exit at first overlap found if true
             \returns number of overlaps if early_exit=false, 1 if early_exit=true
         */
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit)
+        virtual unsigned int countOverlaps(bool early_exit)
             {
             return 0;
             }
@@ -374,7 +375,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             MC does not integrate with the MD computations that use this value.
         */
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 1;
             }
@@ -444,9 +445,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return 0.0;
             }
 
-        //! Enable deterministic simulations
-        virtual void setDeterministic(bool deterministic) {};
-
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
             {
@@ -467,9 +465,42 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch_log = log;
             }
 
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
+        #ifdef ENABLE_MPI
+        //! Set the MPI communicator
+        /*! \param comm the communicator
+            This method is overridden so that we can register with the signal to set the ghost layer width.
+        */
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            if (! m_communicator_ghost_width_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+                m_communicator_ghost_width_connected = true;
+                }
+            if (! m_communicator_flags_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+                m_communicator_flags_connected = true;
+                }
+
+            // set the member variable
+            Integrator::setCommunicator(comm);
+            }
+        #endif
+
     protected:
         unsigned int m_seed;                        //!< Random number seed
-        unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
+        unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
         unsigned int m_nselect;                     //!< Number of particles to select for trial moves
 
         GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
@@ -480,6 +511,9 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         Scalar m_nominal_width;                      //!< nominal cell width
         Scalar m_extra_ghost_width;                  //!< extra ghost width to add
         ClockSource m_clock;                           //!< Timer for self-benchmarking
+
+        /// Moves-per-second value last recorded
+        double m_mps = 0;
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
 
@@ -508,30 +542,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return CommFlags(0);
             }
 
-        //! Set the MPI communicator
-        /*! \param comm the communicator
-            This method is overridden so that we can register with the signal to set the ghost layer width.
-        */
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            if (! m_communicator_ghost_width_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-                m_communicator_ghost_width_connected = true;
-                }
-            if (! m_communicator_flags_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-                m_communicator_flags_connected = true;
-                }
-
-            // set the member variable
-            Integrator::setCommunicator(comm);
-            }
         #endif
 
     private:

@@ -61,7 +61,9 @@ class GPUEvalFactory
                 m_launch_bounds.push_back(i);
 
             // instantiate jitify cache
+            #ifdef __HIP_PLATFORM_NVCC__
             m_cache.resize(this->m_exec_conf->getNumActiveGPUs());
+            #endif
 
             compileGPU(code, kernel_name, options, cuda_devrt_library_path, compute_arch);
             }
@@ -109,9 +111,9 @@ class GPUEvalFactory
          */
         unsigned int getKernelSharedSize(unsigned int idev, unsigned int eval_threads, unsigned int launch_bounds)
             {
-            #ifdef __HIP_PLATFORM_NVCC__
             int shared_size = 0;
 
+            #ifdef __HIP_PLATFORM_NVCC__
             CUresult custatus = cuFuncGetAttribute(&shared_size,
                 CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
                 m_program[idev].kernel(m_kernel_name).instantiate(eval_threads, launch_bounds));

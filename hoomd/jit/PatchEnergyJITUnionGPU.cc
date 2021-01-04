@@ -16,7 +16,7 @@ void PatchEnergyJITUnionGPU::setParam(unsigned int type,
     // set parameters in base class
     PatchEnergyJITUnion::setParam(type, types, positions, orientations, diameters, charges, leaf_capacity);
 
-    unsigned int N = len(positions);
+    unsigned int N = (unsigned int)len(positions);
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
@@ -93,12 +93,12 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
     unsigned int n_groups = run_block_size/(tpp*eval_threads);
     unsigned int max_queue_size = n_groups*tpp;
 
-    const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar) +
-                                          m_d_union_params.size()*sizeof(jit::union_params_t);
+    const unsigned int min_shared_bytes = (unsigned int)(args.num_types * sizeof(Scalar) +
+                                          m_d_union_params.size()*sizeof(jit::union_params_t));
 
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
         + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes;
+        + min_shared_bytes);
 
     if (min_shared_bytes >= devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -123,11 +123,11 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
 
         shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
             + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes;
+            + min_shared_bytes);
         }
 
     // allocate some extra shared mem to store union shape parameters
-    unsigned int max_extra_bytes = m_exec_conf->dev_prop.sharedMemPerBlock - shared_bytes - kernel_shared_bytes;
+    unsigned int max_extra_bytes = (unsigned int)(m_exec_conf->dev_prop.sharedMemPerBlock - shared_bytes - kernel_shared_bytes);
 
     // determine dynamically requested shared memory
     char *ptr = (char *)nullptr;

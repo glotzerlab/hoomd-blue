@@ -8,7 +8,6 @@ set(TEST_LIST
     test_gridshift_correct
     test_index1d
     test_messenger
-    test_particle_group
     test_pdata
     test_quat
     test_rotmat2
@@ -54,6 +53,9 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     endif()
 
     add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_cuda_sources})
+    if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+        set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_FLAGS "-Wno-self-assign-overloaded")
+    endif()
     target_include_directories(${CUR_TEST} PRIVATE ${PYTHON_INCLUDE_DIR})
 
     add_dependencies(test_all ${CUR_TEST})

@@ -29,7 +29,7 @@ class __attribute__((visibility("default"))) GPUPartition
             {
             m_gpu_range = nullptr;
             m_gpu_map = nullptr;
-            m_n_gpu = gpu_id.size();
+            m_n_gpu = (unsigned int)gpu_id.size();
             if (m_n_gpu != 0)
                 {
                 m_gpu_map = new unsigned int[gpu_id.size()];

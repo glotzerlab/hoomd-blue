@@ -92,16 +92,6 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         */
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
 
-        //! Get needed pdata flags
-        /*! FIREEnergyMinimizer needs the potential energy, so its flag is set
-        */
-        virtual PDataFlags getRequestedPDataFlags()
-            {
-            PDataFlags flags = IntegratorTwoStep::getRequestedPDataFlags();
-            flags[pdata_flag::potential_energy] = 1;
-            return flags;
-            }
-
     protected:
         //! Function to create the underlying integrator
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha

@@ -43,14 +43,19 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
     assert(m_ntypes > 0);
 
     // allocate storage for the tables and parameters
-    Index2DUpperTriangular table_index(m_ntypes);
-    GlobalArray<Scalar2> tables(m_table_width, table_index.getNumElements(), m_exec_conf);
+    m_type_pair_idx = Index2DUpperTriangular(m_ntypes);
+    GlobalArray<Scalar2> tables(m_table_width, m_type_pair_idx.getNumElements(), m_exec_conf);
     m_tables.swap(tables);
     TAG_ALLOCATION(m_tables);
 
-    GlobalArray<Scalar4> params(table_index.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar4> params(m_type_pair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
     TAG_ALLOCATION(m_params);
+
+    Index2D full_type_pair_idx(m_pdata->getNTypes());
+    m_r_cut_nlist = std::make_shared<GlobalArray<Scalar>>(full_type_pair_idx.getNumElements(),
+                                                          m_exec_conf);
+    nlist->addRCutMatrix(m_r_cut_nlist);
 
     #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -85,6 +90,11 @@ TablePotential::~TablePotential()
     m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
 
     m_pdata->getNumTypesChangeSignal().disconnect<TablePotential, &TablePotential::slotNumTypesChange>(this);
+
+    if (m_attached)
+        {
+        m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        }
     }
 
 void TablePotential::slotNumTypesChange()
@@ -93,21 +103,55 @@ void TablePotential::slotNumTypesChange()
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
 
-    // skip the reallocation if the number of types does not change
-    // this keeps old parameters when restoring a snapshot
-    // it will result in invalid coefficients if the snapshot has a different type id -> name mapping
-    if (m_ntypes*(m_ntypes+1)/2 == m_params.getNumElements())
-        return;
+    // resize the table array
+    Index2DUpperTriangular new_type_pair_idx(m_ntypes);
+    Index2D old_full_type_pair_idx(m_type_pair_idx.getW());
+    Index2D new_full_type_pair_idx(m_ntypes);
+    m_tables.resize(m_table_width, new_type_pair_idx.getNumElements());
 
-    // allocate storage for the tables and parameters
-    Index2DUpperTriangular table_index(m_ntypes);
-    GlobalArray<Scalar2> tables(m_table_width, table_index.getNumElements(), m_exec_conf);
-    m_tables.swap(tables);
-    TAG_ALLOCATION(m_tables);
+    // allocate new parameter arrays
+    GlobalArray<Scalar4> new_params(new_type_pair_idx.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar> new_r_cut_nlist(new_full_type_pair_idx.getNumElements(), m_exec_conf);
 
-    GlobalArray<Scalar4> params(table_index.getNumElements(), m_exec_conf);
-    m_params.swap(params);
+        {
+        // copy existing data into them
+        ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
+                                                access_location::host,
+                                                access_mode::overwrite);
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                            access_location::host,
+                                            access_mode::overwrite);
+        ArrayHandle<Scalar4> h_new_params(new_params,
+                                          access_location::host,
+                                          access_mode::overwrite);
+        ArrayHandle<Scalar4> h_params(m_params,
+                                      access_location::host,
+                                      access_mode::overwrite);
+
+        for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
+            {
+            for (unsigned int j = 0; j < new_type_pair_idx.getW(); j++)
+                {
+                h_new_r_cut_nlist.data[new_full_type_pair_idx(i,j)] =
+                    h_r_cut_nlist.data[old_full_type_pair_idx(i,j)];
+                if (i < j)
+                    {
+                    h_new_params.data[new_type_pair_idx(i,j)] =
+                        h_params.data[m_type_pair_idx(i,j)];
+                    }
+                }
+            }
+        }
+
+    // swap the new arrays in
+    m_params.swap(new_params);
     TAG_ALLOCATION(m_params);
+
+    // except for the r_cut_nlist which the nlist also refers to, copy the new data over
+    *m_r_cut_nlist = new_r_cut_nlist;
+
+    // set the new type pair indexer
+    m_type_pair_idx = new_type_pair_idx;
 
     #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
@@ -182,6 +226,17 @@ void TablePotential::setTable(unsigned int typ1,
         h_tables.data[table_value(i, cur_table_index)].x = V[i];
         h_tables.data[table_value(i, cur_table_index)].y = F[i];
         }
+
+    // update the r_cut_nlist value
+        {
+        Index2D type_pair_idx(m_pdata->getNTypes());
+        ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::readwrite);
+        h_r_cut_nlist.data[type_pair_idx(typ1, typ2)] = rmax;
+        h_r_cut_nlist.data[type_pair_idx(typ2, typ1)] = rmax;
+        }
+
+    // notify the neighbor list that we have changed r_cut values
+    m_nlist->notifyRCutMatrixChange();
     }
 
 /*! TablePotential provides

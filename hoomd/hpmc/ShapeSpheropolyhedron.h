@@ -54,9 +54,9 @@ namespace hpmc
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::PolyhedronVertices param_type;
 
-    //! Temporary storage for depletant insertion
+    /// Temporary storage for depletant insertion
     typedef struct {} depletion_storage_type;
 
     //! Initialize a polyhedron
@@ -140,7 +140,7 @@ struct ShapeSpheropolyhedron
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    const detail::PolyhedronVertices& verts;     //!< Vertices
     };
 
 //! Convex polyhedron overlap test
@@ -166,7 +166,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/2.0,
+                          DaDb/OverlapReal(2.0),
                           err);
 
     /*
@@ -179,6 +179,35 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           err);
     */
     }
+
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = spoly.verts;
+    unsigned int nverts = verts.N;
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+        }
+    else if (nverts == 2)
+        {
+        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolyhedra");
+        }
+    else
+        {
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+        for (unsigned int i = 0; i < nverts-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
+            }
+        shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
+        }
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

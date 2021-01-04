@@ -31,7 +31,8 @@ class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     public:
         //! Constructor
         LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                        std::shared_ptr<DomainDecomposition> decomposition);
+                        std::shared_ptr<DomainDecomposition> decomposition,
+                        std::shared_ptr<Trigger> trigger);
 
         //! Destructor
         virtual ~LoadBalancerGPU();

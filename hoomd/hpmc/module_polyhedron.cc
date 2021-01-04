@@ -53,9 +53,9 @@ void export_polyhedron(py::module& m)
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
     #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");
-    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumeGPUPolyhedron");
-    export_UpdaterClustersGPU< ShapePolyhedron >(m, "UpdaterClustersGPUPolyhedron");
+    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedronGPU");
+    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedronGPU");
+    export_UpdaterClustersGPU< ShapePolyhedron >(m, "UpdaterClustersPolyhedronGPU");
     #endif
     }
 

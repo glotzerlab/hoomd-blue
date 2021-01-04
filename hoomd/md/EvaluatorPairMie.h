@@ -52,7 +52,51 @@ class EvaluatorPairMie
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar m1;
+            Scalar m2;
+            Scalar m3;
+            Scalar m4;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : m1(0), m2(0), m3(0), m4(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                m3 = v["n"].cast<Scalar>();
+                m4 = v["m"].cast<Scalar>();
+
+                Scalar epsilon = v["epsilon"].cast<Scalar>();
+                Scalar sigma = v["sigma"].cast<Scalar>();
+
+                Scalar outFront = (m3/(m3-m4)) * pow(m3/m4, m4/(m3-m4));
+                m1 = outFront * epsilon * pow(sigma, m3);
+                m2 = outFront * epsilon * pow(sigma, m4);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["n"] = m3;
+                v["m"] = m4;
+
+                Scalar sigma = pow(m1 / m2, 1 / (m3 - m4));
+                Scalar epsilon = m1 / pow(sigma, m3) * (m3 - m4) / m3 * pow(m3 / m4, m4 / (m4 - m3));
+
+                v["epsilon"] = epsilon;
+                v["sigma"] = sigma;
+
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -62,7 +106,7 @@ class EvaluatorPairMie
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairMie(Scalar _rsq, Scalar _rcutsq,  const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.x), mie2(_params.y), mie3(_params.z), mie4(_params.w)
+            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.m1), mie2(_params.m2), mie3(_params.m3), mie4(_params.m4)
             {
             }
 

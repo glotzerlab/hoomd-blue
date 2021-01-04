@@ -67,7 +67,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
