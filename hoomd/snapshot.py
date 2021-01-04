@@ -112,96 +112,93 @@ class Snapshot:
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
 
     @classmethod
-    def _from_gsd_snapshot(cls, gsd_snap, communicator):
+    def from_gsd_snapshot(cls, gsd_snap, communicator):
+        """
+        Constructs a hoomd.Snapshot from a gsd.hoomd.Snapshot
+        """
         gsd_snap.validate()
+        snap = cls(communicator=communicator)
         if communicator.rank == 0:
-            snap = cls(communicator=communicator)
 
             # Set all particle attributes in snap from gsd_snap
-            if gsd_snap.particles.N:
-                snap.particles.N = gsd_snap.particles.N
-            if gsd_snap.particles.types:
-                snap.particles.types = gsd_snap.particles.types
-            if gsd_snap.particles.angmom is not None:
-                snap.particles.angmom[:] = gsd_snap.particles.angmom
-            if gsd_snap.particles.body is not None:
-                snap.particles.body[:] = gsd_snap.particles.body
-            if gsd_snap.particles.charge is not None:
-                snap.particles.charge[:] = gsd_snap.particles.charge
-            if gsd_snap.particles.diameter is not None:
-                snap.particles.diameter[:] = gsd_snap.particles.diameter
-            if gsd_snap.particles.image is not None:
-                snap.particles.image[:] = gsd_snap.particles.image
-            if gsd_snap.particles.mass is not None:
-                snap.particles.mass[:] = gsd_snap.particles.mass
-            if gsd_snap.particles.moment_inertia is not None:
-                snap.particles.moment_inertia[:] = gsd_snap.particles.moment_inertia
-            if gsd_snap.particles.orientation is not None:
-                snap.particles.orientation[:] = gsd_snap.particles.orientation
-            if gsd_snap.particles.position is not None:
-                snap.particles.position[:] = gsd_snap.particles.position
-            if gsd_snap.particles.typeid is not None:
-                snap.particles.typeid[:] = gsd_snap.particles.typeid
-            if gsd_snap.particles.velocity is not None:
-                snap.particles.velocity[:] = gsd_snap.particles.velocity
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.particles, property_)
+                if gsd_prop is not None:
+                    setattr(snap.particles, property_, gsd_prop)
+            for property_ in (
+                    'angmom', 'body', 'charge', 'diameter', 'image', 'mass',
+                    'moment_inertia', 'orientation', 'position', 'typeid',
+                    'velocity'
+                    ):
+                gsd_prop = getattr(gsd_snap.particles, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.particles, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all bond attributes
-            if gsd_snap.bonds.N:
-                snap.bonds.N = gsd_snap.bonds.N
-            if gsd_snap.bonds.types:
-                snap.bonds.types = gsd_snap.bonds.types
-            if gsd_snap.bonds.group is not None:
-                snap.bonds.group[:] = gsd_snap.bonds.group
-            if gsd_snap.bonds.typeid is not None:
-                snap.bonds.typeid[:] = gsd_snap.bonds.typeid
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.bonds, property_)
+                if gsd_prop is not None:
+                    setattr(snap.bonds, property_, gsd_prop)
+            for property_ in ('group', 'typeid'):
+                gsd_prop = getattr(gsd_snap.bonds, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.bonds, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all angle attributes
-            if gsd_snap.angles.N:
-                snap.angles.N = gsd_snap.angles.N
-            if gsd_snap.angles.types:
-                snap.angles.types = gsd_snap.angles.types
-            if gsd_snap.angles.group is not None:
-                snap.angles.group[:] = gsd_snap.angles.group
-            if gsd_snap.angles.typeid is not None:
-                snap.angles.typeid[:] = gsd_snap.angles.typeid
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.angles, property_)
+                if gsd_prop is not None:
+                    setattr(snap.angles, property_, gsd_prop)
+            for property_ in ('group', 'typeid'):
+                gsd_prop = getattr(gsd_snap.angles, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.angles, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all dihedral attributes
-            if gsd_snap.dihedrals.N:
-                snap.dihedrals.N = gsd_snap.dihedrals.N
-            if gsd_snap.dihedrals.types:
-                snap.dihedrals.types = gsd_snap.dihedrals.types
-            if gsd_snap.dihedrals.group is not None:
-                snap.dihedrals.group[:] = gsd_snap.dihedrals.group
-            if gsd_snap.dihedrals.typeid is not None:
-                snap.dihedrals.typeid[:] = gsd_snap.dihedrals.typeid
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.dihedrals, property_)
+                if gsd_prop is not None:
+                    setattr(snap.dihedrals, property_, gsd_prop)
+            for property_ in ('group', 'typeid'):
+                gsd_prop = getattr(gsd_snap.dihedrals, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.dihedrals, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all improper attributes
-            if gsd_snap.impropers.N:
-                snap.impropers.N = gsd_snap.impropers.N
-            if gsd_snap.impropers.types:
-                snap.impropers.types = gsd_snap.impropers.types
-            if gsd_snap.impropers.group is not None:
-                snap.impropers.group[:] = gsd_snap.impropers.group
-            if gsd_snap.impropers.typeid is not None:
-                snap.impropers.typeid[:] = gsd_snap.impropers.typeid
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.impropers, property_)
+                if gsd_prop is not None:
+                    setattr(snap.impropers, property_, gsd_prop)
+            for property_ in ('group', 'typeid'):
+                gsd_prop = getattr(gsd_snap.impropers, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.impropers, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all pair attributes
-            if gsd_snap.pairs.N:
-                snap.pairs.N = gsd_snap.pairs.N
-            if gsd_snap.pairs.types:
-                snap.pairs.types = gsd_snap.pairs.types
-            if gsd_snap.pairs.group is not None:
-                snap.pairs.group[:] = gsd_snap.pairs.group
-            if gsd_snap.pairs.typeid is not None:
-                snap.pairs.typeid[:] = gsd_snap.pairs.typeid
+            for property_ in ('N', 'types'):
+                gsd_prop = getattr(gsd_snap.pairs, property_)
+                if gsd_prop is not None:
+                    setattr(snap.pairs, property_, gsd_prop)
+            for property_ in ('group', 'typeid'):
+                gsd_prop = getattr(gsd_snap.pairs, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.pairs, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set all constraint attributes
-            if gsd_snap.constraints.N:
-                snap.constraints.N = gsd_snap.constraints.N
-            if gsd_snap.constraints.group is not None:
-                snap.constraints.group[:] = gsd_snap.constraints.group
-            if gsd_snap.constraints.value is not None:
-                snap.constraints.value[:] = gsd_snap.constraints.value
+            gsd_prop = getattr(gsd_snap.constraints, 'N')
+            if gsd_prop is not None:
+                setattr(snap.constraints, 'N', gsd_prop)
+            for property_ in ('group', 'value'):
+                gsd_prop = getattr(gsd_snap.constraints, property_)
+                if gsd_prop is not None:
+                    hoomd_prop = getattr(snap.constraints, property_)
+                    hoomd_prop[:] = gsd_prop
 
             # Set box attribute
             if gsd_snap.configuration.box is not None:
