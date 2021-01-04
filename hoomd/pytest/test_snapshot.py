@@ -1,5 +1,5 @@
 from hoomd.snapshot import Snapshot
-import numpy as np
+import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
 try:
@@ -51,9 +51,9 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                     x = getattr(getattr(gsd_snap, attr), prop)
                     y = getattr(getattr(hoomd_snap, attr), prop)
                     if x is None:
-                        np.testing.assert_allclose(np.zeros_like(y), y)
+                        numpy.testing.assert_allclose(numpy.zeros_like(y), y)
                     else:
-                        np.testing.assert_allclose(x, y)
+                        numpy.testing.assert_allclose(x, y)
 
 
 @pytest.fixture(scope='function')
@@ -63,7 +63,7 @@ def s():
 
 def test_empty_snapshot(s):
     if s.exists:
-        np.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0], atol=1e-7)
+        numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0], atol=1e-7)
         assert s.configuration.dimensions == 3
 
         assert s.particles.N == 0
@@ -114,7 +114,7 @@ def test_empty_snapshot(s):
 def test_configuration(s):
     if s.exists:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        np.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
+        numpy.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
 
         with pytest.raises(AttributeError):
             s.configuration.dimensions = 2
@@ -142,29 +142,29 @@ def test_particles(s):
         s.particles.types = ['A', 'B']
         assert s.particles.types == ['A', 'B']
 
-        assert s.particles.position.dtype == np.float64
+        assert s.particles.position.dtype == numpy.float64
         assert s.particles.position.shape == (5, 3)
-        assert s.particles.velocity.dtype == np.float64
+        assert s.particles.velocity.dtype == numpy.float64
         assert s.particles.velocity.shape == (5, 3)
-        assert s.particles.acceleration.dtype == np.float64
+        assert s.particles.acceleration.dtype == numpy.float64
         assert s.particles.acceleration.shape == (5, 3)
-        assert s.particles.typeid.dtype == np.uint32
+        assert s.particles.typeid.dtype == numpy.uint32
         assert s.particles.typeid.shape == (5,)
-        assert s.particles.mass.dtype == np.float64
+        assert s.particles.mass.dtype == numpy.float64
         assert s.particles.mass.shape == (5,)
-        assert s.particles.charge.dtype == np.float64
+        assert s.particles.charge.dtype == numpy.float64
         assert s.particles.charge.shape == (5,)
-        assert s.particles.diameter.dtype == np.float64
+        assert s.particles.diameter.dtype == numpy.float64
         assert s.particles.diameter.shape == (5,)
-        assert s.particles.image.dtype == np.int32
+        assert s.particles.image.dtype == numpy.int32
         assert s.particles.image.shape == (5,  3)
-        assert s.particles.body.dtype == np.int32
+        assert s.particles.body.dtype == numpy.int32
         assert s.particles.body.shape == (5,)
-        assert s.particles.orientation.dtype == np.float64
+        assert s.particles.orientation.dtype == numpy.float64
         assert s.particles.orientation.shape == (5, 4)
-        assert s.particles.moment_inertia.dtype == np.float64
+        assert s.particles.moment_inertia.dtype == numpy.float64
         assert s.particles.moment_inertia.shape == (5, 3)
-        assert s.particles.angmom.dtype == np.float64
+        assert s.particles.angmom.dtype == numpy.float64
         assert s.particles.angmom.shape == (5, 4)
 
 
@@ -180,9 +180,9 @@ def test_bonds(s):
         assert s.bonds.types == ['A', 'B']
 
         assert s.bonds.typeid.shape == (3,)
-        assert s.bonds.typeid.dtype == np.uint32
+        assert s.bonds.typeid.dtype == numpy.uint32
         assert s.bonds.group.shape == (3, 2)
-        assert s.bonds.group.dtype == np.uint32
+        assert s.bonds.group.dtype == numpy.uint32
 
 
 def test_angles(s):
@@ -197,9 +197,9 @@ def test_angles(s):
         assert s.angles.types == ['A', 'B']
 
         assert s.angles.typeid.shape == (3,)
-        assert s.angles.typeid.dtype == np.uint32
+        assert s.angles.typeid.dtype == numpy.uint32
         assert s.angles.group.shape == (3, 3)
-        assert s.angles.group.dtype == np.uint32
+        assert s.angles.group.dtype == numpy.uint32
 
 
 def test_dihedrals(s):
@@ -214,9 +214,9 @@ def test_dihedrals(s):
         assert s.dihedrals.types == ['A', 'B']
 
         assert s.dihedrals.typeid.shape == (3,)
-        assert s.dihedrals.typeid.dtype == np.uint32
+        assert s.dihedrals.typeid.dtype == numpy.uint32
         assert s.dihedrals.group.shape == (3, 4)
-        assert s.dihedrals.group.dtype == np.uint32
+        assert s.dihedrals.group.dtype == numpy.uint32
 
 
 def test_impropers(s):
@@ -231,9 +231,9 @@ def test_impropers(s):
         assert s.impropers.types == ['A', 'B']
 
         assert s.impropers.typeid.shape == (3,)
-        assert s.impropers.typeid.dtype == np.uint32
+        assert s.impropers.typeid.dtype == numpy.uint32
         assert s.impropers.group.shape == (3, 4)
-        assert s.impropers.group.dtype == np.uint32
+        assert s.impropers.group.dtype == numpy.uint32
 
 
 def test_pairs(s):
@@ -248,9 +248,9 @@ def test_pairs(s):
         assert s.pairs.types == ['A', 'B']
 
         assert s.pairs.typeid.shape == (3,)
-        assert s.pairs.typeid.dtype == np.uint32
+        assert s.pairs.typeid.dtype == numpy.uint32
         assert s.pairs.group.shape == (3, 2)
-        assert s.pairs.group.dtype == np.uint32
+        assert s.pairs.group.dtype == numpy.uint32
 
 
 def test_constraints(s):
@@ -262,9 +262,9 @@ def test_constraints(s):
         assert len(s.constraints.group) == 3
 
         assert s.constraints.value.shape == (3,)
-        assert s.constraints.value.dtype == np.float64
+        assert s.constraints.value.dtype == numpy.float64
         assert s.constraints.group.shape == (3, 2)
-        assert s.constraints.group.dtype == np.uint32
+        assert s.constraints.group.dtype == numpy.uint32
 
 
 @skip_gsd
