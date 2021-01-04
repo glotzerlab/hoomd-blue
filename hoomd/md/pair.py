@@ -52,8 +52,7 @@ class Pair(force.Force):
         \\end{eqnarray*}
 
     where :math:`\\vec{r}` is the vector pointing from one particle to the other
-    in the pair, and :math:`V(r)` is chosen by a mode switch (see
-    ``set_params()``):
+    in the pair, and :math:`V(r)` is chosen by a mode switch:
 
     .. math::
         :nowrap:
@@ -1166,7 +1165,7 @@ class ForceShiftedLJ(Pair):
         \\Delta V(r) = -(r - r_{\\mathrm{cut}}) \\frac{\\partial
           V_{\\mathrm{LJ}}}{\\partial r}(r_{\\mathrm{cut}})
 
-    See :py:class:`Pair` for details on how forces are calculated and the
+    See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -1893,7 +1892,7 @@ class dipole(ai_pair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    See :py:class:`Pair` for details on how forces are calculated and the
+    See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary
     to set potential coefficients. The coefficients must be set per unique pair of particle types.
 
@@ -2376,4 +2375,79 @@ class Fourier(Pair):
         params = TypeParameter('params', 'particle_types',
             TypeParameterDict(a=list, b=list,
             _defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
+        self._add_typeparam(params)
+
+
+class OPP(Pair):
+    """Oscillating pair potential.
+
+    Args:
+        nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
+
+    `OPP` specifies that an oscillating pair potential should be applied between
+    every non-excluded particle pair in the simulation. The OPP potential can
+    be used to model metallic interactions.
+
+    .. math::
+        :nowrap:
+
+        \\begin{equation*}
+        V_{\\mathrm{OPP}}(r) = C_1 r^{-\\eta_1}
+            + C_2 r^{-\\eta_2} \\cos{\\left(k r - \\phi\\right)}
+        \\end{equation*}
+
+    See `Pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.  Use `params` dictionary to set potential
+    coefficients. The coefficients must be set per unique pair of particle
+    types.
+
+    The potential comes from
+    `Marek Mihalkovič and C. L. Henley 2012 <https://dx.doi.org/10.1103/PhysRevB.85.092102>`_.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The OPP potential parameters. The dictionary has the following keys:
+
+            * ``C1`` (`float`, **required**) -
+              Energy scale of the first term :math:`C_1` (energy units)
+
+            * ``C2`` (`float`, **required**) -
+              Energy scale of the second term :math:`C_2` (energy units)
+
+            * ``eta1`` (`float`, **required**) -
+              The inverse power to take :math:`r` to in the first term,
+              :math:`\\eta_1` (unitless).
+
+            * ``eta2`` (`float`, **required**) -
+              The inverse power to take :math:`r` to in the second term
+              :math:`\\eta_2` (unitless).
+
+            * ``k`` (`float`, **required**) -
+              oscillation frequency :math:`k` (inverse distance units)
+
+            * ``phi`` (`float`, **required**) -
+              potential phase shift :math:`\\phi` (unitless)
+
+    Example::
+
+        nl = nlist.Cell()
+        opp = pair.OPP(nl, r_cut=3.0)
+        opp.params[('A', 'A')] = {
+            'C1': 1., 'C2': 1., 'eta1': 15,
+            'eta2': 3, 'k': 1.0, 'phi': 3.14}
+        opp.r_cut[('A', 'B')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairOPP"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(
+                                   C1=float, C2=float, eta1=float, eta2=float,
+                                   k=float, phi=float, len_keys=2)
+                               )
         self._add_typeparam(params)
