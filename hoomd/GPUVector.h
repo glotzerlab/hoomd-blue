@@ -72,15 +72,6 @@ class GPUVectorBase : public Array
          */
         virtual void resize(size_t new_size, const T& value);
 
-        //! Resizing a vector as a matrix is not supported
-        /*!
-        */
-        virtual void resize(size_t width, size_t height)
-            {
-            this->m_exec_conf->msg->error() << "Cannot change a GPUVectorBase into a matrix." << std::endl;
-            throw std::runtime_error("Error resizing GPUVectorBase.");
-            }
-
         //! Insert an element at the end of the vector
         /*! \param val The new element
          */
