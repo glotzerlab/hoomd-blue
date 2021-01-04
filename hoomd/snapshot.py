@@ -148,7 +148,9 @@ class Snapshot:
                  'velocity')
             )
 
-            for section in ('angles', 'bonds', 'dihedrals', 'improper', 'pair'):
+            for section in (
+                    'angles', 'bonds', 'dihedrals', 'impropers', 'pairs'
+                    ):
                 set_properties(
                     getattr(snap, section),
                     getattr(gsd_snap, section),
