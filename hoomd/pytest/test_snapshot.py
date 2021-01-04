@@ -269,85 +269,27 @@ def test_constraints(s):
 
 @skip_gsd
 def test_from_gsd_snapshot_empty(s, device):
-    if s.exists:
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
 @skip_gsd
-def test_from_gsd_snapshot_configuration(s, device):
-    if s.exists:
-        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_particles(s, device):
-    if s.exists:
-        s.particles.N = 5
-        s.particles.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_bonds(s, device):
-    if s.exists:
-        s.bonds.N = 5
-        s.bonds.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_angles(s, device):
-    if s.exists:
-        s.angles.N = 5
-        s.angles.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_dihedrals(s, device):
-    if s.exists:
-        s.dihedrals.N = 5
-        s.dihedrals.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_impropers(s, device):
-    if s.exists:
-        s.impropers.N = 5
-        s.impropers.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_pairs(s, device):
-    if s.exists:
-        s.pairs.N = 5
-        s.pairs.types = ['A', 'B']
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
-
-
-@skip_gsd
-def test_from_gsd_snapshot_constraints(s, device):
-    if s.exists:
-        s.constraints.N = 3
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+def test_from_gsd_snapshot_populated(s, device):
+    s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
+    s.particles.N = 5
+    s.particles.types = ['A', 'B']
+    s.bonds.N = 5
+    s.bonds.types = ['A', 'B']
+    s.angles.N = 5
+    s.angles.types = ['A', 'B']
+    s.dihedrals.N = 5
+    s.dihedrals.types = ['A', 'B']
+    s.impropers.N = 5
+    s.impropers.types = ['A', 'B']
+    s.pairs.N = 5
+    s.pairs.types = ['A', 'B']
+    s.constraints.N = 3
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
