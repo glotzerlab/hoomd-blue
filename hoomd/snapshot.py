@@ -114,12 +114,10 @@ class Snapshot:
     @classmethod
     def from_gsd_snapshot(cls, gsd_snap, communicator):
         """
-        Constructs a `hoomd.Snapshot` from an
-        `gsd.hoomd.Snapshot <https://gsd.readthedocs.io/en/stable/python-module-gsd.hoomd.html#gsd.hoomd.Snapshot>`_
-        object.
+        Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
 
         Args:
-            gsd_snap (``gsd.hoomd.Snapshot``):
+            gsd_snap (`gsd.hoomd.Snapshot`):
                 The gsd snapshot to convert to a `hoomd.Snapshot`.
             communicator (hoomd.communicator.Communicator):
                 The MPI communicator to use for the snapshot. This prevents the
