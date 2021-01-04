@@ -153,7 +153,7 @@ struct ShapeUnionParams : ShapeParams
         ignore = v["ignore_statistics"].cast<unsigned int>();
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
-        N = pybind11::len(shapes);
+        N = (unsigned int)pybind11::len(shapes);
         mpos = ManagedArray<vec3<OverlapReal> >(N,managed);
         morientation = ManagedArray<quat<OverlapReal> >(N,managed);
         mparams = ManagedArray<typename Shape::param_type>(N,managed);

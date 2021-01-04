@@ -192,7 +192,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
             // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];

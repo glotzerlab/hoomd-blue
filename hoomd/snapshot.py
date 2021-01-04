@@ -10,27 +10,31 @@ class _ConfigurationData:
     def dimensions(self):
         return self._cpp_obj._dimensions
 
-    @dimensions.setter
-    def dimensions(self, d):
-        self._cpp_obj._dimensions = d
-
     @property
     def box(self):
         b = self._cpp_obj._global_box
         L = b.getL()
-        return (L.x, L.y, L.z, b.getTiltFactorXY(), b.getTiltFactorXZ(), b.getTiltFactorYZ())
+        return (L.x, L.y, L.z,
+                b.getTiltFactorXY(),
+                b.getTiltFactorXZ(),
+                b.getTiltFactorYZ())
 
     @box.setter
     def box(self, box):
-        b = _hoomd.BoxDim(box[0], box[1], box[2])
-        b.setTiltFactors(box[3], box[4], box[5])
-        self._cpp_obj._global_box = b
+        try:
+            new_box = hoomd.Box.from_box(box)
+        except Exception:
+            raise ValueError(
+                f"{box} is not convertible to a hoomd.Box object using "
+                "hoomd.Box.from_box.")
+        self._cpp_obj._dimensions = new_box.dimensions
+        self._cpp_obj._global_box = new_box._cpp_obj
 
 
 class Snapshot:
     def __init__(self, communicator=None):
         if communicator is None:
-            self._comm = hoomd.comm.Communicator()
+            self._comm = hoomd.communicator.Communicator()
         else:
             self._comm = communicator
 
@@ -94,9 +98,9 @@ class Snapshot:
             return None
 
     @classmethod
-    def _from_cpp_snapshot(cls, snapshot, comm):
+    def _from_cpp_snapshot(cls, snapshot, communicator):
         sp = cls()
-        sp._comm = comm
+        sp._comm = communicator
         sp._cpp_obj = snapshot
         return sp
 

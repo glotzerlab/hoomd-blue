@@ -78,10 +78,10 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         virtual void removeAllIntegrationMethods();
 
         /// Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group);
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group);
 
         /// Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group);
+        virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> group);
 
         /// Set the anisotropic mode of the integrator
         virtual void setAnisotropicMode(const std::string& mode);

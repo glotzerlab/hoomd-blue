@@ -55,8 +55,7 @@ namespace detail
 struct TriangleMesh : ShapeParams
     {
     TriangleMesh()
-        : verts(), face_offs(), face_verts(), face_overlap(), n_faces(0), ignore(0),
-          hull_only(0), sweep_radius(0.0), diameter(0.0)
+          face_verts(), face_overlap(), n_faces(0), ignore(0)
         {
         };
 
@@ -90,8 +89,8 @@ struct TriangleMesh : ShapeParams
         OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
         ignore = v["ignore_statistics"].cast<unsigned int>();
         hull_only = v["hull_only"].cast<unsigned int>();
-        n_verts = pybind11::len(verts_list);
-        n_faces = pybind11::len(face_list);
+        n_verts = (unsigned int)pybind11::len(verts_list);
+        n_faces = (unsigned int)pybind11::len(face_list);
         origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
                                    pybind11::cast<OverlapReal>(origin_tuple[1]),
                                    pybind11::cast<OverlapReal>(origin_tuple[2]));
@@ -568,7 +567,7 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
     vec3<OverlapReal> ey = cross(ex,b);
     ey = cross(ey,ex);
 
-    if (dot(ey,ey)) ey *= fast::rsqrt(dot(ey,ey));
+    if (dot(ey,ey) != 0) ey *= fast::rsqrt(dot(ey,ey));
 
     vec2<OverlapReal> r(mag_r, OverlapReal(0.0));
     vec2<OverlapReal> s(dot(b,ex),dot(b,ey));
@@ -579,7 +578,7 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
         {
         // collinear or parallel?
         vec3<OverlapReal> c = cross(q-p,a);
-        if (dot(c,c))
+        if (dot(c,c) != 0)
             return false; // parallel
 
         OverlapReal t = dot(del,r);
@@ -747,7 +746,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     }
                 }
 
-            if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
+            if (bool(a.isSpheroPolyhedron()) || bool(b.isSpheroPolyhedron()))
                 {
                 OverlapReal dsqmin(FLT_MAX);
                 // Load vertex 0 on a
@@ -920,7 +919,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  unsigned int& err)
     {
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    const OverlapReal abs_tol(DaDb*1e-12);
+    const OverlapReal abs_tol(OverlapReal(DaDb*1e-12));
     vec3<OverlapReal> dr = r_ab;
 
     /*

@@ -40,7 +40,7 @@ class PYBIND11_EXPORT OneDConstraint : public ForceConstraint
         void setVector(Scalar3 constraint_vec);
 
         //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved();
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied

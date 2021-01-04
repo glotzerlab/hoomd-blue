@@ -71,7 +71,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 
     Sets parameters for the potential of a particular dihedral type
 */
-void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
+void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
@@ -81,8 +81,8 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         }
 
     m_K[type] = K;
-    m_sign[type] = (Scalar)sign;
-    m_multi[type] = (Scalar)multiplicity;
+    m_sign[type] = sign;
+    m_multi[type] = multiplicity;
     m_phi_0[type] = phi_0;
 
     // check for some silly errors a user could make
@@ -167,7 +167,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();

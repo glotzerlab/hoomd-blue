@@ -221,7 +221,7 @@ void PPPMForceComputeGPU::assignParticles()
                         d_charge.data,
                         d_mesh.data,
                         d_mesh_scratch.data,
-                        m_mesh.getNumElements(),
+                        (unsigned int)m_mesh.getNumElements(),
                         m_order,
                         m_pdata->getBox(),
                         block_size,
@@ -238,7 +238,7 @@ void PPPMForceComputeGPU::assignParticles()
     if (m_exec_conf->getNumActiveGPUs() > 1)
         {
         m_tuner_reduce_mesh->begin();
-        gpu_reduce_meshes(m_mesh.getNumElements(),
+        gpu_reduce_meshes((unsigned int)m_mesh.getNumElements(),
             d_mesh_scratch.data,
             d_mesh.data,
             m_exec_conf->getNumActiveGPUs(),

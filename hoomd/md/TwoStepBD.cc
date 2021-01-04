@@ -54,7 +54,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
-    const unsigned int D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int D = m_sysdef->getNDimensions();
 
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -216,7 +216,7 @@ void TwoStepBD::integrateStepTwo(unsigned int timestep)
 void export_TwoStepBD(py::module& m)
     {
     py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
+        .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<Variant>,
                             unsigned int>())

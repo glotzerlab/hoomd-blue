@@ -168,7 +168,7 @@ DEVICE inline bool test_overlap<ShapeSpheropolygon,ShapeSpheropolygon>(const vec
                                                                        const ShapeSpheropolygon& b,
                                                                        unsigned int& err)
     {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     /*return detail::gjke_2d(detail::SupportFuncSpheropolygon(a.verts),
                            detail::SupportFuncSpheropolygon(b.verts),

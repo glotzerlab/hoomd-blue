@@ -363,7 +363,7 @@ void ForceCompositeGPU::findRigidCenters()
 
     m_rigid_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-    unsigned int old_size = m_lookup_center.getNumElements();
+    size_t old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     #ifdef __HIP_PLATFORM_NVCC__

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 #include <pybind11/pybind11.h>
 
 #include "HOOMDMath.h"
@@ -30,6 +31,18 @@ class PYBIND11_EXPORT Variant
         virtual Scalar operator()(uint64_t timestep)
             {
             return 0;
+            }
+
+        /// Returns the minimum of the variant
+        virtual Scalar min() = 0;
+
+        /// Returns the maximum of the variant
+        virtual Scalar max() = 0;
+
+        /// Returns the range [min, max] of the variant
+        virtual std::pair<Scalar, Scalar> range()
+            {
+            return std::pair<Scalar, Scalar>(min(), max());
             }
     };
 
@@ -63,10 +76,16 @@ class PYBIND11_EXPORT VariantConstant : public Variant
             }
 
         /// Get the value.
-        Scalar getValue()
+        Scalar getValue() const
             {
             return m_value;
             }
+
+        /// Returns the given constant, c
+        virtual Scalar min() {return m_value;}
+
+        /// Returns the given constant, c
+        virtual Scalar max() {return m_value;}
 
     protected:
         /// The value.
@@ -122,7 +141,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the starting value.
-        Scalar getA()
+        Scalar getA() const
             {
             return m_A;
             }
@@ -134,7 +153,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the ending value.
-        Scalar getB()
+        Scalar getB() const
             {
             return m_B;
             }
@@ -146,7 +165,7 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the starting time step.
-        uint64_t getTStart()
+        uint64_t getTStart() const
             {
             return m_t_start;
             }
@@ -163,10 +182,16 @@ class PYBIND11_EXPORT VariantRamp : public Variant
             }
 
         /// Get the length of the ramp.
-        uint64_t getTRamp()
+        uint64_t getTRamp() const
             {
             return m_t_ramp;
             }
+
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
+
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
 
     protected:
         /// The starting value.
@@ -263,7 +288,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get A.
-        Scalar getA()
+        Scalar getA() const
             {
             return m_A;
             }
@@ -275,7 +300,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get B.
-        Scalar getB()
+        Scalar getB() const
             {
             return m_B;
             }
@@ -287,7 +312,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the starting time step.
-        uint64_t getTStart()
+        uint64_t getTStart() const
             {
             return m_t_start;
             }
@@ -299,7 +324,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the holding time at A.
-        uint64_t getTA()
+        uint64_t getTA() const
             {
             return m_t_A;
             }
@@ -316,7 +341,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the length of the AB ramp.
-        uint64_t getTAB()
+        uint64_t getTAB() const
             {
             return m_t_AB;
             }
@@ -328,7 +353,7 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the holding time at B.
-        uint64_t getTB()
+        uint64_t getTB() const
             {
             return m_t_B;
             }
@@ -345,10 +370,16 @@ class PYBIND11_EXPORT VariantCycle : public Variant
             }
 
         /// Get the length of the BA ramp.
-        uint64_t getTBA()
+        uint64_t getTBA() const
             {
             return m_t_BA;
             }
+
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
+
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
 
     protected:
         /// The starting value.
@@ -371,6 +402,184 @@ class PYBIND11_EXPORT VariantCycle : public Variant
 
         /// The length of the BA ramp.
         uint64_t m_t_BA;
+    };
+
+
+/** Power variant
+
+    Variant that goes from m_A -> m_B as timestep ^ (power)
+*/
+class PYBIND11_EXPORT VariantPower : public Variant
+    {
+    public:
+
+        /** Construct a VariantPower.
+
+            @param A the initial value
+            @param B the final value
+            @param power the power to approach as
+            @param t_start the first timestep
+            @param t_ramp the length of the approach
+        */
+        VariantPower(Scalar A, Scalar B, double power,
+                     uint64_t t_start, uint64_t t_ramp)
+            : m_A(A),
+              m_B(B),
+              m_power(power),
+              m_t_start(t_start),
+              m_t_ramp(t_ramp)
+            {
+            m_offset = computeOffset(m_A, m_B);
+            setStartEnd();
+            }
+
+        /// Return the value.
+        Scalar operator()(uint64_t timestep)
+            {
+            if (timestep <= m_t_start)
+                {
+                return m_A;
+                }
+            else if (timestep < m_t_start + m_t_ramp)
+                {
+                double s = double(timestep - m_t_start) / double(m_t_ramp);
+                double inv_result =  m_inv_end * s + m_inv_start * (1.0 - s);
+                return pow(inv_result, m_power) - m_offset;
+                }
+            else
+                {
+                return m_B;
+                }
+            }
+
+        /// Set the starting value.
+        void setA(Scalar A)
+            {
+            m_A = A;
+            setInternals();
+            }
+
+        /// Get the starting value.
+        Scalar getA() const
+            {
+            return m_A;
+            }
+
+        /// Set the ending value.
+        void setB(Scalar B)
+            {
+            m_B = B;
+            setInternals();
+            }
+
+        /// Get the ending value.
+        Scalar getB() const
+            {
+            return m_B;
+            }
+
+        /// Set the approaching power.
+        void setPower(double power)
+            {
+            m_power = power;
+            setStartEnd();
+            }
+
+        /// Get the ending value.
+        Scalar getPower() const
+            {
+            return m_power;
+            }
+
+        /// Set the starting time step.
+        void setTStart(uint64_t t_start)
+            {
+            m_t_start = t_start;
+            }
+
+        /// Get the starting time step.
+        uint64_t getTStart() const
+            {
+            return m_t_start;
+            }
+
+        /// Set the length of the ramp.
+        void setTRamp(uint64_t t_ramp)
+            {
+            // Doubles can only represent integers accurately up to 2**53.
+            if (t_ramp >= 9007199254740992ull)
+                {
+                throw std::invalid_argument("t_ramp must be less than 2**53");
+                }
+            m_t_ramp = t_ramp;
+            }
+
+        /// Get the length of the ramp.
+        uint64_t getTRamp() const
+            {
+            return m_t_ramp;
+            }
+
+        /// Return min
+        Scalar min() {return m_A > m_B ? m_B : m_A;}
+
+        /// Return max
+        Scalar max() {return m_A > m_B ? m_A : m_B;}
+
+
+    protected:
+        /// Get the new offset
+        double computeOffset(Scalar a, Scalar b)
+            {
+            if (a > 0 && b > 0)
+                {
+                return 0;
+                }
+            else
+                {
+                return a > b ? -b : -a;
+                }
+            }
+
+        void setStartEnd()
+            {
+            m_inv_start = pow(m_A + m_offset, 1.0 / m_power);
+            m_inv_end = pow(m_B + m_offset, 1.0 / m_power);
+            }
+
+        void setInternals()
+            {
+            auto new_offset = computeOffset(m_A, m_B);
+            if (new_offset != m_offset)
+                {
+                m_offset = new_offset;
+                setStartEnd();
+                }
+            }
+
+        /// initial value
+        Scalar m_A;
+
+        /// final value
+        Scalar m_B;
+
+        /// power of the approach to m_B
+        double m_power;
+
+        /// starting timestep
+        uint64_t m_t_start;
+
+        /// length of apporach to m_B
+        uint64_t m_t_ramp;
+
+        /// offset from given positions allows for negative values
+        double m_offset;
+
+        /// internal start to work with negative values
+        double m_inv_start;
+
+        /// internal end to work with negative values
+        double m_inv_end;
     };
 
 

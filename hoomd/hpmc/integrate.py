@@ -2,59 +2,45 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""Hard particle Monte Carlo integrators."""
+
 from hoomd import _hoomd
-from hoomd.parameterdicts import TypeParameterDict, ParameterDict
-from hoomd.typeconverter import OnlyIf, to_type_converter
-from hoomd.typeparam import TypeParameter
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
+from hoomd.data.typeparam import TypeParameter
 from hoomd.hpmc import _hpmc
-from hoomd.integrate import _BaseIntegrator
-from hoomd.logger import Loggable
-from hoomd.comm import Communicator
+from hoomd.integrate import BaseIntegrator
+from hoomd.logging import log
 import hoomd
 import json
 import math
 
 
-# Helper method to inform about implicit depletants citation
-# TODO: figure out where to call this
-def cite_depletants():
-    _citation = hoomd.cite.article(
-        cite_key='glaser2015',
-        author=['J Glaser', 'A S Karas', 'S C Glotzer'],
-        title='A parallel algorithm for implicit depletant simulations',
-        journal='The Journal of Chemical Physics',
-        volume=143,
-        pages='184110',
-        year='2015',
-        doi='10.1063/1.4935175',
-        feature='implicit depletants')
-    hoomd.cite._ensure_global_bib().add(_citation)
-
-
-class _HPMCIntegrator(_BaseIntegrator):
+class HPMCIntegrator(BaseIntegrator):
     """Base class hard particle Monte Carlo integrator.
 
     Note:
-        :py:class:`_HPMCIntegrator` is the base class for all HPMC integrators.
+        :py:class:`HPMCIntegrator` is the base class for all HPMC integrators.
         Users should not instantiate this class directly. The attributes
         documented here are available to all HPMC integrators.
 
     .. rubric:: Hard particle Monte Carlo
 
-    In hard particle Monte Carlo systems, the particles in the `Simulation`
-    `State` are extended objects with positions and orientations. During
-    each time step of a `Simulation.run`, `nselect` trial moves are attempted
-    for each particle in the system.
+    In hard particle Monte Carlo systems, the particles in the
+    `hoomd.Simulation` `hoomd.State` are extended objects with positions and
+    orientations. During each time step of a `hoomd.Simulation.run`, `nselect`
+    trial moves are attempted for each particle in the system.
 
     A trial move may be a rotation or a translation move, selected randomly
-    according to the `move_ratio`. Translation trial moves are selected randomly
-    from a sphere of radius `d`, where `d` is set independently for each
-    particle type. Rotational trial moves are selected with a maximum move size
-    of `a`, where `a` is set independently for each particle type. In 2D
-    simulations, `a` is the maximum angle (in radians) by which a particle will
-    be rotated. In 3D, `a` is the magnitude of the random rotation quaternion as
-    defined in Frenkel and Smit. `move_ratio` can be set to 0 or 1 to enable
-    only rotation or translation moves, respectively.
+    according to the `translation_move_probability`. Translation trial moves are
+    selected randomly from a sphere of radius `d`, where `d` is set
+    independently for each particle type. Rotational trial moves are selected
+    with a maximum move size of `a`, where `a` is set independently for each
+    particle type. In 2D simulations, `a` is the maximum angle (in radians) by
+    which a particle will be rotated. In 3D, `a` is the magnitude of the random
+    rotation quaternion as defined in Frenkel and Smit.
+    `translation_move_probability` can be set to 0 or 1 to enable only rotation
+    or translation moves, respectively.
 
     The `seed` parameter sets the seed for the random number generator.
     Simulations with the same initial condition and same seed will follow
@@ -81,26 +67,39 @@ class _HPMCIntegrator(_BaseIntegrator):
     TODO: Describe implicit depletants algorithm. No need to write this now,
     as Jens is rewriting the implementation.
 
+    .. rubric:: Writing type_shapes to GSD files.
+
+    Use a Logger in combination with a HPMC integrator and a GSD writer to write
+    ``type_shapes`` to the GSD file for use with OVITO. For example::
+
+        mc = hoomd.hpmc.integrate.Sphere(seed=123)
+        log = hoomd.logging.Logger()
+        log.add(mc, quantities=['type_shapes'])
+        gsd = hoomd.write.GSD(
+            'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
+
     .. rubric:: Parameters
 
     Attributes:
-        a (TypeParameter[particle type, float]):
+        a (`TypeParameter` [``particle type``, `float`]):
             Maximum size of rotation trial moves.
 
-        d (TypeParameter[particle type, float]):
+        d (`TypeParameter` [``particle type``, `float`]):
             Maximum size of displacement trial moves
             (distance units).
 
-        fugacity (TypeParameter[particle type, float]):
+        fugacity (`TypeParameter` [``particle type``, `float`]):
             Depletant fugacity (in units of 1/volume) (**default:** ``0``)
 
-        interaction_matrix (TypeParameter[\
-                            Tuple[particle type, particle type], bool]):
-            Set to ``False`` for a pair of particle types to allow disable
+        interaction_matrix (`TypeParameter` [\
+                            `tuple` [``particle type``, ``particle type``],\
+                            `bool`]):
+            Set to `False` for a pair of particle types to disable
             overlap checks between particles of those types (**default:**
-            ``True``).
+            `True`).
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves to be selected
+            as translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
@@ -112,13 +111,14 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     _cpp_cls = None
 
-    def __init__(self, seed, d, a, move_ratio, nselect):
+    def __init__(self, seed, d, a, translation_move_probability, nselect):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
-        param_dict = ParameterDict(seed=int(seed),
-                                   move_ratio=float(move_ratio),
-                                   nselect=int(nselect))
+        param_dict = ParameterDict(
+            seed=int(seed),
+            translation_move_probability=float(translation_move_probability),
+            nselect=int(nselect))
         self._param_dict.update(param_dict)
 
         # Set standard typeparameters for hpmc integrators
@@ -152,26 +152,27 @@ class _HPMCIntegrator(_BaseIntegrator):
                                 typeparam_fugacity, typeparam_ntrial,
                                 typeparam_inter_matrix])
 
-    def attach(self, simulation):
-        '''initialize the reflected c++ class'''
-        sys_def = simulation.state._cpp_sys_def
-        if (simulation.device.mode == 'gpu'
+    def _attach(self):
+        """Initialize the reflected c++ class."""
+        sys_def = self._simulation.state._cpp_sys_def
+        if (isinstance(self._simulation.device, hoomd.device.GPU)
                 and (self._cpp_cls + 'GPU') in _hpmc.__dict__):
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
-            if simulation._system_communicator is not None:
-                self._cpp_cell.setCommunicator(simulation._system_communicator)
+            if self._simulation._system_communicator is not None:
+                self._cpp_cell.setCommunicator(
+                    self._simulation._system_communicator)
             self._cpp_obj = getattr(_hpmc,
                                     self._cpp_cls + 'GPU')(sys_def,
                                                            self._cpp_cell,
                                                            self.seed)
         else:
-            if simulation.device.mode == 'gpu':
-                simulation.device.cpp_msg.warning(
+            if isinstance(self._simulation.device, hoomd.device.GPU):
+                self._simulation.device._cpp_msg.warning(
                     "Falling back on CPU. No GPU implementation for shape.\n")
             self._cpp_obj = getattr(_hpmc, self._cpp_cls)(sys_def, self.seed)
             self._cpp_cell = None
 
-        super().attach(simulation)
+        super()._attach()
 
     # Set the external field
     def set_external(self, ext):
@@ -185,25 +186,22 @@ class _HPMCIntegrator(_BaseIntegrator):
 
     @property
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
-
-        Subclasses override this method to provide shape specific results.
-        """
+        """list[dict]: Description of shapes in ``type_shapes`` format."""
         raise NotImplementedError(
             "You are using a shape type that is not implemented! "
             "If you want it, please modify the "
-            "hoomd.hpmc.integrate._HPMCIntegrator.get_type_shapes function.")
+            "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self.is_attached:
+        if not self._attached:
             return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @Loggable.log(flag='multi')
+    @log(category='sequence')
     def map_overlaps(self):
-        """List[Tuple[int, int]]: List of overlapping particles.
+        """list[tuple[int, int]]: List of overlapping particles.
 
         The list contains one entry for each overlapping pair of particles. When
         a tuple ``(i,j)`` is present in the list, there is an overlap between
@@ -212,13 +210,13 @@ class _HPMCIntegrator(_BaseIntegrator):
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
         """
-
-        if not self.is_attached:
+        if (not self._attached
+                or self._simulation.device.communicator.num_ranks > 1):
             return None
         return self._cpp_obj.mapOverlaps()
 
     def map_energies(self):
-        R""" Build an energy map of the system
+        """Build an energy map of the system.
 
         Returns:
             List of tuples. The i,j entry contains the pairwise interaction
@@ -227,12 +225,16 @@ class _HPMCIntegrator(_BaseIntegrator):
         Note:
             :py:meth:`map_energies` does not support MPI parallel simulations.
 
+        Attention:
+            `map_energies` is not yet implemented in HOOMD v3.x.
+
         Example:
             mc = hpmc.integrate.shape(...)
             mc.shape_param.set(...)
             energy_map = np.asarray(mc.map_energies())
         """
-
+        raise NotImplementedError("map_energies will be implemented in a future"
+                                  "release.")
         # TODO: update map_energies to new API
 
         self.update_forces()
@@ -241,27 +243,10 @@ class _HPMCIntegrator(_BaseIntegrator):
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
 
-    def setNtrialCommunicator(self, comm):
-        R""" Set a MPI communicator to perform insertion attempts per depletant
-             on diffferent MPI ranks. Only supported with GPU execution.
-
-        Args:
-            comm: A hoomd.comm.Communicator() object
-        """
-
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            raise RuntimeError('set_ntrial_comm() only supported in GPU execution mode')
-
-        if not isinstance(comm, hoomd.comm.Communicator):
-            raise RuntimeError('The provided comm argument is not a comm.Communicator.\n')
-
-        self._cpp_obj.setNtrialCommunicator(comm.cpp_mpi_conf)
-
-    @Loggable.log
+    @log
     def overlaps(self):
-        """int: Number of overlapping particle pairs.
-        """
-        if not self.is_attached:
+        """int: Number of overlapping particle pairs."""
+        if not self._attached:
             return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
@@ -291,9 +276,14 @@ class _HPMCIntegrator(_BaseIntegrator):
 
         For two-dimensional shapes, pass the third dimension of **rij** as zero.
 
+        Attention:
+            `test_overlap` is not yet implemented in HOOMD v3.x.
+
         Returns:
             True if the particles overlap.
         """
+        raise NotImplementedError("map_energies will be implemented in a future"
+                                  "release.")
         self.update_forces()
 
         ti = hoomd.context.current.system_definition.getParticleData(
@@ -307,69 +297,70 @@ class _HPMCIntegrator(_BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @Loggable.log(flag='multi')
+    @log(category='sequence')
     def translate_moves(self):
-        """int: Count of the accepted and rejected translate moves.
+        """tuple[int, int]: Count of the accepted and rejected translate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).translate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).translate
+        else:
+            return None
 
-    @Loggable.log(flag='multi')
+    @log(category='sequence')
     def rotate_moves(self):
-        """int: Count of the accepted and rejected rotate moves.
+        """tuple[int, int]: Count of the accepted and rejected rotate moves.
 
         Note:
-            The count is reset to 0 at the start of each `Simulation.run`.
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1).rotate
+        if self._attached:
+            return self._cpp_obj.getCounters(1).rotate
+        else:
+            return None
 
-    @Loggable.log
+    @log
     def mps(self):
         """float: Number of trial moves performed per second.
 
         Note:
-            The count of trial moves is reset at the start of each
-            `Simulation.run`.
+            The count is reset at the start of each `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getMPS()
+        if self._attached:
+            return self._cpp_obj.getMPS()
+        else:
+            return None
 
     @property
     def counters(self):
-        """Trial move counters
+        """Trial move counters.
 
         The counter object has the following attributes:
 
-        * ``translate``: Tuple[`int`, `int`] - Number of accepted and rejected
-          translate trial moves.
-        * ``rotate``: Tuple[`int`, `int`] - Number of accepted and rejected
+        * ``translate``: `tuple` [`int`, `int`] - Number of accepted and
+          rejected translate trial moves.
+        * ``rotate``: `tuple` [`int`, `int`] - Number of accepted and rejected
           rotate trial moves.
-        * ``ovelap_checks``: `int` - Number of overlap checks performed.
+        * ``overlap_checks``: `int` - Number of overlap checks performed.
         * ``overlap_errors``: `int` - Number of overlap checks that were too
           close to resolve.
 
         Note:
-            The counts are reset to 0 at the start of each `Simulation.run`.
+            The counts are reset to 0 at the start of each
+            `hoomd.Simulation.run`.
         """
-        return self._cpp_obj.getCounters(1)
+        if self._attached:
+            return self._cpp_obj.getCounters(1)
+        else:
+            return None
 
 
-class Sphere(_HPMCIntegrator):
+class Sphere(HPMCIntegrator):
     """Hard sphere Monte Carlo.
-
-    Perform hard particle Monte Carlo of spheres defined by their diameter
-    (see `shape`). When the shape parameter ``orientable`` is False (the
-    default), `Sphere` only applies translation trial moves and ignores
-    ``move_ratio``.
-
-    Tip:
-        Use spheres with ``diameter=0`` in conjunction with `jit` potentials
-        for Monte Carlo simulations of particles interacting by pair potential
-        with no hard core.
-
-    Tip:
-        Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.
 
     Args:
         seed (int): Random number seed.
@@ -379,13 +370,28 @@ class Sphere(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of spheres defined by their diameter
+    (see `shape`). When the shape parameter ``orientable`` is `False` (the
+    default), `Sphere` only applies translation trial moves and ignores
+    ``translation_move_probability``.
+
+    Tip:
+        Use spheres with ``diameter=0`` in conjunction with `jit` potentials
+        for Monte Carlo simulations of particles interacting by pair potential
+        with no hard core.
+
+    Tip:
+        Use `Sphere` in a 2D simulation to perform Monte Carlo on hard disks.
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -403,16 +409,16 @@ class Sphere(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
             * ``diameter`` (`float`, **required**) - Sphere diameter
               (distance units).
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
-            * ``orientable`` (`bool`, **default:** False) - set to True for
-              spheres with orientation.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
+            * ``orientable`` (`bool`, **default:** `False`) - set to `True` to
+              allow rotation moves on this particle type.
     """
     _cpp_cls = 'IntegratorHPMCMonoSphere'
 
@@ -420,11 +426,11 @@ class Sphere(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -435,9 +441,9 @@ class Sphere(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Examples:
             The types will be 'Sphere' regardless of dimensionality.
@@ -449,8 +455,22 @@ class Sphere(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class ConvexPolygon(_HPMCIntegrator):
+class ConvexPolygon(HPMCIntegrator):
     """Hard convex polygon Monte Carlo.
+
+    Args:
+        seed (int): Random number seed.
+
+        d (float): Default maximum size of displacement trial moves
+            (distance units).
+
+        a (float): Default maximum size of rotation trial moves.
+
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
+
+        nselect (int): Number of trial moves to perform per particle per
+            timestep.
 
     Perform hard particle Monte Carlo of convex polygons defined by their
     vertices (see `shape`).
@@ -461,21 +481,9 @@ class ConvexPolygon(_HPMCIntegrator):
     See Also:
         Use `SimplePolygon` for concave polygons.
 
-    Args:
-        seed (int): Random number seed.
-
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
-
-        a (float): Default maximum size of rotation trial moves.
-
-        move_ratio (float): Ratio of translation moves to rotation moves.
-
-        nselect (int): Number of trial moves to perform per particle per
-            timestep.
-
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -487,11 +495,11 @@ class ConvexPolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
-            * ``vertices`` (List[Tuple[float,float]], **required**) -
+            * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
               vertices of the polygon (distance units).
 
               * Vertices **MUST** be specified in a *counter-clockwise* order.
@@ -500,15 +508,15 @@ class ConvexPolygon(_HPMCIntegrator):
               * The origin centered circle that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `ConvexPolygon` shares data structures with
               `ConvexSpheropolygon`.
 
           Warning:
               HPMC does not check that all vertex requirements are met.
-              Undefined behavior will result when they are violated.
+              Undefined behavior **will result** when they are violated.
 
     """
     _cpp_cls = 'IntegratorHPMCMonoConvexPolygon'
@@ -517,11 +525,11 @@ class ConvexPolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -534,9 +542,9 @@ class ConvexPolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -546,8 +554,22 @@ class ConvexPolygon(_HPMCIntegrator):
         return super(ConvexPolygon, self)._return_type_shapes()
 
 
-class ConvexSpheropolygon(_HPMCIntegrator):
+class ConvexSpheropolygon(HPMCIntegrator):
     """Hard convex spheropolygon Monte Carlo.
+
+    Args:
+        seed (int): Random number seed.
+
+        d (float): Default maximum size of displacement trial moves
+            (distance units).
+
+        a (float): Default maximum size of rotation trial moves.
+
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
+
+        nselect (int): Number of trial moves to perform per particle per
+            timestep.
 
     Perform hard particle Monte Carlo of convex spheropolygons defined by their
     vertices and a sweep radius (see `shape`). A spheropolygon is is a polygon
@@ -560,21 +582,9 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         A 1-vertex spheropolygon is a disk and a 2-vertex spheropolygon is a
         rounded rectangle.
 
-    Args:
-        seed (int): Random number seed.
-
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
-
-        a (float): Default maximum size of rotation trial moves.
-
-        move_ratio (float): Ratio of translation moves to rotation moves.
-
-        nselect (int): Number of trial moves to perform per particle per
-            timestep.
-
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -592,11 +602,11 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         print('vertices = ', mc.shape["A"]["vertices"])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``vertices`` (List[Tuple[float,float]], **required**) -
+            * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
               vertices of the polygon  (distance units).
 
               * The origin **MUST** be contained within the spheropolygon.
@@ -604,8 +614,8 @@ class ConvexSpheropolygon(_HPMCIntegrator):
               * The origin centered circle that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (**default:** 0.0) - radius of the disk swept
               around the edges of the polygon (distance units). Set a non-zero
               ``sweep_radius`` to create a spheropolygon.
@@ -621,11 +631,11 @@ class ConvexSpheropolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -637,9 +647,9 @@ class ConvexSpheropolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -649,8 +659,22 @@ class ConvexSpheropolygon(_HPMCIntegrator):
         return super(ConvexSpheropolygon, self)._return_type_shapes()
 
 
-class SimplePolygon(_HPMCIntegrator):
+class SimplePolygon(HPMCIntegrator):
     """Hard simple polygon Monte Carlo.
+
+    Args:
+        seed (int): Random number seed.
+
+        d (float): Default maximum size of displacement trial moves
+            (distance units).
+
+        a (float): Default maximum size of rotation trial moves.
+
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
+
+        nselect (int): Number of trial moves to perform per particle per
+            timestep.
 
     Perform hard particle Monte Carlo of simple polygons defined by their
     vertices (see `shape`).
@@ -661,21 +685,9 @@ class SimplePolygon(_HPMCIntegrator):
     See Also:
         Use `ConvexPolygon` for faster performance with convex polygons.
 
-    Args:
-        seed (int): Random number seed.
-
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
-
-        a (float): Default maximum size of rotation trial moves.
-
-        move_ratio (float): Ratio of translation moves to rotation moves.
-
-        nselect (int): Number of trial moves to perform per particle per
-            timestep.
-
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Examples::
 
@@ -688,11 +700,11 @@ class SimplePolygon(_HPMCIntegrator):
 
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``vertices`` (List[Tuple[float,float]], **required**) -
+            * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
               vertices of the polygon (distance units).
 
               * Vertices **MUST** be specified in a *counter-clockwise* order.
@@ -701,8 +713,8 @@ class SimplePolygon(_HPMCIntegrator):
               * The origin centered circle that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `SimplePolygon` shares data structures with
               `ConvexSpheropolygon`.
@@ -719,11 +731,11 @@ class SimplePolygon(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -735,9 +747,9 @@ class SimplePolygon(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -747,15 +759,8 @@ class SimplePolygon(_HPMCIntegrator):
         return super(SimplePolygon, self)._return_type_shapes()
 
 
-class Polyhedron(_HPMCIntegrator):
+class Polyhedron(HPMCIntegrator):
     """Hard polyhedra Monte Carlo.
-
-    Perform hard particle Monte Carlo of general polyhedra defined by their
-    vertices and faces (see `shape`). `Polyhedron` supports triangle meshes and
-    spheres only. The mesh must be free of self-intersections.
-
-    See Also:
-        Use `ConvexPolyhedron` for faster performance with convex polyhedra.
 
     Args:
         seed (int): Random number seed.
@@ -765,20 +770,28 @@ class Polyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Note:
+    Perform hard particle Monte Carlo of general polyhedra defined by their
+    vertices and faces (see `shape`). `Polyhedron` supports triangle meshes and
+    spheres only. The mesh must be free of self-intersections.
 
+    See Also:
+        Use `ConvexPolyhedron` for faster performance with convex polyhedra.
+
+    Note:
         This shape uses an internal OBB tree for fast collision queries.
         Depending on the number of constituent faces in the tree, different
         values of the number of faces per leaf node may yield different
         optimal performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -842,40 +855,40 @@ class Polyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``vertices`` (List[Tuple[float,float,float]], **required**) -
-              vertices of the polyhedron (distance units).
+            * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - vertices of the polyhedron (distance units).
 
               * The origin **MUST** strictly be contained in the generally
                 nonconvex volume defined by the vertices and faces.
               * The origin centered sphere that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``faces`` (List[Tuple[int,int,int], **required**) -
+            * ``faces`` (`list` [`tuple` [`int`, `int`, `int`], **required**) -
               Vertex indices for every triangle in the mesh.
 
               * For visualization purposes, the faces **MUST** be defined with
                 a counterclockwise winding order to produce an outward normal.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
               sphere swept around the surface of the polyhedron (distance
               units). Set a non-zero sweep_radius to create a spheropolyhedron.
-            * ``overlap`` (List[bool], **default:** None) - Check for overlaps
-              between faces when ``overlap [i] & overlap[j]`` is nonzero (``&``
-              is the bitwise AND operator). When not None, ``overlap`` must have
-              a length equal to that of ``faces``. When None (the default),
-              ``overlap`` is initialized with all 1's.
+            * ``overlap`` (`list` [`int`], **default:** None) - Check for
+              overlaps between faces when ``overlap [i] & overlap[j]`` is
+              nonzero (``&`` is the bitwise AND operator). When not `None`,
+              ``overlap`` must have a length equal to that of ``faces``. When
+              `None` (the default), ``overlap`` is initialized with all 1's.
             * ``capacity`` (`int`, **default:** 4) - set the maximum number of
               particles per leaf node to adjust performance.
-            * ``origin`` (Tuple[float, float, float], **default:** (0,0,0)) -
-              a point strictly inside the shape, needed for correctness of
-              overlap checks.
-            * ``hull_only`` (`bool`, **default:** False) - When True, only
+            * ``origin`` (`tuple` [`float`, `float`, `float`],
+              **default:** (0,0,0)) - a point strictly inside the shape, needed
+              for correctness of overlap checks.
+            * ``hull_only`` (`bool`, **default:** `False`) - When `True`, only
               check for intersections between the convex hulls.
 
             Warning:
@@ -889,11 +902,11 @@ class Polyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -912,9 +925,9 @@ class Polyhedron(_HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -925,14 +938,8 @@ class Polyhedron(_HPMCIntegrator):
         return super(Polyhedron, self)._return_type_shapes()
 
 
-class ConvexPolyhedron(_HPMCIntegrator):
+class ConvexPolyhedron(HPMCIntegrator):
     """Hard convex polyhedron Monte Carlo.
-
-    Perform hard particle Monte Carlo of convex polyhedra defined by their
-    vertices (see `shape`).
-
-    See Also:
-        Use `Polyhedron` for concave polyhedra.
 
     Args:
         seed (int): Random number seed.
@@ -942,13 +949,21 @@ class ConvexPolyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of convex polyhedra defined by their
+    vertices (see `shape`).
+
+    See Also:
+        Use `Polyhedron` for concave polyhedra.
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -976,19 +991,19 @@ class ConvexPolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys.
 
-            * ``vertices`` (List[Tuple[float,float,float]], **required**) -
-              vertices of the polyhedron (distance units).
+            * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - vertices of the polyhedron (distance units).
 
               * The origin **MUST** be contained within the polyhedron.
               * The origin centered circle that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `ConvexPolyhedron` shares data structures with
               `ConvexSpheropolyhedron`.
@@ -996,7 +1011,6 @@ class ConvexPolyhedron(_HPMCIntegrator):
             Warning:
                 HPMC does not check that all vertex requirements are met.
                 Undefined behavior will result when they are violated.
-
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedron'
@@ -1005,11 +1019,11 @@ class ConvexPolyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1020,9 +1034,9 @@ class ConvexPolyhedron(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -1033,17 +1047,8 @@ class ConvexPolyhedron(_HPMCIntegrator):
         return super(ConvexPolyhedron, self)._return_type_shapes()
 
 
-class FacetedEllipsoid(_HPMCIntegrator):
-    """Hard faceted ellipsoid Monte Carlo.
-
-    Perform hard particle Monte Carlo of faceted ellipsoids. A faceted ellipsoid
-    is the intersection of an ellipsoid with a convex polyhedron defined through
-    halfspaces (see `shape`). The equation defining each halfspace is given by:
-
-    .. math::
-        \\vec{n}_i\\cdot \\vec{r} + b_i \\le 0
-
-    where :math:`\\vec{n}_i` is the face normal, and :math:`b_i` is  the offset.
+class FacetedEllipsoid(HPMCIntegrator):
+    r"""Hard faceted ellipsoid Monte Carlo.
 
     Args:
         seed (int): Random number seed.
@@ -1053,13 +1058,24 @@ class FacetedEllipsoid(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of faceted ellipsoids. A faceted ellipsoid
+    is the intersection of an ellipsoid with a convex polyhedron defined through
+    halfspaces (see `shape`). The equation defining each halfspace is given by:
+
+    .. math::
+        \vec{n}_i\cdot \vec{r} + b_i \le 0
+
+    where :math:`\vec{n}_i` is the face normal, and :math:`b_i` is  the offset.
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1105,13 +1121,13 @@ class FacetedEllipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (TypeParameter[``particle type``, dict]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``normals`` (List[Tuple[float, float, float], **required**) -
-              facet normals :math:`\\vec{n}_i`.
-            * ``offsets`` (List[float], **required**) - list of offsets
+            * ``normals`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - facet normals :math:`\\vec{n}_i`.
+            * ``offsets`` (`list` [`float`], **required**) - list of offsets
               :math:`b_i` (squared distance units)
             * ``a`` (`float`, **required**) - half axis of ellipsoid in the *x*
               direction (distance units)
@@ -1119,12 +1135,13 @@ class FacetedEllipsoid(_HPMCIntegrator):
               direction (distance units)
             * ``c`` (`float`, **required**) - half axis of ellipsoid in the *z*
               direction (distance units)
-            * ``vertices`` (List[Tuple[float, float, float]], **default:** []) -
-              list of vertices for intersection polyhedron (see note below).
-            * ``origin`` (Tuple[float, float, float], **default:** (0,0,0)) -
-              A point inside the shape.
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **default:** []) - list of vertices for intersection polyhedron
+              (see note below).
+            * ``origin`` (`tuple` [`float`, `float`, `float`],
+              **default:** (0,0,0)) - A point inside the shape.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
 
             Important:
                 The origin must be chosen so as to lie **inside the shape**, or
@@ -1147,11 +1164,11 @@ class FacetedEllipsoid(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1165,18 +1182,15 @@ class FacetedEllipsoid(_HPMCIntegrator):
                                              to_type_converter(
                                                  [(float, float, float)]),
                                              allow_none=True),
-                                         origin=(float, float, float),
+                                         origin=(0.0, 0.0, 0.0),
                                          ignore_statistics=False,
                                          len_keys=1,
                                          _defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
-class Sphinx(_HPMCIntegrator):
+class Sphinx(HPMCIntegrator):
     """Hard sphinx particle Monte Carlo.
-
-    Perform hard particle Monte Carlo of sphere unions and differences defined
-    by their positive and negative diameters (see `shape`).
 
     Args:
         seed (int): Random number seed.
@@ -1186,13 +1200,18 @@ class Sphinx(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of sphere unions and differences defined
+    by their positive and negative diameters (see `shape`).
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1208,17 +1227,18 @@ class Sphinx(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``diameters`` (List[float], **required**) -
+            * ``diameters`` (`list` [`float`], **required**) -
               diameters of spheres (positive OR negative real numbers) (distance
               units).
-            * ``centers`` (List[Tuple[float, float, float], **required**) -
-              centers of spheres in local coordinate frame (distance units).
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``centers`` (`list` [`tuple` [`float`, `float`, `float`],
+              **required**) - centers of spheres in local coordinate frame
+              (distance units).
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphinx'
@@ -1227,11 +1247,11 @@ class Sphinx(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1243,15 +1263,8 @@ class Sphinx(_HPMCIntegrator):
         self._add_typeparam(typeparam_shape)
 
 
-class ConvexSpheropolyhedron(_HPMCIntegrator):
+class ConvexSpheropolyhedron(HPMCIntegrator):
     """Hard convex spheropolyhedron Monte Carlo.
-
-    Perform hard particle Monte Carlo of convex spheropolyhedra defined by their
-    vertices and a sweep radius (see `shape`).
-
-    Tip:
-        A 1-vertex spheropolygon is a sphere and a 2-vertex spheropolygon is a
-        spherocylinder.
 
     Args:
         seed (int): Random number seed.
@@ -1261,13 +1274,22 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of convex spheropolyhedra defined by their
+    vertices and a sweep radius (see `shape`).
+
+    Tip:
+        A 1-vertex spheropolygon is a sphere and a 2-vertex spheropolygon is a
+        spherocylinder.
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1293,19 +1315,19 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         mc.depletant_fugacity["SphericalDepletant"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``vertices`` (List[Tuple[float,float,float]], **required**) -
-              vertices of the polyhedron (distance units).
+            * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - vertices of the polyhedron (distance units).
 
               * The origin **MUST** be contained within the polyhedron.
               * The origin centered circle that encloses all vertices should
                 be of minimal size for optimal performance.
 
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
               sphere swept around the surface of the polyhedron (distance
               units). Set a non-zero sweep_radius to create a spheropolyhedron.
@@ -1321,11 +1343,11 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1336,9 +1358,9 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -1349,11 +1371,8 @@ class ConvexSpheropolyhedron(_HPMCIntegrator):
         return super(ConvexSpheropolyhedron, self)._return_type_shapes()
 
 
-class Ellipsoid(_HPMCIntegrator):
+class Ellipsoid(HPMCIntegrator):
     """Hard ellipsoid Monte Carlo.
-
-    Perform hard particle Monte Carlo of ellipsoids defined by 3 half axes
-    (see `shape`).
 
     Args:
         seed (int): Random number seed.
@@ -1363,13 +1382,18 @@ class Ellipsoid(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+    Perform hard particle Monte Carlo of ellipsoids defined by 3 half axes
+    (see `shape`).
+
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1388,7 +1412,7 @@ class Ellipsoid(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
@@ -1398,8 +1422,8 @@ class Ellipsoid(_HPMCIntegrator):
               direction (distance units)
             * ``c`` (`float`, **required**) - half axis of ellipsoid in the *z*
               direction (distance units)
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
     """
 
     _cpp_cls = 'IntegratorHPMCMonoEllipsoid'
@@ -1408,11 +1432,11 @@ class Ellipsoid(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1425,9 +1449,9 @@ class Ellipsoid(_HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Example:
             >>> mc.type_shapes()
@@ -1436,10 +1460,8 @@ class Ellipsoid(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class SphereUnion(_HPMCIntegrator):
+class SphereUnion(HPMCIntegrator):
     """Hard sphere union Monte Carlo.
-
-    Perform hard particle Monte Carlo of unions of spheres (see `shape`).
 
     Args:
         seed (int): Random number seed.
@@ -1449,20 +1471,23 @@ class SphereUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Note:
+    Perform hard particle Monte Carlo of unions of spheres (see `shape`).
 
+    Note:
         This shape uses an internal OBB tree for fast collision queries.
         Depending on the number of constituent spheres in the tree, different
         values of the number of spheres per leaf node may yield different
         performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1487,30 +1512,31 @@ class SphereUnion(_HPMCIntegrator):
         mc.depletant_fugacity["B"] = 3.0
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (List[dict], **required**) -
+            * ``shapes`` (`list` [`dict`], **required**) -
               Shape parameters for each sphere in the union. See `Sphere.shape`
               for the accepted parameters.
-            * ``positions`` (List[Tuple[float, float, float]], **required**) -
-              Position of each sphere in the union.
-            * ``orientations`` (List[Tuple[float, float, float, float]],\
-                                **default:** None) -
-              Orientation of each sphere in the union. When not None,
+            * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - Position of each sphere in the union.
+            * ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,\
+              `float`]], **default:** `None`) -
+              Orientation of each sphere in the union. When not `None`,
               ``orientations`` must have a length equal to that of
-              ``positions``. When None (the default), ``orientations`` is
+              ``positions``. When `None` (the default), ``orientations`` is
               initialized with all [1,0,0,0]'s.
-            * ``overlap`` (List[bool], **default:** None) - Check for overlaps
-              between constituent particles when ``overlap [i] & overlap[j]``
-              is nonzero (``&`` is the bitwise AND operator). When not None,
-              ``overlap`` must have a length equal to that of ``faces``. When
-              None (the default), ``overlap`` is initialized with all 1's.
+            * ``overlap`` (`list` [`int`], **default:** `None`) - Check for
+              overlaps between constituent particles when
+              ``overlap [i] & overlap[j]`` is nonzero (``&`` is the bitwise AND
+              operator). When not `None`, ``overlap`` must have a length equal
+              to that of ``positions``. When `None` (the default), ``overlap``
+              is initialized with all 1's.
             * ``capacity`` (`int`, **default:** 4) - set the maximum number of
               particles per leaf node to adjust performance.
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
     """
 
     _cpp_cls = 'IntegratorHPMCMonoSphereUnion'
@@ -1519,11 +1545,11 @@ class SphereUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter('shape',
                                         type_kind='particle_types',
@@ -1550,9 +1576,9 @@ class SphereUnion(_HPMCIntegrator):
                                             }))
         self._add_typeparam(typeparam_shape)
 
-    @Loggable.log(flag='multi')
+    @log(category='object')
     def type_shapes(self):
-        """List[dict]: Description of shapes in ``type_shapes`` format.
+        """list[dict]: Description of shapes in ``type_shapes`` format.
 
         Examples:
             The type will be 'SphereUnion' regardless of dimensionality.
@@ -1568,11 +1594,8 @@ class SphereUnion(_HPMCIntegrator):
         return super()._return_type_shapes()
 
 
-class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
+class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
-
-    Perform hard particle Monte Carlo of unions of convex sphereopolyhedra
-    (see `shape`).
 
     Args:
         seed (int): Random number seed.
@@ -1582,20 +1605,24 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Note:
+    Perform hard particle Monte Carlo of unions of convex sphereopolyhedra
+    (see `shape`).
 
+    Note:
         This shape uses an internal OBB tree for fast collision queries.
         Depending on the number of constituent spheropolyhedra in the tree,
         different values of the number of spheropolyhedra per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1621,30 +1648,31 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
               mc.shape_param["A"]["orientations"][0])
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (List[dict], **required**) -
+            * ``shapes`` (`list` [`dict`], **required**) -
               Shape parameters for each spheropolyhedron in the union. See
               `ConvexSpheropolyhedron.shape` for the accepted parameters.
-            * ``positions`` (List[Tuple[float, float, float]], **required**) -
-              Position of each spheropolyhedron in the union.
-            * ``orientations`` (List[Tuple[float, float, float, float]],\
-                                **default:** None) -
-              Orientation of each spheropolyhedron in the union. When not None,
+            * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - Position of each spheropolyhedron in the union.
+            * ``orientations`` (`list[ `tuple[`float`, `float`, `float`,\
+              `float`]], **default:** None) - Orientation of each
+              spheropolyhedron in the union. When not `None`,
               ``orientations`` must have a length equal to that of
-              ``positions``. When None (the default), ``orientations`` is
+              ``positions``. When `None` (the default), ``orientations`` is
               initialized with all [1,0,0,0]'s.
-            * ``overlap`` (List[bool], **default:** None) - Check for overlaps
-              between constituent particles when ``overlap [i] & overlap[j]``
-              is nonzero (``&`` is the bitwise AND operator). When not None,
-              ``overlap`` must have a length equal to that of ``faces``. When
-              None (the default), ``overlap`` is initialized with all 1's.
+            * ``overlap`` (`list` [`int`], **default:** `None`) - Check for
+              overlaps between constituent particles when
+              ``overlap [i] & overlap[j]`` is nonzero (``&`` is the bitwise
+              AND operator). When not `None`, ``overlap`` must have a length
+              equal to that of ``positions``. When `None` (the default),
+              ``overlap`` is initialized with all 1's.
             * ``capacity`` (`int`, **default:** 4) - set the maximum number of
               particles per leaf node to adjust performance.
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
     """
 
     _cpp_cls = 'IntegratorHPMCMonoConvexPolyhedronUnion'
@@ -1653,11 +1681,11 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',
@@ -1684,11 +1712,8 @@ class ConvexSpheropolyhedronUnion(_HPMCIntegrator):
         self.metadata_fields = ['capacity']
 
 
-class FacetedEllipsoidUnion(_HPMCIntegrator):
+class FacetedEllipsoidUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
-
-    Perform hard particle Monte Carlo of unions of faceted ellipsoids
-    (see `shape`).
 
     Args:
         seed (int): Random number seed.
@@ -1698,20 +1723,24 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
 
         a (float): Default maximum size of rotation trial moves.
 
-        move_ratio (float): Ratio of translation moves to rotation moves.
+        translation_move_probability (float): Fraction of moves that are
+            translation moves.
 
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
-    Note:
+    Perform hard particle Monte Carlo of unions of faceted ellipsoids
+    (see `shape`).
 
+    Note:
         This shape uses an internal OBB tree for fast collision queries.
-        Depending on the number of constituent spheropolyhedra in the tree,
-        different values of the number of spheropolyhedra per leaf node may
+        Depending on the number of constituent faceted ellipsoids in the tree,
+        different values of the number of faceted ellipsoids per leaf node may
         yield different performance. The capacity of leaf nodes is configurable.
 
     Important:
-        Assign a `shape` specification for each particle type in the `State`.
+        Assign a `shape` specification for each particle type in the
+        `hoomd.State`.
 
     Example::
 
@@ -1754,36 +1783,37 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
 
         print('offsets of the first faceted ellipsoid = ',
               mc.shape["A"]["shapes"][0]["offsets"])
-        print('normals of the first faceted ellispoid = ',
+        print('normals of the first faceted ellipsoid = ',
               mc.shape["A"]["shapes"][0]["normals"])
         print('vertices of the first faceted ellipsoid = ',
               mc.shape["A"]["shapes"][0]["vertices"]
 
     Attributes:
-        shape (TypeParameter[particle type, dict]):
+        shape (`TypeParameter` [``particle type``, `dict`]):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``shapes`` (List[dict], **required**) -
+            * ``shapes`` (`list`[ `dict`], **required**) -
               Shape parameters for each faceted ellipsoid in the union. See
-              `ConvexFacetedEllipsoid.shape` for the accepted parameters.
-            * ``positions`` (List[Tuple[float, float, float]], **required**) -
-              Position of each faceted ellipsoid in the union.
-            * ``orientations`` (List[Tuple[float, float, float, float]],\
-                                **default:** None) -
-              Orientation of each faceted ellipsoid in the union. When not None,
-              ``orientations`` must have a length equal to that of
-              ``positions``. When None (the default), ``orientations`` is
-              initialized with all [1,0,0,0]'s.
-            * ``overlap`` (List[bool], **default:** None) - Check for overlaps
-              between constituent particles when ``overlap [i] & overlap[j]``
-              is nonzero (``&`` is the bitwise AND operator). When not None,
-              ``overlap`` must have a length equal to that of ``faces``. When
-              None (the default), ``overlap`` is initialized with all 1's.
+              `FacetedEllipsoid.shape` for the accepted parameters.
+            * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
+              **required**) - Position of each faceted ellipsoid in the union.
+            * ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
+              `float`]], **default:** `None`) - Orientation of each faceted
+              ellipsoid in the union. When not `None`, ``orientations``
+              must have a length equal to that of ``positions``. When `None`
+              (the default), ``orientations`` is initialized with all
+              [1,0,0,0]'s.
+            * ``overlap`` (`list` [`int`], **default:** `None`) - Check for
+              overlaps between constituent particles when
+              ``overlap [i] & overlap[j]`` is nonzero (``&`` is the bitwise AND
+              operator). When not `None`, ``overlap`` must have a length equal
+              to that of ``positions``. When `None` (the default), ``overlap``
+              is initialized with all 1's.
             * ``capacity`` (`int`, **default:** 4) - set the maximum number of
               particles per leaf node to adjust performance.
-            * ``ignore_statistics`` (`bool`, **default:** False) - set to True
-              to ignore tracked statistics.
+            * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
+              `True` to ignore tracked statistics.
     """
 
     _cpp_cls = 'IntegratorHPMCMonoFacetedEllipsoidUnion'
@@ -1792,11 +1822,11 @@ class FacetedEllipsoidUnion(_HPMCIntegrator):
                  seed,
                  d=0.1,
                  a=0.1,
-                 move_ratio=0.5,
+                 translation_move_probability=0.5,
                  nselect=4):
 
         # initialize base class
-        super().__init__(seed, d, a, move_ratio, nselect)
+        super().__init__(seed, d, a, translation_move_probability, nselect)
 
         typeparam_shape = TypeParameter(
             'shape',

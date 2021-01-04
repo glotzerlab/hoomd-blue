@@ -4,20 +4,102 @@ Change Log
 v3.x
 ----
 
-v3.0.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.3 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
+- ``hoomd.variant.Variant`` objects are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
+
+*Changed*
+
+- Improved compilation docs.
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support pybind11 2.6.0
+- Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
+
+*Changed*
+
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
+- Building from source requires a C++14 compatible compiler.
+- Improved documentation.
+- ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
+  origin of (0, 0, 0).
+- Document loggable quantities in property docstrings.
+- Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
+
+*Fixed*
+
+- ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
+  Jupyter interrupts the kernel.
+- Logging the state of specific objects with nested attributes.
+- Broken relative RPATHs.
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
+
+v3.0.0-beta.1 (2020-10-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+v3 has a completely new Python API. See the tutorials, migration guide and new
+API documentation learn about it. The API documentation serves as the complete
+list of all features currently implemented in v3.0.0-beta.1. Not all features in
+v2 have been ported in v3.0.0-beta.1. Future beta releases will add additional
+functionality.
+
+*Added*
+
+- Zero-copy data access through numpy (CPU) and cupy (GPU).
+- User-defined operations in Python.
+- User-defined triggers determine what time steps operations execute on.
+- New logging subsystem supports array quantities and binary log files.
 - Implicit depletants are now supported by any **hpmc** integrator through
   ``mc.set_fugacity('type', fugacity)``.
 - Enable implicit depletants for two-dimensional shapes in **hpmc**.
 - ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
   NVRTC.
-  - Add harmonically mapped averaging.
+- Add harmonically mapped averaging.
+- Add Visual Studio Code workspace
 
 *Changed*
 
+- The ``run`` method has minimal overhead
+- All loggable quantities are directly accessible as object properties.
+- Operation parameters are always synchronized.
+- Operations can be instantiated without a device or MPI communicator.
+- Writers write output for ``step+1`` at the bottom of the ``run`` loop.
+- HOOMD writes minimal output to stdout/stderr by default.
 - *CMake* >=3.9, *cereal*, *eigen*, and *pybind11* are required to compile
   HOOMD.
 - Plugins must be updated to build against v3.
@@ -26,11 +108,17 @@ v3.0.0 (not yet released)
 - Refactored CMake code.
 - ``git submodule update`` no longer runs when during CMake configuration.
 - Use ``random123`` library for implicit depletants in **hpmc**.
+- HOOMD requires a GPU that supports concurrent managed memory access (Pascal
+  or newer).
 
-*Deprecated*
+*Bug fixes*
+
+- Improved accuracy of DLVO potential on the GPU.
+- Improved performance of HPMC simulations on the CPU in non-cubic boxes.
 
 *Removed*
 
+- HOOMD-blue no longer parses command line options.
 - Type swap moves in ``hpmc.update.muvt()`` are no longer supported
   (``transfer_ratio`` option to ``muvt.set_params()``)
 - The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available
@@ -56,14 +144,32 @@ v3.0.0 (not yet released)
 - ``cgcmm.angle.cgcmm``
 - ``cgcmm.pair.cgcmm``
 - ``COPY_HEADERS`` *CMake* option.
-
-*Fixed*
+- Many other python modules have been removed or re-implemented with new names.
+  See the migration guide and new API documentation for a complete list.
 
 v2.x
 ----
 
-v2.9.1 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v2.9.3 (2020-08-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a compile error with CUDA 11
+
+v2.9.2 (2020-06-26)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a bug where repeatedly using objects with ``period=None`` would use
+  significant amounts of memory.
+* Support CUDA 11.
+* Reccomend citing the 2020 Computational Materials Science paper
+  10.1016/j.commatsci.2019.109363.
+
+v2.9.1 (2020-05-28)
+^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
 
@@ -333,7 +439,7 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-v2.4.1 (2018/11/27)
+v2.4.1 (2018-11-27)
 ^^^^^^^^^^^^^^^^^^^
 
 *Bug fixes*
@@ -595,7 +701,7 @@ v2.2.4 (2018-03-05)
 
 -  Fix a rare error in ``md.nlist.tree`` when particles are very close
    to each other.
--  Fix deadlock when ``init.read_getar`` is given different file names
+-  Fix deadlock when ```init.read_getar``` is given different file names
    on different ranks.
 -  Sample from the correct uniform distribution of depletants in a
    sphere cap with ``depletant_mode='overlap_regions'`` on the CPU
@@ -816,7 +922,7 @@ v2.1.8 (2017-07-19)
 
 *Bug fixes*
 
--  ``init.read_getar`` now correctly restores static quantities when
+-  ```init.read_getar``` now correctly restores static quantities when
    given a particular frame.
 -  Fix bug where many short calls to ``run()`` caused incorrect results
    when using ``md.integrate.langevin``.

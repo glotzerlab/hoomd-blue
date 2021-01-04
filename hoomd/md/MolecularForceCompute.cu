@@ -6,6 +6,8 @@
 // Maintainer: jglaser
 #include "MolecularForceCompute.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/gather.h>
@@ -18,6 +20,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <hipcub/hipcub.hpp>
 
@@ -162,7 +165,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         NO_MOLECULE);
     if (check_cuda) CHECK_CUDA();
 
-    n_local_ptls_in_molecules = end - local_molecule_tags;
+    n_local_ptls_in_molecules = (unsigned int)(end - local_molecule_tags);
 
     // gather unique molecule tags, and reduce their lengths by key
     thrust::constant_iterator<unsigned int> one(1);
@@ -409,7 +412,7 @@ hipError_t gpu_fill_molecule_table(
         idx_lookup);
 
     // write out the table
-    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel), dim3(nptl/block_size+1), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel), dim3(nptl/block_size+1), dim3(block_size), 0, 0,
         nptl,
         molecule_idx,
         d_molecule_idx,

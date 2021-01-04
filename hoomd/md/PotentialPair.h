@@ -101,7 +101,6 @@ class PotentialPair : public ForceCompute
 
         //! Set and get the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
-        virtual void setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param);
         virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
         /// Get params for a single type pair using a tuple of strings
         virtual pybind11::dict getParams(pybind11::tuple typ);
@@ -268,9 +267,15 @@ class PotentialPair : public ForceCompute
                                                  access_location::host,
                                                  access_mode::overwrite);
 
-                for (unsigned int i = 0; i < new_type_pair_idx.getW(); i++)
+                // copy over entries that are valid in both the new and old matrices
+                unsigned int copy_w = std::min(new_type_pair_idx.getW(),
+                                               m_typpair_idx.getW());
+                unsigned int copy_h = std::min(new_type_pair_idx.getH(),
+                                               m_typpair_idx.getH());
+
+                for (unsigned int i = 0; i < copy_w; i++)
                     {
-                    for (unsigned int j = 0; j < new_type_pair_idx.getH(); j++)
+                    for (unsigned int j = 0; j < copy_h; j++)
                         {
                         h_new_rcutsq.data[new_type_pair_idx(i,j)] =
                             h_rcutsq.data[m_typpair_idx(i,j)];
@@ -409,40 +414,13 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     }
 
 template< class evaluator >
-void PotentialPair< evaluator >::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
-    {
-    }
-
-template<>
-void PotentialPair<EvaluatorPairLJ>::setParamsLJ(unsigned int typ1, unsigned int typ2, const Scalar2& param)
-    {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
-    ArrayHandle<EvaluatorPairLJ::param_type> h_params(m_params, access_location::host, access_mode::readwrite);
-    EvaluatorPairLJ::param_type lj_params;
-    lj_params.lj1 = param.x;
-    lj_params.lj2 = param.y;
-    h_params.data[m_typpair_idx(typ1, typ2)] = lj_params;
-    h_params.data[m_typpair_idx(typ2, typ1)] = lj_params;
-    }
-
-template< class evaluator >
-void PotentialPair< evaluator >::setParamsPython(pybind11::tuple typ, pybind11::dict params)
-    {}
-
-template<>
-void PotentialPair<EvaluatorPairLJ>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
             << ": Trying to set pair params for a non existent type! "
             << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");
@@ -457,18 +435,11 @@ void PotentialPair<EvaluatorPairLJ>::setParamsPython(pybind11::tuple typ, pybind
 template< class evaluator >
 pybind11::dict PotentialPair< evaluator >::getParams(pybind11::tuple typ)
     {
-    pybind11::dict v;
-    return v;
-    }
-
-template<>
-pybind11::dict PotentialPair< EvaluatorPairLJ >::getParams(pybind11::tuple typ)
-    {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "pair." << EvaluatorPairLJ::getName()
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
             << ": Trying to set pair params for a non existent type! "
             << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialPair");

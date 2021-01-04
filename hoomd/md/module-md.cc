@@ -13,6 +13,8 @@
 #include "AllSpecialPairPotentials.h"
 #include "AnisoPotentialPair.h"
 #include "BondTablePotential.h"
+#include "ComputeThermo.h"
+#include "ComputeThermoHMA.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
@@ -20,6 +22,7 @@
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
 #include "EvaluatorSquareDensity.h"
+#include "EvaluatorRevCross.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
@@ -62,6 +65,8 @@
 #include "ActiveForceComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
+#include "ComputeThermoGPU.h"
+#include "ComputeThermoHMAGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "OneDConstraintGPU.h"
@@ -122,25 +127,23 @@ void export_tersoff_params(py::module& m)
     m.def("make_tersoff_params", &make_tersoff_params);
 }
 
+//! Function to export the revcross parameter type to python
+void export_revcross_params(py::module& m)
+{
+    py::class_<revcross_params>(m, "revcross_params")
+        .def(py::init<>())
+        .def_readwrite("sigma", &revcross_params::sigma)
+        .def_readwrite("n", &revcross_params::n)
+        .def_readwrite("epsilon", &revcross_params::epsilon)
+        .def_readwrite("lambda3", &revcross_params::lambda3)
+        ;
 
-//! Function to make the Fourier parameter type
-inline pair_fourier_params make_pair_fourier_params(py::list a, py::list b)
-    {
-    pair_fourier_params retval;
-    for (int i = 0; i < 3; ++i)
-        {
-        retval.a[i] = py::cast<Scalar>(a[i]);
-        retval.b[i] = py::cast<Scalar>(b[i]);
-        }
-    return retval;
-    }
+    m.def("make_revcross_params", &make_revcross_params);
+}
 
 //! Function to export the fourier parameter type to python
 void export_pair_params(py::module& m)
 {
-    py::class_<pair_fourier_params>(m, "pair_fourier_params").def(py::init<>());
-    m.def("make_pair_fourier_params", &make_pair_fourier_params);
-
     py::class_<pair_dipole_params>(m, "pair_dipole_params").def(py::init<>());
     m.def("make_pair_dipole_params", &make_pair_dipole_params);
 
@@ -155,9 +158,9 @@ wall_type make_wall_field_params(py::object walls, std::shared_ptr<const Executi
     py::list walls_spheres = walls.attr("spheres").cast<py::list>();
     py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
     py::list walls_planes = walls.attr("planes").cast<py::list>();
-    w.numSpheres = py::len(walls_spheres);
-    w.numCylinders = py::len(walls_cylinders);
-    w.numPlanes = py::len(walls_planes);
+    w.numSpheres = (unsigned int)py::len(walls_spheres);
+    w.numCylinders = (unsigned int)py::len(walls_cylinders);
+    w.numPlanes = (unsigned int)py::len(walls_planes);
 
     if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
         {
@@ -223,6 +226,8 @@ PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
+    export_ComputeThermo(m);
+    export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -245,11 +250,13 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
     export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
+    export_PotentialTersoff<PotentialTripletRevCross> (m, "PotentialRevCross");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_tersoff_params(m);
+    export_revcross_params(m);
     export_pair_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
@@ -306,6 +313,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
     export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
+    export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross> (m, "PotentialRevCrossGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
@@ -330,6 +338,8 @@ PYBIND11_MODULE(_md, m)
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
     // export_ConstExternalFieldDipoleForceComputeGPU(m);
+    export_ComputeThermoGPU(m);
+    export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(m, "PotentialExternalPeriodicGPU");

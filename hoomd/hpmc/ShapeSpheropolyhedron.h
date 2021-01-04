@@ -166,7 +166,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                           detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/2.0,
+                          DaDb/OverlapReal(2.0),
                           err);
 
     /*

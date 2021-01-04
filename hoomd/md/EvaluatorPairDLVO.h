@@ -24,14 +24,6 @@
 #define DEVICE
 #endif
 
-// call different optimized exp functions on the host / device
-//! fast::exp is expf when included in nvcc and exp when included into the host compiler
-#ifdef __HIPCC__
-#define LOG logf
-#else
-#define LOG log
-#endif
-
 //! Class for evaluating the DLVO pair potential
 /*! <b>General Overview</b>
 
@@ -40,10 +32,10 @@
     EvaluatorPairDLVO evaluates the function:
     \f{eqnarray*}
     V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[ \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
-                            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta) \\
+                            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta) \\
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}
-    where \f $a_i \f$ is the radius of particle \f$ i \f$; \f$ \Delta = (d_i + d_j)/2  \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
+    where \f$ a_i \f$ is the radius of particle \f$ i \f$, \f$ d_j \f$ is the diameter of particle \f$ j \f$, and \f$ \Delta = (d_i + d_j)/2  \f$.
 
     See Israelachvili 2011, pp. 317.
 
@@ -56,8 +48,41 @@ class EvaluatorPairDLVO
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        //May need to be changed to Scalar3 later
-		typedef Scalar3 param_type;
+        struct param_type
+            {
+            Scalar kappa;
+            Scalar Z;
+            Scalar A;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : kappa(0), Z(0), A(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                kappa = v["kappa"].cast<Scalar>();
+                Z = v["Z"].cast<Scalar>();
+                A = v["A"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["kappa"] = kappa;
+                v["Z"] = Z;
+                v["A"] = A;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -65,7 +90,7 @@ class EvaluatorPairDLVO
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDLVO(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), Z(_params.y), A(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.kappa), Z(_params.Z), A(_params.A)
             {
             }
 
@@ -129,7 +154,7 @@ class EvaluatorPairDLVO
 
                 Scalar engt1 = radprod * rmdsqsinv * A / Scalar(3.0);
                 Scalar engt2 = radprod * rmdsqminv * A / Scalar(3.0);
-                Scalar engt3 = LOG(rmdsqs * rmdsqminv) * A / Scalar(6.0);
+                Scalar engt3 = slow::log(rmdsqs * rmdsqminv) * A / Scalar(6.0);
                 pair_eng = r * forcerep_divr / kappa - engt1 - engt2 - engt3;
                 if (energy_shift)
                     {
@@ -142,7 +167,7 @@ class EvaluatorPairDLVO
 
                     Scalar engt1cut = radprod * rmdsqsinvcut * A / Scalar(3.0);
                     Scalar engt2cut = radprod * rmdsqminvcut * A / Scalar(3.0);
-                    Scalar engt3cut = LOG(rmdsqscut * rmdsqminvcut) * A / Scalar(6.0);
+                    Scalar engt3cut = slow::log(rmdsqscut * rmdsqminvcut) * A / Scalar(6.0);
                     Scalar exp_valcut = fast::exp(-kappa * rmdscut);
                     Scalar forcerepcut_divr = kappa * radprod * radsuminv * Z * exp_valcut/rcutt;
                     pair_eng -= rcutt*forcerepcut_divr / kappa - engt1cut - engt2cut - engt3cut;

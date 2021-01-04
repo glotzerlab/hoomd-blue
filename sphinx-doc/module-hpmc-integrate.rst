@@ -3,43 +3,56 @@ hpmc.integrate
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.hpmc.integrate
 
 .. autosummary::
     :nosignatures:
 
-    hpmc.integrate._HPMCIntegrator
-    hpmc.integrate.ConvexPolygon
-    hpmc.integrate.ConvexPolyhedron
-    hpmc.integrate.ConvexSpheropolygon
-    hpmc.integrate.ConvexSpheropolyhedron
-    hpmc.integrate.ConvexSpheropolyhedronUnion
-    hpmc.integrate.Ellipsoid
-    hpmc.integrate.FacetedEllipsoid
-    hpmc.integrate.FacetedEllipsoidUnion
-    hpmc.integrate.Polyhedron
-    hpmc.integrate.SimplePolygon
-    hpmc.integrate.Sphere
-    hpmc.integrate.SphereUnion
-    hpmc.integrate.Sphinx
+    HPMCIntegrator
+    ConvexPolygon
+    ConvexPolyhedron
+    ConvexSpheropolygon
+    ConvexSpheropolyhedron
+    ConvexSpheropolyhedronUnion
+    Ellipsoid
+    FacetedEllipsoid
+    FacetedEllipsoidUnion
+    Polyhedron
+    SimplePolygon
+    Sphere
+    SphereUnion
+    Sphinx
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
-    :members: _HPMCIntegrator,
-              ConvexPolygon,
-              ConvexPolyhedron,
-              ConvexSpheropolygon,
-              ConvexSpheropolyhedron,
-              ConvexSpheropolyhedronUnion,
-              Ellipsoid,
-              FacetedEllipsoid,
-              FacetedEllipsoidUnion,
-              Polyhedron,
-              SimplePolygon,
-              Sphere,
-              SphereUnion,
-              Sphinx
-    :no-inherited-members:
-    :show-inheritance:
+
+    .. autoclass:: HPMCIntegrator
+        :inherited-members:
+    .. autoclass:: ConvexPolygon
+        :show-inheritance:
+    .. autoclass:: ConvexPolyhedron
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolygon
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolyhedron
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolyhedronUnion
+        :show-inheritance:
+    .. autoclass:: Ellipsoid
+        :show-inheritance:
+    .. autoclass:: FacetedEllipsoid
+        :show-inheritance:
+    .. autoclass:: FacetedEllipsoidUnion
+        :show-inheritance:
+    .. autoclass:: Polyhedron
+        :show-inheritance:
+    .. autoclass:: SimplePolygon
+        :show-inheritance:
+    .. autoclass:: Sphere
+        :show-inheritance:
+    .. autoclass:: SphereUnion
+        :show-inheritance:
+    .. autoclass:: Sphinx
+        :show-inheritance:

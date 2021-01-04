@@ -50,7 +50,7 @@ void berend_updater_lj_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     Scalar Temp = Scalar(2.0);
 
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(3*1000-3);
+    group_all->setTranslationalDOF(3*1000-3);
     std::shared_ptr<VariantConstant> T_variant(new VariantConstant(Temp));
     std::shared_ptr<VariantConstant> T_variant2(new VariantConstant(1.0));
 

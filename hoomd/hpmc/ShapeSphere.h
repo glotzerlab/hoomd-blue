@@ -242,7 +242,7 @@ struct ShapeSphere
 template<class ShapeA, class ShapeB>
 DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b)
     {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     OverlapReal rsq = dot(dr,dr);
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();

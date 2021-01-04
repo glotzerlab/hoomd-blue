@@ -3,16 +3,18 @@ from hoomd.filter.type_ import Type
 from hoomd.filter.tags import Tags
 from hoomd.filter.set_ import SetDifference, Union, Intersection
 from hoomd.filter.all_ import All
+from hoomd.filter import Null
 from hoomd.snapshot import Snapshot
 from copy import deepcopy
 from itertools import combinations
+import pickle
 import numpy
 
 
 @pytest.fixture(scope="function")
 def make_filter_snapshot(device):
     def filter_snapshot(n=10, particle_types=['A']):
-        s = Snapshot(device.comm)
+        s = Snapshot(device.communicator)
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
@@ -30,6 +32,15 @@ def test_all_filter(make_filter_snapshot, simulation_factory):
     sim = simulation_factory(filter_snapshot)
     all_filter = All()
     assert all_filter(sim.state) == list(range(N))
+
+
+def test_null_filter(make_filter_snapshot, simulation_factory):
+    particle_types = ['A']
+    N = 10
+    filter_snapshot = make_filter_snapshot(n=N, particle_types=particle_types)
+    sim = simulation_factory(filter_snapshot)
+    null_filter = Null()
+    assert null_filter(sim.state) == []
 
 
 def set_types(s, inds, particle_types, particle_type):
@@ -186,3 +197,32 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
             assert difference_filter(sim.state) == type_filter1(sim.state)
         difference_filter = SetDifference(combo_filter, remaining_filter)
         assert difference_filter(sim.state) == combo_filter(sim.state)
+
+
+_filter_classes = [
+    All,
+    Tags,
+    Type,
+    SetDifference,
+    Union,
+    Intersection
+]
+
+_constructor_args = [
+    tuple(),
+    ([1, 2, 3],),
+    ({'a', 'b'},),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'}))
+]
+
+
+@pytest.mark.parametrize(
+    'constructor, args', zip(_filter_classes, _constructor_args),
+    ids=lambda x: None if isinstance(x, tuple) else x.__name__)
+def test_pickling(constructor, args):
+    filter_ = constructor(*args)
+    pkled_filter = pickle.loads(pickle.dumps(filter_))
+    assert pkled_filter == filter_
+    assert hash(pkled_filter) == hash(filter_)

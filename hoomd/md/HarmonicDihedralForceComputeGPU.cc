@@ -48,7 +48,7 @@ HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     Sets parameters for the potential of a particular dihedral type and updates the
     parameters on the GPU.
 */
-void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
+void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
     HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity, phi_0);
 

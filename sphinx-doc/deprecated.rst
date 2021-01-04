@@ -38,7 +38,7 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``deprecated.dump.pos``
      - ``hoomd.dump.gsd`` with on-demand conversion to ``.pos``.
    * - ``deprecated.init.read_xml``
-     - :py:class:`init.read_gsd <hoomd.init.read_gsd>`
+     - ``init.read_gsd``
    * - ``deprecated.init.create_random``
      - `mBuild <https://mosdef-hub.github.io/mbuild/>`_, `packmol <https://www.ime.unicamp.br/~martinez/packmol/userguide.shtml>`_, or user script.
    * - ``deprecated.init.create_random_polymers``
@@ -75,7 +75,7 @@ Commands and features deprecated in v2.x will be removed in v3.0.
 
    * - Feature
      - Replace with
-   * - ``group`` parameter to :py:class:`integrate.mode_minimize_fire <hoomd.md.integrate.mode_minimize_fire>`
+   * - ``group`` parameter to ``integrate.mode_minimize_fire``
      - Pass group to integration method.
 
 ``hoomd.cgcmm``:

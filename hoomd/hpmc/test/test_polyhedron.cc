@@ -80,7 +80,7 @@ UP_TEST( construction )
     data.verts[0] = vec3<OverlapReal>(0,0,0);
     data.verts[1] = vec3<OverlapReal>(1,0,0);
     data.verts[2] = vec3<OverlapReal>(0,1.25,0);
-    data.verts[3] = vec3<OverlapReal>(0,0,1.1);
+    data.verts[3] = vec3<OverlapReal>(0,0,OverlapReal(1.1));
     data.face_verts[0] = 0;
     data.face_verts[1] = 1;
     data.face_verts[2] = 2;
@@ -137,8 +137,8 @@ UP_TEST( overlap_octahedron_no_rot )
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -249,8 +249,8 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     data.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -371,8 +371,8 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.verts[1] = vec3<OverlapReal>(0.5,-0.5,0);
     data_a.verts[2] = vec3<OverlapReal>(0.5,0.5,0);
     data_a.verts[3] = vec3<OverlapReal>(-0.5,0.5,0);
-    data_a.verts[4] = vec3<OverlapReal>(0,0,0.707106781186548);
-    data_a.verts[5] = vec3<OverlapReal>(0,0,-0.707106781186548);
+    data_a.verts[4] = vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548));
+    data_a.verts[5] = vec3<OverlapReal>(0,0,-OverlapReal(0.707106781186548));
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0; data_a.face_verts[1] = 4; data_a.face_verts[2] = 1;
     data_a.face_offs[1] = 3;

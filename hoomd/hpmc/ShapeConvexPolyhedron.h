@@ -68,11 +68,11 @@ struct PolyhedronVertices : ShapeParams
                        OverlapReal sweep_radius_,
                        unsigned int ignore_,
                        bool managed=false)
-        : x(verts.size(), managed),
-          y(verts.size(), managed),
-          z(verts.size(), managed),
+        : x((unsigned int)verts.size(), managed),
+          y((unsigned int)verts.size(), managed),
+          z((unsigned int)verts.size(), managed),
           n_hull_verts(0),
-          N(verts.size()),
+          N((unsigned int)verts.size()),
           diameter(0.0),
           sweep_radius(sweep_radius_),
           ignore(ignore_)
@@ -90,7 +90,7 @@ struct PolyhedronVertices : ShapeParams
     void setVerts(const std::vector<vec3<OverlapReal>>& verts,
                   OverlapReal sweep_radius_)
         {
-        N = verts.size();
+        N = (unsigned int)verts.size();
         diameter = 0;
         sweep_radius = sweep_radius_;
         bool managed = x.isManaged();
@@ -137,11 +137,11 @@ struct PolyhedronVertices : ShapeParams
             auto hull = qh.getConvexHull(qh_pts, false, true);
             auto indexBuffer = hull.getIndexBuffer();
 
-            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), managed);
-            n_hull_verts = indexBuffer.size();
+            hull_verts = ManagedArray<unsigned int>((unsigned int)indexBuffer.size(), managed);
+            n_hull_verts = (unsigned int)indexBuffer.size();
 
             for (unsigned int i = 0; i < indexBuffer.size(); i++)
-                 hull_verts[i] = indexBuffer[i];
+                 hull_verts[i] = (unsigned int)indexBuffer[i];
             }
 
         if (N >= 1)
@@ -809,7 +809,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                   detail::SupportFuncConvexPolyhedron(b.verts),
                                   rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                   conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                                  DaDb/2.0,
+                                  DaDb/OverlapReal(2.0),
                                   err);
 
     /*

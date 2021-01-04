@@ -31,7 +31,7 @@ def make_random(N, kT, seed):
 
     MPCD particles are randomly initialized into the simulation box.
     An MPCD system can be randomly initialized only **after** the HOOMD system
-    is first initialized (see :py:mod:`hoomd.init`). The system can only be
+    is first initialized (see ``hoomd.init``). The system can only be
     initialized one time. The total number of particles *N* is evenly divided
     between all domains. Random positions are then drawn uniformly within the
     (local) box. Particle velocities are drawn from a Maxwell-Boltzmann
@@ -78,7 +78,7 @@ def read_snapshot(snapshot):
         Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system`)
 
     An MPCD system can be initialized from a snapshot **after** the HOOMD system
-    is first initialized (see :py:mod:`hoomd.init`). The system can only be
+    is first initialized (see ``hoomd.init``). The system can only be
     initialized one time. If no type is specified in the snapshot, a default type
     *A* will be assigned to the MPCD particles.
 

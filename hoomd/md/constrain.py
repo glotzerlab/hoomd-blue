@@ -7,9 +7,7 @@
 R""" Constraints.
 
 Constraint forces constrain a given set of particle to a given surface, to have
-some relative orientation, or impose some other type of constraint. For example,
-a group of particles can be constrained to the surface of a sphere with
-:py:class:`sphere`.
+some relative orientation, or impose some other type of constraint.
 
 As with other force commands in hoomd, multiple constrain commands can be issued
 to specify multiple constraints, which are additively applied.
@@ -18,8 +16,7 @@ Warning: Constraints will be invalidated if two separate constraint commands
 apply to the same particle.
 
 The degrees of freedom removed from the system by constraints are correctly
-taken into account when computing the temperature for thermostatting and
-logging.
+taken into account when computing the temperature.
 """
 
 from hoomd import _hoomd
@@ -35,7 +32,7 @@ import hoomd
 # hoomd writers. 1) The instance of the c++ constraint force itself is tracked
 # and added to the System 2) methods are provided for disabling the force from
 # being added to the net force on each particle
-class _ConstraintForce(hoomd.meta._metadata):
+class ConstraintForce():
     ## \internal
     # \brief Constructs the constraint force
     #
@@ -52,8 +49,8 @@ class _ConstraintForce(hoomd.meta._metadata):
         self.cpp_force = None
 
         # increment the id counter
-        id = _ConstraintForce.cur_id
-        _ConstraintForce.cur_id += 1
+        id = ConstraintForce.cur_id
+        ConstraintForce.cur_id += 1
 
         self.force_name = "constraint_force%d" % (id)
         self.enabled = True
@@ -63,9 +60,6 @@ class _ConstraintForce(hoomd.meta._metadata):
 
         # create force data iterator
         self.forces = hoomd.data.force_data(self)
-
-        # base class constructor
-        hoomd.meta._metadata.__init__(self)
 
     ## \var enabled
     # \internal
@@ -100,7 +94,7 @@ class _ConstraintForce(hoomd.meta._metadata):
 
 
         Executing the disable command removes the force from the simulation.
-        Any :py:func:`hoomd.run()` command executed after disabling a force will not calculate or
+        Any ```hoomd.run``` command executed after disabling a force will not calculate or
         use the force during the simulation. A disabled force can be re-enabled
         with :py:meth:`enable()`
         """
@@ -124,7 +118,7 @@ class _ConstraintForce(hoomd.meta._metadata):
 
             force.enable()
 
-        See :py:meth:`disable()`.
+        See ``disable``.
         """
         self.check_initialization()
 
@@ -146,29 +140,19 @@ class _ConstraintForce(hoomd.meta._metadata):
         # does nothing: this is for derived classes to implement
 
 
-    ## \internal
-    # \brief Get metadata
-    def get_metadata(self):
-        data = hoomd.meta._metadata.get_metadata(self)
-        data['enabled'] = self.enabled
-        if self.name != "":
-            data['name'] = self.name
-        return data
-
 # set default counter
-_ConstraintForce.cur_id = 0
+ConstraintForce.cur_id = 0
 
-class sphere(_ConstraintForce):
+class sphere(ConstraintForce):
     R""" Constrain particles to the surface of a sphere.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        group (``hoomd.group``): Group on which to apply the constraint.
         P (tuple): (x,y,z) tuple indicating the position of the center of the sphere (in distance units).
         r (float): Radius of the sphere (in distance units).
 
-    :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
-    them to a sphere. Currently does not work with Brownian or Langevin dynamics (:py:class:`hoomd.md.integrate.brownian`
-    and :py:class:`hoomd.md.integrate.langevin`).
+    `sphere` specifies that forces will be applied to all particles in the given group to constrain
+    them to a sphere. Currently does not work with Brownian or Langevin dynamics.
 
     Example::
 
@@ -178,7 +162,7 @@ class sphere(_ConstraintForce):
     def __init__(self, group, P, r):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
@@ -193,9 +177,8 @@ class sphere(_ConstraintForce):
         self.group = group
         self.P = P
         self.r = r
-        self.metadata_fields = ['group','P', 'r']
 
-class distance(_ConstraintForce):
+class distance(ConstraintForce):
     R""" Constrain pairwise particle distances.
 
     :py:class:`distance` specifies that forces will be applied to all particles pairs for
@@ -226,7 +209,7 @@ class distance(_ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -250,7 +233,7 @@ class distance(_ConstraintForce):
         if rel_tol is not None:
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
-class rigid(_ConstraintForce):
+class rigid(ConstraintForce):
     R""" Constrain particles in rigid bodies.
 
     .. rubric:: Overview
@@ -280,33 +263,6 @@ class rigid(_ConstraintForce):
     When you call :py:meth:`create_bodies()`, it will create all constituent particles that do not exist. (those
     that already exist e.g. in a restart file are left unchanged).
 
-    Example that creates rigid rods::
-
-        # Place the type R central particles
-        uc = hoomd.lattice.unitcell(N = 1,
-                                    a1 = [10.8, 0,   0],
-                                    a2 = [0,    1.2, 0],
-                                    a3 = [0,    0,   1.2],
-                                    dimensions = 3,
-                                    position = [[0,0,0]],
-                                    type_name = ['R'],
-                                    mass = [1.0],
-                                    moment_inertia = [[0,
-                                                       1/12*1.0*8**2,
-                                                       1/12*1.0*8**2]],
-                                    orientation = [[1, 0, 0, 0]])
-        system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18])
-
-        # Add constituent particles of type A and create the rods
-        system.particles.types.add('A')
-        rigid = hoomd.md.constrain.rigid()
-        rigid.set_param('R',
-                        types=['A']*8,
-                        positions=[(-4,0,0),(-3,0,0),(-2,0,0),(-1,0,0),
-                                   (1,0,0),(2,0,0),(3,0,0),(4,0,0)])
-
-        rigid.create_bodies()
-
     .. danger:: Automatic creation of constituent particles can change particle tags. If bonds have been defined between
         particles in the initial configuration, or bonds connect to constituent particles, rigid bodies should be
         created manually.
@@ -322,7 +278,7 @@ class rigid(_ConstraintForce):
     and prepare the constraint.
 
     You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies` prior to starting a simulation
-    :py:func:`hoomd.run`.
+    ```hoomd.run```.
 
     .. rubric:: Integrating bodies
 
@@ -339,7 +295,7 @@ class rigid(_ConstraintForce):
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy, etc...) appropriately when there are rigid
     bodies present in the system. When it does so, it ignores all constituent particles and computes the translational
-    and rotational energies of the central particles, which represent the whole body. :py:class:`hoomd.analyze.log`
+    and rotational energies of the central particles, which represent the whole body. ``hoomd.analyze.log``
     can log the translational and rotational energy terms separately.
 
     .. rubric:: Restarting simulations with rigid bodies.
@@ -353,7 +309,7 @@ class rigid(_ConstraintForce):
     def __init__(self):
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         self.composite = True
 
@@ -379,7 +335,7 @@ class rigid(_ConstraintForce):
         .. caution::
             The constituent particle type must be exist.
             If it does not exist, it can be created on the fly using
-            ``system.particles.types.add('A_const')`` (see :py:mod:`hoomd.data`).
+            ``system.particles.types.add('A_const')``.
 
         Example::
 
@@ -475,11 +431,11 @@ class rigid(_ConstraintForce):
         # validate copies of rigid bodies
         self.create_bodies(False)
 
-class oneD(_ConstraintForce):
+class oneD(ConstraintForce):
     R""" Constrain particles to move along a specific direction only
 
     Args:
-        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        group (``hoomd.group``): Group on which to apply the constraint.
         constraint_vector (list): [x,y,z] list indicating the direction that the particles are restricted to
 
     :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain
@@ -500,7 +456,7 @@ class oneD(_ConstraintForce):
 
 
         # initialize the base class
-        _ConstraintForce.__init__(self)
+        ConstraintForce.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -513,4 +469,3 @@ class oneD(_ConstraintForce):
         # store metadata
         self.group = group
         self.constraint_vector = constraint_vector
-        self.metadata_fields = ['group','constraint_vector']

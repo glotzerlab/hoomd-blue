@@ -3,12 +3,16 @@ hoomd
 
 .. rubric:: Overview
 
+.. py:currentmodule:: hoomd
+
 .. autosummary::
     :nosignatures:
 
-    hoomd.Simulation
-    hoomd.Snapshot
-    hoomd.Logger
+    Box
+    Operations
+    Simulation
+    Snapshot
+    State
 
 .. rubric:: Details
 
@@ -16,22 +20,28 @@ hoomd
     :synopsis: HOOMD-blue main package.
     :undoc-members:
     :imported-members:
-    :members:
+    :members: Simulation,
+              State,
+              Snapshot,
+              Operations,
+              Box
 
 .. rubric:: Modules
 
 .. toctree::
    :maxdepth: 3
 
-   module-hoomd-analyze
-   module-hoomd-cite
-   module-hoomd-comm
-   module-hoomd-compute
+   module-hoomd-communicator
+   module-hoomd-custom
+   module-hoomd-data
    module-hoomd-device
-   module-hoomd-dump
    module-hoomd-filter
+   module-hoomd-integrate
+   module-hoomd-logging
+   module-hoomd-operation
    module-hoomd-triggers
+   module-hoomd-tune
    module-hoomd-update
-   module-hoomd-util
    module-hoomd-variant
-   hoomd-misc
+   module-hoomd-version
+   module-hoomd-write

@@ -554,8 +554,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 {
                 typename map_t::iterator lower = send_map.lower_bound(h_unique_neighbors.data[i]);
                 typename map_t::iterator upper = send_map.upper_bound(h_unique_neighbors.data[i]);
-                h_begin.data[i] = std::distance(send_map.begin(),lower);
-                h_end.data[i] = std::distance(send_map.begin(),upper);
+                h_begin.data[i] = (unsigned int)(std::distance(send_map.begin(),lower));
+                h_end.data[i] = (unsigned int)(std::distance(send_map.begin(),upper));
                 }
             }
         #endif
@@ -594,8 +594,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -651,7 +651,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 if (n_send_groups[ineigh])
                     {
                     MPI_Isend(ranks_sendbuf_handle.data+h_begin.data[ineigh],
-                        n_send_groups[ineigh]*sizeof(rank_element_t),
+                        int(n_send_groups[ineigh]*sizeof(rank_element_t)),
                         MPI_BYTE,
                         neighbor,
                         1,
@@ -659,12 +659,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                         &req);
                     reqs.push_back(req);
                     }
-                send_bytes+= n_send_groups[ineigh]*sizeof(rank_element_t);
+                send_bytes+= (unsigned int)(n_send_groups[ineigh]*sizeof(rank_element_t));
 
                 if (n_recv_groups[ineigh])
                     {
                     MPI_Irecv(ranks_recvbuf_handle.data+offs[ineigh],
-                        n_recv_groups[ineigh]*sizeof(rank_element_t),
+                        int(n_recv_groups[ineigh]*sizeof(rank_element_t)),
                         MPI_BYTE,
                         neighbor,
                         1,
@@ -672,11 +672,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                         &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += n_recv_groups[ineigh]*sizeof(rank_element_t);
+                recv_bytes += (unsigned int)(n_recv_groups[ineigh]*sizeof(rank_element_t));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
 
             if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             }
@@ -836,8 +836,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 {
                 typename group_map_t::iterator lower = group_send_map.lower_bound(h_unique_neighbors.data[i]);
                 typename group_map_t::iterator upper = group_send_map.upper_bound(h_unique_neighbors.data[i]);
-                h_begin.data[i] = std::distance(group_send_map.begin(),lower);
-                h_end.data[i] = std::distance(group_send_map.begin(),upper);
+                h_begin.data[i] = (unsigned int)std::distance(group_send_map.begin(),lower);
+                h_end.data[i] = (unsigned int)std::distance(group_send_map.begin(),upper);
                 }
             }
         #endif
@@ -873,8 +873,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
 
                 MPI_Isend(&n_send_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_groups[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -925,7 +925,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 if (n_send_groups[ineigh])
                     {
                     MPI_Isend(groups_sendbuf_handle.data+h_begin.data[ineigh],
-                        n_send_groups[ineigh]*sizeof(group_element_t),
+                        int(n_send_groups[ineigh]*sizeof(group_element_t)),
                         MPI_BYTE,
                         neighbor,
                         1,
@@ -933,12 +933,12 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                         &req);
                     reqs.push_back(req);
                     }
-                send_bytes+= n_send_groups[ineigh]*sizeof(group_element_t);
+                send_bytes+= (unsigned int)(n_send_groups[ineigh]*sizeof(group_element_t));
 
                 if (n_recv_groups[ineigh])
                     {
                     MPI_Irecv(groups_recvbuf_handle.data+offs[ineigh],
-                        n_recv_groups[ineigh]*sizeof(group_element_t),
+                        int(n_recv_groups[ineigh]*sizeof(group_element_t)),
                         MPI_BYTE,
                         neighbor,
                         1,
@@ -946,11 +946,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                         &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += n_recv_groups[ineigh]*sizeof(group_element_t);
+                recv_bytes += (unsigned int)(n_recv_groups[ineigh]*sizeof(group_element_t));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
 
             if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             }
@@ -1231,8 +1231,8 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     MPI_Isend(&n_send_ghost_groups[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
                     MPI_Irecv(&n_recv_ghost_groups[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_gpu_comm.m_mpi_comm, & req[nreq++]);
 
-                    send_bytes += sizeof(unsigned int);
-                    recv_bytes += sizeof(unsigned int);
+                    send_bytes += (unsigned int)sizeof(unsigned int);
+                    recv_bytes += (unsigned int)sizeof(unsigned int);
                     }
 
                 MPI_Waitall(nreq, req, stat);
@@ -1288,7 +1288,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     if (n_send_ghost_groups[stage][ineigh])
                         {
                         MPI_Isend(h_groups_sendbuf.data+h_ghost_group_begin.data[ineigh+stage*m_gpu_comm.m_n_unique_neigh],
-                            n_send_ghost_groups[stage][ineigh]*sizeof(group_element_t),
+                            int(n_send_ghost_groups[stage][ineigh]*sizeof(group_element_t)),
                             MPI_BYTE,
                             neighbor,
                             1,
@@ -1296,11 +1296,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += n_send_ghost_groups[stage][ineigh]*sizeof(group_element_t);
+                    send_bytes += (unsigned int)(n_send_ghost_groups[stage][ineigh]*sizeof(group_element_t));
                     if (n_recv_ghost_groups[stage][ineigh])
                         {
                         MPI_Irecv(h_groups_recvbuf.data + ghost_group_offs[stage][ineigh] + offs,
-                            n_recv_ghost_groups[stage][ineigh]*sizeof(group_element_t),
+                            int(n_recv_ghost_groups[stage][ineigh]*sizeof(group_element_t)),
                             MPI_BYTE,
                             neighbor,
                             1,
@@ -1308,11 +1308,11 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += n_recv_ghost_groups[stage][ineigh]*sizeof(group_element_t);
+                    recv_bytes += (unsigned int)(n_recv_ghost_groups[stage][ineigh]*sizeof(group_element_t));
                     }
 
                 std::vector<MPI_Status> stats(reqs.size());
-                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
 
                 if (m_gpu_comm.m_prof) m_gpu_comm.m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
                 } // end ArrayHandle scope
@@ -1568,8 +1568,8 @@ void CommunicatorGPU::migrateParticles()
 
                 MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 } // end neighbor loop
 
             MPI_Waitall(nreq, req, stat);
@@ -1635,7 +1635,7 @@ void CommunicatorGPU::migrateParticles()
                         &req);
                     reqs.push_back(req);
                     }
-                send_bytes+= n_send_ptls[ineigh]*sizeof(pdata_element);
+                send_bytes+= (unsigned int)(n_send_ptls[ineigh]*sizeof(pdata_element));
 
                 if (n_recv_ptls[ineigh])
                     {
@@ -1653,11 +1653,11 @@ void CommunicatorGPU::migrateParticles()
                         &req);
                     reqs.push_back(req);
                     }
-                recv_bytes += n_recv_ptls[ineigh]*sizeof(pdata_element);
+                recv_bytes += (unsigned int)(n_recv_ptls[ineigh]*sizeof(pdata_element));
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)(reqs.size()), &reqs.front(), &stats.front());
 
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             }
@@ -1984,8 +1984,8 @@ void CommunicatorGPU::exchangeGhosts()
                 MPI_Isend(&m_n_send_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
                 MPI_Irecv(&m_n_recv_ghosts[stage][ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, & req[nreq++]);
 
-                send_bytes += sizeof(unsigned int);
-                recv_bytes += sizeof(unsigned int);
+                send_bytes += (unsigned int)sizeof(unsigned int);
+                recv_bytes += (unsigned int)sizeof(unsigned int);
                 }
 
             MPI_Waitall(nreq, req, stat);
@@ -2095,7 +2095,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(tag_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh+stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int)),
                             MPI_BYTE,
                             neighbor,
                             1,
@@ -2103,11 +2103,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(tag_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int)),
                             MPI_BYTE,
                             neighbor,
                             1,
@@ -2115,7 +2115,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int));
                     }
 
                 if (flags[comm_flag::position])
@@ -2124,7 +2124,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             2,
@@ -2132,11 +2132,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             2,
@@ -2144,7 +2144,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int));
                     }
 
                 if (flags[comm_flag::velocity])
@@ -2152,7 +2152,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2160,11 +2160,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2172,7 +2172,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
 
                 if (flags[comm_flag::charge])
@@ -2180,7 +2180,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(charge_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             4,
@@ -2188,11 +2188,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(charge_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             4,
@@ -2200,7 +2200,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar));
                     }
 
                 if (flags[comm_flag::diameter])
@@ -2208,7 +2208,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(diameter_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             5,
@@ -2216,11 +2216,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(diameter_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             5,
@@ -2228,7 +2228,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar));
                     }
 
                 if (flags[comm_flag::orientation])
@@ -2236,7 +2236,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             6,
@@ -2244,11 +2244,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             6,
@@ -2256,7 +2256,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
 
                 if (flags[comm_flag::body])
@@ -2264,7 +2264,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(body_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int)),
                             MPI_BYTE,
                             neighbor,
                             7,
@@ -2272,11 +2272,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(unsigned int));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(body_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int)),
                             MPI_BYTE,
                             neighbor,
                             7,
@@ -2284,7 +2284,7 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(unsigned int));
                     }
 
                 if (flags[comm_flag::image])
@@ -2292,7 +2292,7 @@ void CommunicatorGPU::exchangeGhosts()
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(image_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(int3),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(int3)),
                             MPI_BYTE,
                             neighbor,
                             8,
@@ -2300,11 +2300,11 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(int3);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(int3));
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(image_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(int3),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(int3)),
                             MPI_BYTE,
                             neighbor,
                             8,
@@ -2312,12 +2312,12 @@ void CommunicatorGPU::exchangeGhosts()
                             &req);
                         reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(int3);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(int3));
                     }
                 } // end neighbor loop
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
 
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
@@ -2543,7 +2543,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(pos_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             2,
@@ -2551,12 +2551,12 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(pos_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             2,
@@ -2564,7 +2564,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
 
                 if (flags[comm_flag::velocity])
@@ -2572,7 +2572,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(vel_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2580,12 +2580,12 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(vel_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2593,7 +2593,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
 
                 if (flags[comm_flag::orientation])
@@ -2601,7 +2601,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(orientation_ghost_sendbuf_handle.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             6,
@@ -2609,12 +2609,12 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(orientation_ghost_recvbuf_handle.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             6,
@@ -2622,7 +2622,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
                 } // end neighbor loop
 
@@ -2635,7 +2635,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
                 {
                 // complete communication
                 std::vector<MPI_Status> stats(m_reqs.size());
-                MPI_Waitall(m_reqs.size(), &m_reqs.front(), &stats.front());
+                MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
                 }
 
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
@@ -2710,7 +2710,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
         // complete communication
         if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
         std::vector<MPI_Status> stats(m_reqs.size());
-        MPI_Waitall(m_reqs.size(), &m_reqs.front(), &stats.front());
+        MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
         if (m_prof) m_prof->pop(m_exec_conf);
 
         #ifdef ENABLE_MPI_CUDA
@@ -2876,7 +2876,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                 d_ghost_idx_adj.data + m_idx_offs[stage],
                 d_netvirial.data,
                 d_netvirial_ghost_sendbuf.data,
-                m_pdata->getNetVirial().getPitch());
+                (unsigned int)m_pdata->getNetVirial().getPitch());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }
@@ -2947,7 +2947,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                 if (m_n_send_ghosts[stage][ineigh])
                     {
                     MPI_Isend(h_netforce_ghost_sendbuf.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                        m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                        int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                         MPI_BYTE,
                         neighbor,
                         2,
@@ -2955,12 +2955,12 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                         &req);
                     m_reqs.push_back(req);
                     }
-                send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                 if (m_n_recv_ghosts[stage][ineigh])
                     {
                     MPI_Irecv(h_netforce_ghost_recvbuf.data + m_ghost_offs[stage][ineigh] + offs,
-                        m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                        int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                         MPI_BYTE,
                         neighbor,
                         2,
@@ -2968,14 +2968,14 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                         &req);
                     m_reqs.push_back(req);
                     }
-                recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                 if (flags[comm_flag::net_torque])
                     {
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(h_nettorque_ghost_sendbuf.data+h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2983,12 +2983,12 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    send_bytes += m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    send_bytes += (unsigned int)(m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4));
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(h_nettorque_ghost_recvbuf.data + m_ghost_offs[stage][ineigh] + offs,
-                            m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
+                            int(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4)),
                             MPI_BYTE,
                             neighbor,
                             3,
@@ -2996,7 +2996,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    recv_bytes += m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4);
+                    recv_bytes += (unsigned int)(m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4));
                     }
 
                 if (flags[comm_flag::net_virial])
@@ -3004,7 +3004,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                     if (m_n_send_ghosts[stage][ineigh])
                         {
                         MPI_Isend(h_netvirial_ghost_sendbuf.data+6*h_ghost_begin.data[ineigh + stage*m_n_unique_neigh],
-                            6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             4,
@@ -3012,12 +3012,12 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    send_bytes += 6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar);
+                    send_bytes += (unsigned int)(6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar));
 
                     if (m_n_recv_ghosts[stage][ineigh])
                         {
                         MPI_Irecv(h_netvirial_ghost_recvbuf.data + 6*(m_ghost_offs[stage][ineigh] + offs),
-                            6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
+                            int(6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar)),
                             MPI_BYTE,
                             neighbor,
                             4,
@@ -3025,14 +3025,14 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             &req);
                         m_reqs.push_back(req);
                         }
-                    recv_bytes += 6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar);
+                    recv_bytes += (unsigned int)(6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar));
                     }
 
                 }
 
             // complete communication
             std::vector<MPI_Status> stats(m_reqs.size());
-            MPI_Waitall(m_reqs.size(), &m_reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
 
             if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
             } // end ArrayHandle scope
@@ -3085,7 +3085,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                 m_n_recv_ghosts_tot[stage],
                 d_netvirial_ghost_recvbuf.data,
                 d_netvirial.data + first_idx,
-                m_pdata->getNetVirial().getPitch());
+                (unsigned int)m_pdata->getNetVirial().getPitch());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             }

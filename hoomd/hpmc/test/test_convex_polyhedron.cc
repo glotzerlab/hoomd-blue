@@ -74,13 +74,13 @@ UP_TEST( support )
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-0.1, 0.1, 0.1));
+    v1 = sa(vec3<OverlapReal>(-0.125, 0.125, 0.125));
     v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
     v1 = sa(vec3<OverlapReal>(1, -1, 1));
     v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(0.51, 0.49, -0.1));
+    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), OverlapReal(-0.1)));
     v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
@@ -136,8 +136,8 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
-    vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
-    vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548)));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(-0.707106781186548)));
     PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);

@@ -105,16 +105,17 @@ Scalar Integrator::getDeltaT()
     }
 
 /** Loops over all constraint forces in the Integrator and sums up the number of DOF removed
+    @param query The group over which to compute the removed degrees of freedom
 */
-unsigned int Integrator::getNDOFRemoved()
+Scalar Integrator::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
     // start counting at 0
-    unsigned int n = 0;
+    Scalar n = 0;
 
     // loop through all constraint forces
     std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
-        n += (*force_compute)->getNDOFRemoved();
+        n += (*force_compute)->getNDOFRemoved(query);
 
     return n;
     }
@@ -340,7 +341,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
@@ -360,7 +361,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -429,7 +430,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -443,7 +444,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());
@@ -517,7 +518,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GlobalArray< Scalar4 >& net_force  = m_pdata->getNetForce();
         const GlobalArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
         const GlobalArray< Scalar >&  net_virial = m_pdata->getNetVirial();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
@@ -940,6 +941,7 @@ void export_Integrator(py::module& m)
 
     py::class_<Integrator, Updater, std::shared_ptr<Integrator> >(m,"Integrator")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+    .def("updateGroupDOF", &Integrator::updateGroupDOF)
     .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
 	.def_property_readonly("forces", &Integrator::getForces)
 	.def_property_readonly("constraints", &Integrator::getConstraintForces)

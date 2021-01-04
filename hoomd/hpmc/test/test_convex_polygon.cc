@@ -29,7 +29,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
         throw runtime_error("Too many polygon vertices");
 
     PolygonVertices result;
-    result.N = vlist.size();
+    result.N = (unsigned int)vlist.size();
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way
@@ -41,7 +41,7 @@ PolygonVertices setup_verts(const vector< vec2<OverlapReal> > vlist)
         result.y[i] = vert.y;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < MAX_POLY2D_VERTS; i++)
+    for (unsigned int i = (unsigned int)vlist.size(); i < MAX_POLY2D_VERTS; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;

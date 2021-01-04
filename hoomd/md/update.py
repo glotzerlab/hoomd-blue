@@ -139,7 +139,7 @@ class constraint_ellipsoid(_updater):
     R""" Constrain particles to the surface of a ellipsoid.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group for which the update will be set
+        group (``hoomd.group``): Group for which the update will be set
         P (tuple): (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units).
         rx (float): radius of an ellipsoid in the X direction (in distance units).
         ry (float): radius of an ellipsoid in the Y direction (in distance units).
@@ -170,7 +170,7 @@ class constraint_ellipsoid(_updater):
         period = 1;
 
         # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("constrain.ellipsoid is not supported in multi-processor simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")
@@ -221,10 +221,10 @@ class mueller_plathe_flow(_updater):
     the "max" and "min" slap might be swapped.
 
     Args:
-        group (:py:mod:`hoomd.group`): Group for which the update will be set
+        group (``hoomd.group``): Group for which the update will be set
         flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
-        slab_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction perpendicular to the slabs..
-        flow_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction of the flow..
+        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs..
+        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow..
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
         max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
         min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.

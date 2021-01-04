@@ -31,8 +31,8 @@ namespace py = pybind11;
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
-        : Tuner(sysdef, trigger), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_decomposition(decomposition), m_max_imbalance(Scalar(1.0)),
+        : Tuner(sysdef, trigger), m_decomposition(decomposition),
+          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
           m_recompute_max_imbalance(true), m_needs_migrate(false),
           m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
           m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
@@ -337,7 +337,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
     // constraints correctly)
     const Scalar eps(0.001);
-    unsigned int m = N_i.size();
+    unsigned int m = (unsigned int)N_i.size();
     unsigned int n = m - 1;
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
     A(0,0) = 1.0; A(m,0) = eps;
@@ -545,21 +545,6 @@ void LoadBalancer::computeOwnedParticles()
 
     // set the count
     resetNOwn(N_own);
-    }
-
-/*!
- * Print statistics on the maximum and average load imbalance, and the number of times
- * load balancing was performed.
- */
-void LoadBalancer::printStats()
-    {
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    double avg_imb = m_total_max_imbalance / ((double)m_n_calls);
-    m_exec_conf->msg->notice(1) << "-- Load imbalance stats:" << endl;
-    m_exec_conf->msg->notice(1) << "max imbalance: " << m_max_max_imbalance << " / avg. imbalance: " << avg_imb << endl;
-    m_exec_conf->msg->notice(1) << "iterations: " << m_n_iterations << " / rebalances: " << m_n_rebalances << endl;
     }
 
 /*!

@@ -7,10 +7,13 @@
 #include "ParticleData.cuh"
 #include "BondedGroupData.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hip/hip_runtime.h>
 #include <thrust/sort.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 /*! \file BondedGroupData.cu
     \brief Implements the helper functions (GPU version) for updating the GPU bonded group tables

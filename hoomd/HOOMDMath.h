@@ -545,7 +545,7 @@ inline HOSTDEVICE float sqrt(float x)
     {
     #if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
     return ::__fsqrt_rn(x);
-    #else 
+    #else
     return ::sqrtf(x);
     #endif
     }
@@ -739,6 +739,19 @@ inline HOSTDEVICE double acos(double x)
     return ::acos(x);
     }
 
+//! Compute the atan of x
+inline HOSTDEVICE float atan(float x)
+    {
+    return ::atanf(x);
+    }
+
+//! Compute the atan of x
+inline HOSTDEVICE double atan(double x)
+    {
+    return ::atan(x);
+    }
+
+
 //! Compute the floor of x
 inline HOSTDEVICE float floor(float x)
     {
@@ -749,6 +762,30 @@ inline HOSTDEVICE float floor(float x)
 inline HOSTDEVICE double floor(double x)
     {
     return ::floor(x);
+    }
+
+/// Compute the hypberbolic tangent of x
+inline HOSTDEVICE double tanh(double x)
+    {
+    return ::tanh(x);
+    }
+
+/// Compute the hypberbolic tangent of x
+inline HOSTDEVICE float tanh(float x)
+    {
+    return ::tanhf(x);
+    }
+
+/// Compute the rint of x
+inline HOSTDEVICE double rint(double x)
+    {
+    return ::rint(x);
+    }
+
+/// Compute the rint of x
+inline HOSTDEVICE float rint(float x)
+    {
+    return ::rintf(x);
     }
 }
 

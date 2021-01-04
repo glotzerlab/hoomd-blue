@@ -162,7 +162,7 @@ PYBIND11_EXPORT std::ostream& operator<<(std::ostream &o, Profiler& prof);
 
 inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
-#if defined(ENABLE_HIP) && !defined(ENABLE_NVTOOLS)
+#if defined(ENABLE_HIP)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
         {
@@ -175,7 +175,7 @@ inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_co
 
 inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
-#if defined(ENABLE_HIP) && !defined(ENABLE_NVTOOLS)
+#if defined(ENABLE_HIP)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
     if(exec_conf->isCUDAEnabled())
         {

@@ -40,7 +40,7 @@ namespace detail
 struct FacetedEllipsoidParams : ShapeParams
     {
     /// Empty constructor
-    FacetedEllipsoidParams()
+    DEVICE FacetedEllipsoidParams()
         : verts(),
           additional_verts(),
           n(),
@@ -59,7 +59,7 @@ struct FacetedEllipsoidParams : ShapeParams
 
     /// Construct from a Python dictionary
     FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
-        : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
+        : FacetedEllipsoidParams((unsigned int)pybind11::len(v["normals"]), managed)
         {
         pybind11::list normals = v["normals"];
         pybind11::list offsets = v["offsets"];
@@ -609,7 +609,7 @@ DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(
                            detail::SupportFuncFacetedEllipsoid(b.params),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                           DaDb/2.0,
+                           DaDb/OverlapReal(2.0),
                            err);
 
     }

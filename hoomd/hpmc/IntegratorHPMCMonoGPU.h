@@ -421,7 +421,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     TAG_ALLOCATION(m_deltaF_int);
 
     //! One counter per GPU, separated by an entire memory page
-    unsigned int pitch = (getpagesize() + sizeof(hpmc_counters_t)-1)/sizeof(hpmc_counters_t);
+    unsigned int pitch = (unsigned int)((getpagesize() + sizeof(hpmc_counters_t)-1)/sizeof(hpmc_counters_t));
     GlobalArray<hpmc_counters_t>(pitch, this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_counters);
     TAG_ALLOCATION(m_counters);
 
@@ -440,8 +440,8 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     #endif
 
     // ntypes counters per GPU, separated by at least a memory page
-    pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
-    GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
+    pitch = (unsigned int)((getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t));
+    GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, (unsigned int)this->m_implicit_count.getNumElements()),
         this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
     TAG_ALLOCATION(m_implicit_counters);
 
@@ -913,7 +913,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_orientation.data,
                     d_vel.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                    this->m_counters.getPitch(),
+                    (unsigned int)this->m_counters.getPitch(),
                     this->m_cl->getCellIndexer(),
                     this->m_cl->getDim(),
                     ghost_width,
@@ -924,7 +924,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_a.data,
                     d_overlaps.data,
                     this->m_overlap_idx,
-                    this->m_move_ratio,
+                    this->m_translation_move_probability,
                     timestep,
                     this->m_sysdef->getNDimensions(),
                     box,
@@ -1043,7 +1043,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_orientation.data,
                         d_vel.data,
                         ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                        this->m_counters.getPitch(),
+                        (unsigned int)this->m_counters.getPitch(),
                         this->m_cl->getCellIndexer(),
                         this->m_cl->getDim(),
                         ghost_width,
@@ -1054,7 +1054,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_a.data,
                         d_overlaps.data,
                         this->m_overlap_idx,
-                        this->m_move_ratio,
+                        this->m_translation_move_probability,
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
@@ -1648,7 +1648,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
-    unsigned int old_ntypes = this->m_params.size();
+    unsigned int old_ntypes = (unsigned int)this->m_params.size();
 
     // call base class method
     IntegratorHPMCMono<Shape>::slotNumTypesChange();

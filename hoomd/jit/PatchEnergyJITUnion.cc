@@ -37,7 +37,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         throw std::runtime_error("Number of member diameters not equal to number of types");
         }
 
-    unsigned int N = len(positions);
+    unsigned int N = (unsigned int)len(positions);
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
@@ -123,7 +123,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
-            float rcut = m_rcut_union+0.5f*(m_diameter[type_a][ileaf]+m_diameter[type_b][jleaf]);
+            float rcut = float(m_rcut_union+0.5*(m_diameter[type_a][ileaf]+m_diameter[type_b][jleaf]));
             if (rsq <= rcut*rcut)
                 {
                 // evaluate energy via JIT function
@@ -177,9 +177,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
 
             // add range of interaction
-            obb_a.lengths.x += m_rcut_union;
-            obb_a.lengths.y += m_rcut_union;
-            obb_a.lengths.z += m_rcut_union;
+            obb_a.lengths.x += float(m_rcut_union);
+            obb_a.lengths.y += float(m_rcut_union);
+            obb_a.lengths.z += float(m_rcut_union);
 
             // rotate and translate a's obb into b's body frame
             obb_a.affineTransform(conj(q_j)*q_i, rotate(conj(q_j),-r_ij));
@@ -212,9 +212,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
             // add range of interaction
-            obb_b.lengths.x += m_rcut_union;
-            obb_b.lengths.y += m_rcut_union;
-            obb_b.lengths.z += m_rcut_union;
+            obb_b.lengths.x += float(m_rcut_union);
+            obb_b.lengths.y += float(m_rcut_union);
+            obb_b.lengths.z += float(m_rcut_union);
 
             // rotate and translate b's obb into a's body frame
             obb_b.affineTransform(conj(q_i)*q_j, rotate(conj(q_i),r_ij));
