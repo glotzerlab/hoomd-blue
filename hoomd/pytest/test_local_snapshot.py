@@ -445,7 +445,7 @@ class _TestLocalSnapshots:
                 getattr(getattr(data, section_name), prop_name), prop_dict, N)
 
     @pytest.mark.cupy_optional
-    def test_arrays_properties(self, simulation_factory, base_snapshot,
+    def test_arrays_properties(self, simulation_factory,
                                section_name_dict, affix, property_check):
         """This test makes extensive use of parameterizing in pytest.
 
@@ -465,6 +465,13 @@ class _TestLocalSnapshots:
                 hoomd_buffer = getattr(snapshot_section, property_name)
                 tags = getattr(snapshot_section, tag_name)
                 property_check(hoomd_buffer, property_dict, tags)
+
+    def test_run_failure(self, simulation_factory, base_snapshot):
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                with pytest.raises(RuntimeError):
+                    sim.run(1)
 
 
 @pytest.mark.cpu

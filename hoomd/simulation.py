@@ -308,6 +308,9 @@ class Simulation(metaclass=Loggable):
             calls to `run` will result in duplicate output frames.
         """
         # check if initialization has occurred
+        if self._state._in_context_manager:
+            raise RuntimeError(
+                "Cannot call run inside of a local snapshot context manager.")
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
         if not self.operations._scheduled:
