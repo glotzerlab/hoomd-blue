@@ -1504,7 +1504,7 @@ void CommunicatorGPU::migrateParticles()
             ArrayHandle<unsigned int> d_cart_ranks(m_decomposition->getCartRanks(), access_location::device, access_mode::read);
 
             // get temporary buffers
-            unsigned int nsend = m_gpu_sendbuf.size();
+            size_t nsend = m_gpu_sendbuf.size();
             CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
             ScopedAllocation<pdata_element> d_in_copy(alloc, nsend);
             ScopedAllocation<unsigned int> d_tmp(alloc, nsend);

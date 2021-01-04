@@ -163,7 +163,7 @@ void gpu_stage_particles(const unsigned int N,
     \param mask Mask of communicating directions
     \param alloc Caching allocator
  */
-void gpu_sort_migrating_particles(const unsigned int nsend,
+void gpu_sort_migrating_particles(const size_t nsend,
                    pdata_element *d_in,
                    const unsigned int *d_comm_flags,
                    const Index3D& di,
