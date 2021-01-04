@@ -577,10 +577,10 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         intersect_upper.z = detail::min(upper_a.z, upper_b.z);
 
         // intersection AABB volume
-        OverlapReal V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
+        Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
         if(dim == 3)
             V *= intersect_upper.z-intersect_lower.z;
-        return V;
+        return (OverlapReal) V;
         }
     }
 
