@@ -540,8 +540,10 @@ class GPUArray : public GPUArrayBase<T, GPUArray<T> >
 
                 o << h_data.get() << "-" << h_data.get() + m_num_elements;
 
+                #ifdef ENABLE_HIP
                 if (m_exec_conf->isCUDAEnabled())
                     o << " (host) " << d_data.get() << "-" << d_data.get() + m_num_elements << " (device)";
+                #endif
 
                 o << " [" << realname << "]";
                 free(realname);
