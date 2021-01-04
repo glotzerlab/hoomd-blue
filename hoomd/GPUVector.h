@@ -70,7 +70,7 @@ class GPUVectorBase : public Array
         /*! \param new_size New number of elements
          *  \param const value to initialize newly added elements with
          */
-        virtual void resize(unsigned int new_size, const T& value);
+        virtual void resize(size_t new_size, const T& value);
 
         //! Resizing a vector as a matrix is not supported
         /*!
@@ -296,13 +296,13 @@ void GPUVectorBase<T, Array>::resize(size_t new_size)
        The newly allocated memory is initialized with a constant value.
 */
 template<class T, class Array>
-void GPUVectorBase<T, Array>::resize(unsigned int new_size, const T& value)
+void GPUVectorBase<T, Array>::resize(size_t new_size, const T& value)
     {
-    unsigned int old_size = m_size;
+    size_t old_size = m_size;
     resize(new_size);
     auto dispatch = acquireHost(access_mode::readwrite);
     T * data = dispatch.get();
-    for (unsigned int i = old_size; i < new_size; ++i)
+    for (size_t i = old_size; i < new_size; ++i)
         data[i] = value;
     }
 
