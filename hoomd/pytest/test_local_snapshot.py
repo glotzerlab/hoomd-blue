@@ -466,12 +466,19 @@ class _TestLocalSnapshots:
                 tags = getattr(snapshot_section, tag_name)
                 property_check(hoomd_buffer, property_dict, tags)
 
-    def test_run_failure(self, simulation_factory, base_snapshot):
+    def test_run_failure(self, simulation_factory):
         sim = simulation_factory()
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 with pytest.raises(RuntimeError):
                     sim.run(1)
+
+    def test_setting_snapshot_failure(self, simulation_factory, base_snapshot):
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                with pytest.raises(RuntimeError):
+                    sim.state.snapshot = base_snapshot
 
 
 @pytest.mark.cpu
