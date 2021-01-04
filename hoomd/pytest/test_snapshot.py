@@ -270,7 +270,7 @@ def test_constraints(s):
 @skip_gsd
 def test_from_gsd_snapshot_empty(s, device):
     gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
@@ -291,5 +291,5 @@ def test_from_gsd_snapshot_populated(s, device):
     s.pairs.types = ['A', 'B']
     s.constraints.N = 3
     gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot._from_gsd_snapshot(gsd_snap, device.communicator)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
