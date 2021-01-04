@@ -252,7 +252,12 @@ class State:
         if filter_ in self._groups[cls]:
             return self._groups[cls][filter_]
         else:
-            group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
+            if isinstance(filter_, hoomd.filter.CustomFilter):
+                group = _hoomd.ParticleGroup(
+                    self._cpp_sys_def,
+                    _hoomd.ParticleFilterCustom(filter_, self))
+            else:
+                group = _hoomd.ParticleGroup(self._cpp_sys_def, filter_)
             self._groups[cls][filter_] = group
             return group
 

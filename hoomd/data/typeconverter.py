@@ -6,7 +6,7 @@ from inspect import isclass
 from hoomd.util import is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
-from hoomd.filter import ParticleFilter
+from hoomd.filter import ParticleFilter, CustomFilter
 import hoomd
 
 
@@ -39,6 +39,13 @@ def variant_preprocessing(variant):
         except Exception:
             raise ValueError(
                 "Expected a hoomd.variant.Variant or float object.")
+
+
+def filter_validation(filter_):
+    if isinstance(filter_, (ParticleFilter, CustomFilter)):
+        return filter_
+    else:
+        raise ValueError("Expected a ParticleFilter object.")
 
 
 def box_preprocessing(box):
@@ -258,7 +265,7 @@ class TypeConverterValue(TypeConverter):
     """
     _conversion_func_dict = {
         Variant: OnlyType(Variant, preprocess=variant_preprocessing),
-        ParticleFilter: OnlyType(ParticleFilter, strict=True),
+        ParticleFilter: OnlyIf(filter_validation),
         str: OnlyType(str, strict=True),
         Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
         ndarray: OnlyType(ndarray, preprocess=array),
