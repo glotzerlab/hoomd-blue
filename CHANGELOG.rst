@@ -17,6 +17,8 @@ v3.0.0-beta.3 (not yet released)
 *Changed*
 
 - Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
 
 *Fixed*
 
