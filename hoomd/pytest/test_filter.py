@@ -274,7 +274,8 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     sim.operations += md.Integrator(0.005, methods=[langevin])
     sim.run(100)
     snap = sim.state.snapshot
-    assert not np.allclose(snap.particles.position[negative_charge_ind],
-                           original_positions)
-    assert np.allclose(snap.particles.position[positive_charge_tags],
-                       static_positions)
+    if snap.exists:
+        assert not np.allclose(snap.particles.position[negative_charge_ind],
+                               original_positions)
+        assert np.allclose(snap.particles.position[positive_charge_tags],
+                           static_positions)
