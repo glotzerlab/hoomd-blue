@@ -38,9 +38,10 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
+    unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
+            + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
         + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes);
+        + min_shared_bytes;
 
     if (min_shared_bytes >= devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -62,9 +63,10 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         n_groups = run_block_size / (tpp*eval_threads);
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
+        shared_bytes = (unsigned int) (n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
+                + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
             + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes));
+            + min_shared_bytes);
         }
 
     dim3 thread(eval_threads, n_groups, tpp);

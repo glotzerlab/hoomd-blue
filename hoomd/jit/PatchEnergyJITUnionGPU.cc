@@ -96,7 +96,8 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
     const unsigned int min_shared_bytes = (unsigned int)(args.num_types * sizeof(Scalar) +
                                           m_d_union_params.size()*sizeof(jit::union_params_t));
 
-    unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
+    unsigned int shared_bytes = (unsigned int)(n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
+            + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
         + max_queue_size * 2 * sizeof(unsigned int)
         + min_shared_bytes);
 
@@ -121,7 +122,8 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
 
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
+        shared_bytes = (unsigned int) (n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
+                + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
             + max_queue_size * 2 * sizeof(unsigned int)
             + min_shared_bytes);
         }

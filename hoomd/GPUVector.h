@@ -66,6 +66,12 @@ class GPUVectorBase : public Array
         */
         virtual void resize(size_t new_size);
 
+        //! Resize the GPUVectorBase
+        /*! \param new_size New number of elements
+         *  \param const value to initialize newly added elements with
+         */
+        virtual void resize(unsigned int new_size, const T& value);
+
         //! Resizing a vector as a matrix is not supported
         /*!
         */
@@ -142,6 +148,10 @@ class GPUVectorBase : public Array
 
         //! Constructs a GPUVectorBase
         GPUVectorBase(size_t size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
+
+        //! Constructs a GPUVectorBase of given size, initialized with a constant value
+        GPUVectorBase(unsigned int size, const T& value,
+            std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
     #ifdef ENABLE_HIP
         //! Constructs an empty GPUVectorBase

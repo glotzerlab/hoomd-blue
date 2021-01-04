@@ -55,7 +55,7 @@ namespace detail
 struct TriangleMesh : ShapeParams
     {
     TriangleMesh()
-          face_verts(), face_overlap(), n_faces(0), ignore(0)
+        : face_verts(), face_overlap(), n_faces(0), ignore(0)
         {
         };
 

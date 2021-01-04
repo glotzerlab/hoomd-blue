@@ -335,85 +335,22 @@ class UpdaterClusters : public Updater
             m_count_run_start = m_count_total;
             }
 
-        //! Set the pair type to be used with type swap moves (by name)
-        void setSwapTypePairStr(pybind11::list l)
+        /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
+            \return The current state of the acceptance counters
+        */
+        hpmc_clusters_counters_t getCounters(unsigned int mode)
             {
-            size_t l_size = pybind11::len(l);
-            if (l_size == 0)
-                {
-                m_ab_types.clear();
-                }
-            else if (l_size == 2)
-                {
-                std::string type_A = l[0].cast<std::string>();
-                std::string type_B = l[1].cast<std::string>();
+            hpmc_clusters_counters_t result;
 
-                unsigned int id_A = m_pdata->getTypeByName(type_A);
-                unsigned int id_B = m_pdata->getTypeByName(type_B);
-                setSwapTypePair(id_A, id_B);
-                }
+            if (mode == 0)
+                result = m_count_total;
+            else if (mode == 1)
+                result = m_count_total - m_count_run_start;
             else
-                {
-                throw std::runtime_error("swap_types must be a list of length 0 or 2");
-                }
+                result = m_count_total - m_count_step_start;
+
+            return result;
             }
-
-        //! Get the swap pair types as a python list
-        pybind11::list getSwapTypePairStr()
-            {
-            pybind11::list result;
-            if (m_ab_types.size() == 0)
-                {
-                return result;
-                }
-            else if (m_ab_types.size() == 2)
-                {
-                result.append(m_pdata->getNameByType(m_ab_types[0]));
-                result.append(m_pdata->getNameByType(m_ab_types[1]));
-                return result;
-                }
-            else
-                {
-                throw std::runtime_error("invalid m_ab_types");
-                }
-            }
-
-        //! Set the difference in chemical potential mu_B - mu_A
-        void setDeltaMu(Scalar delta_mu)
-            {
-            m_delta_mu = delta_mu;
-            }
-
-        //! Get the the difference in chemical potential mu_B - mu_A
-        Scalar getDeltaMu()
-            {
-            return m_delta_mu;
-            }
-
-        //! Reset statistics counters
-        virtual void resetStats()
-            {
-            hpmc_clusters_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC cluster move stats:" << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Average cluster size: " << counters.getAverageClusterSize() << std::endl;
-            }
-
-            /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
-                \return The current state of the acceptance counters
-            */
-            hpmc_clusters_counters_t getCounters(unsigned int mode)
-                {
-                hpmc_clusters_counters_t result;
-
-                if (mode == 0)
-                    result = m_count_total;
-                else if (mode == 1)
-                    result = m_count_total - m_count_run_start;
-                else
-                    result = m_count_total - m_count_step_start;
-
-                return result;
-                }
 
 
     protected:
