@@ -289,15 +289,23 @@ def test_from_gsd_snapshot_populated(s, device):
             'velocity'
             ):
         attr = getattr(s.particles, prop)
-        attr[:] = numpy.random.rand(*attr.shape)
+        if attr.dtype == numpy.float64:
+            attr[:] = numpy.random.rand(*attr.shape)
+        else:
+            attr[:] = numpy.random.randint(3, size=attr.shape)
+
     for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
         for prop in ('group', 'typeid'):
             attr = getattr(getattr(s, section), prop)
-            attr[:] = numpy.random.rand(*attr.shape)
+            attr[:] = numpy.random.randint(3, size=attr.shape)
+
     s.constraints.N = 3
     for prop in ('group', 'value'):
         attr = getattr(s.constraints, prop)
-        attr[:] = numpy.random.rand(*attr.shape)
+        if attr.dtype == numpy.float64:
+            attr[:] = numpy.random.rand(*attr.shape)
+        else:
+            attr[:] = numpy.random.randint(3, size=attr.shape)
 
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
