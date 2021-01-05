@@ -2534,7 +2534,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
             // we're sampling in the larger volume, so that it strictly covers the insertion volume of
             // the smaller depletant
-            OverlapReal r_dep_sample = 0.5*d_dep_search;
+            OverlapReal r_dep_sample = 0.5f*d_dep_search;
 
             // get old AABB and extend
             vec3<Scalar> lower = aabb_i_local_old.getLower();
@@ -2985,7 +2985,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                             Shape shape_test_a(quat<Scalar>(), m_params[type_a]);
                             Shape shape_test_b(quat<Scalar>(), m_params[type_b]);
 
-                            OverlapReal r = 0.5*detail::max(shape_test_a.getCircumsphereDiameter(),
+                            OverlapReal r = 0.5f*detail::max(shape_test_a.getCircumsphereDiameter(),
                                 shape_test_b.getCircumsphereDiameter());
                             obb_k.lengths.x += r;
                             obb_k.lengths.y += r;
@@ -3084,7 +3084,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 }
                             else
                                 {
-                                OverlapReal rsq = dot(r_k_test,r_k_test);
+                                OverlapReal rsq = (OverlapReal) dot(r_k_test,r_k_test);
                                 OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape_k.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
@@ -3124,7 +3124,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 {
                                 const Shape& shape = new_config ? shape_i : shape_old;
 
-                                OverlapReal rsq = dot(r_i_test,r_i_test);
+                                OverlapReal rsq = (OverlapReal) dot(r_i_test,r_i_test);
                                 OverlapReal DaDb = shape_test_a.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
@@ -3159,7 +3159,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                                 {
                                 const Shape& shape = new_config ? shape_i : shape_old;
 
-                                OverlapReal rsq = dot(r_i_test,r_i_test);
+                                OverlapReal rsq = (OverlapReal) dot(r_i_test,r_i_test);
                                 OverlapReal DaDb = shape_test_b.getCircumsphereDiameter() + shape.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 

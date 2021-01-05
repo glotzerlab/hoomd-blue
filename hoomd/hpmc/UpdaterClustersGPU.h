@@ -364,12 +364,12 @@ void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
 
                 // get OBB and extend by depletant radius
                 detail::OBB obb = shape_k.getOBB(vec3<Scalar>(0,0,0));
-                obb.lengths.x += 0.5*range;
-                obb.lengths.y += 0.5*range;
+                obb.lengths.x += 0.5f*range;
+                obb.lengths.y += 0.5f*range;
                 if (this->m_sysdef->getNDimensions() == 3)
-                    obb.lengths.z += 0.5*range;
+                    obb.lengths.z += 0.5f*range;
                 else
-                    obb.lengths.z = 0.5; // unit length
+                    obb.lengths.z = 0.5f; // unit length
 
                 Scalar lambda = std::abs(this->m_mc->getDepletantFugacity(i_type,j_type)*
                     obb.getVolume(this->m_sysdef->getNDimensions()));

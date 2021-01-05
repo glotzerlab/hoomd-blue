@@ -590,7 +590,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             // of their AABBs, only accepting it if it was generated from neighbor j_min
 
             // compute insertion volumes
-            std::vector<OverlapReal> V_all;
+            std::vector<Scalar> V_all;
             Scalar V_tot(0.0);
 
             for (unsigned int k = 0; k < pos_j.size(); ++k)
@@ -991,7 +991,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                         continue;
                         }
 
-                    for (unsigned int m = k; m < n_intersect; ++m)
+                    for (size_t m = k; m < n_intersect; ++m)
                         {
                         unsigned int type_m = type_j[m];
                         Shape shape_m(orientation_j[m], params[type_m]);

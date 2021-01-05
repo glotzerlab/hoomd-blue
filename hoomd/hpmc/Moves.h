@@ -268,7 +268,7 @@ DEVICE inline vec3<OverlapReal> generatePositionInOBB(RNG& rng, const detail::OB
         else
             {
             // disk
-            OverlapReal alpha = hoomd::UniformDistribution<OverlapReal>(-M_PI, M_PI)(rng);
+            OverlapReal alpha = hoomd::UniformDistribution<OverlapReal>((float) -M_PI, (float) M_PI)(rng);
             return obb.center + vec3<OverlapReal>(obb.lengths.x*fast::cos(alpha), obb.lengths.x*fast::sin(alpha),0);
             }
         }
