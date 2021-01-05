@@ -209,6 +209,14 @@ class HPMCIntegrator(BaseIntegrator):
 
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
+        """
+        if (not self._attached
+                or self._simulation.device.communicator.num_ranks > 1):
+            return None
+        return self._cpp_obj.mapOverlaps()
+
+    def map_energies(self):
+        """Build an energy map of the system.
 
         Returns:
             List of tuples. The i,j entry contains the pairwise interaction
