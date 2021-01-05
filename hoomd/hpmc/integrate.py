@@ -209,7 +209,6 @@ class HPMCIntegrator(BaseIntegrator):
 
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
-        """
 
         Returns:
             List of tuples. The i,j entry contains the pairwise interaction
