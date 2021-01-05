@@ -495,7 +495,3 @@ class ConstraintForce(Force):
 
         super()._attach()
 
-    def update_coeffs(self):
-        pass
-        # does nothing: this is for derived classes to implement
-
