@@ -23,6 +23,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 from hoomd.md.force import ConstraintForce
+from hoomd.data.parameterdicts import ParameterDict
 import hoomd
 
 
@@ -188,10 +189,43 @@ class Rigid(ConstraintForce):
     particle creation. You still need to specify the same local body space
     environment to :py:class:`Rigid` as you did in the earlier simulation.
 
+    Set constituent particle types and coordinates for a rigid body.
+
+    Args:
+        type_name (str): The type of the central particle
+        types (list): List of types of constituent particles
+        positions (list): List of relative positions of constituent
+            particles
+        orientations (list): List of orientations of constituent particles
+            (**optional**)
+        charge (list): List of charges of constituent particles
+            (**optional**)
+        diameters (list): List of diameters of constituent particles
+            (**optional**)
+
+    .. caution::
+        The constituent particle type must be exist.
+        If it does not exist, it can be created on the fly using
+        ``system.particles.types.add('A_const')``.
+
+    Example::
+
+        rigid = constrain.rigid()
+        rigid.set_param(
+            'A',
+            types = ['A_const', 'A_const'],
+            positions = [(0,0,1),(0,0,-1)]
+            )
+        rigid.set_param(
+            'B',
+            types = ['B_const', 'B_const'],
+            positions = [(0,0,.5),(0,0,-.5)]
+            )
+
     """
 
     _cpp_class_name = "ForceComposite"
-    def set_param(
+    def __init__(
         self,
         type_name,
         types,
@@ -200,40 +234,6 @@ class Rigid(ConstraintForce):
         charges=None,
         diameters=None,
     ):
-        R"""Set constituent particle types and coordinates for a rigid body.
-
-        Args:
-            type_name (str): The type of the central particle
-            types (list): List of types of constituent particles
-            positions (list): List of relative positions of constituent
-                particles
-            orientations (list): List of orientations of constituent particles
-                (**optional**)
-            charge (list): List of charges of constituent particles
-                (**optional**)
-            diameters (list): List of diameters of constituent particles
-                (**optional**)
-
-        .. caution::
-            The constituent particle type must be exist.
-            If it does not exist, it can be created on the fly using
-            ``system.particles.types.add('A_const')``.
-
-        Example::
-
-            rigid = constrain.rigid()
-            rigid.set_param(
-                'A',
-                types = ['A_const', 'A_const'],
-                positions = [(0,0,1),(0,0,-1)]
-                )
-            rigid.set_param(
-                'B',
-                types = ['B_const', 'B_const'],
-                positions = [(0,0,.5),(0,0,-.5)]
-                )
-
-        """
         # get a list of types from the particle data
         ntypes = (
             self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
@@ -326,6 +326,13 @@ class Rigid(ConstraintForce):
             for p in positions:
                 diameter_vec.append(1.0)
 
+        self._param_dict.update(
+                ParameterDict(type_id=type_id,
+                              type_vec=type_vec,
+                              pos_vec=pos_vec,
+                              orientation_vec=orientation_vec,
+                              charge_vec=charge_vec,
+                              diameter_vec=diameter_vec))
         # set parameters in C++ force
         self._cpp_obj.setParam(
             type_id,
