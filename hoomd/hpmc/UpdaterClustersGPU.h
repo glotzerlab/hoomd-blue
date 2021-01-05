@@ -355,7 +355,7 @@ void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
             OverlapReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            OverlalReal range = std::max(d_i,d_j);
+            OverlapReal range = std::max(d_i,d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {

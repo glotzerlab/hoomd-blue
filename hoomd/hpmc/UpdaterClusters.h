@@ -524,7 +524,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
             // we're sampling in the larger volume, so that it strictly covers the insertion volume of
             // the smaller depletant
-            OverlapReal r_dep_sample = 0.5*d_dep_search;
+            OverlapReal r_dep_sample = 0.5f*d_dep_search;
 
             // get AABB and extend
             vec3<Scalar> lower = aabb_i_local.getLower();
@@ -590,7 +590,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             // of their AABBs, only accepting it if it was generated from neighbor j_min
 
             // compute insertion volumes
-            std::vector<Scalar> V_all;
+            std::vector<OverlapReal> V_all;
             Scalar V_tot(0.0);
 
             for (unsigned int k = 0; k < pos_j.size(); ++k)
@@ -631,7 +631,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                 // initialize
                 unsigned int sz = initializeDepletionTemporaryStorage(shape_i,
                     shape_j, pos_j[k] - pos_i, r_dep_sample,
-                    ndim, &storage.front(), V_all[k], detail::SamplingMethod::accurate);
+                    ndim, &storage.front(), (OverlapReal) V_all[k], detail::SamplingMethod::accurate);
 
                 temp_storage.push_back(storage);
                 storage_sz.push_back(sz);
@@ -829,7 +829,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
                 unsigned int min_idx = i;
 
-                for (unsigned int m = k; m < n_intersect; ++m)
+                for (size_t m = k; m < n_intersect; ++m)
                     {
                     unsigned int type_m = type_j[m];
                     Shape shape_m(orientation_j[m], params[type_m]);

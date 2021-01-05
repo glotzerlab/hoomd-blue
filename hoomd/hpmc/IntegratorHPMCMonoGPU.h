@@ -1728,8 +1728,8 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
         TAG_ALLOCATION(m_lambda);
 
         // ntypes*ntypes counters per GPU, separated by at least a memory page
-        unsigned int pitch = (unsigned int) (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
-        GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, (unsigned int) this->m_implicit_count.getNumElements()),
+        size_t int pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
+        GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
 
@@ -1821,12 +1821,12 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
                 // get OBB and extend by depletant radius
                 detail::OBB obb = shape_k.getOBB(vec3<Scalar>(0,0,0));
-                obb.lengths.x += 0.5*range;
-                obb.lengths.y += 0.5*range;
+                obb.lengths.x += 0.5f*range;
+                obb.lengths.y += 0.5f*range;
                 if (this->m_sysdef->getNDimensions() == 3)
-                    obb.lengths.z += 0.5*range;
+                    obb.lengths.z += 0.5f*range;
                 else
-                    obb.lengths.z = 0.5; // unit length
+                    obb.lengths.z = 0.5f; // unit length
 
                 Scalar lambda = std::abs(this->m_fugacity[this->m_depletant_idx(i_type,j_type)]*
                     obb.getVolume(this->m_sysdef->getNDimensions()));
