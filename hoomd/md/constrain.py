@@ -146,7 +146,7 @@ class Rigid(ConstraintForce):
     or with snapshots), the central particle of a rigid body must have a lower
     tag than all of its constituent particles. Constituent particles follow in
     monotonically increasing tag order, corresponding to the order they were
-    defined in the argument to :py:meth:`set_param()`. The order of central and
+    defined in the argument to `Rigid` initialization. The order of central and
     contiguous particles need **not** to be contiguous. Additionally, you must
     set the ``body`` field for each of the particles in the rigid body to the
     tag of the central particle (for both the central and constituent
