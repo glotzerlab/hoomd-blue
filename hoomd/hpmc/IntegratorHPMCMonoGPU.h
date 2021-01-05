@@ -1728,7 +1728,7 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
         TAG_ALLOCATION(m_lambda);
 
         // ntypes*ntypes counters per GPU, separated by at least a memory page
-        size_t int pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
+        size_t pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
         GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
