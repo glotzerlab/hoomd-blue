@@ -280,7 +280,7 @@ class wall(_updater):
         return self.cpp_updater.getTotalCount(mode);
 
 
-class MuVT(_updater):
+class MuVT(Updater):
     R""" Insert and remove particles in the muVT ensemble.
 
     Args:
@@ -315,7 +315,7 @@ class MuVT(_updater):
         param_dict = ParameterDict(seed=int(seed),
                                    transfer_types=list(transfer_types),
                                    max_volume_rescale=float(max_volume_rescale),
-                                   move_ratio=float(move_ratio)
+                                   move_ratio=float(move_ratio))
         self._param_dict.update(param_dict)
 
         typeparam_fugacity = TypeParameter('fugacity',
@@ -337,7 +337,7 @@ class MuVT(_updater):
 
         self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
-                                int(self.seed)
+                                int(self.seed),
                                 self.ngibbs)
         super().attach(simulation)
 
@@ -407,13 +407,9 @@ class Clusters(Updater):
 
     Args:
         seed (int): Random number seed.
-        swap_type_pair (list[tuple[str, str]]): A pair of two types whose identities
-            may be swapped.
         move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio (float): Set the ratio between type swap moves and
-                                geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
 
@@ -445,7 +441,7 @@ class Clusters(Updater):
         move_ratio(float): Set the ratio between pivot and reflection moves.
         flip_probability(float): Set the probability for transforming an
                                  individual cluster.
-        trigger (int): Select the timesteps on which to perform cluster
+        trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
 
     Examples::
@@ -468,30 +464,28 @@ class Clusters(Updater):
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        cpp_cls_name = "UpdaterClusters"
-        if simulation.device.mode == 'gpu':
-            cpp_cls_name += "GPU"
-        cpp_cls_name += integrator.__class__.__name__
-        cpp_cls = getattr(_hpmc, cpp_cls_name)
-
-        if simulation.device.mode == 'gpu':
-            self._cpp_cell = _hoomd.CellListGPU(simulation.state._cpp_sys_def)
-            if simulation._system_communicator is not None:
-                self._cpp_cell.setCommunicator(simulation._system_communicator)
-            self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj,
-                                    self._cpp_cell,
-                                    int(self.seed))
-        else:
-            self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
-                                    integrator._cpp_obj,
-                                    int(self.seed))
-            self._cpp_cell = None
-
-        super().attach(simulation)
-
-    @property
-    def counter(self):
+        integrator_pairs = [
+                (integrate.Sphere,
+                    _hpmc.UpdaterClustersSphere),
+                (integrate.ConvexPolygon,
+                    _hpmc.UpdaterClustersConvexPolygon),
+                (integrate.SimplePolygon,
+                    _hpmc.UpdaterClustersSimplePolygon),
+                (integrate.ConvexPolyhedron,
+                    _hpmc.UpdaterClustersConvexPolyhedron),
+                (integrate.ConvexSpheropolyhedron,
+                    _hpmc.UpdaterClustersSpheropolyhedron),
+                (integrate.Ellipsoid,
+                    _hpmc.UpdaterClustersEllipsoid),
+                (integrate.ConvexSpheropolygon,
+                    _hpmc.UpdaterClustersSpheropolygon),
+                (integrate.FacetedEllipsoid,
+                    _hpmc.UpdaterClustersFacetedEllipsoid),
+                (integrate.SphereUnion,
+                    _hpmc.UpdaterClustersSphereUnion),
+                (integrate.ConvexSpheropolyhedronUnion,
+                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
+                (integrate.FacetedEllipsoidUnion,
                     _hpmc.UpdaterClustersFacetedEllipsoidUnion),
                 (integrate.Polyhedron,
                     _hpmc.UpdaterClustersPolyhedron),
@@ -508,37 +502,27 @@ class Clusters(Updater):
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                int(self.seed))
-        super()._attach()
->>>>>>> master
 
-    @property
-    def counter(self):
-        """Get the number of accepted and rejected cluster moves.
-
-        Returns:
-            A counter object with pivot, reflection, and swap properties. Each
-            property is a list of accepted moves and rejected moves since the
-            last run.
-
-        Note:
-            `None` when the simulation run has not started.
-        """
-        if not self._attached:
-            return None
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    int(self.seed))
         else:
-            return self._cpp_obj.getCounters(1)
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    int(self.seed))
+        super()._attach()
 
     @log
     def avg_cluster_size(self):
-        R""" Get the average cluster size
+        """float: the typical size of clusters
 
-        Returns:
-            The average cluster size since the last run
-            Returns 0 if not attached.
+        0.0 when not attached
         """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
         counter = self.counter
         if counter is None:
             return 0.0
@@ -656,4 +640,3 @@ class QuickCompress(Updater):
             return False
 
         return self._cpp_obj.isComplete()
->>>>>>> master
