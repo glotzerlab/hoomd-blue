@@ -45,7 +45,7 @@ valid_attrs = [
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction(constructor_args):
+def test_valid_construction(device, constructor_args):
     """Test that Clusters can be constructed with valid arguments."""
     cl = hoomd.hpmc.update.Clusters(**constructor_args)
 
@@ -56,7 +56,7 @@ def test_valid_construction(constructor_args):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_and_attach(simulation_factory,
+def test_valid_construction_and_attach(device, simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args,
                                        valid_args):
@@ -93,7 +93,7 @@ def test_valid_construction_and_attach(simulation_factory,
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr(attr, value):
+def test_valid_setattr(device, attr, value):
     """Test that Clusters can get and set attributes."""
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
                                     seed=1)
@@ -104,7 +104,7 @@ def test_valid_setattr(attr, value):
 
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(attr, value, simulation_factory,
+def test_valid_setattr_attached(device, attr, value, simulation_factory,
                                 two_particle_snapshot_factory,
                                 valid_args):
     """Test that Clusters can get and set attributes while attached."""
@@ -138,7 +138,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     assert getattr(cl, attr) == value
 
 @pytest.mark.serial
-def test_pivot_moves(simulation_factory,
+def test_pivot_moves(device, simulation_factory,
                      lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
 
