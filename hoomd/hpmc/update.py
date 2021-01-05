@@ -523,11 +523,10 @@ class Clusters(Updater):
         if self._attached:
             counter = self._cpp_obj.getCounters(1)
 
-        counter = self.counter
         if counter is None:
             return 0.0
         else:
-            return counter.avg_cluster_size
+            return counter.average_cluster_size
 
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
