@@ -2961,12 +2961,12 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
                     // insert into each neighbor volume
                     #ifdef ENABLE_TBB
-                    tbb::parallel_for(tbb::blocked_range<unsigned int>(0, n_intersect),
+                    tbb::parallel_for(tbb::blocked_range<size_t>(0, n_intersect),
                         [=, &shape_old, &shape_i,
                             &pos_j_new, &orientation_j_new, &type_j_new,
                             &pos_j_old, &orientation_j_old, &type_j_old,
                             &thread_ln_denominator, &thread_ln_numerator,
-                            &thread_counters, &thread_implicit_counters](const tbb::blocked_range<unsigned int>& y) {
+                            &thread_counters, &thread_implicit_counters](const tbb::blocked_range<size_t>& y) {
                     for (size_t k = y.begin(); k != y.end(); ++k)
                     #else
                     for (size_t k = 0; k < n_intersect; ++k)
