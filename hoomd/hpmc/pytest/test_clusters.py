@@ -43,7 +43,7 @@ valid_attrs = [
     ('move_ratio', 0.8)
 ]
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
     """Test that Clusters can be constructed with valid arguments."""
@@ -54,6 +54,7 @@ def test_valid_construction(constructor_args):
         assert getattr(cl, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
@@ -90,6 +91,7 @@ def test_valid_construction_and_attach(simulation_factory,
         assert getattr(cl, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(attr, value):
     """Test that Clusters can get and set attributes."""
@@ -100,6 +102,7 @@ def test_valid_setattr(attr, value):
     assert getattr(cl, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory,
@@ -134,6 +137,7 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
 
+@pytest.mark.serial
 def test_pivot_moves(simulation_factory,
                      lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
