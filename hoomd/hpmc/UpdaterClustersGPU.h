@@ -347,15 +347,15 @@ void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), params[i_type]);
-        Scalar d_i(shape_i.getCircumsphereDiameter());
+        OverlapReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), params[j_type]);
-            Scalar d_j(shape_j.getCircumsphereDiameter());
+            OverlapReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            Scalar range = std::max(d_i,d_j);
+            OverlalReal range = std::max(d_i,d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {
@@ -605,7 +605,7 @@ void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
         d_orientation_backup.data,
         d_image_backup.data,
         d_components.data,
-        this->m_flip_probability,
+        (float) this->m_flip_probability,
         this->m_seed,
         timestep,
         this->m_pdata->getGPUPartition(),
@@ -698,7 +698,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
         bool reallocate = false;
 
         // allocate memory for number of neighbors
-        unsigned int old_size = m_nneigh.size();
+        size_t old_size = m_nneigh.size();
         m_nneigh.resize(this->m_pdata->getN());
         m_nneigh_scan.resize(this->m_pdata->getN());
 
@@ -978,7 +978,7 @@ void UpdaterClustersGPU< Shape >::updateGPUAdvice()
 template< class Shape >
 void UpdaterClustersGPU< Shape >::slotNumTypesChange()
     {
-    unsigned int old_ntypes = this->m_mc->getParams().size();
+    unsigned int old_ntypes = (unsigned int) this->m_mc->getParams().size();
 
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot

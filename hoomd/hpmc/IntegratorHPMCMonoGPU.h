@@ -1207,7 +1207,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                     jtype,
                                     this->m_depletant_idx,
                                     ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
-                                    m_implicit_counters.getPitch(),
+                                    (unsigned int) m_implicit_counters.getPitch(),
                                     h_fugacity.data[this->m_depletant_idx(itype,jtype)] < 0,
                                     d_n_depletants.data + this->m_depletant_idx(itype,jtype)*this->m_pdata->getMaxN(),
                                     &max_n_depletants[0],
@@ -1261,7 +1261,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 // sync those streams with the parent stream
                                 auto gpu_map = this->m_exec_conf->getGPUIds();
 
-                                for (int idev = gpu_map.size() - 1; idev >= 0; --idev)
+                                for (int idev = (int) gpu_map.size() - 1; idev >= 0; --idev)
                                     {
                                     hipStream_t parent = m_depletant_streams[this->m_depletant_idx(itype,jtype)][idev];
                                     hipStream_t s1 = m_depletant_streams_phase1[this->m_depletant_idx(itype,jtype)][idev];
@@ -1280,7 +1280,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                     jtype,
                                     this->m_depletant_idx,
                                     ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
-                                    m_implicit_counters.getPitch(),
+                                    (int) m_implicit_counters.getPitch(),
                                     h_fugacity.data[this->m_depletant_idx(itype,jtype)] < 0,
                                     0, // d_n_depletants (unused)
                                     &max_n_depletants[0],
@@ -1354,7 +1354,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                 m_tuner_depletants_phase2->end();
 
                                 // wait for worker streams to complete
-                                for (int idev = gpu_map.size() - 1; idev >= 0; --idev)
+                                for (int idev = (int) gpu_map.size() - 1; idev >= 0; --idev)
                                     {
                                     hipStream_t parent = m_depletant_streams[this->m_depletant_idx(itype,jtype)][idev];
                                     hipStream_t s1 = m_depletant_streams_phase1[this->m_depletant_idx(itype,jtype)][idev];
@@ -1592,7 +1592,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_orientation.data,
                     d_vel.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                    this->m_counters.getPitch(),
+                    (unsigned int) this->m_counters.getPitch(),
                     this->m_pdata->getGPUPartition(),
                     have_auxilliary_variables,
                     d_trial_postype.data,
@@ -1619,10 +1619,10 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             ArrayHandle<hpmc_implicit_counters_t> d_implicit_counters_per_device(m_implicit_counters, access_location::device, access_mode::read);
 
             gpu::reduce_counters(this->m_exec_conf->getNumActiveGPUs(),
-                m_counters.getPitch(),
+                (unsigned int) m_counters.getPitch(),
                 d_counters_per_device.data,
                 d_count_total.data,
-                m_implicit_counters.getPitch(),
+                (unsigned int) m_implicit_counters.getPitch(),
                 this->m_depletant_idx,
                 d_implicit_counters_per_device.data,
                 d_implicit_count_total.data);
@@ -1728,7 +1728,7 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
         TAG_ALLOCATION(m_lambda);
 
         // ntypes*ntypes counters per GPU, separated by at least a memory page
-        unsigned int pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
+        unsigned int pitch = (unsigned int) (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
         GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, (unsigned int) this->m_implicit_count.getNumElements()),
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
@@ -1804,15 +1804,15 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
-        Scalar d_i(shape_i.getCircumsphereDiameter());
+        OverlapReal d_i(shape_i.getCircumsphereDiameter());
 
         for (unsigned int j_type = 0; j_type < this->m_pdata->getNTypes(); ++j_type)
             {
             Shape shape_j(quat<Scalar>(), this->m_params[j_type]);
-            Scalar d_j(shape_j.getCircumsphereDiameter());
+            OverlapReal d_j(shape_j.getCircumsphereDiameter());
 
             // we use the larger of the two diameters for insertion
-            Scalar range = std::max(d_i,d_j);
+            OverlapReal range = std::max(d_i,d_j);
 
             for (unsigned int k_type = 0; k_type < this->m_pdata->getNTypes(); ++k_type)
                 {
