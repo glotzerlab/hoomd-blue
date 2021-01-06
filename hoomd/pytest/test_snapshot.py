@@ -270,41 +270,43 @@ def test_constraints(s):
 
 @skip_gsd
 def test_from_gsd_snapshot_empty(s, device):
-    gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
-    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+    if s.exists:
+        gsd_snap = make_gsd_snapshot(s)
+        hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
 @skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
-    s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-    for section in ('particles', 'bonds', 'angles', 'dihedrals', 'impropers',
-                    'pairs'):
-        setattr(getattr(s, section), 'N', 5)
-        setattr(getattr(s, section), 'types', ['A', 'B'])
+    if s.exists:
+        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
+        for section in ('particles', 'bonds', 'angles', 'dihedrals', 'impropers',
+                        'pairs'):
+            setattr(getattr(s, section), 'N', 5)
+            setattr(getattr(s, section), 'types', ['A', 'B'])
 
-    for prop in ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
-                 'moment_inertia', 'orientation', 'position', 'typeid',
-                 'velocity'):
-        attr = getattr(s.particles, prop)
-        if attr.dtype == numpy.float64:
-            attr[:] = numpy.random.rand(*attr.shape)
-        else:
-            attr[:] = numpy.random.randint(3, size=attr.shape)
+        for prop in ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
+                     'moment_inertia', 'orientation', 'position', 'typeid',
+                     'velocity'):
+            attr = getattr(s.particles, prop)
+            if attr.dtype == numpy.float64:
+                attr[:] = numpy.random.rand(*attr.shape)
+            else:
+                attr[:] = numpy.random.randint(3, size=attr.shape)
 
-    for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
-        for prop in ('group', 'typeid'):
-            attr = getattr(getattr(s, section), prop)
-            attr[:] = numpy.random.randint(3, size=attr.shape)
+        for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
+            for prop in ('group', 'typeid'):
+                attr = getattr(getattr(s, section), prop)
+                attr[:] = numpy.random.randint(3, size=attr.shape)
 
-    s.constraints.N = 3
-    for prop in ('group', 'value'):
-        attr = getattr(s.constraints, prop)
-        if attr.dtype == numpy.float64:
-            attr[:] = numpy.random.rand(*attr.shape)
-        else:
-            attr[:] = numpy.random.randint(3, size=attr.shape)
+        s.constraints.N = 3
+        for prop in ('group', 'value'):
+            attr = getattr(s.constraints, prop)
+            if attr.dtype == numpy.float64:
+                attr[:] = numpy.random.rand(*attr.shape)
+            else:
+                attr[:] = numpy.random.randint(3, size=attr.shape)
 
-    gsd_snap = make_gsd_snapshot(s)
-    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
-    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+        gsd_snap = make_gsd_snapshot(s)
+        hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
