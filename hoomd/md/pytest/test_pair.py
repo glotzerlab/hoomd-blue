@@ -237,6 +237,13 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(dlvo_invalid_dicts,
                                                     hoomd.md.pair.DLVO,
                                                     {}))
+
+    opp_valid_dict = {
+        'C1': 1.0, 'C2': 0.1, 'eta1': 15, 'eta2': 3, 'k': 0.8, 'phi': 0.1}
+    opp_invalid_dicts = _make_invalid_param_dict(opp_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(opp_invalid_dicts,
+                                                    hoomd.md.pair.OPP,
+                                                    {}))
     return invalid_params_list
 
 
@@ -423,6 +430,18 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(paramtuple(hoomd.md.pair.DLVO,
                                         dict(zip(combos,
                                                  dlvo_valid_param_dicts)),
+                                        {}))
+
+    opp_arg_dict = {'C1': [1.0, 2.0, 5.0],
+                    'C2': [0.1, 0.5, 2.0],
+                    'eta1': [15.0, 12.0, 8.0],
+                    'eta2': [3.0, 2.0, 1.5],
+                    'k': [1.0, 2.0, 3.0],
+                    'phi': [0.0, 0.5, np.pi / 2]}
+    opp_valid_param_dicts = _make_valid_param_dicts(opp_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.OPP,
+                                        dict(zip(combos,
+                                                 opp_valid_param_dicts)),
                                         {}))
     return valid_params_list
 

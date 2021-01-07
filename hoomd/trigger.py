@@ -43,7 +43,7 @@ from hoomd import _hoomd
 # methods which should allow for pickling Python subclasses. pybind11's
 # facilities do not work as they prevent us from getting the attributes of the
 # class be pickled and unpickled. We manual pass and set the instance __dict__
-# instead and instantiate _hoomd.Trigger in __setstate__ (which as not already
+# instead and instantiate _hoomd.Trigger in __setstate__ (which has not already
 # been called as __init__ was not called).
 
 class Trigger(_hoomd.Trigger): # noqa D214

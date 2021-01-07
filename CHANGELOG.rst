@@ -12,10 +12,13 @@ v3.0.0-beta.3 (not yet released)
 - ``hoomd.variant.Variant`` objects are picklable.
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
+- Oscillating pair potential to MD.
 
 *Changed*
 
 - Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
 
 *Fixed*
 
