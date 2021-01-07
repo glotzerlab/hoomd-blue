@@ -21,5 +21,6 @@ from .pair import (
     DLVO,
     Buckingham,
     LJ1208,
-    Fourier
+    Fourier,
+    OPP
 )
