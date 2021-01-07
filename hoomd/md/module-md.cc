@@ -278,6 +278,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
+    export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_tersoff_params(m);
     export_revcross_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
@@ -338,6 +339,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross> (m, "PotentialRevCrossGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
+    export_PotentialPairGPU<PotentialPairOPPGPU, PotentialPairOPP>(m, "PotentialPairOPPGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");

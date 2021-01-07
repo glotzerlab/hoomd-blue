@@ -23,6 +23,7 @@ md.pair
     Mie
     Morse
     Moliere
+    OPP
     ReactionField
     SLJ
     Yukawa
@@ -47,6 +48,7 @@ md.pair
         Mie,
         Morse,
         Moliere,
+        OPP,
         ReactionField,
         SLJ,
         Yukawa,
