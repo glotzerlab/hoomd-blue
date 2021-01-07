@@ -310,6 +310,9 @@ class Simulation(metaclass=Loggable):
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
+        if self._state._in_context_manager:
+            raise RuntimeError(
+                "Cannot call run inside of a local snapshot context manager.")
         if not self.operations._scheduled:
             self.operations._schedule()
 
