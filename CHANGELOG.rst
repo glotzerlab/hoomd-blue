@@ -13,12 +13,19 @@ v3.0.0-beta.3 (not yet released)
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
 - Oscillating pair potential to MD.
+- ``hoomd.Snapshot.from_gsd_snapshot``
 
 *Changed*
 
 - Improved compilation docs.
 - Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
   objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
 
 *Fixed*
 
