@@ -113,8 +113,8 @@ class Dipole(AnisotropicPair):
 
         nl = nlist.Cell()
         dipole = md.pair.Dipole(nl, r_cut=3.0)
-        dipole.params[('A', 'B')] = dict(mu=2.0, A=1.0, kappa=4.0)
-        dipole.params[('A', 'B')] = dict(mu=0.0, A=1.0, kappa=1.0)
+        dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
+        dipole.mu[('A', 'B')] = (4.0, 1.0, 0.0)
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
