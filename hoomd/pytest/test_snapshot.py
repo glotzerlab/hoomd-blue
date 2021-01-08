@@ -270,10 +270,9 @@ def test_constraints(s):
 
 @skip_gsd
 def test_from_gsd_snapshot_empty(s, device):
-    if s.exists:
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
 @skip_gsd
@@ -307,6 +306,6 @@ def test_from_gsd_snapshot_populated(s, device):
             else:
                 attr[:] = numpy.random.randint(3, size=attr.shape)
 
-        gsd_snap = make_gsd_snapshot(s)
-        hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
-        assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
