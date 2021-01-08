@@ -24,7 +24,7 @@ class AnisotropicPair(Pair):
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.
         r_cut (`float`, optional) : The default cutoff for the potential,
-            defaults to ``None`` which means no cutoff.
+            defaults to ``None`` which means no cutoff (units: [length]).
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
@@ -49,10 +49,18 @@ class AnisotropicPair(Pair):
 class Dipole(AnisotropicPair):
     R""" Screened dipole-dipole interactions.
 
+    Implements the force and energy calculations for both magnetic and
+    electronic dipole-dipole interactions. When particles have charge as well as
+    a dipole moment, the interactions are through electronic dipole moments. If
+    the particles have no charge then the interaction is through magnetic or
+    electronic dipoles. Note whether a dipole is magnetic or electronic does not
+    change the functional form of the potential only the units associated with
+    the potential parameters.
+
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius (units: [length]).
+        r_on (float): Default turn-on radius (units: [length]).
         mode (str): energy shifting/smoothing mode
 
     `Dipole` computes the (screened) interaction between pairs of
@@ -82,21 +90,25 @@ class Dipole(AnisotropicPair):
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
+    Note:
+       All units are given for electronic dipole moments.
+
     Attributes:
         params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
             The dipole potential parameters. The dictionary has the following
             keys:
 
             * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
-              scale (*default*: 1.0)
+              scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
 
-            * ``mu`` (`float`, **required**) - :math:`\mu` - emagnitude of
-              :math:`\vec{\mu} = \mu (1, 0, 0)` in the particle local
-              reference frame
 
             * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-              screening length
+              screening length (units: [length]^-1)
 
+        mu (TypeParameter[``particle_type``, tuple[float, float, float]):
+            :math:`\mu` - the magnetic magnitude of the particle local reference
+            frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
+            [charge] [length]).
     Example::
 
         nl = nlist.Cell()
@@ -124,8 +136,8 @@ class GayBerne(AnisotropicPair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius (units: [length]).
+        r_on (float): Default turn-on radius (units: [length]).
         mode (str): energy shifting/smoothing mode.
 
     `GayBerne` computes the Gay-Berne potential between anisotropic
@@ -178,14 +190,14 @@ class GayBerne(AnisotropicPair):
             The Gay-Berne potential parameters. The dictionary has the following
             keys:
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in
-              units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
+              [energy])
 
-            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (in
-              distance units)
+            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
+              [length])
 
-            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (in
-              distance units)
+            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
+              [length])
 
     Example::
 
