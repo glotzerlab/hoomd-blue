@@ -14,6 +14,8 @@ v3.0.0-beta.3 (not yet released)
 - ``hoomd.trigger.Trigger`` objects are picklable.
 - Oscillating pair potential to MD.
 - ``hoomd.Snapshot.from_gsd_snapshot``
+- ``hoomd.md.pair.aniso.GayBerne``
+- ``hoomd.md.pair.aniso.Dipole``
 
 *Changed*
 
