@@ -372,7 +372,8 @@ class Simulation(metaclass=Loggable):
             gpu_unavailable_device_reasons=reasons)
 
         debug_data['communicator'] = dict(
-            num_ranks=self.device.communicator.num_ranks)
+            num_ranks=self.device.communicator.num_ranks,
+            partition=self.device.communicator.partition)
 
         # TODO: Domain decomposition
 
