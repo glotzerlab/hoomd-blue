@@ -4,18 +4,18 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.3 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - ``hoomd.variant.Variant`` objects are picklable.
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
-- Oscillating pair potential to MD.
-- ``hoomd.Snapshot.from_gsd_snapshot``
-- ``hoomd.md.pair.aniso.GayBerne``
-- ``hoomd.md.pair.aniso.Dipole``
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
 
 *Changed*
 
