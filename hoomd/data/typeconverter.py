@@ -53,6 +53,28 @@ def box_preprocessing(box):
                 "using hoomd.Box.from_box".format(box))
 
 
+def positive_real(number):
+    try:
+        float_number = float(number)
+    except Exception as err:
+        raise TypeConversionError(
+            f"{number} not convertible to float.") from err
+    if float_number <= 0:
+        raise TypeConversionError("Expected a number greater than zero.")
+    return float_number
+
+
+def nonnegative_real(number):
+    try:
+        float_number = float(number)
+    except Exception as err:
+        raise TypeConversionError(
+            f"{number} not convertible to float.") from err
+    if float_number < 0:
+        raise TypeConversionError("Expected a nonnegative real number.")
+    return float_number
+
+
 class _HelpValidate(ABC):
     """Base class for classes that perform validation on an inputed value.
 

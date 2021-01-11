@@ -1508,7 +1508,7 @@ void export_LocalParticleData(pybind11::module& m, std::string name)
     .def("getMasses", &LocalParticleData<Output>::getMasses)
     .def("getOrientation", &LocalParticleData<Output>::getOrientation)
     .def("getAngularMomentum", &LocalParticleData<Output>::getAngularMomentum)
-    .def("getMomentsOfIntertia",
+    .def("getMomentsOfInertia",
          &LocalParticleData<Output>::getMomentsOfInertia)
     .def("getCharge", &LocalParticleData<Output>::getCharge)
     .def("getDiameter", &LocalParticleData<Output>::getDiameter)

@@ -53,3 +53,10 @@ md.pair
         SLJ,
         Yukawa,
         ZBL
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-md-pair-aniso

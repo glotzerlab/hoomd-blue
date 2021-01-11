@@ -315,7 +315,6 @@ set(files __init__.py
           integrate.py
           methods.py
           nlist.py
-          pair.py
           update.py
           wall.py
           special_pair.py
@@ -331,6 +330,8 @@ copy_files_to_build("${files}" "md" "*.py")
 install(FILES ${_md_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
+
+add_subdirectory(pair)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
