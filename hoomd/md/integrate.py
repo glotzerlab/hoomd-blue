@@ -33,7 +33,7 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
-    def __init__(self, forces, constraints, methods):
+    def __init__(self, forces, constraints, methods, rigid):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -46,6 +46,7 @@ class _DynamicIntegrator(BaseIntegrator):
                                                             ConstraintForce),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
+        self._rigid = rigid
 
         self._methods = SyncedList(lambda x: isinstance(x, _Method),
                                    to_synced_list=lambda x: x._cpp_obj,
@@ -171,9 +172,9 @@ class Integrator(_DynamicIntegrator):
     """
 
     def __init__(self, dt, aniso='auto', forces=None, constraints=None,
-                 methods=None):
+                 methods=None, rigid=None):
 
-        super().__init__(forces, constraints, methods)
+        super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict = ParameterDict(
             dt=float(dt),
