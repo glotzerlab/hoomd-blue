@@ -214,25 +214,19 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
     m_gave_warning = false;
     }
 
-/*! \param fc ForceComposite to add
+/*! @param fc ForceComposite to set
 */
-void IntegratorTwoStep::addForceComposite(std::shared_ptr<ForceComposite> fc)
+void IntegratorTwoStep::setRigid(std::shared_ptr<ForceComposite> fc)
     {
-    assert(fc);
-    m_composite_forces.push_back(fc);
+    m_rigid = fc;
     }
 
-/*! Call removeForceComputes() to completely wipe out the list of force computes
-    that the integrator uses to sum forces.
+/*! Get the rigid ForceComposite object
 */
-void IntegratorTwoStep::removeForceComputes()
+std::shared_ptr<ForceComposite> IntegratorTwoStep::getRigid()
     {
-    Integrator::removeForceComputes();
-
-    // Remove ForceComposite objects
-    m_composite_forces.clear();
+    return m_rigid;
     }
-
 
 /*! \returns true If all added integration methods have valid restart information
 */
@@ -479,8 +473,8 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
 void IntegratorTwoStep::updateRigidBodies(unsigned int timestep)
     {
     // slave any constituents of local composite particles
-    for (auto force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeParticles(timestep);
+    if (m_rigid)
+        m_rigid->updateCompositeParticles(timestep);
     }
 
 /*! \param enable Enable/disable autotuning
@@ -505,6 +499,6 @@ void export_IntegratorTwoStep(py::module& m)
         .def_property("aniso",
                       &IntegratorTwoStep::getAnisotropicMode,
                       &IntegratorTwoStep::setAnisotropicMode)
-
+        .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         ;
     }
