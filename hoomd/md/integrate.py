@@ -10,11 +10,12 @@
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyType
 from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
 from hoomd.md.force import Force, ConstraintForce
+from hoomd.md.constrain import Rigid
 import itertools
 
 
@@ -33,7 +34,7 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
-    def __init__(self, forces, constraints, methods, rigid):
+    def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -46,11 +47,12 @@ class _DynamicIntegrator(BaseIntegrator):
                                                             ConstraintForce),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
-        self._rigid = rigid
 
         self._methods = SyncedList(lambda x: isinstance(x, _Method),
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
+
+        self._param_dict = ParameterDict(rigid=OnlyType(Rigid, allow_none=True))
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
@@ -94,6 +96,11 @@ class _DynamicIntegrator(BaseIntegrator):
 
         return children
 
+    def _setattr_param(self, attr, value):
+        if "rigid" in self._param_dict:
+            self._cpp_obj.rigid = self.rigid._cpp_obj
+        else:
+            super()._setattr_param("rigid", None)
 
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
@@ -172,9 +179,9 @@ class Integrator(_DynamicIntegrator):
     """
 
     def __init__(self, dt, aniso='auto', forces=None, constraints=None,
-                 methods=None, rigid=None):
+                 methods=None):
 
-        super().__init__(forces, constraints, methods, rigid)
+        super().__init__(forces, constraints, methods)
 
         self._param_dict = ParameterDict(
             dt=float(dt),
