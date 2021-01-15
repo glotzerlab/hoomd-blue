@@ -60,7 +60,12 @@ class EvaluatorSquareDensity
                 return v;
                 }
             #endif
-            };
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j

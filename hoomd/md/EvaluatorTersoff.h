@@ -106,7 +106,7 @@ class EvaluatorTersoff
                 }
             #endif
 
-            };
+            } __attribute__((aligned(16)));
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
