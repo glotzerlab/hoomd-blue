@@ -225,15 +225,24 @@ class Rigid(ConstraintForce):
     """
 
     _cpp_class_name = "ForceComposite"
-    def __init__(
-        self,
-        type_name,
-        types,
-        positions,
-        orientations=None,
-        charges=None,
-        diameters=None,
-    ):
+    def __init__(self):
+
+        self._param_dict.update(
+                ParameterDict(type_id=str,
+                              type_vec=list,
+                              pos_vec=list,
+                              orientation_vec=list,
+                              charge_vec=list,
+                              diameter_vec=list))
+
+    def set_params(
+            self,
+            types,
+            positions,
+            orientations=None,
+            charges=None,
+            diameters=None,
+            ):
         # get a list of types from the particle data
         ntypes = (
             self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
@@ -326,13 +335,6 @@ class Rigid(ConstraintForce):
             for p in positions:
                 diameter_vec.append(1.0)
 
-        self._param_dict.update(
-                ParameterDict(type_id=type_id,
-                              type_vec=type_vec,
-                              pos_vec=pos_vec,
-                              orientation_vec=orientation_vec,
-                              charge_vec=charge_vec,
-                              diameter_vec=diameter_vec))
         # set parameters in C++ force
         self._cpp_obj.setParam(
             type_id,
