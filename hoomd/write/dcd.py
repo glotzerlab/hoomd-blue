@@ -5,7 +5,6 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.operation import Writer
 
 
-
 class DCD(Writer):
     R""" Writes simulation snapshots in the DCD format
 
@@ -56,25 +55,31 @@ class DCD(Writer):
 
         # initialize base class
         super().__init__(trigger)
-        self.filter = filter
-        self.unwrap_full = unwrap_full
-        self.unwrap_rigid = unwrap_rigid
-        self.angle_z = angle_z
         self._param_dict.update(
             ParameterDict(filename=str(filename),
-                          period=trigger.period,
-                          overwrite=bool(overwrite)))
+                          filter=ParticleFilter,
+                          overwrite=bool(overwrite),
+                          write_settings=[bool],
+                          _defaults=dict(filter=filter,
+                                         write_settings=[unwrap_full,
+                                                         unwrap_rigid,
+                                                         angle_z])))
 
     def _attach(self):
+        write_settings = []
+        if self.write_settings is not None:
+            write_settings = [setting for setting in self.write_settings]
+        group = self._simulation.state._get_group(self.filter)
+
         self._cpp_obj = _hoomd.DCDDumpWriter(self._simulation.state._cpp_sys_def,
                                              self.filename,
-                                             int(self.period),
-                                             self._simulation.state._get_group(self.filter),
+                                             int(self.trigger.period),
+                                             group,
                                              self.overwrite)
-
-        self._cpp_obj.setUnwrapFull(self.unwrap_full)
-        self._cpp_obj.setUnwrapRigid(self.unwrap_rigid)
-        self._cpp_obj.setAngleZ(self.angle_z)
+        self._cpp_obj.setUnwrapFull(write_settings[0])
+        self._cpp_obj.setUnwrapRigid(write_settings[1])
+        self._cpp_obj.setAngleZ(write_settings[2])
+        super()._attach()
 
     def enable(self):
         """ The DCD dump writer cannot be re-enabled """
