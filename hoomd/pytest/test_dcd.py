@@ -24,6 +24,16 @@ def test_set_period(tmp_path):
         dcd_dump.set_period(1)
 
 
+def test_enabled(tmp_path):
+    d = tmp_path / "sub"
+    d.mkdir()
+    filename = d / "temporary_test_file.dcd"
+    dcd_dump = hoomd.write.DCD(filename, hoomd.trigger.Periodic(1))
+    dcd_dump.enabled = False
+    with pytest.raises(RuntimeError):
+        dcd_dump.enable()
+
+
 def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     garnett = pytest.importorskip("garnett")
     dcd_reader = garnett.reader.DCDFileReader()
