@@ -6,7 +6,7 @@ from hoomd.operation import Writer
 
 
 class DCD(Writer):
-    R""" Writes simulation snapshots in the DCD format
+    """Writes simulation snapshots in the DCD format.
 
     Args:
         filename (str): File name to write.
