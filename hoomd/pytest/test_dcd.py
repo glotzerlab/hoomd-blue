@@ -10,9 +10,7 @@ def test_attach(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim = simulation_factory(two_particle_snapshot_factory())
     dcd_dump = hoomd.write.DCD(filename, hoomd.trigger.Periodic(1))
     sim.operations.add(dcd_dump)
-    sim.operations._schedule()
-    for i in range(10):
-        sim.run(1)
+    sim.run(10)
 
 
 def test_set_period(tmp_path):
