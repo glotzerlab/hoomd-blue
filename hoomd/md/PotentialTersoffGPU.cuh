@@ -905,10 +905,11 @@ struct TersoffComputeKernel
                 }
 
             // zero the forces
-            hipLaunchKernelGGL((gpu_zero_forces_kernel), dim3((pair_args.N + pair_args.Nghosts)/run_block_size + 1), dim3(run_block_size), 0, 0, pair_args.d_force,
-                                                    pair_args.d_virial,
-                                                    pair_args.virial_pitch,
-                                                    pair_args.N + pair_args.Nghosts);
+            //hipLaunchKernelGGL((gpu_zero_forces_kernel), dim3((pair_args.N + pair_args.Nghosts)/run_block_size + 1), dim3(run_block_size), 0, 0, pair_args.d_force,
+            //                                        pair_args.d_virial,
+            //                                        pair_args.virial_pitch,
+            //                                        pair_args.N + pair_args.Nghosts);
+
 
             // setup the grid to run the kernel
             dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);

@@ -131,6 +131,11 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
+    ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::overwrite);
+    memset((void *)h_force.data, 0, sizeof(Scalar4) * this->m_force.getNumElements());
+    memset((void *)h_virial.data, 0, sizeof(Scalar) * this->m_virial.getNumElements());
+
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
 
