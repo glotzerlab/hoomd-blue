@@ -10,7 +10,7 @@ class DCD(Writer):
 
     Args:
         filename (str): File name to write.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        trigger (hoomd.trigger.Periodic): Select the timesteps to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
             Defaults to `hoomd.filter.All`.
         overwrite (bool): When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
@@ -41,7 +41,7 @@ class DCD(Writer):
 
     Attributes:
         filename (str): File name to write.
-        trigger (hoomd.trigger.Trigger): Select the timesteps to write.
+        trigger (hoomd.trigger.Periodic): Select the timesteps to write.
         filter (hoomd.filter.ParticleFilter): Select the particles to write.
         overwrite (bool): When False, an existing DCD file will be appended to. When True, an existing DCD
                           file *filename* will be overwritten.
