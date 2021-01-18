@@ -27,11 +27,6 @@ class DCD(Writer):
     specified file in the DCD file format. DCD only stores particle positions,
     in distance units.
 
-    Due to constraints of the DCD file format, once you stop writing to
-    a file via ``disable``, you cannot continue writing to the same file,
-    nor can you change the period of the dump at any time. Either of these tasks
-    can be performed by creating a new dump file with the needed settings.
-
     Examples::
 
         hoomd.write.DCD("trajectory.dcd", hoomd.trigger.Periodic(1000))
