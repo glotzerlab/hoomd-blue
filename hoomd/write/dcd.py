@@ -23,7 +23,7 @@ class DCD(Writer):
                some particles may be written just outside it. *unwrap_rigid* is ignored when *unwrap_full* is True.
         angle_z (bool): When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
 
-    On each timestep where `DCD` triggers, it writes the simulation snapshot the
+    On each timestep where `DCD` triggers, it writes the simulation snapshot to the
     specified file in the DCD file format. DCD only stores particle positions,
     in distance units.
 
