@@ -89,11 +89,3 @@ class DCD(Writer):
         self._cpp_obj.setUnwrapRigid(write_settings[1])
         self._cpp_obj.setAngleZ(write_settings[2])
         super()._attach()
-
-    def enable(self):
-        """ The DCD dump writer cannot be re-enabled """
-        if self.enabled is False:
-            raise RuntimeError('DCD output cannot be re-enabled after it has been disabled');
-
-    def set_period(self, period):
-        raise RuntimeError('The period of a DCD writer cannot be changed')
