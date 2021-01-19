@@ -18,7 +18,6 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim = simulation_factory(two_particle_snapshot_factory())
     dcd_dump = hoomd.write.DCD(filename, hoomd.trigger.Periodic(1))
     sim.operations.add(dcd_dump)
-    snap = sim.state.snapshot
     positions = []
     for i in range(10):
         snap = sim.state.snapshot
