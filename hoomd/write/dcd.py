@@ -29,7 +29,7 @@ class DCD(Writer):
 
     Examples::
 
-        hoomd.write.DCD("trajectory.dcd", hoomd.trigger.Periodic(1000))
+        writer = hoomd.write.DCD("trajectory.dcd", hoomd.trigger.Periodic(1000))
         dcd = hoomd.write.DCD(filename="data/dump.dcd", trigger=hoomd.trigger.Periodic(100, 10))
 
     Warning:
