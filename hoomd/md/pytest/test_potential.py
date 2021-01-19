@@ -580,7 +580,9 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     sim.operations.integrator = integrator
     sim.operations._schedule()
     old_snap = sim.state.snapshot
+    print(sim.operations.integrator.forces[0].forces)
     sim.run(2)
+    print(sim.operations.integrator.forces[0].forces)
     new_snap = sim.state.snapshot
     if new_snap.exists:
         assert not np.allclose(new_snap.particles.position,
