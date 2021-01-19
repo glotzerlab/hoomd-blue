@@ -22,19 +22,20 @@ def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     positions = []
     for i in range(10):
         snap = sim.state.snapshot
-        position1 = np.asarray(snap.particles.position[0])
-        position2 = np.asarray(snap.particles.position[1])
-        position1 += 0.1 * i * (-1)**i
-        position2 += 0.1 * (i + 1) * (-1)**(i - 1)
         if snap.exists:
+            position1 = np.asarray(snap.particles.position[0])
+            position2 = np.asarray(snap.particles.position[1])
+            position1 += 0.1 * i * (-1)**i
+            position2 += 0.1 * (i + 1) * (-1)**(i - 1)
             snap.particles.position[0] = position1
             snap.particles.position[1] = position2
         sim.state.snapshot = snap
         sim.run(1)
         positions.append([list(position1), list(position2)])
-    with open(filename, 'rb') as dcdfile:
-        traj = dcd_reader.read(dcdfile)
-        traj.load()
-    for i in range(len(traj)):
-        for j in [0, 1]:
-            np.testing.assert_allclose(traj[i].position[j], positions[i][j])
+    if sim.device.communicator.rank == 0:
+        with open(filename, 'rb') as dcdfile:
+            traj = dcd_reader.read(dcdfile)
+            traj.load()
+        for i in range(len(traj)):
+            for j in [0, 1]:
+                np.testing.assert_allclose(traj[i].position[j], positions[i][j])
