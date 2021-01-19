@@ -70,8 +70,8 @@ class DCD(Writer):
                           overwrite=bool(overwrite),
                           unwrap_full=bool(unwrap_full),
                           unwrap_rigid=bool(unwrap_rigid),
-                          angle_z=bool(angle_z),
-                          _defaults=dict(filter=filter)))
+                          angle_z=bool(angle_z)))
+        self.filter = filter
 
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
