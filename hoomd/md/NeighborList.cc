@@ -443,7 +443,7 @@ void NeighborList::updateRList()
         // take the maximum
         for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            for (unsigned int j=0; i < m_pdata->getNTypes(); ++i)
+            for (unsigned int j=0; j < m_pdata->getNTypes(); ++j)
                 {
                 h_r_cut.data[m_typpair_idx(i,j)] = std::max(
                     h_r_cut.data[m_typpair_idx(i,j)],
