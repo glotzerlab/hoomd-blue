@@ -426,6 +426,8 @@ void NeighborList::updateRList()
     // overwrite the new r_cut matrix
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::overwrite);
 
+    memset(h_r_cut.data, 0, sizeof(Scalar)*m_r_cut.getNumElements());
+
     // first: loop over the consumer r_cut matrices and take their max in h_r_cut
     for (unsigned int matrix = 0; matrix < m_consumer_r_cut.size(); matrix++)
         {
@@ -438,22 +440,14 @@ void NeighborList::updateRList()
             throw std::invalid_argument("given r_cut_matrix is not the right size");
             }
 
-        if (matrix == 0)
+        // take the maximum
+        for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
             {
-            // copy the first matrix as a starting point
-            memcpy(h_r_cut.data, h_consumer_r_cut.data, sizeof(Scalar)*m_r_cut.getNumElements());
-            }
-        else
-            {
-            // take the maximum
-            for (unsigned int i=0; i < m_pdata->getNTypes(); ++i)
+            for (unsigned int j=0; i < m_pdata->getNTypes(); ++i)
                 {
-                for (unsigned int j=0; i < m_pdata->getNTypes(); ++i)
-                    {
-                    h_r_cut.data[m_typpair_idx(i,j)] = std::max(
-                        h_r_cut.data[m_typpair_idx(i,j)],
-                        h_consumer_r_cut.data[m_typpair_idx(i,j)]);
-                    }
+                h_r_cut.data[m_typpair_idx(i,j)] = std::max(
+                    h_r_cut.data[m_typpair_idx(i,j)],
+                    h_consumer_r_cut.data[m_typpair_idx(i,j)]);
                 }
             }
         }
@@ -524,12 +518,22 @@ void NeighborList::checkBoxSize()
         rmax += 0.5*max_d_comp;
         }
 
+    std::cout << "rmax: " << rmax << std::endl;
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        std::ostringstream oss;
+        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
+            << "rmax=" << rmax << std::endl;
+
+        if (box.getPeriodic().x)
+            oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+        if (box.getPeriodic().y)
+            oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+        if (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z)
+            oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+        throw std::runtime_error(oss.str());
         }
     }
 
