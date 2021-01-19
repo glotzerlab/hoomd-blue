@@ -16,7 +16,7 @@ class DCD(Writer):
         overwrite (bool): When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
                           file *filename* will be overwritten.
         unwrap_full (bool): When False, (the default) particle coordinates are always written inside the simulation box.
-                            When True, particles will be unwrapped into their current box image before writing to the dcd file.
+                            When True, particles will be unwrapped into their current box image before writing to the DCD file.
         unwrap_rigid (bool): When False, (the default) individual particles are written inside the simulation box which
                breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
                unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
@@ -33,10 +33,10 @@ class DCD(Writer):
         dcd = hoomd.write.DCD(filename="data/dump.dcd", trigger=hoomd.trigger.Periodic(100, 10))
 
     Warning:
-        When you use dump.dcd to append to an existing dcd file:
+        When you use hoomd.write.DCD to append to an existing DCD file:
 
         * The period must be the same or the time data in the file will not be consistent.
-        * dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
+        * hoomd.write.DCD will not write out data at time steps that already are present in the DCD file to maintain a
           consistent timeline
 
     Attributes:
@@ -46,7 +46,7 @@ class DCD(Writer):
         overwrite (bool): When False, an existing DCD file will be appended to. When True, an existing DCD
                           file *filename* will be overwritten.
         unwrap_full (bool): When False, particle coordinates are always written inside the simulation box.
-                            When True, particles will be unwrapped into their current box image before writing to the dcd file.
+                            When True, particles will be unwrapped into their current box image before writing to the DCD file.
         unwrap_rigid (bool): When False, individual particles are written inside the simulation box which
                breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
                unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
