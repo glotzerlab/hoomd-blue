@@ -454,7 +454,7 @@ class NPT(_Method):
             seed, self._simulation.timestep)
 
 
-class nph(NPT):
+class NPH(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
@@ -486,10 +486,41 @@ class nph(NPT):
         # Relax the box
         nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
-    def __init__(self, **params):
 
-        # initialize base class
-        npt.__init__(self, nph=True, kT=1.0, **params)
+    def _attach(self):
+        # initialize the reflected c++ class
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = _md.TwoStepNPTMTK
+            thermo_cls = _md.ComputeThermo
+        else:
+            cpp_cls = _md.TwoStepNPTMTKGPU
+            thermo_cls = _md.ComputeThermoGPU
+
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        thermo_group = self._simulation.state._get_group(self.filter)
+
+        thermo_half_step = thermo_cls(cpp_sys_def,
+                                      thermo_group,
+                                      "")
+
+        thermo_full_step = thermo_cls(cpp_sys_def,
+                                      thermo_group,
+                                      "")
+
+        self._cpp_obj = cpp_cls(cpp_sys_def,
+                                thermo_group,
+                                thermo_half_step,
+                                thermo_full_step,
+                                self.tau,
+                                self.tauS,
+                                self.kT,
+                                self.S,
+                                self.couple,
+                                self.box_dof,
+                                True)
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
 
     def randomize_velocities(self, kT, seed):
         R""" Assign random velocities and angular momenta to particles in the
