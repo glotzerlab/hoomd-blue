@@ -16,6 +16,7 @@ v3.0.0-beta.3 (2021-01-11)
 - ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
 - ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
 - ``hoomd.md.pair.OPP`` - Oscillating pair potential.
+- ``hoomd.write.DCD`` - DCD trajectory writer.
 
 *Changed*
 
