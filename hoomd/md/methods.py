@@ -584,7 +584,7 @@ class NPH(NPT):
             run(100)
 
         """
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        self._cpp_obj.setRandomizeVelocitiesParams(kT, seed)
 
 
 class NVE(_Method):
