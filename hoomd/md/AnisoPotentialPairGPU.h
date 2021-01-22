@@ -116,7 +116,7 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_
 template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
                                                 const typename evaluator::shape_type *d_shape_params) >
-void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
