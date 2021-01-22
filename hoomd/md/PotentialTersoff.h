@@ -108,6 +108,15 @@ class PotentialTersoff : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        virtual void notifyDetach()
+            {
+            if (m_attached)
+                {
+                m_nlist->removeRCutMatrix(m_r_cut_nlist);
+                }
+            m_attached = false;
+            }
+
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(unsigned int timestep);
@@ -122,6 +131,12 @@ class PotentialTersoff : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
 
+        // track whether we are attached to the simulation
+        bool m_attached = true;
+
+        // r_cut (not squared) given to the neighborlist
+        std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
@@ -134,15 +149,69 @@ class PotentialTersoff : public ForceCompute
             if (m_pdata->getNTypes() == m_typpair_idx.getW())
                 return;
 
-            m_typpair_idx = Index2D(m_pdata->getNTypes());
+            Index2D new_typpair_idx(m_pdata->getNTypes());
 
-            // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_params.swap(params);
+            // create new arrays
+            GPUArray<Scalar> new_rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<Scalar> new_r_cut_nlist(m_typpair_idx.getNumElements(), m_exec_conf);
+            GPUArray<Scalar> new_ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            GPUArray<param_type> new_params(m_typpair_idx.getNumElements(), m_exec_conf);
+
+            // grab the new arrays
+            ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
+                                             access_location::host,
+                                             access_mode::overwrite);
+            ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
+                                                  access_location::host,
+                                                  access_mode::overwrite);
+            ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
+                                            access_location::host,
+                                            access_mode::overwrite);
+            ArrayHandle<param_type> h_new_params(new_params,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+
+            // grab the old arrays
+            ArrayHandle<Scalar> h_rcutsq(m_rcutsq,
+                                         access_location::host,
+                                         access_mode::read);
+            ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                              access_location::host,
+                                              access_mode::read);
+            ArrayHandle<Scalar> h_ronsq(m_ronsq,
+                                        access_location::host,
+                                        access_mode::read);
+            ArrayHandle<param_type> h_params(m_params,
+                                             access_location::host,
+                                             access_mode::read);
+
+
+            // populate the new arrays with the old array's data
+            unsigned int newW = std::min(new_typpair_idx.getW(),
+                                         m_typpair_idx.getW());
+            unsigned int newH = std::min(new_typpair_idx.getH(),
+                                         m_typpair_idx.getH());
+            for (unsigned int i=0; i<newW; ++i)
+                {
+                for (unsigned int j=0; j<newH; ++j)
+                    {
+                    unsigned int newIdx = new_typpair_idx(i, j);
+                    unsigned int oldIdx = m_typpair_idx(i, j);
+                    h_new_rcutsq.data[newIdx] = h_rcutsq.data[oldIdx];
+                    h_new_r_cut_nlist.data[newIdx] = h_r_cut_nlist.data[oldIdx];
+                    h_new_ronsq.data[newIdx] = h_ronsq.data[oldIdx];
+                    h_new_params.data[newIdx] = h_params.data[oldIdx];
+                    }
+                }
+
+            // swap the pointers
+            m_rcutsq.swap(new_rcutsq);
+            m_ronsq.swap(new_ronsq);
+            m_params.swap(new_params);
+            *m_r_cut_nlist = new_r_cut_nlist;
+
+            // notify the nlist that things have changed
+            m_nlist->notifyRCutMatrixChange();
             }
     };
 
@@ -168,6 +237,10 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
+    m_r_cut_nlist = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(),
+                                                          m_exec_conf);
+    nlist->addRCutMatrix(m_r_cut_nlist);
+
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
@@ -181,6 +254,10 @@ PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
+    if (m_attached)
+        {
+        m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        }
     }
 
 /*! \param typ1 First type index in the pair
@@ -235,6 +312,12 @@ void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
+
+    ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::readwrite);
+    h_r_cut_nlist.data[m_typpair_idx(typ1, typ2)] = rcut;
+    h_r_cut_nlist.data[m_typpair_idx(typ2, typ1)] = rcut;
+
+    m_nlist->notifyRCutMatrixChange();
     }
 
 template< class evaluator >
