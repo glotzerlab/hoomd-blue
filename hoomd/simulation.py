@@ -1,8 +1,9 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
 """Define the Simulation class."""
+import inspect
 
 import hoomd._hoomd as _hoomd
 from hoomd.logging import log, Loggable
@@ -155,20 +156,31 @@ class Simulation(metaclass=Loggable):
         """Create the simulations state from a `Snapshot`.
 
         Args:
-            snapshot (Snapshot): Snapshot to initialize the state from.
+            snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
+                the state from. A `gsd.hoomd.Snapshot` will first be
+                converted to a `hoomd.Snapshot`.
+
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
-
-        Warning:
-            *snapshot* must be a `hoomd.Snapshot`. Use `create_state_from_gsd`
-            to read GSD files. `create_state_from_snapshot` does not support
-            ``gsd.hoomd.Snapshot`` objects from the ``gsd`` Python package.
         """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
-        self._state = State(self, snapshot)
+        if isinstance(snapshot, Snapshot):
+            # snapshot is hoomd.Snapshot
+            self._state = State(self, snapshot)
+        elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
+            # snapshot is gsd.hoomd.Snapshot
+            snapshot = Snapshot._from_gsd_snapshot(
+                    snapshot, self._device.communicator
+                    )
+            self._state = State(self, snapshot)
+        else:
+            raise TypeError(
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
+            )
+
         self._state._cpp_sys_def.setSeed(self._seed)
 
         step = 0
@@ -342,6 +354,9 @@ class Simulation(metaclass=Loggable):
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
+        if self._state._in_context_manager:
+            raise RuntimeError(
+                "Cannot call run inside of a local snapshot context manager.")
         if not self.operations._scheduled:
             self.operations._schedule()
 
@@ -394,7 +409,8 @@ class Simulation(metaclass=Loggable):
             gpu_unavailable_device_reasons=reasons)
 
         debug_data['communicator'] = dict(
-            num_ranks=self.device.communicator.num_ranks)
+            num_ranks=self.device.communicator.num_ranks,
+            partition=self.device.communicator.partition)
 
         # TODO: Domain decomposition
 
@@ -426,3 +442,8 @@ class Simulation(metaclass=Loggable):
         if self.device.communicator.rank == 0:
             with open(filename, 'w') as f:
                 json.dump(debug_data, f, default=lambda v: str(v), indent=4)
+
+
+def _match_class_path(obj, *matches):
+     return any(cls.__module__ + '.' + cls.__name__ in matches
+             for cls in inspect.getmro(type(obj)))

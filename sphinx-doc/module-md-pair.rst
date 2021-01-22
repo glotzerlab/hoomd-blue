@@ -23,6 +23,7 @@ md.pair
     Mie
     Morse
     Moliere
+    OPP
     ReactionField
     SLJ
     Yukawa
@@ -47,7 +48,15 @@ md.pair
         Mie,
         Morse,
         Moliere,
+        OPP,
         ReactionField,
         SLJ,
         Yukawa,
         ZBL
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-md-pair-aniso

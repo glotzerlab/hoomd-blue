@@ -1,8 +1,10 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
 #include "hoomd/RNGIdentifiers.h"
+#include <numeric>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -54,6 +56,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
 
+    updateChangedWeights();
     }
 
 UpdaterBoxMC::~UpdaterBoxMC()
@@ -412,45 +415,51 @@ void UpdaterBoxMC::update(uint64_t timestep)
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
-    // This seems messy and can hopefully be simplified and generalized.
-    // This line will need to be rewritten or updated when move types are added to the updater.
-    Scalar range = m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight;
-    if (range == 0.0)
+    auto const weight_total = m_weight_partial_sums.back();
+    if (weight_total == 0.0)
         {
-        // Attempt to execute with no move types set.
+        // Attempt to execute with all move weights equal to zero.
         m_exec_conf->msg->warning() << "No move types with non-zero weight. UpdaterBoxMC has nothing to do." << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
-    Scalar move_type_select = hoomd::detail::generate_canonical<Scalar>(rng) * range; // generate a number on (0, range]
+
+    // Generate a number between (0, weight_total]
+    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total;
+    // Select the first move type whose partial sum of weights is greater than
+    // or equal to the generated value.
+    auto const move_type_select = std::distance(
+        m_weight_partial_sums.cbegin(),
+        std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected)
+    );
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select < m_volume_weight)
+    if (move_type_select == 0)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight)
+    else if (move_type_select == 1)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
         update_lnV(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight)
+    else if (move_type_select == 2)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select < m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight)
+    else if (move_type_select == 3)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_volume_weight + m_ln_volume_weight + m_length_weight + m_shear_weight + m_aspect_weight)
+    else if (move_type_select == 4)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -459,7 +468,7 @@ void UpdaterBoxMC::update(uint64_t timestep)
     else
         {
         // Should not reach this point
-        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << range << std::endl;
+        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << weight_total << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
@@ -926,6 +935,14 @@ void export_UpdaterBoxMC(py::module& m)
                                           }
                           )
     ;
+    }
+
+void UpdaterBoxMC::updateChangedWeights()
+    {
+    // This line will need to be rewritten or updated when move types are added to the updater.
+    auto const weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
+    m_weight_partial_sums = std::vector<Scalar>(weights.size());
+    std::partial_sum(weights.cbegin(), weights.cend(), m_weight_partial_sums.begin());
     }
 
 } // end namespace hpmc
