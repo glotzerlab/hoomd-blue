@@ -486,6 +486,34 @@ class NPH(NPT):
         # Relax the box
         nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
+    def __init__(self, filter, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            tau=float(tau),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
+            tauS=float(tauS),
+            couple=str(couple),
+            box_dof=(bool,)*6,
+            rescale_all=bool(rescale_all),
+            gamma=float(gamma),
+            translational_thermostat_dof=(float, float),
+            rotational_thermostat_dof=(float, float),
+            barostat_dof=(float, float, float, float, float, float))
+
+        param_dict.update(
+            dict(filter=filter,
+                 kT=hoomd.variant.Constant(1.0),
+                 S=S,
+                 couple=couple,
+                 box_dof=box_dof,
+                 translational_thermostat_dof=(0, 0),
+                 rotational_thermostat_dof=(0, 0),
+                 barostat_dof=(0, 0, 0, 0, 0, 0)))
+
+        # set defaults
+        self._param_dict.update(param_dict)
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -521,6 +549,15 @@ class NPH(NPT):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
+    def __preprocess_stress(self, value):
+        if isinstance(value, Sequence):
+            if len(value) != 6:
+                raise ValueError(
+                    "Expected a single hoomd.variant.Variant / float or six.")
+            return tuple(value)
+        else:
+            return (value, value, value, 0, 0, 0)
 
     def randomize_velocities(self, kT, seed):
         R""" Assign random velocities and angular momenta to particles in the
