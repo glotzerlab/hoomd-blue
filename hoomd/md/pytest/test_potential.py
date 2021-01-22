@@ -811,6 +811,7 @@ def test_force_energy_relationship(simulation_factory,
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
     sim = simulation_factory(snap)
+    _check_for_skip(sim, valid_params.pair_potential)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pot)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
