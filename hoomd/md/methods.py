@@ -458,10 +458,34 @@ class NPH(NPT):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
-        params: keyword arguments passed to :py:class:`NPT`.
-        gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply this method.
 
-    :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
+        tau (`float`): Coupling constant for the thermostat (in time units).
+
+        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
+            point for the barostat (in pressure units).  In Voigt notation:
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
+            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+
+        tauS (`float`): Coupling constant for the barostat (in time units).
+
+        couple (`str`): Couplings of diagonal elements of the stress tensor,
+            can be "none", "xy", "xz","yz", or "all", default to "all".
+
+        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
+            elements corresponding to x, y, z, xy, xz, yz, each. Default to
+            [True,True,True,False,False,False]). If turned on to True,
+            rescale corresponding lengths or tilt factors and components of
+            particle coordinates and velocities.
+
+        rescale_all (`bool`): if True, rescale all particles, not only those in
+            the group, Default to False.
+
+        gamma (`float`): Dimensionless damping factor for the box degrees of
+            freedom, Default to 0.
+
+    :py:class:`NPH` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
 
@@ -475,16 +499,58 @@ class NPH(NPT):
          :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
-    :py:class:`nph` is an integration method and must be used with ``mode_standard``.
+    :py:class:`NPH` is an integration method and must be used with ``mode_standard``.
 
     Examples::
 
-        # Triclinic unit cell
-        nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
-        # Cubic unit cell
-        nph = integrate.nph(group=all, P=2.0, tauP=1.0)
-        # Relax the box
-        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0)
+        # orthorhombic symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="none")
+        # tetragonal symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="xy")
+        # triclinic symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
+        integrator = hoomd.md.Integrator(dt=0.005, methods=[nph], forces=[lj])
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        tau (float): Coupling constant for the thermostat (in time units).
+
+        S (List[hoomd.variant.Variant]): Stress components set
+            point for the barostat (in pressure units).
+            In Voigt notation,
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
+            be reset after method object is created. For example, An isoropic
+            pressure can be set by ``npt.S = 4.``
+
+        tauS (float): Coupling constant for the barostat (in time units).
+
+        couple (str): Couplings of diagonal elements of the stress tensor,
+            can be "none", "xy", "xz","yz", or "all".
+
+        box_dof(List[bool]): Box degrees of freedom with six boolean elements
+            corresponding to x, y, z, xy, xz, yz, each.
+
+        rescale_all (bool): if True, rescale all particles, not only those in
+            the group.
+
+        gamma (float): Dimensionless damping factor for the box degrees of
+            freedom.
+
+        translational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the translational thermostat (:math:`\xi`,
+            :math:`\eta`)
+
+        rotational_thermostat_dof (tuple[float, float]): Additional degrees
+            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
+            :math:`\eta_\mathrm{rot}`)
+
+        barostat_dof (tuple[float, float, float, float, float, float]):
+            Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
+            :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
+            :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
     def __init__(self, filter, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
         # store metadata
@@ -579,8 +645,17 @@ class NPH(NPT):
 
         Example::
 
-            integrator = md.integrate.nph(group=group.all(), P=2.0, tauP=1.0)
-            integrator.randomize_velocities(kT=1.0, seed=42)
+        constant_s = [hoomd.variant.Constant(1.0),
+                      hoomd.variant.Constant(2.0),
+                      hoomd.variant.Constant(3.0),
+                      hoomd.variant.Constant(0.125),
+                      hoomd.variant.Constant(.25),
+                      hoomd.variant.Constant(.5)]
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(),
+                                   tau=2.0,
+                                   S=constant_s,
+                                   tauS=2.0,
+                                   couple='xyz')
             run(100)
 
         """
