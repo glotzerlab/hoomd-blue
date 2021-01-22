@@ -518,7 +518,6 @@ void NeighborList::checkBoxSize()
         rmax += 0.5*max_d_comp;
         }
 
-    std::cout << "rmax: " << rmax << std::endl;
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))

@@ -131,17 +131,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar4> h_force(this->m_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(this->m_virial, access_location::host, access_mode::overwrite);
-    memset((void *)h_force.data, 0, sizeof(Scalar4) * this->m_force.getNumElements());
-    memset((void *)h_virial.data, 0, sizeof(Scalar) * this->m_virial.getNumElements());
-    for (size_t i=0; i<this->m_force.getNumElements(); ++i)
-        {
-        Scalar4 val = h_force.data[i];
-        std::cout << std::to_string(val.x) << " ";
-        }
-        std::cout << std::endl << std::endl;
-
     // access the particle data
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
 
@@ -182,15 +171,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             threads_per_particle,
                             this->m_exec_conf->dev_prop),
                             d_params.data);
-
-    hipDeviceSynchronize();
-    ArrayHandle<Scalar4> h_force2(this->m_force, access_location::host, access_mode::overwrite);
-    for (size_t i=0; i<this->m_force.getNumElements(); ++i)
-        {
-        Scalar4 val = h_force2.data[i];
-        std::cout << std::to_string(val.x) << " ";
-        }
-        std::cout << std::endl << std::endl;
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
