@@ -457,12 +457,12 @@ def _valid_params(particle_types=['A', 'B']):
 
     tersoff_arg_dict = {
             'cutoff_thickness': [0.1, 0.5, 1.0],
-            'magnitudes': [(1.0, 0.1), (2.0, 0.5), (5.0, 2.0)],
-            'exp_factors': [(0.1, 0.1), (0.5, 0.5), (2.0, 2.0)],
-            'lambda3': [0.0, 0.5, 2.0],
-            'dimer_r': [1.0, 2.0, 2.5],
-            'n': [0.3, 0.5, 2.0],
-            'gamma': [0.1, 0.5, 2.0],
+            'magnitudes': [(0.02, 0.01), (0.0, 0.005), (0.002, 0.003)],
+            'exp_factors': [(0.1, 0.1), (0.05, 0.05), (-0.02, 0.04)],
+            'lambda3': [0.0, 0.5, 0.3],
+            'dimer_r': [1.0, 2.0, 1.2],
+            'n': [0.3, 0.5, 0.7],
+            'gamma': [0.1, 0.5, 0.4],
             'c': [0.1, 0.5, 2.0],
             'd': [0.1, 0.5, 2.0],
             'm': [0.1, 0.5, 2.0],
@@ -580,9 +580,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     sim.operations.integrator = integrator
     sim.operations._schedule()
     old_snap = sim.state.snapshot
-    print(sim.operations.integrator.forces[0].forces)
     sim.run(2)
-    print(sim.operations.integrator.forces[0].forces)
     new_snap = sim.state.snapshot
     if new_snap.exists:
         assert not np.allclose(new_snap.particles.position,
@@ -747,10 +745,10 @@ def test_force_energy_relationship(simulation_factory,
         if sim_forces is not None:
             np.testing.assert_allclose(calculated_forces[0],
                                        sim_forces[0],
-                                       rtol=1e-06)
+                                       rtol=1e-05)
             np.testing.assert_allclose(calculated_forces[1],
                                        sim_forces[1],
-                                       rtol=1e-06)
+                                       rtol=1e-05)
 
 FandEtuple = namedtuple('FandEtuple',
                         ['pair_potential',
