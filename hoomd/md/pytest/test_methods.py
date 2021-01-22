@@ -217,7 +217,7 @@ def test_npt_attributes():
 
 
 def test_nph_attributes():
-    """Test attributes of the NPT integrator before attaching."""
+    """Test attributes of the NPH integrator before attaching."""
     all_ = hoomd.filter.All()
     constant_s = [hoomd.variant.Constant(1.0),
                   hoomd.variant.Constant(2.0),
@@ -371,7 +371,7 @@ def test_npt_attributes_attached_3d(simulation_factory,
 
 def test_nph_attributes_attached_3d(simulation_factory,
                                     two_particle_snapshot_factory):
-    """Test attributes of the NPT integrator before attaching."""
+    """Test attributes of the NPH integrator after attaching in 3D."""
     all_ = hoomd.filter.All()
     constant_s = [hoomd.variant.Constant(1.0),
                   hoomd.variant.Constant(2.0),
@@ -550,7 +550,7 @@ def test_npt_attributes_attached_2d(simulation_factory,
 
 def test_nph_attributes_attached_2d(simulation_factory,
                                     two_particle_snapshot_factory):
-    """Test attributes of the NPT integrator specific to 2D simulations."""
+    """Test attributes of the NPH integrator specific to 2D simulations."""
     all_ = hoomd.filter.All()
     nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
                                S=2.0,
