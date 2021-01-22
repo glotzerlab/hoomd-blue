@@ -219,78 +219,72 @@ def test_npt_attributes():
 def test_nph_attributes():
     """Test attributes of the NPT integrator before attaching."""
     all_ = hoomd.filter.All()
-    constant_t = hoomd.variant.Constant(2.0)
     constant_s = [hoomd.variant.Constant(1.0),
                   hoomd.variant.Constant(2.0),
                   hoomd.variant.Constant(3.0),
                   hoomd.variant.Constant(0.125),
                   hoomd.variant.Constant(.25),
                   hoomd.variant.Constant(.5)]
-    npt = hoomd.md.methods.NPH(filter = all_, kT=constant_t, tau=2.0,
-                               S = constant_s,
-                               tauS = 2.0,
+    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+                               S=constant_s,
+                               tauS=2.0,
                                couple='xyz')
 
-    assert npt.filter is all_
-    assert npt.kT is constant_t
-    assert npt.tau == 2.0
-    assert len(npt.S) == 6
+    assert nph.filter is all_
+    assert nph.tau == 2.0
+    assert len(nph.S) == 6
     for i in range(6):
-        assert npt.S[i] is constant_s[i]
-    assert npt.tauS == 2.0
-    assert npt.box_dof == (True,True,True,False,False,False)
-    assert npt.couple == 'xyz'
-    assert not npt.rescale_all
-    assert npt.gamma == 0.0
+        assert nph.S[i] is constant_s[i]
+    assert nph.tauS == 2.0
+    assert nph.box_dof == (True,True,True,False,False,False)
+    assert nph.couple == 'xyz'
+    assert not nph.rescale_all
+    assert nph.gamma == 0.0
 
     type_A = hoomd.filter.Type(['A'])
-    npt.filter = type_A
-    assert npt.filter is type_A
+    nph.filter = type_A
+    assert nph.filter is type_A
 
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    npt.kT = ramp
-    assert npt.kT is ramp
-
-    npt.tau = 10.0
-    assert npt.tau == 10.0
+    nph.tau = 10.0
+    assert nph.tau == 10.0
 
     ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
-    npt.S = ramp_s
-    assert len(npt.S) == 6
+              hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
+    nph.S = ramp_s
+    assert len(nph.S) == 6
     for i in range(6):
-        assert npt.S[i] is ramp_s[i]
+        assert nph.S[i] is ramp_s[i]
 
-    npt.tauS = 10.0
-    assert npt.tauS == 10.0
+    nph.tauS = 10.0
+    assert nph.tauS == 10.0
 
-    npt.box_dof = (True,False,False,False,True,False)
-    assert npt.box_dof == (True,False,False,False,True,False)
+    nph.box_dof = (True,False,False,False,True,False)
+    assert nph.box_dof == (True,False,False,False,True,False)
 
-    npt.couple = 'none'
-    assert npt.couple == 'none'
+    nph.couple = 'none'
+    assert nph.couple == 'none'
 
-    npt.rescale_all = True
-    assert npt.rescale_all
+    nph.rescale_all = True
+    assert nph.rescale_all
 
-    npt.gamma = 2.0
-    assert npt.gamma == 2.0
+    nph.gamma = 2.0
+    assert nph.gamma == 2.0
 
-    assert npt.translational_thermostat_dof == (0.0, 0.0)
-    npt.translational_thermostat_dof = (0.125, 0.5)
-    assert npt.translational_thermostat_dof == (0.125, 0.5)
+    assert nph.translational_thermostat_dof == (0.0, 0.0)
+    nph.translational_thermostat_dof = (0.125, 0.5)
+    assert nph.translational_thermostat_dof == (0.125, 0.5)
 
-    assert npt.rotational_thermostat_dof == (0.0, 0.0)
-    npt.rotational_thermostat_dof = (0.5, 0.25)
-    assert npt.rotational_thermostat_dof == (0.5, 0.25)
+    assert nph.rotational_thermostat_dof == (0.0, 0.0)
+    nph.rotational_thermostat_dof = (0.5, 0.25)
+    assert nph.rotational_thermostat_dof == (0.5, 0.25)
 
-    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
-    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
 
 
 def test_npt_attributes_attached_3d(simulation_factory,
@@ -376,85 +370,79 @@ def test_npt_attributes_attached_3d(simulation_factory,
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
-                                      two_particle_snapshot_factory):
+                                    two_particle_snapshot_factory):
     """Test attributes of the NPT integrator before attaching."""
     all_ = hoomd.filter.All()
-    constant_t = hoomd.variant.Constant(2.0)
     constant_s = [hoomd.variant.Constant(1.0),
                   hoomd.variant.Constant(2.0),
                   hoomd.variant.Constant(3.0),
                   hoomd.variant.Constant(0.125),
                   hoomd.variant.Constant(.25),
                   hoomd.variant.Constant(.5)]
-    npt = hoomd.md.methods.NPH(filter = all_, kT=constant_t, tau=2.0,
-                               S = constant_s,
-                               tauS = 2.0,
+    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+                               S=constant_s,
+                               tauS=2.0,
                                couple='xyz')
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
     sim.operations._schedule()
 
-    assert npt.filter is all_
-    assert npt.kT is constant_t
-    assert npt.tau == 2.0
-    assert len(npt.S) == 6
+    assert nph.filter is all_
+    assert nph.tau == 2.0
+    assert len(nph.S) == 6
     for i in range(6):
-        assert npt.S[i] is constant_s[i]
-    assert npt.tauS == 2.0
-    assert npt.couple == 'xyz'
+        assert nph.S[i] is constant_s[i]
+    assert nph.tauS == 2.0
+    assert nph.couple == 'xyz'
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
-        npt.filter = type_A
+        nph.filter = type_A
 
-    assert npt.filter is all_
+    assert nph.filter is all_
 
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    npt.kT = ramp
-    assert npt.kT is ramp
-
-    npt.tau = 10.0
-    assert npt.tau == 10.0
+    nph.tau = 10.0
+    assert nph.tau == 10.0
 
     ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
-    npt.S = ramp_s
-    assert len(npt.S) == 6
+              hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+              hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
+    nph.S = ramp_s
+    assert len(nph.S) == 6
     for i in range(6):
-        assert npt.S[i] is ramp_s[i]
+        assert nph.S[i] is ramp_s[i]
 
-    npt.tauS = 10.0
-    assert npt.tauS == 10.0
+    nph.tauS = 10.0
+    assert nph.tauS == 10.0
 
-    npt.box_dof = (True,False,False,False,True,False)
-    assert tuple(npt.box_dof) == (True,False,False,False,True,False)
+    nph.box_dof = (True, False, False, False, True, False)
+    assert tuple(nph.box_dof) == (True, False, False, False, True, False)
 
-    npt.couple = 'none'
-    assert npt.couple == 'none'
+    nph.couple = 'none'
+    assert nph.couple == 'none'
 
-    npt.rescale_all = True
-    assert npt.rescale_all
+    nph.rescale_all = True
+    assert nph.rescale_all
 
-    npt.gamma = 2.0
-    assert npt.gamma == 2.0
+    nph.gamma = 2.0
+    assert nph.gamma == 2.0
 
-    assert npt.translational_thermostat_dof == (0.0, 0.0)
-    npt.translational_thermostat_dof = (0.125, 0.5)
-    assert npt.translational_thermostat_dof == (0.125, 0.5)
+    assert nph.translational_thermostat_dof == (0.0, 0.0)
+    nph.translational_thermostat_dof = (0.125, 0.5)
+    assert nph.translational_thermostat_dof == (0.125, 0.5)
 
-    assert npt.rotational_thermostat_dof == (0.0, 0.0)
-    npt.rotational_thermostat_dof = (0.5, 0.25)
-    assert npt.rotational_thermostat_dof == (0.5, 0.25)
+    assert nph.rotational_thermostat_dof == (0.0, 0.0)
+    nph.rotational_thermostat_dof = (0.5, 0.25)
+    assert nph.rotational_thermostat_dof == (0.5, 0.25)
 
-    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
-    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
 
 
 def test_npt_thermalize_thermostat_and_barostat_dof(
@@ -558,6 +546,41 @@ def test_npt_attributes_attached_2d(simulation_factory,
 
     npt.box_dof = (True, True, True, True, True, True)
     assert tuple(npt.box_dof) == (True, True, False, True, False, False)
+
+
+def test_nph_attributes_attached_2d(simulation_factory,
+                                    two_particle_snapshot_factory):
+    """Test attributes of the NPT integrator specific to 2D simulations."""
+    all_ = hoomd.filter.All()
+    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+                               S=2.0,
+                               tauS=2.0,
+                               couple='xy')
+
+    assert nph.box_dof == (True, True, True, False, False, False)
+    assert nph.couple == 'xy'
+
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
+    sim.operations._schedule()
+
+    # after attaching in 2d, only some coupling modes and box dof are valid
+    assert tuple(nph.box_dof) == (True, True, False, False, False, False)
+    assert nph.couple == 'xy'
+
+    with pytest.raises(ValueError):
+        nph.couple = 'xyz'
+    with pytest.raises(ValueError):
+        nph.couple = 'xz'
+    with pytest.raises(ValueError):
+        nph.couple = 'yz'
+
+    nph.couple = 'none'
+    assert nph.couple == 'none'
+
+    nph.box_dof = (True, True, True, True, True, True)
+    assert tuple(nph.box_dof) == (True, True, False, True, False, False)
+
 
 def test_nve_attributes():
     """Test attributes of the NVE integrator before attaching."""
