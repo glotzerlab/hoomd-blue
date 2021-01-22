@@ -187,13 +187,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
                    to require a neighbor list update.
             \param dist_check Set to false to enforce nlist builds exactly \a every steps
         */
-        void setRebuildCheckDelay(unsigned int every)
+        void setRebuildCheckDelay(uint64_t every)
             {
             m_rebuild_check_delay = every;
             forceUpdate();
             }
 
-        unsigned int getRebuildCheckDelay() {return m_rebuild_check_delay;}
+        uint64_t getRebuildCheckDelay() {return m_rebuild_check_delay;}
 
         void setDistCheck(bool dist_check) {m_dist_check = dist_check;}
 
@@ -619,11 +619,11 @@ class PYBIND11_EXPORT NeighborList : public Compute
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_rebuild_check_delay steps)
         bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
-        unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
-        unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
+        uint64_t m_last_updated_tstep; //!< Track the last time step we were updated
+        uint64_t m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
-        unsigned int m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
-        std::vector<unsigned int> m_update_periods;    //!< Steps between updates
+        uint64_t m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
+        std::vector<uint64_t> m_update_periods;    //!< Steps between updates
         std::set<std::string> m_exclusions;        //!< Exclusions that have been set
 
         //! Test if the list needs updating

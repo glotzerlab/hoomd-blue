@@ -1340,9 +1340,9 @@ bool NeighborList::needsUpdating(uint64_t timestep)
             // record update histogram - but only if the period is positive
             if (timestep > m_last_updated_tstep)
                 {
-                unsigned int period = timestep - m_last_updated_tstep;
+                uint64_t period = timestep - m_last_updated_tstep;
                 if (period >= m_update_periods.size())
-                    period = (unsigned int)(m_update_periods.size()-1);
+                    period = m_update_periods.size()-1;
                 m_update_periods[period]++;
                 }
 
