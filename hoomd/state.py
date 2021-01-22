@@ -117,6 +117,9 @@ class State:
 
     @snapshot.setter
     def snapshot(self, snapshot):
+        if self._in_context_manager:
+            raise RuntimeError(
+                "Cannot set state to new snapshot inside local snapshot.")
         if self._simulation.device.communicator.rank == 0:
             if len(snapshot.particles.types) != len(self.particle_types):
                 raise RuntimeError(

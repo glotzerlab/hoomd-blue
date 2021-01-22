@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -122,7 +122,7 @@ void export_hoomd_math_functions(py::module& m)
         .def_property("y", [](const char3& s) { return (char) s.y; }, [](char3 & s, char v) { s.y = v; })
         .def_property("z", [](const char3& s) { return (char) s.z; }, [](char3 & s, char v) { s.z = v; })
         ;
- 
+
     m.def("make_scalar2", &make_scalar2);
     m.def("make_scalar3", &make_scalar3);
     m.def("make_scalar4", &make_scalar4);

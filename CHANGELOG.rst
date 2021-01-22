@@ -4,18 +4,31 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.3 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - ``hoomd.variant.Variant`` objects are picklable.
 - ``hoomd.filter.ParticleFilter`` objects are picklable.
 - ``hoomd.trigger.Trigger`` objects are picklable.
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
+- ``hoomd.write.DCD`` - DCD trajectory writer.
 
 *Changed*
 
 - Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
 
 *Fixed*
 
