@@ -487,17 +487,13 @@ class NPH(_Method):
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`NPT`, except that *kT* cannot be specified.
-    For further information, refer to the documentation of :py:class:`NPT`.
-
     Note:
-         A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
-         relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
-         is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
-         of particles.
-
-    :py:class:`NPH` is an integration method and must be used with ``mode_standard``.
+        Coupling constant for barostat `tauS` should be set within appropriate
+        range for pressure and volume to fluctuate in reasonable rate and
+        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
+        large `tauS` would take long time to equilibrate. In most of systems,
+        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
+        length of the time step.
 
     Examples::
 
