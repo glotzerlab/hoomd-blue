@@ -461,8 +461,6 @@ class NPH(_Method):
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
-        tau (`float`): Coupling constant for the thermostat (in time units).
-
         S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
             point for the barostat (in pressure units).  In Voigt notation:
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
@@ -505,18 +503,16 @@ class NPH(_Method):
 
         nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS = 1.2, S=2.0)
         # orthorhombic symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="none")
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="xy")
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS = 1.2, S=2.0, couple="xy")
         # triclinic symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="none", rescale_all=True)
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS = 1.2, S=2.0, couple="none", rescale_all=True)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nph], forces=[lj])
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
-
-        tau (float): Coupling constant for the thermostat (in time units).
 
         S (List[hoomd.variant.Variant]): Stress components set
             point for the barostat (in pressure units).
@@ -552,12 +548,11 @@ class NPH(_Method):
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
             :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
-    def __init__(self, filter, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+    def __init__(self, filter, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            tau=float(tau),
             S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
@@ -605,7 +600,7 @@ class NPH(_Method):
                                 thermo_group,
                                 thermo_half_step,
                                 thermo_full_step,
-                                self.tau,
+                                1.0,
                                 self.tauS,
                                 self.kT,
                                 self.S,
