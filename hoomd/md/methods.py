@@ -455,7 +455,7 @@ class NPT(_Method):
 
 
 class NPH(NPT):
-    R""" NPH Integration via MTK barostat-thermostat..
+    r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
