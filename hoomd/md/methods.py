@@ -485,7 +485,7 @@ class NPH(NPT):
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    :py:class:`NPH` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
+    :py:class:`NPH` performs constant pressure, constant enthalpy (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
 
