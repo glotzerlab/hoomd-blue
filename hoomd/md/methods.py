@@ -454,7 +454,7 @@ class NPT(_Method):
             seed, self._simulation.timestep)
 
 
-class NPH(NPT):
+class NPH(_Method):
     r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
