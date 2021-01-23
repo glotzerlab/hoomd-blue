@@ -503,7 +503,7 @@ class NPH(NPT):
 
     Examples::
 
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0)
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS = 1.2, S=2.0)
         # orthorhombic symmetry
         nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tau=1.0, tauS = 1.2, S=2.0, couple="none")
         # tetragonal symmetry
