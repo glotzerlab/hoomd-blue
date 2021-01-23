@@ -616,41 +616,35 @@ class NPH(_Method):
         else:
             return (value, value, value, 0, 0, 0)
 
-    def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
-
-        .. versionadded:: 2.3
-
-        Starting in version 2.5, `randomize_velocities` also chooses random values
-        for the internal integrator variables.
+    def thermalize_barostat_dof(self, seed):
+        r"""Set the barostat momentum to random values.
 
         Args:
-            kT (float): Temperature (in energy units)
             seed (int): Random number seed
 
+        `thermalize_barostat_dof` sets a random value for the
+        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. Call
+        `thermalize_barostat_dof` to set a new random state for
+        the barostat.
+
+        .. important::
+            You must call `Simulation.run` before
+            `thermalize_barostat_dof`. Call ``run(steps=0)`` to
+            prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
+
         Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-        constant_s = [hoomd.variant.Constant(1.0),
-                      hoomd.variant.Constant(2.0),
-                      hoomd.variant.Constant(3.0),
-                      hoomd.variant.Constant(0.125),
-                      hoomd.variant.Constant(.25),
-                      hoomd.variant.Constant(.5)]
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(),
-                                   tau=2.0,
-                                   S=constant_s,
-                                   tauS=2.0,
-                                   couple='xyz')
-            run(100)
-
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
         """
-        self._cpp_obj.setRandomizeVelocitiesParams(kT, seed)
+        if not self._attached:
+            raise RuntimeError(
+                "Call Simulation.run(0) before"
+                "thermalize_thermostat_and_barostat_dof")
+
+        self._cpp_obj.thermalizeThermostatAndBarostatDOF(
+            seed, self._simulation.timestep)
 
 
 class NVE(_Method):
