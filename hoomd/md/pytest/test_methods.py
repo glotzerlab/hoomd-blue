@@ -505,6 +505,26 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
         assert v != 0.0
 
 
+def test_nph_thermalize_barostat_dof(
+    simulation_factory, two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
+    nph = hoomd.md.methods.NPH(filter=all_,
+                               S=constant_s,
+                               tauS=2.0,
+                               box_dof=[True, True, True, True, True, True],
+                               couple='xyz')
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
+    sim.operations._schedule()
+
+    nph.thermalize_barostat_dof(100)
+    for v in nph.barostat_dof:
+        assert v != 0.0
+
+
 def test_npt_attributes_attached_2d(simulation_factory,
                                       two_particle_snapshot_factory):
     """Test attributes of the NPT integrator specific to 2D simulations."""
