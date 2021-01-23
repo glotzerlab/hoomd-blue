@@ -225,13 +225,12 @@ def test_nph_attributes():
                   hoomd.variant.Constant(0.125),
                   hoomd.variant.Constant(.25),
                   hoomd.variant.Constant(.5)]
-    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+    nph = hoomd.md.methods.NPH(filter=all_,
                                S=constant_s,
                                tauS=2.0,
                                couple='xyz')
 
     assert nph.filter is all_
-    assert nph.tau == 2.0
     assert len(nph.S) == 6
     for i in range(6):
         assert nph.S[i] is constant_s[i]
@@ -244,9 +243,6 @@ def test_nph_attributes():
     type_A = hoomd.filter.Type(['A'])
     nph.filter = type_A
     assert nph.filter is type_A
-
-    nph.tau = 10.0
-    assert nph.tau == 10.0
 
     ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
               hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
@@ -379,7 +375,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
                   hoomd.variant.Constant(0.125),
                   hoomd.variant.Constant(.25),
                   hoomd.variant.Constant(.5)]
-    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+    nph = hoomd.md.methods.NPH(filter=all_,
                                S=constant_s,
                                tauS=2.0,
                                couple='xyz')
@@ -389,7 +385,6 @@ def test_nph_attributes_attached_3d(simulation_factory,
     sim.operations._schedule()
 
     assert nph.filter is all_
-    assert nph.tau == 2.0
     assert len(nph.S) == 6
     for i in range(6):
         assert nph.S[i] is constant_s[i]
@@ -402,9 +397,6 @@ def test_nph_attributes_attached_3d(simulation_factory,
         nph.filter = type_A
 
     assert nph.filter is all_
-
-    nph.tau = 10.0
-    assert nph.tau == 10.0
 
     ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
               hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
@@ -552,7 +544,7 @@ def test_nph_attributes_attached_2d(simulation_factory,
                                     two_particle_snapshot_factory):
     """Test attributes of the NPH integrator specific to 2D simulations."""
     all_ = hoomd.filter.All()
-    nph = hoomd.md.methods.NPH(filter=all_, tau=2.0,
+    nph = hoomd.md.methods.NPH(filter=all_,
                                S=2.0,
                                tauS=2.0,
                                couple='xy')
