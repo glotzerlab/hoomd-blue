@@ -6,7 +6,6 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
-#include <limits>
 
 /*! \file EvaluatorPairTWF.h
     \brief Defines the pair evaluator class for TWF potentials
@@ -189,18 +188,14 @@ class EvaluatorPairTWF
                 // and force since this is an invalid state and should be
                 // infinite energy and force.
                 if (rsq < sigma2) {
-                    pair_eng = std::numeric_limits<Scalar>::max();
-                    force_divr = std::numeric_limits<Scalar>::max();
+                    pair_eng = 1e37;
+                    force_divr = 1e37;
                     return true;
                 }
 
                 Scalar common_term = 1.0 / (sigma2 / rsq - 1.0);
                 Scalar common_term3 = pow(common_term, 3.0);
                 Scalar common_term6 = common_term3 * common_term3;
-                pybind11::print("sigma", params.sigma, "prefactor", params.prefactor,
-                                "alpha", params.alpha, "common_term", common_term,
-                                "rsq", rsq, "rcutsq", rcutsq);
-
                 // Compute force and energy
                 pair_eng = params.prefactor * (
                     common_term6 - params.alpha * common_term3);

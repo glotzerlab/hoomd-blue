@@ -134,7 +134,8 @@ typedef PotentialPairGPU<EvaluatorPairOPP,
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPairGPU<EvaluatorPairTWF,
-                         gpu_compute_opp_forces> PotentialPairTWFGPU;
+                         gpu_compute_twf_forces> PotentialPairTWFGPU;
+
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

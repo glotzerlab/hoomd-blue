@@ -1,7 +1,6 @@
 set(files __init__.py
           pair.py
           aniso.py
-          unstable.py
    )
 
 install(FILES ${files}
