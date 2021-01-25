@@ -101,6 +101,7 @@ class _DynamicIntegrator(BaseIntegrator):
         if attr == "rigid":
             self._rigid = value
             if self._attached:
+                self._rigid._simulation = self._simulation
                 self._rigid._attach()
                 self._cpp_obj.rigid = self._rigid._cpp_obj
         else:
