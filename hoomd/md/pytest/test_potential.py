@@ -601,7 +601,7 @@ def _update_snap(pair_potential, snap):
         snap.particles.diameter[1] = 0.5
 
 
-def _check_for_skip(sim, pair_potential):
+def _skip_if_triplet_gpu_mpi(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
 
     if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
@@ -628,7 +628,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    _check_for_skip(sim, valid_params.pair_potential)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
@@ -651,7 +651,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    _check_for_skip(sim, valid_params.pair_potential)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
@@ -811,7 +811,7 @@ def test_force_energy_relationship(simulation_factory,
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
     sim = simulation_factory(snap)
-    _check_for_skip(sim, valid_params.pair_potential)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pot)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
