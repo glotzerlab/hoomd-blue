@@ -16,7 +16,31 @@ class Triplet(Force):
     that provides common features to all standard triplet forces. Common
     documentation for all three-body potentials is documented here.
 
-    TODO: fill in the documentation here
+    All triplet force commands specify that a given force be computed on all
+    particles which have at least two other particles within a short range
+    cutoff distance :math:`r_{\\mathrm{cut}}`.
+
+    The force :math:`\\vec{F}` applied to each particle :math:`i` is:
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray}
+        \\vec{F_i} = & -\\nabla V(\\vec r_{ij}, \\vec r_{ik}) & r_{ij} < r_{\\mathrm{cut}}
+            \\textrm{ and } r_{ik} < r_{\\mathrm{cut}} \\\\
+                   = & 0 & else
+        \\end{eqnarray}
+
+    Where :math:`\\vec r_{\\alpha \\beta} = \\vec r_{\\alpha} - \\vec r_{\\beta}`.
+
+    The following coefficients must be set per unique pair of particle types.
+    See :class:`hoomd.md.many_body` for information on how to set coefficients.
+
+    Attributes:
+        r_cut (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `float`]): *r_cut* (in distance units), *optional*: defaults to the
+            value ``r_cut`` specified on construction
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
