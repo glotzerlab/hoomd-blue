@@ -104,7 +104,7 @@ class _DynamicIntegrator(BaseIntegrator):
                 self._rigid._attach()
                 self._cpp_obj.rigid = self._rigid._cpp_obj
         else:
-            super()._setattr_param("rigid", None)
+            super()._setattr_param(attr, value)
 
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.
