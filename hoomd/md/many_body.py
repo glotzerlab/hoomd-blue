@@ -1,81 +1,22 @@
 import hoomd
 from hoomd.md import _md
-from hoomd.md.pair import Pair
+from hoomd.md.force import Force
+from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyType, positive_real
+
+validate_nlist = OnlyType(NList)
 
 
-class Triplet(Pair):
+class Triplet(Force):
     """Common three body potential documentation.
 
     Users should not invoke :py:class:`Triplet` directly. It is a base class
     that provides common features to all standard triplet forces. Common
     documentation for all three-body potentials is documented here.
 
-    Triplet potentials apply 3-body interactions to every non-bonded particle
-    pair in the simulation. Thus, the formalism for triplet potentials is still
-    written in terms of pairs of particles.
-
-    Triplet potentials utilize turn-on and cutoff distances
-    :math:`r_{\\mathrm{on}}` and :math:`r_{\\mathrm{cut}}`, respectively, along
-    with energy shifting and smoothing modes.
-
-    The force :math:`\\vec{F}` applied between each pair of particles is:
-
-    .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
-        \\vec{F}  = & -\\nabla V(r) & r < r_{\\mathrm{cut}} \\\\
-                  = & 0           & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
-
-    where :math:`\\vec{r}` is the vector pointing from one particle to the other
-    in the pair, and :math:`V(r)` is chosen by a mode switch (see
-    ``set_params()``):
-
-    .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
-        V(r)  = & V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\ no\\_shift} \\\\
-              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
-              & \\mathrm{mode\\ is\\ shift} \\\\
-              = & S(r) \\cdot V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\
-              xplor\\ and\\ } r_{\\mathrm{on}} < r_{\\mathrm{cut}} \\\\
-              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
-              & \\mathrm{mode\\ is\\ xplor\\ and\\ } r_{\\mathrm{on}} \\ge
-              r_{\\mathrm{cut}}
-        \\end{eqnarray*}
-
-    :math:`S(r)` is the XPLOR smoothing function:
-
-    .. math::
-        :nowrap:
-
-        \\begin{eqnarray*}
-        S(r) = & 1 & r < r_{\\mathrm{on}} \\\\
-             = & \\frac{(r_{\\mathrm{cut}}^2 - r^2)^2 \\cdot
-             (r_{\\mathrm{cut}}^2 + 2r^2 -
-             3r_{\\mathrm{on}}^2)}{(r_{\\mathrm{cut}}^2 -
-             r_{\\mathrm{on}}^2)^3}
-               & r_{\\mathrm{on}} \\le r \\le r_{\\mathrm{cut}} \\\\
-             = & 0 & r > r_{\\mathrm{cut}} \\\\
-         \\end{eqnarray*}
-
-    and :math:`V_{\\mathrm{pair}}(r)` is the specific pair potential chosen by
-    the respective command.
-
-    Enabling the XPLOR smoothing function :math:`S(r)` results in both the
-    potential energy and the force going smoothly to 0 at :math:`r =
-    r_{\\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
-    :math:`r_{\\mathrm{on}}` controls the point at which the smoothing starts,
-    so it can be set to only slightly modify the tail of the potential. It is
-    suggested that you plot your potentials with various values of
-    :math:`r_{\\mathrm{on}}` in order to find a good balance between a smooth
-    potential function and minimal modification of the original
-    :math:`V_{\\mathrm{pair}}(r)`. A good value for the LJ potential is
-    :math:`r_{\\mathrm{on}} = 2 \\cdot \\sigma`.
+    TODO: fill in the documentation here
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
@@ -84,13 +25,52 @@ class Triplet(Pair):
         potential on the GPU with MPI will result in an error.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, nlist, r_cut=None):
+        self._nlist = validate_nlist(nlist)
+        r_cut_param = TypeParameter('r_cut', 'particle_types',
+                                    TypeParameterDict(positive_real, len_keys=2)
+                                    )
+        if r_cut is not None:
+            r_cut_param.default = r_cut
+        self._add_typeparam(r_cut_param)
 
     def _attach(self):
-        super()._attach()
+        if not self._nlist._added:
+            self._nlist._add(self._simulation)
+        else:
+            if self._simulation != self._nlist._simulation:
+                raise RuntimeError("{} object's neighbor list is used in a "
+                                   "different simulation.".format(type(self)))
+        if not self.nlist._attached:
+            self.nlist._attach()
         self.nlist._cpp_obj.setStorageMode(
             _md.NeighborList.storageMode.full)
+
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cls = getattr(_md, self._cpp_class_name)
+        else:
+            cls = getattr(_md, self._cpp_class_name + "GPU")
+
+        self._cpp_obj = cls(
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
+            '')  # TODO remove name string arg
+
+        super()._attach()
+
+    @property
+    def nlist(self):
+        return self._nlist
+
+    @nlist.setter
+    def nlist(self, value):
+        if self._attached:
+            raise RuntimeError("nlist cannot be set after scheduling.")
+        else:
+            self._nlist = validate_nlist(value)
+
+    @property
+    def _children(self):
+        return [self._nlist]
 
 
 class Tersoff(Triplet):
@@ -99,8 +79,6 @@ class Tersoff(Triplet):
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
 
     :py:class:`Tersoff` specifies that the Tersoff three-body potential should
     be applied to every non-bonded particle pair in the simulation. Despite the
@@ -190,8 +168,8 @@ class Tersoff(Triplet):
         tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
     _cpp_class_name = "PotentialTersoff"
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
+    def __init__(self, nlist, r_cut=None):
+        super().__init__(nlist, r_cut);
         params = TypeParameter(
                 'params',
                 'particle_types',
@@ -217,8 +195,6 @@ class RevCross(Triplet):
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
 
     :py:class:`RevCross` specifies that the revcross three-body potential
     should be applied to every non-bonded particle pair in the simulation.
@@ -324,8 +300,8 @@ class RevCross(Triplet):
         bond_swap.params[('A','B')] = dict(sigma=1,n=100,epsilon=10,lambda3=1)
     """
     _cpp_class_name = "PotentialRevCross"
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
+    def __init__(self, nlist, r_cut=None):
+        super().__init__(nlist, r_cut);
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(sigma=2.0, n=1.0, epsilon=1.0,
                                    lambda3=1.0, len_keys=2))
@@ -338,8 +314,6 @@ class SquareDensity(Triplet):
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
 
     :py:class:`SquareDensity` specifies that the three-body potential should be
     applied to every non-bonded particle pair in the simulation, that is
@@ -393,8 +367,8 @@ class SquareDensity(Triplet):
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
     _cpp_class_name = "PotentialSquareDensity"
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
+    def __init__(self, nlist, r_cut=None):
+        super().__init__(nlist, r_cut);
         params = TypeParameter(
                 'params',
                 'particle_types',

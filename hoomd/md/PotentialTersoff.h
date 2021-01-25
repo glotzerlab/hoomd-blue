@@ -93,12 +93,6 @@ class PotentialTersoff : public ForceCompute
         Scalar getRCut(pybind11::tuple types);
         /// Set the rcut for a single type pair using a tuple of strings
         virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
-        //! Set ron for a single type pair
-        virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
-        /// Get the r_on for a single type pair
-        Scalar getROn(pybind11::tuple types);
-        /// Set the r_on for a single type using a tuple of string
-        virtual void setROnPython(pybind11::tuple types, Scalar r_on);
 
         /// Validate that types are within Ntypes
         virtual void validateTypes(unsigned int typ1, unsigned int typ2,
@@ -126,7 +120,6 @@ class PotentialTersoff : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
-        GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
@@ -154,7 +147,6 @@ class PotentialTersoff : public ForceCompute
             // create new arrays
             GPUArray<Scalar> new_rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             GlobalArray<Scalar> new_r_cut_nlist(m_typpair_idx.getNumElements(), m_exec_conf);
-            GPUArray<Scalar> new_ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
             GPUArray<param_type> new_params(m_typpair_idx.getNumElements(), m_exec_conf);
 
             // grab the new arrays
@@ -164,9 +156,6 @@ class PotentialTersoff : public ForceCompute
             ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
                                                   access_location::host,
                                                   access_mode::overwrite);
-            ArrayHandle<Scalar> h_new_ronsq(new_ronsq,
-                                            access_location::host,
-                                            access_mode::overwrite);
             ArrayHandle<param_type> h_new_params(new_params,
                                                  access_location::host,
                                                  access_mode::overwrite);
@@ -178,9 +167,6 @@ class PotentialTersoff : public ForceCompute
             ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
                                               access_location::host,
                                               access_mode::read);
-            ArrayHandle<Scalar> h_ronsq(m_ronsq,
-                                        access_location::host,
-                                        access_mode::read);
             ArrayHandle<param_type> h_params(m_params,
                                              access_location::host,
                                              access_mode::read);
@@ -199,14 +185,12 @@ class PotentialTersoff : public ForceCompute
                     unsigned int oldIdx = m_typpair_idx(i, j);
                     h_new_rcutsq.data[newIdx] = h_rcutsq.data[oldIdx];
                     h_new_r_cut_nlist.data[newIdx] = h_r_cut_nlist.data[oldIdx];
-                    h_new_ronsq.data[newIdx] = h_ronsq.data[oldIdx];
                     h_new_params.data[newIdx] = h_params.data[oldIdx];
                     }
                 }
 
             // swap the pointers
             m_rcutsq.swap(new_rcutsq);
-            m_ronsq.swap(new_ronsq);
             m_params.swap(new_params);
             *m_r_cut_nlist = new_r_cut_nlist;
 
@@ -232,8 +216,6 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-    m_ronsq.swap(ronsq);
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
@@ -357,42 +339,6 @@ Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
     }
 
-/*! \param typ1 First type index in the pair
-    \param typ2 Second type index in the pair
-    \param ron XPLOR r_on radius to set
-    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
-          set.
-*/
-template< class evaluator >
-void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
-    {
-    validateTypes(typ1, typ2, "set r_on");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
-    h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
-    h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
-    }
-
-template< class evaluator >
-Scalar PotentialTersoff< evaluator >::getROn(pybind11::tuple types)
-    {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "get ron");
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
-                                 access_mode::read);
-    return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-template< class evaluator >
-void PotentialTersoff< evaluator >::setROnPython(pybind11::tuple types,
-                                              Scalar r_on)
-    {
-    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
-    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "set r_on");
-    setRon(typ1, typ2, r_on);
-    }
-
 /*! PotentialTersoff provides:
      - \c pair_"name"_energy
     where "name" is replaced with evaluator::getName()
@@ -466,7 +412,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         const BoxDim& box = m_pdata->getBox();
-        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -702,7 +647,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         const BoxDim& box = m_pdata->getBox();
-        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -1104,8 +1048,6 @@ template < class T > void export_PotentialTersoff(pybind11::module& m, const std
     .def("getParams", &T::getParams)
     .def("setRCut", &T::setRCutPython)
     .def("getRCut", &T::getRCut)
-    .def("setROn", &T::setROnPython)
-    .def("getROn", &T::getROn)
     ;
     }
 

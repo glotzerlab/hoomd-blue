@@ -340,8 +340,7 @@ def invalid_params(request):
 
 def test_invalid_params(invalid_params):
     pot = invalid_params.pair_potential(**invalid_params.extra_args,
-                                        nlist=md.nlist.Cell(),
-                                        mode='none')
+                                        nlist=md.nlist.Cell())
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
             with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
@@ -582,8 +581,7 @@ def valid_params(request):
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5,
-                                      mode='none')
+                                      r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
@@ -616,7 +614,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -641,7 +639,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -804,7 +802,7 @@ def test_force_energy_relationship(simulation_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
 

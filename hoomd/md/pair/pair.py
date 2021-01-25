@@ -15,9 +15,6 @@ from hoomd.data.typeconverter import (
 import math
 
 
-class pair(force.Force):
-    pass
-
 validate_nlist = OnlyType(NList)
 
 
