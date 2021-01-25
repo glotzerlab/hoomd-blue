@@ -230,7 +230,7 @@ class Rigid(ConstraintForce):
 
     def set_params(
             self,
-            type_id,
+            type_name,
             types,
             positions,
             orientations=None,
