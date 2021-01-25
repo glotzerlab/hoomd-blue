@@ -97,6 +97,13 @@ class HPMCIntegrator(BaseIntegrator):
             refers to a depletant of type `A`. The option to set a type pair
             is temporary and will be removed in the release version.
 
+        depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
+            Multiplicative factor for the number of times a depletant is inserted.
+            This factor is accounted for in the acceptance criterion so that detailed
+            balance is unchanged. Higher values of ntrial (than one) can be used
+            to reduce the variance of the free energy estimate and
+            improve the acceptance rate of the Markov chain.
+
         interaction_matrix (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
                             `bool`]):
