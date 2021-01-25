@@ -52,12 +52,16 @@ class _DynamicIntegrator(BaseIntegrator):
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
 
+        self._rigid = None
         self._param_dict = ParameterDict(rigid=OnlyType(Rigid, allow_none=True))
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
+        if self._rigid != None:
+            self._rigid._attach()
+            self._cpp_obj.rigid = self._rigid._cpp_obj
         super()._attach()
 
     @property
@@ -97,9 +101,10 @@ class _DynamicIntegrator(BaseIntegrator):
         return children
 
     def _setattr_param(self, attr, value):
-        if "rigid" in self._param_dict:
+        if attr == "rigid":
             if self._attached:
-                self._cpp_obj.rigid = self.rigid._cpp_obj
+                self._rigid._attach()
+                self._cpp_obj.rigid = self._rigid._cpp_obj
         else:
             super()._setattr_param("rigid", None)
 
