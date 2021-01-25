@@ -148,7 +148,7 @@ endif()
 
 if(ENABLE_HIP)
     # enable out-of-source build
-    target_include_directories(_hpmc PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+    target_include_directories(_hpmc PRIVATE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 endif()
 
 # link the library to its dependencies
