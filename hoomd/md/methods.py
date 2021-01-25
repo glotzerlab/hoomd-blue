@@ -615,7 +615,7 @@ class NPH(_Method):
             seed (int): Random number seed
 
         `thermalize_barostat_dof` sets a random value for the
-        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. Call
+        barostat :math:`\nu_{\mathrm{ij}}`. Call
         `thermalize_barostat_dof` to set a new random state for
         the barostat.
 
