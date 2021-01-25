@@ -226,14 +226,7 @@ class Rigid(ConstraintForce):
 
     _cpp_class_name = "ForceComposite"
     def __init__(self):
-
-        self._param_dict.update(
-                ParameterDict(type_id=str,
-                              type_vec=list,
-                              pos_vec=list,
-                              orientation_vec=list,
-                              charge_vec=list,
-                              diameter_vec=list))
+        pass
 
     def set_params(
             self,

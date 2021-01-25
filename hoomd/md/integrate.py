@@ -53,7 +53,9 @@ class _DynamicIntegrator(BaseIntegrator):
                                    iterable=methods)
 
         self._rigid = None
-        self._param_dict = ParameterDict(rigid=OnlyType(Rigid, allow_none=True))
+        self._param_dict.update(
+                ParameterDict(rigid=OnlyType(Rigid, allow_none=True))
+                )
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
@@ -100,6 +102,7 @@ class _DynamicIntegrator(BaseIntegrator):
     def _setattr_param(self, attr, value):
         if attr == "rigid":
             self._rigid = value
+            self._param_dict["rigid"] = value
             if self._attached:
                 self._rigid._simulation = self._simulation
                 self._rigid._attach()
@@ -188,12 +191,13 @@ class Integrator(_DynamicIntegrator):
 
         super().__init__(forces, constraints, methods)
 
-        self._param_dict = ParameterDict(
-            dt=float(dt),
-            aniso=OnlyFrom(['true', 'false', 'auto'],
+        self._param_dict.update(
+                ParameterDict(
+                    dt=float(dt),
+                    aniso=OnlyFrom(['true', 'false', 'auto'],
                            preprocess=_preprocess_aniso),
-            _defaults=dict(aniso="auto")
-            )
+                    _defaults=dict(aniso="auto")
+            ))
         if aniso is not None:
             self.aniso = aniso
 
