@@ -82,7 +82,7 @@ class PotentialTersoff : public ForceCompute
         //! Destructor
         virtual ~PotentialTersoff();
 
-        //! Set and get the pair parameters for a single type pair
+        //! Set the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
         virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
         /// Get params for a single type pair using a tuple of strings
