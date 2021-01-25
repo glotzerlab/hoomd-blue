@@ -955,7 +955,7 @@ class Berendsen(_Method):
 
         tau (float): Time constant of thermostat. (in time units)
     """
-    def __init__(self, group, kT, tau):
+    def __init__(self, filter, kT, tau):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -987,34 +987,20 @@ class Berendsen(_Method):
                                    self.kT)
         super()._attach()
 
-    def thermalize_thermostat_and_barostat_dof(self, seed):
-        r"""Set the thermostat and barostat momenta to random values.
-
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities and angular momenta to particles in the
+        group, sampling from the Maxwell-Boltzmann distribution. This method
+        considers the dimensionality of the system and particle anisotropy, and
+        removes drift (the center of mass velocity).
+        .. versionadded:: 2.3
         Args:
             seed (int): Random number seed
-
-        `thermalize_thermostat_and_barostat_dof` sets a random value for the
-        momentum :math:`\xi` and the barostat :math:`\nu_{\mathrm{ij}}`. When
-        `Integrator.aniso` is `True`, it also sets a random value for the
-        rotational thermostat momentum :math:`\xi_{\mathrm{rot}}`. Call
-        `thermalize_thermostat_and_barostat_dof` to set a new random state for
-        the thermostat and barostat.
-
-        .. important::
-            You must call `Simulation.run` before
-            `thermalize_thermostat_and_barostat_dof`. Call ``run(steps=0)`` to
-            prepare a newly created `Simulation`.
-
-        .. seealso:: `State.thermalize_particle_momenta`
-
         Note:
-            The seed for the pseudorandom number stream includes the
-            simulation timestep and the provided *seed*.
+            Randomization is applied at the start of the next call to ```sim.run```.
+        Example::
+            berendsen = hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=0.2,
+            tau=10.0)
+            integrator = hoomd.md.Integrator(dt=0.001, methods=[berendsen], forces=[lj])
+            berendsen.randomize_velocities(seed=42)
         """
-        if not self._attached:
-            raise RuntimeError(
-                "Call Simulation.run(0) before"
-                "thermalize_thermostat_and_barostat_dof")
-
-        self._cpp_obj.thermalizeThermostatAndBarostatDOF(
-            seed, self._simulation.timestep)
+        self.cpp_method.setRandomizeVelocitiesParams(self.kT(self._simulation.timestep), seed)
