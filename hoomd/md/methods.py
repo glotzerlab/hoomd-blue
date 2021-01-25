@@ -531,14 +531,6 @@ class NPH(_Method):
         gamma (float): Dimensionless damping factor for the box degrees of
             freedom.
 
-        translational_thermostat_dof (tuple[float, float]): Additional degrees
-            of freedom for the translational thermostat (:math:`\xi`,
-            :math:`\eta`)
-
-        rotational_thermostat_dof (tuple[float, float]): Additional degrees
-            of freedom for the rotational thermostat (:math:`\xi_\mathrm{rot}`,
-            :math:`\eta_\mathrm{rot}`)
-
         barostat_dof (tuple[float, float, float, float, float, float]):
             Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
