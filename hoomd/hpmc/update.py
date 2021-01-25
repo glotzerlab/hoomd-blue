@@ -301,6 +301,10 @@ class MuVT(_updater):
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
         to update.muvt(), where the number of partitions can be a multiple of ngibbs.
 
+    Attributes:
+        seed (int): Random number seed.
+        trigger (int): Select the timesteps on which to perform cluster moves.
+
     Example::
 
         TODO: link to example notebooks
