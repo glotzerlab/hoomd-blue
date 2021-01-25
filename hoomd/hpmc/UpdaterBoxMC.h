@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -13,6 +13,7 @@
 #include <hoomd/Variant.h>
 #include "hoomd/RandomNumbers.h"
 #include <cmath>
+#include <vector>
 
 #include "IntegratorHPMC.h"
 
@@ -96,6 +97,7 @@ class UpdaterBoxMC : public Updater
                 }
             // Calculate aspect ratio
             computeAspectRatios();
+            updateChangedWeights();
             }
 
         //! Gets parameters for box length moves as a dictionary
@@ -127,6 +129,7 @@ class UpdaterBoxMC : public Updater
             m_length_delta[0] = t[0].cast<Scalar>();
             m_length_delta[1] = t[1].cast<Scalar>();
             m_length_delta[2] = t[2].cast<Scalar>();
+            updateChangedWeights();
             }
 
         //! Gets parameters for box shear moves as a dictionary
@@ -168,6 +171,7 @@ class UpdaterBoxMC : public Updater
             m_shear_delta[1] = t[1].cast<Scalar>();
             m_shear_delta[2] = t[2].cast<Scalar>();
             m_shear_reduce = d["reduce"].cast<Scalar>();
+            updateChangedWeights();
             }
 
         //! Get parameters for box aspect moves as a dictionary
@@ -192,6 +196,7 @@ class UpdaterBoxMC : public Updater
             {
             m_aspect_weight = d["weight"].cast<Scalar>();
             m_aspect_delta = d["delta"].cast<Scalar>();
+            updateChangedWeights();
             }
 
         //! Calculate aspect ratios for use in isotropic volume changes
@@ -310,6 +315,8 @@ class UpdaterBoxMC : public Updater
 
         unsigned int m_seed;                        //!< Seed for pseudo-random number generator
 
+        std::vector<Scalar> m_weight_partial_sums;  //!< Partial sums of all weights used to select moves
+
         inline bool is_oversheared();               //!< detect oversheared box
         inline bool remove_overshear();             //!< detect and remove overshear
         inline bool box_resize(Scalar Lx,
@@ -333,6 +340,9 @@ class UpdaterBoxMC : public Updater
                                      //!< attempt specified box change and undo if overlaps generated
         inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);
                                                     //!< Perform appropriate checks for box validity
+
+        //! Update the internal vector of partial sums of weights
+        void updateChangedWeights();
     };
 
 //! Export UpdaterBoxMC to Python

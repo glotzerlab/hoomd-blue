@@ -19,8 +19,7 @@ hoomd.trigger
 
 .. automodule:: hoomd.trigger
     :synopsis: Trigger events at specific time steps.
-    :members:
-    :undoc-members:
+    :no-members:
 
     .. autoclass:: After(timestep)
     .. autoclass:: And(triggers)
