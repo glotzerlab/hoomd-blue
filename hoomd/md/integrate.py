@@ -102,6 +102,7 @@ class _DynamicIntegrator(BaseIntegrator):
 
     def _setattr_param(self, attr, value):
         if attr == "rigid":
+            self._rigid = value
             if self._attached:
                 self._rigid._attach()
                 self._cpp_obj.rigid = self._rigid._cpp_obj
