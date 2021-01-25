@@ -1814,7 +1814,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
-        .def_property("move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
+        .def_property("pivot_move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
         .def_property("flip_probability", &UpdaterClusters<Shape>::getFlipProbability, &UpdaterClusters<Shape>::setFlipProbability)
         .def_property_readonly("seed", &UpdaterClusters<Shape>::getSeed)
     ;

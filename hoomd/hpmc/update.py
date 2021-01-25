@@ -442,8 +442,8 @@ class Clusters(Updater):
 
     Attributes:
         seed (int): Random number seed.
-        move_ratio(float): Set the ratio between pivot and reflection moves.
-        flip_probability(float): Set the probability for transforming an
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
+        flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (int): Select the timesteps on which to perform cluster
             moves.
@@ -454,11 +454,11 @@ class Clusters(Updater):
 
     """
 
-    def __init__(self, seed, move_ratio=0.5, flip_probability=0.5, trigger=1):
+    def __init__(self, seed, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
 
         param_dict = ParameterDict(seed=int(seed),
-                                   move_ratio=float(move_ratio),
+                                   pivot_move_ratio=float(pivot_move_ratio),
                                    flip_probability=float(flip_probability))
 
         self._param_dict.update(param_dict)
@@ -512,7 +512,6 @@ class Clusters(Updater):
                                 integrator._cpp_obj,
                                 int(self.seed))
         super()._attach()
->>>>>>> master
 
     @property
     def counter(self):
