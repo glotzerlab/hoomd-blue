@@ -188,6 +188,8 @@ class EvaluatorPairTWF
                 // and force since this is an invalid state and should be
                 // infinite energy and force.
                 if (rsq < sigma2) {
+                    // For now use an arbitary constant since
+                    // std::numeric_limit<>::max cannot be used for GPU code.
                     pair_eng = 1e37;
                     force_divr = 1e37;
                     return true;
