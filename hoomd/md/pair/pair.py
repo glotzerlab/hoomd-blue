@@ -2141,3 +2141,55 @@ class OPP(Pair):
                                    k=float, phi=float, len_keys=2)
                                )
         self._add_typeparam(params)
+
+class TWF(Pair):
+    r"""Pair potential model for globular proteins.
+
+    This potential was introduced by Ten-wolde and Daan Frenkel in 1997 for
+    studying globular protein crystallization. The potential has the following
+    form:
+
+    .. math::
+        :nowrap:
+
+        \\begin{equation}
+        V_{\\mathrm{TWF}}(r) = \\frac{4 \\epsilon}{\\alpha^2} {\\left[
+        {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^6 -
+        \\alpha {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^3\\right]}
+        \\end{equation}
+
+    See `hoomd.md.pair.Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use `params` dictionary
+    to set potential coefficients. The coefficients must be set per
+    unique pair of particle types.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The LJ potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (`float`, **required**) -
+              energy parameter :math:`\\varepsilon` (in energy units)
+
+            * ``sigma`` (`float`, **required**) -
+              particle size :math:`\\sigma` (in distance units)
+            * ``alpha`` (`float`, **required**) -
+              controls well-depth :math:`\\alpha` (unitless)
+
+    Example::
+
+        nl = nlist.Cell()
+        twf = hoomd.md.pair.unstable.TWF(nl, r_cut=3.0)
+        twf.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 50.0}
+        twf.r_cut[('A', 'B')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairTWF"
+
+    def __init__(self, nlist, r_cut=None, r_on=0.0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 alpha=float, len_keys=2)
+                               )
+        self._add_typeparam(params)

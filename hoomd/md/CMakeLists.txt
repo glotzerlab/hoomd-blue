@@ -100,6 +100,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
+                EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
