@@ -547,8 +547,6 @@ class NPH(_Method):
             box_dof=(bool,)*6,
             rescale_all=bool(rescale_all),
             gamma=float(gamma),
-            translational_thermostat_dof=(float, float),
-            rotational_thermostat_dof=(float, float),
             barostat_dof=(float, float, float, float, float, float))
 
         param_dict.update(
