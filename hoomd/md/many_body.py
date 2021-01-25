@@ -1,10 +1,10 @@
 import hoomd
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeconverter import OnlyType, positive_real
+from hoomd.data.typeparam import TypeParameter
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.md.nlist import NList
-from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyType, positive_real
 
 validate_nlist = OnlyType(NList)
 
@@ -77,8 +77,17 @@ class Tersoff(Triplet):
     """Tersoff Potential.
 
     Args:
-        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        nlist (:py:class:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
+
+    The Tersoff potential is a bond-order potential based on the Morse potential
+    that accounts for the weakening of individual bonds with increasing
+    coordination number. It does this by computing a modifier to the attractive
+    term of the potential. The modifier contains the effects of third-bodies on
+    the bond energies. The potential also includes a smoothing function around
+    the cutoff. The smoothing function used in this work is exponential in
+    nature as opposed to the sinusoid used by
+    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
 
     :py:class:`Tersoff` specifies that the Tersoff three-body potential should
     be applied to every non-bonded particle pair in the simulation. Despite the
@@ -134,15 +143,6 @@ class Tersoff(Triplet):
 
     The parameters of this potential are set via the ``params`` dictionary, they
     must be set for each unique pair of particle types.
-
-    The Tersoff potential is a bond-order potential based on the Morse potential
-    that accounts for the weakening of individual bonds with increasing
-    coordination number. It does this by computing a modifier to the attractive
-    term of the potential. The modifier contains the effects of third-bodies on
-    the bond energies. The potential also includes a smoothing function around
-    the cutoff. The smoothing function used in this work is exponential in
-    nature as opposed to the sinusoid used by
-    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
 
     Attributes:
         params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
@@ -214,15 +214,6 @@ class RevCross(Triplet):
         V_{ij}(r)  =  4 \\varepsilon \\left[ \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{2n}
         - \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{n} \\right] \\qquad r<r_{cut}
         \\end{eqnarray*}
-
-    with the following coefficients:
-
-    - :math:`\\varepsilon` - *epsilon* (in energy units)
-    - :math:`\\sigma` - *sigma* (in distance units)
-    - :math:`n` - *n* (unitless)
-    - :math:`m` - *m* (unitless)
-    - :math:`r_{\\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
 
     Then an additional three-body repulsion is evaluated to compensate the bond
     energies imposing single bond per particle condition:
