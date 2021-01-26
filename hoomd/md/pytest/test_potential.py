@@ -300,6 +300,36 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(opp_invalid_dicts,
                                                     hoomd.md.pair.OPP,
                                                     {}))
+    tersoff_valid_dict = {
+            'cutoff_thickness': 1.0,
+            'magnitudes': (5.0, 2.0),
+            'exp_factors': (2.0, 2.0),
+            'lambda3': 2.0,
+            'dimer_r': 2.5,
+            'n': 2.0,
+            'gamma': 2.0,
+            'c': 2.0,
+            'd': 2.0,
+            'm': 2.0,
+            'alpha': 2.0,
+            }
+    tersoff_invalid_dicts = _make_invalid_param_dict(tersoff_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(tersoff_invalid_dicts,
+                                                    hoomd.md.many_body.Tersoff,
+                                                    {}))
+
+    square_density_valid_dict = {'A': 5.0, 'B': 2.0}
+    sq_dens_invalid_dicts = _make_invalid_param_dict(square_density_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(sq_dens_invalid_dicts,
+                                                    hoomd.md.many_body.SquareDensity,
+                                                    {}))
+
+    revcross_valid_dict = {'sigma': 5.0, 'n': 2.0, 'epsilon': 2.0, 'lambda3': 2.0}
+    revcross_invalid_dicts = _make_invalid_param_dict(revcross_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(revcross_invalid_dicts,
+                                                    hoomd.md.many_body.RevCross,
+                                                    {}))
+
     return invalid_params_list
 
 
@@ -310,8 +340,7 @@ def invalid_params(request):
 
 def test_invalid_params(invalid_params):
     pot = invalid_params.pair_potential(**invalid_params.extra_args,
-                                        nlist=md.nlist.Cell(),
-                                        mode='none')
+                                        nlist=md.nlist.Cell())
     for pair in invalid_params.pair_potential_params:
         if isinstance(pair, tuple):
             with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
@@ -491,6 +520,45 @@ def _valid_params(particle_types=['A', 'B']):
                                                  dlvo_valid_param_dicts)),
                                         {}))
 
+    tersoff_arg_dict = {
+            'cutoff_thickness': [0.1, 0.5, 1.0],
+            'magnitudes': [(0.02, 0.01), (0.0, 0.005), (0.002, 0.003)],
+            'exp_factors': [(0.1, 0.1), (0.05, 0.05), (-0.02, 0.04)],
+            'lambda3': [0.0, 0.5, 0.3],
+            'dimer_r': [1.0, 2.0, 1.2],
+            'n': [0.3, 0.5, 0.7],
+            'gamma': [0.1, 0.5, 0.4],
+            'c': [0.1, 0.5, 2.0],
+            'd': [0.1, 0.5, 2.0],
+            'm': [0.1, 0.5, 2.0],
+            'alpha': [0.1, 0.5, 2.0],
+            }
+    tersoff_valid_param_dicts = _make_valid_param_dicts(tersoff_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.many_body.Tersoff,
+                                        dict(zip(combos,
+                                                 tersoff_valid_param_dicts)),
+                                        {}))
+
+    square_density_arg_dict = {'A': [1.0, 2.0, 5.0], 'B': [0.1, 0.5, 2.0]}
+    square_density_valid_param_dicts = _make_valid_param_dicts(
+            square_density_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.many_body.SquareDensity,
+                                        dict(zip(combos,
+                                                 square_density_valid_param_dicts)),
+                                        {}))
+
+    revcross_arg_dict = {
+            'sigma': [1.0, 2.0, 5.0],
+            'n': [0.1, 0.5, 2.0],
+            'epsilon': [0.1, 0.5, 2.0],
+            'lambda3': [0.1, 0.5, 2.0],
+            }
+    revcross_valid_param_dicts = _make_valid_param_dicts(revcross_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.many_body.RevCross,
+                                        dict(zip(combos,
+                                                 revcross_valid_param_dicts)),
+                                        {}))
+
     opp_arg_dict = {'C1': [1.0, 2.0, 5.0],
                     'C2': [0.1, 0.5, 2.0],
                     'eta1': [15.0, 12.0, 8.0],
@@ -513,8 +581,7 @@ def valid_params(request):
 def test_valid_params(valid_params):
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5,
-                                      mode='none')
+                                      r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     assert _equivalent_data_structures(valid_params.pair_potential_params,
@@ -532,6 +599,14 @@ def _update_snap(pair_potential, snap):
         snap.particles.diameter[1] = 0.5
 
 
+def _skip_if_triplet_gpu_mpi(sim, pair_potential):
+    """Determines if the simulation is able to run this pair potential."""
+
+    if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
+            issubclass(pair_potential, hoomd.md.many_body.Triplet):
+        pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
+
+
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
                          valid_params):
     pair_potential, pair_potential_dict, extra_args = valid_params
@@ -539,7 +614,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -551,7 +626,8 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    sim.operations.integrator = md.Integrator(dt=0.005)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
@@ -563,7 +639,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     pot.params = valid_params.pair_potential_params
 
     snap = lattice_snapshot_factory(particle_types=particle_types,
@@ -573,19 +649,20 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
                                                      len(snap.particles.types),
                                                      snap.particles.N)
     sim = simulation_factory(snap)
-    integrator = md.Integrator(dt=0.005)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1))
     sim.operations.integrator = integrator
-    sim.run(0)
-    for nsteps in [3, 5, 10]:
-        old_snap = sim.state.snapshot
-        sim.run(nsteps)
-        new_snap = sim.state.snapshot
-        if new_snap.exists:
-            assert not np.allclose(new_snap.particles.position,
-                                   old_snap.particles.position)
+    sim.operations._schedule()
+    old_snap = sim.state.snapshot
+    sim.run(2)
+    new_snap = sim.state.snapshot
+    if new_snap.exists:
+        assert not np.allclose(new_snap.particles.position,
+                               old_snap.particles.position)
 
 
 def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
@@ -725,13 +802,14 @@ def test_force_energy_relationship(simulation_factory,
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
-                                      r_cut=2.5, mode='none')
+                                      r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
 
     snap = two_particle_snapshot_factory(particle_types=particle_types, d=1.5)
     _update_snap(valid_params.pair_potential, snap)
     sim = simulation_factory(snap)
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pot)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
@@ -750,10 +828,10 @@ def test_force_energy_relationship(simulation_factory,
         if sim_forces is not None:
             np.testing.assert_allclose(calculated_forces[0],
                                        sim_forces[0],
-                                       rtol=1e-06)
+                                       rtol=1e-05)
             np.testing.assert_allclose(calculated_forces[1],
                                        sim_forces[1],
-                                       rtol=1e-06)
+                                       rtol=1e-05)
 
 
 def _forces_and_energies():

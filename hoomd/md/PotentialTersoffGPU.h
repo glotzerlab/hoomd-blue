@@ -137,7 +137,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep
     BoxDim box = this->m_pdata->getBox();
 
     // access parameters
-    ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
@@ -164,7 +163,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep
                             d_nlist.data,
                             d_head_list.data,
                             d_rcutsq.data,
-                            d_ronsq.data,
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
                             block_size,

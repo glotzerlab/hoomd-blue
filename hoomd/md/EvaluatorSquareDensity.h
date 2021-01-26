@@ -30,8 +30,42 @@
 class EvaluatorSquareDensity
     {
     public:
-        //! Define the parameter type used by this evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar A;
+            Scalar B;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : A(0), B(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                A = v["A"].cast<Scalar>();
+                B = v["B"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["A"] = A;
+                v["B"] = B;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
@@ -39,7 +73,7 @@ class EvaluatorSquareDensity
             \param _params Per type-pair parameters for this potential
         */
         DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.x), B(_params.y)
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.A), B(_params.B)
             {
             }
 
@@ -166,7 +200,7 @@ class EvaluatorSquareDensity
             }
         #endif
 
-	static const bool flag_for_RevCross=false;
+        static const bool flag_for_RevCross=false;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor

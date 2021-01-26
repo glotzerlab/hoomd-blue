@@ -136,8 +136,17 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        std::ostringstream oss;
+        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
+            << "rmax=" << rmax << std::endl;
+
+        if (box.getPeriodic().x)
+            oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+        if (box.getPeriodic().y)
+            oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+        if (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z)
+            oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+        throw std::runtime_error(oss.str());
         }
 
     // access the rlist data
