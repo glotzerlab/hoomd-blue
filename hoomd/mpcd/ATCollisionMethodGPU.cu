@@ -27,7 +27,7 @@ __global__ void at_draw_velocity(Scalar4 *d_alt_vel,
                                  const Scalar4 *d_vel_embed,
                                  const unsigned int *d_tag_embed,
                                  const uint64_t timestep,
-                                 const unsigned int seed,
+                                 const uint16_t seed,
                                  const Scalar T,
                                  const unsigned int N_mpcd,
                                  const unsigned int N_tot)
@@ -53,7 +53,8 @@ __global__ void at_draw_velocity(Scalar4 *d_alt_vel,
         }
 
     // draw random velocities from normal distribution
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ATCollisionMethod, seed, tag, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ATCollisionMethod, timestep, seed),
+                               hoomd::Counter(tag));
     hoomd::NormalDistribution<Scalar> gen(fast::sqrt(T/mass), 0.0);
     Scalar3 vel;
     gen(vel.x, vel.y, rng);
@@ -131,7 +132,7 @@ cudaError_t at_draw_velocity(Scalar4 *d_alt_vel,
                              const Scalar4 *d_vel_embed,
                              const unsigned int *d_tag_embed,
                              const uint64_t timestep,
-                             const unsigned int seed,
+                             const uint16_t seed,
                              const Scalar T,
                              const unsigned int N_mpcd,
                              const unsigned int N_tot,

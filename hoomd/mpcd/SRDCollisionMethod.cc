@@ -16,9 +16,9 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> s
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             unsigned int seed,
+                                             uint16_t seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase,seed),
+    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase),
       m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
@@ -73,6 +73,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(uint64_t timestep)
         T_set = (*m_T)(timestep);
         }
 
+    uint16_t seed = m_sysdef->getSeed();
+
     for (unsigned int k=0; k < ci.getD(); ++k)
         {
         for (unsigned int j=0; j < ci.getH(); ++j)
@@ -84,7 +86,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(uint64_t timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SRDCollisionMethod, timestep, seed),
+                                           hoomd::Counter(global_idx));
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;

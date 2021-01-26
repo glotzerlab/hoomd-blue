@@ -31,10 +31,9 @@ class PYBIND11_EXPORT CollisionMethod
     public:
         //! Constructor
         CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
-                        unsigned int cur_timestep,
-                        unsigned int period,
-                        int phase,
-                        unsigned int seed);
+                        uint64_t cur_timestep,
+                        uint64_t period,
+                        int phase);
         //! Destructor
         virtual ~CollisionMethod() { }
 
@@ -95,9 +94,8 @@ class PYBIND11_EXPORT CollisionMethod
         std::shared_ptr<mpcd::CellList> m_cl;          //!< MPCD cell list
         std::shared_ptr<ParticleGroup> m_embed_group;  //!< Embedded particles
 
-        unsigned int m_period;                  //!< Number of timesteps between collisions
-        unsigned int m_next_timestep;           //!< Timestep next collision should be performed
-        unsigned int m_seed;        //!< Random number seed
+        uint64_t m_period;                  //!< Number of timesteps between collisions
+        uint64_t m_next_timestep;           //!< Timestep next collision should be performed
 
         //! Check if a collision should occur and advance the timestep counter
         virtual bool shouldCollide(uint64_t timestep);

@@ -15,7 +15,7 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(std::shared_ptr<mpcd:
                                                    Scalar density,
                                                    unsigned int type,
                                                    std::shared_ptr<::Variant> T,
-                                                   unsigned int seed,
+                                                   uint16_t seed,
                                                    std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::SlitPoreGeometryFiller(sysdata, density, type, T, seed, geom)
     {
@@ -37,6 +37,8 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
 
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
 
+    uint16_t seed = m_sysdef->getSeed();
+
     m_tuner->begin();
     mpcd::gpu::slit_pore_draw_particles(d_pos.data,
                                         d_vel.data,
@@ -52,7 +54,7 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
                                         first_idx,
                                         (*m_T)(timestep),
                                         timestep,
-                                        m_seed,
+                                        seed,
                                         m_tuner->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner->end();

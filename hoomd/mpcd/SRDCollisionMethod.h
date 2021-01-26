@@ -31,7 +31,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
                            unsigned int cur_timestep,
                            unsigned int period,
                            int phase,
-                           unsigned int seed,
+                           uint16_t seed,
                            std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
         //! Destructor

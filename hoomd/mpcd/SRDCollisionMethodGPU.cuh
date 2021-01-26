@@ -29,7 +29,7 @@ cudaError_t srd_draw_vectors(double3 *d_rotvec,
                              const uint3 global_dim,
                              const Index3D& global_ci,
                              const uint64_t timestep,
-                             const unsigned int seed,
+                             const uint16_t seed,
                              const Scalar T_set,
                              const unsigned int n_dimensions,
                              const unsigned int block_size);

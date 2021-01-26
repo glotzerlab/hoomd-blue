@@ -29,7 +29,7 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                               unsigned int cur_timestep,
                               unsigned int period,
                               int phase,
-                              unsigned int seed,
+                              uint16_t seed,
                               std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
         //! Set autotuner parameters

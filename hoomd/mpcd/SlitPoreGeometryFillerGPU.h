@@ -31,7 +31,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
                                   Scalar density,
                                   unsigned int type,
                                   std::shared_ptr<::Variant> T,
-                                  unsigned int seed,
+                                  uint16_t seed,
                                   std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
         //! Set autotuner parameters

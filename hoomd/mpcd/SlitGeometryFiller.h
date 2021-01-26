@@ -29,13 +29,12 @@ namespace mpcd
  * subject to the grid shift.
  */
 class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
-    {
+{
     public:
         SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                            Scalar density,
                            unsigned int type,
                            std::shared_ptr<::Variant> T,
-                           unsigned int seed,
                            std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
         virtual ~SlitGeometryFiller();

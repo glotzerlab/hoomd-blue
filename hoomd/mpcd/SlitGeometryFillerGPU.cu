@@ -57,7 +57,7 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
                                     const unsigned int first_idx,
                                     const Scalar vel_factor,
                                     const uint64_t timestep,
-                                    const unsigned int seed)
+                                    const uint16_t seed)
     {
     // one thread per particle
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -83,7 +83,8 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     d_tag[pidx] = tag;
 
     // initialize random number generator for positions and velocity
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, seed, tag, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+                               hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
@@ -137,7 +138,7 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
                                 const unsigned int first_idx,
                                 const Scalar kT,
                                 const uint64_t timestep,
-                                const unsigned int seed,
+                                const uint16_t seed,
                                 const unsigned int block_size)
     {
     const unsigned int N_tot = N_lo + N_hi;

@@ -13,14 +13,13 @@
 #include "hoomd/RNGIdentifiers.h"
 
 mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
-                                           unsigned int cur_timestep,
-                                           unsigned int period,
+                                           uint64_t cur_timestep,
+                                           uint64_t period,
                                            int phase,
-                                           unsigned int seed,
                                            std::shared_ptr<mpcd::CellThermoCompute> thermo,
                                            std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                                            std::shared_ptr<::Variant> T)
-    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase,seed),
+    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase),
       m_thermo(thermo), m_rand_thermo(rand_thermo), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
@@ -82,6 +81,8 @@ void mpcd::ATCollisionMethod::drawVelocities(uint64_t timestep)
         N_tot += m_embed_group->getNumMembers();
         }
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // random velocities are drawn for each particle and stored into the "alternate" arrays
     const Scalar T = (*m_T)(timestep);
     for (unsigned int idx=0; idx < N_tot; ++idx)
@@ -102,7 +103,8 @@ void mpcd::ATCollisionMethod::drawVelocities(uint64_t timestep)
             }
 
         // draw random velocities from normal distribution
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ATCollisionMethod, m_seed, tag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ATCollisionMethod, timestep, seed),
+                                   hoomd::Counter(tag));
         hoomd::NormalDistribution<Scalar> gen(fast::sqrt(T/mass), 0.0);
         Scalar3 vel;
         gen(vel.x, vel.y, rng);
@@ -192,10 +194,9 @@ void mpcd::detail::export_ATCollisionMethod(pybind11::module& m)
     py::class_<mpcd::ATCollisionMethod, mpcd::CollisionMethod, std::shared_ptr<mpcd::ATCollisionMethod> >
         (m, "ATCollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
+                      uint64_t,
+                      uint64_t,
                       int,
-                      unsigned int,
                       std::shared_ptr<mpcd::CellThermoCompute>,
                       std::shared_ptr<mpcd::CellThermoCompute>,
                       std::shared_ptr<::Variant>>())

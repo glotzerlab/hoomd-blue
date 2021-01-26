@@ -15,7 +15,7 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             unsigned int seed,
+                                             uint16_t seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
     : mpcd::SRDCollisionMethod(sysdata,cur_timestep,period,phase,seed,thermo)
     {
@@ -26,6 +26,8 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
 void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
     {
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
+
+    uint16_t seed = m_sysdef->getSeed();
 
     if (m_T)
         {
@@ -41,7 +43,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     m_cl->getGlobalDim(),
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
@@ -59,7 +61,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
                                     m_cl->getGlobalDim(),
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     1.0,
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
