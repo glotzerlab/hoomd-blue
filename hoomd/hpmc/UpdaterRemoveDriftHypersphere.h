@@ -130,13 +130,12 @@ class RemoveDriftUpdaterHypersphere : public Updater
                 }
 
 
-            Scalar deltaE = -m_externalLattice->calculateDeltaEHypersphere(h_quat_l_backup.data, h_quat_r_backup.data, &hypersphere);
+            Scalar deltaE = m_externalLattice->calculateDeltaEHypersphere(h_quat_l_backup.data, h_quat_r_backup.data, &hypersphere);//here new and old is switched for calculation. Hence, missing "-" sign!
 
             double p = hoomd::detail::generate_canonical<double>(rng_i);
 
-            if (p < fast::exp(-deltaE))
+            if (p < fast::exp(deltaE))
                 {
-                std::cout << "Accepted" << std::endl;
                 for (unsigned int i = 0; i < N_backup; i++)
                     {
                     // read in the current position and orientation

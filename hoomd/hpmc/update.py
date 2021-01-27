@@ -773,7 +773,7 @@ class remove_drift(_updater):
         remove_drift = update.remove_drift(mc=mc, external_lattice=lattice, period=1000);
 
     """
-    def __init__(self, mc, external_lattice, period=1):
+    def __init__(self, mc, external_lattice, seed, period=1):
         hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
@@ -836,7 +836,7 @@ class remove_drift(_updater):
             #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
             #     raise RuntimeError("Error initializing update.remove_drift");
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator, int(seed));
         self.setupUpdater(period);
 
 class remove_drift_hypersphere(_updater):
@@ -898,7 +898,7 @@ class change_site(_updater):
         remove_drift = update.change_site(mc=mc, external_lattice=lattice, period=1000);
 
     """
-    def __init__(self, mc, external_lattice, seed, lattice_vector=[], period=1):
+    def __init__(self, mc, external_lattice, seed, lattice_vector=[], period=1, cycles=1):
         hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);
@@ -962,7 +962,7 @@ class change_site(_updater):
             #     raise RuntimeError("Error initializing update.change_site");
 
         enlist = hoomd.hpmc.data._param.ensure_list;
-        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_vector), mc.cpp_integrator,int(seed));
+        self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, enlist(lattice_vector), mc.cpp_integrator, int(cycles), int(seed));
         self.setupUpdater(period);
 
 class change_site_hypersphere(_updater):

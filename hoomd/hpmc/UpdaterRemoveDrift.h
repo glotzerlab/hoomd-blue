@@ -20,6 +20,7 @@
 #include "hoomd/Updater.h"
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -45,34 +46,56 @@ class RemoveDriftUpdater : public Updater
         //! Constructor
         RemoveDriftUpdater( std::shared_ptr<SystemDefinition> sysdef,
                             std::shared_ptr<ExternalFieldLattice<Shape> > externalLattice,
-                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc
-                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc)
+                            std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                            unsigned int seed
+                          ) : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc), m_seed(seed)
             {
+            unsigned int MaxN = m_pdata->getMaxN();
+            GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_position_backup);
             }
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep)
             {
 
+
+            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterRemoveDrift, m_seed, 0, m_exec_conf->getRank(), timestep);
+
+            unsigned int N_backup = m_pdata->getN();
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::read);
+            {
+                ArrayHandle<Scalar4> h_postype_backup(m_position_backup, access_location::host, access_mode::overwrite);
+                memcpy(h_postype_backup.data, h_postype.data, sizeof(Scalar4) * N_backup);
+            }
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
             ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
             const BoxDim& box = this->m_pdata->getGlobalBox();
             vec3<Scalar> origin(this->m_pdata->getOrigin());
-            vec3<Scalar> rshift;
-            rshift.x=rshift.y=rshift.z=0.0f;
 
-            for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
+            ArrayHandle<Scalar> h_d(m_mc->getDArray(), access_location::host, access_mode::read);
+
+            Scalar maxD = 0;
+
+            for (unsigned int i = 0; i < N_backup; i++)
                 {
-                unsigned int tag_i = h_tag.data[i];
-                // read in the current position and orientation
-                vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
-                int3 tmp_image = make_int3(0, 0, 0);
-                box.wrap(postype_i, tmp_image);
-                vec3<Scalar> dr = postype_i - vec3<Scalar>(h_r0.data[tag_i]);
-                rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
+                    Scalar4 postype_i = h_postype.data[i];
+                    int typ_i = __scalar_as_int(postype_i.w);
+                    maxD += h_d.data[typ_i];
                 }
+
+            maxD /= N_backup;
+
+    	    hoomd::UniformDistribution<Scalar> uniform(-maxD, maxD);
+
+    	    // Generate a random vector inside a sphere of radius d
+    	    vec3<Scalar> rshift(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    	    do
+    	        {
+    	        rshift.x = uniform(rng_i);
+    	        rshift.y = uniform(rng_i);
+    	        rshift.z = uniform(rng_i);
+    	        } while(dot(rshift,rshift) > maxD*maxD);
+
 
             #ifdef ENABLE_MPI
             if (this->m_pdata->getDomainDecomposition())
@@ -85,16 +108,32 @@ class RemoveDriftUpdater : public Updater
                 }
             #endif
 
-            rshift/=Scalar(this->m_pdata->getNGlobal());
+    	    // apply the move vector
+    	    //
+            ArrayHandle<Scalar4> h_postype_backup(m_position_backup, access_location::host, access_mode::readwrite);
+
 
             for (unsigned int i = 0; i < this->m_pdata->getN(); i++)
                 {
                 // read in the current position and orientation
-                Scalar4 postype_i = h_postype.data[i];
+                Scalar4 postype_i = h_postype_backup.data[i];
                 vec3<Scalar> r_i = vec3<Scalar>(postype_i);
-                h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
-                box.wrap(h_postype.data[i], h_image.data[i]);
+                h_postype_backup.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
                 }
+
+            Scalar deltaE = m_externalLattice->calculateDeltaE(h_postype_backup.data, NULL, &box);//here new and old is switched for calculation. Hence, missing "-" sign!
+
+            double p = hoomd::detail::generate_canonical<double>(rng_i);
+
+            if (p < fast::exp(deltaE))
+                {
+                for (unsigned int i = 0; i < N_backup; i++)
+                    {
+                    // read in the current position and orientation
+                    h_postype.data[i] = h_postype_backup.data[i];
+                    box.wrap(h_postype.data[i], h_image.data[i]);
+                    }
+		}
 
             m_mc->invalidateAABBTree();
             // migrate and exchange particles
@@ -104,6 +143,9 @@ class RemoveDriftUpdater : public Updater
     protected:
                 std::shared_ptr<ExternalFieldLattice<Shape> > m_externalLattice;
                 std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
+
+                unsigned int m_seed;
+                GPUArray<Scalar4> m_position_backup;             //!< hold backup copy of particle positions
     };
 
 //! Export the ExampleUpdater class to python
@@ -114,7 +156,8 @@ void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
    pybind11::class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExternalFieldLattice<Shape> >,
-                            std::shared_ptr<IntegratorHPMCMono<Shape> > >())
+                            std::shared_ptr<IntegratorHPMCMono<Shape> >,
+                            unsigned int >())
     ;
     }
 }
