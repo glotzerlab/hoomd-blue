@@ -95,12 +95,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
 
-        /// Set the rigid body ForceComposite object
-        virtual void setRigid(std::shared_ptr<ForceComposite> fc);
-
-        /// Get the rigid body ForceComposite object
-        virtual std::shared_ptr<ForceComposite> getRigid();
-
 #ifdef ENABLE_MPI
         /// Set the communicator to use
         /** \param comm The Communicator
@@ -126,9 +120,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
-
-        /// The rigid composite force
-        std::shared_ptr<ForceComposite> m_rigid;
     };
 
 /// Exports the IntegratorTwoStep class to python

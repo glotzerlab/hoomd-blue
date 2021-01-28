@@ -52,11 +52,6 @@ class _DynamicIntegrator(BaseIntegrator):
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
 
-        self._rigid = None
-        self._param_dict.update(
-                ParameterDict(rigid=OnlyType(Rigid, allow_none=True))
-                )
-
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
@@ -99,16 +94,6 @@ class _DynamicIntegrator(BaseIntegrator):
 
         return children
 
-    def _setattr_param(self, attr, value):
-        if attr == "rigid":
-            self._rigid = value
-            self._param_dict["rigid"] = value
-            if self._attached:
-                self._rigid._simulation = self._simulation
-                self._rigid._attach()
-                self._cpp_obj.rigid = self._rigid._cpp_obj
-        else:
-            super()._setattr_param(attr, value)
 
 class Integrator(_DynamicIntegrator):
     R""" Enables a variety of standard integration methods.

@@ -214,20 +214,6 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
     m_gave_warning = false;
     }
 
-/*! @param fc ForceComposite to set
-*/
-void IntegratorTwoStep::setRigid(std::shared_ptr<ForceComposite> fc)
-    {
-    m_rigid = fc;
-    }
-
-/*! Get the rigid ForceComposite object
-*/
-std::shared_ptr<ForceComposite> IntegratorTwoStep::getRigid()
-    {
-    return m_rigid;
-    }
-
 /*! \returns true If all added integration methods have valid restart information
 */
 bool IntegratorTwoStep::isValidRestart()
@@ -472,9 +458,13 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
 //! Updates the rigid body constituent particles
 void IntegratorTwoStep::updateRigidBodies(unsigned int timestep)
     {
-    // slave any constituents of local composite particles
-    if (m_rigid)
-        m_rigid->updateCompositeParticles(timestep);
+    // update the composite particle positions of any rigid bodies
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        auto rigid = dynamic_pointer_cast<ForceComposite>(constraint_force);
+        if (rigid)
+            rigid->updateCompositeParticles(timestep);
+        }
     }
 
 /*! \param enable Enable/disable autotuning
@@ -499,6 +489,5 @@ void export_IntegratorTwoStep(py::module& m)
         .def_property("aniso",
                       &IntegratorTwoStep::getAnisotropicMode,
                       &IntegratorTwoStep::setAnisotropicMode)
-        .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         ;
     }
