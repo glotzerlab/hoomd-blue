@@ -194,34 +194,54 @@ class Stencil(NList):
     R""" Cell list based neighbor list using stencils
 
     Args:
-        r_buff (float):  Buffer width.
-        check_period (int): How often to attempt to rebuild the neighbor list.
-        d_max (float): The maximum diameter a particle will achieve, only used in conjunction with slj diameter shifting.
-        dist_check (bool): Flag to enable / disable distance checking.
-        cell_width (float): The underlying stencil bin width for the cell list
-        name (str): Optional name for this neighbor list instance.
-        deterministic (bool): When True, enable deterministic runs on the GPU by sorting the cell list.
+        buffer (float):
+            Buffer width.
+        check_dist (bool):
+            Flag to enable / disable distance checking.
+        deterministic (bool):
+            When `True`, sort neighbors to help provide deterministic simulation
+            runs.
+        diameter_shift (bool):
+            Flag to enable / disable diameter shifting.
+        exclusions (tuple[str]):
+            Excludes pairs from the neighbor list, which excludes them from the
+            pair potential calculation.
+        max_diameter (float):
+            The maximum diameter a particle will achieve.
+        rebuild_check_delay (int):
+            How often to attempt to rebuild the neighbor list.
+        cell_width (float):
+            The underlying stencil bin width for the cell list.
 
-    :py:class:`stencil` creates a cell list based neighbor list object to which pair potentials can be attached for computing
-    non-bonded pairwise interactions. Cell listing allows for O(N) construction of the neighbor list. Particles are first
-    spatially sorted into cells based on the largest pairwise cutoff radius attached to this instance of the neighbor
-    list.
+    :py:class:`stencil` creates a cell list based neighbor list object to which
+    pair potentials can be attached for computing non-bonded pairwise
+    interactions. Cell listing allows for O(N) construction of the neighbor
+    list. Particles are first spatially sorted into cells based on the largest
+    pairwise cutoff radius attached to this instance of the neighbor list.
 
-    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_ describes this neighbor list implementation
-    in HOOMD-blue. Cite it if you utilize this neighbor list style in your work.
+    `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
+    describes this neighbor list implementation in HOOMD-blue. Cite it if you
+    utilize this neighbor list style in your work.
 
-    This neighbor-list style differs from :py:class:`Cell` based on how the adjacent cells are searched for particles. The cell
-    list *cell_width* is set by default using the shortest active cutoff radius in the system. One *stencil* is computed
-    per particle type based on the largest cutoff radius that type participates in, which defines the bins that the
-    particle must search in. Distances to the bins in the stencil are precomputed so that certain particles can be
-    quickly excluded from the neighbor list, leading to improved performance compared to :py:class:`Cell` when there is size
-    disparity in the cutoff radius. The memory demands of :py:class:`stencil` can also be lower than :py:class:`Cell` if your
-    system is large and has many small cells in it; however, :py:class:`tree` is usually a better choice for these systems.
+    This neighbor-list style differs from :py:class:`Cell` based on how the
+    adjacent cells are searched for particles. The cell list *cell_width* is set
+    by default using the shortest active cutoff radius in the system. One
+    *stencil* is computed per particle type based on the largest cutoff radius
+    that type participates in, which defines the bins that the particle must
+    search in. Distances to the bins in the stencil are precomputed so that
+    certain particles can be quickly excluded from the neighbor list, leading to
+    improved performance compared to :py:class:`Cell` when there is size
+    disparity in the cutoff radius. The memory demands of :py:class:`stencil`
+    can also be lower than :py:class:`Cell` if your system is large and has many
+    small cells in it; however, :py:class:`tree` is usually a better choice for
+    these systems.
 
-    The performance of the stencil depends strongly on the choice of *cell_width*. The best performance is obtained
-    when the cutoff radii are multiples of the *cell_width*, and when the *cell_width* covers the simulation box with
-    a roughly integer number of cells. The *cell_width* can be set manually, or be automatically scanning through a range
-    of possible bin widths using :py:meth:`tune_cell_width()`.
+    The performance of the stencil depends strongly on the choice of
+    *cell_width*. The best performance is obtained when the cutoff radii are
+    multiples of the *cell_width*, and when the *cell_width* covers the
+    simulation box with a roughly integer number of cells. The *cell_width* can
+    be set manually, or be automatically scanning through a range of possible
+    bin widths using :py:meth:`tune_cell_width()`.
 
     Examples::
 
@@ -232,13 +252,14 @@ class Stencil(NList):
         nl_s.tune_cell_width(min_width=1.5, max_width=3.0)
 
     Note:
-        *d_max* should only be set when slj diameter shifting is required by a pair potential. Currently, slj
-        is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
+        *d_max* should only be set when slj diameter shifting is required by a
+        pair potential. Currently, slj is the only pair potential requiring this
+        shifting, and setting *d_max* for other potentials may lead to
         significantly degraded performance or incorrect results.
     """
-    def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
-                 diameter_shift=False, check_dist=True, max_diameter=1.0,
-                 deterministic=False, cell_width=None):
+    def __init__(self, buffer=0.4, check_dist=True, deterministic=False,
+                 diameter_shift=False, exclusions=('bond',), max_diameter=1.0,
+                 rebuild_check_delay=1, cell_width=None):
 
         super().__init__(buffer, exclusions, reubild_check_delay,
                          diameter_shift, check_dist, max_diameter)
