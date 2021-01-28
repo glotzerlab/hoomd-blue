@@ -56,6 +56,11 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_cl->setNominalWidth(cell_width);
             }
 
+        Scalar getCellWidth()
+            {
+            return m_cl->getNominalWidth();
+            }
+
     protected:
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

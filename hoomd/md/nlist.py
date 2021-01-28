@@ -190,7 +190,7 @@ class Cell(NList):
         super()._detach()
 
 
-class stencil(nlist):
+class Stencil(NList):
     R""" Cell list based neighbor list using stencils
 
     Args:
@@ -236,49 +236,37 @@ class stencil(nlist):
         is the only pair potential requiring this shifting, and setting *d_max* for other potentials may lead to
         significantly degraded performance or incorrect results.
     """
-    def __init__(self, r_buff=0.4, check_period=1, d_max=None, dist_check=True, cell_width=None, name=None, deterministic=False):
-        nlist.__init__(self)
+    def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
+                 diameter_shift=False, check_dist=True, max_diameter=1.0,
+                 deterministic=False, cell_width=None):
 
-        if name is None:
-            self.name = "stencil_nlist_%d" % stencil.cur_id
-            stencil.cur_id += 1
+        super().__init__(buffer, exclusions, reubild_check_delay,
+                         diameter_shift, check_dist, max_diameter)
+
+        params = ParameterDict(deterministic=bool(deterministic),
+                               cell_width=float,
+                               _defaults=dict(cell_width=cell_width))
+
+        self._param_dict.update(params)
+
+    def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cl_cls = _hoomd.CellList
+            nlist_cls = _md.NeighborListStencil
         else:
-            self.name = name
+            cl_cls = _hoomd.CellListGPU
+            nlist_cls = _md.NeighborListGPUStencil
+        self._cpp_stencil = _hoomd.CellListStencil()
+        self._cpp_cell = cl_cls(self._simulation.state._cpp_sys_def)
+        # TODO remove 0.0 r_cut from constructor
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
+                                  self.buffer, self._cpp_cell, self._cpp_stencil)
+        super()._attach()
 
-        # create the C++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_cl = _hoomd.CellList(hoomd.context.current.system_definition)
-            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
-            hoomd.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = _md.NeighborListStencil(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl, cls)
-        else:
-            self.cpp_cl  = _hoomd.CellListGPU(hoomd.context.current.system_definition)
-            hoomd.context.current.system.addCompute(self.cpp_cl , self.name + "_cl")
-            cls = _hoomd.CellListStencil(hoomd.context.current.system_definition, self.cpp_cl)
-            hoomd.context.current.system.addCompute(cls, self.name + "_cls")
-            self.cpp_nlist = _md.NeighborListGPUStencil(hoomd.context.current.system_definition, 0.0, r_buff, self.cpp_cl, cls)
-
-        self.cpp_nlist.setEvery(check_period, dist_check)
-
-        hoomd.context.current.system.addCompute(self.cpp_nlist, self.name)
-        self.cpp_cl.setSortCellList(deterministic)
-
-        # register this neighbor list with the context
-        hoomd.context.current.neighbor_lists += [self]
-
-        # save the user defined parameters
-        self.set_params(r_buff, check_period, d_max, dist_check)
-        self.set_cell_width(cell_width)
-
-    def set_cell_width(self, cell_width):
-        R""" Set the cell width
-
-        Args:
-            cell_width (float): New cell width.
-        """
-        if cell_width is not None:
-            self.cpp_nlist.setCellWidth(float(cell_width))
+    def _detach(self):
+        del self._cpp_stencil
+        del self._cpp_cell
+        super()._detach()
 
     def tune_cell_width(self, warmup=200000, min_width=None, max_width=None, jumps=20, steps=5000):
         R""" Make a series of short runs to determine the fastest performing bin width.
@@ -359,7 +347,7 @@ class stencil(nlist):
 
         # return the results to the script
         return fastest_width
-stencil.cur_id = 0
+
 
 class tree(nlist):
     R""" Bounding volume hierarchy based neighbor list.
