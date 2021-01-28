@@ -96,13 +96,10 @@ def test_berendsen_attributes_attached(simulation_factory,
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
-    print(type(berendsen))
-    print(berendsen.kT)
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[berendsen])
     sim.operations._schedule()
-    print(type(berendsen))
-    print(berendsen.kT)
+
     assert berendsen.filter is all_
     assert berendsen.kT is constant
     assert berendsen.tau == 10.0
