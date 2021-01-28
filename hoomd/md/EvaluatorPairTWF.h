@@ -169,8 +169,6 @@ class EvaluatorPairTWF
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that
             V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method.
-            Cutoff tests are performed in PotentialPair.
 
             \return True if they are evaluated or false if they are not because
             we are beyond the cutoff
@@ -187,7 +185,7 @@ class EvaluatorPairTWF
                 // If particles are overlapping return maximum possible energy
                 // and force since this is an invalid state and should be
                 // infinite energy and force.
-                if (rsq < sigma2) {
+                if (rsq <= sigma2) {
                     // For now use an arbitary constant since
                     // std::numeric_limit<>::max cannot be used for GPU code.
                     pair_eng = 1e37;
@@ -202,7 +200,7 @@ class EvaluatorPairTWF
                 pair_eng = params.prefactor * (
                     common_term6 - params.alpha * common_term3);
                 Scalar force_term = 6 * sigma2 / (rsq * rsq);
-                force_divr = params.prefactor * common_term * force_term * (
+                force_divr = -params.prefactor * common_term * force_term * (
                     2 * common_term6 - params.alpha * common_term3);
 
                 if (energy_shift)
