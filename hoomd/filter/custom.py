@@ -1,7 +1,8 @@
 """Contains a class for custom particle filters in Python."""
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
+from collections.abc import Hashable, Callable
 
-class CustomFilter(metaclass=ABCMeta):
+class CustomFilter(Hashable, Callable):
     """Abstract base class for custom particle filters.
 
     The class allows the definition of particle filters in Python (see
