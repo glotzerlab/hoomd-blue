@@ -22,6 +22,7 @@ hoomd.filter
 
 .. automodule:: hoomd.filter
     :synopsis: Particle selection filters.
+    :no-members:
 
     .. autoclass:: ParticleFilter()
         :special-members: __call__, __hash__, __eq__, __str__

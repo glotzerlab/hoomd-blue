@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 //! Class to perform cudaMallocManaged allocations
@@ -150,11 +150,7 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (m_use_device)
                 {
-                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(ptr);
-                #elif __HIP_PLATFORM_HCC__
-                hipError_t error = hipHostFree(ptr);
-                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;
@@ -198,11 +194,7 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (use_device)
                 {
-                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(allocation_ptr);
-                #elif __HIP_PLATFORM_HCC__
-                hipError_t error = hipHostFree(allocation_ptr);
-                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;

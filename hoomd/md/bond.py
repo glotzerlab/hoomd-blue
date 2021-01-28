@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -50,13 +50,13 @@ class Harmonic(Bond):
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
-            The parameter of the harmonic bonds for each particle type. 
-            The dictionary has the following keys: 
+            The parameter of the harmonic bonds for each particle type.
+            The dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant 
+            * ``k`` (`float`, **required**) - potential constant
               (in units of energy/distance^2)
 
-            * ``r0`` (`float`, **required**) - rest length 
+            * ``r0`` (`float`, **required**) - rest length
               (in units distance)
 
     Examples::
@@ -102,8 +102,8 @@ class FENE(Bond):
 
     Attributes:
         params (TypeParameter[``bond type``, dict]):
-            The parameter of the FENE potential bonds. 
-            The dictionary has the following keys: 
+            The parameter of the FENE potential bonds.
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
               (in units of energy/distance^2)
