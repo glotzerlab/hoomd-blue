@@ -2163,6 +2163,9 @@ class TWF(Pair):
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
+    The potential comes from
+    `Pieter Rein ten Wolde and Daan Frenkel 1997 <https://dx.doi.org/10.1126/science.277.5334.1975 >`_.
+
     Attributes:
         params (`TypeParameter` [\
             `tuple` [``particle_type``, ``particle_type``],\
