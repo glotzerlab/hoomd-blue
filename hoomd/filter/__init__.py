@@ -22,10 +22,10 @@ themselves to compute the kinetic temperature. See
 count.
 """
 
-from hoomd.filter.filter_ import ParticleFilter  # noqa
-from hoomd.filter.all_ import All  # noqa
-from hoomd.filter.null import Null  # noqa
-from hoomd.filter.set_ import Intersection, SetDifference, Union  # noqa
-from hoomd.filter.tags import Tags  # noqa
-from hoomd.filter.type_ import Type  # noqa
-from hoomd.filter.custom import CustomFilter  #noqa
+from hoomd.filter.filter_ import ParticleFilter
+from hoomd.filter.all_ import All
+from hoomd.filter.null import Null
+from hoomd.filter.set_ import Intersection, SetDifference, Union
+from hoomd.filter.tags import Tags
+from hoomd.filter.type_ import Type
+from hoomd.filter.custom import CustomFilter
