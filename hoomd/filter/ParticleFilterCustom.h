@@ -31,7 +31,7 @@ class PYBIND11_EXPORT ParticleFilterCustom : public ParticleFilter
             }
 
     protected:
-        pybind11::object m_py_filter;
-        pybind11::object m_state;
+        pybind11::object m_py_filter;  /// Python hoomd.filter.CustomFilter object
+        pybind11::object m_state;  /// Python hoomd.State object
     };
 #endif // __PARTICLE_FILTER_CUSTOM_H__
