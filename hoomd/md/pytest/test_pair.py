@@ -300,6 +300,12 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(opp_invalid_dicts,
                                                     hoomd.md.pair.OPP,
                                                     {}))
+    twf_valid_dict = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 15}
+    twf_invalid_dicts = _make_invalid_param_dict(twf_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(twf_invalid_dicts,
+                                                    hoomd.md.pair.TWF,
+                                                    {}))
+
     return invalid_params_list
 
 
@@ -501,6 +507,14 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(paramtuple(hoomd.md.pair.OPP,
                                         dict(zip(combos,
                                                  opp_valid_param_dicts)),
+                                        {}))
+    twf_arg_dict = {'sigma': [0.1, 0.2, 0.5],
+                    'epsilon': [0.1, 0.5, 2.0],
+                    'alpha': [15.0, 12.0, 8.0]}
+    twf_valid_param_dicts = _make_valid_param_dicts(twf_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.TWF,
+                                        dict(zip(combos,
+                                                 twf_valid_param_dicts)),
                                         {}))
     return valid_params_list
 
@@ -717,7 +731,7 @@ def test_force_energy_relationship(simulation_factory,
                                    valid_params):
     # don't really test DPD and DPDLJ for this test
     pot_name = valid_params.pair_potential.__name__
-    if any(pot_name == name for name in ["DPD", "DPDLJ"]):
+    if any(pot_name == name for name in ["DPD", "DPDLJ", "TWF"]):
         pytest.skip("Cannot test force energy relationship for "
                     + pot_name + " pair force")
 
