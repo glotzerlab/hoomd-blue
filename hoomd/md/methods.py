@@ -555,8 +555,6 @@ class NPH(_Method):
                  S=S,
                  couple=couple,
                  box_dof=box_dof,
-                 translational_thermostat_dof=(0, 0),
-                 rotational_thermostat_dof=(0, 0),
                  barostat_dof=(0, 0, 0, 0, 0, 0)))
 
         # set defaults

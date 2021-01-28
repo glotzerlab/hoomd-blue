@@ -270,14 +270,6 @@ def test_nph_attributes():
     nph.gamma = 2.0
     assert nph.gamma == 2.0
 
-    assert nph.translational_thermostat_dof == (0.0, 0.0)
-    nph.translational_thermostat_dof = (0.125, 0.5)
-    assert nph.translational_thermostat_dof == (0.125, 0.5)
-
-    assert nph.rotational_thermostat_dof == (0.0, 0.0)
-    nph.rotational_thermostat_dof = (0.5, 0.25)
-    assert nph.rotational_thermostat_dof == (0.5, 0.25)
-
     assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
     assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
@@ -423,14 +415,6 @@ def test_nph_attributes_attached_3d(simulation_factory,
 
     nph.gamma = 2.0
     assert nph.gamma == 2.0
-
-    assert nph.translational_thermostat_dof == (0.0, 0.0)
-    nph.translational_thermostat_dof = (0.125, 0.5)
-    assert nph.translational_thermostat_dof == (0.125, 0.5)
-
-    assert nph.rotational_thermostat_dof == (0.0, 0.0)
-    nph.rotational_thermostat_dof = (0.5, 0.25)
-    assert nph.rotational_thermostat_dof == (0.5, 0.25)
 
     assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
