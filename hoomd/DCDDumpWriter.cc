@@ -411,8 +411,9 @@ void export_DCDDumpWriter(py::module& m)
     {
     py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
-    .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
-    .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
-    .def("setAngleZ", &DCDDumpWriter::setAngleZ)
+    .def_property("unwrap_full", &DCDDumpWriter::getUnwrapFull, &DCDDumpWriter::setUnwrapFull)
+    .def_property("unwrap_rigid", &DCDDumpWriter::getUnwrapRigid, &DCDDumpWriter::setUnwrapRigid)
+    .def_property("angle_z", &DCDDumpWriter::getAngleZ, &DCDDumpWriter::setAngleZ)
+    .def_property_readonly("overwrite", &DCDDumpWriter::getOverwrite)
     ;
     }

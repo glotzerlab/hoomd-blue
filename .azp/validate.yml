@@ -13,7 +13,7 @@ schedules:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2020.11
+  image_root: glotzerlab/ci:2021.01
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -166,9 +166,13 @@ stages:
 
     strategy:
       matrix:
-        cuda10_py37_mng_mpi:
-          container_image: cuda10_gcc7_py37
+        cuda11_py38_mng_mpi:
+          container_image: cuda11_gcc9_py38
           always_use_managed_memory: on
+          enable_mpi: on
+
+        cuda10_py37_mpi:
+          container_image: cuda10_gcc7_py37
           enable_mpi: on
 
         cuda9_py37_mpi:

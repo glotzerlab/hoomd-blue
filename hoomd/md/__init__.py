@@ -23,3 +23,4 @@ from hoomd.md import update
 from hoomd.md import wall
 from hoomd.md import special_pair
 from hoomd.md import methods
+from hoomd.md import many_body
