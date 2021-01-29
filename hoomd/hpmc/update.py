@@ -19,7 +19,6 @@ class BoxMC(Updater):
     r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
-        seed (int): random number seed for MC box changes
         betaP (`float` or :py:mod:`hoomd.variant.Variant`):
             :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
             inverse volume in 3D).
@@ -78,12 +77,11 @@ class BoxMC(Updater):
               disable shear reduction.
     """
 
-    def __init__(self, seed, betaP, trigger=1):
+    def __init__(self, betaP, trigger=1):
         super().__init__(trigger)
 
         _default_dict = dict(weight=0.0, delta=0.0)
         param_dict = ParameterDict(
-            seed=int,
             volume={
                 "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
                 **_default_dict
@@ -95,7 +93,6 @@ class BoxMC(Updater):
             _defaults={'volume': {'mode': 'standard'}})
         self._param_dict.update(param_dict)
         self.betaP = betaP
-        self.seed = seed
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -106,8 +103,7 @@ class BoxMC(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
-                                           integrator._cpp_obj, self.betaP,
-                                           int(self.seed))
+                                           integrator._cpp_obj, self.betaP)
         super()._attach()
 
     @property
@@ -364,7 +360,6 @@ class muvt(_updater):
 
         self.cpp_updater = cls(hoomd.context.current.system_definition,
                                mc.cpp_integrator,
-                               int(seed),
                                ngibbs);
 
         # register the muvt updater
@@ -558,7 +553,6 @@ class Clusters(Updater):
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        seed (int): Random number seed.
         swap_type_pair (list): A pair of two types whose identities may be swapped.
         delta_mu (float): The chemical potential difference between types to be swapped
         move_ratio (float): Set the ratio between pivot and reflection moves.
@@ -570,7 +564,7 @@ class Clusters(Updater):
             moves.
     """
 
-    def __init__(self, seed, swap_type_pair, delta_mu=0, move_ratio=0.5,
+    def __init__(self, swap_type_pair, delta_mu=0, move_ratio=0.5,
                  flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
         super().__init__(trigger)
         try:
@@ -580,8 +574,7 @@ class Clusters(Updater):
             raise ValueError("swap_type_pair must be an iterable of length "
                              "2 or 0.")
 
-        param_dict = ParameterDict(seed=int(seed),
-                                   swap_type_pair=list(swap_type_pair),
+        param_dict = ParameterDict(swap_type_pair=list(swap_type_pair),
                                    move_ratio=float(move_ratio),
                                    flip_probability=float(flip_probability),
                                    swap_move_ratio=float(swap_move_ratio),
@@ -632,8 +625,7 @@ class Clusters(Updater):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                int(self.seed))
+                                integrator._cpp_obj)
         super()._attach()
 
     @property
@@ -764,19 +756,16 @@ class QuickCompress(Updater):
     def __init__(self,
                  trigger,
                  target_box,
-                 seed,
                  max_overlaps_per_particle=0.25,
                  min_scale=0.99):
         super().__init__(trigger)
 
         param_dict = ParameterDict(
-            seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
             target_box=hoomd.data.typeconverter.OnlyType(
                 hoomd.Box,
                 preprocess=hoomd.data.typeconverter.box_preprocessing))
-        param_dict['seed'] = seed
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
@@ -793,8 +782,7 @@ class QuickCompress(Updater):
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale, self.target_box,
-            self.seed)
+            self.max_overlaps_per_particle, self.min_scale, self.target_box)
         super()._attach()
 
     @property

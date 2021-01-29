@@ -61,7 +61,7 @@ class UpdateOrder
         /*! \param seed Random number seed
             \param N number of integers to shuffle
         */
-        UpdateOrder(unsigned int seed, unsigned int N=0)
+        UpdateOrder(uint16_t seed, unsigned int N=0)
             : m_seed(seed)
             {
             resize(N);
@@ -86,7 +86,8 @@ class UpdateOrder
         */
         void shuffle(uint64_t timestep, unsigned int select = 0)
             {
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, m_seed),
+                                       hoomd::Counter(select));
 
             // reverse the order with 1/2 probability
             if (hoomd::UniformIntDistribution(1)(rng))
@@ -108,8 +109,14 @@ class UpdateOrder
             {
             return m_update_order[i];
             }
+
+        /// Set the seed
+        void setSeed(uint16_t seed)
+            {
+            m_seed = seed;
+            }
     private:
-        unsigned int m_seed;                       //!< Random number seed
+        uint16_t m_seed;                          //!< Random number seed
         std::vector<unsigned int> m_update_order; //!< Update order
     };
 
@@ -132,8 +139,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
-                      unsigned int seed);
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~IntegratorHPMCMono()
             {
@@ -508,10 +514,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
-                                                   unsigned int seed)
-            : IntegratorHPMC(sysdef, seed),
-              m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef)
+            : IntegratorHPMC(sysdef),
+              m_update_order(m_sysdef->getSeed(), m_pdata->getN()),
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
@@ -772,6 +777,9 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     Scalar3 ghost_fraction = m_nominal_width / npd;
     #endif
 
+    // update the seed if it changed
+    m_update_order.setSeed(m_sysdef->getSeed() + (uint16_t)(m_exec_conf->getRank()));
+
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getN());
     m_update_order.shuffle(timestep);
@@ -795,21 +803,19 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
 
     // Combine the three seeds to generate RNG for poisson distribution
     #ifndef ENABLE_TBB
-    hoomd::RandomGenerator rng_depletants(this->m_seed,
-        timestep,
-        this->m_exec_conf->getRank(),
-        hoomd::RNGIdentifier::HPMCDepletants);
+    hoomd::RandomGenerator rng_depletants(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                      timestep,
+                                                      this->m_sysdef->getSeed()),
+                                          hoomd::Counter(this->m_exec_conf->getRank()));
     #else
     // create one RNG per thread
     tbb::enumerable_thread_specific< hoomd::RandomGenerator > rng_depletants_parallel([=]
         {
-        std::vector<unsigned int> seed_seq(5);
-        std::hash<std::thread::id> hash;
-        return hoomd::RandomGenerator(this->m_seed,
-            timestep,
-            this->m_exec_conf->getRank(),
-            (uint32_t)(hash(std::this_thread::get_id())),
-            hoomd::RNGIdentifier::HPMCDepletants);
+        return hoomd::RandomGenerator(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                  timestep,
+                                                  this->m_sysdef->getSeed()),
+                                      hoomd::Counter(this->m_exec_conf->getRank(),
+                                                     std::this_thread::get_id())));
         });
     #endif
 
@@ -819,6 +825,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
         {
         m_external->compute(timestep);
         }
+
+    uint16_t seed = m_sysdef->getSeed();
 
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
@@ -856,7 +864,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
             #endif
 
             // make a trial move for i
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+                                         hoomd::Counter(i, m_exec_conf->getRank(), i_nselect));
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
@@ -3228,7 +3237,7 @@ bool IntegratorHPMCMono<Shape>::attemptBoxResize(uint64_t timestep, const BoxDim
 template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
-          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)

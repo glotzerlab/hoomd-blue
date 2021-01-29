@@ -17,8 +17,7 @@ namespace hpmc
 
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
-                             std::shared_ptr<Variant> P,
-                             const unsigned int seed)
+                             std::shared_ptr<Variant> P)
         : Updater(sysdef),
           m_mc(mc),
           m_beta_P(P),
@@ -35,16 +34,9 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_shear_weight(0.0),
           m_shear_reduce(0.0),
           m_aspect_delta(0.0),
-          m_aspect_weight(0.0),
-          m_seed(seed)
+          m_aspect_weight(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
-
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
 
     // initialize logger and stats
     resetStats();
@@ -412,7 +404,8 @@ void UpdaterBoxMC::update(uint64_t timestep)
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterBoxMC, timestep, m_sysdef->getSeed()),
+                               hoomd::Counter());
 
     // Choose a move type
     auto const weight_total = m_weight_partial_sums.back();
@@ -890,14 +883,12 @@ void export_UpdaterBoxMC(py::module& m)
    py::class_< UpdaterBoxMC, Updater, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
-                         std::shared_ptr<Variant>,
-                         const unsigned int >())
+                         std::shared_ptr<Variant> >())
     .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
     .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
     .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
     .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
     .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
-    .def_property_readonly("seed", &UpdaterBoxMC::getSeed)
     .def("getCounters", &UpdaterBoxMC::getCounters)
     ;
 

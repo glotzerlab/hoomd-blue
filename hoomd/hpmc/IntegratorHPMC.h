@@ -211,8 +211,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
-        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int seed);
+        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~IntegratorHPMC();
 
@@ -467,12 +466,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch_log = log;
             }
 
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
-
         #ifdef ENABLE_MPI
         //! Set the MPI communicator
         /*! \param comm the communicator
@@ -501,7 +494,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         #endif
 
     protected:
-        unsigned int m_seed;                        //!< Random number seed
         unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
         unsigned int m_nselect;                     //!< Number of particles to select for trial moves
 

@@ -42,17 +42,10 @@ class UpdaterBoxMC : public Updater
         */
         UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMC> mc,
-                      std::shared_ptr<Variant> P,
-                      const unsigned int seed);
+                      std::shared_ptr<Variant> P);
 
         //! Destructor
         virtual ~UpdaterBoxMC();
-
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
 
         //! Get parameters for box volume moves as a dictionary
         /*! dict keys:
@@ -312,8 +305,6 @@ class UpdaterBoxMC : public Updater
         hpmc_boxmc_counters_t m_count_total;       //!< Accept/reject total count
         hpmc_boxmc_counters_t m_count_run_start;   //!< Count saved at run() start
         hpmc_boxmc_counters_t m_count_step_start;  //!< Count saved at the start of the last step
-
-        unsigned int m_seed;                        //!< Seed for pseudo-random number generator
 
         std::vector<Scalar> m_weight_partial_sums;  //!< Partial sums of all weights used to select moves
 

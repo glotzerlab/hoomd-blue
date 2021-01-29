@@ -146,6 +146,8 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t timestep)
     // update the image list
     std::vector<vec3<Scalar> > image_list = this->m_mc->updateImageList();
 
+    uint16_t seed = m_sysdef->getSeed();
+
     if (m_prof) m_prof->push("Free volume");
 
     // only check if AABB tree is populated
@@ -172,7 +174,8 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::ComputeFreeVolume, m_seed, m_exec_conf->getRank(), i, timestep);
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::ComputeFreeVolume, timestep, seed),
+                                         hoomd::Counter(m_exec_conf->getRank(), i));
 
             Scalar xrand = hoomd::detail::generate_canonical<Scalar>(rng_i);
             Scalar yrand = hoomd::detail::generate_canonical<Scalar>(rng_i);

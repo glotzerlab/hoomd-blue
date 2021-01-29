@@ -31,14 +31,12 @@ class UpdaterQuickCompress : public Updater
         @param max_overlaps_per_particle Maximum number of overlaps allowed per particle
         @param min_scale The minimum scale factor to use when scaling the box parameters
         @param target_box The target box
-        @param seed PRNG seed
     */
     UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
-                         pybind11::object target_box,
-                         const unsigned int seed);
+                         pybind11::object target_box);
 
     /// Destructor
     virtual ~UpdaterQuickCompress();
@@ -99,12 +97,6 @@ class UpdaterQuickCompress : public Updater
         m_target_box = target_box;
         }
 
-    /// Get the PRNG seed
-    unsigned int getSeed()
-        {
-        return m_seed;
-        }
-
     /// Return true if the updater is complete and the simulation should end.
     virtual bool isComplete()
         {
@@ -123,9 +115,6 @@ class UpdaterQuickCompress : public Updater
 
     /// The target box dimensions
     pybind11::object m_target_box;
-
-    /// The RNG seed
-    unsigned int m_seed;
 
     /// hold backup copy of particle positions
     GPUArray<Scalar4> m_pos_backup;

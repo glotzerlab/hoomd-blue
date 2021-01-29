@@ -18,29 +18,25 @@ valid_constructor_args = [
          swap_type_pair=[],
          move_ratio=0.1,
          flip_probability=0.8,
-         swap_move_ratio=0.1,
-         seed=1),
+         swap_move_ratio=0.1),
     dict(trigger=hoomd.trigger.After(100),
          delta_mu=-1.5,
          swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
-         swap_move_ratio=0.1,
-         seed=4),
+         swap_move_ratio=0.1),
     dict(trigger=hoomd.trigger.Before(100),
          delta_mu=2.4,
          swap_type_pair=[],
          move_ratio=0.7,
          flip_probability=1,
-         swap_move_ratio=0.1,
-         seed=4),
+         swap_move_ratio=0.1),
     dict(trigger=hoomd.trigger.Periodic(1000),
          delta_mu=0,
          swap_type_pair=['A', 'B'],
          move_ratio=0.7,
          flip_probability=1,
-         swap_move_ratio=0.1,
-         seed=4),
+         swap_move_ratio=0.1),
 ]
 
 valid_attrs = [
@@ -87,12 +83,12 @@ def test_valid_construction_and_attach(simulation_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
@@ -114,8 +110,7 @@ def test_valid_construction_and_attach(simulation_factory,
 def test_valid_setattr(attr, value):
     """Test that Clusters can get and set attributes."""
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    swap_type_pair=['A', 'B'],
-                                    seed=1)
+                                    swap_type_pair=['A', 'B'])
 
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
@@ -133,17 +128,17 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    swap_type_pair=['A', 'B'], seed=1)
+                                    swap_type_pair=['A', 'B'])
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
                                                            dimensions=dim, d=2, L=50))
@@ -165,7 +160,7 @@ def test_swap_moves(delta_mu, simulation_factory,
                                                       dimensions=3, a=4, n=7, r=0.1))
 
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1)
     mc.shape['B'] = dict(diameter=1)
     sim.operations.integrator = mc
@@ -173,8 +168,7 @@ def test_swap_moves(delta_mu, simulation_factory,
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
                                     swap_type_pair=['A', 'B'],
                                     swap_move_ratio=1,
-                                    delta_mu=delta_mu,
-                                    seed=12)
+                                    delta_mu=delta_mu)
     sim.operations.updaters.append(cl)
 
     # set every other particle to type B (typeid=1)
@@ -210,7 +204,7 @@ def test_pivot_moves(delta_mu, simulation_factory,
     sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
                                                       dimensions=3, a=4, n=7, r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
@@ -218,8 +212,7 @@ def test_pivot_moves(delta_mu, simulation_factory,
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
                                     swap_type_pair=[],
                                     move_ratio=0.5,
-                                    delta_mu=delta_mu,
-                                    seed=12)
+                                    delta_mu=delta_mu)
     sim.operations.updaters.append(cl)
 
     sim.run(100)
