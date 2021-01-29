@@ -142,7 +142,7 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
         {
         // PRNG using seed and timestep as seeds
         hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
-                                   hoomd::Counter(seed));
+                                   hoomd::Counter());
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution
