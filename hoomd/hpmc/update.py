@@ -1350,39 +1350,12 @@ class ElasticShape(ShapeUpdater):
             if arg not in params:
                 params[arg] = val
         # initialize base class
-        super().__init__(params["mc"],
-                         params["move_ratio"],
-                         params["seed"],
-                         params["trigger"],
-                         params["pretend"],
-                         params["nselect"],
-                         params["nsweeps"],
-                         params["multi_phase"],
-                         params["num_phase"])
-        param_dict = ParameterDict(mc=hoomd.hpmc.integrate.HPMCIntegrator,
-                                   move_ratio=float,
-                                   seed=int,
-                                   pretend=bool,
-                                   nselect=int,
-                                   nsweeps=int,
-                                   multi_phase=bool,
-                                   num_phase=int,
-                                   stiffness=hoomd.variant.Variant,
-                                   reference=dict,
-                                   stepsize=float,
-                                   param_ratio=float)
-        for key, val in params.items():
-            param_dict[key] = val            
-
-        param_dict['reference'] = reference
-        param_dict['stepsize'] = stepsize
-        param_dict['param_ratio'] = param_ratio
+        super().__init__(**params)
 
         if type(stiffness) in [int, float]:
             stiffness = hoomd.variant.Constant(stiffness)
-        param_dict['stiffness'] = stiffness
 
-        self._param_dict.update(param_dict)
+        self.stiffness = stiffness
 
         self.elastic_shape_move(stepsize, param_ratio)
 
@@ -1403,7 +1376,7 @@ class ElasticShape(ShapeUpdater):
             raise RuntimeError("Error initializing compute.elastic_shape")
 
         ref_shape = shape_cls(reference)
-        self.boltzmann_function = clss(self.stiffness, ref_shape, self.move_cpp)
+        self.boltzmann_function = clss(stiffness, ref_shape, self.move_cpp)
 
     def set_stiffness(self, stiffness):
         R""" Update the stiffness set point for Metropolis Monte Carlo elastic shape updates.
@@ -1423,7 +1396,7 @@ class ElasticShape(ShapeUpdater):
         Returns:
             The stiffness of the shape at the current timestep
         """
-        return self._param_dict["stiffness"](self._simulation.timestep)
+        return self.stiffness(self._simulation.timestep)
 
     @log(flag="scalar")
     def shape_move_energy(self):
