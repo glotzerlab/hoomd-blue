@@ -1937,6 +1937,7 @@ Scalar UpdaterMuVT<Shape>::getLogValue(const std::string& quantity, unsigned int
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
     \return The current state of the acceptance counters
+
     UpdaterMuVT maintains a count of the number of accepted and rejected moves since instantiation. getCounters()
     provides the current value. The parameter *mode* controls whether the returned counts are absolute, relative
     to the start of the run, or relative to the start of the last executed step.

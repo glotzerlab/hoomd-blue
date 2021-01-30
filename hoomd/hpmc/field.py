@@ -284,9 +284,7 @@ class wall(_external):
     * Sphere particles: sphere walls, cylinder walls, plane walls
     * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
     * Convex spheropolyhedron particles: sphere walls
-
     Once initialized, the compute provides the following log quantities that can be logged via ``hoomd.analyze.log``:
-
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
       if the user has initially provided it through :py:meth:`set_volume`. It will subsequently change when
       the box is resized and walls are scaled appropriately.
@@ -679,7 +677,6 @@ class frenkel_ladd_energy(Compute):
         q0 (list): reference lattice orientations
         drift_period (int): period call the remove drift updater
         symmetry (list): list of equivalent quaternions for the shape.
-
     :py:class:`frenkel_ladd_energy` interacts with :py:class:`.lattice_field`
     and :py:class:`hoomd.hpmc.update.remove_drift`.
     Once initialized, the compute provides the log quantities from the :py:class:`lattice_field`.

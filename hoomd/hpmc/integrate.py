@@ -56,6 +56,14 @@ class HPMCIntegrator(BaseIntegrator):
     The `fugacity` parameter enables implicit depletants when non-zero.
     TODO: Describe implicit depletants algorithm. No need to write this now,
     as Jens is rewriting the implementation.
+    .. rubric:: Writing type_shapes to GSD files.
+    Use a Logger in combination with a HPMC integrator and a GSD writer to write
+    ``type_shapes`` to the GSD file for use with OVITO. For example::
+        mc = hoomd.hpmc.integrate.Sphere(seed=123)
+        log = hoomd.logging.Logger()
+        log.add(mc, quantities=['type_shapes'])
+        gsd = hoomd.write.GSD(
+            'trajectory.gsd', hoomd.trigger.Periodic(1000), log=log)
     .. rubric:: Parameters
     Attributes:
         a (`TypeParameter` [``particle type``, `float`]):
@@ -162,7 +170,7 @@ class HPMCIntegrator(BaseIntegrator):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def map_overlaps(self):
         """list[tuple[int, int]]: List of overlapping particles.
         The list contains one entry for each overlapping pair of particles. When
@@ -250,7 +258,7 @@ class HPMCIntegrator(BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def translate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected translate moves.
         Note:
@@ -262,7 +270,7 @@ class HPMCIntegrator(BaseIntegrator):
         else:
             return None
 
-    @log(flag='sequence')
+    @log(category='sequence')
     def rotate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected rotate moves.
         Note:
@@ -373,7 +381,7 @@ class Sphere(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Examples:
@@ -455,7 +463,7 @@ class ConvexPolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -541,7 +549,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -622,7 +630,7 @@ class SimplePolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -778,7 +786,7 @@ class Polyhedron(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -869,7 +877,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -995,7 +1003,7 @@ class FacetedEllipsoid(HPMCIntegrator):
                                              to_type_converter(
                                                  [(float, float, float)]),
                                              allow_none=True),
-                                         origin=(float, float, float),
+                                         origin=(0.0, 0.0, 0.0),
                                          ignore_statistics=False,
                                          len_keys=1,
                                          _defaults={'vertices': None}))
@@ -1140,7 +1148,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -1217,7 +1225,7 @@ class Ellipsoid(HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Example:
@@ -1329,7 +1337,7 @@ class SphereUnion(HPMCIntegrator):
                                             }))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
         Examples:

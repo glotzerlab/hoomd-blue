@@ -51,6 +51,7 @@ namespace detail
 //! Helper class to manage shuffled update orders
 /*! Stores an update order from 0 to N-1, inclusive, and can be resized. shuffle() shuffles the order of elements
     to a new random permutation. operator [i] gets the index of the item at order i in the current shuffled sequence.
+
     \ingroup hpmc_data_structs
 */
 class UpdateOrder
@@ -108,7 +109,9 @@ class UpdateOrder
 
 //! HPMC on systems of mono-disperse shapes
 /*! Implement hard particle monte carlo for a single type of shape on the CPU.
+
     TODO: I need better documentation
+
     \ingroup hpmc_integrators
 */
 template < class Shape >
@@ -275,6 +278,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             \param qj Orientation quaternion of second particle
             \param use_images if true, take into account periodic boundary conditions
             \param exclude_self if true, exclude the self-image
+
             \returns true if particles overlap
          */
         virtual bool py_test_overlap(unsigned int type_i, unsigned int type_j,
@@ -552,6 +556,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
     \return The current state of the acceptance counters
+
     IntegratorHPMCMonoImplicit maintains a count of the number of accepted and rejected moves since instantiation. getCounters()
     provides the current value. The parameter *mode* controls whether the returned counts are absolute, relative
     to the start of the run, or relative to the start of the last executed step.
@@ -1833,13 +1838,16 @@ void IntegratorHPMCMono<Shape>::growAABBList(unsigned int N)
 
 /*! Call any time an up to date AABB tree is needed. IntegratorHPMCMono internally tracks whether
     the tree needs to be rebuilt or if the current tree can be used.
+
     buildAABBTree() relies on the member variable m_aabb_tree_invalid to work correctly. Any time particles
     are moved (and not updated with m_aabb_tree->update()) or the particle list changes order, m_aabb_tree_invalid
     needs to be set to true. Then buildAABBTree() will know to rebuild the tree from scratch on the next call. Typically
     this is on the next timestep. But in some cases (i.e. NPT), the tree may need to be rebuilt several times in a
     single step because of box volume moves.
+
     Subclasses that override update() or other methods must be user to set m_aabb_tree_invalid appropriately, or
     erroneous simulations will result.
+
     \returns A reference to the tree.
 */
 template <class Shape>
@@ -1887,6 +1895,7 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
 
 /*! Call to reduce the m_d values down to safe levels for the bvh tree + small box limitations. That code path
     will not work if particles can wander more than one image in a time step.
+
     In MPI simulations, they may not move more than half a local box length.
 */
 template <class Shape>
@@ -2310,7 +2319,9 @@ bool IntegratorHPMCMono<Shape>::py_test_overlap(unsigned int type_i, unsigned in
     \param hpmc_implicit_counters_t&  Pointer to current implicit counters
     \param rng_depletants The RNG used within this algorithm
     \param rng_i The RNG used for evaluating the Metropolis criterion
+
     In order to determine whether or not moves are accepted, particle positions are checked against a randomly generated set of depletant positions.
+
     NOTE: To avoid numerous acquires and releases of GPUArrays, data pointers are passed directly into this const function.
     */
 #ifndef ENABLE_TBB
