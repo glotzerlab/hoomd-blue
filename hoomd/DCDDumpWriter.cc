@@ -349,9 +349,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write x coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare y coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -361,9 +361,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write y coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare z coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -380,9 +380,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write z coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // check for errors
     if (!file.good())

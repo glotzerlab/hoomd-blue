@@ -89,19 +89,27 @@ int main(int argc, char **argv)
         list(APPEND HIP_INCLUDE_DIR ${ROCm_hsa_INCLUDE_DIR})
     else()
         # here we go if hipcc is not available, fall back on internal HIP->CUDA headers
+        ENABLE_LANGUAGE(CUDA)
+
         set(HIP_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/HIP/include/")
 
         # use CUDA runtime version
-        set(HIP_VERSION_MAJOR "(CUDART_VERSION/1000)")
-        set(HIP_VERSION_MINOR "(CUDART_VERSION - (CUDART_VERSION/1000)*1000)/10")
-        set(HIP_VERSION_PATCH "0")
+        string(REGEX MATCH "([0-9]*).([0-9]*).([0-9]*).*" _hip_version_match "${CMAKE_CUDA_COMPILER_VERSION}")
+        set(HIP_VERSION_MAJOR "${CMAKE_MATCH_1}")
+        set(HIP_VERSION_MINOR "${CMAKE_MATCH_2}")
+        set(HIP_VERSION_PATCH "${CMAKE_MATCH_3}")
         set(HIP_PLATFORM "nvcc")
         set(CUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/cub/")
 
         # hipCUB
         # funny enough, we require this only on NVIDA platforms due to issues with hipCUB's cmake build system
         # on AMD platforms, it is an external dependency
-        set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
+        if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11)
+            set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/;${CUB_INCLUDE_DIR}")
+        else()
+            # Use system provided CUB for CUDA 11 and newer
+            set(HIPCUB_INCLUDE_DIR "$<IF:$<STREQUAL:${CMAKE_PROJECT_NAME},HOOMD>,${CMAKE_CURRENT_SOURCE_DIR},${HOOMD_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}/include>/hoomd/extern/hipCUB/hipcub/include/")
+        endif()
     endif()
 
     ENABLE_LANGUAGE(CUDA)

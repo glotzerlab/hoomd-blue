@@ -18,7 +18,7 @@
 //! Kernel driver that computes harmonic angle forces for HarmonicAngleForceComputeGPU
 hipError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
                                               Scalar* d_virial,
-                                              const unsigned int virial_pitch,
+                                              const size_t virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const BoxDim& box,

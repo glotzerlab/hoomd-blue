@@ -81,7 +81,7 @@ class ParticleLocalAccessBase(_LocalAccess):
     """Class for directly accessing HOOMD-blue particle data.
 
     Attributes:
-        type ((N_particles) `hoomd.data.array` object of ``float``):
+        typeid ((N_particles) `hoomd.data.array` object of ``float``):
             The integer type of a particle
         tag ((N_particles) `hoomd.data.array` object of ``int``):
             The tag of a particle.  HOOMD-blue uses spacial sorting to improve

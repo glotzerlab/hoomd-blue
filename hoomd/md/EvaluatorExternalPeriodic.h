@@ -139,7 +139,7 @@ class EvaluatorExternalPeriodic
             clipParameter   = Scalar(1.0)/Scalar(2.0*M_PI)/(m_periodicity*m_interfaceWidth);
             arg = dot(m_pos,q);
             clipcos = clipParameter*fast::cos(arg);
-            tanH = tanhf(clipcos);
+            tanH = slow::tanh(clipcos);
             sechSq = (Scalar(1.0) - tanH*tanH);
 
             F = m_orderParameter*sechSq*clipParameter*fast::sin(arg)*q;

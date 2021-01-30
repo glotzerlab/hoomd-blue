@@ -64,12 +64,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         // offer a default type mapping
         for (unsigned int i = 0; i < n_group_types; i++)
             {
-            char suffix[2];
-            suffix[0] = 'A' + i;
-            suffix[1] = '\0';
-
-            std::string type_name = std::string(name) + std::string(suffix);
-            m_type_mapping.push_back(type_name);
+            m_type_mapping.push_back(getDefaultTypeName(i));
             }
         }
 
@@ -854,7 +849,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
             // allocate scratch buffers
             CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
-            unsigned int tmp_size = m_groups.size()*group_size;
+            size_t tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
@@ -1094,7 +1089,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 
         MPI_Status stat;
         MPI_Request req;
-        unsigned int num = send_groups.size();
+        unsigned int num = (unsigned int)send_groups.size();
 
         MPI_Isend(&num, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
         MPI_Wait(&req, &stat);
@@ -1174,7 +1169,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
             if (! is_local)
                 {
                 // append to end of group data
-                unsigned int n = m_groups.size();
+                unsigned int n = (unsigned int)m_groups.size();
                 m_group_tag.push_back(tag);
                 m_groups.push_back(members);
                 m_group_typeval.push_back(typeval);

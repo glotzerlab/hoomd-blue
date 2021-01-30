@@ -61,7 +61,7 @@ TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition>
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_angle_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(), (unsigned int)m_angle_data->getNTypes());
     m_table_value = table_value;
 
     m_log_name = std::string("angle_table_energy") + log_suffix;
@@ -155,7 +155,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -247,7 +247,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 
         /// Here we use the table!!
         unsigned int angle_type = m_angle_data->getTypeByIndex(i);
-        unsigned int value_i = floor(value_f);
+        unsigned int value_i = (unsigned int)(slow::floor(value_f));
         Scalar2 VT0 = h_tables.data[m_table_value(value_i, angle_type)];
         Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, angle_type)];
         // unpack the data

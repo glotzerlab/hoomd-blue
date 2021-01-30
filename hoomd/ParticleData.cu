@@ -12,12 +12,15 @@
 
 #ifdef ENABLE_MPI
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(

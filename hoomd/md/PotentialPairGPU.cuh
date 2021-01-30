@@ -41,7 +41,7 @@ struct pair_args_t
     //! Construct a pair_args_t
     pair_args_t(Scalar4 *_d_force,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              const size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
@@ -53,7 +53,7 @@ struct pair_args_t
               const unsigned int *_d_head_list,
               const Scalar *_d_rcutsq,
               const Scalar *_d_ronsq,
-              const unsigned int _size_neigh_list,
+              const size_t _size_neigh_list,
               const unsigned int _ntypes,
               const unsigned int _block_size,
               const unsigned int _shift_mode,
@@ -86,7 +86,7 @@ struct pair_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< Max size of pdata arrays
     const Scalar4 *d_pos;           //!< particle positions
@@ -98,7 +98,7 @@ struct pair_args_t
     const unsigned int *d_head_list;//!< Head list indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const unsigned int size_neigh_list; //!< Size of the neighbor list for texture binding
+    const size_t size_neigh_list; //!< Size of the neighbor list for texture binding
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -150,7 +150,7 @@ struct pair_args_t
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, int tpp>
 __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,
@@ -420,8 +420,8 @@ struct PairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements();
+            unsigned int shared_bytes = (unsigned int)((2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements());
 
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)

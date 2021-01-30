@@ -146,7 +146,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             body_updated = true;
 
-            h_body_len.data[body_typeid] = type.size();
+            h_body_len.data[body_typeid] = (unsigned int)type.size();
             body_len_changed = true;
             }
         else
@@ -177,7 +177,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_pos.resize(m_pdata->getNTypes(), type.size());
             m_body_orientation.resize(m_pdata->getNTypes(), type.size());
 
-            m_body_idx = Index2D(m_body_types.getPitch(), m_body_types.getHeight());
+            m_body_idx = Index2D((unsigned int)m_body_types.getPitch(),
+                                 (unsigned int)m_body_types.getHeight());
 
             // set memory hints
             lazyInitMem();
@@ -269,10 +270,10 @@ void ForceComposite::slotNumTypesChange()
     //! initial allocation if necessary
     lazyInitMem();
 
-    unsigned int old_ntypes = m_body_len.getNumElements();
+    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
-    unsigned int height = m_body_pos.getHeight();
+    size_t height = m_body_pos.getHeight();
 
     // resize per-type arrays (2D)
     m_body_types.resize(new_ntypes, height);
@@ -282,7 +283,7 @@ void ForceComposite::slotNumTypesChange()
     m_body_charge.resize(new_ntypes);
     m_body_diameter.resize(new_ntypes);
 
-    m_body_idx = Index2D(m_body_pos.getPitch(), height);
+    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
 
     m_body_len.resize(new_ntypes);
 
@@ -793,7 +794,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
-    unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
+    size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;

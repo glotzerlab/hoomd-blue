@@ -15,6 +15,10 @@
 #define LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H
 
 #include <utility>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include "llvm/Config/llvm-config.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
@@ -38,6 +42,8 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+
+#pragma GCC diagnostic pop
 
 #include <memory>
 

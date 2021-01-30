@@ -3,6 +3,8 @@
 
 #include "UpdaterBoxMC.h"
 #include "hoomd/RNGIdentifiers.h"
+#include <numeric>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -16,25 +18,24 @@ namespace hpmc
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
                              std::shared_ptr<Variant> P,
-                             const Scalar frequency,
                              const unsigned int seed)
         : Updater(sysdef),
           m_mc(mc),
-          m_P(P),
-          m_frequency(frequency),
-          m_Volume_delta(0.0),
-          m_Volume_weight(0.0),
-          m_lnVolume_delta(0.0),
-          m_lnVolume_weight(0.0),
-          m_Volume_A1(0.0),
-          m_Volume_A2(0.0),
-          m_Length_delta {0.0, 0.0, 0.0},
-          m_Length_weight(0.0),
-          m_Shear_delta {0.0, 0.0, 0.0},
-          m_Shear_weight(0.0),
-          m_Shear_reduce(0.0),
-          m_Aspect_delta(0.0),
-          m_Aspect_weight(0.0),
+          m_beta_P(P),
+          m_volume_delta(0.0),
+          m_volume_weight(0.0),
+          m_ln_volume_delta(0.0),
+          m_ln_volume_weight(0.0),
+          m_volume_mode("standard"),
+          m_volume_A1(0.0),
+          m_volume_A2(0.0),
+          m_length_delta {0.0, 0.0, 0.0},
+          m_length_weight(0.0),
+          m_shear_delta {0.0, 0.0, 0.0},
+          m_shear_weight(0.0),
+          m_shear_reduce(0.0),
+          m_aspect_delta(0.0),
+          m_aspect_weight(0.0),
           m_seed(seed)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
@@ -55,6 +56,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
 
+    updateChangedWeights();
     }
 
 UpdaterBoxMC::~UpdaterBoxMC()
@@ -100,7 +102,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
     // return requested log value
     if (quantity == "hpmc_boxmc_trial_count")
         {
-        return counters.getNMoves();
+        return Scalar(counters.getNMoves());
         }
     else if (quantity == "hpmc_boxmc_volume_acceptance")
         {
@@ -132,7 +134,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
         }
     else if (quantity == "hpmc_boxmc_betaP")
         {
-        return (*m_P)(timestep);
+        return (*m_beta_P)(timestep);
         }
     else
         {
@@ -157,7 +159,7 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
 */
 inline bool UpdaterBoxMC::is_oversheared()
     {
-    if (m_Shear_reduce <= 0.5) return false;
+    if (m_shear_reduce <= 0.5) return false;
 
     const BoxDim curBox = m_pdata->getGlobalBox();
     const Scalar3 x = curBox.getLatticeVector(0);
@@ -165,13 +167,13 @@ inline bool UpdaterBoxMC::is_oversheared()
     const Scalar3 z = curBox.getLatticeVector(2);
 
     const Scalar y_x = y.x; // x component of y vector
-    const Scalar max_y_x = x.x * m_Shear_reduce;
+    const Scalar max_y_x = x.x * m_shear_reduce;
     const Scalar z_x = z.x; // x component of z vector
-    const Scalar max_z_x = x.x * m_Shear_reduce;
+    const Scalar max_z_x = x.x * m_shear_reduce;
     // z_y \left| y \right|
     const Scalar z_yy = dot(z,y);
     // MAX_SHEAR * left| y \right| ^2
-    const Scalar max_z_y_2 = dot(y,y) * m_Shear_reduce;
+    const Scalar max_z_y_2 = dot(y,y) * m_shear_reduce;
 
     if (fabs(y_x) > max_y_x || fabs(z_x) > max_z_x || fabs(z_yy) > max_z_y_2)
         return true;
@@ -413,45 +415,51 @@ void UpdaterBoxMC::update(unsigned int timestep)
     hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
 
     // Choose a move type
-    // This seems messy and can hopefully be simplified and generalized.
-    // This line will need to be rewritten or updated when move types are added to the updater.
-    float range = m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
-    if (range == 0.0)
+    auto const weight_total = m_weight_partial_sums.back();
+    if (weight_total == 0.0)
         {
-        // Attempt to execute with no move types set.
+        // Attempt to execute with all move weights equal to zero.
         m_exec_conf->msg->warning() << "No move types with non-zero weight. UpdaterBoxMC has nothing to do." << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
-    float move_type_select = hoomd::detail::generate_canonical<float>(rng) * range; // generate a number on (0, range]
+
+    // Generate a number between (0, weight_total]
+    auto const selected = hoomd::detail::generate_canonical<Scalar>(rng) * weight_total;
+    // Select the first move type whose partial sum of weights is greater than
+    // or equal to the generated value.
+    auto const move_type_select = std::distance(
+        m_weight_partial_sums.cbegin(),
+        std::lower_bound(m_weight_partial_sums.cbegin(), m_weight_partial_sums.cend(), selected)
+    );
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select < m_Volume_weight)
+    if (move_type_select == 0)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight)
+    else if (move_type_select == 1)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
         update_lnV(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight)
+    else if (move_type_select == 2)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight)
+    else if (move_type_select == 3)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select == 4)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -460,7 +468,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     else
         {
         // Should not reach this point
-        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << range << std::endl;
+        m_exec_conf->msg->warning() << "UpdaterBoxMC selected an unassigned move type. Selected " << move_type_select << " from range " << weight_total << std::endl;
         if (m_prof) m_prof->pop();
         return;
         }
@@ -480,7 +488,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
-    Scalar P = (*m_P)(timestep);
+    Scalar P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -502,12 +510,12 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     // Choose a lattice vector if non-isotropic volume changes
     unsigned int nonzero_dim = 0;
     for (unsigned int i = 0; i < Ndim; ++i)
-        if (m_Length_delta[i] != 0.0)
+        if (m_length_delta[i] != 0.0)
             nonzero_dim++;
 
     unsigned int i = hoomd::UniformIntDistribution(nonzero_dim-1)(rng);
     for (unsigned int j = 0; j < Ndim; ++j)
-        if (m_Length_delta[j] == 0.0 && i == j)
+        if (m_length_delta[j] == 0.0 && i == j)
             ++i;
 
     if (i == Ndim)
@@ -517,7 +525,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
         return;
         }
 
-    Scalar dL_max(m_Length_delta[i]);
+    Scalar dL_max(m_length_delta[i]);
 
     // Choose a length change
     Scalar dL = hoomd::UniformDistribution<Scalar>(-dL_max, dL_max)(rng);
@@ -570,7 +578,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
-    Scalar P = (*m_P)(timestep);
+    Scalar P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -594,11 +602,11 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
         V *= curL[2];
         }
     // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar A1 = m_volume_A1;
+    Scalar A2 = m_volume_A2;
 
     // Volume change
-    Scalar dlnV_max(m_lnVolume_delta);
+    Scalar dlnV_max(m_ln_volume_delta);
 
     // Choose a volume change
     Scalar dlnV = hoomd::UniformDistribution<Scalar>(-dlnV_max, dlnV_max)(rng);
@@ -654,7 +662,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
-    Scalar P = (*m_P)(timestep);
+    Scalar P = (*m_beta_P)(timestep);
 
     // Get current particle data and box lattice parameters
     assert(m_pdata);
@@ -678,11 +686,11 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
         V *= curL[2];
         }
     // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar A1 = m_volume_A1;
+    Scalar A2 = m_volume_A2;
 
     // Volume change
-    Scalar dV_max(m_Volume_delta);
+    Scalar dV_max(m_volume_delta);
 
     // Choose a volume change
     Scalar dV = hoomd::UniformDistribution<Scalar>(-dV_max, dV_max)(rng);
@@ -765,7 +773,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& r
         {
         i = hoomd::UniformIntDistribution(2)(rng);
         }
-    dA_max = m_Shear_delta[i];
+    dA_max = m_shear_delta[i];
     dA = hoomd::UniformDistribution<Scalar>(-dA_max, dA_max)(rng);
     newShear[i] += dA;
 
@@ -814,7 +822,7 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::RandomGenerator& 
 
     // Choose an aspect ratio and randomly perturb it
     unsigned int i = hoomd::UniformIntDistribution(Ndim - 1)(rng);
-    Scalar dA = Scalar(1.0) + hoomd::UniformDistribution<Scalar>(Scalar(0.0), m_Aspect_delta)(rng);
+    Scalar dA = Scalar(1.0) + hoomd::UniformDistribution<Scalar>(Scalar(0.0), m_aspect_delta)(rng);
     if (hoomd::UniformIntDistribution(1)(rng))
         {
         dA = Scalar(1.0)/dA;
@@ -883,43 +891,58 @@ void export_UpdaterBoxMC(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
                          std::shared_ptr<Variant>,
-                         Scalar,
                          const unsigned int >())
-    .def("volume", &UpdaterBoxMC::volume)
-    .def("ln_volume", &UpdaterBoxMC::ln_volume)
-    .def("length", &UpdaterBoxMC::length)
-    .def("shear", &UpdaterBoxMC::shear)
-    .def("aspect", &UpdaterBoxMC::aspect)
-    .def("resetStats", &UpdaterBoxMC::resetStats)
-    .def("getP", &UpdaterBoxMC::getP)
-    .def("setP", &UpdaterBoxMC::setP)
-    .def("get_volume_delta", &UpdaterBoxMC::get_volume_delta)
-    .def("get_ln_volume_delta", &UpdaterBoxMC::get_ln_volume_delta)
-    .def("get_length_delta", &UpdaterBoxMC::get_length_delta)
-    .def("get_shear_delta", &UpdaterBoxMC::get_shear_delta)
-    .def("get_aspect_delta", &UpdaterBoxMC::get_aspect_delta)
-//    .def("getMoveRatio", &UpdaterBoxMC::getMoveRatio)
-//    .def("getReduce", &UpdaterBoxMC::getReduce)
-//    .def("getIsotropic", &UpdaterBoxMC::getIsotropic)
-    .def("computeAspectRatios", &UpdaterBoxMC::computeAspectRatios)
+    .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
+    .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
+    .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
+    .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
+    .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
+    .def_property_readonly("seed", &UpdaterBoxMC::getSeed)
     .def("getCounters", &UpdaterBoxMC::getCounters)
     ;
 
    py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
-    .def_readwrite("volume_accept_count", &hpmc_boxmc_counters_t::volume_accept_count)
-    .def_readwrite("volume_reject_count", &hpmc_boxmc_counters_t::volume_reject_count)
-    .def_readwrite("ln_volume_accept_count", &hpmc_boxmc_counters_t::ln_volume_accept_count)
-    .def_readwrite("ln_volume_reject_count", &hpmc_boxmc_counters_t::ln_volume_reject_count)
-    .def_readwrite("shear_accept_count", &hpmc_boxmc_counters_t::shear_accept_count)
-    .def_readwrite("shear_reject_count", &hpmc_boxmc_counters_t::shear_reject_count)
-    .def_readwrite("aspect_accept_count", &hpmc_boxmc_counters_t::aspect_accept_count)
-    .def_readwrite("aspect_reject_count", &hpmc_boxmc_counters_t::aspect_reject_count)
-    .def("getVolumeAcceptance", &hpmc_boxmc_counters_t::getVolumeAcceptance)
-    .def("getLogVolumeAcceptance", &hpmc_boxmc_counters_t::getLogVolumeAcceptance)
-    .def("getShearAcceptance", &hpmc_boxmc_counters_t::getShearAcceptance)
-    .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
-    .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)
+    .def_property_readonly("volume", [](const hpmc_boxmc_counters_t &a)
+                                           {
+                                           pybind11::tuple result;
+                                           result = pybind11::make_tuple(a.volume_accept_count,
+                                                                         a.volume_reject_count);
+                                           return result;
+                                           }
+                          )
+    .def_property_readonly("ln_volume", [](const hpmc_boxmc_counters_t &a)
+                                              {
+                                              pybind11::tuple result;
+                                              result = pybind11::make_tuple(a.ln_volume_accept_count,
+                                                                            a.ln_volume_reject_count);
+                                              return result;
+                                              }
+                          )
+    .def_property_readonly("aspect", [](const hpmc_boxmc_counters_t &a)
+                                           {
+                                           pybind11::tuple result;
+                                           result = pybind11::make_tuple(a.aspect_accept_count,
+                                                                         a.aspect_reject_count);
+                                           return result;
+                                           }
+                          )
+    .def_property_readonly("shear", [](const hpmc_boxmc_counters_t &a)
+                                          {
+                                          pybind11::tuple result;
+                                          result = pybind11::make_tuple(a.shear_accept_count,
+                                                                        a.shear_reject_count);
+                                          return result;
+                                          }
+                          )
     ;
+    }
+
+void UpdaterBoxMC::updateChangedWeights()
+    {
+    // This line will need to be rewritten or updated when move types are added to the updater.
+    auto const weights = std::vector<Scalar>{m_volume_weight, m_ln_volume_weight, m_length_weight, m_shear_weight, m_aspect_weight};
+    m_weight_partial_sums = std::vector<Scalar>(weights.size());
+    std::partial_sum(weights.cbegin(), weights.cend(), m_weight_partial_sums.begin());
     }
 
 } // end namespace hpmc

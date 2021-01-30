@@ -52,10 +52,12 @@ The following people have contributed to the to HOOMD-blue:
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
 * Joshua A. Anderson, University of Michigan
+* Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
 * Kevin Kohlstedt, University of Michigan
 * Kevin Silmore, Princeton University
 * Khalid Ahmed, University of Michigan
+* Kristi Pepa, University of Michigan
 * Kwanghwi Je, University of Michigan
 * Lin Yang, Iowa State University
 * Ludwig Schneider, Georg-August Univeristy Goettingen

@@ -299,7 +299,7 @@ BoxDim
             #ifdef __HIPCC__
             if (m_periodic.z)
                 {
-                Scalar img = rintf(w.z * m_Linv.z);
+                Scalar img = rint(w.z * m_Linv.z);
                 w.z -= L.z * img;
                 w.y -= L.z * m_yz * img;
                 w.x -= L.z * m_xz * img;
@@ -307,17 +307,17 @@ BoxDim
 
             if (m_periodic.y)
                 {
-                Scalar img = rintf(w.y * m_Linv.y);
+                Scalar img = rint(w.y * m_Linv.y);
                 w.y -= L.y * img;
                 w.x -= L.y * m_xy * img;
                 }
 
             if (m_periodic.x)
                 {
-                w.x -= L.x * rintf(w.x * m_Linv.x);
+                w.x -= L.x * rint(w.x * m_Linv.x);
                 }
             #else
-            // on the cpu, branches are faster than calling rintf
+            // on the cpu, branches are faster than calling rint
             if (m_periodic.z)
                 {
                 if (w.z >= m_hi.z)
@@ -338,13 +338,13 @@ BoxDim
                 {
                 if (w.y >= m_hi.y)
                     {
-                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(w.y*m_Linv.y+Scalar(0.5));
                     w.y -= (Scalar)i*L.y;
                     w.x -= (Scalar)i*L.y * m_xy;
                     }
                 else if (w.y < m_lo.y)
                     {
-                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(-w.y*m_Linv.y+Scalar(0.5));
                     w.y += (Scalar)i*L.y;
                     w.x += (Scalar)i*L.y * m_xy;
                     }
@@ -354,12 +354,12 @@ BoxDim
                 {
                 if (w.x >= m_hi.x)
                     {
-                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(w.x*m_Linv.x+Scalar(0.5));
                     w.x -= (Scalar)i*L.x;
                     }
                 else if (w.x < m_lo.x)
                     {
-                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(-w.x*m_Linv.x+Scalar(0.5));
                     w.x += (Scalar)i*L.x;
                     }
                 }

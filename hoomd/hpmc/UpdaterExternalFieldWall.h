@@ -134,7 +134,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             // Choose whether or not to update the external field
             hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-            unsigned int move_probability = m_move_probability * 65536;
+            unsigned int move_probability = (unsigned int)(m_move_probability * 65536);
             // Attempt and evaluate a move
             if (move_type_select < move_probability)
                 {
@@ -152,9 +152,9 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
                 // the only thing that changed was the external field,
                 // not particle positions or orientations. so all we need to do is
                 // make sure our update didn't result in infinite energy (any overlaps).
-                unsigned int boltz = m_external->calculateBoltzmannWeight(timestep);
+                Scalar boltz = m_external->calculateBoltzmannWeight(timestep);
 
-                if( boltz != 0 )
+                if( boltz != 0.0 )
                     {
                     m_count_accepted_rel++;
                     m_count_accepted_tot++;

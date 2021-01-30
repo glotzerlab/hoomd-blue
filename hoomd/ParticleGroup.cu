@@ -7,10 +7,13 @@
 #include "ParticleData.cuh"
 #include "ParticleGroup.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 /*! \file ParticleGroup.cu
     \brief Contains GPU kernel code used by ParticleGroup

@@ -292,7 +292,7 @@ class PYBIND11_EXPORT ParticleGroup
             }
 
         /// Get the number translational degrees of freedom
-        unsigned int getTranslationalDOF()
+        Scalar getTranslationalDOF()
             {
             return m_translational_dof;
             }
@@ -304,7 +304,7 @@ class PYBIND11_EXPORT ParticleGroup
             }
 
         /// Get the number of degrees of freedom
-        unsigned int getRotationalDOF()
+        Scalar getRotationalDOF()
             {
             return m_rotational_dof;
             }

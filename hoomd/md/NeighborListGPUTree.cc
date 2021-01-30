@@ -490,7 +490,7 @@ void NeighborListGPUTree::traverseTree()
             args.first_neigh = d_head_list.data;
             args.max_neigh = h_Nmax.data[i];
 
-            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i], block_size);
+            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, (unsigned int)m_image_list.getNumElements(), m_streams[i], block_size);
             }
         }
     m_traverse_tuner->end();
