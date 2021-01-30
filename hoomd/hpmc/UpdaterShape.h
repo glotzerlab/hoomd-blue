@@ -392,6 +392,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             Scalar4 postype_i = h_postype.data[i];
             int typ_i = __scalar_as_int(postype_i.w);
+            if (m_move_function->getStepSize(typ_i) < m_tol)
+                continue;
             for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
                 // Only check overlaps for particles of types specified by m_type_select
