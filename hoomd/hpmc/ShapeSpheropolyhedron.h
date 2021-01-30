@@ -163,11 +163,11 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/2.0,
+                          DaDb/OverlapReal(2.0),
                           err);
 
     /*
@@ -199,12 +199,12 @@ DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
-        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
+        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
+        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+OverlapReal(sweep_radius_c)),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+OverlapReal(sweep_radius_c)),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
         err);

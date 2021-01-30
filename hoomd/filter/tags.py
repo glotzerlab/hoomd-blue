@@ -19,6 +19,7 @@ class Tags(ParticleFilter, ParticleFilterTags):
     """
 
     def __init__(self, tags):
+        ParticleFilter.__init__(self)
         self._tags = np.ascontiguousarray(np.unique(tags), dtype=np.uint32)
         ParticleFilterTags.__init__(self, tags)
 
@@ -36,3 +37,7 @@ class Tags(ParticleFilter, ParticleFilterTags):
     def tags(self):
         """list[int]: List of particle tags to select."""
         return self._tags
+
+    def __reduce__(self):
+        """Enable (deep)copying and pickling of `Tags` particle filters."""
+        return (type(self), (self.tags,))

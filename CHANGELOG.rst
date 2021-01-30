@@ -4,15 +4,90 @@ Change Log
 v3.x
 ----
 
-v3.0-beta.1 (2020-10-15)
-^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.variant.Variant`` objects are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
+
+*Changed*
+
+- Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support pybind11 2.6.0
+- Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
+
+*Changed*
+
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
+- Building from source requires a C++14 compatible compiler.
+- Improved documentation.
+- ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
+  origin of (0, 0, 0).
+- Document loggable quantities in property docstrings.
+- Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
+
+*Fixed*
+
+- ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
+  Jupyter interrupts the kernel.
+- Logging the state of specific objects with nested attributes.
+- Broken relative RPATHs.
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
+
+v3.0.0-beta.1 (2020-10-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Overview*
 
 v3 has a completely new Python API. See the tutorials, migration guide and new
 API documentation learn about it. The API documentation serves as the complete
-list of all features currently implemented in v3.0-beta.1. Not all features in
-v2 have been ported in v3.0-beta.1. Future beta releases will add additional
+list of all features currently implemented in v3.0.0-beta.1. Not all features in
+v2 have been ported in v3.0.0-beta.1. Future beta releases will add additional
 functionality.
 
 *Added*
@@ -31,7 +106,7 @@ functionality.
 
 *Changed*
 
-- The `run` method has minimal overhead
+- The ``run`` method has minimal overhead
 - All loggable quantities are directly accessible as object properties.
 - Operation parameters are always synchronized.
 - Operations can be instantiated without a device or MPI communicator.

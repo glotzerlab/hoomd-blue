@@ -97,7 +97,7 @@ class BlockForce : public ExternalField
         HOSTDEVICE virtual Scalar3 evaluate(const Scalar3& r) const override
             {
             // sign = +1 if in top slab, -1 if in bottom slab, 0 if neither
-            const signed char sign = (r.z >= m_H_minus_w && r.z < m_H_plus_w) - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w);
+            const signed char sign = (char)((r.z >= m_H_minus_w && r.z < m_H_plus_w) - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w));
             return make_scalar3(sign*m_F,0,0);
             }
 

@@ -7,7 +7,7 @@ typedef DEMEvaluator<Scalar, Scalar4, WCAPotential<Scalar, Scalar4, NoFriction<S
 
 template hipError_t gpu_compute_dem3d_forces<Scalar, Scalar4, WCADEM>(
         Scalar4* d_force, Scalar4* d_torque, Scalar* d_virial,
-        const unsigned int virial_pitch, const unsigned int N, const unsigned int n_ghosts,
+        const size_t virial_pitch, const unsigned int N, const unsigned int n_ghosts,
         const Scalar4 *d_pos,
         const Scalar4 *d_quat,     const unsigned int *d_nextFaces,
         const unsigned int *d_firstFaceVertices,

@@ -37,7 +37,7 @@ struct a_pair_args_t
     a_pair_args_t(Scalar4 *_d_force,
               Scalar4 *_d_torque,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
@@ -89,7 +89,7 @@ struct a_pair_args_t
     Scalar4 *d_force;                //!< Force to write out
     Scalar4 *d_torque;               //!< Torque to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions
@@ -157,7 +157,7 @@ template< class evaluator, unsigned int shift_mode, unsigned int compute_virial,
 __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      Scalar4 *d_torque,
                                                      Scalar *d_virial,
-                                                     const unsigned int virial_pitch,
+                                                     const size_t virial_pitch,
                                                      const unsigned int N,
                                                      const Scalar4 *d_pos,
                                                      const Scalar *d_diameter,
@@ -169,7 +169,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      const unsigned int *d_nlist,
                                                      const unsigned int *d_head_list,
                                                      const typename evaluator::param_type *d_params,
-                                                     const typename evaluator::shape_param_type *d_shape_params,
+                                                     const typename evaluator::shape_type *d_shape_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
                                                      const unsigned int offset,
@@ -183,7 +183,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
     Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
-    typename evaluator::shape_param_type *s_shape_params = (typename evaluator::shape_param_type *)(&s_rcutsq[num_typ_parameters]);
+    typename evaluator::shape_type *s_shape_params = (typename evaluator::shape_type *)(&s_rcutsq[num_typ_parameters]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -203,7 +203,7 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             }
         }
 
-    unsigned int shape_param_size = sizeof(typename evaluator::shape_param_type)*ntypes / sizeof(int);
+    unsigned int shape_param_size = sizeof(typename evaluator::shape_type)*ntypes / sizeof(int);
     for (unsigned int cur_offset = 0; cur_offset < shape_param_size; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < shape_param_size)
@@ -428,7 +428,7 @@ struct AnisoPairForceComputeKernel
     static void launch(const a_pair_args_t& pair_args,
         std::pair<unsigned int, unsigned int> range,
         const typename evaluator::param_type *params,
-        const typename evaluator::shape_param_type *shape_params)
+        const typename evaluator::shape_type *shape_params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -438,9 +438,9 @@ struct AnisoPairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+            unsigned int shared_bytes = (unsigned int)((2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                         * typpair_idx.getNumElements() +
-                                        sizeof(typename evaluator::shape_param_type) * pair_args.ntypes;
+                                        sizeof(typename evaluator::shape_type) * pair_args.ntypes);
 
             static unsigned int max_block_size = UINT_MAX;
             hipFuncAttributes attr;
@@ -455,9 +455,9 @@ struct AnisoPairForceComputeKernel
 
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-            base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+            base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-            unsigned int max_extra_bytes = pair_args.devprop.sharedMemPerBlock - base_shared_bytes;
+            unsigned int max_extra_bytes = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
             static unsigned int extra_bytes = UINT_MAX;
             if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
                 {
@@ -515,7 +515,7 @@ struct AnisoPairForceComputeKernel
 template<class evaluator, unsigned int shift_mode, unsigned int compute_virial>
 struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     {
-    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params, const typename evaluator::shape_param_type *shape_params)
+    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params, const typename evaluator::shape_type *shape_params)
         {
         // do nothing
         }
@@ -531,7 +531,7 @@ struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
 template< class evaluator >
 hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                                           const typename evaluator::param_type *d_params,
-                                          const typename evaluator::shape_param_type *d_shape_params)
+                                          const typename evaluator::shape_type *d_shape_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);

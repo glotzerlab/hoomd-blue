@@ -119,12 +119,12 @@ namespace getardump{
                 switch(m_minor)
                     {
                     case 0:
-                        return (Real) m_major->x;
+                        return (float) m_major->x;
                     case 1:
-                        return (Real) m_major->y;
+                        return (float) m_major->y;
                     case 2:
                     default:
-                        return (Real) m_major->z;
+                        return (float) m_major->z;
                     }
                 }
 
@@ -247,14 +247,14 @@ namespace getardump{
                 switch(m_minor)
                     {
                     case 0:
-                        return (Real) m_major->s;
+                        return (float) m_major->s;
                     case 1:
-                        return (Real) m_major->v.x;
+                        return (float) m_major->v.x;
                     case 2:
-                        return (Real) m_major->v.y;
+                        return (float) m_major->v.y;
                     case 3:
                     default:
-                        return (Real) m_major->v.z;
+                        return (float) m_major->v.z;
                     }
                 }
 
@@ -286,7 +286,7 @@ namespace getardump{
 
             float operator*()
                 {
-                return m_major->w;
+                return (float)m_major->w;
                 }
 
             bool operator==(const Scalar4wIterator &rhs) const
@@ -424,7 +424,7 @@ namespace getardump{
 
             int3 operator*()
                 {
-                return make_int3(m_ptr[0], m_ptr[1], m_ptr[2]);
+                return make_int3((int)m_ptr[0], (int)m_ptr[1], (int)m_ptr[2]);
                 }
 
             bool operator==(const int3Iterator<Int> &rhs) const

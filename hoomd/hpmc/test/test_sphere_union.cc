@@ -56,14 +56,14 @@ UP_TEST( construction )
     Scalar R_j(0.5);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = R_i;
+    par_i.radius = OverlapReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = R_j;
+    par_j.radius = OverlapReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = 2*R;
+    params.diameter = OverlapReal(2*R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;
@@ -110,14 +110,14 @@ UP_TEST( non_overlap )
     Scalar R_j(0.25);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = R_i;
+    par_i.radius = OverlapReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = R_j;
+    par_j.radius = OverlapReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = 2*R;
+    params.diameter = OverlapReal(2*R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;
@@ -184,14 +184,14 @@ UP_TEST( overlapping_dumbbells )
     Scalar R_j(0.25);
     Scalar R(x_j + R_j);
     ShapeSphere::param_type par_i;
-    par_i.radius = R_i;
+    par_i.radius = OverlapReal(R_i);
     par_i.ignore = 0;
     ShapeSphere::param_type par_j;
-    par_j.radius = R_j;
+    par_j.radius = OverlapReal(R_j);
     par_i.ignore = 0;
 
     ShapeUnion<ShapeSphere>::param_type params(2);
-    params.diameter = 2*R;
+    params.diameter = OverlapReal(2*R);
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
     params.morientation[0] = o;

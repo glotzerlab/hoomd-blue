@@ -1,6 +1,60 @@
 from hoomd.snapshot import Snapshot
 import numpy
 import pytest
+from hoomd.pytest.test_simulation import make_gsd_snapshot
+try:
+    import gsd.hoomd
+    skip_gsd = False
+except ImportError:
+    skip_gsd = True
+
+skip_gsd = pytest.mark.skipif(
+    skip_gsd, reason="gsd Python package was not found.")
+
+
+def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
+    """This is the same as the function in test_simulation.
+
+    Except that if a prop is None in the gsd_snap, it instead checks that the
+    array or list is empty in the hoomd_snap additionally it handles the
+    differences in the way the two snapshots handle the dimensions of empty
+    boxes. This function returns ``True`` when not on the root rank.
+    """
+    if not hoomd_snap.exists:
+        return True
+    for attr in dir(hoomd_snap):
+        if attr[0] == '_' or attr in ['exists', 'replicate']:
+            continue
+        for prop in dir(getattr(hoomd_snap, attr)):
+            if prop[0] == '_':
+                continue
+            elif prop == 'types':
+                x = getattr(getattr(gsd_snap, attr), prop)
+                y = getattr(getattr(hoomd_snap, attr), prop)
+                if x is None:
+                    assert y == []
+                else:
+                    assert x == y
+            elif prop == 'dimensions':
+                x = getattr(getattr(gsd_snap, attr), prop)
+                y = getattr(getattr(hoomd_snap, attr), prop)
+                x_box = getattr(getattr(gsd_snap, attr), 'box')
+                y_box = getattr(getattr(hoomd_snap, attr), 'box')
+                if x_box is None or x_box.all() == 0:
+                    # if the box is all zeros, the dimensions won't match
+                    # hoomd dimensions will be 2 and gsd will be 3
+                    continue
+                elif x is None:
+                    assert y == []
+                else:
+                    assert x == y
+            else:
+                x = getattr(getattr(gsd_snap, attr), prop)
+                y = getattr(getattr(hoomd_snap, attr), prop)
+                if x is None:
+                    numpy.testing.assert_allclose(numpy.zeros_like(y), y)
+                else:
+                    numpy.testing.assert_allclose(x, y)
 
 
 @pytest.fixture(scope='function')
@@ -63,8 +117,9 @@ def test_configuration(s):
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         numpy.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
 
-        s.configuration.dimensions = 2
-        assert s.configuration.dimensions == 2
+        with pytest.raises(AttributeError):
+            s.configuration.dimensions = 2
+        assert s.configuration.dimensions == 3
 
 
 def test_particles(s):
@@ -211,3 +266,46 @@ def test_constraints(s):
         assert s.constraints.value.dtype == numpy.float64
         assert s.constraints.group.shape == (3, 2)
         assert s.constraints.group.dtype == numpy.uint32
+
+
+@skip_gsd
+def test_from_gsd_snapshot_empty(s, device):
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+
+
+@skip_gsd
+def test_from_gsd_snapshot_populated(s, device):
+    if s.exists:
+        s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
+        for section in ('particles', 'bonds', 'angles', 'dihedrals', 'impropers',
+                        'pairs'):
+            setattr(getattr(s, section), 'N', 5)
+            setattr(getattr(s, section), 'types', ['A', 'B'])
+
+        for prop in ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
+                     'moment_inertia', 'orientation', 'position', 'typeid',
+                     'velocity'):
+            attr = getattr(s.particles, prop)
+            if attr.dtype == numpy.float64:
+                attr[:] = numpy.random.rand(*attr.shape)
+            else:
+                attr[:] = numpy.random.randint(3, size=attr.shape)
+
+        for section in ('bonds', 'angles', 'dihedrals', 'impropers', 'pairs'):
+            for prop in ('group', 'typeid'):
+                attr = getattr(getattr(s, section), prop)
+                attr[:] = numpy.random.randint(3, size=attr.shape)
+
+        s.constraints.N = 3
+        for prop in ('group', 'value'):
+            attr = getattr(s.constraints, prop)
+            if attr.dtype == numpy.float64:
+                attr[:] = numpy.random.rand(*attr.shape)
+            else:
+                attr[:] = numpy.random.randint(3, size=attr.shape)
+
+    gsd_snap = make_gsd_snapshot(s)
+    hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
+    assert_equivalent_snapshots(gsd_snap, hoomd_snap)

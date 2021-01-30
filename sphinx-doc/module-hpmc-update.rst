@@ -8,6 +8,7 @@ hpmc.update
 .. autosummary::
     :nosignatures:
 
+    BoxMC
     Clusters
     QuickCompress
 

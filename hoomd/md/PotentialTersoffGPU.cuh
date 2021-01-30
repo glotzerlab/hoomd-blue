@@ -35,7 +35,7 @@ struct tersoff_args_t
                    const unsigned int _N,
                    const unsigned int _Nghosts,
                    Scalar * _d_virial,
-                   unsigned int _virial_pitch,
+                   size_t _virial_pitch,
                    bool _compute_virial,
                    const Scalar4 *_d_pos,
                    const BoxDim& _box,
@@ -44,7 +44,7 @@ struct tersoff_args_t
                    const unsigned int *_d_head_list,
                    const Scalar *_d_rcutsq,
                    const Scalar *_d_ronsq,
-                   const unsigned int _size_nlist,
+                   const size_t _size_nlist,
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _tpp,
@@ -74,7 +74,7 @@ struct tersoff_args_t
     const unsigned int N;            //!< Number of particles
     const unsigned int Nghosts;      //!< Number of ghost particles
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< Pitch for N*6 virial array
+    const size_t virial_pitch; //!< Pitch for N*6 virial array
     bool compute_virial;             //!< True if we are supposed to compute the virial
     const Scalar4 *d_pos;            //!< particle positions
     const BoxDim& box;                //!< Simulation box in GPU format
@@ -83,7 +83,7 @@ struct tersoff_args_t
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
     const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
-    const unsigned int size_nlist;  //!< Number of elements in the neighborlist
+    const size_t size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int tpp;         //!< Threads per particle
@@ -180,7 +180,7 @@ template< class evaluator, unsigned char compute_virial, int tpp>
 __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int N,
                                                   Scalar *d_virial,
-                                                  unsigned int virial_pitch,
+                                                  size_t virial_pitch,
                                                   const Scalar4 *d_pos,
                                                   const BoxDim box,
                                                   const unsigned int *d_n_neigh,
@@ -288,7 +288,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             typename evaluator::param_type param = s_params[typpair];
 
             // compute the base repulsive and attractive terms of the potential
-            Scalar invratio = 0.0;        
+            Scalar invratio = 0.0;
             Scalar invratio2 = 0.0;
             evaluator eval(rij_sq, rcutsq, param);
             bool evaluatedij = eval.evalRepulsiveAndAttractive(invratio, invratio2);
@@ -300,19 +300,19 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 Scalar potential_eng = Scalar(0.0);
                 Scalar bij = Scalar(0.0); // not used
                 eval.evalForceij(invratio, invratio2, Scalar(0.0), Scalar(0.0), bij, force_divr, potential_eng);
-        
+
                 // add the forces and energies to their respective particles
                 forcei.x += dxij.x * force_divr;
                 forcei.y += dxij.y * force_divr;
                 forcei.z += dxij.z * force_divr;
-        
+
                 forcej.x -= dxij.x * force_divr;
                 forcej.y -= dxij.y * force_divr;
                 forcej.z -= dxij.z * force_divr;
-        
+
                 forcej.w += potential_eng;
                 forcei.w += potential_eng;
-                
+
                 // calculate the virial
                 if (compute_virial)
                    {
@@ -323,56 +323,56 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                    viriali_yz +=  dxij.y * dxij.z * force_divr;
                    viriali_zz +=  dxij.z * dxij.z * force_divr;
                    }
-        
+
                 // now evaluate the force from the ik interactions
                 unsigned int cur_k = 0;
-                unsigned int next_k(0);  
-        
+                unsigned int next_k(0);
+
                 // loop over k neighbors one by one
                 for (int neigh_idy = 0; neigh_idy < n_neigh; neigh_idy++)
                     {
                     // read the current neighbor index and prefetch the next one
                     cur_k = next_k;
                     next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
-        
+
         	        // I continue only if k is not the same as j
         	        if((cur_k>cur_j)&&(cur_j>idx))
         	            {
                         // get the position of neighbor k
                         Scalar4 postypek = __ldg(d_pos + cur_k);
                         Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
-        
+
                         // get the type pair parameters for i and k
                         typpair = typpair_idx(__scalar_as_int(postypei.w), __scalar_as_int(postypek.w));
                         Scalar temp_rcutsq = s_rcutsq[typpair];
                         typename evaluator::param_type temp_param = s_params[typpair];
-                        
+
                          // compute rik
                         Scalar3 dxik = posi - posk;
                         // apply the periodic boundary conditions
                         dxik = box.minImage(dxik);
                         // compute rik_sq
                         Scalar rik_sq = dot(dxik, dxik);
-        
+
                         evaluator temp_eval(rij_sq, temp_rcutsq, temp_param);
                         temp_eval.setRik(rik_sq);
                         bool temp_evaluated = temp_eval.areInteractive();
-        
+
                         if (temp_evaluated)
                             {
                             Scalar4 forcek = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
                             // set up the evaluator
                             eval.setRik(rik_sq);
-        
+
                             // compute the force
                             Scalar force_divr_ij = 0.0;
-                            Scalar force_divr_ik = 0.0;                    
+                            Scalar force_divr_ik = 0.0;
                             Scalar3 force_divr_ij_vec = make_scalar3(0.0, 0.0, 0.0);
                             Scalar3 force_divr_ik_vec = make_scalar3(0.0, 0.0, 0.0);
                             bool evaluatedjk = eval.evalForceik(invratio,invratio2, Scalar(0.0), Scalar(0.0), force_divr_ij_vec, force_divr_ik_vec);
-                            
-        
+
+
                             if (evaluatedjk)
                                 {
 				// I stored the modulus of the force in the first component
@@ -383,32 +383,32 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                 forcei.x += force_divr_ij * dxij.x + force_divr_ik * dxik.x;
                                 forcei.y += force_divr_ij * dxij.y + force_divr_ik * dxik.y;
                                 forcei.z += force_divr_ij * dxij.z + force_divr_ik * dxik.z;
-        
+
                                 forcej.x -= force_divr_ij * dxij.x;
                                 forcej.y -= force_divr_ij * dxij.y;
                                 forcej.z -= force_divr_ij * dxij.z;
-        
+
                                 forcek.x -= force_divr_ik * dxik.x;
                                 forcek.y -= force_divr_ik * dxik.y;
                                 forcek.z -= force_divr_ik * dxik.z;
-        
+
                                 myAtomicAdd(&d_force[cur_k].x, forcek.x);
                                 myAtomicAdd(&d_force[cur_k].y, forcek.y);
                                 myAtomicAdd(&d_force[cur_k].z, forcek.z);
-                            
-        	        	       //evaluate the virial contribute of this 3 body interaction    
+
+        	        	       //evaluate the virial contribute of this 3 body interaction
         	        	       if (compute_virial)
         	        	           {
         	        	           //a single term is needed to account for all of the 3 body virial that is stored in the 'i' particle data
         	        	           //look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for the definition of the virial tensor
-        	        	           viriali_xx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);	
-        	        	           viriali_yy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);	
-        	        	           viriali_zz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);	
+        	        	           viriali_xx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
+        	        	           viriali_yy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
+        	        	           viriali_zz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
         	        	           viriali_xy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
         	        	           viriali_xz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
         	        	           viriali_yz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
         	        	           }
-                                }    
+                                }
                             }
                         }
                     }
@@ -427,7 +427,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         myAtomicAdd(&d_force[idx].y, forcei.y);
         myAtomicAdd(&d_force[idx].z, forcei.z);
         myAtomicAdd(&d_force[idx].w, forcei.w);
-        
+
         if (compute_virial)
             {
             myAtomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
@@ -435,10 +435,10 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             myAtomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
             myAtomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
             myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
-            myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);     
-            }        
-        
-        
+            myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
+            }
+
+
         }
     else
 	{
@@ -829,7 +829,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 */
 __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
                                        Scalar *d_virial,
-                                       unsigned int virial_pitch,
+                                       size_t virial_pitch,
                                        const unsigned int N)
     {
     // identify the particle we are supposed to handle
@@ -859,7 +859,7 @@ void get_max_block_size(T func, const tersoff_args_t& pair_args, unsigned int& m
     max_block_size = attr.maxThreadsPerBlock;
     max_block_size &= ~(pair_args.devprop.warpSize - 1);
 
-    kernel_shared_bytes = attr.sharedSizeBytes;
+    kernel_shared_bytes = (unsigned int)(attr.sharedSizeBytes);
     }
 
 //! Tersoff compute kernel launcher
@@ -893,15 +893,15 @@ struct TersoffComputeKernel
 
             // size shared bytes
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+            unsigned int shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
 
             while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
                 {
                 run_block_size -= pair_args.devprop.warpSize;
 
-                shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar);
+                shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                               * typpair_idx.getNumElements() + pair_args.ntypes*run_block_size*sizeof(Scalar));
                 }
 
             // zero the forces

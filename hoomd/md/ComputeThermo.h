@@ -77,9 +77,16 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            Scalar prefactor = Scalar(2.0)/(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
-            return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
-                              h_properties.data[thermo_index::rotational_kinetic_energy]);
+            if (m_group->getTranslationalDOF() + m_group->getRotationalDOF() > 0)
+                {
+                Scalar prefactor = Scalar(2.0)/(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
+                return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
+                                  h_properties.data[thermo_index::rotational_kinetic_energy]);
+                }
+            else
+                {
+                return 0.0;
+                }
         }
 
         //! Returns the translational temperature last computed by compute()
@@ -91,7 +98,14 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return Scalar(2.0)/m_group->getTranslationalDOF()*h_properties.data[thermo_index::translational_kinetic_energy];
+            if (m_group->getTranslationalDOF() > 0)
+                {
+                return Scalar(2.0)/m_group->getTranslationalDOF()*h_properties.data[thermo_index::translational_kinetic_energy];
+                }
+            else
+                {
+                return 0.0;
+                }
             }
 
         //! Returns the rotational temperature last computed by compute()
@@ -259,17 +273,17 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 
         // <--------------- Degree of Freedom Data
 
-        unsigned int getNDOF()
+        double getNDOF()
             {
             return m_group->getTranslationalDOF() + m_group->getRotationalDOF();
             }
 
-        unsigned int getTranslationalDOF()
+        double getTranslationalDOF()
             {
             return m_group->getTranslationalDOF();
             }
 
-        unsigned int getRotationalDOF()
+        double getRotationalDOF()
             {
             return m_group->getRotationalDOF();
             }
