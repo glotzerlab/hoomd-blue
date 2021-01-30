@@ -146,10 +146,10 @@ class ShapeMoveBase
             }
 
     protected:
-        std::vector< std::string >      m_provided_quantities;
-        Scalar                          m_det_inertia_tensor;     // TODO: REMOVE?
-        Scalar                          m_isoperimetric_quotient;
-        std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
+        std::vector< std::string >      m_provided_quantities;    // provided log quantities for the shape move
+        Scalar                          m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
+        Scalar                          m_isoperimetric_quotient; // isoperimetric quotient of the shape
+        std::vector<Scalar>             m_step_size;              // maximum stepsize
     };   // end class ShapeMoveBase
 
 
