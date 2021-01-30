@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -141,12 +141,7 @@ class managed_deleter
                 oss << std::endl;
                 this->m_exec_conf->msg->notice(10) << oss.str();
 
-                #if __HIP_PLATFORM_NVCC__
                 hipFree(m_allocation_ptr);
-                #else
-                // HIP doesn't yet support hipFree on managed memory
-                hipHostFree(m_allocation_ptr);
-                #endif
                 CHECK_CUDA_ERROR();
                 }
             else

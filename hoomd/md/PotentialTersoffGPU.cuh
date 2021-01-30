@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -43,7 +43,6 @@ struct tersoff_args_t
                    const unsigned int *_d_nlist,
                    const unsigned int *_d_head_list,
                    const Scalar *_d_rcutsq,
-                   const Scalar *_d_ronsq,
                    const size_t _size_nlist,
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
@@ -61,7 +60,6 @@ struct tersoff_args_t
                      d_nlist(_d_nlist),
                      d_head_list(_d_head_list),
                      d_rcutsq(_d_rcutsq),
-                     d_ronsq(_d_ronsq),
                      size_nlist(_size_nlist),
                      ntypes(_ntypes),
                      block_size(_block_size),
@@ -82,7 +80,6 @@ struct tersoff_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const Scalar *d_ronsq;           //!< Device array listing r_on squared per particle type pair
     const size_t size_nlist;  //!< Number of elements in the neighborlist
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
@@ -188,7 +185,6 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                                   const unsigned int *d_head_list,
                                                   const typename evaluator::param_type *d_params,
                                                   const Scalar *d_rcutsq,
-                                                  const Scalar *d_ronsq,
                                                   const unsigned int ntypes)
     {
     Index2D typpair_idx(ntypes);
@@ -246,7 +242,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
     // check if this is the Tersoff/SquareDensity potential or the RevCross
     if (evaluator::flag_for_RevCross )
         {
-	// this is the RevCross potential
+        // this is the RevCross potential
         // prefetch neighbor index
         const unsigned int head_idx = d_head_list[idx];
         unsigned int cur_j = 0;
@@ -335,9 +331,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                     cur_k = next_k;
                     next_k = __ldg(d_nlist + head_idx + neigh_idy+1);
 
-        	        // I continue only if k is not the same as j
-        	        if((cur_k>cur_j)&&(cur_j>idx))
-        	            {
+                    // I continue only if k is not the same as j
+                    if((cur_k>cur_j)&&(cur_j>idx))
+                        {
                         // get the position of neighbor k
                         Scalar4 postypek = __ldg(d_pos + cur_k);
                         Scalar3 posk = make_scalar3(postypek.x, postypek.y, postypek.z);
@@ -375,9 +371,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
                             if (evaluatedjk)
                                 {
-				// I stored the modulus of the force in the first component
-				force_divr_ij=force_divr_ij_vec.x;
-				force_divr_ik=force_divr_ik_vec.x;
+                                // I stored the modulus of the force in the first component
+                                force_divr_ij=force_divr_ij_vec.x;
+                                force_divr_ik=force_divr_ik_vec.x;
 
                                 // add the forces to their respective particles
                                 forcei.x += force_divr_ij * dxij.x + force_divr_ik * dxik.x;
@@ -396,18 +392,18 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                                 myAtomicAdd(&d_force[cur_k].y, forcek.y);
                                 myAtomicAdd(&d_force[cur_k].z, forcek.z);
 
-        	        	       //evaluate the virial contribute of this 3 body interaction
-        	        	       if (compute_virial)
-        	        	           {
-        	        	           //a single term is needed to account for all of the 3 body virial that is stored in the 'i' particle data
-        	        	           //look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for the definition of the virial tensor
-        	        	           viriali_xx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
-        	        	           viriali_yy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
-        	        	           viriali_zz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
-        	        	           viriali_xy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
-        	        	           viriali_xz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
-        	        	           viriali_yz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
-        	        	           }
+                               //evaluate the virial contribute of this 3 body interaction
+                               if (compute_virial)
+                                   {
+                                   //a single term is needed to account for all of the 3 body virial that is stored in the 'i' particle data
+                                   //look at S. Ciarella and W.G. Ellenbroek 2019 https://arxiv.org/abs/1912.08569 for the definition of the virial tensor
+                                   viriali_xx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
+                                   viriali_yy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
+                                   viriali_zz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
+                                   viriali_xy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
+                                   viriali_xz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
+                                   viriali_yz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
+                                   }
                                 }
                             }
                         }
@@ -441,8 +437,8 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
 
         }
     else
-	{
-	// this is the Tersoff potential
+        {
+        // this is the Tersoff potential
         // loop over neighbors to calculate per-particle energy
         if (evaluator::hasPerParticleEnergy())
             {
@@ -819,7 +815,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
             myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
             }
-	}
+        }
     }
 
 //! Kernel for zeroing forces and virial before computation with atomic additions.
@@ -910,6 +906,7 @@ struct TersoffComputeKernel
                                                     pair_args.virial_pitch,
                                                     pair_args.N + pair_args.Nghosts);
 
+
             // setup the grid to run the kernel
             dim3 grid( pair_args.N / (run_block_size/pair_args.tpp) + 1, 1, 1);
             dim3 threads(run_block_size, 1, 1);
@@ -925,7 +922,6 @@ struct TersoffComputeKernel
                                                 pair_args.d_head_list,
                                                 d_params,
                                                 pair_args.d_rcutsq,
-                                                pair_args.d_ronsq,
                                                 pair_args.ntypes);
             }
         else
@@ -957,7 +953,6 @@ hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
-    assert(pair_args.d_ronsq);
     assert(pair_args.ntypes > 0);
 
     // compute the new forces
