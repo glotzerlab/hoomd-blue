@@ -29,20 +29,6 @@ class ShapeUtilError : public std::runtime_error
         ShapeUtilError(const std::string& msg) : runtime_error(msg) {}
     };
 
-template<class ShapeParam>
-inline void printParam(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
-
-template< >
-inline void printParam< ShapeConvexPolyhedron::param_type >(const ShapeConvexPolyhedron::param_type& param)
-    {
-    for(size_t i = 0; i < param.N; i++)
-        {
-        std::cout << "vert " << i << ": [" << param.x[i] << ", "
-                  << param.y[i] << ", " << param.z[i] << "]" << std::endl;
-        }
-
-    }
-
 
 namespace detail
 {
