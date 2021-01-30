@@ -725,13 +725,7 @@ class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
     {
-    protected:
-        Scalar m_volume;
-        std::unique_ptr<typename Shape::param_type> m_reference_shape;
-        std::shared_ptr<Variant> m_k;
-        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities;
     public:
-
         ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_reference_shape(new typename Shape::param_type), m_k(k)
             {
             (*m_reference_shape) = shape;
@@ -770,6 +764,11 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
                 }
             return false;
             }
+    protected:
+        Scalar m_volume;
+        std::unique_ptr<typename Shape::param_type> m_reference_shape;
+        std::shared_ptr<Variant> m_k;
+        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities;
     };
 
 template<class Shape>
