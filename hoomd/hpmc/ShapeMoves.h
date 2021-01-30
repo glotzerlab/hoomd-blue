@@ -774,7 +774,6 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
     {
-    std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move;
     public:
         ShapeSpring(std::shared_ptr<Variant> k,
                     typename Shape::param_type ref,
@@ -802,6 +801,8 @@ class ShapeSpring : public ShapeSpringBase< Shape >
             Scalar e_ddot_e = (eps*eps.transpose()).trace();
             return N*stiff*e_ddot_e*this->m_volume;
             }
+    private:
+        std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move;
     };
 
 template<>
@@ -843,8 +844,8 @@ class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
             return N*stiff*logx*logx;
             }
 
-        private:
-            std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move;
+    private:
+        std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move;
     };
 
 template<class Shape>
