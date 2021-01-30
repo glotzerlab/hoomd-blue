@@ -166,7 +166,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             :  ShapeMoveBase<Shape>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
             {
             if(this->m_step_size.size() != stepsize.size())
-                throw std::runtime_error("must provide a stepsize for each type");
+                throw std::runtime_error("Must provide a stepsize for each type");
 
             this->m_step_size = stepsize;
             m_select_ratio = fmin(mixratio, 1.0)*65535;
