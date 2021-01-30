@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -84,15 +84,32 @@ class PotentialTersoff : public ForceCompute
 
         //! Set the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
+        virtual void setParamsPython(pybind11::tuple typ, pybind11::dict params);
+        /// Get params for a single type pair using a tuple of strings
+        virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
-        //! Set ron for a single type pair
-        virtual void setRon(unsigned int typ1, unsigned int typ2, Scalar ron);
+        //! Get the rcut for a single type pair
+        Scalar getRCut(pybind11::tuple types);
+        /// Set the rcut for a single type pair using a tuple of strings
+        virtual void setRCutPython(pybind11::tuple types, Scalar r_cut);
 
+        /// Validate that types are within Ntypes
+        virtual void validateTypes(unsigned int typ1, unsigned int typ2,
+                                   std::string action);
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
+        virtual void notifyDetach()
+            {
+            if (m_attached)
+                {
+                m_nlist->removeRCutMatrix(m_r_cut_nlist);
+                }
+            m_attached = false;
+            }
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -103,10 +120,15 @@ class PotentialTersoff : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
-        GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
+
+        // track whether we are attached to the simulation
+        bool m_attached = true;
+
+        // r_cut (not squared) given to the neighborlist
+        std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -120,15 +142,60 @@ class PotentialTersoff : public ForceCompute
             if (m_pdata->getNTypes() == m_typpair_idx.getW())
                 return;
 
-            m_typpair_idx = Index2D(m_pdata->getNTypes());
+            Index2D new_typpair_idx(m_pdata->getNTypes());
 
-            // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
-            m_params.swap(params);
+            // create new arrays
+            GPUArray<Scalar> new_rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<Scalar> new_r_cut_nlist(m_typpair_idx.getNumElements(), m_exec_conf);
+            GPUArray<param_type> new_params(m_typpair_idx.getNumElements(), m_exec_conf);
+
+            // grab the new arrays
+            ArrayHandle<Scalar> h_new_rcutsq(new_rcutsq,
+                                             access_location::host,
+                                             access_mode::overwrite);
+            ArrayHandle<Scalar> h_new_r_cut_nlist(new_r_cut_nlist,
+                                                  access_location::host,
+                                                  access_mode::overwrite);
+            ArrayHandle<param_type> h_new_params(new_params,
+                                                 access_location::host,
+                                                 access_mode::overwrite);
+
+            // grab the old arrays
+            ArrayHandle<Scalar> h_rcutsq(m_rcutsq,
+                                         access_location::host,
+                                         access_mode::read);
+            ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist,
+                                              access_location::host,
+                                              access_mode::read);
+            ArrayHandle<param_type> h_params(m_params,
+                                             access_location::host,
+                                             access_mode::read);
+
+
+            // populate the new arrays with the old array's data
+            unsigned int newW = std::min(new_typpair_idx.getW(),
+                                         m_typpair_idx.getW());
+            unsigned int newH = std::min(new_typpair_idx.getH(),
+                                         m_typpair_idx.getH());
+            for (unsigned int i=0; i<newW; ++i)
+                {
+                for (unsigned int j=0; j<newH; ++j)
+                    {
+                    unsigned int newIdx = new_typpair_idx(i, j);
+                    unsigned int oldIdx = m_typpair_idx(i, j);
+                    h_new_rcutsq.data[newIdx] = h_rcutsq.data[oldIdx];
+                    h_new_r_cut_nlist.data[newIdx] = h_r_cut_nlist.data[oldIdx];
+                    h_new_params.data[newIdx] = h_params.data[oldIdx];
+                    }
+                }
+
+            // swap the pointers
+            m_rcutsq.swap(new_rcutsq);
+            m_params.swap(new_params);
+            *m_r_cut_nlist = new_r_cut_nlist;
+
+            // notify the nlist that things have changed
+            m_nlist->notifyRCutMatrixChange();
             }
     };
 
@@ -149,10 +216,12 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
-    m_ronsq.swap(ronsq);
     GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
+
+    m_r_cut_nlist = std::make_shared<GlobalArray<Scalar>>(m_typpair_idx.getNumElements(),
+                                                          m_exec_conf);
+    nlist->addRCutMatrix(m_r_cut_nlist);
 
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
@@ -167,6 +236,10 @@ PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
+    if (m_attached)
+        {
+        m_nlist->removeRCutMatrix(m_r_cut_nlist);
+        }
     }
 
 /*! \param typ1 First type index in the pair
@@ -178,17 +251,35 @@ PotentialTersoff< evaluator >::~PotentialTersoff()
 template< class evaluator >
 void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTersoff");
-        }
-
+    validateTypes(typ1, typ2, "set params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
     }
+
+template< class evaluator >
+void PotentialTersoff<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::dict params)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    validateTypes(typ1, typ2, "set params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
+    h_params.data[m_typpair_idx(typ1, typ2)] = param_type(params);
+    h_params.data[m_typpair_idx(typ2, typ1)] = param_type(params);
+    }
+
+template< class evaluator >
+pybind11::dict PotentialTersoff< evaluator >::getParams(pybind11::tuple typ)
+    {
+    auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[m_typpair_idx(typ1, typ2)].asDict();
+        }
+
 
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
@@ -199,37 +290,53 @@ void PotentialTersoff< evaluator >::setParams(unsigned int typ1, unsigned int ty
 template< class evaluator >
 void PotentialTersoff< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        m_exec_conf->msg->error() << std::endl << "Trying to set rcut for a non existent type! "
-                                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialTersoff");
-        }
-
+    validateTypes(typ1, typ2, "set r_cut");
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
     h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
+
+    ArrayHandle<Scalar> h_r_cut_nlist(*m_r_cut_nlist, access_location::host, access_mode::readwrite);
+    h_r_cut_nlist.data[m_typpair_idx(typ1, typ2)] = rcut;
+    h_r_cut_nlist.data[m_typpair_idx(typ2, typ1)] = rcut;
+
+    m_nlist->notifyRCutMatrixChange();
     }
 
-/*! \param typ1 First type index in the pair
-    \param typ2 Second type index in the pair
-    \param ron XPLOR r_on radius to set
-    \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
-          set.
-*/
 template< class evaluator >
-void PotentialTersoff< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
+void PotentialTersoff< evaluator >::setRCutPython(pybind11::tuple types,
+                                               Scalar r_cut)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "set r_cut");
+    setRcut(typ1, typ2, r_cut);
+    }
+
+template<class evaluator>
+void PotentialTersoff< evaluator >::validateTypes(unsigned int typ1,
+                                               unsigned int typ2,
+                                               std::string action)
+{
+    // TODO change logic to just throw an exception
+    auto n_types = this->m_pdata->getNTypes();
+    if (typ1 >= n_types || typ2 >= n_types)
         {
-        m_exec_conf->msg->error() << std::endl << "Trying to set ron for a non existent type! "
-                                  << typ1 << "," << typ2 << std::endl;
+        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
+            << ": Trying to " << action << " for a non existent type! "
+            << typ1 << "," << typ2 << std::endl;
         throw std::runtime_error("Error setting parameters in PotentialTersoff");
         }
+}
 
-    ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
-    h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
-    h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
+template< class evaluator >
+Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
+    {
+    auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
+    auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
+    validateTypes(typ1, typ2, "get rcut.");
+    ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
+                                 access_mode::read);
+    return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
     }
 
 /*! PotentialTersoff provides:
@@ -273,8 +380,8 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
     {
     // *****  check if we need the structure of the Tersoff or the RevCross potential for evaluation
     if (evaluator::flag_for_RevCross )
-	{
-	// ***** RevCross potential
+        {
+        // ***** RevCross potential
         // start by updating the neighborlist
         m_nlist->compute(timestep);
 
@@ -305,7 +412,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         const BoxDim& box = m_pdata->getBox();
-        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -376,7 +482,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 // (since nl are type-wise I can not even merge them because i, j and k could be different types)
                 if (evaluated)
                     {
-            	//printf("\nEvaluating the pair (i,j)=(%d, %d)  from inside HOOMD CPU",i,jj);
+                    //printf("\nEvaluating the pair (i,j)=(%d, %d)  from inside HOOMD CPU",i,jj);
                     // evaluate the force and energy from the ij interaction
                     Scalar force_divr = Scalar(0.0);
                     Scalar potential_eng = Scalar(0.0);
@@ -392,18 +498,18 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                     pej += potential_eng ;
 
                     //vir contribute for i j direct interaction on particle i and j
-            	if (compute_virial)
-            	    {
-                	    virialixx += force_divr*dxij.x*dxij.x;
-                	    virialixy += force_divr*dxij.x*dxij.y;
-                	    virialixz += force_divr*dxij.x*dxij.z;
-                	    virialiyy += force_divr*dxij.y*dxij.y;
-                	    virialiyz += force_divr*dxij.y*dxij.z;
-            	    	    virializz += force_divr*dxij.z*dxij.z;
-            	    }
+                if (compute_virial)
+                    {
+                    virialixx += force_divr*dxij.x*dxij.x;
+                    virialixy += force_divr*dxij.x*dxij.y;
+                    virialixz += force_divr*dxij.x*dxij.z;
+                    virialiyy += force_divr*dxij.y*dxij.y;
+                    virialiyz += force_divr*dxij.y*dxij.z;
+                    virializz += force_divr*dxij.z*dxij.z;
+                    }
 
                     // evaluate the force from the ik interactions
-                    for (unsigned int k = j+1; k < size; k++)                    //I want to account only a single time for each triplets
+                    for (unsigned int k = j+1; k < size; k++)  // I want to account only a single time for each triplets
                         {
                         // access the index of neighbor k
                         unsigned int kk = h_nlist.data[head_i + k];
@@ -416,7 +522,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 
                         // access the type pair parameters for i and k
                         typpair_idx = m_typpair_idx(typei, typek);
-                        param_type temp_param = h_params.data[typpair_idx];             // use this to control the species wich have to interact
+                        param_type temp_param = h_params.data[typpair_idx];  // use this to control the species wich have to interact
 
                         // compute dr_ik
                         Scalar3 dxik = posi - posk;
@@ -430,50 +536,50 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                         temp_eval.setRik(rik_sq);
                         bool temp_evaluated = temp_eval.areInteractive();
 
-            	    // 3 Body interaction ******
+                        // 3 Body interaction ******
                         if (temp_evaluated)
                             {
-            		eval.setRik(rik_sq);
+                            eval.setRik(rik_sq);
                             // compute the total force and energy
                             Scalar3 fk = make_scalar3(0.0, 0.0, 0.0);
                             Scalar3 force_divr_ij_vec = make_scalar3(0.0, 0.0, 0.0);
                             Scalar3 force_divr_ik_vec = make_scalar3(0.0, 0.0, 0.0);
                             bool evaluatedk = eval.evalForceik(invratio,invratio2, Scalar(0.0), Scalar(0.0), force_divr_ij_vec, force_divr_ik_vec);
-            	            // k interacts with the i-j as an additional third body
+                            // k interacts with the i-j as an additional third body
                             if(evaluatedk)
-                            	{
-				// I stored the modulus of the force in the first component
-				Scalar force_divr_ij=force_divr_ij_vec.x;
-				Scalar force_divr_ik=force_divr_ik_vec.x;
+                                {
+                                // I stored the modulus of the force in the first component
+                                Scalar force_divr_ij=force_divr_ij_vec.x;
+                                Scalar force_divr_ik=force_divr_ik_vec.x;
 
-                            	// add the force to particle i
-                            	fi += force_divr_ij * dxij + force_divr_ik * dxik;
+                                // add the force to particle i
+                                fi += force_divr_ij * dxij + force_divr_ik * dxik;
 
-                            	// add the force to particle j (FLOPS: 17)
-                            	fj += force_divr_ij * dxij * Scalar(-1.0);
+                                // add the force to particle j (FLOPS: 17)
+                                fj += force_divr_ij * dxij * Scalar(-1.0);
 
-                            	// add the force to particle k
-                            	fk += force_divr_ik * dxik * Scalar(-1.0);
+                                // add the force to particle k
+                                fk += force_divr_ik * dxik * Scalar(-1.0);
 
-                            	if (compute_virial)
-                               	{
-                            		//***look at 3 body pressure notes
-                            		//i just need a single term to account for all of the 3 body virial that i decide to store in the i particle's data
-                            		//and i just defined the diagonal component of pressure tensor, I don't know how the off diagonal terms can be included
-                            		virialixx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
-                            		virialiyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
-                            		virializz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
-                            		virialixy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
-                              			virialixz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
-                            			virialiyz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
-                                   	}
+                                if (compute_virial)
+                                    {
+                                    //***look at 3 body pressure notes
+                                    //i just need a single term to account for all of the 3 body virial that i decide to store in the i particle's data
+                                    //and i just defined the diagonal component of pressure tensor, I don't know how the off diagonal terms can be included
+                                    virialixx += (force_divr_ij*dxij.x*dxij.x + force_divr_ik*dxik.x*dxik.x);
+                                    virialiyy += (force_divr_ij*dxij.y*dxij.y + force_divr_ik*dxik.y*dxik.y);
+                                    virializz += (force_divr_ij*dxij.z*dxij.z + force_divr_ik*dxik.z*dxik.z);
+                                    virialixy += (force_divr_ij*dxij.x*dxij.y + force_divr_ik*dxik.x*dxik.y);
+                                    virialixz += (force_divr_ij*dxij.x*dxij.z + force_divr_ik*dxik.x*dxik.z);
+                                    virialiyz += (force_divr_ij*dxij.y*dxij.z + force_divr_ik*dxik.y*dxik.z);
+                                    }
 
 
-                            	// increment the force for particle k
-                            	unsigned int mem_idx = kk;
-                            	h_force.data[mem_idx].x += fk.x;
-                            	h_force.data[mem_idx].y += fk.y;
-                            	h_force.data[mem_idx].z += fk.z;
+                                // increment the force for particle k
+                                unsigned int mem_idx = kk;
+                                h_force.data[mem_idx].x += fk.x;
+                                h_force.data[mem_idx].y += fk.y;
+                                h_force.data[mem_idx].z += fk.z;
                                 }
                             }
                         }
@@ -485,7 +591,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 h_force.data[mem_idx].y += fj.y;
                 h_force.data[mem_idx].z += fj.z;
                 h_force.data[mem_idx].w += pej;
-
                 }
 
             // finally, increment the force and potential energy for particle i
@@ -507,7 +612,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                 }
 
             }
-	}
+        }
     else
         {
         // ****** Tersoff or SquareDensity potential
@@ -542,7 +647,6 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
         bool compute_virial = flags[pdata_flag::pressure_tensor];
 
         const BoxDim& box = m_pdata->getBox();
-        ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::read);
         ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
@@ -938,12 +1042,13 @@ CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(unsigned int time
 */
 template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-        pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-            .def("setParams", &T::setParams)
-            .def("setRcut", &T::setRcut)
-            .def("setRon", &T::setRon)
-        ;
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    .def("setParams", &T::setParamsPython)
+    .def("getParams", &T::getParams)
+    .def("setRCut", &T::setRCutPython)
+    .def("getRCut", &T::getRCut)
+    ;
     }
 
 
