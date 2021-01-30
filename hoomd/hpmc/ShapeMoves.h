@@ -8,7 +8,6 @@
 #include "Moves.h"
 #include "GSDHPMCSchema.h"
 #include <hoomd/extern/Eigen/Eigen/Dense>
-// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <pybind11/pybind11.h>
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 
@@ -218,7 +217,7 @@ public:
                 return m_params[i][k - n];
             n = next;
             }
-        throw std::out_of_range("Error: Could not get parameter, index out of range.\n");// out of range.
+        throw std::out_of_range("Error: Could not get parameter, index out of range.\n");
         return Scalar(0.0);
         }
 
