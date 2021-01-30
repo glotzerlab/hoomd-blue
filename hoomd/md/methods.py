@@ -666,9 +666,12 @@ class NVE_Rattle(_Method):
 
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            self._cpp_obj = _md.TwoStepRATTLENVE(self._simulation.state._cpp_sys_def,
+            if self.manifold.name == "Sphere":
+                 self._cpp_obj = _md.TwoStepRATTLENVESphere(self._simulation.state._cpp_sys_def,
                                         self._simulation.state._get_group(self.filter), 
                                         self.manifold._cpp_manifold, False, self.eta)
+            else:
+                raise AttributeError("Manifold class not implemented")
         else:
             self._cpp_obj = _md.TwoStepRATTLENVEGPU(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),

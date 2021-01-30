@@ -62,7 +62,7 @@
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
-#include "SphereManifold.h"
+#include "ManifoldClassSphere.h"
 #include "EllipsoidManifold.h"
 #include "TPMSManifold.h"
 #include "FlatManifold.h"
@@ -107,7 +107,7 @@
 #include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
-#include "TwoStepRATTLENVEGPU.h"
+//#include "TwoStepRATTLENVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "MuellerPlatheFlowGPU.h"
 #endif
@@ -302,6 +302,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
     export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
+    // RATTLE updaters
+    //export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
+
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
@@ -370,7 +373,7 @@ PYBIND11_MODULE(_md, m)
     export_TempRescaleUpdater(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
-    export_TwoStepRATTLENVE(m);
+    export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
     export_TwoStepNVTMTK(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
@@ -386,7 +389,7 @@ PYBIND11_MODULE(_md, m)
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
-    export_TwoStepRATTLENVEGPU(m);
+    //export_TwoStepRATTLENVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepRATTLELangevinGPU(m);
@@ -401,9 +404,10 @@ PYBIND11_MODULE(_md, m)
 #endif
 
     // manifolds 
-    export_SphereManifold(m);
+    export_ManifoldClassSphere(m);
     export_EllipsoidManifold(m);
     export_CylinderManifold(m);
     export_FlatManifold(m);
     export_TPMSManifold(m);
+
     }

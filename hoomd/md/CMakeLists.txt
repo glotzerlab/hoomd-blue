@@ -30,7 +30,6 @@ set(_md_sources module-md.cc
                    CylinderManifold.cc
                    EllipsoidManifold.cc
                    FlatManifold.cc
-                   SphereManifold.cc
                    TPMSManifold.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
@@ -44,7 +43,7 @@ set(_md_sources module-md.cc
                    TwoStepRATTLELangevin.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
-                   TwoStepRATTLENVE.cc
+                   #TwoStepRATTLENVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
                    MuellerPlatheFlow.cc
@@ -158,7 +157,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 CylinderManifold.h
                 EllipsoidManifold.h
                 FlatManifold.h
-                SphereManifold.h
+                ManifoldClassSphere.h
                 TPMSManifold.h
                 QuaternionMath.h
                 TableAngleForceComputeGPU.h
@@ -182,7 +181,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
                 TwoStepNVEGPU.h
-                TwoStepRATTLENVEGPU.h
+                #TwoStepRATTLENVEGPU.h
                 TwoStepNVE.h
                 TwoStepRATTLENVE.h
                 TwoStepNVTMTKGPU.h
@@ -224,7 +223,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepRATTLELangevinGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
-                           TwoStepRATTLENVEGPU.cc
+                           #TwoStepRATTLENVEGPU.cc
                            TwoStepNVTMTKGPU.cc
                            MuellerPlatheFlowGPU.cc
                            CosineSqAngleForceComputeGPU.cc
@@ -285,7 +284,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
-                      TwoStepRATTLENVEGPU.cu
+                      #TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
