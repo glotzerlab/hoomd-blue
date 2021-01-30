@@ -102,7 +102,7 @@ class UpdaterShape  : public Updater
     private:
         unsigned int                m_seed;                                         // random number seed of the shape updater
         int                         m_global_partition;                             // number of MPI partitions
-        unsigned int                n_type_select;                                  // number of particle types to update in each move
+        unsigned int                m_type_select;                                  // number of particle types to update in each move
         unsigned int                m_nsweeps;                                      // number of sweeps to run the updater each time it is called
         std::vector<unsigned int>   m_count_accepted;                               // number of accepted updater moves
         std::vector<unsigned int>   m_count_total;                                  // number of attempted updater moves
@@ -135,7 +135,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool pretend,
                                   bool multiphase,
                                   unsigned int numphase)
-    : Updater(sysdef), m_seed(seed), m_global_partition(0), n_type_select(tselect), m_nsweeps(nsweeps),
+    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
@@ -146,7 +146,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
     m_box_total.resize(m_pdata->getNTypes(), 0);
-    n_type_select = (m_pdata->getNTypes() < n_type_select) ? m_pdata->getNTypes() : n_type_select;
+    m_type_select = (m_pdata->getNTypes() < m_type_select) ? m_pdata->getNTypes() : m_type_select;
     m_provided_quantities.push_back("shape_move_acceptance_ratio");
     m_provided_quantities.push_back("shape_move_particle_volume");
     m_provided_quantities.push_back("shape_move_multi_phase_box");
@@ -292,8 +292,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape copy param");
 
         param_vector& params = m_mc->getParams();
-        param_vector param_copy(n_type_select);
-        for (unsigned int i = 0; i < n_type_select; i++)
+        param_vector param_copy(m_type_select);
+        for (unsigned int i = 0; i < m_type_select; i++)
             {
             param_copy[i] = params[m_update_order[i]];
             }
@@ -305,7 +305,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         GPUArray< Scalar > determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
-        for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+        for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
             int typ_i = m_update_order[cur_type];
@@ -387,14 +387,14 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         // access parameters and interaction matrix
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
-        // Loop over particles corresponding to n_type_select
+        // Loop over particles corresponding to m_type_select
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             Scalar4 postype_i = h_postype.data[i];
             int typ_i = __scalar_as_int(postype_i.w);
-            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+            for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
-                // Only check overlaps for particles of types specified by n_type_select
+                // Only check overlaps for particles of types specified by m_type_select
                 if (typ_i == m_update_order[cur_type])
                     {
                     // read in the current position and orientation
@@ -498,7 +498,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             // make sure random seeds are equal
             if(accept)
                 {
-                for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+                for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                     {
                     int typ_i = m_update_order[cur_type];
                     m_box_accepted[typ_i]++;
@@ -521,7 +521,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move accepted -- pretend mode" << std::endl;
             m_move_function->retreat(timestep);
-            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+            for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
                 int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
@@ -530,7 +530,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         else    // actually accept the move.
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
-            for (unsigned int cur_type = 0; cur_type < n_type_select; cur_type++)
+            for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
                 int typ_i = m_update_order[cur_type];
                 m_count_accepted[typ_i]++;
@@ -544,7 +544,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_determinant.swap(determinant_backup);
             // m_mc->swapParams(param_copy);
             // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
-            for(size_t typ = 0; typ < n_type_select; typ++)
+            for(size_t typ = 0; typ < m_type_select; typ++)
                 {
                 m_mc->setParam(m_update_order[typ], param_copy[typ]); // set the params.
                 }
