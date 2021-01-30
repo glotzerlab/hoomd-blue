@@ -169,7 +169,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
             this->m_step_size = stepsize;
             m_select_ratio = fmin(mixratio, 1.0)*65535;
-            this->m_det_inertia_tensor = 0.0;
+            this->m_det_inertia_tensor = 1.0;
             for(size_t i = 0; i < getNumParam(); i++)
                 {
                 this->m_provided_quantities.push_back(getParamName(i));

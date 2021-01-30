@@ -125,7 +125,7 @@ def test_logger(device, simulation_factory, lattice_snapshot_factory, tmpdir):
 
     file_name = tmpdir.mkdir("sub").join("tmp_updater.txt")
     log_file = open(file_name, "w+")
-    logger = hoomd.logging.Logger(flags=['scalar'])
+    logger = hoomd.logging.Logger(categories=['scalar'])
     logger += updater
     writer = hoomd.write.Table(hoomd.trigger.Periodic(1), logger, log_file, max_header_len=1)
     sim.operations.add(writer)

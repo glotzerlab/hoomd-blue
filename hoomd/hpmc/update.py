@@ -964,7 +964,7 @@ are only enabled for polyhedral and spherical particles.")
         """
         return sum([self._cpp_obj.getAcceptedCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
-    @log(flag='scalar')
+    @log(category='scalar')
     def shape_move_acceptance_ratio(self):
         """float: Returns the shape move acceptance ratio for all particle types
 
@@ -976,7 +976,7 @@ are only enabled for polyhedral and spherical particles.")
             acc = float(self.accepted_count) / float(self.total_count)
         return acc
 
-    @log(flag='scalar')
+    @log(category='scalar')
     def shape_move_particle_volume(self):
         """float: Returns the total volume being occupied by particles.
 
@@ -985,7 +985,7 @@ are only enabled for polyhedral and spherical particles.")
         """
         return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
-    @log(flag='scalar')
+    @log(category='scalar')
     def shape_param(self):
         """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
 
@@ -1160,7 +1160,7 @@ class ElasticShape(ShapeUpdater):
         self.stiffness = stiffness
         self.boltzmann_function.setStiffness(self.stiffness)
 
-    @log(flag="scalar")
+    @log(category="scalar")
     def shape_move_stiffness(self):
         """float: Stiffness of the shape used to calculate shape energy
 
@@ -1169,7 +1169,7 @@ class ElasticShape(ShapeUpdater):
         """
         return self.stiffness(self._simulation.timestep)
 
-    @log(flag="scalar")
+    @log(category="scalar")
     def shape_move_energy(self):
         """float: Energy of the shape resulting from shear moves
 
