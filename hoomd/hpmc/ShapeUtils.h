@@ -23,13 +23,6 @@ namespace hpmc
 {
 
 
-class ShapeUtilError : public std::runtime_error
-    {
-    public:
-        ShapeUtilError(const std::string& msg) : runtime_error(msg) {}
-    };
-
-
 namespace detail
 {
 // TODO: template Scalar type.
