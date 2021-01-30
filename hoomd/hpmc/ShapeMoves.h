@@ -253,7 +253,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             }
 
     private:
-        std::vector<Scalar>                     m_step_size_backup;
+        std::vector<Scalar>                     m_step_size_backup; // maximum step size
         unsigned int                            m_select_ratio;     // fraction of parameters to change in each move. internal use
         unsigned int                            m_num_params;       // cache the number of parameters.
         Scalar                                  m_scale;            // the scale needed to keep the particle at constant volume. internal use
@@ -383,12 +383,12 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             }
 
     private:
-        std::vector<Scalar>     m_step_size_backup;
-        unsigned int            m_select_ratio;
-        Scalar                  m_scale;
-        Scalar                  m_volume;
-        std::vector< vec3<Scalar> > m_centroids;
-        std::vector<bool>       m_calculated;
+        std::vector<Scalar>     m_step_size_backup; // maximum step size
+        unsigned int            m_select_ratio;     // probability of a vertex being selected for a move
+        Scalar                  m_scale;            // factor to scale the shape by to achieve desired constant volume
+        Scalar                  m_volume;           // desired constant volume of each shape
+        std::vector< vec3<Scalar> > m_centroids;    // centroid of each type of shape
+        std::vector<bool>       m_calculated;       // whether or not mass properties has been calculated
     };   // end class ConvexPolyhedronVertexShapeMove
 
 template<class Shape>
@@ -552,10 +552,10 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             };
 
         protected:
-            unsigned int m_select_ratio;
-            std::vector< detail::MassProperties<Shape> > m_mass_props;
-            std::vector <Eigen::Matrix3d> m_Fbar_last;
-            std::vector <Eigen::Matrix3d> m_Fbar;
+            unsigned int m_select_ratio;                               // probability of performing a scaling move vs a rotation-scale-rotation move
+            std::vector< detail::MassProperties<Shape> > m_mass_props; // mass properties of the shape
+            std::vector <Eigen::Matrix3d> m_Fbar_last;                 // matrix representing shape deformation at the last step
+            std::vector <Eigen::Matrix3d> m_Fbar;                      // matrix representing shape deformation at the current step
 
         private:
 
@@ -655,7 +655,7 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
             }
 
     private:
-        std::vector< detail::MassProperties<ShapeEllipsoid> > m_mass_props;
+        std::vector< detail::MassProperties<ShapeEllipsoid> > m_mass_props; // mass properties of the shape
     };
 
 template<class Shape>
@@ -666,25 +666,23 @@ class ShapeLogBoltzmannFunction
 
         virtual ~ShapeLogBoltzmannFunction() {};
 
-        virtual Scalar operator()(
-                                    const unsigned int& timestep,
-                                    const unsigned int& N,
-                                    const unsigned int type_id,
-                                    const typename Shape::param_type& shape_new,
-                                    const Scalar& inew,
-                                    const typename Shape::param_type& shape_old,
-                                    const Scalar& iold)
+        virtual Scalar operator()(const unsigned int& timestep,
+                                  const unsigned int& N,
+                                  const unsigned int type_id,
+                                  const typename Shape::param_type& shape_new,
+                                  const Scalar& inew,
+                                  const typename Shape::param_type& shape_old,
+                                  const Scalar& iold)
             {
             throw std::runtime_error("not implemented");
             return 0.0;
             }
 
-        virtual Scalar computeEnergy(
-                                        const unsigned int& timestep,
-                                        const unsigned int& N,
-                                        const unsigned int type_id,
-                                        const typename Shape::param_type& shape,
-                                        const Scalar& inertia)
+        virtual Scalar computeEnergy(const unsigned int& timestep,
+                                     const unsigned int& N,
+                                     const unsigned int type_id,
+                                     const typename Shape::param_type& shape,
+                                     const Scalar& inertia)
             {
             return 0.0;
             }
@@ -707,7 +705,7 @@ class ShapeLogBoltzmannFunction
             }
 
     protected:
-        std::vector< std::string >      m_provided_quantities;
+        std::vector< std::string >      m_provided_quantities; // provided log quantities of the shape move
     };
 
 template<class Shape>
@@ -765,10 +763,10 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             return false;
             }
     protected:
-        Scalar m_volume;
-        std::unique_ptr<typename Shape::param_type> m_reference_shape;
-        std::shared_ptr<Variant> m_k;
-        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities;
+        Scalar m_volume;                                               // volume of shape
+        std::unique_ptr<typename Shape::param_type> m_reference_shape; // shape to reference shape move against
+        std::shared_ptr<Variant> m_k;                                  // shape move stiffness
+        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities; // provided log quantites
     };
 
 template<class Shape>
@@ -802,7 +800,7 @@ class ShapeSpring : public ShapeSpringBase< Shape >
             return N*stiff*e_ddot_e*this->m_volume;
             }
     private:
-        std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move;
+        std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move; // shape move to apply the spring on
     };
 
 template<>
@@ -845,7 +843,7 @@ class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
             }
 
     private:
-        std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move;
+        std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move; // shape move to apply the spring on
     };
 
 template<class Shape>
