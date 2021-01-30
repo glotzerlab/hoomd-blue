@@ -19,15 +19,15 @@ template< typename Shape >
 class UpdaterShape  : public Updater
     {
     public:
-        UpdaterShape(   std::shared_ptr<SystemDefinition> sysdef,
-                        std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
-                        Scalar move_ratio,
-                        unsigned int seed,
-                        unsigned int tselect,
-                        unsigned int nsweeps,
-                        bool pretend,
-                        bool multiphase,
-                        unsigned int numphase);
+        UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                     Scalar move_ratio,
+                     unsigned int seed,
+                     unsigned int tselect,
+                     unsigned int nsweeps,
+                     bool pretend,
+                     bool multiphase,
+                     unsigned int numphase);
 
         ~UpdaterShape();
 
@@ -100,46 +100,41 @@ class UpdaterShape  : public Updater
         bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     private:
-        unsigned int                m_seed;               //!< Random number seed
-        int                         m_global_partition;   //!< Random number seed
-        unsigned int                n_type_select;
-        unsigned int                m_nsweeps;
-        std::vector<unsigned int>   m_count_accepted;
-        std::vector<unsigned int>   m_count_total;
-        std::vector<unsigned int>   m_box_accepted;
-        std::vector<unsigned int>   m_box_total;
-        unsigned int                m_move_ratio;
-
-        std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;
-        std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
-        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
-
-        GPUArray< Scalar >          m_determinant;
-        GPUArray< unsigned int >    m_ntypes;
-
-        std::vector< std::string >  m_provided_quantities;
-        size_t                      m_num_params;
-        bool                        m_pretend;
-        bool                        m_initialized;
-        bool                        m_multi_phase;
-        unsigned int                m_num_phase;
-        detail::UpdateOrder         m_update_order;         //!< Update order
-
-
-        static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
+        unsigned int                m_seed;                                         // random number seed of the shape updater
+        int                         m_global_partition;                             // number of MPI partitions
+        unsigned int                n_type_select;                                  // number of particle types to update in each move
+        unsigned int                m_nsweeps;                                      // number of sweeps to run the updater each time it is called
+        std::vector<unsigned int>   m_count_accepted;                               // number of accepted updater moves
+        std::vector<unsigned int>   m_count_total;                                  // number of attempted updater moves
+        std::vector<unsigned int>   m_box_accepted;                                 // number of accepted moves between boxes in multi-phase simulations
+        std::vector<unsigned int>   m_box_total;                                    // number of attempted moves between boxes in multi-phase simulations
+        unsigned int                m_move_ratio;                                   // probability of performing a shape move
+        std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;                  // shape move function to apply in the updater
+        std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;                 // hpmc particle integrator
+        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function; // function to calculate energy change associated with shape move
+        GPUArray< Scalar >          m_determinant;                                  // determinant of the shape's moment of inertia tensor
+        GPUArray< unsigned int >    m_ntypes;                                       // number of particle types in the simulation
+        std::vector< std::string >  m_provided_quantities;                          // provided log quantities
+        size_t                      m_num_params;                                   // number of shape parameters to calculate
+        bool                        m_pretend;                                      // whether or not to pretend or actually perform shape move
+        bool                        m_initialized;                                  // whether or not the updater has been initialized
+        bool                        m_multi_phase;                                  // whether or not the simulation is multi-phase
+        unsigned int                m_num_phase;                                    // number of phases in a multi-phase simulation
+        detail::UpdateOrder         m_update_order;                                 // order of particle types to apply the updater to
+        static constexpr Scalar m_tol = 0.00001;                                    // minimum move size required to not be ignored.
 
     };
 
 template < class Shape >
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
-                                 Scalar move_ratio,
-                                 unsigned int seed,
-                                 unsigned int tselect,
-                                 unsigned int nsweeps,
-                                 bool pretend,
-                                 bool multiphase,
-                                 unsigned int numphase)
+                                  std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                                  Scalar move_ratio,
+                                  unsigned int seed,
+                                  unsigned int tselect,
+                                  unsigned int nsweeps,
+                                  bool pretend,
+                                  bool multiphase,
+                                  unsigned int numphase)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), n_type_select(tselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
