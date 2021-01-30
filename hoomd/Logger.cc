@@ -183,9 +183,9 @@ Scalar Logger::getQuantity(const std::string &quantity, unsigned int timestep, b
 */
 Scalar Logger::getValue(const std::string &quantity, int timestep)
     {
+    // first see if it is the built-in time quantity
     if (quantity == "time")
         {
-        // first see if it is the built-in time quantity
         return Scalar(double(m_clk.getTime())/1e9);
         }
     // check to see if the quantity exists in the compute list

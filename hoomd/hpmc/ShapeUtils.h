@@ -75,7 +75,7 @@ class MassPropertiesBase
             return m_inertia[i];
             }
 
-        Scalar getDeterminant()
+        Scalar getDetInertiaTensor()
             {
             vec3<Scalar> a(m_inertia[0], m_inertia[3], m_inertia[5]),
                          b(m_inertia[3], m_inertia[1], m_inertia[4]),
@@ -307,7 +307,7 @@ class MassProperties<ShapeEllipsoid> : public MassPropertiesBase<ShapeEllipsoid>
             compute();
             }
 
-        Scalar getDeterminant()
+        Scalar getDetInertiaTensor()
             {
             return m_inertia[0]*m_inertia[1]*m_inertia[2];
             }

@@ -50,8 +50,7 @@ class ShapeMoveBase
             throw std::runtime_error("Shape move function not implemented.");
             }
 
-        // TODO: remove this?
-        Scalar getDeterminant() const
+        Scalar getDetInertiaTensor() const
             {
             return m_det_inertia_tensor;
             }
@@ -198,7 +197,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             pybind11::object shape_data = m_python_callback(m_params[type_id]);
             shape = pybind11::cast< typename Shape::param_type >(shape_data);
             detail::MassProperties<Shape> mp(shape);
-            this->m_det_inertia_tensor = mp.getDeterminant();
+            this->m_det_inertia_tensor = mp.getDetInertiaTensor();
             }
 
         void retreat(unsigned int timestep)
@@ -276,7 +275,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             for(size_t i = 0; i < m_shape_moves.size(); i++)
                 {
                 detail::MassProperties<Shape> mp(m_shape_moves[i]);
-                m_determinants.push_back(mp.getDeterminant());
+                m_determinants.push_back(mp.getDetInertiaTensor());
                 }
             }
 
@@ -371,7 +370,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             p = mp.getQuickHullVertsAndFaces(shape);
             std::vector<std::vector<unsigned int>> faces = p.second;
             detail::MassProperties<ShapeConvexPolyhedron> mp2(points, faces);
-            this->m_det_inertia_tensor = mp2.getDeterminant();
+            this->m_det_inertia_tensor = mp2.getDetInertiaTensor();
             m_isoperimetric_quotient = mp2.getIsoperimetricQuotient();
             shape.diameter = 2.0*fast::sqrt(rsq);
             m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
@@ -454,11 +453,11 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
                 }
             param.diameter = 2.0*fast::sqrt(dsq);
             m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
-            this->m_det_inertia_tensor = m_mass_props[type_id].getDeterminant();
+            this->m_det_inertia_tensor = m_mass_props[type_id].getDetInertiaTensor();
             #ifdef DEBUG
                 detail::MassProperties<Shape> mp(param);
-                this->m_det_inertia_tensor = mp.getDeterminant();
-                assert(fabs(this->m_det_inertia_tensor-mp.getDeterminant()) < 1e-5);
+                this->m_det_inertia_tensor = mp.getDetInertiaTensor();
+                assert(fabs(this->m_det_inertia_tensor-mp.getDetInertiaTensor()) < 1e-5);
             #endif
             }
 

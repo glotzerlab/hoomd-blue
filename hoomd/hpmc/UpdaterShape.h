@@ -334,7 +334,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
             hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, sweep);
             m_move_function->construct(timestep, typ_i, param, rng_i);
-            h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
+            h_det.data[typ_i] = m_move_function->getDetInertiaTensor(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
@@ -572,7 +572,7 @@ void UpdaterShape<Shape>::initialize()
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
         detail::MassProperties<Shape> mp(params[i]);
-        h_det.data[i] = mp.getDeterminant();
+        h_det.data[i] = mp.getDetInertiaTensor();
         }
     m_initialized = true;
     }
