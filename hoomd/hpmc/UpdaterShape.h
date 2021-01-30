@@ -17,118 +17,118 @@ namespace hpmc {
 
 template< typename Shape >
 class UpdaterShape  : public Updater
-{
-public:
-    UpdaterShape(   std::shared_ptr<SystemDefinition> sysdef,
-                    std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
-                    Scalar move_ratio,
-                    unsigned int seed,
-                    unsigned int tselect,
-                    unsigned int nsweeps,
-                    bool pretend,
-                    bool multiphase,
-                    unsigned int numphase);
+    {
+    public:
+        UpdaterShape(   std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                        Scalar move_ratio,
+                        unsigned int seed,
+                        unsigned int tselect,
+                        unsigned int nsweeps,
+                        bool pretend,
+                        bool multiphase,
+                        unsigned int numphase);
 
-    ~UpdaterShape();
+        ~UpdaterShape();
 
-    std::vector< std::string > getProvidedLogQuantities();
+        std::vector< std::string > getProvidedLogQuantities();
 
-    //! Calculates the requested log value and returns it
-    Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        //! Calculates the requested log value and returns it
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-    void update(unsigned int timestep);
+        void update(unsigned int timestep);
 
-    void initialize();
+        void initialize();
 
-    float getParticleVolume(unsigned int ndx)
-        {
-        ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
-        return mp.getVolume()*Scalar(h_ntypes.data[ndx]);
-        }
+        float getParticleVolume(unsigned int ndx)
+            {
+            ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
+            detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
+            return mp.getVolume()*Scalar(h_ntypes.data[ndx]);
+            }
 
-    float getShapeMoveEnergy(unsigned int ndx, unsigned int timestep)
-        {
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
-        }
+        float getShapeMoveEnergy(unsigned int ndx, unsigned int timestep)
+            {
+            ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+            return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
+            }
 
-    float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
+        float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
 
-    unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
+        unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
 
-    unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
+        unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
 
-    unsigned int getAcceptedBox(unsigned int ndx) { return m_box_accepted[ndx]; }
+        unsigned int getAcceptedBox(unsigned int ndx) { return m_box_accepted[ndx]; }
 
-    unsigned int getTotalBox(unsigned int ndx) { return m_box_total[ndx]; }
+        unsigned int getTotalBox(unsigned int ndx) { return m_box_total[ndx]; }
 
-    void resetStatistics()
-        {
-        std::fill(m_count_accepted.begin(), m_count_accepted.end(), 0);
-        std::fill(m_count_total.begin(), m_count_total.end(), 0);
-        std::fill(m_box_accepted.begin(), m_box_accepted.end(), 0);
-        std::fill(m_box_total.begin(), m_box_total.end(), 0);
-        }
+        void resetStatistics()
+            {
+            std::fill(m_count_accepted.begin(), m_count_accepted.end(), 0);
+            std::fill(m_count_total.begin(), m_count_total.end(), 0);
+            std::fill(m_box_accepted.begin(), m_box_accepted.end(), 0);
+            std::fill(m_box_total.begin(), m_box_total.end(), 0);
+            }
 
-    void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
+        void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-    void registerShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
+        void registerShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
 
-    Scalar getStepSize(unsigned int typ)
-        {
-        if(m_move_function) return m_move_function->getStepSize(typ);
-        return 0.0;
-        }
+        Scalar getStepSize(unsigned int typ)
+            {
+            if(m_move_function) return m_move_function->getStepSize(typ);
+            return 0.0;
+            }
 
-    void setStepSize(unsigned int typ, Scalar stepsize)
-        {
-        if(m_move_function) m_move_function->setStepSize(typ, stepsize);
-        }
-
-
-    void countTypes();
-
-    //! Method that is called whenever the GSD file is written if connected to a GSD file.
-    int slotWriteGSD(gsd_handle&, std::string name) const;
-
-    //! Method that is called to connect to the gsd write state signal
-    void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
-
-    //! Method that is called to connect to the gsd write state signal
-    bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
-
-private:
-    unsigned int                m_seed;               //!< Random number seed
-    int                         m_global_partition;   //!< Random number seed
-    unsigned int                n_type_select;
-    unsigned int                m_nsweeps;
-    std::vector<unsigned int>   m_count_accepted;
-    std::vector<unsigned int>   m_count_total;
-    std::vector<unsigned int>   m_box_accepted;
-    std::vector<unsigned int>   m_box_total;
-    unsigned int                m_move_ratio;
-
-    std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;
-    std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
-    std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
-
-    GPUArray< Scalar >          m_determinant;
-    GPUArray< unsigned int >    m_ntypes;
-
-    std::vector< std::string >  m_provided_quantities;
-    size_t                      m_num_params;
-    bool                        m_pretend;
-    bool                        m_initialized;
-    bool                        m_multi_phase;
-    unsigned int                m_num_phase;
-    detail::UpdateOrder         m_update_order;         //!< Update order
+        void setStepSize(unsigned int typ, Scalar stepsize)
+            {
+            if(m_move_function) m_move_function->setStepSize(typ, stepsize);
+            }
 
 
-    static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
+        void countTypes();
 
-};
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSD(gsd_handle&, std::string name) const;
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDStateSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+        //! Method that is called to connect to the gsd write state signal
+        bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
+
+    private:
+        unsigned int                m_seed;               //!< Random number seed
+        int                         m_global_partition;   //!< Random number seed
+        unsigned int                n_type_select;
+        unsigned int                m_nsweeps;
+        std::vector<unsigned int>   m_count_accepted;
+        std::vector<unsigned int>   m_count_total;
+        std::vector<unsigned int>   m_box_accepted;
+        std::vector<unsigned int>   m_box_total;
+        unsigned int                m_move_ratio;
+
+        std::shared_ptr< ShapeMoveBase<Shape> >   m_move_function;
+        std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
+        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
+
+        GPUArray< Scalar >          m_determinant;
+        GPUArray< unsigned int >    m_ntypes;
+
+        std::vector< std::string >  m_provided_quantities;
+        size_t                      m_num_params;
+        bool                        m_pretend;
+        bool                        m_initialized;
+        bool                        m_multi_phase;
+        unsigned int                m_num_phase;
+        detail::UpdateOrder         m_update_order;         //!< Update order
+
+
+        static constexpr Scalar m_tol = 0.00001; //!< The minimum move size required not to be ignored.
+
+    };
 
 template < class Shape >
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
