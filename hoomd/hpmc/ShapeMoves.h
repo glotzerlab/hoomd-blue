@@ -305,9 +305,9 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     {
     public:
         ConvexPolyhedronVertexShapeMove(unsigned int ntypes,
-                                                 Scalar stepsize,
-                                                 Scalar mixratio,
-                                                 Scalar volume)
+                                        Scalar stepsize,
+                                        Scalar mixratio,
+                                        Scalar volume)
             : ShapeMoveBase<ShapeConvexPolyhedron>(ntypes), m_volume(volume)
             {
             this->m_det_inertia_tensor = 1.0;
@@ -396,11 +396,9 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
 
     public:
-        ElasticShapeMove(
-                         unsigned int ntypes,
+        ElasticShapeMove(unsigned int ntypes,
                          const Scalar& stepsize,
-                         Scalar move_ratio
-                        )
+                         Scalar move_ratio)
             : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
@@ -418,9 +416,9 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
 
         //! construct is called at the beginning of every update()
         void construct(const unsigned int& timestep,
-                const unsigned int& type_id,
-                typename Shape::param_type& param,
-                hoomd::RandomGenerator& rng)
+                       const unsigned int& type_id,
+                       typename Shape::param_type& param,
+                       hoomd::RandomGenerator& rng)
             {
             using Eigen::Matrix3d;
             Matrix3d transform;
