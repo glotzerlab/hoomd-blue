@@ -4,8 +4,8 @@
 
 // Maintainer: pschoenhoefer
 
-#ifndef __MANIFOLD_CLASS_SPHERE_H__
-#define __MANIFOLD_CLASS_SPHERE_H__
+#ifndef __MANIFOLD_CLASS_CYLINDER_H__
+#define __MANIFOLD_CLASS_CYLINDER_H__
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
@@ -15,8 +15,8 @@ namespace py = pybind11;
 
 using namespace std;
 
-/*! \file ManifoldClassSphere.h
-    \brief Defines the manifold class for the Sphere minimal surface
+/*! \file ManifoldClassCylinder.h
+    \brief Defines the manifold class for the Cylinder minimal surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -27,34 +27,35 @@ using namespace std;
 #define DEVICE
 #endif
 
-//! Class for constructing the Sphere minimal surface
+//! Class for constructing the Cylinder minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassSphere is a low level computation class that computes the distance and normal vector to the Sphere surface.
+    ManifoldClassCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
 
-    <b>Sphere specifics</b>
+    <b>Cylinder specifics</b>
 
-    ManifoldClassSphere constructs the surface:
-    R^2 = (x-P_x)^2 + (y-P_y)^2 + (z-P_z)^2 
+    ManifoldClassCylinder constructs the surface:
+    R^2 = (x-P_x)^2 + (y-P_y)^2
 
     These are the parameters:
-    - \a P_x = center position of the sphere in x-direction;
-    - \a P_y = center position of the sphere in y-direction;
-    - \a P_z = center position of the sphere in z-direction;
-    - \a R = radius of the sphere;
+    - \a P_x = center position of the cylinder in x-direction;
+    - \a P_y = center position of the cylinder in y-direction;
+    - \a P_z = center position of the cylinder in z-direction;
+    - \a R = radius of the cylinder;
 
 */
 
-class ManifoldClassSphere
+class ManifoldClassCylinder
     {
     public:
+
         //! Constructs the manifold class
         /*! \param _Px center position in x-direction
             \param _Py center position in y-direction
             \param _Pz center position in z-direction
             \param _R radius 
         */
-        DEVICE ManifoldClassSphere(const Scalar _R, const Scalar3 _P)
+        DEVICE ManifoldClassCylinder(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
             {
             }
@@ -65,23 +66,23 @@ class ManifoldClassSphere
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3 point)
+        DEVICE Scalar implicit_function(Scalar3 point)
         {
-            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R;	
+            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R;	
         }
 
         //! Evaluate deriviative of implicit function
         /*! \param point Point at surface is calculated
 
-            \return normal of the Sphere surface at input point
+            \return normal of the Cylinder surface at input point
         */
 
-        DEVICE Scalar3 derivative(const Scalar3 point)
+        DEVICE Scalar3 derivative(Scalar3 point)
         {
             Scalar3 delta;
             delta.x = 2*(point.x - Px);
             delta.y = 2*(point.y - Py);	
-            delta.z = 2*(point.z - Pz);	
+            delta.z = 0;
             return delta;
         }
 
@@ -92,7 +93,7 @@ class ManifoldClassSphere
          Scalar sqR = fast::sqrt(R);
          if (Px + sqR > hi.x || Px - sqR < lo.x ||
              Py + sqR > hi.y || Py - sqR < lo.y ||
-             Pz + sqR > hi.z || Pz - sqR < lo.z)
+             Pz > hi.z || Pz < lo.z)
              {
              return true;
              }
@@ -105,7 +106,7 @@ class ManifoldClassSphere
         */
         static std::string getName()
             {
-            return std::string("Sphere");
+            return std::string("Cylinder");
             }
 
     protected:
@@ -115,14 +116,14 @@ class ManifoldClassSphere
         Scalar R;        
     };
 
-//! Exports the Sphere manifold class to python
-void export_ManifoldClassSphere(pybind11::module& m)
+//! Exports the Cylinder manifold class to python
+void export_ManifoldClassCylinder(pybind11::module& m)
     {
-    py::class_< ManifoldClassSphere, std::shared_ptr<ManifoldClassSphere> >(m, "ManifoldClassSphere")
+    py::class_< ManifoldClassCylinder, std::shared_ptr<ManifoldClassCylinder> >(m, "ManifoldClassCylinder")
     .def(py::init<Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldClassSphere::implicit_function)
-    .def("derivative", &ManifoldClassSphere::derivative)
+    .def("implicit_function", &ManifoldClassCylinder::implicit_function)
+    .def("derivative", &ManifoldClassCylinder::derivative)
     ;
     }
 
-#endif // __MANIFOLD_CLASS_SPHERE_H__
+#endif // __MANIFOLD_CLASS_CYLINDER_H__

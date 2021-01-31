@@ -62,11 +62,13 @@
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
+#include "ManifoldClassCylinder.h"
+#include "ManifoldClassDiamond.h"
+#include "ManifoldClassEllipsoid.h"
+#include "ManifoldClassGyroid.h"
+#include "ManifoldClassPlane.h"
+#include "ManifoldClassPrimitive.h"
 #include "ManifoldClassSphere.h"
-#include "EllipsoidManifold.h"
-#include "TPMSManifold.h"
-#include "FlatManifold.h"
-#include "CylinderManifold.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
@@ -101,10 +103,10 @@
 #include "TableDihedralForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
-#include "TwoStepRATTLEBDGPU.h"
+//#include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
-#include "TwoStepRATTLELangevinGPU.h"
+//#include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 //#include "TwoStepRATTLENVEGPU.h"
@@ -302,9 +304,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
     export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
-    // RATTLE updaters
-    //export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
-
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
@@ -373,13 +372,10 @@ PYBIND11_MODULE(_md, m)
     export_TempRescaleUpdater(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
-    export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
     export_TwoStepNVTMTK(m);
     export_TwoStepLangevinBase(m);
     export_TwoStepLangevin(m);
-    export_TwoStepRATTLELangevin(m);
     export_TwoStepBD(m);
-    export_TwoStepRATTLEBD(m);
     export_TwoStepNPTMTK(m);
     export_Berendsen(m);
     export_Enforce2DUpdater(m);
@@ -387,14 +383,39 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
 
+    //RATTLE
+    export_TwoStepRATTLENVE<ManifoldClassCylinder>(m,"TwoStepRATTLENVECylinder");
+    export_TwoStepRATTLENVE<ManifoldClassDiamond>(m,"TwoStepRATTLENVEDiamond");
+    export_TwoStepRATTLENVE<ManifoldClassEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
+    export_TwoStepRATTLENVE<ManifoldClassGyroid>(m,"TwoStepRATTLENVEGyroid");
+    export_TwoStepRATTLENVE<ManifoldClassPlane>(m,"TwoStepRATTLENVEPlane");
+    export_TwoStepRATTLENVE<ManifoldClassPrimitive>(m,"TwoStepRATTLENVEPrimitive");
+    export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
+
+    export_TwoStepRATTLEBD<ManifoldClassCylinder>(m,"TwoStepRATTLEBDCylinder");
+    export_TwoStepRATTLEBD<ManifoldClassDiamond>(m,"TwoStepRATTLEBDDiamond");
+    export_TwoStepRATTLEBD<ManifoldClassEllipsoid>(m,"TwoStepRATTLEBDEllipsoid");
+    export_TwoStepRATTLEBD<ManifoldClassGyroid>(m,"TwoStepRATTLEBDGyroid");
+    export_TwoStepRATTLEBD<ManifoldClassPlane>(m,"TwoStepRATTLEBDPlane");
+    export_TwoStepRATTLEBD<ManifoldClassPrimitive>(m,"TwoStepRATTLEBDPrimitive");
+    export_TwoStepRATTLEBD<ManifoldClassSphere>(m,"TwoStepRATTLEBDSphere");
+
+    export_TwoStepRATTLELangevin<ManifoldClassCylinder>(m,"TwoStepRATTLELangevinCylinder");
+    export_TwoStepRATTLELangevin<ManifoldClassDiamond>(m,"TwoStepRATTLELangevinDiamond");
+    export_TwoStepRATTLELangevin<ManifoldClassEllipsoid>(m,"TwoStepRATTLELangevinEllipsoid");
+    export_TwoStepRATTLELangevin<ManifoldClassGyroid>(m,"TwoStepRATTLELangevinGyroid");
+    export_TwoStepRATTLELangevin<ManifoldClassPlane>(m,"TwoStepRATTLELangevinPlane");
+    export_TwoStepRATTLELangevin<ManifoldClassPrimitive>(m,"TwoStepRATTLELangevinPrimitive");
+    export_TwoStepRATTLELangevin<ManifoldClassSphere>(m,"TwoStepRATTLELangevinSphere");
+
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     //export_TwoStepRATTLENVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
-    export_TwoStepRATTLELangevinGPU(m);
+    //export_TwoStepRATTLELangevinGPU(m);
     export_TwoStepBDGPU(m);
-    export_TwoStepRATTLEBDGPU(m);
+    //export_TwoStepRATTLEBDGPU(m);
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
     export_Enforce2DUpdaterGPU(m);
@@ -404,10 +425,12 @@ PYBIND11_MODULE(_md, m)
 #endif
 
     // manifolds 
+    export_ManifoldClassCylinder(m);
+    export_ManifoldClassDiamond(m);
+    export_ManifoldClassEllipsoid(m);
+    export_ManifoldClassGyroid(m);
+    export_ManifoldClassPlane(m);
+    export_ManifoldClassPrimitive(m);
     export_ManifoldClassSphere(m);
-    export_EllipsoidManifold(m);
-    export_CylinderManifold(m);
-    export_FlatManifold(m);
-    export_TPMSManifold(m);
 
     }

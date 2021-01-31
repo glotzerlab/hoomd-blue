@@ -27,23 +27,16 @@ set(_md_sources module-md.cc
                    NeighborListTree.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
-                   CylinderManifold.cc
-                   EllipsoidManifold.cc
-                   FlatManifold.cc
-                   TPMSManifold.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TablePotential.cc
                    TempRescaleUpdater.cc
                    TwoStepBD.cc
-                   TwoStepRATTLEBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
                    TwoStepLangevin.cc
-                   TwoStepRATTLELangevin.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
-                   #TwoStepRATTLENVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
                    MuellerPlatheFlow.cc
@@ -124,6 +117,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                ManifoldClassCylinder.h
+                ManifoldClassDiamond.h
+                ManifoldClassEllipsoid.h
+                ManifoldClassGyroid.h
+                ManifoldClassPlane.h
+                ManifoldClassPrimitive.h
+                ManifoldClassSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h
@@ -154,11 +154,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
                 PPPMForceCompute.h
-                CylinderManifold.h
-                EllipsoidManifold.h
-                FlatManifold.h
-                ManifoldClassSphere.h
-                TPMSManifold.h
                 QuaternionMath.h
                 TableAngleForceComputeGPU.h
                 TableAngleForceCompute.h
@@ -168,14 +163,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
                 TwoStepBDGPU.h
-                TwoStepRATTLEBDGPU.h
+                #TwoStepRATTLEBDGPU.h
                 TwoStepBD.h
                 TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
-                TwoStepRATTLELangevinGPU.h
+                #TwoStepRATTLELangevinGPU.h
                 TwoStepLangevin.h
                 TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
@@ -217,10 +212,10 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
                            TablePotentialGPU.cc
                            TwoStepBDGPU.cc
-                           TwoStepRATTLEBDGPU.cc
+                           #TwoStepRATTLEBDGPU.cc
                            TwoStepBerendsenGPU.cc
                            TwoStepLangevinGPU.cc
-                           TwoStepRATTLELangevinGPU.cc
+                           #TwoStepRATTLELangevinGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            #TwoStepRATTLENVEGPU.cc
@@ -278,10 +273,10 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu
                       TwoStepBDGPU.cu
-                      TwoStepRATTLEBDGPU.cu
+                      #TwoStepRATTLEBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
-                      TwoStepRATTLELangevinGPU.cu
+                      #TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
                       #TwoStepRATTLENVEGPU.cu

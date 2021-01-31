@@ -58,36 +58,7 @@ TwoStepRATTLELangevin::TwoStepRATTLELangevin(std::shared_ptr<SystemDefinition> s
 
     }
 
-TwoStepRATTLELangevin::~TwoStepRATTLELangevin()
-    {
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
-    }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > TwoStepRATTLELangevin::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    if (m_tally)
-        result.push_back(m_log_name);
-    return result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quantity logged here
-*/
-
-Scalar TwoStepRATTLELangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
-    {
-    if (m_tally && quantity == m_log_name)
-        {
-        my_quantity_flag = true;
-        return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
-        }
-    else
-        return Scalar(0);
-    }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
@@ -589,19 +560,6 @@ void TwoStepRATTLELangevin::IncludeRATTLEForce(unsigned int timestep)
 	    h_accel.data[j].y -= inv_mass*alpha*normal.y;
 	    h_accel.data[j].z -= inv_mass*alpha*normal.z;
         }
-    }
-
-/*! \param query_group Group over which to count (translational) degrees of freedom.
-    A majority of the integration methods add D degrees of freedom per particle in \a query_group that is also in the
-    group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
-    Derived classes can override if needed.
-*/
-Scalar TwoStepRATTLELangevin::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
-    {
-    // get the size of the intersection between query_group and m_group
-    unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
-
-    return ( m_sysdef->getNDimensions() - 1 ) * intersect_size;
     }
 
 void export_TwoStepRATTLELangevin(py::module& m)

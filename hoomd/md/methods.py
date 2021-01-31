@@ -666,12 +666,26 @@ class NVE_Rattle(_Method):
 
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            if self.manifold.name == "Sphere":
-                 self._cpp_obj = _md.TwoStepRATTLENVESphere(self._simulation.state._cpp_sys_def,
-                                        self._simulation.state._get_group(self.filter), 
-                                        self.manifold._cpp_manifold, False, self.eta)
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLENVECylinder
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLENVEDiamond
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLENVEEllipsoid
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLENVEGyroid
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLENVEPlane
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLENVEPrimitive
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLENVESphere
             else:
                 raise AttributeError("Manifold class not implemented")
+            
+            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
+                                        self._simulation.state._get_group(self.filter), 
+                                        self.manifold._cpp_manifold, False, self.eta)
         else:
             self._cpp_obj = _md.TwoStepRATTLENVEGPU(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
@@ -985,7 +999,24 @@ class Langevin_Rattle(_Method):
             self.manifold._attach()
 
         if isinstance(sim.device, hoomd.device.CPU):
-            self._cpp_obj = _md.TwoStepRATTLELangevin(sim.state._cpp_sys_def,
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLELangevinCylinder
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLELangevinDiamond
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLELangevinEllipsoid
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLELangevinGyroid
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLELangevinPlane
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLELangevinPrimitive
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLELangevinSphere
+            else:
+                raise AttributeError("Manifold class not implemented")
+            
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
                                           self.manifold._cpp_manifold,
                                           self.kT, self.seed, self.eta);
@@ -1292,7 +1323,24 @@ class Brownian_Rattle(_Method):
             self.manifold._attach()
 
         if isinstance(sim.device, hoomd.device.CPU):
-            self._cpp_obj = _md.TwoStepRATTLEBD(sim.state._cpp_sys_def,
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLEBDCylinder
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLEBDDiamond
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLEBDEllipsoid
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLEBDGyroid
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLEBDPlane
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLEBDPrimitive
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLEBDSphere
+            else:
+                raise AttributeError("Manifold class not implemented")
+            
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                           sim.state._get_group(self.filter),
                                           self.manifold._cpp_manifold,
                                           self.kT, self.seed, self.eta);
