@@ -5,11 +5,6 @@
 
 namespace hpmc{
 
-namespace detail{
-
-
-}
-
 template<class Shape>
 void export_MassPropertiesBase(pybind11::module& m, std::string name)
     {
