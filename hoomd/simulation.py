@@ -78,11 +78,12 @@ class Simulation(metaclass=Loggable):
         Seeds are in the range [0, 65535]. When set, `seed` will take only the
         lowest 16 bits of the given value.
 
-        HOOMD-blue uses a deterministic pseudorandom number generator based on
-        counters where a given random value is a function of `seed` (16 bits),
-        the current `timestep` (lower 48 bits), particle identifiers, MPI ranks,
-        and other unique identifying values as needed to sample uncorrelated
-        values: ``random_value = f(seed, timestep, ...)``
+        HOOMD-blue uses a deterministic counter based pseudorandom number
+        generator. Any time a random value is needed, HOOMD-blue computes it as
+        a function of the user provided seed `seed` (16 bits), the current
+        `timestep` (lower 40 bits), particle identifiers, MPI ranks, and other
+        unique identifying values as needed to sample uncorrelated values:
+        ``random_value = f(seed, timestep, ...)``
         """
         if self.state is None:
             return self._seed
