@@ -446,14 +446,8 @@ unsigned int UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep,  Scalar V, 
         hoomd::PoissonDistribution<Scalar> poisson(lambda);
 
         // RNG for poisson distribution
-        unsigned int a = local ? this->m_exec_conf->getRank() : 0;
-        #ifdef ENABLE_MPI
-        unsigned int b = this->m_exec_conf->getPartition();
-        #else
-        unsigned int b = 0;
-        #endif
         hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTPoisson, timestep, this->m_sysdef->getSeed()),
-                                   hoomd::Counter(a, b));
+                                   hoomd::Counter(local ? this->m_exec_conf->getRank() : 0, this->m_exec_conf->getPartition()));
 
         n = poisson(rng);
         }
@@ -568,14 +562,8 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_b
             unsigned int err_count = 0;
 
             // draw a random vector in the box
-            #ifdef ENABLE_MPI
-            hoomd::Counter c(this->m_exec_conf->getRank(), this->m_exec_conf->getPartition(), timestep);
-            #else
-            hoomd::Counter c;
-            #endif
-
             hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, timestep, this->m_sysdef->getSeed()),
-                                       c);
+                                       hoomd::Counter(this->m_exec_conf->getRank(), this->m_exec_conf->getPartition()));
 
             uint3 dim = make_uint3(1,1,1);
             uint3 grid_pos = make_uint3(0,0,0);
@@ -796,11 +784,7 @@ void UpdaterMuVT<Shape>::update(uint64_t timestep)
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
     // initialize random number generator
-    #ifdef ENABLE_MPI
     unsigned int group = (m_exec_conf->getPartition()/m_npartition);
-    #else
-    unsigned int group = 0;
-    #endif
 
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVT, timestep, this->m_sysdef->getSeed()),
                                hoomd::Counter(group));
@@ -1987,11 +1971,8 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep, unsign
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_seed, this->m_exec_conf->getPartition());
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2156,11 +2137,8 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep, unsign
     bool is_local = this->m_pdata->isParticleLocal(tag);
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_seed, this->m_exec_conf->getPartition());
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2350,14 +2328,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t ti
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    unsigned int a = this->m_exec_conf->getPartition();
-    #else
-    unsigned int a = 0;
-    #endif
-
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants5, timestep, this->m_sysdef->getSeed()),
-                               hoomd::Counter(a));
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2511,11 +2483,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsig
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed, this->m_exec_conf->getPartition() );
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed, this->m_exec_conf->getPartition());
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();

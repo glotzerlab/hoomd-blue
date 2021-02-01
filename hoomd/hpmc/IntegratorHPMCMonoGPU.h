@@ -53,8 +53,8 @@ class UpdateOrderGPU
         /*! \param seed Random number seed
             \param N number of integers to shuffle
         */
-        UpdateOrderGPU(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint16_t seed, unsigned int N=0)
-            : m_seed(seed), m_is_reversed(false), m_update_order(exec_conf), m_reverse_update_order(exec_conf)
+        UpdateOrderGPU(std::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int N=0)
+            : m_is_reversed(false), m_update_order(exec_conf), m_reverse_update_order(exec_conf)
             {
             resize(N);
             }
@@ -88,10 +88,10 @@ class UpdateOrderGPU
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(uint64_t timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, uint16_t seed, unsigned int rank, unsigned int select = 0)
             {
-            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, m_seed),
-                                       hoomd::Counter(select));
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, seed),
+                                       hoomd::Counter(rank, select));
 
             // reverse the order with 1/2 probability
             m_is_reversed = hoomd::UniformIntDistribution(1)(rng);
@@ -114,14 +114,7 @@ class UpdateOrderGPU
                 return m_update_order;
             }
 
-        /// set the seed
-        void setSeed(uint16_t seed)
-            {
-            m_seed = seed;
-            }
-
     private:
-        uint16_t m_seed;                               //!< Random number seed
         bool m_is_reversed;                                //!< True if order is reversed
         GlobalVector<unsigned int> m_update_order;            //!< Update order
         GlobalVector<unsigned int> m_reverse_update_order;    //!< Inverse permutation
@@ -618,11 +611,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
 
         Scalar3 ghost_width = this->m_cl->getGhostWidth();
 
-        // handle changing seeds
-        this->m_update_order.setSeed(this->m_sysdef->getSeed() + (uint16_t)(this->m_exec_conf->getRank()));
-
         // randomize particle update order
-        this->m_update_order.shuffle(timestep);
+        this->m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), this->m_exec_conf->getRank());
 
         // expanded cells & neighbor list
         ArrayHandle< unsigned int > d_excell_idx(m_excell_idx, access_location::device, access_mode::overwrite);

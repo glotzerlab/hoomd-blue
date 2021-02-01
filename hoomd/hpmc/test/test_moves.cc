@@ -144,10 +144,10 @@ void test_update_order(const unsigned int max)
     for (unsigned int i = 0; i < 2; i++)
         counts[i] = 0;
 
-    UpdateOrder o(10, max);
+    UpdateOrder o(max);
     for (unsigned int i = 0 ; i < nsamples; i++)
         {
-        o.shuffle(i);
+        o.shuffle(i, 10);
         if (o[0] == 0)
             {
             counts[0]++;

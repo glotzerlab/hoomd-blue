@@ -61,8 +61,7 @@ class UpdateOrder
         /*! \param seed Random number seed
             \param N number of integers to shuffle
         */
-        UpdateOrder(uint16_t seed, unsigned int N=0)
-            : m_seed(seed)
+        UpdateOrder(unsigned int N=0)
             {
             resize(N);
             }
@@ -84,10 +83,10 @@ class UpdateOrder
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(uint64_t timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, uint16_t seed, unsigned int rank = 0, unsigned int select = 0)
             {
-            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, m_seed),
-                                       hoomd::Counter(select));
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, seed),
+                                       hoomd::Counter(rank, select));
 
             // reverse the order with 1/2 probability
             if (hoomd::UniformIntDistribution(1)(rng))
@@ -110,13 +109,7 @@ class UpdateOrder
             return m_update_order[i];
             }
 
-        /// Set the seed
-        void setSeed(uint16_t seed)
-            {
-            m_seed = seed;
-            }
     private:
-        uint16_t m_seed;                          //!< Random number seed
         std::vector<unsigned int> m_update_order; //!< Update order
     };
 
@@ -516,7 +509,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 template <class Shape>
 IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef)
             : IntegratorHPMC(sysdef),
-              m_update_order(m_sysdef->getSeed(), m_pdata->getN()),
+              m_update_order(m_pdata->getN()),
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
@@ -777,12 +770,9 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     Scalar3 ghost_fraction = m_nominal_width / npd;
     #endif
 
-    // update the seed if it changed
-    m_update_order.setSeed(m_sysdef->getSeed() + (uint16_t)(m_exec_conf->getRank()));
-
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getN());
-    m_update_order.shuffle(timestep);
+    m_update_order.shuffle(timestep, m_sysdef->getSeed(), m_exec_conf->getRank());
 
     // update the AABB Tree
     buildAABBTree();
@@ -1173,7 +1163,8 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShift, timestep, this->m_sysdef->getSeed()),
+                                   hoomd::Counter());
         Scalar3 shift = make_scalar3(0,0,0);
         hoomd::UniformDistribution<Scalar> uniform(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
         shift.x = uniform(rng);
