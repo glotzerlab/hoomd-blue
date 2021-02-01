@@ -38,7 +38,7 @@ void export_PatchEnergyJIT(pybind11::module &m)
                                  const std::string&,
                                  Scalar,
                                  const unsigned int >())
-            .def("getRCut", &PatchEnergyJIT::getRCut)
+            .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
             .def("energy", &PatchEnergyJIT::energy)
             .def_property_readonly("alpha_iso",&PatchEnergyJIT::getAlphaNP)
             ;
