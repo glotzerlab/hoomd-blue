@@ -461,7 +461,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return m_latticeOrientations.getReferenceArray();
             }
 
-        void reset( unsigned int ) // TODO: remove the timestep
+        virtual void reset(uint64_t timestep ) // TODO: remove the timestep
             {
             m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
             m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
