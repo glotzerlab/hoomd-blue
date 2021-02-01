@@ -219,12 +219,14 @@ def test_npt_attributes():
 def test_nph_attributes():
     """Test attributes of the NPH integrator before attaching."""
     all_ = hoomd.filter.All()
-    constant_s = [hoomd.variant.Constant(1.0),
-                  hoomd.variant.Constant(2.0),
-                  hoomd.variant.Constant(3.0),
-                  hoomd.variant.Constant(0.125),
-                  hoomd.variant.Constant(.25),
-                  hoomd.variant.Constant(.5)]
+    constant_s = [
+        hoomd.variant.Constant(1.0),
+        hoomd.variant.Constant(2.0),
+        hoomd.variant.Constant(3.0),
+        hoomd.variant.Constant(0.125),
+        hoomd.variant.Constant(.25),
+        hoomd.variant.Constant(.5)
+    ]
     nph = hoomd.md.methods.NPH(filter=all_,
                                S=constant_s,
                                tauS=2.0,
@@ -235,7 +237,7 @@ def test_nph_attributes():
     for i in range(6):
         assert nph.S[i] is constant_s[i]
     assert nph.tauS == 2.0
-    assert nph.box_dof == (True,True,True,False,False,False)
+    assert nph.box_dof == (True, True, True, False, False, False)
     assert nph.couple == 'xyz'
     assert not nph.rescale_all
     assert nph.gamma == 0.0
@@ -244,12 +246,14 @@ def test_nph_attributes():
     nph.filter = type_A
     assert nph.filter is type_A
 
-    ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
+    ramp_s = [
+        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
+    ]
     nph.S = ramp_s
     assert len(nph.S) == 6
     for i in range(6):
@@ -258,8 +262,8 @@ def test_nph_attributes():
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = (True,False,False,False,True,False)
-    assert nph.box_dof == (True,False,False,False,True,False)
+    nph.box_dof = (True, False, False, False, True, False)
+    assert nph.box_dof == (True, False, False, False, True, False)
 
     nph.couple = 'none'
     assert nph.couple == 'none'
@@ -361,12 +365,14 @@ def test_nph_attributes_attached_3d(simulation_factory,
                                     two_particle_snapshot_factory):
     """Test attributes of the NPH integrator after attaching in 3D."""
     all_ = hoomd.filter.All()
-    constant_s = [hoomd.variant.Constant(1.0),
-                  hoomd.variant.Constant(2.0),
-                  hoomd.variant.Constant(3.0),
-                  hoomd.variant.Constant(0.125),
-                  hoomd.variant.Constant(.25),
-                  hoomd.variant.Constant(.5)]
+    constant_s = [
+        hoomd.variant.Constant(1.0),
+        hoomd.variant.Constant(2.0),
+        hoomd.variant.Constant(3.0),
+        hoomd.variant.Constant(0.125),
+        hoomd.variant.Constant(.25),
+        hoomd.variant.Constant(.5)
+    ]
     nph = hoomd.md.methods.NPH(filter=all_,
                                S=constant_s,
                                tauS=2.0,
@@ -390,12 +396,14 @@ def test_nph_attributes_attached_3d(simulation_factory,
 
     assert nph.filter is all_
 
-    ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-              hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
+    ramp_s = [
+        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
+    ]
     nph.S = ramp_s
     assert len(nph.S) == 6
     for i in range(6):
@@ -489,8 +497,8 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
         assert v != 0.0
 
 
-def test_nph_thermalize_barostat_dof(
-    simulation_factory, two_particle_snapshot_factory):
+def test_nph_thermalize_barostat_dof(simulation_factory,
+                                     two_particle_snapshot_factory):
     """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
@@ -548,10 +556,7 @@ def test_nph_attributes_attached_2d(simulation_factory,
                                     two_particle_snapshot_factory):
     """Test attributes of the NPH integrator specific to 2D simulations."""
     all_ = hoomd.filter.All()
-    nph = hoomd.md.methods.NPH(filter=all_,
-                               S=2.0,
-                               tauS=2.0,
-                               couple='xy')
+    nph = hoomd.md.methods.NPH(filter=all_, S=2.0, tauS=2.0, couple='xy')
 
     assert nph.box_dof == (True, True, True, False, False, False)
     assert nph.couple == 'xy'
