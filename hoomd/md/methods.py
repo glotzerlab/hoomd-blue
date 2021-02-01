@@ -687,7 +687,24 @@ class NVE_Rattle(_Method):
                                         self._simulation.state._get_group(self.filter), 
                                         self.manifold._cpp_manifold, False, self.eta)
         else:
-            self._cpp_obj = _md.TwoStepRATTLENVEGPU(self._simulation.state._cpp_sys_def,
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLENVECylinderGPU
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLENVEDiamondGPU
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLENVEEllipsoidGPU
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLENVEGyroidGPU
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLENVEPlaneGPU
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLENVEPrimitiveGPU
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLENVESphereGPU
+            else:
+                raise AttributeError("Manifold class not implemented")
+
+            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                  self._simulation.state._get_group(self.filter),
                                  self.manifold._cpp_manifold)
 

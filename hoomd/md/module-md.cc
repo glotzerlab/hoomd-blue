@@ -109,7 +109,7 @@
 //#include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
-//#include "TwoStepRATTLENVEGPU.h"
+#include "TwoStepRATTLENVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "MuellerPlatheFlowGPU.h"
 #endif
@@ -422,6 +422,14 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
+
+    export_TwoStepRATTLENVEGPU<ManifoldClassCylinder>(m,"TwoStepRATTLENVECylinderGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassDiamond>(m,"TwoStepRATTLENVEDiamondGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassEllipsoid>(m,"TwoStepRATTLENVEEllipsoidGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassGyroid>(m,"TwoStepRATTLENVEGyroidGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassPlane>(m,"TwoStepRATTLENVEPlaneGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassPrimitive>(m,"TwoStepRATTLENVEPrimitiveGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldClassSphere>(m,"TwoStepRATTLENVESphereGPU");
 #endif
 
     // manifolds 
