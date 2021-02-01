@@ -127,27 +127,30 @@ class user(object):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
+    def __init__(self, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
+        param_dict = ParameterDict(r_cut = r_cut,
+                                   array_size = array_size)
 
-        # check if initialization has occurred
-        hoomd.context._verify_init()
-
-        self.compute_name = "patch"
-
-        # Find a clang executable if none is provided (we need the CPU version even when running on GPU)
-        if clang_exec is not None:
-            clang = clang_exec;
-        else:
-            clang = 'clang'
-
+        self._param_dict.update(param_dict)
+        # these only exist on python
+        self.clang_exec = clang_exec if clang_exec is not None else 'clang'
         if code is not None:
-            llvm_ir = self._compile_user(array_size, 1, code, clang)
+            self.llvm_ir = self._compile_user(array_size, 1, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
-                llvm_ir = f.read()
+                self.llvm_ir = f.read()
 
-        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        cpp_exec_conf = self._simulation.device._cpp_exec_conf
+        if (isinstance(self._simulation.device, hoomd.device.GPU):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
@@ -157,7 +160,7 @@ class user(object):
             # select maximum supported compute capability out of those we compile for
             compute_archs = _jit.__cuda_compute_archs__;
             compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
             compute_major, compute_minor = compute_capability.split('.')
             max_arch = 0
             for a in compute_archs.split('_'):
@@ -165,14 +168,13 @@ class user(object):
                     max_arch = int(a)
 
             gpu_code = self.wrap_gpu_code(code)
-            self.cpp_evaluator = _jit.PatchEnergyJITGPU(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size,
+            self.cpp_evaluator = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
+            self.cpp_evaluator = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size);
 
-        mc.set_PatchEnergyEvaluator(self);
+        integrator.set_PatchEnergyEvaluator(self);
 
-        self.mc = mc
         self.enabled = True
         self.log = False
         self.cpp_evaluator.alpha_iso[:] = [0]*array_size
