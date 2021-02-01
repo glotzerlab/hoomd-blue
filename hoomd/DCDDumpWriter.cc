@@ -84,7 +84,7 @@ void DCDDumpWriter::initFileIO(uint64_t timestep)
     // handle appending to an existing file if it is requested
     if (!m_overwrite && filesystem::exists(m_fname))
         {
-        m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
+        m_exec_conf->msg->notice(3) << "DCD: Appending to existing DCD file \"" << m_fname << "\"" << endl;
 
         // open the file and get data from the header
         m_file.open(m_fname.c_str(), ios::in | ios::out | ios::binary);
@@ -94,20 +94,20 @@ void DCDDumpWriter::initFileIO(uint64_t timestep)
         m_start_timestep = read_int(m_file);
         unsigned int file_period = read_int(m_file);
 
-        m_exec_conf->msg->notice(4) << "dump.dcd: File has " << m_num_frames_written
+        m_exec_conf->msg->notice(4) << "DCD: File has " << m_num_frames_written
                                     << " frames | start timestep: " << m_start_timestep
                                     << " | and period " << m_period << endl;
 
         // warn the user if we are now dumping at a different period
         if (file_period != m_period)
-            m_exec_conf->msg->warning() << "dump.dcd: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
+            m_exec_conf->msg->warning() << "DCD: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
 
         m_last_written_step = read_int(m_file);
 
         // check for errors
         if (!m_file.good())
             {
-            m_exec_conf->msg->error() << "dump.dcd: I/O error while reading DCD header data" << endl;
+            m_exec_conf->msg->error() << "DCD: I/O error while reading DCD header data" << endl;
             throw runtime_error("Error appending to DCD file");
             }
 
@@ -171,7 +171,7 @@ void DCDDumpWriter::analyze(uint64_t timestep)
 
     if (m_appending && timestep <= m_last_written_step)
         {
-        m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
+        m_exec_conf->msg->warning() << "DCD: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
 
         if (m_prof)
             m_prof->pop();
@@ -180,7 +180,7 @@ void DCDDumpWriter::analyze(uint64_t timestep)
 
     // verify the period on subsequent frames
     if ( (timestep - m_start_timestep) % m_period != 0)
-        m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
+        m_exec_conf->msg->warning() << "DCD: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
 
     // write the data for the current time step
     m_file.seekp(0, std::ios_base::end);
@@ -201,9 +201,12 @@ void DCDDumpWriter::analyze(uint64_t timestep)
 */
 void DCDDumpWriter::write_file_header(std::fstream &file)
     {
-     m_exec_conf->msg->notice(4) << "dump.dcd: Creating dcd file "
+     m_exec_conf->msg->notice(4) << "DCD: Creating dcd file "
                                  << " | start timestep: " << m_start_timestep
                                  << " | and period " << m_period << endl;
+
+    if (m_start_timestep > std::numeric_limits<uint32_t>::max())
+        m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;
 
     // the first 4 bytes in the file must be 84
     write_int(file, 84);
@@ -258,7 +261,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "dump.dcd: I/O error when writing DCD header" << endl;
+        m_exec_conf->msg->error() << "DCD: I/O error when writing DCD header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }
@@ -298,7 +301,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
     // check for errors
     if (!file.good())
         {
-        m_exec_conf->msg->error() << "dump.dcd: I/O error while writing DCD frame header" << endl;
+        m_exec_conf->msg->error() << "DCD: I/O error while writing DCD frame header" << endl;
         throw runtime_error("Error writing DCD file");
         }
     }
@@ -404,7 +407,10 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, uint64_t timestep)
     write_int(file, m_num_frames_written);
 
     file.seekp(NSTEP_POS);
-    write_int(file, (unsigned int)timestep);
+    write_int(file, (uint32_t)timestep);
+
+    if (timestep > std::numeric_limits<uint32_t>::max())
+        m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;
     }
 
 void export_DCDDumpWriter(py::module& m)
