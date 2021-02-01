@@ -39,6 +39,7 @@ void export_PatchEnergyJIT(pybind11::module &m)
                                  Scalar,
                                  const unsigned int >())
             .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
+            .def_property_readonly("array_size", &PatchEnergyJIT::getArraySize)
             .def("energy", &PatchEnergyJIT::energy)
             .def_property_readonly("alpha_iso",&PatchEnergyJIT::getAlphaNP)
             ;
