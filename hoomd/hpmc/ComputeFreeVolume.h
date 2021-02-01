@@ -41,7 +41,6 @@ class ComputeFreeVolume : public Compute
         ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                              std::shared_ptr<CellList> cl,
-                             unsigned int seed,
                              std::string suffix);
         //! Destructor
         virtual ~ComputeFreeVolume() { };
@@ -84,7 +83,6 @@ class ComputeFreeVolume : public Compute
 
         unsigned int m_type;                                     //!< Type of depletant particle to generate
         unsigned int m_n_sample;                                 //!< Number of sampling depletants to generate
-        unsigned int m_seed;                                     //!< The RNG seed
         const std::string m_suffix;                              //!< Log suffix
 
         GPUArray<unsigned int> m_n_overlap_all;                  //!< Number of overlap volume particles in box
@@ -95,17 +93,10 @@ template< class Shape >
 ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                                                     std::shared_ptr<CellList> cl,
-                                                    unsigned int seed,
                                                     std::string suffix)
-    : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0), m_seed(seed), m_suffix(suffix)
+    : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0), m_suffix(suffix)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
-
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
 
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
@@ -316,7 +307,6 @@ template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, cons
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,
-                unsigned int,
                 std::string >())
         .def("setNumSamples", &ComputeFreeVolume<Shape>::setNumSamples)
         .def("setTestParticleType", &ComputeFreeVolume<Shape>::setTestParticleType)

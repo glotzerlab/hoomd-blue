@@ -49,10 +49,10 @@ struct hpmc_free_volume_args_t
                 const uint3& _cell_dim,
                 const unsigned int _N,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
                 const unsigned int _rank,
                 unsigned int _select,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
                 const unsigned int _block_size,
@@ -111,7 +111,7 @@ struct hpmc_free_volume_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;          //!< RNG seed
     const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
     const uint64_t timestep;      //!< Current time step
@@ -197,7 +197,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const uint3 cell_dim,
                                      const unsigned int N,
                                      const unsigned int num_types,
-                                     const unsigned int seed,
+                                     const uint16_t seed,
                                      const unsigned int rank,
                                      const unsigned int select,
                                      const uint64_t timestep,
@@ -281,7 +281,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ComputeFreeVolume, timestep, seed),
+                               hoomd::Counter(rank, i));
 
     unsigned int my_cell;
 

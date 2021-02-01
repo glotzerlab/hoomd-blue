@@ -40,13 +40,14 @@ struct hpmc_args_t
                 const unsigned int _N,
                 const unsigned int _N_ghost,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
+                const unsigned int _rank,
                 const Scalar* _d,
                 const Scalar* _a,
                 const unsigned int *_check_overlaps,
                 const Index2D& _overlap_idx,
                 const unsigned int _translation_move_probability,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
                 const unsigned int _select,
@@ -80,6 +81,7 @@ struct hpmc_args_t
                   N_ghost(_N_ghost),
                   num_types(_num_types),
                   seed(_seed),
+                  rank(_rank),
                   d_d(_d),
                   d_a(_a),
                   d_check_overlaps(_check_overlaps),
@@ -121,7 +123,8 @@ struct hpmc_args_t
     const unsigned int N;             //!< Number of particles
     const unsigned int N_ghost;       //!< Number of ghost particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;              //!< RNG seed
+    const unsigned int rank;          //!< Rank
     const Scalar* d_d;                //!< Maximum move displacement
     const Scalar* d_a;                //!< Maximum move angular displacement
     const unsigned int *d_check_overlaps; //!< Interaction matrix
@@ -331,7 +334,8 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
                  unsigned int *d_condition,
-                 const unsigned int seed,
+                 const uint16_t seed,
+                 const unsigned int rank,
                  const unsigned int select,
                  const uint64_t timestep,
                  const unsigned int block_size,
@@ -350,7 +354,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const uint3 cell_dim,
                            const Scalar3 ghost_width,
                            const unsigned int num_types,
-                           const unsigned int seed,
+                           const uint16_t seed,
+                           const unsigned int rank,
                            const Scalar* d_d,
                            const Scalar* d_a,
                            const unsigned int translation_move_probability,
@@ -428,7 +433,8 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
         move_active = false;
 
     // make the move
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, idx, seed, select, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+                               hoomd::Counter(idx, rank, select));
 
     unsigned int reject = 0;
 
@@ -812,6 +818,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
                                      const unsigned int N_new,
                                      const unsigned int num_types,
                                      const unsigned int seed,
+                                     const unsigned int rank,
                                      const unsigned int *d_check_overlaps,
                                      const Index2D overlap_idx,
                                      const uint64_t timestep,
@@ -934,7 +941,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
     __syncthreads();
 
     // generate random number of depletants from Poisson distribution
-    hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, i, seed, timestep, select*num_types + depletant_type);
+    hoomd::RandomGenerator rng_poisson(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, seed, timestep),
+                                       hoomd::Counter(i, rank, select*num_types + depletant_type));
     Index2D typpair_idx(num_types);
     unsigned int n_depletants = hoomd::PoissonDistribution<Scalar>(d_lambda[typpair_idx(depletant_type,s_type_i)])(rng_poisson);
 
@@ -978,7 +986,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
         while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
             {
             // one RNG per depletant
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep, select*num_types + depletant_type, timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed + (uint16_t)i_dep),
+                                       hoomd::Counter(i, rank, select*num_types + depletant_type));
 
             n_inserted++;
             overlap_checks += 2;
@@ -988,7 +997,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
             Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
             if (shape_test.hasOrientation())
-                {
+            {
                 shape_test.orientation = generateRandomOrientation(rng,dim);
                 }
 
@@ -1051,7 +1060,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // regenerate depletant using seed from queue, this costs a few flops but is probably
             // better than storing one Scalar4 and a Scalar3 per thread in shared mem
             unsigned int i_dep_queue = s_queue_didx[group];
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, seed+i, i_dep_queue, select*num_types + depletant_type, timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed + (uint16_t)i_dep_queue),
+                                       hoomd::Counter(i, rank, select*num_types + depletant_type));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -1433,6 +1443,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.ghost_width,
                                                                      args.num_types,
                                                                      args.seed,
+                                                                     args.rank,
                                                                      args.d_d,
                                                                      args.d_a,
                                                                      args.translation_move_probability,
@@ -1482,6 +1493,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.ghost_width,
                                                                      args.num_types,
                                                                      args.seed,
+                                                                     args.rank,
                                                                      args.d_d,
                                                                      args.d_a,
                                                                      args.translation_move_probability,
@@ -1714,6 +1726,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                          args.N,
                                                                          args.num_types,
                                                                          args.seed,
+                                                                         args.rank,
                                                                          args.d_check_overlaps,
                                                                          args.overlap_idx,
                                                                          args.timestep,
@@ -1835,6 +1848,7 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
                                                                          args.N,
                                                                          args.num_types,
                                                                          args.seed,
+                                                                         args.rank,
                                                                          args.d_check_overlaps,
                                                                          args.overlap_idx,
                                                                          args.timestep,
