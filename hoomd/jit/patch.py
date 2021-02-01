@@ -167,7 +167,7 @@ class user(object):
                 if int(a) < int(compute_major)*10+int(compute_major):
                     max_arch = int(a)
 
-            gpu_code = self.wrap_gpu_code(code)
+            gpu_code = self._wrap_gpu_code(code)
             self.cpp_evaluator = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
@@ -246,7 +246,7 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
-    def wrap_gpu_code(self, code):
+    def _wrap_gpu_code(self, code):
         R'''Helper function to compile the provided code into a device function
 
         Args:
@@ -426,7 +426,7 @@ class user_union(user):
                 if int(a) < int(compute_major)*10+int(compute_major):
                     max_arch = int(a)
 
-            gpu_code = self.wrap_gpu_code(code)
+            gpu_code = self._wrap_gpu_code(code)
             self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
