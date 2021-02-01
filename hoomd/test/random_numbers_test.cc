@@ -460,6 +460,13 @@ UP_TEST( counter )
     UP_ASSERT_EQUAL(d.getCounter()[1], 0x4567);
     UP_ASSERT_EQUAL(d.getCounter()[2], 0xef123);
     UP_ASSERT_EQUAL(d.getCounter()[3], 0xabcd);
+
+    auto e = hoomd::Counter(0xabcd, 0xef123, 0x4567, 0x1234);
+
+    UP_ASSERT_EQUAL(e.getCounter()[0], 0x12340000);
+    UP_ASSERT_EQUAL(e.getCounter()[1], 0x4567);
+    UP_ASSERT_EQUAL(e.getCounter()[2], 0xef123);
+    UP_ASSERT_EQUAL(e.getCounter()[3], 0xabcd);
     }
 
 UP_TEST( rng_seeding )

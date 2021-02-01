@@ -168,8 +168,11 @@ class Counter
     /** Default constructor.
 
     Constructs a 0 valued counter.
+
+    Note: Only use the 4th argument when absolutely necessary and when you know that the resulting
+    RNG stream will not need to sample more than 65536 values.
     */
-    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0) : m_ctr({{0, c, b, a}})
+    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0, uint16_t d=0) : m_ctr({{(uint32_t)d << 16, c, b, a}})
         {
         }
 

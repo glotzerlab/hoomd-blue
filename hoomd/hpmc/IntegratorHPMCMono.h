@@ -801,11 +801,12 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     // create one RNG per thread
     tbb::enumerable_thread_specific< hoomd::RandomGenerator > rng_depletants_parallel([=]
         {
+        std::hash<std::thread::id> hash;
         return hoomd::RandomGenerator(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
                                                   timestep,
                                                   this->m_sysdef->getSeed()),
                                       hoomd::Counter(this->m_exec_conf->getRank(),
-                                                     std::this_thread::get_id())));
+                                                     (uint32_t)hash(std::this_thread::get_id())));
         });
     #endif
 
