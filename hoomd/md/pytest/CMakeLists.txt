@@ -9,6 +9,7 @@ set(files __init__.py
     test_thermo.py
     forces_and_energies.json
     test_write_debug_data_md.py
+    test_nlist.py
     )
 
 install(FILES ${files}

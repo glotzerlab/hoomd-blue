@@ -247,7 +247,7 @@ class Stencil(NList):
                  diameter_shift=False, exclusions=('bond',), max_diameter=1.0,
                  rebuild_check_delay=1, cell_width=None):
 
-        super().__init__(buffer, exclusions, reubild_check_delay,
+        super().__init__(buffer, exclusions, rebuild_check_delay,
                          diameter_shift, check_dist, max_diameter)
 
         params = ParameterDict(deterministic=bool(deterministic),
