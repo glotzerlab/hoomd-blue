@@ -2183,7 +2183,7 @@ class TWF(Pair):
     Example::
 
         nl = nlist.Cell()
-        twf = hoomd.md.pair.unstable.TWF(nl, r_cut=3.0)
+        twf = hoomd.md.pair.TWF(nl, r_cut=3.0)
         twf.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 50.0}
         twf.r_cut[('A', 'B')] = 3.0
     """
