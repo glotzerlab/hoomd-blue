@@ -411,7 +411,7 @@ class Clusters(Updater):
 
     Args:
         seed (int): Random number seed.
-        move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -506,6 +506,12 @@ class Clusters(Updater):
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
+
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    int(self.seed))
+        else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
                                     int(self.seed))
