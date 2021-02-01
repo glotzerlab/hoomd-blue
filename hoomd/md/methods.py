@@ -483,9 +483,11 @@ class NPH(_Method):
         gamma (`float`): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
-    :py:class:`NPH` performs constant pressure, constant enthalpy (NPH) simulations using a Martyna-Tobias-Klein barostat, an
-    explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
-    cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
+    :py:class:`NPH` performs constant pressure, constant enthalpy (NPH)
+    simulations using a Martyna-Tobias-Klein barostat, an explicitly reversible
+    and measure-preserving integration scheme. It allows for fully deformable
+    simulation cells and uses the same underlying integrator as :py:class:`NPT`
+    (with *nph=True*).
 
     Note:
         Coupling constant for barostat `tauS` should be set within appropriate
@@ -536,15 +538,24 @@ class NPH(_Method):
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
             :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
-    def __init__(self, filter, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
+
+    def __init__(self,
+                 filter,
+                 S,
+                 tauS,
+                 couple,
+                 box_dof=[True, True, True, False, False, False],
+                 rescale_all=False,
+                 gamma=0.0):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,) * 6),
+                     preprocess=self.__preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
-            box_dof=(bool,)*6,
+            box_dof=(bool,) * 6,
             rescale_all=bool(rescale_all),
             gamma=float(gamma),
             barostat_dof=(float, float, float, float, float, float))
@@ -572,25 +583,13 @@ class NPH(_Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def,
-                                      thermo_group,
-                                      "")
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group, "")
 
-        thermo_full_step = thermo_cls(cpp_sys_def,
-                                      thermo_group,
-                                      "")
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group, "")
 
-        self._cpp_obj = cpp_cls(cpp_sys_def,
-                                thermo_group,
-                                thermo_half_step,
-                                thermo_full_step,
-                                1.0,
-                                self.tauS,
-                                self.kT,
-                                self.S,
-                                self.couple,
-                                self.box_dof,
-                                True)
+        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
+                                thermo_full_step, 1.0, self.tauS, self.kT,
+                                self.S, self.couple, self.box_dof, True)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -627,9 +626,8 @@ class NPH(_Method):
             simulation timestep and the provided *seed*.
         """
         if not self._attached:
-            raise RuntimeError(
-                "Call Simulation.run(0) before"
-                "thermalize_thermostat_and_barostat_dof")
+            raise RuntimeError("Call Simulation.run(0) before"
+                               "thermalize_thermostat_and_barostat_dof")
 
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             seed, self._simulation.timestep)
