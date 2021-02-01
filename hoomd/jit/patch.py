@@ -10,7 +10,7 @@ import os
 
 import numpy as np
 
-class user(object):
+class UserPatch(object):
     R''' Define an arbitrary patch energy.
 
     Args:
@@ -308,7 +308,7 @@ __device__ inline float eval(const vec3<float>& r_ij,
     def enable(self):
         self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
 
-class user_union(user):
+class UserUnionPatch(user):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
