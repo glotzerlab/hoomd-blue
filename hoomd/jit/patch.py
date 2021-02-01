@@ -141,7 +141,7 @@ class user(object):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(array_size, 1, code, clang)
+            llvm_ir = self._compile_user(array_size, 1, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
@@ -178,7 +178,7 @@ class user(object):
         self.cpp_evaluator.alpha_iso[:] = [0]*array_size
         self.alpha_iso = self.cpp_evaluator.alpha_iso
 
-    def compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
+    def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
 
         Args:
@@ -381,14 +381,14 @@ class user_union(user):
             clang = 'clang'
 
         if code is not None:
-            llvm_ir = self.compile_user(array_size_iso, array_size, code, clang)
+            llvm_ir = self._compile_user(array_size_iso, array_size, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
         if code_iso is not None:
-            llvm_ir_iso = self.compile_user(array_size_iso, array_size, code_iso, clang)
+            llvm_ir_iso = self._compile_user(array_size_iso, array_size, code_iso, clang)
         else:
             if llvm_ir_file_iso is not None:
                 # IR is a text file
@@ -396,7 +396,7 @@ class user_union(user):
                     llvm_ir_iso = f.read()
             else:
                 # provide a dummy function
-                llvm_ir_iso = self.compile_user(array_size_iso, array_size, 'return 0;', clang)
+                llvm_ir_iso = self._compile_user(array_size_iso, array_size, 'return 0;', clang)
 
         if r_cut_iso is None:
             r_cut_iso = -1.0
