@@ -69,7 +69,7 @@ def test_brownian_attributes_attached(simulation_factory,
 
 
 @pytest.mark.serial
-def test_berendsen_attributes():
+def test_berendsen_attributes(device):
     """Test attributes of the Berendsen integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
