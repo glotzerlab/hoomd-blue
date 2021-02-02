@@ -988,10 +988,14 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
 
     IntegratorVariables v = getIntegratorVariables();
 
+    unsigned int instance_id = 0;
+    if (m_group->getNumMembersGlobal() > 0)
+        instance_id = m_group->getMemberTag(0);
+
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTMTK,
                                            timestep,
                                            m_sysdef->getSeed()),
-                               hoomd::Counter());
+                               hoomd::Counter(instance_id));
 
     bool master = m_exec_conf->getRank() == 0;
 

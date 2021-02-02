@@ -451,10 +451,15 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
+
+    unsigned int instance_id = 0;
+    if (m_group->getNumMembersGlobal() > 0)
+        instance_id = m_group->getMemberTag(0);
+
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK,
                                            timestep,
                                            m_sysdef->getSeed()),
-                                      hoomd::Counter());
+                                      hoomd::Counter(instance_id));
 
     if (master)
         {
