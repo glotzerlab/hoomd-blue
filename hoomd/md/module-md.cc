@@ -108,39 +108,6 @@ namespace py = pybind11;
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
-//! Function to export the tersoff parameter type to python
-void export_tersoff_params(py::module& m)
-{
-    py::class_<tersoff_params>(m, "tersoff_params")
-        .def(py::init<>())
-        .def_readwrite("cutoff_thickness", &tersoff_params::cutoff_thickness)
-        .def_readwrite("coeffs", &tersoff_params::coeffs)
-        .def_readwrite("exp_consts", &tersoff_params::exp_consts)
-        .def_readwrite("dimer_r", &tersoff_params::dimer_r)
-        .def_readwrite("tersoff_n", &tersoff_params::tersoff_n)
-        .def_readwrite("gamman", &tersoff_params::gamman)
-        .def_readwrite("lambda_cube", &tersoff_params::lambda_cube)
-        .def_readwrite("ang_consts", &tersoff_params::ang_consts)
-        .def_readwrite("alpha", &tersoff_params::alpha)
-        ;
-
-    m.def("make_tersoff_params", &make_tersoff_params);
-}
-
-//! Function to export the revcross parameter type to python
-void export_revcross_params(py::module& m)
-{
-    py::class_<revcross_params>(m, "revcross_params")
-        .def(py::init<>())
-        .def_readwrite("sigma", &revcross_params::sigma)
-        .def_readwrite("n", &revcross_params::n)
-        .def_readwrite("epsilon", &revcross_params::epsilon)
-        .def_readwrite("lambda3", &revcross_params::lambda3)
-        ;
-
-    m.def("make_revcross_params", &make_revcross_params);
-}
-
 //! Helper function for converting python wall group structure to wall_type
 wall_type make_wall_field_params(py::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
@@ -280,8 +247,6 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
-    export_tersoff_params(m);
-    export_revcross_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");

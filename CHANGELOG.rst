@@ -4,6 +4,24 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.3 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.write.DCD`` - DCD trajectory writer.
+- ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
+  potentials.
+
+*Changed*
+
+*Fixed*
+
+- Correctly determine the maximum ``r_cut`` in simulations with more than one
+  pair potential and more than one type.
+
+*Removed*
+
 v3.0.0-beta.3 (2021-01-11)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -16,7 +34,6 @@ v3.0.0-beta.3 (2021-01-11)
 - ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
 - ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
 - ``hoomd.md.pair.OPP`` - Oscillating pair potential.
-- ``hoomd.write.DCD`` - DCD trajectory writer.
 
 *Changed*
 
