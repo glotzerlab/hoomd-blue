@@ -540,7 +540,7 @@ class NPH(_Method):
                  S,
                  tauS,
                  couple,
-                 box_dof=[True, True, True, False, False, False],
+                 box_dof=(True, True, True, False, False, False),
                  rescale_all=False,
                  gamma=0.0):
         # store metadata
