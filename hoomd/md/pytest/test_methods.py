@@ -91,6 +91,7 @@ def test_berendsen_attributes():
     assert berendsen.tau == 1.2
 
 
+@pytest.mark.serial
 def test_berendsen_attributes_attached(simulation_factory,
                                        two_particle_snapshot_factory):
     """Test attributes of the Berendsen integrator after attaching."""
