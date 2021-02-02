@@ -462,7 +462,8 @@ class NPH(_Method):
             apply this method.
 
         S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
-            point for the barostat (in pressure units).  In Voigt notation:
+            point for the barostat (in pressure units). Converted to a tuple 
+            during NPH instantiation.  In Voigt notation:
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
             of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
@@ -508,11 +509,11 @@ class NPH(_Method):
             apply this method.
 
         S (List[hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units).
-            In Voigt notation,
+            point for the barostat (in pressure units). Converted to a tuple
+            during NPH instantiation.  In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
             be reset after method object is created. For example, An isoropic
-            pressure can be set by ``npt.S = 4.``
+            pressure can be set by ``nph.S = 4.``
 
         tauS (float): Coupling constant for the barostat (in time units).
 
