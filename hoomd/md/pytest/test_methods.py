@@ -232,10 +232,10 @@ def test_nph_attributes():
                                tauS=2.0,
                                couple='xyz')
 
-    assert nph.filter is all_
+    assert nph.filter == all_
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] is constant_s[i]
+        assert nph.S[i] == constant_s[i]
     assert nph.tauS == 2.0
     assert nph.box_dof == (True, True, True, False, False, False)
     assert nph.couple == 'xyz'
@@ -244,7 +244,7 @@ def test_nph_attributes():
 
     type_A = hoomd.filter.Type(['A'])
     nph.filter = type_A
-    assert nph.filter is type_A
+    assert nph.filter == type_A
 
     ramp_s = [
         hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
@@ -257,7 +257,7 @@ def test_nph_attributes():
     nph.S = ramp_s
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] is ramp_s[i]
+        assert nph.S[i] == ramp_s[i]
 
     nph.tauS = 10.0
     assert nph.tauS == 10.0
@@ -382,10 +382,10 @@ def test_nph_attributes_attached_3d(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
     sim.operations._schedule()
 
-    assert nph.filter is all_
+    assert nph.filter == all_
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] is constant_s[i]
+        assert nph.S[i] == constant_s[i]
     assert nph.tauS == 2.0
     assert nph.couple == 'xyz'
 
@@ -394,20 +394,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
         # filter cannot be set after scheduling
         nph.filter = type_A
 
-    assert nph.filter is all_
-
-    ramp_s = [
-        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
-    ]
-    nph.S = ramp_s
-    assert len(nph.S) == 6
-    for i in range(6):
-        assert nph.S[i] is ramp_s[i]
+    assert nph.filter == all_
 
     nph.tauS = 10.0
     assert nph.tauS == 10.0
@@ -427,6 +414,21 @@ def test_nph_attributes_attached_3d(simulation_factory,
     assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
     assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+
+    ramp_s = [
+        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
+    ]
+    nph.S = ramp_s
+    assert len(nph.S) == 6
+    for _ in range(5):
+        sim.run(1)
+        for i in range(6):
+            assert nph.S[i] == ramp_s[i]
 
 
 def test_npt_thermalize_thermostat_and_barostat_dof(
