@@ -13,6 +13,8 @@ from hoomd.operations import Operations
 import hoomd
 import json
 
+TIMESTEP_MAX = 2**64 - 1
+SEED_MAX = 2**16 - 1
 
 class Simulation(metaclass=Loggable):
     """Define a simulation.
@@ -64,8 +66,8 @@ class Simulation(metaclass=Loggable):
 
     @timestep.setter
     def timestep(self, step):
-        if int(step) < 0 or int(step) > 2**64 - 1:
-            raise ValueError("steps must be in the range [0, 2**64-1]")
+        if int(step) < 0 or int(step) > TIMESTEP_MAX:
+            raise ValueError(f"steps must be in the range [0, {TIMESTEP_MAX}]")
         elif self._state is None:
             self._timestep = step
         else:
@@ -93,7 +95,7 @@ class Simulation(metaclass=Loggable):
     @seed.setter
     def seed(self, v):
         v_int = int(v)
-        if v_int < 0 or v_int > 2**16 - 1:
+        if v_int < 0 or v_int > SEED_MAX:
             v_int = v_int & 0xffff
 
         if self._state is None:
@@ -362,8 +364,9 @@ class Simulation(metaclass=Loggable):
             self.operations._schedule()
 
         steps_int = int(steps)
-        if steps_int < 0 or steps_int > 2**64 - 2:
-            raise ValueError("steps must be in the range [0, 2**64-2]")
+        if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
+            raise ValueError(f"steps must be in the range [0, "
+                             "{TIMESTEP_MAX-1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
 
@@ -446,5 +449,5 @@ class Simulation(metaclass=Loggable):
 
 
 def _match_class_path(obj, *matches):
-     return any(cls.__module__ + '.' + cls.__name__ in matches
-             for cls in inspect.getmro(type(obj)))
+    return any(cls.__module__ + '.' + cls.__name__ in matches
+            for cls in inspect.getmro(type(obj)))
