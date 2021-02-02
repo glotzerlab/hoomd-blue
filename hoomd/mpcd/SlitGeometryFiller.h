@@ -29,7 +29,7 @@ namespace mpcd
  * subject to the grid shift.
  */
 class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
-{
+    {
     public:
         SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                            Scalar density,
