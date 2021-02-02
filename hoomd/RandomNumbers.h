@@ -14,7 +14,6 @@
 #define HOOMD_RANDOM_NUMBERS_H_
 
 #include "HOOMDMath.h"
-#include "RNGIdentifiers.h"
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
@@ -138,9 +137,16 @@ class Seed
         The seed is 8 bytes. Construct this from an 1 byte class id, 2 byte seed, and the lower
         5 bytes of the timestep.
 
+        When multiple class instances can instantiate RandomGenerator objects, include values in the
+        Counter that are unique to each instance. Otherwise the separate instances will generate
+        identical sequences of random numbers.
+
+        Code inside HOOMD should name the class ID value in RNGIdentifiers.h and ensure that each
+        class has a unique id. External plugins should use values 200 or larger.
+
         id seed1 seed0 timestep4 | timestep3 timestep2 timestep1 timestep0
     */
-    DEVICE Seed(RNGIdentifier id, uint64_t timestep, uint16_t seed)
+    DEVICE Seed(uint8_t id, uint64_t timestep, uint16_t seed)
         {
         m_key = {{uint32_t(id) << 24 | uint32_t(seed) << 8
                       | uint32_t((timestep & 0x000000ff00000000) >> 32),
@@ -213,13 +219,6 @@ class Counter
 class RandomGenerator
     {
     public:
-        //! Five-value constructor
-        DEVICE inline RandomGenerator(uint32_t seed1=0,
-                                      uint32_t seed2=0,
-                                      uint32_t counter1=0,
-                                      uint32_t counter2=0,
-                                      uint32_t counter3=0);
-
         /** Construct a random generator from a Seed and a Counter
 
             @param seed RNG seed.
@@ -246,26 +245,6 @@ class RandomGenerator
         r123::Philox4x32::key_type m_key;   //!< RNG key
         r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
     };
-
-/*! \param seed1 First seed.
-    \param seed2 Second seed.
-    \param counter1 First counter.
-    \param counter2 Second counter
-    \param counter3 Third counter
-
-    Initialize the random number stream with two seeds and up to three counters. Seeds and counters are somewhat
-    interchangeable. Seeds should be more static (i.e. user seed, RNG id) while counters should be more dynamic
-    (i.e. particle tag).
- */
-DEVICE inline RandomGenerator::RandomGenerator(uint32_t seed1,
-                                               uint32_t seed2,
-                                               uint32_t counter1,
-                                               uint32_t counter2,
-                                               uint32_t counter3)
-    {
-    m_key = {{seed1, seed2}};
-    m_ctr = {{0, counter3, counter2, counter1}};
-    }
 
 DEVICE inline RandomGenerator::RandomGenerator(const Seed& seed, const Counter& counter)
     {

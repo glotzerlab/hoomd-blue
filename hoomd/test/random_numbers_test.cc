@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/ClockSource.h"
 
 #include <vector>
@@ -42,7 +43,8 @@ UP_TEST( sphere_point_test )
     const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
-    hoomd::RandomGenerator rng(7, 7, 91);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
     hoomd::SpherePointGenerator<double> gen;
 
     const unsigned int N = 500000;
@@ -125,7 +127,8 @@ void check_moments(GeneratorType& gen,
                    const double ref_tol,
                    bool test_kurtosis=true)
     {
-    hoomd::RandomGenerator rng(7, 7, 91);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // compute moments of the distribution
     // use Kahan summation to prevent errors when summing over many samples
@@ -200,7 +203,8 @@ void check_range(GeneratorType& gen,
                  const ValueType a,
                  const ValueType b)
     {
-    hoomd::RandomGenerator rng(1, 2, 3);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // check that every value generated is in the proper range
     for (unsigned int i=0; i < N; ++i)
