@@ -75,17 +75,17 @@ def test_berendsen_attributes(device):
     constant = hoomd.variant.Constant(2.0)
     berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
 
-    assert berendsen.filter is all_
-    assert berendsen.kT is constant
+    assert berendsen.filter == all_
+    assert berendsen.kT == constant
     assert berendsen.tau == 10.0
 
     type_A = hoomd.filter.Type(['A'])
     berendsen.filter = type_A
-    assert berendsen.filter is type_A
+    assert berendsen.filter == type_A
 
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
     berendsen.kT = ramp
-    assert berendsen.kT is ramp
+    assert berendsen.kT == ramp
 
     berendsen.tau = 1.2
     assert berendsen.tau == 1.2
@@ -102,8 +102,8 @@ def test_berendsen_attributes_attached(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[berendsen])
     sim.operations._schedule()
 
-    assert berendsen.filter is all_
-    assert berendsen.kT is constant
+    assert berendsen.filter == all_
+    assert berendsen.kT == constant
     assert berendsen.tau == 10.0
 
     type_A = hoomd.filter.Type(['A'])
@@ -111,11 +111,11 @@ def test_berendsen_attributes_attached(simulation_factory,
         # filter cannot be set after scheduling
         berendsen.filter = type_A
 
-    assert berendsen.filter is all_
+    assert berendsen.filter == all_
 
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
     berendsen.kT = ramp
-    assert berendsen.kT is ramp
+    assert berendsen.kT == ramp
 
     berendsen.tau = 1.2
     assert berendsen.tau == 1.2
