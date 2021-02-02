@@ -380,7 +380,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
-    sim.operations._schedule()
+    sim.run(0)
 
     assert nph.filter == all_
     assert len(nph.S) == 6
@@ -512,7 +512,7 @@ def test_nph_thermalize_barostat_dof(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
-    sim.operations._schedule()
+    sim.run(0)
 
     nph.thermalize_barostat_dof(100)
     for v in nph.barostat_dof:
@@ -565,7 +565,7 @@ def test_nph_attributes_attached_2d(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
-    sim.operations._schedule()
+    sim.run(0)
 
     # after attaching in 2d, only some coupling modes and box dof are valid
     assert tuple(nph.box_dof) == (True, True, False, False, False, False)
