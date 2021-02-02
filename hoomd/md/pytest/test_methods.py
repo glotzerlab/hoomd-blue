@@ -68,6 +68,7 @@ def test_brownian_attributes_attached(simulation_factory,
     assert brownian.alpha == 0.125
 
 
+@pytest.mark.serial
 def test_berendsen_attributes():
     """Test attributes of the Berendsen integrator before attaching."""
     all_ = hoomd.filter.All()
