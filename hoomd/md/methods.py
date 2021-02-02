@@ -549,20 +549,23 @@ class NPH(_Method):
             kT=Variant,
             S=OnlyIf(to_type_converter((Variant,) * 6),
                      preprocess=self._preprocess_stress),
-            tauS=float(tauS),
-            couple=str(couple),
+            tauS=float,
+            couple=str,
             box_dof=(bool,) * 6,
-            rescale_all=bool(rescale_all),
-            gamma=float(gamma),
-            barostat_dof=(float, float, float, float, float, float))
+            rescale_all=bool,
+            gamma=float,
+            barostat_dof=(float,) * 6)
 
         param_dict.update(
             dict(filter=filter,
                  kT=hoomd.variant.Constant(1.0),
                  S=S,
-                 couple=couple,
-                 box_dof=box_dof,
-                 barostat_dof=(0, 0, 0, 0, 0, 0)))
+                 tauS=float(tauS),
+                 couple=str(couple),
+                 box_dof=tuple(box_dof),
+                 rescale_all=bool(rescale_all),
+                 gamma=float(gamma),
+                 barostat_dof=(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)))
 
         # set defaults
         self._param_dict.update(param_dict)
