@@ -987,7 +987,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             {
             // one RNG per depletant
             hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed),
-                                       hoomd::Counter(i, rank*num_types + depletant_type, i_dep, (uint16_t)select));
+                                       hoomd::Counter(i, rank*num_types + depletant_type, i_dep, static_cast<uint16_t>(select)));
 
             n_inserted++;
             overlap_checks += 2;
@@ -1061,7 +1061,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
             // better than storing one Scalar4 and a Scalar3 per thread in shared mem
             unsigned int i_dep_queue = s_queue_didx[group];
             hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, timestep, seed),
-                                       hoomd::Counter(i, rank*num_types + depletant_type, i_dep_queue, (uint16_t)select));
+                                       hoomd::Counter(i, rank*num_types + depletant_type, i_dep_queue, static_cast<uint16_t>(select)));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

@@ -806,7 +806,7 @@ void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
                                                   timestep,
                                                   this->m_sysdef->getSeed()),
                                       hoomd::Counter(this->m_exec_conf->getRank(),
-                                                     (uint32_t)hash(std::this_thread::get_id())));
+                                                     static_cast<uint32_t>(hash(std::this_thread::get_id()))));
         });
     #endif
 

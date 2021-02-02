@@ -215,7 +215,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     char cord_data[] = "CORD";
     file.write(cord_data, 4);
     write_int(file, 0);      // Number of frames in file, none written yet
-    write_int(file, (uint32_t)m_start_timestep); // Starting timestep
+    write_int(file, static_cast<uint32_t>(m_start_timestep)); // Starting timestep
     write_int(file, m_period);  // Timesteps between frames written to the file
     write_int(file, 0);      // Number of timesteps in simulation
     write_int(file, 0);
@@ -407,7 +407,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, uint64_t timestep)
     write_int(file, m_num_frames_written);
 
     file.seekp(NSTEP_POS);
-    write_int(file, (uint32_t)timestep);
+    write_int(file, static_cast<uint32_t>(timestep));
 
     if (timestep > std::numeric_limits<uint32_t>::max())
         m_exec_conf->msg->warning() << "DCD: Truncating timestep to lower 32 bits" << endl;

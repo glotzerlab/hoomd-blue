@@ -148,9 +148,9 @@ class Seed
     */
     DEVICE Seed(uint8_t id, uint64_t timestep, uint16_t seed)
         {
-        m_key = {{uint32_t(id) << 24 | uint32_t(seed) << 8
-                      | uint32_t((timestep & 0x000000ff00000000) >> 32),
-                  uint32_t(timestep & 0x00000000ffffffff)}};
+        m_key = {{static_cast<uint32_t>(id) << 24 | static_cast<uint32_t>(seed) << 8
+                      | static_cast<uint32_t>((timestep & 0x000000ff00000000) >> 32),
+                  static_cast<uint32_t>(timestep & 0x00000000ffffffff)}};
         }
 
     /// Get the key
@@ -178,7 +178,7 @@ class Counter
     Note: Only use the 4th argument when absolutely necessary and when you know that the resulting
     RNG stream will not need to sample more than 65536 values.
     */
-    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0, uint16_t d=0) : m_ctr({{(uint32_t)d << 16, c, b, a}})
+    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0, uint16_t d=0) : m_ctr({{static_cast<uint32_t>(d) << 16, c, b, a}})
         {
         }
 
