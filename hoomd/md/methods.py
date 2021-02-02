@@ -914,7 +914,7 @@ class Brownian(_Method):
 
 
 class Berendsen(_Method):
-    R""" Applies the Berendsen thermostat.
+    r"""Applies the Berendsen thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
