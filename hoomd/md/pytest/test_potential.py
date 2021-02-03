@@ -807,7 +807,7 @@ def test_force_energy_relationship(simulation_factory,
                                    valid_params):
     # don't really test DPD and DPDLJ for this test
     pot_name = valid_params.pair_potential.__name__
-    if any(pot_name == name for name in ["DPD", "DPDLJ", "TWF"]):
+    if any(pot_name == name for name in ["DPD", "DPDLJ"]):
         pytest.skip("Cannot test force energy relationship for "
                     + pot_name + " pair force")
 
