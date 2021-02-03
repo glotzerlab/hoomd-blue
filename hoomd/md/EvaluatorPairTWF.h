@@ -193,20 +193,22 @@ class EvaluatorPairTWF
                     return true;
                 }
 
-                Scalar common_term = 1.0 / (sigma2 / rsq - 1.0);
-                Scalar common_term3 = pow(common_term, 3.0);
+                Scalar common_term = 1.0 / (rsq / sigma2 - 1.0);
+                Scalar common_term3 = common_term * common_term * common_term;
                 Scalar common_term6 = common_term3 * common_term3;
                 // Compute force and energy
                 pair_eng = params.prefactor * (
                     common_term6 - params.alpha * common_term3);
-                Scalar force_term = 6 * sigma2 / (rsq * rsq);
-                force_divr = -params.prefactor * common_term * force_term * (
+                // The force term is -(dE / dr) * (1 / r).
+                Scalar force_term = 6 * common_term / sigma2;
+                force_divr = params.prefactor * force_term * (
                     2 * common_term6 - params.alpha * common_term3);
 
                 if (energy_shift)
                     {
                     Scalar common_term_shift = 1.0 / (sigma2 / rcutsq - 1.0);
-                    Scalar common_term3_shift = pow(common_term_shift, 3.0);
+                    Scalar common_term3_shift = common_term_shift 
+                        * common_term_shift * common_term_shift;
                     Scalar common_term6_shift = 
                         common_term3_shift * common_term3_shift;
                     pair_eng -= params.prefactor * (
