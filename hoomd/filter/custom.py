@@ -12,8 +12,8 @@ class CustomFilter(Hashable, Callable):
     def __call__(self, state):
         """Return the local particle tags that match the filter.
 
-        Returns the tags that are local to an MPI rank that match the entire
-        state. Tag numbers in a `hoomd.Snapshot` object are just their index.
+        Returns the tags that are local to an MPI rank that match the particle
+        filter. Tag numbers in a `hoomd.Snapshot` object are just their index.
 
         Note:
             The exact requirements for the tags returned by custom filters on
@@ -21,12 +21,9 @@ class CustomFilter(Hashable, Callable):
             MPI rank be all particles that match the filter. For general use, it
             is recommended, however, that each rank only return the tags for
             particles that are in the local MPI rank (excluding ghost
-            particles).
-
-            It is preferable for the tags returned to be only those local to the
-            MPI rank for ease of use with local snapshots by avoiding accidental
-            attempted access to invalid array indices from tags outside of the
-            MPI rank.
+            particles). This is preferable for ease of use with local snapshots
+            by avoiding accidentally attempting to access invalid array indices
+            from tags outside of the MPI rank.
 
         Args:
             state (`hoomd.State`):
