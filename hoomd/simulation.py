@@ -21,20 +21,23 @@ class Simulation(metaclass=Loggable):
 
     Args:
         device (`hoomd.device.Device`): Device to execute the simulation.
+        seed (int): Random number seed.
 
     `Simulation` is the central class in HOOMD-blue that defines a simulation,
     including the `state` of the system, the `operations` that apply to the
     state during a simulation `run`, and the `device` to use when executing
     the simulation.
+
+    `seed` sets the seed for the random number generator.
     """
 
-    def __init__(self, device):
+    def __init__(self, device, seed=0):
         self._device = device
         self._state = None
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
-        self._seed = 0
+        self.seed = seed
 
     @property
     def device(self):
