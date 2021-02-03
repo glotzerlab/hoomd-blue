@@ -154,7 +154,7 @@ class OnlyTypes(_HelpValidate):
     """Only alllow values that are instances of type.
 
     Developers should consider the `collections.abc` module in using this type.
-    In general `OnlyType(Sequence)` is more readible than the similar
+    In general `OnlyTypes(Sequence)` is more readible than the similar
     `OnlyIf(lambda x: hasattr(x, '__iter__'))`.
     """
     def __init__(self, types, strict=False,
@@ -185,7 +185,7 @@ class OnlyTypes(_HelpValidate):
 
 
     def __str__(self):
-        return "OnlyType({})".format(str(self.type))
+        return "OnlyTypes({})".format(str(self.types))
 
 
 class OnlyFrom(_HelpValidate):
@@ -218,7 +218,7 @@ class SetOnce:
     """Used to make properties read-only after setting."""
     def __init__(self, validation):
         if isclass(validation):
-            self._validation = OnlyType(validation)
+            self._validation = OnlyTypes(validation)
         else:
             self._validation = validation
 
@@ -267,9 +267,9 @@ class TypeConverterValue(TypeConverter):
         The initialization specification goes through the following process. If
         the value is of a type in `self._conversion_func_dict` or is a type
         in `self._conversion_func_dict` then we use the mapping validation
-        function. Otherwise if the value is a class we use `OnlyType(value)`.
+        function. Otherwise if the value is a class we use `OnlyTypes(value)`.
         Generic callables just get used directly, and finally if no check passes
-        we use `OnlyType(type(value))`.
+        we use `OnlyTypes(type(value))`.
 
         Examples of valid ways to specify an integer specification,
 
@@ -283,14 +283,14 @@ class TypeConverterValue(TypeConverter):
                     raise ValueError(
                         "Value {} must be a natural number.".format(value))
 
-            TypeConverterValue(OnlyType(int, postprocess=natural_number))
+            TypeConverterValue(OnlyTypes(int, postprocess=natural_number))
     """
     _conversion_func_dict = {
-        Variant: OnlyType(Variant, preprocess=variant_preprocessing),
+        Variant: OnlyTypes(Variant, preprocess=variant_preprocessing),
         ParticleFilter: OnlyTypes((ParticleFilter, CustomFilter), strict=True),
-        str: OnlyType(str, strict=True),
-        Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
-        ndarray: OnlyType(ndarray, preprocess=array),
+        str: OnlyTypes(str, strict=True),
+        Trigger: OnlyTypes(Trigger, preprocess=trigger_preprocessing),
+        ndarray: OnlyTypes(ndarray, preprocess=array),
     }
 
     def __init__(self, value):
@@ -302,7 +302,7 @@ class TypeConverterValue(TypeConverter):
                     self.converter = self._conversion_func_dict[cls]
                     return None
             # constructor with no special logic
-            self.converter = OnlyType(value)
+            self.converter = OnlyTypes(value)
             return None
 
         # If the value is a class instance
@@ -317,7 +317,7 @@ class TypeConverterValue(TypeConverter):
             self.converter = value
         # if any other object
         else:
-            self.converter = OnlyType(type(value))
+            self.converter = OnlyTypes(type(value))
 
     def __call__(self, value):
         try:

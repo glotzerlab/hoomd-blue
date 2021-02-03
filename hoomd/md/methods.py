@@ -12,7 +12,7 @@ from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyType, OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
@@ -559,8 +559,8 @@ class NVE(_Method):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
-            limit=OnlyType(float, allow_none=True),
-            zero_force=OnlyType(bool, allow_none=False),
+            limit=OnlyTypes(float, allow_none=True),
+            zero_force=OnlyTypes(bool, allow_none=False),
         )
         param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
@@ -714,7 +714,7 @@ class Langevin(_Method):
             filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
-            alpha=OnlyType(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
         )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
@@ -879,7 +879,7 @@ class Brownian(_Method):
             filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
-            alpha=OnlyType(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True),
             )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
