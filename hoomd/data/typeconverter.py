@@ -41,13 +41,6 @@ def variant_preprocessing(variant):
                 "Expected a hoomd.variant.Variant or float object.")
 
 
-def filter_validation(filter_):
-    if isinstance(filter_, (ParticleFilter, CustomFilter)):
-        return filter_
-    else:
-        raise ValueError("Expected a ParticleFilter object.")
-
-
 def box_preprocessing(box):
     if isinstance(box, hoomd.Box):
         return box
@@ -157,32 +150,39 @@ class OnlyIf(_HelpValidate):
         return "OnlyIf({})".format(str(self.cond))
 
 
-class OnlyType(_HelpValidate):
+class OnlyTypes(_HelpValidate):
     """Only alllow values that are instances of type.
 
     Developers should consider the `collections.abc` module in using this type.
     In general `OnlyType(Sequence)` is more readible than the similar
     `OnlyIf(lambda x: hasattr(x, '__iter__'))`.
     """
-    def __init__(self, type_, strict=False,
+    def __init__(self, types, strict=False,
                  preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
-        self.type = type_
+        # Handle if a class is passed rather than an iterable of classes
+        self.types = (types,) if isclass(types) else tuple(types)
         self.strict = strict
 
     def _validate(self, value):
-        if isinstance(value, self.type):
+        if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                "value {} not instance of type {}.".format(value, self.type))
+                f"Value {value} not instance of any of {self.types}."
+            )
         else:
-            try:
-                return self.type(value)
-            except Exception:
-                raise ValueError(
-                    "value {} not convertible into type {}.".format(
-                        value, self.type))
+            for type_ in self.types:
+                try:
+                    return type_(value)
+                except Exception:
+                    pass
+            raise ValueError(
+                f"Value {value} is not convertable into any of these types "
+                f"{self.types}"
+            )
+
+
 
     def __str__(self):
         return "OnlyType({})".format(str(self.type))
@@ -287,7 +287,7 @@ class TypeConverterValue(TypeConverter):
     """
     _conversion_func_dict = {
         Variant: OnlyType(Variant, preprocess=variant_preprocessing),
-        ParticleFilter: OnlyIf(filter_validation),
+        ParticleFilter: OnlyTypes((ParticleFilter, CustomFilter), strict=True),
         str: OnlyType(str, strict=True),
         Trigger: OnlyType(Trigger, preprocess=trigger_preprocessing),
         ndarray: OnlyType(ndarray, preprocess=array),
