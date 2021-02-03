@@ -1832,6 +1832,7 @@ class OPP(Pair):
                                )
         self._add_typeparam(params)
 
+
 class TWF(Pair):
     r"""Pair potential model for globular proteins.
 
@@ -1863,12 +1864,11 @@ class TWF(Pair):
             The LJ potential parameters. The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\\varepsilon` (in energy units)
-
+              energy parameter :math:`\\varepsilon` (units: [energy])
             * ``sigma`` (`float`, **required**) -
-              particle size :math:`\\sigma` (in distance units)
+              particle size :math:`\\sigma` (units: [length])
             * ``alpha`` (`float`, **required**) -
-              controls well-depth :math:`\\alpha` (unitless)
+              controls well-width :math:`\\alpha` (unitless)
 
     Example::
 

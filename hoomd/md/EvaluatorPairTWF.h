@@ -8,10 +8,10 @@
 #include "hoomd/HOOMDMath.h"
 
 /*! \file EvaluatorPairTWF.h
-    \brief Defines the pair evaluator class for TWF potentials
-    \details As the prototypical example of a MD pair potential, this also
-        serves as the primary documentation and base reference for the
-        implementation of pair evaluators.
+    \brief Defines the pair potential evaluator for the TWF potential
+    \details The potential was designed for simulating globular proteins and is
+    a modification of the LJ potential with harder interactions and a variable
+    well width. For more information see the Python documentation.
 */
 
 // need to declare these class methods with __device__ qualifiers when building
