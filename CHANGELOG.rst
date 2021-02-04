@@ -4,6 +4,16 @@ Change Log
 v2.x
 ----
 
+v2.9.4 (2021-02-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support thrust 1.10
+* Support LLVM11
+* Fix Python syntax warnings
+* Fix compile errors with gcc 10
+
 v2.9.3 (2020-08-05)
 ^^^^^^^^^^^^^^^^^^^
 
