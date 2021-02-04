@@ -130,7 +130,6 @@ class UserPatch(object):
     def __init__(self, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
         param_dict = ParameterDict(r_cut = r_cut,
                                    array_size = array_size)
-
         self._param_dict.update(param_dict)
         # these only exist on python
         self.clang_exec = clang_exec if clang_exec is not None else 'clang'
@@ -140,6 +139,38 @@ class UserPatch(object):
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 self.llvm_ir = f.read()
+
+        self._enabled = True
+        self._log_only = False
+        self._cpp_obj.alpha_iso[:] = [0]*array_size
+        self.alpha_iso = self._cpp_obj.alpha_iso
+        
+    @property
+    def enable(self):
+        return self._enable
+
+    @property.setter
+    def enable(self, value):
+        self._enable = value
+        if self._attached:
+            arg = self._cpp_obj if value else None:
+            self._simulation.operations.integrator._cpp_obj.setPatchEnergy(arg)
+
+    @property
+    def log_only(self):
+        return self._log_only
+
+    @property.setter
+    def log_only(self, log):
+        self._log_only = log
+        if self._attached:
+            if log:
+                # enable only for logging purposes
+                self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
+            else:
+                # disable completely
+                self._simulation.operations.integrator._cpp_obj.setPatchEnergy(None)
+                self.enable = False
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -168,17 +199,13 @@ class UserPatch(object):
                     max_arch = int(a)
 
             gpu_code = self._wrap_gpu_code(code)
-            self.cpp_evaluator = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
+            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self.cpp_evaluator = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size);
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size);
 
         integrator.set_PatchEnergyEvaluator(self);
 
-        self.enabled = True
-        self.log = False
-        self.cpp_evaluator.alpha_iso[:] = [0]*array_size
-        self.alpha_iso = self.cpp_evaluator.alpha_iso
 
     def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
@@ -306,7 +333,7 @@ __device__ inline float eval(const vec3<float>& r_ij,
 
     '''
     def enable(self):
-        self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
+        self.mc.cpp_integrator.setPatchEnergy(self._cpp_obj);
 
 class UserUnionPatch(user):
     R''' Define an arbitrary patch energy on a union of particles
@@ -427,11 +454,11 @@ class UserUnionPatch(user):
                     max_arch = int(a)
 
             gpu_code = self._wrap_gpu_code(code)
-            self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
+            self._cpp_obj = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
+            self._cpp_obj = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
                 llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
 
         mc.set_PatchEnergyEvaluator(self);
@@ -439,10 +466,10 @@ class UserUnionPatch(user):
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha_iso[:] = [0]*array_size_iso
-        self.cpp_evaluator.alpha_union[:] = [0]*array_size
-        self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
-        self.alpha_union = self.cpp_evaluator.alpha_union[:]
+        self._cpp_obj.alpha_iso[:] = [0]*array_size_iso
+        self._cpp_obj.alpha_union[:] = [0]*array_size
+        self.alpha_iso = self._cpp_obj.alpha_iso[:]
+        self.alpha_union = self._cpp_obj.alpha_union[:]
 
     def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
         R''' Set the union shape parameters for a given particle type
@@ -478,4 +505,4 @@ class UserUnionPatch(user):
             raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 
-        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
+        self._cpp_obj.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
