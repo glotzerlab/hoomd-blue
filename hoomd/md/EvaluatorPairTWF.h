@@ -6,6 +6,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include <cmath>
 
 /*! \file EvaluatorPairTWF.h
     \brief Defines the pair potential evaluator for the TWF potential
@@ -186,10 +187,10 @@ class EvaluatorPairTWF
                 // and force since this is an invalid state and should be
                 // infinite energy and force.
                 if (rsq <= sigma2) {
-                    // For now use an arbitary constant since
-                    // std::numeric_limit<>::max cannot be used for GPU code.
-                    pair_eng = 1e37;
-                    force_divr = 1e37;
+                    // Since std::numeric_limit<>::max cannot be used for GPU
+                    // code, we use the INFINITY macros instead.
+                    pair_eng = INFINITY;
+                    force_divr = INFINITY;
                     return true;
                 }
 
