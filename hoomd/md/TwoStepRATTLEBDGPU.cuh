@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -8,10 +9,15 @@
     \brief Declares GPU kernel code for Brownian dynamics on the GPU. Used by TwoStepRATTLEBDGPU.
 */
 
-#include "hoomd/ParticleData.cuh"
-#include "hoomd/GPUPartition.cuh"
-#include "hoomd/VectorMath.h"
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/ParticleData.cuh"
+#include "hoomd/Index1D.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/CachedAllocator.h"
+
+#include "hoomd/GPUPartition.cuh"
 #include "TwoStepRATTLENVEGPU.cuh"
 
 
@@ -20,6 +26,7 @@
 using namespace hoomd;
 
 #include <assert.h>
+#include <type_traits>
 
 #ifndef __TWO_STEP_RATTLE_BD_GPU_CUH__
 #define __TWO_STEP_RATTLE_BD_GPU_CUH__
@@ -36,6 +43,49 @@ struct rattle_bd_step_one_args
     unsigned int timestep;    //!< Current timestep
     unsigned int seed;        //!< User chosen random number seed
     };
+
+
+hipError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
+                                  int3 *d_image,
+                                  const BoxDim& box,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int *d_groupTags,
+                                  const unsigned int group_size,
+                                  const Scalar4 *d_net_force,
+                                  const Scalar3 *d_f_brownian,
+                                  const Scalar3 *d_gamma_r,
+                                  Scalar4 *d_orientation,
+                                  Scalar4 *d_torque,
+                                  const Scalar3 *d_inertia,
+                                  Scalar4 *d_angmom,
+                                  const rattle_bd_step_one_args& rattle_bd_args,
+                                  const bool aniso,
+                                  const Scalar deltaT,
+                                  const unsigned int D,
+                                  const bool d_noiseless_r,
+                                  const GPUPartition& gpu_partition
+                                  );
+
+template<class Manifold>
+hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar4 *d_net_force,
+                                  Scalar3 *d_f_brownian,
+                                  Scalar *d_net_virial,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_rtag,
+                                  const unsigned int *d_groupTags,
+                                  const unsigned int group_size,
+                                  const rattle_bd_step_one_args& rattle_bd_args,
+			          Manifold manifold,
+                                  unsigned int net_virial_pitch,
+                                  const Scalar deltaT,
+                                  const bool d_noiseless_t,
+                                  const GPUPartition& gpu_partition
+                                  );
+
+#ifdef __HIPCC__
 
 //! Takes the second half-step forward in the Langevin integration on a group of particles with
 /*! \param d_pos array of particle positions and types
@@ -599,4 +649,5 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
     return hipSuccess;
     }
 
+#endif
 #endif //__TWO_STEP_RATTLE_BD_GPU_CUH__

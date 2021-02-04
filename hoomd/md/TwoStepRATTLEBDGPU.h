@@ -4,6 +4,8 @@
 
 // Maintainer: joaander
 
+#ifdef ENABLE_HIP
+
 #include "TwoStepRATTLEBD.h"
 #include "TwoStepRATTLEBDGPU.cuh"
 
@@ -12,6 +14,8 @@
 #endif
 
 #pragma once
+
+#include "hoomd/Autotuner.h"
 
 #include <pybind11/pybind11.h>
 
@@ -38,29 +42,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
                      unsigned int seed,
-                     Scalar eta = 0.000001)
-    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, seed, eta)
-    {
-    if (!m_exec_conf->isCUDAEnabled())
-        {
-        m_exec_conf->msg->error() << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << endl;
-        throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
-        }
-
-    unsigned int group_size = m_group->getNumMembersGlobal();
-    GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);
-    ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
-
-    for (unsigned int i = 0; i < group_size; i++)
-        {
-        unsigned int tag = m_group->getMemberTag(i);
-        groupTags.data[i] = tag;
-        }
-
-    m_groupTags.swap(tmp_groupTags);
-
-    m_block_size = 256;
-    }
+                     Scalar eta = 0.000001);
 
         virtual ~TwoStepRATTLEBDGPU() {};
 
@@ -81,66 +63,98 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
 /*! \param timestep Current time step
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
+
+template<class Manifold> 
+TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group,
+                     Manifold manifold,
+                     std::shared_ptr<Variant> T,
+                     unsigned int seed,
+                     Scalar eta = 0.000001)
+    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, seed, eta)
+    {
+    if (!this->m_exec_conf->isCUDAEnabled())
+        {
+        this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << endl;
+        throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
+        }
+
+    unsigned int group_size = this->m_group->getNumMembersGlobal();
+    GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);
+    ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
+
+    for (unsigned int i = 0; i < group_size; i++)
+        {
+        unsigned int tag = this->m_group->getMemberTag(i);
+        groupTags.data[i] = tag;
+        }
+
+    m_groupTags.swap(tmp_groupTags);
+
+    m_block_size = 256;
+    }
+
+
 template<class Manifold>
 void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     {
     // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "BD step 1");
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "BD step 1");
 
     // access all the needed data
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
-    const unsigned int D = m_sysdef->getNDimensions();
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    BoxDim box = this->m_pdata->getBox();
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = this->m_group->getNumMembers();
+    const unsigned int D = this->m_sysdef->getNDimensions();
+    const GlobalArray< Scalar4 >& net_force = this->m_pdata->getNetForce();
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_f_brownian(m_f_brownian, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_f_brownian(this->m_f_brownian, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     // for rotational noise
-    ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_gamma_r(this->m_gamma_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_torque(this->m_pdata->getNetTorqueArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_inertia(this->m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
 
     
     rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
-    args.use_alpha = m_use_alpha;
-    args.alpha = m_alpha;
-    args.T = (*m_T)(timestep);
-    args.eta = m_eta;
+    args.n_types = this->m_gamma.getNumElements();
+    args.use_alpha = this->m_use_alpha;
+    args.alpha = this->m_alpha;
+    args.T = (*this->m_T)(timestep);
+    args.eta = this->m_eta;
     args.timestep = timestep;
-    args.seed = m_seed;
+    args.seed = this->m_seed;
 
 
-    bool aniso = m_aniso;
+    bool aniso = this->m_aniso;
 
-    if (m_exec_conf->allConcurrentManagedAccess())
+    if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
-        auto& gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        auto& gpu_map = this->m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemPrefetchAsync(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), gpu_map[idev]);
-            cudaMemPrefetchAsync(m_gamma_r.get(), sizeof(Scalar)*m_gamma_r.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_gamma.get(), sizeof(Scalar)*this->m_gamma.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_gamma_r.get(), sizeof(Scalar)*this->m_gamma_r.getNumElements(), gpu_map[idev]);
             }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
    
-    m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
     gpu_rattle_brownian_step_one(d_pos.data,
@@ -159,19 +173,19 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
                           d_angmom.data,
                           args,
                           aniso,
-                          m_deltaT,
+                          this->m_deltaT,
                           D,
-                          m_noiseless_r,
-                          m_group->getGPUPartition());
+                          this->m_noiseless_r,
+                          this->m_group->getGPUPartition());
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_exec_conf->endMultiGPU();
+    this->m_exec_conf->endMultiGPU();
 
     // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
     }
 
 
@@ -183,19 +197,19 @@ void TwoStepRATTLEBDGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
     {
 
     // access all the needed data
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>&  net_virial = m_pdata->getNetVirial();
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = this->m_group->getNumMembers();
+    const GlobalArray< Scalar4 >& net_force = this->m_pdata->getNetForce();
+    const GlobalArray<Scalar>&  net_virial = this->m_pdata->getNetVirial();
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_f_brownian(m_f_brownian, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_f_brownian(this->m_f_brownian, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     unsigned int net_virial_pitch = net_virial.getPitch();
@@ -203,29 +217,29 @@ void TwoStepRATTLEBDGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
     
     rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
-    args.use_alpha = m_use_alpha;
-    args.alpha = m_alpha;
-    args.T = (*m_T)(timestep);
-    args.eta = m_eta;
+    args.n_types = this->m_gamma.getNumElements();
+    args.use_alpha = this->m_use_alpha;
+    args.alpha = this->m_alpha;
+    args.T = (*this->m_T)(timestep);
+    args.eta = this->m_eta;
     args.timestep = timestep;
-    args.seed = m_seed;
+    args.seed = this->m_seed;
 
 
-    if (m_exec_conf->allConcurrentManagedAccess())
+    if (this->m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
-        auto& gpu_map = m_exec_conf->getGPUIds();
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        auto& gpu_map = this->m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < this->m_exec_conf->getNumActiveGPUs(); ++idev)
             {
-            cudaMemPrefetchAsync(m_gamma.get(), sizeof(Scalar)*m_gamma.getNumElements(), gpu_map[idev]);
+            cudaMemPrefetchAsync(this->m_gamma.get(), sizeof(Scalar)*this->m_gamma.getNumElements(), gpu_map[idev]);
             }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
 
    
-    m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
     gpu_include_rattle_force_bd<Manifold>(d_pos.data,
@@ -238,20 +252,20 @@ void TwoStepRATTLEBDGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
                           d_groupTags.data,
                           group_size,
                           args,
-                          m_manifold,
+                          this->m_manifold,
                           net_virial_pitch,
-                          m_deltaT,
-                          m_noiseless_t,
-                          m_group->getGPUPartition());
+                          this->m_deltaT,
+                          this->m_noiseless_t,
+                          this->m_group->getGPUPartition());
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_exec_conf->endMultiGPU();
+    this->m_exec_conf->endMultiGPU();
 
     // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
     }
 
 
@@ -265,6 +279,6 @@ void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
                                Manifold,
                                std::shared_ptr<Variant>,
                                unsigned int,
-			                   Scalar>())
+			       Scalar>())
         ;
     }

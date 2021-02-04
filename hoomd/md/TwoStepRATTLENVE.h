@@ -5,7 +5,6 @@
 // Maintainer: joaander
 
 #include "IntegrationMethodTwoStep.h"
-#include "hoomd/VectorMath.h"
 
 #ifndef __TWO_STEP_RATTLE_NVE_H__
 #define __TWO_STEP_RATTLE_NVE_H__
@@ -14,11 +13,12 @@
     \brief Declares the TwoStepRATTLENVE class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include <pybind11/pybind11.h>
+#include "hoomd/VectorMath.h"
 
 
 inline Scalar maxNorm(Scalar3 vec, Scalar resid)
@@ -174,11 +174,13 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         if (m_zero_force)
+	{
             h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
+	}
 
-	    Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
+	Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
 
-	    Scalar3 half_vel;
+	Scalar3 half_vel;
         half_vel.x = h_vel.data[j].x + deltaT_half*h_accel.data[j].x;
         half_vel.y = h_vel.data[j].y + deltaT_half*h_accel.data[j].y;
         half_vel.z = h_vel.data[j].z + deltaT_half*h_accel.data[j].z;
@@ -502,54 +504,56 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         if (m_zero_force)
+	{
             h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
+	}
 
-	    Scalar lambda = 0.0;
-            
-	    Scalar3 next_pos;
-	    next_pos.x = h_pos.data[j].x;
-	    next_pos.y = h_pos.data[j].y;
-	    next_pos.z = h_pos.data[j].z;
+	Scalar lambda = 0.0;
+        
+	Scalar3 next_pos;
+	next_pos.x = h_pos.data[j].x;
+	next_pos.y = h_pos.data[j].y;
+	next_pos.z = h_pos.data[j].z;
 
-	    Scalar3 normal = m_manifold.derivative(next_pos);
+	Scalar3 normal = m_manifold.derivative(next_pos);
 
-	    Scalar inv_mass = Scalar(1.0)/h_vel.data[j].w;
-	    Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
-	    Scalar inv_alpha = -deltaT_half*m_deltaT*inv_mass;
-	    inv_alpha = Scalar(1.0)/inv_alpha;
+	Scalar inv_mass = Scalar(1.0)/h_vel.data[j].w;
+	Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
+	Scalar inv_alpha = -deltaT_half*m_deltaT*inv_mass;
+	inv_alpha = Scalar(1.0)/inv_alpha;
 
-	    Scalar3 residual;
-	    Scalar resid;
-	    Scalar3 half_vel;
+	Scalar3 residual;
+	Scalar resid;
+	Scalar3 half_vel;
 
-	    
-	    unsigned int iteration = 0;
-	    do
-	        {
-	        iteration++;
-            half_vel.x = h_vel.data[j].x + deltaT_half*(h_accel.data[j].x-inv_mass*lambda*normal.x);
-            half_vel.y = h_vel.data[j].y + deltaT_half*(h_accel.data[j].y-inv_mass*lambda*normal.y);
-            half_vel.z = h_vel.data[j].z + deltaT_half*(h_accel.data[j].z-inv_mass*lambda*normal.z);
+	
+	unsigned int iteration = 0;
+	do
+	    {
+	    iteration++;
+        half_vel.x = h_vel.data[j].x + deltaT_half*(h_accel.data[j].x-inv_mass*lambda*normal.x);
+        half_vel.y = h_vel.data[j].y + deltaT_half*(h_accel.data[j].y-inv_mass*lambda*normal.y);
+        half_vel.z = h_vel.data[j].z + deltaT_half*(h_accel.data[j].z-inv_mass*lambda*normal.z);
 
-	        residual.x = h_pos.data[j].x - next_pos.x + m_deltaT*half_vel.x;
-	        residual.y = h_pos.data[j].y - next_pos.y + m_deltaT*half_vel.y;
-	        residual.z = h_pos.data[j].z - next_pos.z + m_deltaT*half_vel.z;
-	        resid = m_manifold.implicit_function(next_pos);
+	    residual.x = h_pos.data[j].x - next_pos.x + m_deltaT*half_vel.x;
+	    residual.y = h_pos.data[j].y - next_pos.y + m_deltaT*half_vel.y;
+	    residual.z = h_pos.data[j].z - next_pos.z + m_deltaT*half_vel.z;
+	    resid = m_manifold.implicit_function(next_pos);
 
-            Scalar3 next_normal =  m_manifold.derivative(next_pos);
-	        Scalar nndotr = dot(next_normal,residual);
-	        Scalar nndotn = dot(next_normal,normal);
-	        Scalar beta = (resid + nndotr)/nndotn;
+        Scalar3 next_normal =  m_manifold.derivative(next_pos);
+	    Scalar nndotr = dot(next_normal,residual);
+	    Scalar nndotn = dot(next_normal,normal);
+	    Scalar beta = (resid + nndotr)/nndotn;
 
-            next_pos.x = next_pos.x - beta*normal.x + residual.x;   
-            next_pos.y = next_pos.y - beta*normal.y + residual.y;   
-            next_pos.z = next_pos.z - beta*normal.z + residual.z;
-	        lambda = lambda - beta*inv_alpha;
-	     
-	        } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+        next_pos.x = next_pos.x - beta*normal.x + residual.x;   
+        next_pos.y = next_pos.y - beta*normal.y + residual.y;   
+        next_pos.z = next_pos.z - beta*normal.z + residual.z;
+	    lambda = lambda - beta*inv_alpha;
+	 
+	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
 
-	    h_net_force.data[j].x -= lambda*normal.x;
-	    h_net_force.data[j].y -= lambda*normal.y;
+	h_net_force.data[j].x -= lambda*normal.x;
+	h_net_force.data[j].y -= lambda*normal.y;
         h_net_force.data[j].z -= lambda*normal.z;
 
         h_net_virial.data[0*net_virial_pitch+j] -= lambda*normal.x*h_pos.data[j].x;
@@ -559,9 +563,9 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
         h_net_virial.data[4*net_virial_pitch+j] -= 0.5*lambda*(normal.y*h_pos.data[j].z + normal.z*h_pos.data[j].y);
         h_net_virial.data[5*net_virial_pitch+j] -= lambda*normal.z*h_pos.data[j].z;
 
-	    h_accel.data[j].x -= inv_mass*lambda*normal.x;
-	    h_accel.data[j].y -= inv_mass*lambda*normal.y;
-	    h_accel.data[j].z -= inv_mass*lambda*normal.z;
+	h_accel.data[j].x -= inv_mass*lambda*normal.x;
+	h_accel.data[j].y -= inv_mass*lambda*normal.y;
+	h_accel.data[j].z -= inv_mass*lambda*normal.z;
         }
 
 

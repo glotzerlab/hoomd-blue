@@ -177,11 +177,11 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
-                TwoStepNVEGPU.h
-                TwoStepRATTLENVEGPU.h
-                TwoStepRATTLENVEGPU.cuh
-                TwoStepNVE.h
+                #TwoStepRATTLENVEGPU.h
+                #TwoStepRATTLENVEGPU.cuh
                 TwoStepRATTLENVE.h
+                TwoStepNVEGPU.h
+                TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
                 WallData.h

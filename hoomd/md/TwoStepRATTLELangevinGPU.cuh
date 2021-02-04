@@ -1,3 +1,4 @@
+#include <hip/hip_runtime.h>
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -8,17 +9,50 @@
     \brief Declares GPU kernel code for RATTLELangevin dynamics on the GPU. Used by TwoStepRATTLELangevinGPU.
 */
 
-#include <hip/hip_runtime.h>
+#pragma once
+
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "TwoStepRATTLENVEGPU.cuh"
 using namespace hoomd;
 
 #include <assert.h>
+#include <type_traits>
 
 #ifndef __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
+
+hipError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
+                             Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             Scalar4 *d_net_torque,
+                             const unsigned int *d_group_members,
+                             const Scalar3 *d_gamma_r,
+                             const unsigned int *d_tag,
+                             unsigned int group_size,
+                             const rattle_langevin_step_two_args& rattle_langevin_args,
+                             Scalar deltaT,
+                             unsigned int D,
+                             Scalar scale);
+
+template<class Manifold>
+hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
+                                  Scalar4 *d_vel,
+                                  Scalar3 *d_accel,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  unsigned int *d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4 *d_net_force,
+                                  const rattle_langevin_step_two_args& rattle_langevin_args,
+                                  Manifold manifold,
+                                  Scalar deltaT,
+                                  unsigned int D);
+
+#ifdef __HIPCC__
 
 /*! \file TwoStepRATTLELangevinGPU.cu
     \brief Defines GPU kernel code for RATTLELangevin integration on the GPU. Used by TwoStepRATTLELangevinGPU.
@@ -69,7 +103,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  Scalar T,
                                  Scalar eta,
                                  bool noiseless_t,
-				                 Manifold manifold,
+                                 Manifold manifold,
                                  Scalar deltaT,
                                  unsigned int D,
                                  bool tally,
@@ -131,7 +165,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
 
         Scalar3 normal = manifold.derivative(pos);
-	    Scalar ndotn = dot(normal,normal);
+	Scalar ndotn = dot(normal,normal);
 
         Scalar randomx, randomy, randomz, coeff;
    
@@ -529,7 +563,7 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                   unsigned int group_size,
                                   Scalar4 *d_net_force,
                                   const rattle_langevin_step_two_args& rattle_langevin_args,
-				                  Manifold manifold,
+                                  Manifold manifold,
                                   Scalar deltaT,
                                   unsigned int D)
     {
@@ -559,7 +593,7 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                  rattle_langevin_args.T,
                                  rattle_langevin_args.eta,
                                  rattle_langevin_args.noiseless_t,
-				                 manifold,
+                                 manifold,
                                  deltaT,
                                  D,
                                  rattle_langevin_args.tally,
@@ -573,5 +607,6 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
     return hipSuccess;
     }
 
+#endif
 
 #endif //__TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__

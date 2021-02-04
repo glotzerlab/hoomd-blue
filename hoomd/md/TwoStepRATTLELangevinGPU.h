@@ -3,21 +3,21 @@
 
 
 // Maintainer: joaander
+//
+#ifdef ENABLE_HIP
 
 #include "TwoStepRATTLELangevin.h"
-#include "hoomd/Autotuner.h"
-#include "TwoStepRATTLELangevinGPU.h"
-#include "TwoStepRATTLENVEGPU.cuh"
 #include "TwoStepRATTLELangevinGPU.cuh"
+#include "TwoStepRATTLENVEGPU.cuh"
+
+#include "hoomd/Autotuner.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-namespace py = pybind11;
-using namespace std;
-
 #pragma once
+
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -43,24 +43,24 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                            Scalar eta = 0.000001)
         : TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, seed, eta)
         {
-        if (!m_exec_conf->isCUDAEnabled())
+        if (!this->m_exec_conf->isCUDAEnabled())
             {
-            m_exec_conf->msg->error() << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
+            this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
             throw std::runtime_error("Error initializing TwoStepRATTLELangevinGPU");
             }
 
         // allocate the sum arrays
-        GPUArray<Scalar> sum(1, m_exec_conf);
+        GPUArray<Scalar> sum(1, this->m_exec_conf);
         m_sum.swap(sum);
 
         // initialize the partial sum array
         m_block_size = 256;
-        unsigned int group_size = m_group->getNumMembers();
+        unsigned int group_size = this->m_group->getNumMembers();
         m_num_blocks = group_size / m_block_size + 1;
-        GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
+        GPUArray<Scalar> partial_sum1(m_num_blocks, this->m_exec_conf);
         m_partial_sum1.swap(partial_sum1);
 
-        hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
+        hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
         m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_nve", this->m_exec_conf));
         m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_angular", this->m_exec_conf));
         }
@@ -110,19 +110,19 @@ template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     {
     // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "RATTLELangevin step 1");
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 1");
 
     // access all the needed data
-    BoxDim box = m_pdata->getBox();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    BoxDim box = this->m_pdata->getBox();
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     // perform the update on the GPU
     gpu_rattle_nve_step_one(d_pos.data,
@@ -130,27 +130,27 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
                      d_accel.data,
                      d_image.data,
                      d_index_array.data,
-                     m_group->getGPUPartition(),
+                     this->m_group->getGPUPartition(),
                      box,
-                     m_deltaT,
+                     this->m_deltaT,
                      false,
                      0,
-                     m_tuner_one->getParam());
+                     this->m_tuner_one->getParam());
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner_one->end();
-    m_exec_conf->endMultiGPU();
+    this->m_exec_conf->endMultiGPU();
 
-    if (m_aniso)
+    if (this->m_aniso)
         {
         // first part of angular update
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(this->m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(this->m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
-        m_exec_conf->beginMultiGPU();
+        this->m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
 
         gpu_rattle_nve_angular_step_one(d_orientation.data,
@@ -158,21 +158,21 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
                                  d_inertia.data,
                                  d_net_torque.data,
                                  d_index_array.data,
-                                 m_group->getGPUPartition(),
-                                 m_deltaT,
+                                 this->m_group->getGPUPartition(),
+                                 this->m_deltaT,
                                  1.0,
                                  m_tuner_angular_one->getParam());
 
         m_tuner_angular_one->end();
-        m_exec_conf->endMultiGPU();
+        this->m_exec_conf->endMultiGPU();
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 
     // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
     }
 
 /*! \param timestep Current time step
@@ -181,49 +181,49 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
     {
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray< Scalar4 >& net_force = this->m_pdata->getNetForce();
 
     // profile this step
-    if (m_prof)
-        m_prof->push(m_exec_conf, "RATTLELangevin step 2");
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 2");
 
     // get the dimensionality of the system
-    const unsigned int D = m_sysdef->getNDimensions();
+    const unsigned int D = this->m_sysdef->getNDimensions();
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_gamma_r(m_gamma_r, access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_gamma_r(this->m_gamma_r, access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
         {
         ArrayHandle<Scalar> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_sumBD(this->m_sum, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
 
-        unsigned int group_size = m_group->getNumMembers();
+        unsigned int group_size = this->m_group->getNumMembers();
         m_num_blocks = group_size / m_block_size + 1;
 
         // perform the update on the GPU
         rattle_langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
-        args.n_types = m_gamma.getNumElements();
-        args.use_alpha = m_use_alpha;
-        args.alpha = m_alpha;
-        args.T = (*m_T)(timestep);
-        args.eta = m_eta;
+        args.n_types = this->m_gamma.getNumElements();
+        args.use_alpha = this->m_use_alpha;
+        args.alpha = this->m_alpha;
+        args.T = (*this->m_T)(timestep);
+        args.eta = this->m_eta;
         args.timestep = timestep;
-        args.seed = m_seed;
+        args.seed = this->m_seed;
         args.d_sum_bdenergy = d_sumBD.data;
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
         args.num_blocks = m_num_blocks;
-        args.noiseless_t = m_noiseless_t;
-        args.noiseless_r = m_noiseless_r;
-        args.tally = m_tally;
+        args.noiseless_t = this->m_noiseless_t;
+        args.noiseless_r = this->m_noiseless_r;
+        args.tally = this->m_tally;
 
         gpu_rattle_langevin_step_two<Manifold>(d_pos.data,
                               d_vel.data,
@@ -234,22 +234,22 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
                               group_size,
                               d_net_force.data,
                               args,
-                              m_manifold,
-                              m_deltaT,
+                              this->m_manifold,
+                              this->m_deltaT,
                               D);
 
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
 
-        if (m_aniso)
+        if (this->m_aniso)
             {
             // second part of angular update
-            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar4> d_net_torque(this->m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_inertia(this->m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
-            unsigned int group_size = m_group->getNumMembers();
+            unsigned int group_size = this->m_group->getNumMembers();
             gpu_rattle_langevin_angular_step_two(d_pos.data,
                                      d_orientation.data,
                                      d_angmom.data,
@@ -260,12 +260,12 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
                                      d_tag.data,
                                      group_size,
                                      args,
-                                     m_deltaT,
+                                     this->m_deltaT,
                                      D,
                                      1.0
                                      );
 
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
 
@@ -273,21 +273,21 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
 
 
 
-    if (m_tally)
+    if (this->m_tally)
         {
         ArrayHandle<Scalar> h_sumBD(m_sum, access_location::host, access_mode::read);
         #ifdef ENABLE_MPI
-        if (m_comm)
+        if (this->m_comm)
             {
-            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &h_sumBD.data[0], 1, MPI_HOOMD_SCALAR, MPI_SUM, this->m_exec_conf->getMPICommunicator());
             }
         #endif
-        m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
-        m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
+        this->m_reservoir_energy -= h_sumBD.data[0]*this->m_deltaT;
+        this->m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
         }
     // done profiling
-    if (m_prof)
-        m_prof->pop(m_exec_conf);
+    if (this->m_prof)
+        this->m_prof->pop(this->m_exec_conf);
     }
 
 template<class Manifold>
@@ -295,21 +295,21 @@ void TwoStepRATTLELangevinGPU<Manifold>::IncludeRATTLEForce(unsigned int timeste
     {
 
     // access all the needed data
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>&  net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+    const GlobalArray< Scalar4 >& net_force = this->m_pdata->getNetForce();
+    const GlobalArray<Scalar>&  net_virial = this->m_pdata->getNetVirial();
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
 
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     unsigned int net_virial_pitch = net_virial.getPitch();
 
     // perform the update on the GPU
-    m_exec_conf->beginMultiGPU();
+    this->m_exec_conf->beginMultiGPU();
     m_tuner_one->begin();
     gpu_include_rattle_force_nve<Manifold>(d_pos.data,
                      d_vel.data,
@@ -317,19 +317,19 @@ void TwoStepRATTLELangevinGPU<Manifold>::IncludeRATTLEForce(unsigned int timeste
                      d_net_force.data,
                      d_net_virial.data,
                      d_index_array.data,
-                     m_group->getGPUPartition(),
+                     this->m_group->getGPUPartition(),
                      net_virial_pitch,
-                     m_manifold,
-                     m_eta,
-                     m_deltaT,
+                     this->m_manifold,
+                     this->m_eta,
+                     this->m_deltaT,
                      false,
                      m_tuner_one->getParam());
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+    if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_one->end();
-    m_exec_conf->endMultiGPU();
+    this->m_exec_conf->endMultiGPU();
 
     }
 

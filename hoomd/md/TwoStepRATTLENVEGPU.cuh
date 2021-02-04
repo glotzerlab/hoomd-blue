@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -8,14 +9,21 @@
     \brief Declares GPU kernel code for RATTLENVE integration on the GPU. Used by TwoStepRATTLENVEGPU.
 */
 
-#include "hoomd/ParticleData.cuh"
+#pragma once
+
 #include "hoomd/HOOMDMath.h"
-#include "hoomd/GPUPartition.cuh"
+#include "hoomd/ParticleData.cuh"
+#include "hoomd/Index1D.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/CachedAllocator.h"
+
+#include "hoomd/GPUPartition.cuh"
+#include "TwoStepRATTLENVEGPU.cuh"
 
 #include <assert.h>
+#include <type_traits>
 
-inline __device__ Scalar maxNorm(Scalar3 vec, Scalar resid)
+inline __device__ Scalar maxNormGPU(Scalar3 vec, Scalar resid)
     {
     Scalar vec_norm = sqrt(dot(vec,vec));
     Scalar abs_resid = fabs(resid);
@@ -23,8 +31,79 @@ inline __device__ Scalar maxNorm(Scalar3 vec, Scalar resid)
     else return abs_resid;
     }
 
+
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_CUH__
 #define __TWO_STEP_RATTLE_NVE_GPU_CUH__
+
+hipError_t gpu_rattle_nve_step_one(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             const Scalar3 *d_accel,
+                             int3 *d_image,
+                             unsigned int *d_group_members,
+                             const GPUPartition& gpu_partition,
+                             const BoxDim& box,
+                             Scalar deltaT,
+                             bool limit,
+                             Scalar limit_val,
+                             unsigned int block_size);
+
+hipError_t gpu_rattle_nve_angular_step_one(Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             const GPUPartition& gpu_partition,
+                             Scalar deltaT,
+                             Scalar scale,
+                             const unsigned int block_size);
+
+template<class Manifold>
+hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             Scalar3 *d_accel,
+                             unsigned int *d_group_members,
+                             const GPUPartition& gpu_partition,
+                             Scalar4 *d_net_force,
+                             Manifold manifold,
+                             Scalar eta,
+                             Scalar deltaT,
+                             bool limit,
+                             Scalar limit_val,
+                             bool zero_force,
+                             unsigned int block_size);
+
+hipError_t gpu_rattle_nve_angular_step_two(const Scalar4 *d_orientation,
+                             Scalar4 *d_angmom,
+                             const Scalar3 *d_inertia,
+                             const Scalar4 *d_net_torque,
+                             unsigned int *d_group_members,
+                             const GPUPartition& gpu_partition,
+                             Scalar deltaT,
+                             Scalar scale,
+                             const unsigned int block_size);
+
+
+template<class Manifold>
+hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             Scalar3 *d_accel,
+                             Scalar4 *d_net_force,
+                             Scalar *d_net_virial,
+                             unsigned int *d_group_members,
+                             const GPUPartition& gpu_partition,
+                             unsigned int net_virial_pitch,
+			     Manifold manifold,
+                             Scalar eta,
+                             Scalar deltaT,
+                             bool zero_force,
+                             unsigned int block_size);
+
+
+#ifdef __HIPCC__
+
+/*! \file TwoStepNVEGPU.cu
+    \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
+*/
 
 //! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_pos array of particle positions
@@ -39,11 +118,9 @@ inline __device__ Scalar maxNorm(Scalar3 vec, Scalar resid)
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-
     This kernel must be executed with a 1D grid of any block size such that the number of threads is greater than or
     equal to the number of members in the group. The kernel's implementation simply reads one particle in each thread
     and updates that particle.
-
     <b>Performance notes:</b>
     Particle properties are read via the texture cache to optimize the bandwidth obtained with sparse groups. The writes
     in sparse groups will not be coalesced. However, because ParticleGroup sorts the index list the writes will be as
@@ -132,7 +209,6 @@ extern "C" __global__ void gpu_rattle_nve_step_one_kernel(Scalar4 *d_pos,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-
     See gpu_rattle_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
 hipError_t gpu_rattle_nve_step_one(Scalar4 *d_pos,
@@ -184,7 +260,7 @@ hipError_t gpu_rattle_nve_step_one(Scalar4 *d_pos,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-__global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4 *d_orientation,
+extern "C" __global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
@@ -357,11 +433,10 @@ hipError_t gpu_rattle_nve_angular_step_one(Scalar4 *d_orientation,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-
     This kernel is implemented in a very similar manner to gpu_rattle_nve_step_one_kernel(), see it for design details.
 */
 template<class Manifold>
-extern "C" __global__ void gpu_rattle_nve_step_two_kernel(
+ __global__ void gpu_rattle_nve_step_two_kernel(
                             Scalar4 *d_pos,
                             Scalar4 *d_vel,
                             Scalar3 *d_accel,
@@ -369,7 +444,7 @@ extern "C" __global__ void gpu_rattle_nve_step_two_kernel(
                             const unsigned int nwork,
                             const unsigned int offset,
                             Scalar4 *d_net_force,
-			                Manifold manifold,
+			    Manifold manifold,
                             Scalar eta,
                             Scalar deltaT,
                             bool limit,
@@ -412,9 +487,9 @@ extern "C" __global__ void gpu_rattle_nve_step_two_kernel(
 
         Scalar mu = 0;
         Scalar inv_alpha = -Scalar(1.0/2.0)*deltaT;
-	    inv_alpha = Scalar(1.0)/inv_alpha;
-	    Scalar mass = vel.w;
-	    Scalar inv_mass = Scalar(1.0)/mass;
+	inv_alpha = Scalar(1.0)/inv_alpha;
+	Scalar mass = vel.w;
+	Scalar inv_mass = Scalar(1.0)/mass;
    
         Scalar3 normal = manifold.derivative(pos);
    
@@ -448,7 +523,7 @@ extern "C" __global__ void gpu_rattle_nve_step_two_kernel(
             next_vel.z = next_vel.z - normal.z*beta + residual.z;
             mu =  mu - mass*beta*inv_alpha;
 
-	    } while (maxNorm(residual,resid)*mass > eta && iteration < maxiteration );
+	    } while (maxNormGPU(residual,resid)*mass > eta && iteration < maxiteration );
 	
 
         vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * inv_mass * normal.x) * deltaT;
@@ -483,7 +558,6 @@ extern "C" __global__ void gpu_rattle_nve_step_two_kernel(
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
     \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
-
     This is just a driver for gpu_rattle_nve_step_two_kernel(), see it for details.
 */
 template<class Manifold>
@@ -505,7 +579,7 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void *)gpu_rattle_nve_step_two_kernel);
+        hipFuncGetAttributes(&attr, (const void *)gpu_rattle_nve_step_two_kernel<Manifold>);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -549,7 +623,8 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-__global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
+ 
+extern "C" __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
                              const Scalar4 *d_net_torque,
@@ -642,8 +717,10 @@ hipError_t gpu_rattle_nve_angular_step_two(const Scalar4 *d_orientation,
     }
 
 
+
+
 template<class Manifold>
-extern "C" __global__ void gpu_include_rattle_force_nve_kernel<Manifold>(const Scalar4 *d_pos,
+__global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
                              const Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              Scalar4 *d_net_force,
@@ -652,7 +729,7 @@ extern "C" __global__ void gpu_include_rattle_force_nve_kernel<Manifold>(const S
                              const unsigned int nwork,
                              const unsigned int offset,
                              unsigned int net_virial_pitch,
-			                 Manifold manifold,
+			     Manifold manifold,
                              Scalar eta,
                              Scalar deltaT,
                              bool zero_force)
@@ -725,7 +802,7 @@ extern "C" __global__ void gpu_include_rattle_force_nve_kernel<Manifold>(const S
             next_pos = next_pos - beta*normal + residual;   
 	        lambda = lambda - beta*inv_alpha;
 	     
-	        } while (maxNorm(residual,resid) > eta && iteration < maxiteration );
+	        } while (maxNormGPU(residual,resid) > eta && iteration < maxiteration );
 
         accel -= lambda*normal;
 
@@ -759,7 +836,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
                              unsigned int net_virial_pitch,
-			                 Manifold manifold,
+			     Manifold manifold,
                              Scalar eta,
                              Scalar deltaT,
                              bool zero_force,
@@ -769,7 +846,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel);
+        hipFuncGetAttributes(&attr, (const void*)gpu_include_rattle_force_nve_kernel<Manifold>);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -792,5 +869,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
 
     return hipSuccess;
     }
+
+#endif
 
 #endif //__TWO_STEP_RATTLE_NVE_GPU_CUH__
