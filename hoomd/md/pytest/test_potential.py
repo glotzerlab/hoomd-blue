@@ -863,6 +863,16 @@ def _forces_and_energies():
                           'energies'])
 
     path = Path(__file__).parent / "forces_and_energies.json"
+
+    def json_with_inf(val):
+        if isinstance(val, str):
+            if val.lower() == "infinity":
+                return np.inf
+            elif val.lower() == "neg_infinity":
+                return -np.inf
+        else:
+            return val
+
     with path.open() as f:
         F_and_E = json.load(f)
         param_list = []
@@ -870,11 +880,14 @@ def _forces_and_energies():
             if pot[0].isalpha():
                 kT_dict = {'DPD': {'kT': 2}, 'DPDLJ': {'kT': 1}}.get(pot, {})
                 for i in range(3):
-                    param_list.append(FEtuple(getattr(md.pair, pot),
-                                              F_and_E[pot]["params"][i],
-                                              kT_dict,
-                                              F_and_E[pot]["forces"][i],
-                                              F_and_E[pot]["energies"][i]))
+                    param_list.append(FEtuple(
+                        getattr(md.pair, pot),
+                        F_and_E[pot]["params"][i],
+                        kT_dict,
+                        [json_with_inf(v) for v in F_and_E[pot]["forces"][i]],
+                        [json_with_inf(v) for v in F_and_E[pot]["energies"][i]]
+                        )
+                    )
     return param_list
 
 
@@ -885,7 +898,7 @@ def isclose(value, reference, rtol=5e-6):
         val = np.asarray(reference, np.float64)
         min_value = np.min(np.abs(reference))
         atol = 1e-6 if min_value == 0 else min_value / 1e4
-        return np.allclose(val, ref, rtol=rtol, atol=atol)
+        return np.allclose(val, ref, rtol=rtol, atol=atol, equal_nan=True)
     else:
         atol = 1e-6 if reference == 0 else 0
         return math.isclose(
