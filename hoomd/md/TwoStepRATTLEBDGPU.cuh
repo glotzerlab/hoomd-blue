@@ -562,7 +562,7 @@ extern "C" __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_p
                     next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	            mu = mu - beta*inv_alpha;
 	         
-	        } while (maxNorm(residual,resid) > eta && iteration < maxiteration );
+	        } while (maxNormGPU(residual,resid) > eta && iteration < maxiteration );
     
             net_force.x -= mu*normal.x;
             net_force.y -= mu*normal.y;

@@ -163,16 +163,16 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
                 TwoStepBDGPU.h
-                #TwoStepRATTLEBDGPU.h
-                #TwoStepRATTLEBDGPU.cuh
+                TwoStepRATTLEBDGPU.h
+                TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
                 TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
-                #TwoStepRATTLELangevinGPU.h
-                #TwoStepRATTLELangevinGPU.cuh
+                TwoStepRATTLELangevinGPU.h
+                TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
                 TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h

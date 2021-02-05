@@ -103,10 +103,10 @@
 #include "TableDihedralForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
-//#include "TwoStepRATTLEBDGPU.h"
+#include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
-//#include "TwoStepRATTLELangevinGPU.h"
+#include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepRATTLENVEGPU.h"
 #include "TwoStepNVEGPU.h"
@@ -384,14 +384,6 @@ PYBIND11_MODULE(_md, m)
     export_MuellerPlatheFlow(m);
 
     //RATTLE
-    export_TwoStepRATTLENVE<ManifoldClassCylinder>(m,"TwoStepRATTLENVECylinder");
-    export_TwoStepRATTLENVE<ManifoldClassDiamond>(m,"TwoStepRATTLENVEDiamond");
-    export_TwoStepRATTLENVE<ManifoldClassEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
-    export_TwoStepRATTLENVE<ManifoldClassGyroid>(m,"TwoStepRATTLENVEGyroid");
-    export_TwoStepRATTLENVE<ManifoldClassPlane>(m,"TwoStepRATTLENVEPlane");
-    export_TwoStepRATTLENVE<ManifoldClassPrimitive>(m,"TwoStepRATTLENVEPrimitive");
-    export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
-
     export_TwoStepRATTLEBD<ManifoldClassCylinder>(m,"TwoStepRATTLEBDCylinder");
     export_TwoStepRATTLEBD<ManifoldClassDiamond>(m,"TwoStepRATTLEBDDiamond");
     export_TwoStepRATTLEBD<ManifoldClassEllipsoid>(m,"TwoStepRATTLEBDEllipsoid");
@@ -408,19 +400,41 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevin<ManifoldClassPrimitive>(m,"TwoStepRATTLELangevinPrimitive");
     export_TwoStepRATTLELangevin<ManifoldClassSphere>(m,"TwoStepRATTLELangevinSphere");
 
+    export_TwoStepRATTLENVE<ManifoldClassCylinder>(m,"TwoStepRATTLENVECylinder");
+    export_TwoStepRATTLENVE<ManifoldClassDiamond>(m,"TwoStepRATTLENVEDiamond");
+    export_TwoStepRATTLENVE<ManifoldClassEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
+    export_TwoStepRATTLENVE<ManifoldClassGyroid>(m,"TwoStepRATTLENVEGyroid");
+    export_TwoStepRATTLENVE<ManifoldClassPlane>(m,"TwoStepRATTLENVEPlane");
+    export_TwoStepRATTLENVE<ManifoldClassPrimitive>(m,"TwoStepRATTLENVEPrimitive");
+    export_TwoStepRATTLENVE<ManifoldClassSphere>(m,"TwoStepRATTLENVESphere");
+
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
     export_TwoStepLangevinGPU(m);
-    //export_TwoStepRATTLELangevinGPU(m);
     export_TwoStepBDGPU(m);
-    //export_TwoStepRATTLEBDGPU(m);
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
     export_Enforce2DUpdaterGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
+
+    export_TwoStepRATTLEBDGPU<ManifoldClassCylinder>(m,"TwoStepRATTLEBDCylinderGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassDiamond>(m,"TwoStepRATTLEBDDiamondGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassEllipsoid>(m,"TwoStepRATTLEBDEllipsoidGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassGyroid>(m,"TwoStepRATTLEBDGyroidGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassPlane>(m,"TwoStepRATTLEBDPlaneGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassPrimitive>(m,"TwoStepRATTLEBDPrimitiveGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldClassSphere>(m,"TwoStepRATTLEBDSphereGPU");
+
+    export_TwoStepRATTLELangevinGPU<ManifoldClassCylinder>(m,"TwoStepRATTLELangevinCylinderGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassDiamond>(m,"TwoStepRATTLELangevinDiamondGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassEllipsoid>(m,"TwoStepRATTLELangevinEllipsoidGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassGyroid>(m,"TwoStepRATTLELangevinGyroidGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassPlane>(m,"TwoStepRATTLELangevinPlaneGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassPrimitive>(m,"TwoStepRATTLELangevinPrimitiveGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldClassSphere>(m,"TwoStepRATTLELangevinSphereGPU");
 
     export_TwoStepRATTLENVEGPU<ManifoldClassCylinder>(m,"TwoStepRATTLENVECylinderGPU");
     export_TwoStepRATTLENVEGPU<ManifoldClassDiamond>(m,"TwoStepRATTLENVEDiamondGPU");

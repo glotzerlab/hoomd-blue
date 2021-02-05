@@ -16,6 +16,7 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "TwoStepRATTLENVEGPU.cuh"
+#include "TwoStepLangevinGPU.cuh"
 using namespace hoomd;
 
 #include <assert.h>
@@ -23,6 +24,29 @@ using namespace hoomd;
 
 #ifndef __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
+
+//! Temporary holder struct to limit the number of arguments passed to gpu_rattle_langevin_step_two()
+struct rattle_langevin_step_two_args
+    {
+    Scalar *d_gamma;          //!< Device array listing per-type gammas
+    unsigned int n_types;     //!< Number of types in \a d_gamma
+    bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
+    Scalar alpha;            //!< Scale factor to convert diameter to alpha
+    Scalar T;                 //!< Current temperature
+    Scalar eta;                 
+    unsigned int timestep;    //!< Current timestep
+    unsigned int seed;        //!< User chosen random number seed
+    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
+    unsigned int block_size;  //!<  Block size
+    unsigned int num_blocks;  //!<  Number of blocks
+    bool noiseless_t;         //!<  If set true, there will be no translational noise (random force)
+    bool noiseless_r;         //!<  If set true, there will be no rotational noise (random torque)
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
+    };
+
+
+
 
 hipError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,

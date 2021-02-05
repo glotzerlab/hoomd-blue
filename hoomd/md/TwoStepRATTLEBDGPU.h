@@ -42,7 +42,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
                      unsigned int seed,
-                     Scalar eta = 0.000001);
+                     Scalar eta);
 
         virtual ~TwoStepRATTLEBDGPU() {};
 
@@ -70,7 +70,7 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
                      unsigned int seed,
-                     Scalar eta = 0.000001)
+                     Scalar eta)
     : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, seed, eta)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -80,7 +80,7 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
         }
 
     unsigned int group_size = this->m_group->getNumMembersGlobal();
-    GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);
+    GPUArray<unsigned int> tmp_groupTags(group_size, this->m_exec_conf);
     ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
 
     for (unsigned int i = 0; i < group_size; i++)
@@ -282,3 +282,4 @@ void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
 			       Scalar>())
         ;
     }
+#endif // ENABLE_HIP

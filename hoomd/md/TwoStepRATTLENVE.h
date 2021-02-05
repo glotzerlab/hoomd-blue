@@ -44,8 +44,8 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ParticleGroup> group,
                    Manifold manifold,
-                   bool skip_restart=false,
-                   Scalar eta = 0.000001);
+                   bool skip_restart,
+                   Scalar eta);
 
         virtual ~TwoStepRATTLENVE()
         {

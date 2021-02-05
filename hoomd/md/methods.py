@@ -682,10 +682,6 @@ class NVE_Rattle(_Method):
                 my_class = _md.TwoStepRATTLENVESphere
             else:
                 raise AttributeError("Manifold class not implemented")
-            
-            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                        self._simulation.state._get_group(self.filter), 
-                                        self.manifold._cpp_manifold, False, self.eta)
         else:
             if self.manifold.name == "Cylinder":
                 my_class = _md.TwoStepRATTLENVECylinderGPU
@@ -704,9 +700,9 @@ class NVE_Rattle(_Method):
             else:
                 raise AttributeError("Manifold class not implemented")
 
-            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state._get_group(self.filter),
-                                 self.manifold._cpp_manifold)
+        self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
+                                 self._simulation.state._get_group(self.filter), 
+                                 self.manifold._cpp_manifold, False, self.eta)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -1033,15 +1029,28 @@ class Langevin_Rattle(_Method):
             else:
                 raise AttributeError("Manifold class not implemented")
             
-            self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                          sim.state._get_group(self.filter),
-                                          self.manifold._cpp_manifold,
-                                          self.kT, self.seed, self.eta);
         else:
-            self._cpp_manifold = _md.TwoStepRATTLELangevinGPU(sim.state._cpp_sys_def,
-                                             sim.state._get_group(self.filter),
-                                             self.manifold._cpp_manifold,
-                                             self.kT, self.seed, self.eta);
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLELangevinCylinderGPU
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLELangevinDiamondGPU
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLELangevinEllipsoidGPU
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLELangevinGyroidGPU
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLELangevinPlaneGPU
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLELangevinPrimitiveGPU
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLELangevinSphereGPU
+            else:
+                raise AttributeError("Manifold class not implemented")
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter),
+                                 self.manifold._cpp_manifold,
+                                 self.kT, self.seed, self.eta);
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -1357,15 +1366,28 @@ class Brownian_Rattle(_Method):
             else:
                 raise AttributeError("Manifold class not implemented")
             
-            self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                          sim.state._get_group(self.filter),
-                                          self.manifold._cpp_manifold,
-                                          self.kT, self.seed, self.eta);
         else:
-            self._cpp_obj = _md.TwoStepRATTLEBDGPU(sim.state._cpp_sys_def,
-                                             sim.state._get_group(self.filter),
-                                             self.manifold._cpp_manifold,
-                                             self.kT, self.seed, self.eta);
+            if self.manifold.name == "Cylinder":
+                my_class = _md.TwoStepRATTLEBDCylinderGPU
+            elif self.manifold.name == "Diamond":
+                my_class = _md.TwoStepRATTLEBDDiamondGPU
+            elif self.manifold.name == "Ellipsoid":
+                my_class = _md.TwoStepRATTLEBDEllipsoidGPU
+            elif self.manifold.name == "Gyroid":
+                my_class = _md.TwoStepRATTLEBDGyroidGPU
+            elif self.manifold.name == "Plane":
+                my_class = _md.TwoStepRATTLEBDPlaneGPU
+            elif self.manifold.name == "Primitive":
+                my_class = _md.TwoStepRATTLEBDPrimitiveGPU
+            elif self.manifold.name == "Sphere":
+                my_class = _md.TwoStepRATTLEBDSphereGPU
+            else:
+                raise AttributeError("Manifold class not implemented")
+
+        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter),
+                                 self.manifold._cpp_manifold,
+                                 self.kT, self.seed, self.eta);
 
         # Attach param_dict and typeparam_dict
         super()._attach()

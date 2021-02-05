@@ -40,30 +40,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                      	   Manifold manifold,
                            std::shared_ptr<Variant> T,
                            unsigned int seed,
-                           Scalar eta = 0.000001)
-        : TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, seed, eta)
-        {
-        if (!this->m_exec_conf->isCUDAEnabled())
-            {
-            this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
-            throw std::runtime_error("Error initializing TwoStepRATTLELangevinGPU");
-            }
-
-        // allocate the sum arrays
-        GPUArray<Scalar> sum(1, this->m_exec_conf);
-        m_sum.swap(sum);
-
-        // initialize the partial sum array
-        m_block_size = 256;
-        unsigned int group_size = this->m_group->getNumMembers();
-        m_num_blocks = group_size / m_block_size + 1;
-        GPUArray<Scalar> partial_sum1(m_num_blocks, this->m_exec_conf);
-        m_partial_sum1.swap(partial_sum1);
-
-        hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
-        m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_nve", this->m_exec_conf));
-        m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_angular", this->m_exec_conf));
-        }
+                           Scalar eta);
 
 
         virtual ~TwoStepRATTLELangevinGPU() {};
@@ -106,6 +83,37 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
 
     This method is copied directly from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
 */
+
+template<class Manifold>
+TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+             	   Manifold manifold,
+                   std::shared_ptr<Variant> T,
+                   unsigned int seed,
+                   Scalar eta)
+: TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, seed, eta)
+{
+if (!this->m_exec_conf->isCUDAEnabled())
+    {
+    this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLELangevinGPU while CUDA is disabled" << endl;
+    throw std::runtime_error("Error initializing TwoStepRATTLELangevinGPU");
+    }
+
+// allocate the sum arrays
+GPUArray<Scalar> sum(1, this->m_exec_conf);
+m_sum.swap(sum);
+
+// initialize the partial sum array
+m_block_size = 256;
+unsigned int group_size = this->m_group->getNumMembers();
+m_num_blocks = group_size / m_block_size + 1;
+GPUArray<Scalar> partial_sum1(m_num_blocks, this->m_exec_conf);
+m_partial_sum1.swap(partial_sum1);
+
+hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
+m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_nve", this->m_exec_conf));
+m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "rattle_langevin_angular", this->m_exec_conf));
+}
 template<class Manifold>
 void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     {
@@ -336,7 +344,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::IncludeRATTLEForce(unsigned int timeste
 template<class Manifold>
 void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLELangevinGPU<Manifold>, TwoStepRATTLELangevin<Manifold>, std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold> > >(m, nmae.c_str())
+    py::class_<TwoStepRATTLELangevinGPU<Manifold>, TwoStepRATTLELangevin<Manifold>, std::shared_ptr<TwoStepRATTLELangevinGPU<Manifold> > >(m, name.c_str())
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
                                Manifold,
@@ -346,3 +354,4 @@ void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
                                >())
         ;
     }
+#endif // ENABLE_HIP

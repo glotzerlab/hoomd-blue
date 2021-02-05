@@ -40,7 +40,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 {
 	public:
 	//! Constructs the integration method and associates it with the system
-	TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold);
+	TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar eta);
 	
 	virtual ~TwoStepRATTLENVEGPU(){};
 	
@@ -87,8 +87,8 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     \param group The group of particles this integration method is to work on
 */
 template<class Manifold> 
-TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold)
-    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold,false,0.00001)
+TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar eta)
+    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, eta)
     {
     // only one GPU is supported
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -304,7 +304,7 @@ template<class Manifold>
 void export_TwoStepRATTLENVEGPU(py::module& m, const std::string& name)
 {
 py::class_<TwoStepRATTLENVEGPU<Manifold>, TwoStepRATTLENVE<Manifold>, std::shared_ptr<TwoStepRATTLENVEGPU<Manifold> > >(m, name.c_str())
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Manifold >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Manifold, bool, Scalar >())
         ;
     }
 
