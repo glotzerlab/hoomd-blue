@@ -82,16 +82,7 @@ class ManifoldClassDiamond
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 box_length = box.getHi() - box.getLo();
-
-         Lx = M_PI*Nx/box_length.x;
-         Ly = M_PI*Ny/box_length.y;
-         Lz = M_PI*Nz/box_length.z;
-         
-         return false;
-        }
+        DEVICE bool validate(const BoxDim box);
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -113,13 +104,6 @@ class ManifoldClassDiamond
     };
 
 //! Exports the Diamond manifold class to python
-void export_ManifoldClassDiamond(pybind11::module& m)
-    {
-    py::class_< ManifoldClassDiamond, std::shared_ptr<ManifoldClassDiamond> >(m, "ManifoldClassDiamond")
-    .def(py::init<int, int, int, Scalar >())
-    .def("implicit_function", &ManifoldClassDiamond::implicit_function)
-    .def("derivative", &ManifoldClassDiamond::derivative)
-    ;
-    }
+void export_ManifoldClassDiamond(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_DIAMOND_H__

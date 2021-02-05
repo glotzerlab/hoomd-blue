@@ -86,19 +86,7 @@ class ManifoldClassCylinder
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 lo = box.getLo();
-         Scalar3 hi = box.getHi();
-         Scalar sqR = fast::sqrt(R);
-         if (Px + sqR > hi.x || Px - sqR < lo.x ||
-             Py + sqR > hi.y || Py - sqR < lo.y ||
-             Pz > hi.z || Pz < lo.z)
-             {
-             return true;
-             }
-             else return false;
-        }
+        DEVICE bool validate(const BoxDim box);
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -117,13 +105,6 @@ class ManifoldClassCylinder
     };
 
 //! Exports the Cylinder manifold class to python
-void export_ManifoldClassCylinder(pybind11::module& m)
-    {
-    py::class_< ManifoldClassCylinder, std::shared_ptr<ManifoldClassCylinder> >(m, "ManifoldClassCylinder")
-    .def(py::init<Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldClassCylinder::implicit_function)
-    .def("derivative", &ManifoldClassCylinder::derivative)
-    ;
-    }
+void export_ManifoldClassCylinder(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_CYLINDER_H__

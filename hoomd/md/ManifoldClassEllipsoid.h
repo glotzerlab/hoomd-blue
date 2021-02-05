@@ -90,23 +90,8 @@ class ManifoldClassEllipsoid
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 lo = box.getLo();
-         Scalar3 hi = box.getHi();
-         Scalar ia = Scalar(1.0)/fast::sqrt(a);
-         Scalar ib = Scalar(1.0)/fast::sqrt(b);
-         Scalar ic = Scalar(1.0)/fast::sqrt(c);
-
-         if (Px + ia > hi.x || Px - ia < lo.x ||
-             Py + ib > hi.y || Py - ib < lo.y ||
-             Pz + ic > hi.z || Pz - ic < lo.z)
-             {
-             return true;
-             }
-             else return false;
-        }
-
+        DEVICE bool validate(const BoxDim box);
+	//
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
             via analyze.log.
@@ -126,14 +111,6 @@ class ManifoldClassEllipsoid
     };
 
 //! Exports the Ellipsoid manifold class to python
-void export_ManifoldClassEllipsoid(pybind11::module& m)
-    {
-    py::class_< ManifoldClassEllipsoid, std::shared_ptr<ManifoldClassEllipsoid> >(m, "ManifoldClassEllipsoid")
-    .def(py::init<Scalar, Scalar, Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldClassEllipsoid::implicit_function)
-    .def("derivative", &ManifoldClassEllipsoid::derivative)
-    ;
-    }
-
+void export_ManifoldClassEllipsoid(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_ELLIPSOID_H__

@@ -79,16 +79,7 @@ class ManifoldClassPlane
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 lo = box.getLo();
-         Scalar3 hi = box.getHi();
-         if (shift > hi.z || shift < lo.z)
-             {
-             return true;
-             }
-             else return false;
-        }
+        DEVICE bool validate(const BoxDim box);
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -104,13 +95,6 @@ class ManifoldClassPlane
     };
 
 //! Exports the Plane manifold class to python
-void export_ManifoldClassPlane(pybind11::module& m)
-    {
-    py::class_< ManifoldClassPlane, std::shared_ptr<ManifoldClassPlane> >(m, "ManifoldClassPlane")
-    .def(py::init<Scalar >())
-    .def("implicit_function", &ManifoldClassPlane::implicit_function)
-    .def("derivative", &ManifoldClassPlane::derivative)
-    ;
-    }
+void export_ManifoldClassPlane(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_PLANE_H__

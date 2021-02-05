@@ -85,19 +85,9 @@ class ManifoldClassSphere
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 lo = box.getLo();
-         Scalar3 hi = box.getHi();
-         Scalar sqR = fast::sqrt(R);
-         if (Px + sqR > hi.x || Px - sqR < lo.x ||
-             Py + sqR > hi.y || Py - sqR < lo.y ||
-             Pz + sqR > hi.z || Pz - sqR < lo.z)
-             {
-             return true;
-             }
-             else return false;
-        }
+
+        DEVICE bool validate(const BoxDim box);
+
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -116,13 +106,6 @@ class ManifoldClassSphere
     };
 
 //! Exports the Sphere manifold class to python
-void export_ManifoldClassSphere(pybind11::module& m)
-    {
-    py::class_< ManifoldClassSphere, std::shared_ptr<ManifoldClassSphere> >(m, "ManifoldClassSphere")
-    .def(py::init<Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldClassSphere::implicit_function)
-    .def("derivative", &ManifoldClassSphere::derivative)
-    ;
-    }
+void export_ManifoldClassSphere(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_SPHERE_H__

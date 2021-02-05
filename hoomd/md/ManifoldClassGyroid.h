@@ -85,16 +85,7 @@ class ManifoldClassGyroid
             return delta;
         }
 
-        DEVICE bool validate(const BoxDim box)
-        {
-         Scalar3 box_length = box.getHi() - box.getLo();
-
-         Lx = 2*M_PI*Nx/box_length.x;
-         Ly = 2*M_PI*Ny/box_length.y;
-         Lz = 2*M_PI*Nz/box_length.z;
-         
-         return false;
-        }
+        DEVICE bool validate(const BoxDim box);
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -116,13 +107,6 @@ class ManifoldClassGyroid
     };
 
 //! Exports the Gyroid manifold class to python
-void export_ManifoldClassGyroid(pybind11::module& m)
-    {
-    py::class_< ManifoldClassGyroid, std::shared_ptr<ManifoldClassGyroid> >(m, "ManifoldClassGyroid")
-    .def(py::init<int, int, int, Scalar >())
-    .def("implicit_function", &ManifoldClassGyroid::implicit_function)
-    .def("derivative", &ManifoldClassGyroid::derivative)
-    ;
-    }
+void export_ManifoldClassGyroid(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_GYROID_H__

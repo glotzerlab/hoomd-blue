@@ -20,6 +20,13 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   ManifoldClassCylinder.cc
+                   ManifoldClassDiamond.cc
+                   ManifoldClassEllipsoid.cc
+                   ManifoldClassGyroid.cc
+                   ManifoldClassPlane.cc
+                   ManifoldClassPrimitive.cc
+                   ManifoldClassSphere.cc
                    MolecularForceCompute.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -273,13 +280,23 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu
                       TwoStepBDGPU.cu
+		      TwoStepRATTLEBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
+		      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
+		      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
+		      all_kernels_cylinder_manifold.cu
+		      all_kernels_diamond_manifold.cu
+		      all_kernels_ellipsoid_manifold.cu
+		      all_kernels_gyroid_manifold.cu
+		      all_kernels_plane_manifold.cu
+		      all_kernels_primitive_manifold.cu
+		      all_kernels_sphere_manifold.cu
                       )
 
 if (ENABLE_HIP)
