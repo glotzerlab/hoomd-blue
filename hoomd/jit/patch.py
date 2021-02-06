@@ -133,13 +133,13 @@ class UserPatch(Compute):
                                    array_size = array_size)
         self._param_dict.update(param_dict)
         # these only exist on python
-        self.clang_exec = clang_exec if clang_exec is not None else 'clang'
+        clang = clang_exec if clang_exec is not None else 'clang'
         if code is not None:
-            self.llvm_ir = self._compile_user(array_size, 1, code, clang)
+            self._llvm_ir = self._compile_user(array_size, 1, code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
-                self.llvm_ir = f.read()
+                self._llvm_ir = f.read()
 
         self._enabled = True
         self._log_only = False
@@ -173,10 +173,10 @@ class UserPatch(Compute):
                     max_arch = int(a)
 
             gpu_code = self._wrap_gpu_code(code)
-            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
+            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, self._llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size)
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self._llvm_ir, self.r_cut, self.array_size)
 
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
