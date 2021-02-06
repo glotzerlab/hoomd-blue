@@ -3,6 +3,7 @@
 
 from hoomd import _hoomd
 from hoomd.jit import _jit
+from hoomd.operation import Compute
 import hoomd
 
 import subprocess
