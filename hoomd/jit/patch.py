@@ -10,7 +10,7 @@ import os
 
 import numpy as np
 
-class UserPatch(object):
+class UserPatch(Compute):
     R''' Define an arbitrary patch energy.
 
     Args:
@@ -142,35 +142,8 @@ class UserPatch(object):
 
         self._enabled = True
         self._log_only = False
-        self._cpp_obj.alpha_iso[:] = [0]*array_size
-        self.alpha_iso = self._cpp_obj.alpha_iso
-        
-    @property
-    def enable(self):
-        return self._enable
-
-    @property.setter
-    def enable(self, value):
-        self._enable = value
-        if self._attached:
-            arg = self._cpp_obj if value else None:
-            self._simulation.operations.integrator._cpp_obj.setPatchEnergy(arg)
-
-    @property
-    def log_only(self):
-        return self._log_only
-
-    @property.setter
-    def log_only(self, log):
-        self._log_only = log
-        if self._attached:
-            if log:
-                # enable only for logging purposes
-                self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
-            else:
-                # disable completely
-                self._simulation.operations.integrator._cpp_obj.setPatchEnergy(None)
-                self.enable = False
+        # self._cpp_obj.alpha_iso[:] = [0]*array_size
+        self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -202,9 +175,44 @@ class UserPatch(object):
             self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size);
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self.llvm_ir, self.r_cut, self.array_size)
 
-        integrator.set_PatchEnergyEvaluator(self);
+        self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
+        self.alpha_iso = self._cpp_obj.alpha_iso
+
+        integrator._cpp_obj.disablePatchEnergyLogOnly(self._log_only)
+        arg = self._cpp_obj if self._enable else None:
+        integrator._cpp_obj.setPatchEnergy(arg)
+        super()._attach()
+
+    @property
+    def enable(self):
+        return self._enable
+
+    @property.setter
+    def enable(self, value):
+        self._enable = value
+        if not self._enable and self._log_only:
+            self._log_only = False
+        if self._attached:
+            arg = self._cpp_obj if self._enable else None:
+            self._simulation.operations.integrator._cpp_obj.setPatchEnergy(arg)
+
+    @property
+    def log_only(self):
+        return self._log_only
+
+    @property.setter
+    def log_only(self, log):
+        self._log_only = log
+        if self._log_only and not self._enable:
+            self._enable = True
+        if self._attached:
+            self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
+            # if log:
+            #     self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
+            # else:
+            #     self._simulation.operations.integrator._cpp_obj.setPatchEnergy(None)
 
 
     def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
@@ -309,31 +317,6 @@ __device__ inline float eval(const vec3<float>& r_ij,
 
         # Compile on C++ side
         return cpp_function
-
-    R''' Disable the patch energy and optionally enable it only for logging
-
-    Args:
-        log (bool): If true, only use patch energy as a log quantity
-
-    '''
-    def disable(self,log=None):
-
-        if log:
-            # enable only for logging purposes
-            self.mc.cpp_integrator.disablePatchEnergyLogOnly(log)
-            self.log = True
-        else:
-            # disable completely
-            self.mc.cpp_integrator.setPatchEnergy(None);
-            self.log = False
-
-        self.enabled = False
-
-    R''' (Re-)Enable the patch energy
-
-    '''
-    def enable(self):
-        self.mc.cpp_integrator.setPatchEnergy(self._cpp_obj);
 
 class UserUnionPatch(user):
     R''' Define an arbitrary patch energy on a union of particles

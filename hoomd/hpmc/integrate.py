@@ -172,7 +172,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     # Set the patch
     def set_PatchEnergyEvaluator(self, patch):
-        self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
+        self._cpp_obj.setPatchEnergy(patch._cpp_obj)
 
     # TODO need to validate somewhere that quaternions are normalized
 
