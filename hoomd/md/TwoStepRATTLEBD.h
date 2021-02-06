@@ -308,7 +308,7 @@ void TwoStepRATTLEBD<Manifold>::IncludeRATTLEForce(unsigned int timestep)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
-    unsigned int net_virial_pitch = net_virial.getPitch();
+    size_t net_virial_pitch = net_virial.getPitch();
 
     unsigned int maxiteration = 10;
 

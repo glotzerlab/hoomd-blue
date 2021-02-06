@@ -35,7 +35,7 @@ using namespace hoomd;
 struct rattle_bd_step_one_args
     {
     Scalar *d_gamma;          //!< Device array listing per-type gammas
-    unsigned int n_types;     //!< Number of types in \a d_gamma
+    size_t n_types;          //!< Number of types in \a d_gamma
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
@@ -79,7 +79,7 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
 			          Manifold manifold,
-                                  unsigned int net_virial_pitch,
+                                  size_t net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const GPUPartition& gpu_partition
@@ -99,15 +99,15 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                                   const unsigned int *d_groupTags,
                                   const unsigned int nwork,
                                   const Scalar *d_gamma,
-                                  const unsigned int n_types,
+                                  const size_t n_types,
                                   const bool use_alpha,
                                   const Scalar alpha,
                                   const unsigned int timestep,
                                   const unsigned int seed,
                                   const Scalar T,
                                   const Scalar eta,
-				                  Manifold manifold,
-                                  unsigned int net_virial_pitch,
+                                  Manifold manifold,
+                                  size_t net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const unsigned int offset)
@@ -312,8 +312,8 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                   const unsigned int *d_groupTags,
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
-			                      Manifold manifold,
-                                  unsigned int net_virial_pitch,
+				  Manifold manifold,
+                                  size_t net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const GPUPartition& gpu_partition
@@ -350,7 +350,7 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                      rattle_bd_args.seed,
                                      rattle_bd_args.T,
                                      rattle_bd_args.eta,
-			                         manifold,
+				     manifold,
                                      net_virial_pitch,
                                      deltaT,
                                      d_noiseless_t,

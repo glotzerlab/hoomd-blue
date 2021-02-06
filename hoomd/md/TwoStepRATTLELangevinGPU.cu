@@ -42,7 +42,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
                              const unsigned int *d_group_members,
                              const Scalar3 *d_gamma_r,
                              const unsigned int *d_tag,
-                             unsigned int n_types,
+                             size_t n_types,
                              unsigned int group_size,
                              unsigned int timestep,
                              unsigned int seed,

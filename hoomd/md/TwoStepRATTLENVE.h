@@ -494,7 +494,7 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
 
-    unsigned int net_virial_pitch = net_virial.getPitch();
+    size_t net_virial_pitch = net_virial.getPitch();
     unsigned int maxiteration = 10;
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet

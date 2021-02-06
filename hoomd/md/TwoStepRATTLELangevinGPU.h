@@ -314,7 +314,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::IncludeRATTLEForce(unsigned int timeste
 
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
-    unsigned int net_virial_pitch = net_virial.getPitch();
+    size_t net_virial_pitch = net_virial.getPitch();
 
     // perform the update on the GPU
     this->m_exec_conf->beginMultiGPU();

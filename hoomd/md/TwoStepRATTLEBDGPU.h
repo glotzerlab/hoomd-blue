@@ -212,7 +212,7 @@ void TwoStepRATTLEBDGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
     ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
-    unsigned int net_virial_pitch = net_virial.getPitch();
+    size_t net_virial_pitch = net_virial.getPitch();
 
     
     rattle_bd_step_one_args args;

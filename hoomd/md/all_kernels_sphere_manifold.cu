@@ -19,7 +19,7 @@ template hipError_t gpu_include_rattle_force_bd<ManifoldClassSphere>(const Scala
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
 			          ManifoldClassSphere manifold,
-                                  unsigned int net_virial_pitch,
+                                  size_t net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const GPUPartition& gpu_partition
@@ -59,7 +59,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldClassSphere>(const Scal
                              Scalar *d_net_virial,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
-                             unsigned int net_virial_pitch,
+                             size_t net_virial_pitch,
 			     ManifoldClassSphere manifold,
                              Scalar eta,
                              Scalar deltaT,

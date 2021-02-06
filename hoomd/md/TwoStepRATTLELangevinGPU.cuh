@@ -27,7 +27,7 @@ using namespace hoomd;
 struct rattle_langevin_step_two_args
     {
     Scalar *d_gamma;          //!< Device array listing per-type gammas
-    unsigned int n_types;     //!< Number of types in \a d_gamma
+    size_t n_types;          //!< Number of types in \a d_gamma
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
@@ -124,7 +124,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  unsigned int group_size,
                                  Scalar4 *d_net_force,
                                  Scalar *d_gamma,
-                                 unsigned int n_types,
+                                 size_t n_types,
                                  bool use_alpha,
                                  Scalar alpha,
                                  unsigned int timestep,
