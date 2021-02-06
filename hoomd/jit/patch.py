@@ -158,7 +158,7 @@ class UserPatch(Compute):
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
-            include_path_source = hoomd._hoomd.__hoomd_source_dir__
+            include_path_source = hoomd.version.source_dir
             include_path_cuda = _jit.__cuda_include_path__
             options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
@@ -211,10 +211,6 @@ class UserPatch(Compute):
             self._enable = True
         if self._attached:
             self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
-            # if log:
-            #     self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
-            # else:
-            #     self._simulation.operations.integrator._cpp_obj.setPatchEnergy(None)
 
 
     def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
@@ -419,7 +415,7 @@ class UserUnionPatch(UserPatch):
 
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
-            include_path_source = hoomd._hoomd.__hoomd_source_dir__
+            include_path_source = hoomd.version.source_dir
             include_path_cuda = _jit.__cuda_include_path__
             options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
 
