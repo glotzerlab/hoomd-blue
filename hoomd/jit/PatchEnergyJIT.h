@@ -53,7 +53,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
 
         unsigned int getArraySize()
             {
-            return array_size;
+            return m_alpha_size;
             }
 
         //! Get the maximum r_ij radius beyond which energies are always 0
