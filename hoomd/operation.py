@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -173,7 +173,7 @@ class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
         return dict_filter(dict_map(state, _convert_values_to_log_form),
                            lambda x: x is not RequiredArg)
 
-    @log(flag='state')
+    @log(category='state')
     def state(self):
         """The state of the object.
 
@@ -455,8 +455,16 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         for key in self._param_dict.keys():
             self._param_dict[key] = getattr(self, key)
 
-    @log(flag='state')
+    @log(category='state')
     def state(self):
+        """The state of the object.
+
+        Provides a mapping of attributes to their values for use in storing
+        objects state for later object reinitialization. An object's state can
+        be used to create an identical object using the `from_state` method
+        (some object require other parameters to be passed in `from_state`
+        besides the state mapping).
+        """
         self._update_param_dict()
         return super()._get_state()
 
@@ -525,6 +533,13 @@ class _TriggeredOperation(Operation):
 
     def _attach(self):
         super()._attach()
+
+    def _update_param_dict(self):
+        if self._attached:
+            for key in self._param_dict:
+                if key == 'trigger':
+                    continue
+                self._param_dict[key] = getattr(self._cpp_obj, key)
 
 
 class Updater(_TriggeredOperation):

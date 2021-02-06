@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -337,7 +337,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
     // constraints correctly)
     const Scalar eps(0.001);
-    unsigned int m = N_i.size();
+    unsigned int m = (unsigned int)N_i.size();
     unsigned int n = m - 1;
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
     A(0,0) = 1.0; A(m,0) = eps;

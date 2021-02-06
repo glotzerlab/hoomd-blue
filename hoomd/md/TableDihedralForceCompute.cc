@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -52,7 +52,8 @@ TableDihedralForceCompute::TableDihedralForceCompute(std::shared_ptr<SystemDefin
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_dihedral_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(),
+                        (unsigned int)m_dihedral_data->getNTypes());
     m_table_value = table_value;
 
     m_log_name = std::string("dihedral_table_energy") + log_suffix;
@@ -144,7 +145,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_virial.data);
     assert(h_pos.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -277,7 +278,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
 
         /// Here we use the table!!
         unsigned int dihedral_type = m_dihedral_data->getTypeByIndex(i);
-        unsigned int value_i = value_f;
+        unsigned int value_i = (unsigned int)value_f;
         Scalar2 VT0 = h_tables.data[m_table_value(value_i, dihedral_type)];
         Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, dihedral_type)];
         // unpack the data

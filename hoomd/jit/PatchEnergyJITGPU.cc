@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifdef ENABLE_HIP
@@ -39,9 +39,9 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
+    unsigned int shared_bytes = (unsigned int)(n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
         + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes;
+        + min_shared_bytes);
 
     if (min_shared_bytes >= devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -66,9 +66,9 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar))
+        shared_bytes = (unsigned int)(n_groups * (4*sizeof(unsigned int) + 2*sizeof(Scalar4) + 2*sizeof(Scalar3) + 2*sizeof(Scalar)
             + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes;
+            + min_shared_bytes));
         }
 
     dim3 thread(eval_threads, tpp, n_groups);

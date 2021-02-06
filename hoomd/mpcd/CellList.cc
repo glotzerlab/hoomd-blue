@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -146,9 +146,9 @@ void mpcd::CellList::updateGlobalBox()
 
     // box must be evenly divisible by cell size
     const Scalar3 L = global_box.getL();
-    m_global_cell_dim = make_uint3(round(L.x/m_cell_size),
-                                   round(L.y/m_cell_size),
-                                   round(L.z/m_cell_size));
+    m_global_cell_dim = make_uint3((unsigned int)round(L.x/m_cell_size),
+                                   (unsigned int)round(L.y/m_cell_size),
+                                   (unsigned int)round(L.z/m_cell_size));
     if (m_sysdef->getNDimensions() == 2)
         {
         if (m_global_cell_dim.z > 1)
@@ -202,21 +202,21 @@ void mpcd::CellList::computeDimensions()
 
         // setup lo bin
         const Scalar3 delta_lo = box.getLo() - global_lo;
-        int3 my_lo_bin = make_int3(std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
-        int3 lo_neigh_bin = make_int3(std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
+        int3 my_lo_bin = make_int3((int)std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
+        int3 lo_neigh_bin = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
 
         // setup hi bin
         const Scalar3 delta_hi = box.getHi() - global_lo;
-        int3 my_hi_bin = make_int3(std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
-        int3 hi_neigh_bin = make_int3(std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
+        int3 my_hi_bin = make_int3((int)std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
+        int3 hi_neigh_bin = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
 
         // initially size the grid assuming one rank in each direction, and then resize based on communication
         m_cell_dim = m_global_cell_dim;
@@ -555,9 +555,9 @@ void mpcd::CellList::buildCellList()
 
         // bin particle assuming orthorhombic box (already validated)
         const Scalar3 delta = (pos_i - m_grid_shift) - global_lo;
-        int3 global_bin = make_int3(std::floor(delta.x / m_cell_size),
-                                    std::floor(delta.y / m_cell_size),
-                                    std::floor(delta.z / m_cell_size));
+        int3 global_bin = make_int3((int)std::floor(delta.x / m_cell_size),
+                                    (int)std::floor(delta.y / m_cell_size),
+                                    (int)std::floor(delta.z / m_cell_size));
 
         // wrap cell back through the boundaries (grid shifting may send +/- 1 outside of range)
         // this is done using periodic from the "local" box, since this will be periodic

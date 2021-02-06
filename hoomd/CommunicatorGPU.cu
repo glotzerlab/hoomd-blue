@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,6 +12,8 @@
 #include "CommunicatorGPU.cuh"
 #include "ParticleData.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
 #include <thrust/sort.h>
@@ -24,6 +26,7 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 
@@ -390,7 +393,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = N/block_size + 1;
-    unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
+    unsigned int shared_bytes = (unsigned int)(2 *sizeof(Scalar3) * ntypes);
 
     hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel, dim3(n_blocks), dim3(block_size), shared_bytes, 0,
         N,

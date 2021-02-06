@@ -16,5 +16,5 @@ hoomd.version
               install_dir,
               mpi_enabled,
               source_dir,
-              tbb_enabled
-
+              tbb_enabled,
+              version

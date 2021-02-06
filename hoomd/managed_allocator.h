@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 //! Class to perform cudaMallocManaged allocations
@@ -10,31 +10,9 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#include "GlobalArray.h" // for my_align
 #include <iostream>
 #include <memory>
-
-#ifdef __GNUC__
-#define GCC_VERSION (__GNUC__ * 10000 \
-                     + __GNUC_MINOR__ * 100 \
-                     + __GNUC_PATCHLEVEL__)
-/* Test for GCC < 5.0 */
-#if GCC_VERSION < 50000
-// work around GCC missing feature
-
-#define NO_STD_ALIGN
-// https://stackoverflow.com/questions/27064791/stdalign-not-supported-by-g4-9
-// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57350
-inline void *my_align( std::size_t alignment, std::size_t size,
-                    void *&ptr, std::size_t &space ) {
-    std::uintptr_t pn = reinterpret_cast< std::uintptr_t >( ptr );
-    std::uintptr_t aligned = ( pn + alignment - 1 ) & - alignment;
-    std::size_t padding = aligned - pn;
-    if ( space < size + padding ) return nullptr;
-    space -= padding;
-    return ptr = reinterpret_cast< void * >( aligned );
-    }
-#endif
-#endif
 
 template<class T>
 class managed_allocator
@@ -120,7 +98,7 @@ class managed_allocator
                     #ifndef NO_STD_ALIGN
                     std::align(align_size,n*sizeof(T),result,allocation_bytes);
                     #else
-                    my_align(align_size,n*sizeof(T),result,allocation_bytes);
+                    hoomd::detail::my_align(align_size,n*sizeof(T),result,allocation_bytes);
                     #endif
 
                     if (!result)
@@ -172,11 +150,7 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (m_use_device)
                 {
-                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(ptr);
-                #elif __HIP_PLATFORM_HCC__
-                hipError_t error = hipHostFree(ptr);
-                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;
@@ -220,11 +194,7 @@ class managed_allocator
             #ifdef ENABLE_HIP
             if (use_device)
                 {
-                #ifdef __HIP_PLATFORM_NVCC__
                 hipError_t error = hipFree(allocation_ptr);
-                #elif __HIP_PLATFORM_HCC__
-                hipError_t error = hipHostFree(allocation_ptr);
-                #endif
                 if (error != hipSuccess)
                     {
                     std::cerr << hipGetErrorString(error) << std::endl;

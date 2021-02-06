@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -23,50 +23,90 @@
 #define HOSTDEVICE
 #endif
 
-//! Parameter type for this potential
-struct tersoff_params
-    {
-    Scalar cutoff_thickness; //!< Thickness of the cutoff shell (2D)
-    Scalar2 coeffs; //!< Contains the coefficients for the repulsive (x) and attractive (y) terms
-    Scalar2 exp_consts; //!< Gives the coefficients in the exponential functions for the repulsive (x) and attractive (y) terms
-    Scalar dimer_r; //!< Dimer separation of the type-pair
-    Scalar tersoff_n; //!< \a n in Tersoff potential
-    Scalar gamman; //!< \a gamma raised to the \a n power in the Tersoff potential
-    Scalar lambda_cube; //!< \a lambda^3 in the exponential term of \a chi
-    Scalar3 ang_consts; //!< Constants \a c^2, \a d^2, and \a m in the bond-angle function of the Tersoff potential
-    Scalar alpha; //!< \a alpha in the exponential cutoff-smoothing function
-};
-
-//! Function to make the parameter type
-HOSTDEVICE inline tersoff_params make_tersoff_params(Scalar cutoff_thickness,
-                                                     Scalar2 coeffs,
-                                                     Scalar2 exp_consts,
-                                                     Scalar dimer_r,
-                                                     Scalar tersoff_n,
-                                                     Scalar gamman,
-                                                     Scalar lambda_cube,
-                                                     Scalar3 ang_consts,
-                                                     Scalar alpha)
-    {
-    tersoff_params retval;
-    retval.cutoff_thickness = cutoff_thickness;
-    retval.coeffs = coeffs;
-    retval.exp_consts = exp_consts;
-    retval.dimer_r = dimer_r;
-    retval.tersoff_n = tersoff_n;
-    retval.gamman = gamman;
-    retval.lambda_cube = lambda_cube;
-    retval.ang_consts = ang_consts;
-    retval.alpha = alpha;
-    return retval;
-    }
 
 //! Class for evaluating the Tersoff three-body potential
 class EvaluatorTersoff
     {
     public:
-        //! Define the parameter type used by this evaluator
-        typedef tersoff_params param_type;
+        //! Parameter type for this potential
+        struct param_type
+            {
+            Scalar cutoff_thickness; //!< Thickness of the cutoff shell (2D)
+            Scalar2 coeffs; //!< Contains the coefficients for the repulsive (x) and attractive (y) terms
+            Scalar2 exp_consts; //!< Gives the coefficients in the exponential functions for the repulsive (x) and attractive (y) terms
+            Scalar dimer_r; //!< Dimer separation of the type-pair
+            Scalar tersoff_n; //!< \a n in Tersoff potential
+            Scalar gamman; //!< \a gamma raised to the \a n power in the Tersoff potential
+            Scalar lambda_cube; //!< \a lambda^3 in the exponential term of \a chi
+            Scalar3 ang_consts; //!< Constants \a c^2, \a d^2, and \a m in the bond-angle function of the Tersoff potential
+            Scalar alpha; //!< \a alpha in the exponential cutoff-smoothing function
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : cutoff_thickness(0), coeffs(make_scalar2(0, 0)), exp_consts(make_scalar2(0, 0)), dimer_r(0),
+                tersoff_n(0), gamman(0), lambda_cube(0), ang_consts(make_scalar3(0, 0, 0)), alpha(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                auto mags(v["magnitudes"].cast<pybind11::tuple>());
+                cutoff_thickness = v["cutoff_thickness"].cast<Scalar>();
+                auto exp_factors(v["exp_factors"].cast<pybind11::tuple>());
+                auto lambda3(v["lambda3"].cast<Scalar>());
+                dimer_r = v["dimer_r"].cast<Scalar>();
+                tersoff_n = v["n"].cast<Scalar>();
+                auto gamma(v["gamma"].cast<Scalar>());
+                auto c(v["c"].cast<Scalar>());
+                auto d(v["d"].cast<Scalar>());
+                auto m(v["m"].cast<Scalar>());
+                alpha = -1 * v["alpha"].cast<Scalar>();
+
+                coeffs = make_scalar2(pybind11::cast<Scalar>(mags[0]),
+                                      pybind11::cast<Scalar>(mags[1]));
+                exp_consts = make_scalar2(pybind11::cast<Scalar>(exp_factors[0]),
+                                          pybind11::cast<Scalar>(exp_factors[1]));
+                gamman = pow(gamma, tersoff_n);
+                lambda_cube = pow(lambda3, 3);
+                Scalar c2 = c * c;
+                Scalar d2 = d * d;
+                ang_consts = make_scalar3(c2, d2, m);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+
+                pybind11::list mags;
+                mags.append(coeffs.x);
+                mags.append(coeffs.y);
+                v["magnitudes"] = pybind11::tuple(mags);
+
+                v["cutoff_thickness"] = cutoff_thickness;
+
+                pybind11::list exp_factors;
+                exp_factors.append(exp_consts.x);
+                exp_factors.append(exp_consts.y);
+                v["exp_factors"] = pybind11::tuple(exp_factors);
+
+                v["lambda3"] = pow(lambda_cube, 1./3.);
+                v["dimer_r"] = dimer_r;
+                v["n"] = tersoff_n;
+                v["gamma"] = pow(gamman, 1.0/tersoff_n);
+                v["c"] = fast::sqrt(ang_consts.x);
+                v["d"] = fast::sqrt(ang_consts.y);
+                v["m"] = ang_consts.z;
+                v["alpha"] = -1 * alpha;
+                return v;
+                }
+            #endif
+
+            } __attribute__((aligned(16)));
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
@@ -162,11 +202,11 @@ class EvaluatorTersoff
 
                     fcut_ik = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom);
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the h function
@@ -215,12 +255,12 @@ class EvaluatorTersoff
                 dfcut_ij = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                     / cutoff_shell_thickness * fcut_ij;
 
-//                Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//                    / cutoff_shell_thickness;
-//
-//                fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
-//                dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
-//                    * fast::cos(cutoff_x);
+                //Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+                //    / cutoff_shell_thickness;
+
+                //fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                //dfcut_ij = Scalar(-M_PI / 2.0) / cutoff_shell_thickness
+                //    * fast::cos(cutoff_x);
                 }
 
             // compute the derivative of the base repulsive and attractive terms
@@ -261,7 +301,7 @@ class EvaluatorTersoff
                 Scalar rcut = fast::sqrt(rcutsq);
                 Scalar r_shell_inner = rcut - cutoff_shell_thickness;
                 // compute the dot product of rij and rik
-//                Scalar rdot = cos_th * rij * rik;
+                //Scalar rdot = cos_th * rij * rik;
 
                 // compute the ij cutoff function
                 Scalar fcut_ij = Scalar(1.0);
@@ -274,11 +314,11 @@ class EvaluatorTersoff
 
                     fcut_ij = fast::exp( cutoff_alpha * cutoff_x3 * inv_denom );
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rij - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ij = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
                     }
 
                 // compute the ik cutoff function and its derivative
@@ -295,13 +335,13 @@ class EvaluatorTersoff
                     dfcut_ik = Scalar(-3.0) * cutoff_alpha * cutoff_x2 * inv_denom * inv_denom
                         / cutoff_shell_thickness * fcut_ik;
 
-//                    Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
-//                    Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
-//                        / cutoff_shell_thickness;
-//
-//                    fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
-//                    dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
-//                        * fast::cos(cutoff_x);
+                    //Scalar r_shell_mid = rcut - Scalar(0.5) * cutoff_shell_thickness;
+                    //Scalar cutoff_x = Scalar(M_PI) * (rik - r_shell_mid)
+                    //    / cutoff_shell_thickness;
+
+                    //fcut_ik = Scalar(0.5) - Scalar(0.5) * fast::sin(cutoff_x);
+                    //dfcut_ik = Scalar(-M_PI) / (Scalar(2.0) * cutoff_shell_thickness)
+                    //    * fast::cos(cutoff_x);
                     }
 
                 // h function and its derivatives
@@ -372,7 +412,7 @@ class EvaluatorTersoff
             }
         #endif
 
-	static const bool flag_for_RevCross=false;
+        static const bool flag_for_RevCross=false;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor

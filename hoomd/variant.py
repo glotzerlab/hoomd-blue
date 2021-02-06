@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
@@ -46,6 +46,15 @@ class Variant(_hoomd.Variant):
     def max(self):
         """The maximum value of this variant."""
         return self._max()
+
+    def __getstate__(self):
+        """Get the variant's ``__dict__`` attributue."""
+        return self.__dict__
+
+    def __setstate__(self, state):
+        """Restore the state of the variant."""
+        _hoomd.Variant.__init__(self)
+        self.__dict__ = state
 
 
 class Constant(_hoomd.VariantConstant, Variant):

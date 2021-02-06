@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -475,7 +475,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Get the number of updates
-        virtual unsigned int getNumUpdates()
+        virtual uint64_t getNumUpdates()
             {
             return m_updates + m_forced_updates;
             }
@@ -578,7 +578,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void buildHeadList();
 
         //! Amortized resizing of the neighborlist
-        void resizeNlist(unsigned int size);
+        void resizeNlist(size_t size);
 
         #ifdef ENABLE_MPI
         CommFlags getRequestedCommFlags(unsigned int timestep)
@@ -612,9 +612,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_rcut_changed = true;
             }
 
-        int64_t m_updates;              //!< Number of times the neighbor list has been updated
-        int64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
-        int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
+        uint64_t m_updates;              //!< Number of times the neighbor list has been updated
+        uint64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
+        uint64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_rebuild_check_delay steps)
         bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once

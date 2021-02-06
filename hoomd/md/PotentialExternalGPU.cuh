@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -23,7 +23,7 @@ struct external_potential_args_t
     //! Construct a external_potential_args_t
     external_potential_args_t(Scalar4 *_d_force,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              const size_t _virial_pitch,
               const unsigned int _N,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
@@ -44,7 +44,7 @@ struct external_potential_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4 *d_pos;           //!< Device array of particle positions
@@ -84,7 +84,7 @@ gpu_cpef(const external_potential_args_t& external_potential_args,
 template< class evaluator >
 __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: Lin Yang, Alex Travesset
@@ -30,9 +30,9 @@ struct EAMTexInterData
     };
 
 //! Kernel driver that computes EAM forces on the GPU for EAMForceComputeGPU
-hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial, const unsigned int virial_pitch,
+hipError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial, const size_t virial_pitch,
         const unsigned int N, const Scalar4 *d_pos, const BoxDim& box, const unsigned int *d_n_neigh,
-        const unsigned int *d_nlist, const unsigned int *d_head_list, const unsigned int size_nlist,
+        const unsigned int *d_nlist, const unsigned int *d_head_list, const size_t size_nlist,
         const EAMTexInterData *d_eam_data, Scalar *d_dFdP, const Scalar4 *d_F, const Scalar4 *d_rho,
         const Scalar4 *d_rphi, const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi,
         const unsigned int block_size);

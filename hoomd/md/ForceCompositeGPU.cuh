@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -55,8 +55,8 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int n_mol,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
-                 unsigned int net_virial_pitch,
-                 unsigned int virial_pitch,
+                 size_t net_virial_pitch,
+                 size_t virial_pitch,
                  unsigned int block_size,
                  const hipDeviceProp_t& dev_prop,
                  const GPUPartition& gpu_partition);

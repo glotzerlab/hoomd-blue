@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,12 +12,15 @@
 
 #ifdef ENABLE_MPI
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 //! Kernel to partition particle data
 __global__ void gpu_scatter_particle_data_kernel(

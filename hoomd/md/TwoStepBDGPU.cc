@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepBDGPU.h"
@@ -80,7 +80,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
+    args.n_types = (unsigned int)m_gamma.getNumElements();
     args.use_alpha = m_use_alpha;
     args.alpha = m_alpha;
     args.T = (*m_T)(timestep);

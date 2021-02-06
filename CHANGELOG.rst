@@ -4,27 +4,98 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.2 (not yet released)
+v3.0.0-beta.3 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.write.DCD`` - DCD trajectory writer.
+- ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
+  potentials.
+
+*Changed*
+
+*Fixed*
+
+- Correctly determine the maximum ``r_cut`` in simulations with more than one
+  pair potential and more than one type.
+
+*Removed*
+
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.variant.Variant`` objects are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
+
+*Changed*
+
+- Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
 
 *Changed*
 
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
-- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
 - ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
   origin of (0, 0, 0).
+- Document loggable quantities in property docstrings.
+- Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
 
 *Fixed*
 
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
 - Logging the state of specific objects with nested attributes.
+- Broken relative RPATHs.
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
 
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

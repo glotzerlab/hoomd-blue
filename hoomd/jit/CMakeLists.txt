@@ -49,7 +49,7 @@ if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_INCLUDE_PATH=\"${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}\")
     string(REPLACE ";" "_" CUDA_COMPUTE_ARCHS "${CUDA_ARCH_LIST}")
     target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_COMPUTE_ARCHS=\"${CUDA_COMPUTE_ARCHS}\")
-    target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
+    target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::nvrtc)
 endif ()
 
 target_include_directories(_${PACKAGE_NAME}_llvm PUBLIC
@@ -81,7 +81,7 @@ target_link_libraries(_${PACKAGE_NAME} PUBLIC _hoomd PRIVATE _${PACKAGE_NAME}_ll
 if(APPLE)
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 fix_cudart_rpath(_${PACKAGE_NAME})

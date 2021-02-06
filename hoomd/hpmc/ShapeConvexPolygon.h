@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -92,7 +92,7 @@ struct PolygonVertices : ShapeParams
         if (len(verts) > MAX_POLY2D_VERTS)
             throw std::runtime_error("Too many polygon vertices");
 
-        N = len(verts);
+        N = (unsigned int)len(verts);
         ignore = v["ignore_statistics"].cast<unsigned int>();
         sweep_radius = v["sweep_radius"].cast<OverlapReal>();
 
@@ -112,7 +112,7 @@ struct PolygonVertices : ShapeParams
             }
 
         // zero memory for unused vertices
-        for (unsigned int i = len(verts); i < MAX_POLY2D_VERTS; i++)
+        for (unsigned int i = (unsigned int)len(verts); i < MAX_POLY2D_VERTS; i++)
             {
             x[i] = 0;
             y[i] = 0;
@@ -578,7 +578,7 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec
                                                                        Scalar sweep_radius_a,
                                                                        Scalar sweep_radius_b)
     {
-    vec2<OverlapReal> dr(r_ab.x,r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x),OverlapReal(r_ab.y));
     #ifdef __HIPCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),

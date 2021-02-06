@@ -1,11 +1,13 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: jglaser
 #include "MolecularForceCompute.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/gather.h>
@@ -18,6 +20,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 #include <hipcub/hipcub.hpp>
 
@@ -162,7 +165,7 @@ gpu_sort_by_molecule(unsigned int nptl,
         NO_MOLECULE);
     if (check_cuda) CHECK_CUDA();
 
-    n_local_ptls_in_molecules = end - local_molecule_tags;
+    n_local_ptls_in_molecules = (unsigned int)(end - local_molecule_tags);
 
     // gather unique molecule tags, and reduce their lengths by key
     thrust::constant_iterator<unsigned int> one(1);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -490,7 +490,7 @@ void NeighborListGPUTree::traverseTree()
             args.first_neigh = d_head_list.data;
             args.max_neigh = h_Nmax.data[i];
 
-            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, m_image_list.getNumElements(), m_streams[i], block_size);
+            m_traversers[j]->traverse(args, *(*m_lbvhs[j]).get(), d_image_list.data, (unsigned int)m_image_list.getNumElements(), m_streams[i], block_size);
             }
         }
     m_traverse_tuner->end();

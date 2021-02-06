@@ -13,11 +13,14 @@ void four1(cpxfloat *in, cpxfloat *out, const int n, const int isign, const int 
 
     /* memcpy, using an out-of-place bit reversal would be more efficient */
     for (i = 0; i < n; ++i)
+        {
         out[i*ostride] = in[i*istride];
+        }
 
     /* bit reversal (in-place) */
 	nn = n << 1;
 	j = 1;
+
 	for (i=1;i<nn;i+=2)
         {
         if (j > i)
@@ -34,7 +37,7 @@ void four1(cpxfloat *in, cpxfloat *out, const int n, const int isign, const int 
             }
         j += m;
     }
-    
+
     /* Radix-2 butterflies */
     mmax=2;
 
@@ -42,10 +45,10 @@ void four1(cpxfloat *in, cpxfloat *out, const int n, const int isign, const int 
     int stride = 2*ostride;
     while (nn > mmax) {
         istep=mmax << 1;
-        theta=isign*(6.28318530717959/mmax);
-        wtemp=sin(0.5*theta);
-        wpr = -2.0*wtemp*wtemp;
-        wpi=sin(theta);
+        theta=float(isign)*(6.28318530717959f/float(mmax));
+        wtemp=sinf(0.5f*theta);
+        wpr = -2.0f*wtemp*wtemp;
+        wpi=sinf(theta);
         wr=1.0;
         wi=0.0;
 
@@ -64,7 +67,7 @@ void four1(cpxfloat *in, cpxfloat *out, const int n, const int isign, const int 
             wtemp=wr;
             wr=wr*wpr-wi*wpi+wr;
             wi=wi*wpr+wtemp*wpi+wi;
-            }   
+            }
         mmax=istep;
         }
     }

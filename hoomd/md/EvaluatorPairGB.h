@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -32,39 +32,6 @@
 #define HOSTDEVICE
 #endif
 
-struct pair_gb_params
-    {
-    Scalar epsilon;   //! The energy scale.
-    Scalar lperp;     //! The semiaxis length perpendicular to the particle orientation.
-    Scalar lpar;      //! The semiaxis length parallel to the particle orientation.
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
-        {
-        // No-op for this struct since it contains no arrays.
-        }
-    };
-
-
-// Nullary structure required by AnisoPotentialPair.
-struct gb_shape_params
-    {
-    HOSTDEVICE gb_shape_params() {}
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
-
-    #ifdef ENABLE_HIP
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(hipStream_t stream) const {}
-    #endif
-    };
 
 /*!
  * Gay-Berne potential as formulated by Allen and Germano,
@@ -74,8 +41,79 @@ struct gb_shape_params
 class EvaluatorPairGB
     {
     public:
-        typedef pair_gb_params param_type;
-        typedef gb_shape_params shape_param_type;
+        struct param_type
+            {
+            Scalar epsilon;     //! The energy scale.
+            Scalar lperp;       //! The semiaxis length perpendicular to the particle orientation.
+            Scalar lpar;        //! The semiaxis length parallel to the particle orientation.
+
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory
+                allocation
+            */
+            HOSTDEVICE void load_shared(
+                char *& ptr, unsigned int &available_bytes) const {}
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            HOSTDEVICE param_type() {epsilon = 0; lperp = 0; lpar = 0;}
+
+            #ifndef __HIPCC__
+
+            param_type(pybind11::dict v)
+                {
+                epsilon = v["epsilon"].cast<Scalar>();
+                lperp = v["lperp"].cast<Scalar>();
+                lpar = v["lpar"].cast<Scalar>();
+                }
+
+            pybind11::dict toPython()
+                {
+                pybind11::dict v;
+                v["epsilon"] = epsilon;
+                v["lperp"] = lperp;
+                v["lpar"] = lpar;
+                return v;
+                }
+
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
+        // Nullary structure required by AnisoPotentialPair.
+        struct shape_type
+            {
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory allocation
+            */
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+            HOSTDEVICE shape_type() {}
+
+            #ifndef __HIPCC__
+
+            shape_type(pybind11::object shape_params) {}
+
+            pybind11::object toPython() { return pybind11::none(); }
+            #endif
+
+            #ifdef ENABLE_HIP
+            //! Attach managed memory to CUDA stream
+            void attach_to_stream(hipStream_t stream) const {}
+            #endif
+            };
 
         //! Constructs the pair potential evaluator
         /*! \param _dr Displacement vector between particle centers of mass
@@ -90,8 +128,13 @@ class EvaluatorPairGB
                                const Scalar _rcutsq,
                                const param_type& _params)
             : dr(_dr),rcutsq(_rcutsq),qi(_qi),qj(_qj),
-              params(_params)
+              epsilon(_params.epsilon), lperp(_params.lperp), lpar(_params.lpar)
             {
+            }
+
+        HOSTDEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
+            {
+            // No-op for this struct since it contains no arrays
             }
 
         //! uses diameter
@@ -128,7 +171,7 @@ class EvaluatorPairGB
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
         */
-        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej) {}
+        HOSTDEVICE void setShape(const shape_type *shapei, const shape_type *shapej) {}
 
         //! Accept the optional tags
         /*! \param tag_i Tag of particle i
@@ -168,8 +211,8 @@ class EvaluatorPairGB
             Scalar ca = dot(a3,unitr);
             Scalar cb = dot(b3,unitr);
             Scalar cab = dot(a3,b3);
-            Scalar lperpsq = params.lperp*params.lperp;
-            Scalar lparsq = params.lpar*params.lpar;
+            Scalar lperpsq = lperp*lperp;
+            Scalar lparsq = lpar*lpar;
             Scalar chi=(lparsq - lperpsq)/(lparsq+lperpsq);
             Scalar chic = chi*cab;
 
@@ -180,7 +223,7 @@ class EvaluatorPairGB
             Scalar phi = Scalar(1.0/2.0)*dot(dr, kappa)/rsq;
             Scalar sigma = fast::rsqrt(phi);
 
-            Scalar sigma_min = Scalar(2.0)*HOOMD_GB_MIN(params.lperp,params.lpar);
+            Scalar sigma_min = Scalar(2.0)*HOOMD_GB_MIN(lperp,lpar);
 
             Scalar zeta = (r-sigma+sigma_min)/sigma_min;
             Scalar zetasq = zeta*zeta;
@@ -189,26 +232,26 @@ class EvaluatorPairGB
             Scalar dUdphi,dUdr;
 
             // define r_cut to be along the long axis
-            Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(params.lperp,params.lpar);
+            Scalar sigma_max = Scalar(2.0)*HOOMD_GB_MAX(lperp,lpar);
             Scalar zetacut = rcut/sigma_max;
             Scalar zetacutsq = zetacut*zetacut;
 
             // compute the force divided by r in force_divr
-            if (zetasq < zetacutsq && params.epsilon != Scalar(0.0))
+            if (zetasq < zetacutsq && epsilon != Scalar(0.0))
                 {
                 Scalar zeta2inv = Scalar(1.0)/zetasq;
                 Scalar zeta6inv = zeta2inv * zeta2inv *zeta2inv;
 
-                dUdr  = -Scalar(24.0)*params.epsilon*(zeta6inv/zeta*(Scalar(2.0)*zeta6inv-Scalar(1.0)))/sigma_min;
+                dUdr  = -Scalar(24.0)*epsilon*(zeta6inv/zeta*(Scalar(2.0)*zeta6inv-Scalar(1.0)))/sigma_min;
                 dUdphi = dUdr*Scalar(1.0/2.0)*sigma*sigma*sigma;
 
-                pair_eng = Scalar(4.0)*params.epsilon*zeta6inv * (zeta6inv - Scalar(1.0));
+                pair_eng = Scalar(4.0)*epsilon*zeta6inv * (zeta6inv - Scalar(1.0));
 
                 if (energy_shift)
                     {
                     Scalar zetacut2inv = Scalar(1.0)/zetacutsq;
                     Scalar zetacut6inv = zetacut2inv * zetacut2inv * zetacut2inv;
-                    pair_eng -= Scalar(4.0)*params.epsilon*zetacut6inv * (zetacut6inv - Scalar(1.0));
+                    pair_eng -= Scalar(4.0)*epsilon*zetacut6inv * (zetacut6inv - Scalar(1.0));
                     }
                 }
             else
@@ -241,9 +284,9 @@ class EvaluatorPairGB
         std::string getShapeSpec() const
             {
             std::ostringstream shapedef;
-            shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << params.lperp <<
-                        ", \"b\": " << params.lperp <<
-                        ", \"c\": " << params.lpar <<
+            shapedef << "{\"type\": \"Ellipsoid\", \"a\": " << lperp <<
+                        ", \"b\": " << lperp <<
+                        ", \"c\": " << lpar <<
                         "}";
             return shapedef.str();
             }
@@ -254,18 +297,11 @@ class EvaluatorPairGB
         Scalar rcutsq;     //!< Stored rcutsq from the constructor
         quat<Scalar> qi;   //!< Orientation quaternion for particle i
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
-        const param_type &params;  //!< The pair potential parameters
+        Scalar epsilon;
+        Scalar lperp;
+        Scalar lpar;
+        // const param_type &params;  //!< The pair potential parameters
     };
-
-//! Function to make the Gay-Berne parameter type
-inline pair_gb_params make_pair_gb_params(Scalar epsilon, Scalar lperp, Scalar lpar)
-    {
-    pair_gb_params retval;
-    retval.epsilon = epsilon;
-    retval.lperp = lperp;
-    retval.lpar = lpar;
-    return retval;
-    }
 
 #undef HOOMD_GB_MIN
 #undef HOOMD_GB_MAX

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "Autotuner.h"
@@ -290,7 +290,7 @@ unsigned int Autotuner::computeOptimalParameter()
                 float sum = 0.0f;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     sum += *it;
-                m_sample_median[i] = sum/v.size();
+                m_sample_median[i] = sum/float(v.size());
                 }
             else if (m_mode == mode_max)
                 {

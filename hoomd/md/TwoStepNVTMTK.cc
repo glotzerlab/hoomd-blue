@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTK.h"
@@ -418,7 +418,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         Scalar &eta_rot = v.variable[3];
 
         Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_group->getRotationalDOF();
+        Scalar ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
             (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
@@ -447,7 +447,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, unsigned int time
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
-    unsigned int g = m_group->getTranslationalDOF();
+    Scalar g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;

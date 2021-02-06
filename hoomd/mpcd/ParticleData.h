@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -143,7 +143,7 @@ class PYBIND11_EXPORT ParticleData
         //! Get number of MPCD particle types
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)m_type_mapping.size();
             }
 
         //! Get the type-name mapping

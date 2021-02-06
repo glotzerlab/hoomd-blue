@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "Variant.h"
@@ -75,6 +75,15 @@ void export_Variant(pybind11::module& m)
     pybind11::class_<VariantConstant, Variant, std::shared_ptr<VariantConstant> >(m, "VariantConstant")
         .def(pybind11::init< Scalar >(), pybind11::arg("value"))
         .def_property("value", &VariantConstant::getValue, &VariantConstant::setValue)
+        .def(pybind11::pickle(
+            [](const VariantConstant& variant)
+                {
+                return pybind11::make_tuple(variant.getValue());
+                },
+            [](pybind11::tuple params)
+                {
+                return VariantConstant(params[0].cast<Scalar>());
+                }))
         ;
 
     pybind11::class_<VariantRamp, Variant, std::shared_ptr<VariantRamp> >(m, "VariantRamp")
@@ -86,6 +95,25 @@ void export_Variant(pybind11::module& m)
         .def_property("B", &VariantRamp::getB, &VariantRamp::setB)
         .def_property("t_start", &VariantRamp::getTStart, &VariantRamp::setTStart)
         .def_property("t_ramp", &VariantRamp::getTRamp, &VariantRamp::setTRamp)
+        .def(pybind11::pickle(
+            [](const VariantRamp& variant)
+                {
+                return pybind11::make_tuple(
+                    variant.getA(),
+                    variant.getB(),
+                    variant.getTStart(),
+                    variant.getTRamp()
+                    );
+                },
+            [](pybind11::tuple params)
+                {
+                return VariantRamp(
+                    params[0].cast<Scalar>(),
+                    params[1].cast<Scalar>(),
+                    params[2].cast<uint64_t>(),
+                    params[3].cast<uint64_t>()
+                    );
+                }))
         ;
 
     pybind11::class_<VariantCycle, Variant, std::shared_ptr<VariantCycle> >(m, "VariantCycle")
@@ -112,6 +140,31 @@ void export_Variant(pybind11::module& m)
         .def_property("t_AB", &VariantCycle::getTAB, &VariantCycle::setTAB)
         .def_property("t_B", &VariantCycle::getTB, &VariantCycle::setTB)
         .def_property("t_BA", &VariantCycle::getTBA, &VariantCycle::setTBA)
+        .def(pybind11::pickle(
+            [](const VariantCycle& variant)
+                {
+                return pybind11::make_tuple(
+                    variant.getA(),
+                    variant.getB(),
+                    variant.getTStart(),
+                    variant.getTA(),
+                    variant.getTAB(),
+                    variant.getTB(),
+                    variant.getTBA()
+                    );
+                },
+            [](pybind11::tuple params)
+                {
+                return VariantCycle(
+                    params[0].cast<Scalar>(),
+                    params[1].cast<Scalar>(),
+                    params[2].cast<uint64_t>(),
+                    params[3].cast<uint64_t>(),
+                    params[4].cast<uint64_t>(),
+                    params[5].cast<uint64_t>(),
+                    params[6].cast<uint64_t>()
+                    );
+                }))
         ;
 
     pybind11::class_<VariantPower, Variant,
@@ -130,8 +183,29 @@ void export_Variant(pybind11::module& m)
                       &VariantPower::setPower)
         .def_property("t_start", &VariantPower::getTStart,
                       &VariantPower::setTStart)
-        .def_property("t_size", &VariantPower::getTSize,
-                      &VariantPower::setTSize)
+        .def_property("t_ramp", &VariantPower::getTRamp,
+                      &VariantPower::setTRamp)
+        .def(pybind11::pickle(
+            [](const VariantPower& variant)
+                {
+                return pybind11::make_tuple(
+                    variant.getA(),
+                    variant.getB(),
+                    variant.getPower(),
+                    variant.getTStart(),
+                    variant.getTRamp()
+                    );
+                },
+            [](pybind11::tuple params)
+                {
+                return VariantPower(
+                    params[0].cast<Scalar>(),
+                    params[1].cast<Scalar>(),
+                    params[2].cast<double>(),
+                    params[3].cast<uint64_t>(),
+                    params[4].cast<uint64_t>()
+                    );
+                }))
         ;
 
     m.def("_test_variant_call", &testVariantCall);

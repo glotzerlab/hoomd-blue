@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -21,7 +21,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpessimizing-move"
 #include "hoomd/extern/quickhull/QuickHull.hpp"
+#pragma GCC diagnostic pop
 
 #include <random>
 #endif
@@ -237,7 +240,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b,
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-6); // can be large, because false positives don't harm
+    const OverlapReal eps(OverlapReal(1e-6)); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
@@ -545,25 +548,25 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         // get the orthonormal basis
         Eigen::MatrixXd eigenvec = es.eigenvectors();
 
-        r.row0 = vec3<OverlapReal>(eigenvec(0,0),eigenvec(0,1),eigenvec(0,2));
-        r.row1 = vec3<OverlapReal>(eigenvec(1,0),eigenvec(1,1),eigenvec(1,2));
-        r.row2 = vec3<OverlapReal>(eigenvec(2,0),eigenvec(2,1),eigenvec(2,2));
+        r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec(0,0)),OverlapReal(eigenvec(0,1)),OverlapReal(eigenvec(0,2)));
+        r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec(1,0)),OverlapReal(eigenvec(1,1)),OverlapReal(eigenvec(1,2)));
+        r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec(2,0)),OverlapReal(eigenvec(2,1)),OverlapReal(eigenvec(2,2)));
         eigen_val = es.eigenvalues();
         }
 
 
     // maximum eigenvalue
     vec3<OverlapReal> max_evec(r.row0.x,r.row1.x,r.row2.x);
-    OverlapReal max_eval = eigen_val(0);
+    OverlapReal max_eval = OverlapReal(eigen_val(0));
     if (eigen_val(1) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        max_eval = eigen_val(1);
+        max_eval = OverlapReal(eigen_val(1));
         }
     if (eigen_val(2) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
-        max_eval = eigen_val(2);
+        max_eval = OverlapReal(eigen_val(2));
         }
 
     max_evec /= (OverlapReal)sqrt(dot(max_evec,max_evec));
@@ -620,14 +623,14 @@ inline OverlapReal ritter_iterative(std::vector<vec3<OverlapReal> > verts, vec3<
 
     for (unsigned int k = 0; k < MAX_IT; ++k)
         {
-        r2 *= 0.95;
+        r2 *= OverlapReal(0.95);
 
         for (unsigned int i = 0; i < verts.size(); ++i)
             {
             if (i < verts.size() - 1)
                 {
                 unsigned int j;
-                std::uniform_int_distribution<> dis(i+1, verts.size()-1);
+                std::uniform_int_distribution<> dis(i+1, (unsigned int)(verts.size()-1));
                 j = dis(g);
                 std::swap(verts[i],verts[j]);
                 std::swap(vertex_radii[i],vertex_radii[j]);
@@ -654,7 +657,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
         // compute mean
         vec3<OverlapReal> mean = vec3<OverlapReal>(0,0,0);
 
-        unsigned int n = pts.size();
+        unsigned int n = (unsigned int)pts.size();
         for (unsigned int i = 0; i < n; ++i)
             {
             mean += pts[i]/(OverlapReal)n;
@@ -698,7 +701,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
                 hull_area += area;
                 hull_centroid += area*centroid;
 
-                OverlapReal fac = area/12.0;
+                OverlapReal fac = area/OverlapReal(12.0);
                 m(0,0) += fac*(9.0*centroid.x*centroid.x + p.x*p.x + q.x*q.x + r.x*r.x);
                 m(0,1) += fac*(9.0*centroid.x*centroid.y + p.x*p.y + q.x*q.y + r.x*r.y);
                 m(0,2) += fac*(9.0*centroid.x*centroid.z + p.x*p.z + q.x*q.z + r.x*r.z);
@@ -762,9 +765,9 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
             Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
             Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
 
-            r.row0 = vec3<OverlapReal>(eigenvec_ortho(0,0),eigenvec_ortho(0,1),eigenvec_ortho(0,2));
-            r.row1 = vec3<OverlapReal>(eigenvec_ortho(1,0),eigenvec_ortho(1,1),eigenvec_ortho(1,2));
-            r.row2 = vec3<OverlapReal>(eigenvec_ortho(2,0),eigenvec_ortho(2,1),eigenvec_ortho(2,2));
+            r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(0,0)),OverlapReal(eigenvec_ortho(0,1)),OverlapReal(eigenvec_ortho(0,2)));
+            r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(1,0)),OverlapReal(eigenvec_ortho(1,1)),OverlapReal(eigenvec_ortho(1,2)));
+            r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(2,0)),OverlapReal(eigenvec_ortho(2,1)),OverlapReal(eigenvec_ortho(2,2)));
             }
 
         if (pts.size() >= 3)
@@ -806,7 +809,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
 
                     vec2<double> new_axes_2d[2];
                     vec2<double> c;
-                    double area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
+                    double area = MinAreaRect(&proj_2d.front(),(unsigned int)hull_pts.size(),c,new_axes_2d);
 
                     // find extent along test_axis
                     double proj_min = DBL_MAX;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -15,6 +15,8 @@
 #include <type_traits>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #if defined(__HIP_PLATFORM_HCC__)
     #include <hipcub/hipcub.hpp>
 #else
@@ -28,6 +30,7 @@
         #include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
     #endif
 #endif
+#pragma GCC diagnostic pop
 
 #define DEVICE __device__ __forceinline__
 

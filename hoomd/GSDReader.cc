@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "GSD.h"
@@ -198,7 +198,7 @@ void GSDReader::readHeader()
 */
 void GSDReader::readParticles()
     {
-    uint64_t N = m_snapshot->particle_data.size;
+    unsigned int N = m_snapshot->particle_data.size;
     m_snapshot->particle_data.type_mapping = readTypes(m_frame, "particles/types");
 
     // the snapshot already has default values, if a chunk is not found, the value
@@ -220,7 +220,7 @@ void GSDReader::readParticles()
 */
 void GSDReader::readTopology()
     {
-    uint64_t N = 0;
+    unsigned int N = 0;
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {

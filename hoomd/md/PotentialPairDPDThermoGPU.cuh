@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -34,7 +34,7 @@ struct dpd_pair_args_t
     //! Construct a dpd_pair_args_t
     dpd_pair_args_t(Scalar4 *_d_force,
                     Scalar *_d_virial,
-                    const unsigned int _virial_pitch,
+                    const size_t _virial_pitch,
                     const unsigned int _N,
                     const unsigned int _n_max,
                     const Scalar4 *_d_pos,
@@ -45,7 +45,7 @@ struct dpd_pair_args_t
                     const unsigned int *_d_nlist,
                     const unsigned int *_d_head_list,
                     const Scalar *_d_rcutsq,
-                    const unsigned int _size_nlist,
+                    const size_t _size_nlist,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
                     const unsigned int _seed,
@@ -83,7 +83,7 @@ struct dpd_pair_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< Pitch of 2D virial array
+    const size_t virial_pitch; //!< Pitch of 2D virial array
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< Maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions
@@ -94,7 +94,7 @@ struct dpd_pair_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const unsigned int size_nlist;  //!< Total length of the neighbor list
+    const size_t size_nlist;  //!< Total length of the neighbor list
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
     const unsigned int seed;        //!< user provided seed for PRNG
@@ -149,7 +149,7 @@ struct dpd_pair_args_t
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist, int tpp>
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               Scalar *d_virial,
-                                              const unsigned int virial_pitch,
+                                              const size_t virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
@@ -375,8 +375,8 @@ struct DPDForceComputeKernel
             unsigned int block_size = args.block_size;
 
             Index2D typpair_idx(args.ntypes);
-            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements();
+            unsigned int shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements());
 
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)

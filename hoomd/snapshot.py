@@ -1,3 +1,4 @@
+import numpy as np
 import hoomd
 from hoomd import _hoomd
 
@@ -9,10 +10,6 @@ class _ConfigurationData:
     @property
     def dimensions(self):
         return self._cpp_obj._dimensions
-
-    @dimensions.setter
-    def dimensions(self, d):
-        self._cpp_obj._dimensions = d
 
     @property
     def box(self):
@@ -29,8 +26,9 @@ class _ConfigurationData:
             new_box = hoomd.Box.from_box(box)
         except Exception:
             raise ValueError(
-                "{} is not convertible to a hoomd.Box object. "
-                "using hoomd.Box.from_box".format(box))
+                f"{box} is not convertible to a hoomd.Box object using "
+                "hoomd.Box.from_box.")
+        self._cpp_obj._dimensions = new_box.dimensions
         self._cpp_obj._global_box = new_box._cpp_obj
 
 
@@ -112,3 +110,65 @@ class Snapshot:
 
     def _broadcast_box(self):
         self._cpp_obj._broadcast_box(self._comm.cpp_mpi_conf)
+
+    @classmethod
+    def from_gsd_snapshot(cls, gsd_snap, communicator):
+        """
+        Constructs a `hoomd.Snapshot` from a `gsd.hoomd.Snapshot` object.
+
+        Args:
+            gsd_snap (`gsd.hoomd.Snapshot`):
+                The gsd snapshot to convert to a `hoomd.Snapshot`.
+            communicator (hoomd.communicator.Communicator):
+                The MPI communicator to use for the snapshot. This prevents the
+                snapshot from being stored on every rank.
+        """
+        gsd_snap.validate()
+        snap = cls(communicator=communicator)
+
+        def set_properties(
+                snap_section, gsd_snap_section, properties, array_properties):
+            for prop in properties:
+                gsd_prop = getattr(gsd_snap_section, prop, None)
+                if gsd_prop is not None:
+                    setattr(snap_section, prop, gsd_prop)
+            for prop in array_properties:
+                gsd_prop = getattr(gsd_snap_section, prop, None)
+                if gsd_prop is not None:
+                    getattr(snap_section, prop)[:] = gsd_prop
+
+        if communicator.rank == 0:
+
+            set_properties(
+                snap.particles,
+                gsd_snap.particles,
+                ('N', 'types'),
+                ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
+                 'moment_inertia', 'orientation', 'position', 'typeid',
+                 'velocity')
+            )
+
+            for section in (
+                    'angles', 'bonds', 'dihedrals', 'impropers', 'pairs'
+                    ):
+                set_properties(
+                    getattr(snap, section),
+                    getattr(gsd_snap, section),
+                    ('N', 'types'),
+                    ('group', 'typeid')
+                )
+
+            set_properties(
+                snap.constraints,
+                gsd_snap.constraints,
+                ('N',),
+                ('group', 'value')
+            )
+
+            # Set box attribute
+            if gsd_snap.configuration.box is not None:
+                snap.configuration.box = gsd_snap.configuration.box
+                if gsd_snap.configuration.dimensions == 2:
+                    snap.configuration.box[2] = 0
+
+        return snap

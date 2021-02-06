@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -80,7 +80,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 #if defined(ENABLE_HIP)
     // scan the available GPUs
     scanGPUs();
-    size_t dev_count = s_capable_gpu_ids.size();
+    unsigned int dev_count = (unsigned int)s_capable_gpu_ids.size();
 
     // auto select a mode
     if (exec_mode == AUTO)
@@ -221,7 +221,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #if defined(ENABLE_HIP)
     // setup synchronization events
     m_events.resize(m_gpu_id.size());
-    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+    for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; --idev)
         {
         hipSetDevice(m_gpu_id[idev]);
         hipEventCreateWithFlags(&m_events[idev],hipEventDisableTiming);
@@ -234,7 +234,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
     #if defined(ENABLE_HIP)
-    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+    for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; --idev)
         {
         hipEventDestroy(m_events[idev]);
         }
@@ -290,7 +290,7 @@ void ExecutionConfiguration::handleHIPError(hipError_t err, const char *file, un
 */
 void ExecutionConfiguration::initializeGPU(int gpu_id)
     {
-    int capable_count = s_capable_gpu_ids.size();
+    int capable_count = (int)s_capable_gpu_ids.size();
     if (capable_count == 0)
         {
         std::ostringstream s;
@@ -351,7 +351,7 @@ std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
     s << setw(4) << prop.multiProcessorCount << " SM_" << prop.major << "." << prop.minor;
 
     // and the clock rate
-    float ghz = float(prop.clockRate)/1e6;
+    double ghz = double(prop.clockRate)/1e6;
     s.precision(3);
     s.fill('0');
     s << " @ " << setw(4) << ghz << " GHz";
@@ -422,7 +422,7 @@ void ExecutionConfiguration::scanGPUs()
             continue;
             }
 
-        s_capable_gpu_descriptions.push_back(describeGPU(s_capable_gpu_ids.size(), prop));
+        s_capable_gpu_descriptions.push_back(describeGPU((int)s_capable_gpu_ids.size(), prop));
         s_capable_gpu_ids.push_back(dev);
         }
     }
@@ -438,7 +438,7 @@ void ExecutionConfiguration::setupStats()
         {
         m_dev_prop.resize(m_gpu_id.size());
 
-        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; idev--)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);
@@ -484,14 +484,14 @@ void ExecutionConfiguration::multiGPUBarrier() const
     if (getNumActiveGPUs() > 1)
         {
         // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
-        for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 0; --idev)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipEventRecord(m_events[idev], 0);
             }
 
         // wait for all those events on all GPUs
-        for (int idev_i = m_gpu_id.size()-1; idev_i >= 0; --idev_i)
+        for (int idev_i = (unsigned int)(m_gpu_id.size()-1); idev_i >= 0; --idev_i)
             {
             hipSetDevice(m_gpu_id[idev_i]);
             for (int idev_j = 0; idev_j < (int) m_gpu_id.size(); ++idev_j)
@@ -513,7 +513,7 @@ void ExecutionConfiguration::beginMultiGPU() const
         hipEventRecord(m_events[0], 0);
 
         // wait for that event on all GPUs (except GPU 0, for which we rely on implicit synchronization)
-        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 1; --idev)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipStreamWaitEvent(0, m_events[0], 0);
@@ -540,7 +540,7 @@ void ExecutionConfiguration::endMultiGPU() const
     if (getNumActiveGPUs() > 1)
         {
         // record the synchronization point on every GPU, except GPU 0
-        for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
+        for (int idev = (unsigned int)(m_gpu_id.size() - 1); idev >= 1; --idev)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipEventRecord(m_events[idev], 0);
@@ -548,7 +548,7 @@ void ExecutionConfiguration::endMultiGPU() const
 
         // wait for these events on GPU 0
         hipSetDevice(m_gpu_id[0]);
-        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 1; --idev)
             {
             hipStreamWaitEvent(0, m_events[idev], 0);
             }

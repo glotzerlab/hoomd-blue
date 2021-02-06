@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
@@ -21,7 +21,6 @@ def one_cube_simulation(simulation_factory):
     snap.particles.types = ['A']
     snap.particles.position[:] = [[0, 0, 0]]
     snap.configuration.box = [1.2, 1.2, 1.2, 0, 0, 0]
-    snap.configuration.dimensions = 3
 
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(seed=1)

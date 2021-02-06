@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -137,7 +137,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     BoxDim box = this->m_pdata->getBox();
 
     // access parameters
-    ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
@@ -164,7 +163,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_nlist.data,
                             d_head_list.data,
                             d_rcutsq.data,
-                            d_ronsq.data,
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
                             block_size,

@@ -6,13 +6,13 @@ from hoomd.util import dict_map, SafeNamespaceDict
 from collections.abc import Sequence
 
 
-class TypeFlags(Flag):
+class LoggerCategories(Flag):
     """Enum that marks all accepted logger types.
 
     This class does not need to be used by users directly. We directly convert
     from strings to the enum wherever necessary in the API. This class is
     documented to show users what types of quantities can be logged, and what
-    flags to use for limiting what data is logged, user specified logged
+    categories to use for limiting what data is logged, user specified logged
     quantities, and custom actions (`hoomd.custom.Action`).
 
     Flags:
@@ -41,11 +41,11 @@ class TypeFlags(Flag):
 
         particle: per-particle quantity
 
-        state: internal flag for specifying object's internal state
+        state: internal category for specifying object's internal state
 
-        ALL: a combination of all other flags
+        ALL: a combination of all other categories
 
-        NONE: represents no flag
+        NONE: represents no category
     """
     NONE = 0
     scalar = auto()
@@ -63,49 +63,49 @@ class TypeFlags(Flag):
     state = auto()
 
     @classmethod
-    def any(cls, flags=None):
-        """Return a TypeFlags enum representing any of the given flags.
+    def any(cls, categories=None):
+        """Return a LoggerCategories enum representing any of the given categories.
 
         Args:
-            flags (list[str] or list[`TypeFlags`]): A list of `str` or
-            `TypeFlags` objects that should be represented by the returned
-            `TypeFlags` object.
+            categories (list[str] or list[`LoggerCategories`]): A list of `str` or
+            `LoggerCategories` objects that should be represented by the returned
+            `LoggerCategories` object.
 
         Returns:
-            `TypeFlags`: the `TypeFlags` object that represents any of the given
-            flags.
+            `LoggerCategories`: the `LoggerCategories` object that represents any of the given
+            categories.
         """
-        flags = cls.__members__.values() if flags is None else flags
+        categories = cls.__members__.values() if categories is None else categories
 
-        def from_str(flag):
-            if isinstance(flag, str):
-                return cls[flag]
+        def from_str(category):
+            if isinstance(category, str):
+                return cls[category]
             else:
-                return flag
+                return category
 
         return reduce(
-            lambda x, y: from_str(x) | from_str(y), flags, TypeFlags.NONE)
+            lambda x, y: from_str(x) | from_str(y), categories, LoggerCategories.NONE)
 
     @classmethod
-    def _get_string_list(cls, flag):
-        return [mem.name for mem in cls.__members__.values() if mem in flag]
+    def _get_string_list(cls, category):
+        return [mem.name for mem in cls.__members__.values() if mem in category]
 
 
-TypeFlags.ALL = TypeFlags.any()
+LoggerCategories.ALL = LoggerCategories.any()
 
 
 # function defined here to ensure that each class of type Loggable will have a
 # loggables property
 def _loggables(self):
-    """dict[str, str]: Return a name, flag mapping of loggable quantities."""
-    return {name: quantity.flag.name
+    """dict[str, str]: Return a name, category mapping of loggable quantities."""
+    return {name: quantity.category.name
             for name, quantity in self._export_dict.items()}
 
 
 class _LoggableEntry:
     """Stores entries for _Loggable's store of a class's loggable quantities."""
-    def __init__(self, flag, default):
-        self.flag = flag
+    def __init__(self, category, default):
+        self.category = category
         self.default = default
 
 
@@ -115,8 +115,8 @@ class _LoggerQuantity:
     Args:
         name (str): The name of the quantity.
         cls (``class object``): The class that the quantity comes from.
-        flag (str or TypeFlags, optional): The type of quantity it is.
-            Valid values are given in the `hoomd.logging.TypeFlags`
+        category (str or LoggerCategories, optional): The type of quantity it is.
+            Valid values are given in the `hoomd.logging.LoggerCategories`
             documentation.
 
     Note:
@@ -125,19 +125,19 @@ class _LoggerQuantity:
         actions.
     """
 
-    def __init__(self, name, cls, flag='scalar', default=True):
+    def __init__(self, name, cls, category='scalar', default=True):
         self.name = name
         self.update_cls(cls)
-        if isinstance(flag, str):
-            self.flag = TypeFlags[flag]
-        elif isinstance(flag, TypeFlags):
-            self.flag = flag
+        if isinstance(category, str):
+            self.category = LoggerCategories[category]
+        elif isinstance(category, LoggerCategories):
+            self.category = category
         else:
             raise ValueError("Flag must be a string convertable into "
-                             "TypeFlags or a TypeFlags object.")
+                             "LoggerCategories or a LoggerCategories object.")
         self.default = bool(default)
 
-    def yield_names(self):
+    def yield_names(self, user_name=None):
         """Infinitely yield potential namespaces.
 
         Used to ensure that all namespaces are unique for a
@@ -147,10 +147,13 @@ class _LoggerQuantity:
         Yields:
             tuple[str]: A potential namespace for the object.
         """
-        yield self.namespace + (self.name,)
+        if user_name is None:
+            namespace = self.namespace
+        else:
+            namespace = self.namespace[:-1] + (user_name,)
+        yield namespace + (self.name,)
         for i in count(start=1, step=1):
-            yield self.namespace[:-1] + \
-                (self.namespace[-1] + '_' + str(i), self.name)
+            yield namespace[:-1] + (namespace[-1] + '_' + str(i), self.name)
 
     def update_cls(self, cls):
         """Allow updating the class/namespace of the object.
@@ -167,15 +170,44 @@ class _LoggerQuantity:
 
     @staticmethod
     def _generate_namespace(cls):
-        """Infite iterator of namespaces for a given class.
-
-        If namespace is taken add a number and increment until unique.
-        """
-        ns = tuple(cls.__module__.split('.') + [cls.__name__])
+        """Generate the namespace of a class given its module hierarchy."""
+        ns = tuple(cls.__module__.split('.'))
         if ns[0] == 'hoomd':
-            return ns[1:]
+
+            def namespace_filter(name):
+                if namespace_filter._drop_name:
+                    namespace_filter._drop_name = False
+                    return False
+                # These namespaces are those that we import directly into the
+                # hoomd namespace. We could add any files that are the same for
+                # md, hpmc, or other submodules.
+                remove_namespace = {'simulation',
+                                    'state',
+                                    'operations',
+                                    'snapshot'}
+                # We assume that these namespaces only have one more level of
+                # depth (e.g. update.box_resize.BoxResize) if this is broken
+                # for example, tune.new_level.nlist.TuneSomething, this will
+                # break.
+                base_namespaces = {'update', 'tune', 'write'}
+                if name in remove_namespace:
+                    return False
+                elif name in base_namespaces:
+                    # We use function attributes to mark that the next name
+                    # should be dropped. This makes the filter stateful which
+                    # should be fine for this limited use, but needs to be kept
+                    # in mind for any future refactoring.
+                    namespace_filter._drop_name = True
+                    return True
+                else:
+                    return True
+
+            namespace_filter._drop_name = False
+
+            cls_ns = tuple(filter(namespace_filter, ns[1:])) + (cls.__name__,)
+            return cls_ns
         else:
-            return ns
+            return ns + (cls.__name__,)
 
 
 class Loggable(type):
@@ -185,17 +217,13 @@ class Loggable(type):
         """Adds marked quantities for logging in new class.
 
         Also adds a loggables property that returns a mapping of loggable
-        quantity names with the string flag. We overwrite __init__ instead of
+        quantity names with the string category. We overwrite __init__ instead of
         __new__ since this plays much more nicely with inheritance. This allows,
         for instance, `Loggable` to be subclassed with metaclasses that use
         __new__ without having to hack the subclass's behavior.
         """
-        # This grabs the metaclass of the newly created class which will be a
-        # subclass of the Loggable metaclass (or the class itself)
-        loggable_cls = type(cls)
-
         # grab loggable quantities through class inheritance.
-        log_dict = loggable_cls._get_inherited_loggables(cls)
+        log_dict = Loggable._get_inherited_loggables(cls)
 
         # Add property to get all available loggable quantities. We ensure that
         # we haven't already added a loggables property first. The empty dict
@@ -209,12 +237,12 @@ class Loggable(type):
         # improper class definitions.
         if log_dict == {} and not any(issubclass(type(c), Loggable)
                                       for c in cls.__mro__[1:]):
-            loggable_cls._add_property_for_displaying_loggables(cls)
+            Loggable._add_property_for_displaying_loggables(cls)
 
         # grab the current class's loggable quantities
-        log_dict.update(loggable_cls._get_current_cls_loggables(cls))
+        log_dict.update(Loggable._get_current_cls_loggables(cls))
         cls._export_dict = log_dict
-        loggable_cls._meta_export_dict = dict()
+        Loggable._meta_export_dict = dict()
 
     @staticmethod
     def _add_property_for_displaying_loggables(new_cls):
@@ -247,11 +275,42 @@ class Loggable(type):
     @classmethod
     def _get_current_cls_loggables(cls, new_cls):
         """Gets the current class's new loggables (not inherited)."""
-        return {name: _LoggerQuantity(name, new_cls, entry.flag, entry.default)
-                for name, entry in cls._meta_export_dict.items()}
+        current_loggables = {}
+        for name, entry in cls._meta_export_dict.items():
+            current_loggables[name] = _LoggerQuantity(
+                name, new_cls, entry.category, entry.default)
+            cls._add_loggable_docstring_info(
+                new_cls, name, entry.category, entry.default)
+        return current_loggables
+
+    @classmethod
+    def _add_loggable_docstring_info(cls, new_cls, attr, category, default):
+        doc = getattr(new_cls, attr).__doc__
+        # Don't add documentation to empty docstrings. This means that the
+        # quantity is not documented would needs to be fixed, but this prevents
+        # the rendering of invalid docs since we need a non-empty docstring.
+        if __doc__ == "":
+            return
+        str_msg = '\n\n{}(`Loggable <hoomd.logging.Logger>`: '
+        str_msg += f'category="{str(category)[17:]}"'
+        if default:
+            str_msg += ')'
+        else:
+            str_msg += ', default=False)'
+        if doc is None:
+            getattr(new_cls, attr).__doc__ = str_msg.format('')
+        else:
+            indent = 0
+            lines = doc.split('\n')
+            if len(lines) >= 3:
+                cnt = 2
+                while lines[cnt] == '':
+                    cnt += 1
+                indent = len(lines[cnt]) - len(lines[cnt].lstrip())
+            getattr(new_cls, attr).__doc__ += str_msg.format(' ' * indent)
 
 
-def log(func=None, *, is_property=True, flag='scalar', default=True):
+def log(func=None, *, is_property=True, category='scalar', default=True):
     """Creates loggable quantities for classes of type Loggable.
 
     For users this should be used with `hoomd.custom.Action` for exposing
@@ -261,18 +320,18 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
         func (`method`): class method to make loggable. If using non-default
             arguments, func should not be set.
         is_property (:obj:`bool`, optional): Whether to make the method a
-            property, defaults to True. Argument position only
-        flag (:obj:`str`, optional): The string represention of the type of
+            property, defaults to True. Argument keyword only
+        category (:obj:`str`, optional): The string represention of the type of
             loggable quantity, defaults to 'scalar'. See
-            `hoomd.logging.TypeFlags` for available types. Argument
-            position only
+            `hoomd.logging.LoggerCategories` for available types. Argument
+            keyword only
         default (:obj:`bool`, optional): Whether the quantity should be logged
             by default, defaults to True. This is orthogonal to the loggable
             quantity's type. An example would be performance orientated
             loggable quantities.  Many users may not want to log such
             quantities even when logging other quantities of that type. The
-            default flag allows for these to be pass over by
-            `hoomd.logging.Logger` objects by default.
+            default category allows for these to be pass over by
+            `hoomd.logging.Logger` objects by default. Argument keyword only.
 
     Note:
         The namespace (where the loggable object is stored in the
@@ -291,7 +350,7 @@ def log(func=None, *, is_property=True, flag='scalar', default=True):
             raise KeyError(
                 "Multiple loggable quantities named {}.".format(name))
         Loggable._meta_export_dict[name] = _LoggableEntry(
-            TypeFlags[flag], default)
+            LoggerCategories[category], default)
         if is_property:
             return property(func)
         else:
@@ -316,30 +375,30 @@ class _LoggerEntry:
         greater security with regards to user specified quantities.
     """
 
-    def __init__(self, obj, attr, flag):
+    def __init__(self, obj, attr, category):
         self.obj = obj
         self.attr = attr
-        self.flag = flag
+        self.category = category
 
     @classmethod
     def from_logger_quantity(cls, obj, logger_quantity):
-        return cls(obj, logger_quantity.name, logger_quantity.flag)
+        return cls(obj, logger_quantity.name, logger_quantity.category)
 
     @classmethod
     def from_tuple(cls, entry):
-        err_msg = "Expected either (callable, flag) or \
-                   (obj, method/property, flag)."
+        err_msg = "Expected either (callable, category) or \
+                   (obj, method/property, category)."
         if (not isinstance(entry, Sequence)
                 or len(entry) <= 1
                 or len(entry) > 3):
             raise ValueError(err_msg)
 
-        # Get the method and flag from the passed entry. Also perform some basic
+        # Get the method and category from the passed entry. Also perform some basic
         # validation.
         if len(entry) == 2:
             if not callable(entry[0]):
                 raise ValueError(err_msg)
-            flag = entry[1]
+            category = entry[1]
             method = '__call__'
         elif len(entry) == 3:
             if not isinstance(entry[1], str):
@@ -348,31 +407,31 @@ class _LoggerEntry:
             if not hasattr(entry[0], method):
                 raise ValueError(
                     "Provided method/property must exist in given object.")
-            flag = entry[2]
+            category = entry[2]
 
-        # Ensure flag is valid and converted to TypeFlags enum.
-        if isinstance(flag, str):
-            flag = TypeFlags[flag]
-        elif not isinstance(flag, TypeFlags):
+        # Ensure category is valid and converted to LoggerCategories enum.
+        if isinstance(category, str):
+            category = LoggerCategories[category]
+        elif not isinstance(category, LoggerCategories):
             raise ValueError(
-                "flag must be a string or hoomd.logging.TypeFlags object.")
-        return cls(entry[0], method, flag)
+                "category must be a string or hoomd.logging.LoggerCategories object.")
+        return cls(entry[0], method, category)
 
     def __call__(self):
         attr = getattr(self.obj, self.attr)
-        if self.flag is TypeFlags.state:
+        if self.category is LoggerCategories.state:
             return attr
         if callable(attr):
-            return (attr(), self.flag.name)
+            return (attr(), self.category.name)
         else:
-            return (attr, self.flag.name)
+            return (attr, self.category.name)
 
     def __eq__(self, other):
         return (self.obj == other.obj and
                 self.attr == other.attr and
-                self.flag == other.flag)
+                self.category == other.category)
         return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in ['obj', 'attr', 'flag'])
+                   for attr in ['obj', 'attr', 'category'])
 
 
 class Logger(SafeNamespaceDict):
@@ -396,7 +455,7 @@ class Logger(SafeNamespaceDict):
             lj = md.pair.lj(nlist)
             # Log all default quantities of the lj object
             logger += lj
-            logger = hoomd.logging.Logger(flags=['scalar'])
+            logger = hoomd.logging.Logger(categories=['scalar'])
             # Log all default scalar quantities of the lj object
             logger += lj
 
@@ -413,56 +472,65 @@ class Logger(SafeNamespaceDict):
             logger[('custom_name',)] = (lambda: 43, 'scalar')
 
     `Logger` objects support two ways of discriminating what loggable quantities
-    they will accept: ``flags`` and ``only_default`` (the constructor
+    they will accept: ``categories`` and ``only_default`` (the constructor
     arguments). Both of these are static meaning that once instantiated a
     `Logger` object will not change the values of these two properties.
-    ``flags`` determines what if any types of loggable quantities (see
-    `hoomd.logging.TypeFlags`) are appropriate for a given `Logger` object. This
-    helps logging back ends determine if a `Logger` object is compatible. The
-    ``only_default`` flag is mainly a convenience by allowing quantities not
-    commonly logged (but available) to be passed over unless explicitly asked
-    for. You can override the ``only_default`` flag by explicitly listing the
-    quantities you want in `Logger.add`, but the same is not true with regards
-    to ``flags``.
+    ``categories`` determines what if any types of loggable quantities (see
+    `hoomd.logging.LoggerCategories`) are appropriate for a given `Logger`
+    object. This helps logging back ends determine if a `Logger` object is
+    compatible. The ``only_default`` flag is mainly a convenience by allowing
+    quantities not commonly logged (but available) to be passed over unless
+    explicitly asked for. You can override the ``only_default`` flag by
+    explicitly listing the quantities you want in `Logger.add`, but the same is
+    not true with regards to ``categories``.
 
     Note:
         The logger provides a way for users to create their own logger back ends
         if they wish. In making a custom logger back end, understanding the
         intermediate representation is key. To get an introduction see
-        `hoomd.logging.Logger.log`. To understand the various flags
-        available to specify logged quantities, see `hoomd.logging.TypeFlags`.
-        To integrate with `hoomd.Operations` the back end should be a subclass
-        of `hoomd.custom.Action` and used with `hoomd.writer.CustomWriter`.
+        `hoomd.logging.Logger.log`. To understand the various categories
+        available to specify logged quantities, see
+        `hoomd.logging.LoggerCategories`.  To integrate with `hoomd.Operations`
+        the back end should be a subclass of `hoomd.custom.Action` and used with
+        `hoomd.writer.CustomWriter`.
+
+    Note:
+        When logging multiple instances of the same class `Logger.add` provides
+        a means of specifying the class level of the namespace (e.g. ``'LJ`` in
+        ``('md', 'pair', 'LJ')``). The default behavior (without specifying a
+        user name) is to just append ``_{num}`` where ``num`` is the smallest
+        positive integer which makes the full namespace unique. This appending
+        will also occur for user specified names that are reused.
 
     Args:
-        flags (`list` of `str`, optional): A list of string flags (list of flags
-            can be found in `hoomd.logging.TypeFlags`). These are the only types
-            of loggable quantities that can be logged by this logger. Defaults
-            to allowing every type.
+        categories (`list` of `str`, optional): A list of string categories
+            (list of categories can be found in `hoomd.logging.LoggerCategories`).
+            These are the only types of loggable quantities that can be logged
+            by this logger. Defaults to allowing every type.
         only_default (`bool`, optional): Whether to log only quantities that are
             logged by "default", defaults to ``True``. This mostly means that
             performance centric loggable quantities will be passed over when
             logging when false.
     '''
 
-    def __init__(self, flags=None, only_default=True):
-        self._flags = TypeFlags.ALL if flags is None else TypeFlags.any(flags)
+    def __init__(self, categories=None, only_default=True):
+        self._categories = LoggerCategories.ALL if categories is None else LoggerCategories.any(categories)
         self._only_default = only_default
         super().__init__()
 
     @property
-    def flags(self):
-        """`hoomd.logging.TypeFlags`: The enum representing the acceptable
-            flags for the `Logger` object.
+    def categories(self):
+        """`hoomd.logging.LoggerCategories`: The enum representing the
+        acceptable categories for the `Logger` object.
         """
-        return self._flags
+        return self._categories
 
     @property
-    def string_flags(self):
-        """`list` of `str`: A list of the string names of the allowed flags for
-        logging.
+    def string_categories(self):
+        """`list` of `str`: A list of the string names of the allowed categories
+        for logging.
         """
-        return TypeFlags._get_string_list(self._flags)
+        return LoggerCategories._get_string_list(self._categories)
 
     @property
     def only_default(self):
@@ -471,14 +539,12 @@ class Logger(SafeNamespaceDict):
         """
         return self._only_default
 
-    def _filter_quantities(self, quantities, overwrite_default=False):
-        if overwrite_default:
-            def filter_func(log_quantity):
-                return log_quantity.flag in self._flags
-        else:
-            def filter_func(log_quantity):
-                return log_quantity.default and log_quantity.flag in self._flags
-        yield from filter(filter_func, quantities)
+    def _filter_quantities(self, quantities):
+        for quantity in quantities:
+            if self._only_default and not quantity.default:
+                continue
+            elif quantity.category in self._categories:
+                yield quantity
 
     def _get_loggables_by_name(self, obj, quantities):
         if quantities is None:
@@ -494,24 +560,26 @@ class Logger(SafeNamespaceDict):
             yield from self._filter_quantities(
                 map(lambda q: obj._export_dict[q], quantities))
 
-    def add(self, obj, quantities=None):
-        """Add loggables from obj to logger. Returns the used namespaces.
+    def add(self, obj, quantities=None, user_name=None):
+        """Add loggables from obj to logger.
 
         Args:
             obj (object of class of type ``Loggable``): class of type loggable
                 to add loggable quantities from.
             quantities (Sequence[str]): list of str names of quantities to log.
+            user_name (`str`, optional): A string to replace the class name in
+                the loggable quantities namespace. This allows for easier
+                differentiation in the output of the `Logger` and any `Writer`
+                which outputs its data.
 
         Returns:
             list[tuple[str]]: A list of namespaces that were
                 added to the logger.
         """
-        used_namespaces = []
         for quantity in self._get_loggables_by_name(obj, quantities):
-            used_namespaces.append(self._add_single_quantity(obj, quantity))
-        return used_namespaces
+            self._add_single_quantity(obj, quantity, user_name)
 
-    def remove(self, obj=None, quantities=None):
+    def remove(self, obj=None, quantities=None, user_name=None):
         """Remove specified quantities from the logger.
 
         Args:
@@ -524,7 +592,9 @@ class Logger(SafeNamespaceDict):
                 from the logger. If specified with ``obj`` only remove
                 quantities listed that are exposed from ``obj``. If ``obj`` is
                 None, then ``quantities`` must be given.
-
+            user_name (str): A user name to specify the final entry in the
+                namespace of the object. This must be used in ``user_name`` was
+                specified in `Logger.add`.
         """
         if obj is None and quantities is None:
             raise ValueError(
@@ -537,7 +607,7 @@ class Logger(SafeNamespaceDict):
         else:
             for quantity in self._get_loggables_by_name(obj, quantities):
                 # Check all currently used namespaces for object's quantities.
-                for namespace in quantity.yield_names():
+                for namespace in quantity.yield_names(user_name):
                     if namespace in self:
                         if self._contains_obj(namespace, obj):
                             del self[namespace]
@@ -547,20 +617,18 @@ class Logger(SafeNamespaceDict):
                     else:
                         break
 
-    def _add_single_quantity(self, obj, quantity):
+    def _add_single_quantity(self, obj, quantity, user_name):
         '''If quantity for obj is not logged add to first available namespace.
         '''
-        for namespace in quantity.yield_names():
+        for namespace in quantity.yield_names(user_name):
             if namespace in self:
                 # Check if the quantity is already logged by the same object
                 if self._contains_obj(namespace, obj):
-                    return namespace
-                else:
-                    continue
+                    return None
             else:
                 self[namespace] = _LoggerEntry.from_logger_quantity(
                     obj, quantity)
-                return namespace
+                return None
 
     def __setitem__(self, namespace, value):
         """Allows user specified loggable quantities.
@@ -569,10 +637,10 @@ class Logger(SafeNamespaceDict):
             namespace (tuple[str,] or str): key or nested key to determine where
                 to store logged quantity.
             value (tuple[Callable, str] or tuple[object, str, str]):
-                Either a tuple with a callable and the `hoomd.logging.TypeFlags`
+                Either a tuple with a callable and the `hoomd.logging.LoggerCategories`
                 object or associated string or a object with a method/property
-                name and flag. If using a method it should not take arguments or
-                have defaults for all arguments.
+                name and category. If using a method it should not take
+                arguments or have defaults for all arguments.
         """
         if isinstance(value, _LoggerEntry):
             super().__setitem__(namespace, value)
@@ -582,7 +650,7 @@ class Logger(SafeNamespaceDict):
     def __iadd__(self, obj):
         """Add quantities from object or list of objects to logger.
 
-        Adds all quantities compatible with given flags and default value.
+        Adds all quantities compatible with given categories and default value.
 
         Examples:
             .. code-block:: python
@@ -622,16 +690,17 @@ class Logger(SafeNamespaceDict):
         """Get a nested dictionary of the current values for logged quantities.
 
         The nested dictionary consist of one level for each element of a
-        namespace. The logged value and flag for the namespace ``('example',
+        namespace. The logged value and category for the namespace ``('example',
         'namespace')`` would be accessible in the returned dictionary via
         ``logger.log()['example']['namespace']``.
 
         Returns:
-            dict: A nested dictionary of the current logged
-                quantities. The end values are (value, flag) pairs which hold
-                the value along with its associated `hoomd.logging.TypeFlags`
-                flag represented as a string (to get the
-                `hoomd.logging.TypeFlags` enum value use ``TypeFlags[flag]``.
+            dict: A nested dictionary of the current logged quantities. The end
+                values are (value, category) pairs which hold the value along
+                with its associated `hoomd.logging.LoggerCategories` category
+                represented as a string (to get the
+                `hoomd.logging.LoggerCategories` enum value use
+                ``LoggerCategories[category]``.
         """
         return dict_map(self._dict, lambda x: x())
 

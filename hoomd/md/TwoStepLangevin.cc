@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -240,7 +240,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
-    const unsigned int D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int D = m_sysdef->getNDimensions();
 
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -202,7 +202,7 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                 ArrayHandle<unsigned int> d_tmp_keys(m_tmp_keys, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_cart_ranks(m_decomposition->getCartRanks(), access_location::device, access_mode::read);
 
-                num_send_neigh = mpcd::gpu::sort_comm_send_buffer(d_sendbuf.data,
+                num_send_neigh = (unsigned int)mpcd::gpu::sort_comm_send_buffer(d_sendbuf.data,
                                                                   d_neigh_send.data,
                                                                   d_num_send.data,
                                                                   d_tmp_keys.data,
@@ -210,7 +210,7 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                                                                   m_decomposition->getDomainIndexer(),
                                                                   m_comm_mask[stage],
                                                                   d_cart_ranks.data,
-                                                                  m_sendbuf.size());
+                                                                  (unsigned int)(m_sendbuf.size()));
                 }
 
             // fill the number of particles to send for each neighbor

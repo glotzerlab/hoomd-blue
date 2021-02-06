@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -92,8 +92,8 @@ struct TriangleMesh : ShapeParams
         OverlapReal R = v["sweep_radius"].cast<OverlapReal>();
         ignore = v["ignore_statistics"].cast<unsigned int>();
         hull_only = v["hull_only"].cast<unsigned int>();
-        n_verts = pybind11::len(verts_list);
-        n_faces = pybind11::len(face_list);
+        n_verts = (unsigned int)pybind11::len(verts_list);
+        n_faces = (unsigned int)pybind11::len(face_list);
         origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin_tuple[0]),
                                    pybind11::cast<OverlapReal>(origin_tuple[1]),
                                    pybind11::cast<OverlapReal>(origin_tuple[2]));
@@ -119,7 +119,7 @@ struct TriangleMesh : ShapeParams
         auto hull = qh.getConvexHull(qh_pts, true, false);
         auto vertexBuffer = hull.getVertexBuffer();
 
-        convex_hull_verts = PolyhedronVertices(vertexBuffer.size(), managed);
+        convex_hull_verts = PolyhedronVertices((unsigned int)vertexBuffer.size(), managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_faces * 3, managed);
@@ -556,7 +556,7 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
     vec3<OverlapReal> ey = cross(ex,b);
     ey = cross(ey,ex);
 
-    if (dot(ey,ey)) ey *= fast::rsqrt(dot(ey,ey));
+    if (dot(ey,ey) != 0) ey *= fast::rsqrt(dot(ey,ey));
 
     vec2<OverlapReal> r(mag_r, OverlapReal(0.0));
     vec2<OverlapReal> s(dot(b,ex),dot(b,ey));
@@ -567,7 +567,7 @@ DEVICE inline bool test_line_segment_overlap(const vec3<OverlapReal>& p,
         {
         // collinear or parallel?
         vec3<OverlapReal> c = cross(q-p,a);
-        if (dot(c,c))
+        if (dot(c,c) != 0)
             return false; // parallel
 
         OverlapReal t = dot(del,r);
@@ -735,7 +735,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                     }
                 }
 
-            if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
+            if (bool(a.isSpheroPolyhedron()) || bool(b.isSpheroPolyhedron()))
                 {
                 OverlapReal dsqmin(FLT_MAX);
                 // Load vertex 0 on a
@@ -910,7 +910,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  Scalar sweep_radius_b)
     {
     // test overlap of convex hulls
-    if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
+    if (bool(a.isSpheroPolyhedron()) || bool(b.isSpheroPolyhedron()))
         {
         if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.convex_hull_verts),
                ShapeSpheropolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
@@ -922,7 +922,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         }
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    const OverlapReal abs_tol(DaDb*1e-12);
+    const OverlapReal abs_tol(OverlapReal(DaDb*1e-12));
     vec3<OverlapReal> dr = r_ab;
 
     /*
