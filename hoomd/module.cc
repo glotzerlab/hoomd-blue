@@ -42,7 +42,6 @@
 #include "PythonTuner.h"
 #include "Variant.h"
 #include "Messenger.h"
-#include "Manifold.h"
 #include "SnapshotSystemData.h"
 
 // ParticleFilter objects
@@ -324,7 +323,4 @@ PYBIND11_MODULE(_hoomd, m)
 
     // messenger
     export_Messenger(m);
-
-    // manifold
-    export_Manifold(m);
     }

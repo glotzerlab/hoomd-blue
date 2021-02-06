@@ -47,7 +47,6 @@ set(_hoomd_sources Analyzer.cc
                    LogPlainTXT.cc
                    LogMatrix.cc
                    LogHDF5.cc
-                   Manifold.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -142,8 +141,6 @@ set(_hoomd_headers
     LogHDF5.h
     managed_allocator.h
     ManagedArray.h
-    Manifold.h
-    ManifoldSurfaces.h
     MemoryTraceback.h
     Messenger.h
     MPIConfiguration.h
