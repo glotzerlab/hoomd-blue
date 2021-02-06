@@ -145,7 +145,6 @@ class UserPatch(Compute):
 
         self._enable = True
         self._log_only = False
-        # self._cpp_obj.alpha_iso[:] = [0]*array_size
         self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
