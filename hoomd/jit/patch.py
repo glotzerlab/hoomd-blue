@@ -4,6 +4,7 @@
 from hoomd import _hoomd
 from hoomd.jit import _jit
 from hoomd.operation import Compute
+from hoomd.data.parameterdicts import ParameterDict
 import hoomd
 
 import subprocess
@@ -141,7 +142,7 @@ class UserPatch(Compute):
             with open(llvm_ir_file,'r') as f:
                 self._llvm_ir = f.read()
 
-        self._enabled = True
+        self._enable = True
         self._log_only = False
         # self._cpp_obj.alpha_iso[:] = [0]*array_size
         self.alpha_iso = np.zeros(array_size)
@@ -155,7 +156,7 @@ class UserPatch(Compute):
             raise RuntimeError("Integrator is not attached yet.")
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
-        if (isinstance(self._simulation.device, hoomd.device.GPU):
+        if (isinstance(self._simulation.device, hoomd.device.GPU)):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
@@ -182,7 +183,7 @@ class UserPatch(Compute):
         self.alpha_iso = self._cpp_obj.alpha_iso
 
         integrator._cpp_obj.disablePatchEnergyLogOnly(self._log_only)
-        arg = self._cpp_obj if self._enable else None:
+        arg = self._cpp_obj if self._enable else None
         integrator._cpp_obj.setPatchEnergy(arg)
         super()._attach()
 
@@ -190,20 +191,20 @@ class UserPatch(Compute):
     def enable(self):
         return self._enable
 
-    @property.setter
+    @enable.setter
     def enable(self, value):
         self._enable = value
         if not self._enable and self._log_only:
             self._log_only = False
         if self._attached:
-            arg = self._cpp_obj if self._enable else None:
+            arg = self._cpp_obj if self._enable else None
             self._simulation.operations.integrator._cpp_obj.setPatchEnergy(arg)
 
     @property
     def log_only(self):
         return self._log_only
 
-    @property.setter
+    @log_only.setter
     def log_only(self, log):
         self._log_only = log
         if self._log_only and not self._enable:
@@ -257,7 +258,7 @@ float eval(const vec3<float>& r_ij,
 """
 
         include_path = os.path.dirname(hoomd.__file__) + '/include';
-        include_path_source = hoomd._hoomd.__hoomd_source_dir__;
+        include_path_source = hoomd.version.source_dir
 
         if clang_exec is not None:
             clang = clang_exec;
@@ -319,7 +320,7 @@ __device__ inline float eval(const vec3<float>& r_ij,
         # Compile on C++ side
         return cpp_function
 
-class UserUnionPatch(user):
+class UserUnionPatch(UserPatch):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
