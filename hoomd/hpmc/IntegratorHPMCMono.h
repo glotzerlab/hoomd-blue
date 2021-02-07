@@ -3250,6 +3250,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("getTypeShapesPy", &IntegratorHPMCMono<Shape>::getTypeShapesPy)
           .def("getShape", &IntegratorHPMCMono<Shape>::getShape)
           .def("setShape", &IntegratorHPMCMono<Shape>::setShape)
+          .def("computePatchEnergy", &IntegratorHPMCMono<Shape>::computePatchEnergy)
           ;
     }
 

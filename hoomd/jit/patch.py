@@ -7,6 +7,7 @@ from hoomd import _hoomd
 from hoomd.jit import _jit
 from hoomd.operation import Compute
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.logging import log
 
 import subprocess
 import os
@@ -212,6 +213,14 @@ class UserPatch(Compute):
         if self._attached:
             self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
 
+    @log
+    def energy(self):
+        integrator = self._simulation.operations.integrator
+        if self._attached and integrator._attached:
+            timestep = self._simulation.timestep
+            return integrator._cpp_obj.computePatchEnergy(timestep)
+        else:
+            return None
 
     def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
