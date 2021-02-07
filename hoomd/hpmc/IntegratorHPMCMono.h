@@ -315,7 +315,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
             flags[comm_flag::orientation] = 1;
 
-            if (m_patch && (!m_patch_log))
+            if (m_patch->getAttached() && !m_patch_log)
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -629,7 +629,7 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
     {
     if (quantity == "hpmc_patch_energy")
         {
-        if (m_patch)
+        if (m_patch->getAttached())
             {
             return computePatchEnergy(timestep);
             }
@@ -641,7 +641,7 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
         }
     else if (quantity == "hpmc_patch_rcut")
         {
-        if (m_patch)
+        if (m_patch->getAttached())
             {
             return (Scalar)m_patch->getRCut();
             }
@@ -905,7 +905,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             bool overlap=false;
             OverlapReal r_cut_patch = 0;
 
-            if (m_patch && !m_patch_log)
+            if (m_patch->getAttached() && !m_patch_log)
                 {
                 r_cut_patch = OverlapReal(m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
                 }
@@ -971,7 +971,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                 Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
                                 Scalar rcut = 0.0;
-                                if (m_patch)
+                                if (m_patch->getAttached())
                                     rcut = r_cut_patch + 0.5 * m_patch->getAdditiveCutoff(typ_j);
 
                                 counters.overlap_checks++;
@@ -982,7 +982,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch && !m_patch_log && dot(r_ij,r_ij) <= rcut*rcut) // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (m_patch->getAttached() && !m_patch_log && dot(r_ij,r_ij) <= rcut*rcut) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
@@ -1013,7 +1013,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 } // end loop over images
 
             // calculate old patch energy only if m_patch not NULL and no overlaps
-            if (m_patch && !m_patch_log && !overlap)
+            if (m_patch->getAttached() && !m_patch_log && !overlap)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -1331,7 +1331,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
     double energy = 0.0;
 
     // return if nothing to do
-    if (!m_patch) return float(energy);
+    if (!m_patch->getAttached()) return float(energy);
 
     m_exec_conf->msg->notice(10) << "HPMC compute patch energy: " << timestep << std::endl;
 
@@ -1504,7 +1504,7 @@ OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
         minD = std::min(minD, temp.getCircumsphereDiameter());
         }
 
-    if (m_patch)
+    if (m_patch->getAttached())
         {
         OverlapReal max_extent = 0.0;
         for (unsigned int typ =0; typ < this->m_pdata->getNTypes(); typ++)
@@ -1630,14 +1630,14 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             Shape temp_i(quat<Scalar>(), m_params[typ_i]);
 
             Scalar r_cut_patch_i(0.0);
-            if (m_patch)
+            if (m_patch->getAttached())
                 r_cut_patch_i = (Scalar)m_patch->getRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i);
 
             Scalar range_i(0.0);
             for (unsigned int typ_j = 0; typ_j < this->m_pdata->getNTypes(); typ_j++)
                 {
                 Scalar r_cut_patch_ij(0.0);
-                if (m_patch)
+                if (m_patch->getAttached())
                     r_cut_patch_ij = r_cut_patch_i + 0.5*m_patch->getAdditiveCutoff(typ_j);
 
                 Shape temp_j(quat<Scalar>(), m_params[typ_j]);

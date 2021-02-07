@@ -205,6 +205,27 @@ class PatchEnergy
             throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
             }
         #endif
+
+        //! Returns the attached status
+        virtual void setAttached(bool attached)
+            {
+            m_attached = attached;
+            }
+
+        //! Sets the attached status
+        virtual bool getAttached()
+            {
+            return m_attached;
+            }
+
+        virtual void notifyDetach()
+            {
+            m_attached = false;
+            }
+
+    protected:
+        //! Track whether we have attached to the Simulation object
+        bool m_attached = true;
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
@@ -457,6 +478,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
+            m_patch->setAttached(true);
             }
 
         //! Enable the patch energy only for logging
