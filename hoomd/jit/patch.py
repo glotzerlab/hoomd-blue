@@ -136,14 +136,9 @@ class UserPatch(Compute):
                                    array_size = array_size)
         self._param_dict.update(param_dict)
         # these only exist on python
-        clang = clang_exec if clang_exec is not None else 'clang'
-        if code is not None:
-            self._llvm_ir = self._compile_user(array_size, 1, code, clang)
-        else:
-            # IR is a text file
-            with open(llvm_ir_file,'r') as f:
-                self._llvm_ir = f.read()
-
+        self._code = code
+        self._llvm_ir_file = llvm_ir_file
+        self._clang_exec = clang_exec
         self._enable = True
         self._log_only = False
         self.alpha_iso = np.zeros(array_size)
@@ -155,6 +150,14 @@ class UserPatch(Compute):
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
+
+        clang = self._clang_exec if self._clang_exec is not None else 'clang'
+        if self._code is not None:
+            _llvm_ir = self._compile_user(self.array_size, 1, self._code, clang)
+        else:
+            # IR is a text file
+            with open(self._llvm_ir_file,'r') as f:
+                _llvm_ir = f.read()
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
@@ -175,10 +178,10 @@ class UserPatch(Compute):
                     max_arch = int(a)
 
             gpu_code = self._wrap_gpu_code(code)
-            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, self._llvm_ir, self.r_cut, self.array_size,
+            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, _llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, self._llvm_ir, self.r_cut, self.array_size)
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, _llvm_ir, self.r_cut, self.array_size)
 
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
