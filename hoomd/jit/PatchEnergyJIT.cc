@@ -43,5 +43,6 @@ void export_PatchEnergyJIT(pybind11::module &m)
             .def("energy", &PatchEnergyJIT::energy)
             .def_property_readonly("alpha_iso",&PatchEnergyJIT::getAlphaNP)
             .def("notifyDetach", &PatchEnergyJIT::notifyDetach)
+            .def_property("log_only", &PatchEnergyJIT::getLogOnly, &PatchEnergyJIT::setLogOnly)
             ;
     }

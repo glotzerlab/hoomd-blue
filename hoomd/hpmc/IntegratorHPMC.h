@@ -218,14 +218,26 @@ class PatchEnergy
             return m_attached;
             }
 
+        //! Sets the log only flag
+        virtual void setLogOnly(bool log)
+            {
+            m_log_only = log;
+            }
+
+        //! Returns the log only flag
+        virtual bool getLogOnly()
+            {
+            return m_log_only;
+            }
+
         virtual void notifyDetach()
             {
             m_attached = false;
             }
 
     protected:
-        //! Track whether we have attached to the Simulation object
-        bool m_attached = true;
+        bool m_attached = true;  //! Track whether we have attached to the Simulation object
+        bool m_log_only = false; //!< If true, only use patch energy for logging
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
@@ -452,7 +464,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         //! Returns the patch energy interaction
         std::shared_ptr<PatchEnergy> getPatchInteraction()
             {
-            if (!m_patch_log)
+            if (!m_patch->getLogOnly())
                 return m_patch;
             else
                 return std::shared_ptr<PatchEnergy>();
@@ -479,14 +491,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             {
             m_patch = patch;
             m_patch->setAttached(true);
-            }
-
-        //! Enable the patch energy only for logging
-        /*! \param log if True, only enabled for logging purposes
-         */
-        void disablePatchEnergyLogOnly(bool log)
-            {
-            m_patch_log = log;
             }
 
         //! Get the seed
@@ -542,7 +546,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
 
         std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
-        bool m_patch_log;                           //!< If true, only use patch energy for logging
 
         bool m_past_first_run;                      //!< Flag to test if the first run() has started
         //! Update the nominal width of the cells

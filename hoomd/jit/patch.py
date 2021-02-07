@@ -131,16 +131,20 @@ class UserPatch(Compute):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
+    def __init__(self, r_cut,
+                       array_size=1,
+                       log_only=False,
+                       code=None,
+                       llvm_ir_file=None,
+                       clang_exec=None):
         param_dict = ParameterDict(r_cut = r_cut,
-                                   array_size = array_size)
+                                   array_size = array_size,
+                                   log_only = log_only)
         self._param_dict.update(param_dict)
         # these only exist on python
         self._code = code
         self._llvm_ir_file = llvm_ir_file
         self._clang_exec = clang_exec
-        self._enable = True
-        self._log_only = False
         self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
@@ -186,22 +190,8 @@ class UserPatch(Compute):
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
 
-        integrator._cpp_obj.disablePatchEnergyLogOnly(self._log_only)
-        arg = self._cpp_obj if self._enable else None
-        integrator._cpp_obj.setPatchEnergy(arg)
+        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
-
-    @property
-    def log_only(self):
-        return self._log_only
-
-    @log_only.setter
-    def log_only(self, log):
-        self._log_only = log
-        if self._log_only and not self._enable:
-            self._enable = True
-        if self._attached:
-            self._simulation.operations.integrator._cpp_obj.disablePatchEnergyLogOnly(log)
 
     @log
     def energy(self):
