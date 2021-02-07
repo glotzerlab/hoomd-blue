@@ -192,19 +192,6 @@ class UserPatch(Compute):
         super()._attach()
 
     @property
-    def enable(self):
-        return self._enable
-
-    @enable.setter
-    def enable(self, value):
-        self._enable = value
-        if not self._enable and self._log_only:
-            self._log_only = False
-        if self._attached:
-            arg = self._cpp_obj if self._enable else None
-            self._simulation.operations.integrator._cpp_obj.setPatchEnergy(arg)
-
-    @property
     def log_only(self):
         return self._log_only
 
