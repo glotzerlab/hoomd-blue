@@ -290,7 +290,7 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
 
 def test_seed(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
-    assert sim.seed == 0
+    assert sim.seed is None
 
     sim.seed = 42
     assert sim.seed == 42

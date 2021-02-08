@@ -16,6 +16,7 @@ import json
 TIMESTEP_MAX = 2**64 - 1
 SEED_MAX = 2**16 - 1
 
+
 class Simulation(metaclass=Loggable):
     """Define a simulation.
 
@@ -28,16 +29,17 @@ class Simulation(metaclass=Loggable):
     state during a simulation `run`, and the `device` to use when executing
     the simulation.
 
-    `seed` sets the seed for the random number generator.
+    `seed` sets the seed for the random number generator used by all operations
+    added to this `Simulation`.
     """
 
-    def __init__(self, device, seed=0):
+    def __init__(self, device, seed=None):
         self._device = device
         self._state = None
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
-        self.seed = seed
+        self._seed = seed
 
     @property
     def device(self):
@@ -90,7 +92,7 @@ class Simulation(metaclass=Loggable):
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
         """
-        if self.state is None:
+        if self.state is None or self._seed is None:
             return self._seed
         else:
             return self._state._cpp_sys_def.getSeed()
@@ -99,12 +101,28 @@ class Simulation(metaclass=Loggable):
     def seed(self, v):
         v_int = int(v)
         if v_int < 0 or v_int > SEED_MAX:
-            v_int = v_int & 0xffff
+            v_int = v_int & SEED_MAX
+            self.device._cpp_msg.warning(
+                f"Provided seed {v} is larger than {SEED_MAX}. "
+                f"Truncating to {v_int}.\n")
 
-        if self._state is None:
-            self._seed = v_int
-        else:
+        self._seed = v_int
+
+        if self._state is not None:
             self._state._cpp_sys_def.setSeed(v_int)
+
+    def _init_system(self, step):
+        """Initialize the system State.
+
+        Perform additional initialization operations not in the State
+        constructor.
+        """
+        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+
+        if self._seed is not None:
+            self._state._cpp_sys_def.setSeed(self._seed)
+
+        self._init_communicator()
 
     def _init_communicator(self):
         """Initialize the Communicator."""
@@ -150,13 +168,10 @@ class Simulation(metaclass=Loggable):
 
         step = reader.getTimeStep() if self.timestep is None else self.timestep
         self._state = State(self, snapshot)
-        self._state._cpp_sys_def.setSeed(self._seed)
 
         reader.clearSnapshot()
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
-        self.operations._store_reader(reader)
+
+        self._init_system(step)
 
     def create_state_from_snapshot(self, snapshot):
         """Create the simulations state from a `Snapshot`.
@@ -187,15 +202,11 @@ class Simulation(metaclass=Loggable):
                 "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
             )
 
-        self._state._cpp_sys_def.setSeed(self._seed)
-
         step = 0
         if self.timestep is not None:
             step = self.timestep
 
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
+        self._init_system(step)
 
     @property
     def state(self):
@@ -369,7 +380,7 @@ class Simulation(metaclass=Loggable):
         steps_int = int(steps)
         if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
             raise ValueError(f"steps must be in the range [0, "
-                             "{TIMESTEP_MAX-1}]")
+                             f"{TIMESTEP_MAX-1}]")
 
         self._cpp_sys.run(steps_int, write_at_start)
 
@@ -453,4 +464,4 @@ class Simulation(metaclass=Loggable):
 
 def _match_class_path(obj, *matches):
     return any(cls.__module__ + '.' + cls.__name__ in matches
-            for cls in inspect.getmro(type(obj)))
+               for cls in inspect.getmro(type(obj)))

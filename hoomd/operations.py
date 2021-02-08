@@ -213,10 +213,6 @@ class Operations(Collection):
         self._computes._unsync()
         self._scheduled = False
 
-    def _store_reader(self, reader):
-        # TODO
-        pass
-
     def __contains__(self, operation):
         """Whether an operation is contained in this container.
 
