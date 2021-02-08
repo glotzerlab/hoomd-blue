@@ -99,7 +99,6 @@ class BoxMC(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        print("boxmc._add(simulation=", simulation)
         if simulation is not None:
             simulation._warn_if_seed_unset()
 
@@ -597,7 +596,9 @@ class Clusters(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        simulation._warn_if_seed_unset()
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
         super()._add(simulation)
 
     def _attach(self):
@@ -796,9 +797,9 @@ class QuickCompress(Updater):
 
         HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        print("simulation=", simulation)
         if simulation is not None:
             simulation._warn_if_seed_unset()
+
         super()._add(simulation)
 
     def _attach(self):
