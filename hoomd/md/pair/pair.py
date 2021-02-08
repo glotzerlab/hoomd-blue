@@ -940,6 +940,14 @@ class DPD(Pair):
 
         self.kT = kT
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        DPD uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
+
 
 class DPDConservative(Pair):
     """DPD Conservative pair force.
@@ -1109,6 +1117,13 @@ class DPDLJ(Pair):
         self.kT = kT
         self.mode = mode
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        DPDLJ uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
 
 class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.

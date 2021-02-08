@@ -94,6 +94,17 @@ class BoxMC(Updater):
         self._param_dict.update(param_dict)
         self.betaP = betaP
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        print("boxmc._add(simulation=", simulation)
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
+
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
@@ -581,6 +592,14 @@ class Clusters(Updater):
                                    delta_mu=float(delta_mu))
         self._param_dict.update(param_dict)
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
+
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
@@ -771,6 +790,16 @@ class QuickCompress(Updater):
         param_dict['target_box'] = target_box
 
         self._param_dict.update(param_dict)
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        print("simulation=", simulation)
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+        super()._add(simulation)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator

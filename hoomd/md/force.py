@@ -311,6 +311,14 @@ class Active(Force):
 
         self._extend_typeparam([active_force, active_torque])
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        Active forces use RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
+
     def _attach(self):
         # initialize the reflected c++ class
         if isinstance(self._simulation.device, hoomd.device.CPU):

@@ -405,5 +405,6 @@ class State:
 
             `md.methods.NPT.thermalize_extra_dof`
         """
+        self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)
         group.thermalizeParticleMomenta(kT, self._simulation.timestep)

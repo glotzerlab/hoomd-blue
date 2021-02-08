@@ -137,6 +137,14 @@ class HPMCIntegrator(BaseIntegrator):
             typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
         ])
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
+
     def _attach(self):
         """Initialize the reflected c++ class."""
         sys_def = self._simulation.state._cpp_sys_def

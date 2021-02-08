@@ -154,6 +154,7 @@ class NVT(_Method):
             raise RuntimeError(
                 "Call Simulation.run(0) before thermalize_thermostat_dof")
 
+        self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
 
@@ -436,6 +437,7 @@ class NPT(_Method):
                 "Call Simulation.run(0) before"
                 "thermalize_thermostat_and_barostat_dof")
 
+        self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
@@ -695,6 +697,14 @@ class Langevin(_Method):
 
         self._extend_typeparam([gamma,gamma_r])
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        Langevin uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
+
     def _attach(self):
 
         # initialize the reflected c++ class
@@ -837,6 +847,13 @@ class Brownian(_Method):
                                 )
         self._extend_typeparam([gamma,gamma_r])
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        Brownian uses RNGs. Warn the user if they did not set the seed.
+        """
+        simulation._warn_if_seed_unset()
+        super()._add(simulation)
 
     def _attach(self):
 

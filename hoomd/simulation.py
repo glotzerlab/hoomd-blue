@@ -147,6 +147,11 @@ class Simulation(metaclass=Loggable):
         else:
             self._system_communicator = None
 
+    def _warn_if_seed_unset(self):
+        if self.seed is None:
+            self.device._cpp_msg.warning(
+                "Simulation.seed is not set, using default seed=0\n")
+
     def create_state_from_gsd(self, filename, frame=-1):
         """Create the simulation state from a GSD file.
 
