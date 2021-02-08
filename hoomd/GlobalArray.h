@@ -882,7 +882,7 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     if (m_acquired)
         {
-        throw std::runtime_error("Cannot acquire access to array in use.");
+        throw std::runtime_error("Cannot acquire access to array in use ["+this->m_tag+"]");
         }
     m_acquired = true;
 
