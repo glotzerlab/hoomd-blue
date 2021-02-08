@@ -468,48 +468,22 @@ class Clusters(Updater):
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        integrator_pairs = [
-                (integrate.Sphere,
-                    _hpmc.UpdaterClustersSphere),
-                (integrate.ConvexPolygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.SimplePolygon,
-                    _hpmc.UpdaterClustersSimplePolygon),
-                (integrate.ConvexPolyhedron,
-                    _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.ConvexSpheropolyhedron,
-                    _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.Ellipsoid,
-                    _hpmc.UpdaterClustersEllipsoid),
-                (integrate.ConvexSpheropolygon,
-                    _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.FacetedEllipsoid,
-                    _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.SphereUnion,
-                    _hpmc.UpdaterClustersSphereUnion),
-                (integrate.ConvexSpheropolyhedronUnion,
-                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.FacetedEllipsoidUnion,
-                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.Polyhedron,
-                    _hpmc.UpdaterClustersPolyhedron),
-                (integrate.Sphinx,
-                    _hpmc.UpdaterClustersSphinx)
-                ]
-
-        cpp_cls = None
-        for python_integrator, cpp_updater in integrator_pairs:
-            if isinstance(integrator, python_integrator):
-                cpp_cls = cpp_updater
-        if cpp_cls is None:
-            raise RuntimeError("Unsupported integrator.\n")
+        cpp_cls_name = "UpdaterClusters"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            cpp_cls_name += "GPU"
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
         if isinstance(self._simulation.device, hoomd.device.GPU):
+            sys_def = self._simulation.state._cpp_sys_def
+            self._cpp_cell = _hoomd.CellListGPU(sys_def)
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
+                                    self._cpp_cell,
                                     int(self.seed))
         else:
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,

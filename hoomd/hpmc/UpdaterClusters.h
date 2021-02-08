@@ -390,7 +390,8 @@ class UpdaterClusters : public Updater
         //! Check overlaps of a particle with depletants
         inline void checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup,
-            unsigned int *h_overlaps, unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+            unsigned int *h_overlaps, const Scalar *h_fugacity,
+            unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
         //! Save current state of particle data
         virtual void backupState();
@@ -453,7 +454,8 @@ UpdaterClusters<Shape>::~UpdaterClusters()
 template<class Shape>
 inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
     const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup,
-    unsigned int *h_overlaps, unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
+    unsigned int *h_overlaps, const Scalar *h_fugacity,
+    unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -496,7 +498,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
         for (unsigned int type_b = type_a; type_b < this->m_pdata->getNTypes(); ++type_b)
         #endif
             {
-            if (this->m_mc->getDepletantFugacity(type_a,type_b) == 0.0
+            if (h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)] == 0.0
                 || !h_overlaps[overlap_idx(type_a, typ_i)]
                 || !h_overlaps[overlap_idx(type_b, typ_i)])
                 continue;
@@ -506,7 +508,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             std::vector<unsigned int> type_j;
             std::vector<unsigned int> idx_j;
 
-            bool repulsive = this->m_mc->getDepletantFugacity(type_a,type_b) < 0.0;
+            bool repulsive = h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)] < 0.0;
 
             if (repulsive)
                 throw std::runtime_error("Negative fugacities not supported in UpdaterClusters.\n");
@@ -604,7 +606,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
 
             // chooose the number of depletants in the intersection volume
             hoomd::PoissonDistribution<Scalar> poisson(
-                std::abs(this->m_mc->getDepletantFugacity(type_a,type_b))*V_tot);
+                std::abs(h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)]*V_tot));
             unsigned int ntypes = this->m_pdata->getNTypes();
             hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNumClusters,
                 this->m_seed, type_a*ntypes+type_b, i, timestep);
@@ -1450,12 +1452,13 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<
      * Depletants
      */
 
+    ArrayHandle<Scalar> h_fugacity(this->m_mc->getFugacityArray(), access_location::host, access_mode::read);
     bool has_depletants = false;
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
         for (unsigned int j = 0; j < this->m_pdata->getNTypes(); ++j)
             {
-            if (this->m_mc->getDepletantFugacity(i,j) != 0.0)
+            if (h_fugacity.data[this->m_mc->getDepletantIndexer()(i,j)] != 0.0)
                 {
                 has_depletants = true;
                 break;
@@ -1481,7 +1484,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<
 
         checkDepletantOverlap(i, pos_i, shape_i, typ_i,
             h_postype_backup.data, h_orientation_backup.data,
-            h_overlaps.data, timestep, q, pivot, line);
+            h_overlaps.data, h_fugacity.data,
+            timestep, q, pivot, line);
         }
     #ifdef ENABLE_TBB
         });
