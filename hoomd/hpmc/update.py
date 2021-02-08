@@ -288,7 +288,7 @@ class MuVT(Updater):
         trigger (int): Number of timesteps between grand canonical insertions
         transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
-        max_volume_rescale (flaot): maximum step size in ln(V) (applies to Gibbs ensemble)
+        max_volume_rescale (float): maximum step size in ln(V) (applies to Gibbs ensemble)
         move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
