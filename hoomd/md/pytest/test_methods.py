@@ -68,6 +68,59 @@ def test_brownian_attributes_attached(simulation_factory,
     assert brownian.alpha == 0.125
 
 
+@pytest.mark.serial
+def test_berendsen_attributes(device):
+    """Test attributes of the Berendsen integrator before attaching."""
+    all_ = hoomd.filter.All()
+    constant = hoomd.variant.Constant(2.0)
+    berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
+
+    assert berendsen.filter == all_
+    assert berendsen.kT == constant
+    assert berendsen.tau == 10.0
+
+    type_A = hoomd.filter.Type(['A'])
+    berendsen.filter = type_A
+    assert berendsen.filter == type_A
+
+    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
+    berendsen.kT = ramp
+    assert berendsen.kT == ramp
+
+    berendsen.tau = 1.2
+    assert berendsen.tau == 1.2
+
+
+@pytest.mark.serial
+def test_berendsen_attributes_attached(simulation_factory,
+                                       two_particle_snapshot_factory):
+    """Test attributes of the Berendsen integrator after attaching."""
+    all_ = hoomd.filter.All()
+    constant = hoomd.variant.Constant(2.0)
+    berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[berendsen])
+    sim.operations._schedule()
+
+    assert berendsen.filter == all_
+    assert berendsen.kT == constant
+    assert berendsen.tau == 10.0
+
+    type_A = hoomd.filter.Type(['A'])
+    with pytest.raises(AttributeError):
+        # filter cannot be set after scheduling
+        berendsen.filter = type_A
+
+    assert berendsen.filter == all_
+
+    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
+    berendsen.kT = ramp
+    assert berendsen.kT == ramp
+
+    berendsen.tau = 1.2
+    assert berendsen.tau == 1.2
+
+
 def test_langevin_attributes():
     """Test attributes of the Langevin integrator before attaching."""
     all_ = hoomd.filter.All()
