@@ -4,7 +4,7 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.3 (not yet released)
+v3.0.0-beta.4 (not yet released)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
@@ -12,6 +12,7 @@ v3.0.0-beta.3 (not yet released)
 - ``hoomd.write.DCD`` - DCD trajectory writer.
 - ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
   potentials.
+- ``hoomd.md.methods.Berendsen`` - Berendsen integration method.
 
 *Changed*
 
