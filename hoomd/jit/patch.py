@@ -19,28 +19,32 @@ class UserPatch(Compute):
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (str): C++ code to compile
+        code (str): C++ code defining the costum pair interactions between particles.
         llvm_ir_fname (str): File name of the llvm IR file to load.
         clang_exec (str): The Clang executable to use
         array_size (int): Size of array with adjustable elements. (added in version 2.8)
-
-    Attributes:
-        alpha_iso (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
-                                          defined by the user (added in version 2.8)
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
     Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
     the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
 
-    The :py:class:`user` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
+    The :py:class:`UserPatch` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
     in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
-    interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`user` provides a mechanism,
+    interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`UserPatch` provides a mechanism,
     through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
     to recompile the patch energy code. These arrays are **read-only** during function evaluation.
 
+    Attributes:
+        r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        log_only (bool): Enable patch interaction for logging purposes only.
+        array_size (int): Size of array with adjustable elements. (added in version 2.8)
+        energy (float): Total interaction energy of the system in the current state.
+        alpha_iso (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+                                          defined by the user (added in version 2.8).
+
     .. rubric:: C++ code
 
-    Supply C++ code to the *code* argument and :py:class:`user` will compile the code and call it to evaluate
+    Supply C++ code to the *code* argument and :py:class:`UserPatch` will compile the code and call it to evaluate
     patch energies. Compilation assumes that a recent ``clang`` installation is on your PATH. This is convenient
     when the energy evaluation is simple or needs to be modified in python. More complex code (i.e. code that
     requires auxiliary functions or initialization of static data arrays) should be compiled outside of HOOMD
@@ -87,7 +91,7 @@ class UserPatch(Compute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, code=square_well)
+        patch = hoomd.jit.patch.UserPatch(r_cut=1.1, code=square_well)
         hoomd.run(1000)
 
     Dynamic potential parameters
@@ -101,7 +105,7 @@ class UserPatch(Compute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, array_size=2, code=square_well)
+        patch = hoomd.jit.patch.UserPatch(mc=mc, r_cut=1.1, array_size=2, code=square_well)
         patch.alpha_iso[:] = [1.1, 1.5] # [rcut, epsilon]
         hoomd.run(1000)
         patch.alpha_iso[1] = 2.0
@@ -131,12 +135,8 @@ class UserPatch(Compute):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, r_cut,
-                       array_size=1,
-                       log_only=False,
-                       code=None,
-                       llvm_ir_file=None,
-                       clang_exec=None):
+    def __init__(self, r_cut, array_size=1, log_only=False,
+                 code=None, llvm_ir_file=None, clang_exec=None):
         param_dict = ParameterDict(r_cut = r_cut,
                                    array_size = array_size,
                                    log_only = log_only)
@@ -189,12 +189,13 @@ class UserPatch(Compute):
 
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
-
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
     @log
     def energy(self):
+        """float: Total interaction energy of the system in the current state.
+        """
         integrator = self._simulation.operations.integrator
         if self._attached and integrator._attached:
             timestep = self._simulation.timestep
