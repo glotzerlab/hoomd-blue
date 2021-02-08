@@ -374,41 +374,55 @@ class UserUnionPatch(UserPatch):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
-        llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
+    def __init__(self, r_cut_union, array_size_union=1, code_union=None, llvm_ir_file_union=None,
+                 r_cut=None, array_size=1, log_only=False, code=None, llvm_ir_file=None, clang_exec=None):
 
-        # check if initialization has occurred
-        hoomd.context._verify_init()
+        r_cut = r_cut  if r_cut is not None else -1.0
 
-        if clang_exec is not None:
-            clang = clang_exec;
-        else:
-            clang = 'clang'
+        # initialize base class
+        super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
 
-        if code is not None:
-            llvm_ir = self._compile_user(array_size_iso, array_size, code, clang)
+        param_dict = ParameterDict(r_cut_union = r_cut_union,
+                                   array_size_union = array_size_union)
+        self._param_dict.update(param_dict)
+
+        # these only exist on python
+        self._code_union = code_union
+        self._llvm_ir_file_union = llvm_ir_file_union
+        self.alpha_union = np.zeros(array_size_union)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        if self._code_union is not None:
+            llvm_ir_union = self._compile_user(self.array_size, self.array_size_union,
+                                               self._code_union, self._clang)
         else:
             # IR is a text file
-            with open(llvm_ir_file,'r') as f:
-                llvm_ir = f.read()
+            with open(self._llvm_ir_file_union,'r') as f:
+                llvm_ir_union = f.read()
 
-        if code_iso is not None:
-            llvm_ir_iso = self._compile_user(array_size_iso, array_size, code_iso, clang)
+        if self._code is not None:
+            llvm_ir = self._compile_user(self.array_size, self.array_size_union,
+                                         self._code, self._clang)
         else:
-            if llvm_ir_file_iso is not None:
+            if self._llvm_ir_file is not None:
                 # IR is a text file
-                with open(llvm_ir_file_iso,'r') as f:
-                    llvm_ir_iso = f.read()
+                with open(self._llvm_ir_file,'r') as f:
+                    llvm_ir = f.read()
             else:
                 # provide a dummy function
-                llvm_ir_iso = self._compile_user(array_size_iso, array_size, 'return 0;', clang)
+                llvm_ir = self._compile_user(self.array_size, self.array_size_union,
+                                             'return 0.0;', self._clang)
 
-        if r_cut_iso is None:
-            r_cut_iso = -1.0
-
-        self.compute_name = "patch_union"
-
-        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        # self.compute_name = "patch_union"
+        cpp_exec_conf = self._simulation.device._cpp_exec_conf
+        if (isinstance(self._simulation.device, hoomd.device.GPU)):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
             include_path_source = hoomd.version.source_dir
             include_path_cuda = _jit.__cuda_include_path__
@@ -422,7 +436,7 @@ class UserUnionPatch(UserPatch):
             # select maximum supported compute capability out of those we compile for
             compute_archs = _jit.__cuda_compute_archs__;
             compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_capability =  cpp_exec_conf.getComputeCapability(0) # GPU 0
             compute_major, compute_minor = compute_capability.split('.')
             max_arch = 0
             for a in compute_archs.split('_'):
@@ -430,22 +444,22 @@ class UserUnionPatch(UserPatch):
                     max_arch = int(a)
 
             gpu_code = self._wrap_gpu_code(code)
-            self._cpp_obj = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
-                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
+            self._cpp_obj = _jit.PatchEnergyJITUnionGPU(self._simulation.state._cpp_sys_def, cpp_exec_conf,
+                self.llvm_ir, self.r_cut, self.array_size, self.llvm_ir_union, self.r_cut_union,  self.array_size_union,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
-                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
+            self._cpp_obj = _jit.PatchEnergyJITUnion(self._simulation.state._cpp_sys_def, cpp_exec_conf,
+                self.llvm_ir, self.r_cut, self.array_size, self.llvm_ir_union, self.r_cut_union,  self.array_size_union)
 
-        mc.set_PatchEnergyEvaluator(self);
-
-        self.mc = mc
-        self.enabled = True
-        self.log = False
-        self._cpp_obj.alpha_iso[:] = [0]*array_size_iso
-        self._cpp_obj.alpha_union[:] = [0]*array_size
-        self.alpha_iso = self._cpp_obj.alpha_iso[:]
-        self.alpha_union = self._cpp_obj.alpha_union[:]
+        # Set the C++ mirror array with the cached values
+        # and override the python array
+        self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
+        self._cpp_obj.alpha_union[:] = self.alpha_union[:]
+        self.alpha_iso = self._cpp_obj.alpha_iso
+        self.alpha_union = self._cpp_obj.alpha_union
+        # attach patch object to the integrator
+        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        super()._attach()
 
     def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
         R''' Set the union shape parameters for a given particle type
