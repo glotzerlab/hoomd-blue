@@ -189,8 +189,11 @@ class UserPatch(Compute):
         else:
             self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, _llvm_ir, self.r_cut, self.array_size)
 
+        # Set the C++ mirror array with the cached values
+        # and override the python array
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
+        # attach patch object to the integrator
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
@@ -264,9 +267,9 @@ float eval(const vec3<float>& r_ij,
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
-            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
+            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
+            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
