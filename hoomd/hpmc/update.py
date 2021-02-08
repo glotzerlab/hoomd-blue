@@ -495,14 +495,14 @@ class Clusters(Updater):
     def avg_cluster_size(self):
         """float: the typical size of clusters
 
-        0.0 when not attached
+        None when not attached
         """
         counter = None
         if self._attached:
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            return 0.0
+            return None
         else:
             return counter.average_cluster_size
 
