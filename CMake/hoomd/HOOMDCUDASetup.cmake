@@ -24,7 +24,7 @@ if (ENABLE_HIP)
 
         if (_cuda_min_arch LESS 60)
             message(SEND_ERROR "HOOMD requires compute 6.0 or newer")
-        endif ()
+        endif()
 
         # only generate ptx code for the maximum supported CUDA_ARCH (saves on file size)
         list(REVERSE _cuda_arch_list_sorted)
