@@ -13,6 +13,8 @@ v3.0.0-beta.4 (not yet released)
 - ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
   potentials.
 - ``hoomd.md.methods.Berendsen`` - Berendsen integration method.
+- ``hoomd.md.pair.TWF`` - Potential for modeling globular proteins by Pieter
+  Rein ten Wolde and Daan Frenkel.
 
 *Changed*
 
