@@ -92,7 +92,8 @@ class UserPatch(Compute):
                                 return 0.0f;
                       """
         patch = hoomd.jit.patch.UserPatch(r_cut=1.1, code=square_well)
-        hoomd.run(1000)
+        sim.operations += patch
+        sim.run(1000)
 
     Dynamic potential parameters
 
@@ -105,11 +106,12 @@ class UserPatch(Compute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.UserPatch(mc=mc, r_cut=1.1, array_size=2, code=square_well)
+        patch = hoomd.jit.patch.UserPatch(r_cut=1.1, array_size=2, code=square_well)
         patch.alpha_iso[:] = [1.1, 1.5] # [rcut, epsilon]
-        hoomd.run(1000)
+        sim.operations += patch
+        sim.run(1000)
         patch.alpha_iso[1] = 2.0
-        hoomd.run(1000)
+        sim.run(1000)
 
     .. rubric:: LLVM IR code
 
