@@ -590,6 +590,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_depletant_idx = Index2D(this->m_pdata->getNTypes());
     m_fugacity.resize(m_depletant_idx.getNumElements(), 0.0);
     m_ntrial.resize(m_depletant_idx.getNumElements(), 0);
+    TAG_ALLOCATION(m_fugacity);
+    TAG_ALLOCATION(m_ntrial);
 
     GlobalArray<hpmc_implicit_counters_t> implicit_count(m_depletant_idx.getNumElements(),this->m_exec_conf);
     m_implicit_count.swap(implicit_count);
