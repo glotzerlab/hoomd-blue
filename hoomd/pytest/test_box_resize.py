@@ -9,8 +9,11 @@ def rng():
     return np.random.default_rng(42)
 
 
+_n_points = 3
+
+
 @pytest.fixture(scope="function")
-def fractional_coordinates(n=3):
+def fractional_coordinates(n=_n_points):
     """
     Args:
         n: number of particles
@@ -18,7 +21,7 @@ def fractional_coordinates(n=3):
     Returns: absolute fractional coordinates
 
     """
-    return np.random.uniform(-0.5, 0.5, size=(n, 3))
+    return np.random.uniform(-0.5, 0.5, size=(n, _n_points))
 
 
 _box = (
@@ -106,16 +109,22 @@ def variant():
 @pytest.fixture(scope='function')
 def box_resize(sys, trigger, variant):
     sys1, _, sys2 = sys
-    return hoomd.update.BoxResize(box1=sys1[0],
+    b = hoomd.update.BoxResize(box1=sys1[0],
                                   box2=sys2[0],
                                   variant=variant,
                                   trigger=trigger)
+    return b
 
 
-def assert_positions(sim, reference_points):
+def assert_positions(sim, reference_points, filter=None):
     with sim.state.cpu_local_snapshot as data:
         reference_point = reference_points[data.particles.tag]
-        npt.assert_allclose(data.particles.position, reference_point)
+        pos = np.copy(data.particles.position)
+        if filter is not None:
+            tags = np.copy(filter(sim.state)).astype(int)
+            reference_point = reference_point[tags]
+            pos = pos[tags]
+        npt.assert_allclose(pos, reference_point)
 
 
 def test_trigger(box_resize, trigger):
@@ -138,7 +147,6 @@ def test_get_box(device, get_snapshot, sys, box_resize):
 
     sim.operations.updaters.append(box_resize)
     sim.run(0)
-
     assert box_resize.get_box(0) == sys1[0]
     assert box_resize.get_box(_t_mid) == sys_halfway[0]
     assert box_resize.get_box(_t_start + _t_ramp) == sys2[0]
@@ -154,26 +162,23 @@ def test_update(device, get_snapshot, sys):
     assert_positions(sim, sys2[1])
 
 
-def test_position_scale(device, get_snapshot, sys, box_resize):
-    sys1, make_sys_halfway, sys2 = sys
-    sys_halfway = make_sys_halfway(_power)
-
-    sim = hoomd.Simulation(device)
-    sim.create_state_from_snapshot(get_snapshot())
-
-    sim.operations.updaters.append(box_resize)
-    # Run up to halfway point
-    sim.run(_t_mid + 1)
-    assert sim.state.box == sys_halfway[0]
-    assert_positions(sim, sys_halfway[1])
-
-    # Finish run
-    sim.run(_t_mid)
-    assert sim.state.box == sys2[0]
-    assert_positions(sim, sys2[1])
+_filter = (
+    [
+        [hoomd.filter.All(), hoomd.filter.Null()],
+        [hoomd.filter.Null(), hoomd.filter.All()],
+        [hoomd.filter.Tags([0]),
+         hoomd.filter.SetDifference(hoomd.filter.Tags([0]), hoomd.filter.All())]
+    ]
+)
 
 
-def test_no_position_scale(device, get_snapshot, sys):
+@pytest.fixture(scope="function", params=_filter, ids=["All", "None", "Tags"])
+def filters(request):
+    return request.param
+
+
+def test_position_scale(device, get_snapshot, sys, filters):
+    filter_scale, filter_noscale = filters
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
 
@@ -183,7 +188,7 @@ def test_no_position_scale(device, get_snapshot, sys):
                                         box2=sys2[0],
                                         variant=variant,
                                         trigger=trigger,
-                                        scale_particles=False)
+                                        scale_particles=filter_scale)
 
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
@@ -192,9 +197,9 @@ def test_no_position_scale(device, get_snapshot, sys):
     # Run up to halfway point
     sim.run(_t_mid + 1)
     assert sim.state.box == sys_halfway[0]
-    assert_positions(sim, sys1[1])
 
     # Finish run
     sim.run(_t_mid)
     assert sim.state.box == sys2[0]
-    assert_positions(sim, sys1[1])
+    assert_positions(sim, sys1[1], filter_noscale)
+    assert_positions(sim, sys2[1], filter_scale)
