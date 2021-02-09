@@ -116,9 +116,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
                                    access_location::host,
                                    access_mode::readwrite);
 
-        unsigned int n_particle_group = m_scale_particles->getNumMembersGlobal();
-
-        for (unsigned int group_idx = 0; group_idx < n_particle_group; group_idx++)
+        for (unsigned int group_idx = 0; group_idx < m_scale_particles->getNumMembers(); group_idx++)
         {
         unsigned int j = m_scale_particles->getMemberIndex(group_idx);
         // obtain scaled coordinates in the old global box
