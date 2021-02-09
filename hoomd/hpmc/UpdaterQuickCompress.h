@@ -103,6 +103,18 @@ class UpdaterQuickCompress : public Updater
         return m_is_complete;
         }
 
+    /// Set the RNG instance
+    void setInstance(unsigned int instance)
+        {
+        m_instance = instance;
+        }
+
+    /// Get the RNG instance
+    unsigned int getInstance()
+        {
+        return m_instance;
+        }
+
     private:
     /// HPMC integrator object
     std::shared_ptr<IntegratorHPMC> m_mc;
@@ -115,6 +127,9 @@ class UpdaterQuickCompress : public Updater
 
     /// The target box dimensions
     pybind11::object m_target_box;
+
+    /// Unique ID for RNG seeding
+    unsigned int m_instance=0;
 
     /// hold backup copy of particle positions
     GPUArray<Scalar4> m_pos_backup;

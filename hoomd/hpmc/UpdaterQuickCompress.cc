@@ -149,7 +149,7 @@ BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterQuickCompress, timestep, m_sysdef->getSeed()),
-                               hoomd::Counter());
+                               hoomd::Counter(m_instance));
 
     // choose a scale randomly between min_scale and 1.0
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
@@ -209,6 +209,9 @@ void export_UpdaterQuickCompress(pybind11::module& m)
         .def_property("target_box",
                       &UpdaterQuickCompress::getTargetBox,
                       &UpdaterQuickCompress::setTargetBox)
+        .def_property("instance",
+                      &UpdaterQuickCompress::getInstance,
+                      &UpdaterQuickCompress::setInstance)
         ;
     }
 

@@ -75,6 +75,11 @@ class BoxMC(Updater):
             * ``reduce`` (float) - Maximum number of lattice vectors of shear
               to allow before applying lattice reduction. Values less than 0.5
               disable shear reduction.
+
+        instance (int):
+            When using multiple `BoxMC` updaters in a single simulation,
+            give each a unique value for `instance` so they generate
+            different streams of random numbers.
     """
 
     def __init__(self, betaP, trigger=1):
@@ -90,9 +95,11 @@ class BoxMC(Updater):
             length=dict(weight=0.0, delta=(0.0,) * 3),
             shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
             betaP=hoomd.variant.Variant,
+            instance=int,
             _defaults={'volume': {'mode': 'standard'}})
         self._param_dict.update(param_dict)
         self.betaP = betaP
+        self.instance = 0
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -572,6 +579,11 @@ class Clusters(Updater):
                                 geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
+
+        instance (int):
+            When using multiple `Clusters` updaters in a single simulation,
+            give each a unique value for `instance` so that they generate
+            different streams of random numbers.
     """
 
     def __init__(self, swap_type_pair, delta_mu=0, move_ratio=0.5,
@@ -588,8 +600,10 @@ class Clusters(Updater):
                                    move_ratio=float(move_ratio),
                                    flip_probability=float(flip_probability),
                                    swap_move_ratio=float(swap_move_ratio),
-                                   delta_mu=float(delta_mu))
+                                   delta_mu=float(delta_mu),
+                                   instance=int)
         self._param_dict.update(param_dict)
+        self.instance = 0
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -771,6 +785,11 @@ class QuickCompress(Updater):
             particles when max_overlaps_per_particle=0.25).
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
+
+        instance (int):
+            When using multiple `QuickCompress` updaters in a single simulation,
+            give each a unique value for `instance` so that they generate
+            different streams of random numbers.
     """
 
     def __init__(self,
@@ -785,12 +804,15 @@ class QuickCompress(Updater):
             min_scale=float,
             target_box=hoomd.data.typeconverter.OnlyType(
                 hoomd.Box,
-                preprocess=hoomd.data.typeconverter.box_preprocessing))
+                preprocess=hoomd.data.typeconverter.box_preprocessing),
+                instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
 
         self._param_dict.update(param_dict)
+
+        self.instance = 0
 
     def _add(self, simulation):
         """Add the operation to a simulation.

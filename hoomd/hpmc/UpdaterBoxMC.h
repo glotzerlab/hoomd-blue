@@ -36,7 +36,6 @@ class UpdaterBoxMC : public Updater
         /*! \param sysdef System definition
             \param mc HPMC integrator object
             \param P Pressure times thermodynamic beta to apply in isobaric ensembles
-            \param seed PRNG seed
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
         */
@@ -278,9 +277,23 @@ class UpdaterBoxMC : public Updater
         */
         void update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng);
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         std::shared_ptr<Variant> m_beta_P;        //!< Reduced pressure in isobaric ensembles
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
 
         Scalar m_volume_delta;                    //!< Amount by which to change volume during box-change
         Scalar m_volume_weight;                    //!< relative weight of volume moves

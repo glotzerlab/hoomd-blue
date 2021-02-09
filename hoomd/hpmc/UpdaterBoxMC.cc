@@ -405,7 +405,7 @@ void UpdaterBoxMC::update(uint64_t timestep)
 
     // Create a prng instance for this timestep
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterBoxMC, timestep, m_sysdef->getSeed()),
-                               hoomd::Counter());
+                               hoomd::Counter(m_instance));
 
     // Choose a move type
     auto const weight_total = m_weight_partial_sums.back();
@@ -890,6 +890,7 @@ void export_UpdaterBoxMC(py::module& m)
     .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
     .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
     .def("getCounters", &UpdaterBoxMC::getCounters)
+    .def_property("instance", &UpdaterBoxMC::getInstance, &UpdaterBoxMC::setInstance)
     ;
 
    py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")

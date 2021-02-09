@@ -461,12 +461,25 @@ class UpdaterClusters : public Updater
                 return result;
                 }
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
 
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         Scalar m_move_ratio;                        //!< Pivot/Reflection move ratio
         Scalar m_swap_move_ratio;                   //!< Type swap / geometric move ratio
         Scalar m_flip_probability;                  //!< Cluster flip probability
+
+        unsigned int m_instance=0;                  //!< Unique ID for RNG seeding
 
         #ifdef ENABLE_TBB
         std::vector<tbb::concurrent_vector<unsigned int> > m_clusters; //!< Cluster components
@@ -1426,7 +1439,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
 
     // generate the move, select a pivot
     hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters, timestep, m_sysdef->getSeed()),
-                               hoomd::Counter());
+                               hoomd::Counter(m_instance));
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
@@ -2205,6 +2218,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
         .def_property("swap_move_ratio", &UpdaterClusters<Shape>::getSwapMoveRatio, &UpdaterClusters<Shape>::setSwapMoveRatio)
         .def_property("swap_type_pair", &UpdaterClusters<Shape>::getSwapTypePairStr, &UpdaterClusters<Shape>::setSwapTypePairStr)
         .def_property("delta_mu", &UpdaterClusters<Shape>::getDeltaMu, &UpdaterClusters<Shape>::setDeltaMu)
+        .def_property("instance", &UpdaterClusters<Shape>::getInstance, &UpdaterClusters<Shape>::setInstance)
         ;
     }
 
