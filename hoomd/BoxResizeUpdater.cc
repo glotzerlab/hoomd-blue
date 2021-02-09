@@ -118,22 +118,23 @@ void BoxResizeUpdater::update(unsigned int timestep)
 
         unsigned int n_particle_group = m_scale_particles->getNumMembersGlobal();
 
-        for (unsigned int i = 0; i < n_particle_group; i++)
+        for (unsigned int group_idx = 0; group_idx < n_particle_group; group_idx++)
         {
+        unsigned int j = m_scale_particles->getMemberIndex(group_idx);
         // obtain scaled coordinates in the old global box
         Scalar3 fractional_pos = cur_box.makeFraction(
-        make_scalar3(h_pos.data[i].x,
-                     h_pos.data[i].y,
-                     h_pos.data[i].z));
+        make_scalar3(h_pos.data[j].x,
+                     h_pos.data[j].y,
+                     h_pos.data[j].z));
 
         // intentionally scale both rigid body and free particles, this
         // may waste a few cycles but it enables the debug inBox checks
         // to be left as is (otherwise, setRV cannot fixup rigid body
         // positions without failing the check)
         Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
-        h_pos.data[i].x = scaled_pos.x;
-        h_pos.data[i].y = scaled_pos.y;
-        h_pos.data[i].z = scaled_pos.z;
+        h_pos.data[j].x = scaled_pos.x;
+        h_pos.data[j].y = scaled_pos.y;
+        h_pos.data[j].z = scaled_pos.z;
         }
 
         // otherwise, we need to ensure that the particles are still in their
