@@ -549,14 +549,16 @@ class Clusters(Updater):
         cpp_cls_name = "UpdaterClusters"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
-        if isinstance(self._simulation.device, hoomd.device.GPU):
+        use_gpu = (isinstance(self._simulation.device, hoomd.device.GPU)
+                   and (cpp_cls_name + 'GPU') in _hpmc.__dict__)
+        if use_gpu:
             cpp_cls_name += "GPU"
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        if isinstance(self._simulation.device, hoomd.device.GPU):
+        if use_gpu:
             sys_def = self._simulation.state._cpp_sys_def
             self._cpp_cell = _hoomd.CellListGPU(sys_def)
             self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
