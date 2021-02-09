@@ -235,7 +235,7 @@ def test_nph_attributes():
     assert nph.filter == all_
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] == constant_s[i]
+        assert nph.S[i] is constant_s[i]
     assert nph.tauS == 2.0
     assert nph.box_dof == (True, True, True, False, False, False)
     assert nph.couple == 'xyz'
@@ -257,7 +257,7 @@ def test_nph_attributes():
     nph.S = ramp_s
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] == ramp_s[i]
+        assert nph.S[i] is ramp_s[i]
 
     nph.tauS = 10.0
     assert nph.tauS == 10.0
@@ -385,7 +385,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
     assert nph.filter == all_
     assert len(nph.S) == 6
     for i in range(6):
-        assert nph.S[i] == constant_s[i]
+        assert nph.S[i] is constant_s[i]
     assert nph.tauS == 2.0
     assert nph.couple == 'xyz'
 
@@ -428,7 +428,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
     for _ in range(5):
         sim.run(1)
         for i in range(6):
-            assert nph.S[i] == ramp_s[i]
+            assert nph.S[i] is ramp_s[i]
 
 
 def test_npt_thermalize_thermostat_and_barostat_dof(
