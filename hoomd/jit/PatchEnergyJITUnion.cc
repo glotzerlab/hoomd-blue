@@ -246,7 +246,12 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&, Scalar, const unsigned int,
                                  const std::string&, Scalar, const unsigned int >())
-            .def("setParam",&PatchEnergyJITUnion::setParam)
+            .def_property("positions", &PatchEnergyJITUnion::getPositions, &PatchEnergyJITUnion::setPositions)
+            .def_property("orientations", &PatchEnergyJITUnion::getOrientations, &PatchEnergyJITUnion::setOrientations)
+            .def_property("typeids", &PatchEnergyJITUnion::getTypeID, &PatchEnergyJITUnion::setTypeID)
+            .def_property("charges", &PatchEnergyJITUnion::getCharges, &PatchEnergyJITUnion::setCharges)
+            .def_property("diameters", &PatchEnergyJITUnion::getDiameters, &PatchEnergyJITUnion::setDiameters)
+            .def_property("leaf_capacity", &PatchEnergyJITUnion::getLeafCapacity, &PatchEnergyJITUnion::setLeafCapacity)
             .def_property_readonly("alpha_union",&PatchEnergyJITUnion::getAlphaUnionNP)
             ;
     }
