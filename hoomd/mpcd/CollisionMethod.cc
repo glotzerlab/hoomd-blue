@@ -142,7 +142,7 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
         {
         // PRNG using seed and timestep as seeds
         hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
-                                   hoomd::Counter());
+                                   hoomd::Counter(m_instance));
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution
@@ -166,5 +166,9 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
         .def(py::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
-        .def("setPeriod", &mpcd::CollisionMethod::setPeriod);
+        .def("setPeriod", &mpcd::CollisionMethod::setPeriod)
+        .def_property("instance",
+                      &mpcd::CollisionMethod::getInstance,
+                      &mpcd::CollisionMethod::setInstance)
+        ;
     }

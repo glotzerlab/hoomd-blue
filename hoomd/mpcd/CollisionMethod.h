@@ -83,6 +83,18 @@ class PYBIND11_EXPORT CollisionMethod
         //! Set the period of the collision method
         void setPeriod(unsigned int cur_timestep, unsigned int period);
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
@@ -96,6 +108,8 @@ class PYBIND11_EXPORT CollisionMethod
 
         uint64_t m_period;                  //!< Number of timesteps between collisions
         uint64_t m_next_timestep;           //!< Timestep next collision should be performed
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
 
         //! Check if a collision should occur and advance the timestep counter
         virtual bool shouldCollide(uint64_t timestep);
