@@ -15,7 +15,116 @@ import os
 
 import numpy as np
 
-class UserPatch(Compute):
+class PatchCompute(Compute):
+    """Base class for HOOMD patch interaction computes. Provides helper
+       methods to compile the user provided code in both CPU and GPU devices.
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
+    def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
+        R'''Helper function to compile the provided code into an executable
+
+        Args:
+            code (str): C++ code to compile
+            clang_exec (str): The Clang executable to use
+            fn (str): If provided, the code will be written to a file.
+            array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+            array_size_union (int): Size of array with adjustable elements for unions of shapes. (added in version 2.8)
+
+        .. versionadded:: 2.3
+        '''
+        cpp_function =  """
+                        #include <stdio.h>
+                        #include "hoomd/HOOMDMath.h"
+                        #include "hoomd/VectorMath.h"
+
+                        // these are allocated by the library
+                        float *alpha_iso;
+                        float *alpha_union;
+
+                        extern "C"
+                        {
+                        float eval(const vec3<float>& r_ij,
+                            unsigned int type_i,
+                            const quat<float>& q_i,
+                            float d_i,
+                            float charge_i,
+                            unsigned int type_j,
+                            const quat<float>& q_j,
+                            float d_j,
+                            float charge_j)
+                            {
+                        """
+        cpp_function += code
+        cpp_function += """
+                            }
+                        }
+                        """
+
+        include_path = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_source = hoomd.version.source_dir
+
+        if clang_exec is not None:
+            clang = clang_exec;
+        else:
+            clang = 'clang';
+
+        if fn is not None:
+            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+        else:
+            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+        # pass C++ function to stdin
+        output = p.communicate(cpp_function.encode('utf-8'))
+        llvm_ir = output[0].decode()
+
+        if p.returncode != 0:
+            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
+            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
+            raise RuntimeError("Error initializing patch energy");
+
+        return llvm_ir
+
+    def _wrap_gpu_code(self, code):
+        R'''Helper function to compile the provided code into a device function
+
+        Args:
+            code (str): C++ code to compile
+
+        .. versionadded:: 3.0
+        '''
+        cpp_function =  """
+                        #include "hoomd/HOOMDMath.h"
+                        #include "hoomd/VectorMath.h"
+                        #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
+
+                        // these are allocated by the library
+                        __device__ float *alpha_iso;
+                        __device__ float *alpha_union;
+
+                        __device__ inline float eval(const vec3<float>& r_ij,
+                            unsigned int type_i,
+                            const quat<float>& q_i,
+                            float d_i,
+                            float charge_i,
+                            unsigned int type_j,
+                            const quat<float>& q_j,
+                            float d_j,
+                            float charge_j)
+                            {
+                        """
+        cpp_function += code
+        cpp_function += """
+                            }
+                        """
+        # Compile on C++ side
+        return cpp_function
+
+class UserPatch(PatchCompute):
     R''' Define an arbitrary patch energy.
 
     Args:
@@ -208,109 +317,6 @@ class UserPatch(Compute):
             return integrator._cpp_obj.computePatchEnergy(timestep)
         else:
             return None
-
-    def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
-        R'''Helper function to compile the provided code into an executable
-
-        Args:
-            code (str): C++ code to compile
-            clang_exec (str): The Clang executable to use
-            fn (str): If provided, the code will be written to a file.
-            array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
-            array_size_union (int): Size of array with adjustable elements for unions of shapes. (added in version 2.8)
-
-        .. versionadded:: 2.3
-        '''
-        cpp_function = """
-#include <stdio.h>
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/VectorMath.h"
-
-// these are allocated by the library
-float *alpha_iso;
-float *alpha_union;
-
-extern "C"
-{
-float eval(const vec3<float>& r_ij,
-    unsigned int type_i,
-    const quat<float>& q_i,
-    float d_i,
-    float charge_i,
-    unsigned int type_j,
-    const quat<float>& q_j,
-    float d_j,
-    float charge_j)
-    {
-"""
-        cpp_function += code
-        cpp_function += """
-    }
-}
-"""
-
-        include_path = os.path.dirname(hoomd.__file__) + '/include';
-        include_path_source = hoomd.version.source_dir
-
-        if clang_exec is not None:
-            clang = clang_exec;
-        else:
-            clang = 'clang';
-
-        if fn is not None:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
-        else:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
-        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-
-        # pass C++ function to stdin
-        output = p.communicate(cpp_function.encode('utf-8'))
-        llvm_ir = output[0].decode()
-
-        if p.returncode != 0:
-            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
-            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
-            raise RuntimeError("Error initializing patch energy");
-
-        return llvm_ir
-
-    def _wrap_gpu_code(self, code):
-        R'''Helper function to compile the provided code into a device function
-
-        Args:
-            code (str): C++ code to compile
-
-        .. versionadded:: 3.0
-        '''
-
-        cpp_function = """
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/VectorMath.h"
-#include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
-
-// these are allocated by the library
-__device__ float *alpha_iso;
-__device__ float *alpha_union;
-
-__device__ inline float eval(const vec3<float>& r_ij,
-    unsigned int type_i,
-    const quat<float>& q_i,
-    float d_i,
-    float charge_i,
-    unsigned int type_j,
-    const quat<float>& q_j,
-    float d_j,
-    float charge_j)
-    {
-"""
-        cpp_function += code
-        cpp_function += """
-    }
-"""
-
-        # Compile on C++ side
-        return cpp_function
 
 class UserUnionPatch(UserPatch):
     R''' Define an arbitrary patch energy on a union of particles
