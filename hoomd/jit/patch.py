@@ -322,14 +322,14 @@ class UserUnionPatch(UserPatch):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
-        r_cut (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        r_cut_iso (float, **optional**): Cut-off for isotropic interaction between centers of union particles
-        code (str): C++ code to compile
-        code_iso (str, **optional**): C++ code for isotropic part
-        llvm_ir_fname (str): File name of the llvm IR file to load.
-        llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
-        array_size (int): Size of array with adjustable elements. (added in version 2.8)
-        array_size_iso (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+        r_cut_union (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        r_cut (float, **optional**): Cut-off for isotropic interaction between centers of union particles
+        code_union (str): C++ code to compile
+        code (str, **optional**): C++ code for isotropic part
+        llvm_ir_fname_union (str): File name of the llvm IR file to load.
+        llvm_ir_fname (str, **optional**): File name of the llvm IR file to load for isotropic interaction
+        array_size_union (int): Size of array with adjustable elements. (added in version 2.8)
+        array_size (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
 
     Attributes:
         alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
@@ -372,9 +372,10 @@ class UserUnionPatch(UserPatch):
                                     return 0.0f;
                          """
 
-        patch = hoomd.jit.patch.user_union(r_cut=2.5, code=square_well, array_size=2, \
-                                           r_cut_iso=5, code_iso=soft_repulsion, array_size_iso=2)
-        patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
+        patch = hoomd.jit.patch.UserUnionPatch(r_cut=2.5, code=square_well, array_size=2, \
+                                               r_cut_iso=5, code_iso=soft_repulsion, array_size_iso=2)
+        patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
+        patch.typeids['A'] = [0,0]
         # [r_cut, epsilon]
         patch.alpha_iso[:] = [2.5, 1.3];
         patch.alpha_union[:] = [2.5, -1.7];
