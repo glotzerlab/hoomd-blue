@@ -461,7 +461,7 @@ class NPH(_Method):
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this method.
 
-        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
+        S (`tuple` [ `hoomd.variant.Variant` ] or `float`): Stress components set
             point for the barostat (in pressure units). Converted to a tuple 
             during NPH instantiation.  In Voigt notation:
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
@@ -472,7 +472,7 @@ class NPH(_Method):
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
-        box_dof(`list` [ `bool` ]): Box degrees of freedom with six boolean
+        box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
             elements corresponding to x, y, z, xy, xz, yz, each. Default to
             [True,True,True,False,False,False]). If turned on to True,
             rescale corresponding lengths or tilt factors and components of
