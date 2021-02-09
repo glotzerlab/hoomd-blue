@@ -65,12 +65,151 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             \param leaf_capacity Number of particles in OBB tree leaf
          */
         virtual void setParam(unsigned int type,
-            pybind11::list types,
-            pybind11::list positions,
-            pybind11::list orientations,
-            pybind11::list diameters,
-            pybind11::list charges,
-            unsigned int leaf_capacity=4);
+                              std::vector<unsigned int> types,
+                              std::vector<vec3<float> > positions,
+                              std::vector<quat<float> > orientations,
+                              std::vector<float> diameters,
+                              std::vector<float> charges,
+                              unsigned int leaf_capacity);
+
+        virtual void setTypeID(std::string type, pybind11::list typeids)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            std::vector<unsigned int> typeid_vec(pybind11::len(typeids));
+            for (unsigned int i = 0; i < typeid_vec.size(); i++)
+                {
+                typeid_vec[i] = pybind11::cast<unsigned int>(typeids[i]);
+                }
+            setParam(pid, typeid_vec, m_position[pid], m_orientation[pid], m_diameter[pid], m_charge[pid], m_leaf_capacity);
+            }
+
+        virtual pybind11::list getTypeID(std::string type)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            pybind11::list ret;
+            for (unsigned int i = 0; i < m_type[pid].size(); i++)
+                {
+                ret.append(m_type[pid][i]);
+                }
+            return ret;
+            }
+
+        virtual void setPositions(std::string type, pybind11::list position)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            std::vector<vec3<float> > pos_vec(pybind11::len(position));
+            for (unsigned int i = 0; i < pos_vec.size(); i++)
+                {
+                pybind11::list p_i = position[i];
+                vec3<float> pos(p_i[0].cast<float>(),
+                                p_i[1].cast<float>(),
+                                p_i[2].cast<float>());
+                pos_vec[i] = pos;
+                }
+            setParam(pid, m_type[pid], pos_vec, m_orientation[pid], m_diameter[pid], m_charge[pid], m_leaf_capacity);
+            }
+
+        virtual pybind11::list getPositions(std::string type)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            pybind11::list ret;
+            for (unsigned int i = 0; i < m_position[pid].size(); i++)
+                {
+                pybind11::list tmp;
+                tmp.append(m_position[pid][i].x);
+                tmp.append(m_position[pid][i].y);
+                tmp.append(m_position[pid][i].z);
+                ret.append(tmp);
+                }
+            return ret;
+            }
+
+        virtual void setOrientations(std::string type, pybind11::list orientation)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            std::vector<quat<float>> ort_vec(pybind11::len(orientation));
+            for (unsigned int i = 0; i < ort_vec.size(); i++)
+                {
+                pybind11::list q_i = orientation[i];
+                float s = q_i[0].cast<float>();
+                float x = q_i[1].cast<float>();
+                float y = q_i[2].cast<float>();
+                float z = q_i[3].cast<float>();
+                quat<float> ort(s, vec3<float>(x,y,z));
+                ort_vec[i] = ort;
+                }
+            setParam(pid, m_type[pid], m_position[pid], ort_vec, m_diameter[pid], m_charge[pid], m_leaf_capacity);
+            }
+
+        virtual pybind11::list getOrientations(std::string type)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            pybind11::list ret;
+            for (unsigned int i = 0; i < m_orientation[pid].size(); i++)
+                {
+                pybind11::list tmp;
+                tmp.append(m_orientation[pid][i].s);
+                tmp.append(m_orientation[pid][i].v.x);
+                tmp.append(m_orientation[pid][i].v.y);
+                tmp.append(m_orientation[pid][i].v.z);
+                ret.append(tmp);
+                }
+            return ret;
+            }
+
+        virtual void setDiameters(std::string type, pybind11::list diameter)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            std::vector<float> diameter_vec(pybind11::len(diameter));
+            for (unsigned int i = 0; i < diameter_vec.size(); i++)
+                {
+                diameter_vec[i] = diameter[i].cast<float>();
+                }
+            setParam(pid, m_type[pid], m_position[pid], m_orientation[pid], diameter_vec, m_charge[pid], m_leaf_capacity);
+            }
+
+        virtual pybind11::list getDiameters(std::string type)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            pybind11::list ret;
+            for (unsigned int i = 0; i < m_diameter[pid].size(); i++)
+                {
+                ret.append(m_diameter[pid][i]);
+                }
+            return ret;
+            }
+
+        virtual void setCharges(std::string type, pybind11::list charge)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            std::vector<float> charge_vec(pybind11::len(charge));
+            for (unsigned int i=0; i<charge_vec.size(); i++)
+                {
+                charge_vec[i] = charge[i].cast<float>();
+                }
+            setParam(pid, m_type[pid], m_position[pid], m_orientation[pid], m_diameter[pid], charge_vec, m_leaf_capacity);
+            }
+
+        virtual pybind11::list getCharges(std::string type)
+            {
+            unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
+            pybind11::list ret;
+            for (unsigned int i = 0; i < m_charge[pid].size(); i++)
+                {
+                ret.append(m_charge[pid][i]);
+                }
+            return ret;
+            }
+
+        virtual void setLeafCapacity(unsigned int leaf_capacity)
+            {
+            setParam(0, m_type[0], m_position[0], m_orientation[0], m_diameter[0], m_charge[0], leaf_capacity);
+            }
+
+        virtual unsigned int getLeafCapacity()
+            {
+            return m_leaf_capacity;
+            }
 
         //! Get the cut-off for constituent particles
         virtual Scalar getRCut()
@@ -142,6 +281,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::vector< std::vector<float> > m_diameter;             // The diameters of the constituent particles
         std::vector< std::vector<float> > m_charge;               // The charges of the constituent particles
         std::vector< std::vector<unsigned int> > m_type;          // The type identifiers of the constituent particles
+        unsigned int m_leaf_capacity;                             // The number of particles in a leaf of the internal tree data structure
 
         //! Compute the energy of two overlapping leaf nodes
         float compute_leaf_leaf_energy(vec3<float> dr,

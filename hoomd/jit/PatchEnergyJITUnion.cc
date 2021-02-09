@@ -9,35 +9,35 @@
 
 //! Set the per-type constituent particles
 void PatchEnergyJITUnion::setParam(unsigned int type,
-    pybind11::list types,
-    pybind11::list positions,
-    pybind11::list orientations,
-    pybind11::list diameters,
-    pybind11::list charges,
-    unsigned int leaf_capacity)
+                                   std::vector<unsigned int> types,
+                                   std::vector<vec3<float> > positions,
+                                   std::vector<quat<float> > orientations,
+                                   std::vector<float> diameters,
+                                   std::vector<float> charges,
+                                   unsigned int leaf_capacity)
     {
     if (type >= m_sysdef->getParticleData()->getNTypes())
         {
         throw std::runtime_error("Trying to set parameters for non-existent type.");
         }
-    if (len(positions) != len(types))
+    if (positions.size() != types.size())
         {
         throw std::runtime_error("Number of member positions not equal to number of types");
         }
-    if (len(orientations) != len(types))
+    if (orientations.size() != types.size())
         {
         throw std::runtime_error("Number of member orientations not equal to number of types");
         }
-    if (len(charges) != len(types))
+    if (charges.size() != types.size())
         {
         throw std::runtime_error("Number of member charges not equal to number of types");
         }
-    if (len(diameters) != len(types))
+    if (diameters.size() != types.size())
         {
         throw std::runtime_error("Number of member diameters not equal to number of types");
         }
 
-    unsigned int N = (unsigned int)len(positions);
+    unsigned int N = (unsigned int) positions.size();
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
@@ -53,27 +53,27 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
 
     for (unsigned int i = 0; i < N; i++)
         {
-        pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
-        vec3<float> pos = vec3<float>(pybind11::cast<float>(positions_i[0]), pybind11::cast<float>(positions_i[1]), pybind11::cast<float>(positions_i[2]));
-        pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
-        float s = pybind11::cast<float>(orientations_i[0]);
-        float x = pybind11::cast<float>(orientations_i[1]);
-        float y = pybind11::cast<float>(orientations_i[2]);
-        float z = pybind11::cast<float>(orientations_i[3]);
-        quat<float> orientation(s, vec3<float>(x,y,z));
-
-        float diameter = pybind11::cast<float>(diameters[i]);
-        float charge = pybind11::cast<float>(charges[i]);
-        m_type[type][i] = pybind11::cast<unsigned int>(types[i]);
-        m_position[type][i] = pos;
-        m_orientation[type][i] = orientation;
-        m_diameter[type][i] = diameter;
-        m_charge[type][i] = charge;
+        // pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
+        // vec3<float> pos = vec3<float>(pybind11::cast<float>(positions_i[0]), pybind11::cast<float>(positions_i[1]), pybind11::cast<float>(positions_i[2]));
+        // pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
+        // float s = pybind11::cast<float>(orientations_i[0]);
+        // float x = pybind11::cast<float>(orientations_i[1]);
+        // float y = pybind11::cast<float>(orientations_i[2]);
+        // float z = pybind11::cast<float>(orientations_i[3]);
+        // quat<float> orientation(s, vec3<float>(x,y,z));
+        //
+        // float diameter = pybind11::cast<float>(diameters[i]);
+        // float charge = pybind11::cast<float>(charges[i]);
+        // m_type[type][i] = pybind11::cast<unsigned int>(types[i]);
+        m_position[type][i] = positions[i];
+        m_orientation[type][i] = orientations[i];
+        m_diameter[type][i] = diameters[i];
+        m_charge[type][i] = charges[i];
 
         // use a spherical OBB of radius 0.5*d
-        obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
+        obbs[i] = hpmc::detail::OBB(positions[i],0.5f*diameters[i]);
 
-        Scalar r = sqrt(dot(pos,pos))+0.5f*diameter;
+        Scalar r = sqrt(dot(positions[i],positions[i]))+0.5f*diameters[i];
         extent_i = std::max(extent_i, float(2*r));
 
         // we do not support exclusions
@@ -82,6 +82,9 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
 
     // set the diameter
     m_extent_type[type] = extent_i;
+
+    // set leaf capacity
+    m_leaf_capacity = leaf_capacity;
 
     // build tree and store proxy structure
     hpmc::detail::OBBTree tree;

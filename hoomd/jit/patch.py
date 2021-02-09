@@ -377,7 +377,7 @@ class UserUnionPatch(UserPatch):
     def __init__(self, r_cut_union, array_size_union=1, code_union=None, llvm_ir_file_union=None,
                  r_cut=None, array_size=1, log_only=False, code=None, llvm_ir_file=None, clang_exec=None):
 
-        r_cut = r_cut  if r_cut is not None else -1.0
+        r_cut = r_cut if r_cut is not None else -1.0
 
         # initialize base class
         super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
