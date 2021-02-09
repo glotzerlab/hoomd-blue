@@ -27,13 +27,14 @@ namespace py = pybind11;
 BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    pybind11::object box1,
                                    pybind11::object box2,
-                                   std::shared_ptr<Variant> variant)
+                                   std::shared_ptr<Variant> variant,
+                                   std::shared_ptr<ParticleGroup> scale_particles)
     : Updater(sysdef),
       m_py_box1(box1),
       m_py_box2(box2),
       m_box1(getBoxDimFromPyObject(box1)),
       m_box2(getBoxDimFromPyObject(box2)),
-      m_variant(variant), m_scale_particles(true)
+      m_variant(variant), m_scale_particles(scale_particles)
     {
     assert(m_pdata);
     assert(m_variant);
@@ -109,16 +110,19 @@ void BoxResizeUpdater::update(unsigned int timestep)
         // set the new box
         m_pdata->setGlobalBox(new_box);
 
+        unsigned int nparticles = m_scale_particles->getNumMembersGlobal();
+        
         // scale the particle positions (if we have been asked to)
-        if (m_scale_particles)
+        if (nparticles > 0)
             {
             // move the particles to be inside the new box
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::readwrite);
 
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
                 {
+                unsigned int i = m_scale_particles->getNumMembersGlobal();
                 // obtain scaled coordinates in the old global box
                 Scalar3 fractional_pos = cur_box.makeFraction(
                     make_scalar3(h_pos.data[i].x,
@@ -135,6 +139,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
                 h_pos.data[i].z = scaled_pos.z;
                 }
             }
+
         // otherwise, we need to ensure that the particles are still in their
         // local boxes by wrapping them if they are not
         else
@@ -171,7 +176,8 @@ void export_BoxResizeUpdater(py::module& m)
                std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         pybind11::object, pybind11::object,
-                        std::shared_ptr<Variant> >())
+                        std::shared_ptr<Variant>,
+                        std::shared_ptr<ParticleGroup> >())
     .def_property("scale_particles",
                   &BoxResizeUpdater::getScaleParticles,
                   &BoxResizeUpdater::setScaleParticles)

@@ -15,6 +15,7 @@
 #include "Updater.h"
 #include "Variant.h"
 #include "BoxDim.h"
+#include "ParticleGroup.h"
 
 #include <memory>
 #include <string>
@@ -38,19 +39,20 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                          pybind11::object box1,
                          pybind11::object box2,
-                         std::shared_ptr<Variant> variant);
+                         std::shared_ptr<Variant> variant,
+                         std::shared_ptr<ParticleGroup> m_scale_particles);
 
         /// Destructor
         virtual ~BoxResizeUpdater();
 
         /// Sets particle scaling. When true, particle positions are scaled with the box.
-        void setScaleParticles(bool scale_particles)
+        void setScaleParticles(std::shared_ptr<ParticleGroup> scale_particles)
             {
             m_scale_particles = scale_particles;
             }
 
         /// Gets particle scaling setting
-        bool getScaleParticles() {return m_scale_particles;}
+        std::shared_ptr<ParticleGroup> getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
         void setPyBox1(pybind11::object box1);
@@ -82,7 +84,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxDim& m_box1;  ///< C++ box assoc with min
         BoxDim& m_box2;  ///< C++ box assoc with max
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
-        bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+        std::shared_ptr<ParticleGroup> m_scale_particles; //!< Set to true if particle positions are to be scaled as well
     };
 
 /// Export the BoxResizeUpdater to python
