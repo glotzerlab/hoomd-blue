@@ -9,7 +9,7 @@ def rng():
     return np.random.default_rng(42)
 
 
-_n_points = 3
+_n_points = 10
 
 
 @pytest.fixture(scope="function")
@@ -21,7 +21,7 @@ def fractional_coordinates(n=_n_points):
     Returns: absolute fractional coordinates
 
     """
-    return np.random.uniform(-0.5, 0.5, size=(n, _n_points))
+    return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
 
 _box = (
@@ -118,11 +118,11 @@ def box_resize(sys, trigger, variant):
 
 def assert_positions(sim, reference_points, filter=None):
     with sim.state.cpu_local_snapshot as data:
-        reference_point = reference_points[data.particles.tag]
-        pos = np.copy(data.particles.position)
+        pos = np.copy(data.particles.position)[np.argsort(data.particles.tag)]
+        reference_point = np.copy(reference_points)
         if filter is not None:
             tags = np.copy(filter(sim.state)).astype(int)
-            reference_point = reference_point[tags]
+            reference_point = reference_points[tags]
             pos = pos[tags]
         npt.assert_allclose(pos, reference_point)
 
@@ -166,7 +166,7 @@ _filter = (
     [
         [hoomd.filter.All(), hoomd.filter.Null()],
         [hoomd.filter.Null(), hoomd.filter.All()],
-        [hoomd.filter.Tags([0]),
+        [hoomd.filter.Tags([0, 5]),
          hoomd.filter.SetDifference(hoomd.filter.Tags([0]), hoomd.filter.All())]
     ]
 )
@@ -197,6 +197,8 @@ def test_position_scale(device, get_snapshot, sys, filters):
     # Run up to halfway point
     sim.run(_t_mid + 1)
     assert sim.state.box == sys_halfway[0]
+    assert_positions(sim, sys1[1], filter_noscale)
+    assert_positions(sim, sys_halfway[1], filter_scale)
 
     # Finish run
     sim.run(_t_mid)
