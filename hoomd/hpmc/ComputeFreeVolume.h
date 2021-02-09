@@ -46,10 +46,22 @@ class ComputeFreeVolume : public Compute
         //! Destructor
         virtual ~ComputeFreeVolume() { };
 
+        //! Get the number of MC samples to perform
+        unsigned int getNumSamples()
+            {
+            return m_n_sample;
+            }
+
         //! Set the number of MC samples to perform
         void setNumSamples(unsigned int n_sample)
             {
             m_n_sample = n_sample;
+            }
+
+        //! Get the type of depletant particle
+        unsigned int getTestParticleType()
+            {
+            return m_type;
             }
 
         //! Set the type of depletant particle
@@ -77,6 +89,9 @@ class ComputeFreeVolume : public Compute
 
         //! Analyze the current configuration
         virtual void compute(unsigned int timestep);
+
+        //! Analyze the current configuration
+        virtual Scalar getFreeVolume(unsigned int timestep);
 
     protected:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
@@ -303,6 +318,35 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
     throw std::runtime_error("Undefined log quantity");
     }
 
+/*! \param timestep Current time step of the simulation
+    \return the requested log quantity.
+*/
+template<class Shape>
+Scalar ComputeFreeVolume<Shape>::getFreeVolume(unsigned int timestep)
+    {
+    // perform MC integration
+    compute(timestep);
+
+    // access counters
+    ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::read);
+
+    // generate n_sample random test depletants in the global box
+    unsigned int n_sample = m_n_sample;
+
+    #ifdef ENABLE_MPI
+    // in MPI, for small n_sample we can encounter round-off issues
+    unsigned int n_ranks = this->m_exec_conf->getNRanks();
+    n_sample = (n_sample/n_ranks)*n_ranks;
+    #endif
+
+
+    // total free volume
+    const BoxDim& global_box = this->m_pdata->getGlobalBox();
+    Scalar V_free = (Scalar)(n_sample-*h_n_overlap_all.data)/(Scalar)n_sample*global_box.getVolume();
+
+    return V_free;
+    }
+
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -315,8 +359,9 @@ template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, cons
                 std::shared_ptr<CellList>,
                 unsigned int,
                 std::string >())
-        .def("setNumSamples", &ComputeFreeVolume<Shape>::setNumSamples)
-        .def("setTestParticleType", &ComputeFreeVolume<Shape>::setTestParticleType)
+        .def_property("num_samples", &ComputeFreeVolume<Shape>::getNumSamples, &ComputeFreeVolume<Shape>::setNumSamples)
+        .def_property("test_particle_type", &ComputeFreeVolume<Shape>::getTestParticleType, &ComputeFreeVolume<Shape>::setTestParticleType)
+        .def("getFreeVolume", &ComputeFreeVolume<Shape>::getFreeVolume)
         ;
     }
 

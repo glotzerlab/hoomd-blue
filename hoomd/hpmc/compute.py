@@ -7,12 +7,15 @@
 from __future__ import print_function
 
 from hoomd import _hoomd
+from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.operation import Compute
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import Either, to_type_converter
+from hoomd.logging import log
 import hoomd
 
-class free_volume(Compute):
+class FreeVolume(Compute):
     R""" Compute the free volume available to a test particle by stochastic integration.
 
     Args:
@@ -40,90 +43,102 @@ class free_volume(Compute):
 
     """
     def __init__(self, mc, seed, suffix='', test_type=None, nsample=None):
-
-        # initialize base class
-        _compute.__init__(self);
-
-        # create the c++ mirror class
-        cl = _hoomd.CellList(hoomd.context.current.system_definition);
-        hoomd.context.current.system.addCompute(cl, "auto_cl3")
-
-        cls = None;
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
-                cls = _hpmc.ComputeFreeVolumeSphere;
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.ComputeFreeVolumeConvexPolygon;
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.ComputeFreeVolumeSimplePolygon;
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedron;
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.ComputeFreeVolumeSpheropolyhedron;
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.ComputeFreeVolumeEllipsoid;
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.ComputeFreeVolumeSpheropolygon;
-            elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_hpmc.ComputeFreeVolumeFacetedEllipsoid;
-            elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.ComputeFreeVolumePolyhedron;
-            elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.ComputeFreeVolumeSphinx;
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion
-            elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.ComputeFreeVolumeSphereUnion;
-            else:
-                hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.free_volume");
-        else:
-            if isinstance(mc, integrate.sphere):
-                cls = _hpmc.ComputeFreeVolumeGPUSphere;
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolygon;
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _hpmc.ComputeFreeVolumeGPUSimplePolygon;
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedron;
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _hpmc.ComputeFreeVolumeGPUSpheropolyhedron;
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _hpmc.ComputeFreeVolumeGPUEllipsoid;
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_hpmc.ComputeFreeVolumeGPUSpheropolygon;
-            elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_hpmc.ComputeFreeVolumeGPUFacetedEllipsoid;
-            elif isinstance(mc, integrate.polyhedron):
-                cls =_hpmc.ComputeFreeVolumeGPUPolyhedron;
-            elif isinstance(mc, integrate.sphinx):
-                cls =_hpmc.ComputeFreeVolumeGPUSphinx;
-            elif isinstance(mc, integrate.sphere_union):
-                cls = _hpmc.ComputeFreeVolumeGPUSphereUnion;
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoidUnion;
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion;
-            else:
-                hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.free_volume");
-
         if suffix != '':
             suffix = '_' + suffix
+        # store metadata
+        param_dict = ParameterDict(
+            mc=integrate.HPMCIntegrator,
+            seed=int,
+            suffix=str,
+            test_particle_type=Either([to_type_converter(str),
+                                      to_type_converter(int)]),
+            num_samples=int
+        )
+        param_dict.update(
+            dict(mc=mc,
+                 seed=int(seed),
+                 suffix=str(suffix),
+                 test_particle_type=str(test_type),
+                 num_samples=int(nsample)))
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        self.cpp_compute = cls(hoomd.context.current.system_definition,
-                                mc.cpp_integrator,
-                                cl,
-                                seed,
-                                suffix)
+    def _attach(self):
+        self.test_particle_type = self._simulation.state._cpp_sys_def.getParticleData().getTypeByName(self.test_particle_type)
+        # create the c++ mirror class
+        cls = None
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            if isinstance(self.mc, integrate.Sphere):
+                cls = _hpmc.ComputeFreeVolumeSphere
+            elif isinstance(self.mc, integrate.ConvexPolygon):
+                cls = _hpmc.ComputeFreeVolumeConvexPolygon
+            elif isinstance(self.mc, integrate.SimplePolygon):
+                cls = _hpmc.ComputeFreeVolumeSimplePolygon
+            elif isinstance(self.mc, integrate.ConvexPolyhedron):
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedron
+            elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
+                cls = _hpmc.ComputeFreeVolumeSpheropolyhedron
+            elif isinstance(self.mc, integrate.Ellipsoid):
+                cls = _hpmc.ComputeFreeVolumeEllipsoid
+            elif isinstance(self.mc, integrate.ConvexSpheropolygon):
+                cls = _hpmc.ComputeFreeVolumeSpheropolygon
+            elif isinstance(self.mc, integrate.FacetedEllipsoid):
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoid
+            elif isinstance(self.mc, integrate.Polyhedron):
+                cls = _hpmc.ComputeFreeVolumePolyhedron
+            elif isinstance(self.mc, integrate.Sphinx):
+                cls = _hpmc.ComputeFreeVolumeSphinx
+            elif isinstance(self.mc, integrate.ConvexSpheropolyhedronUnion):
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
+            elif isinstance(self.mc, integrate.FacetedEllipsoidUnion):
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion
+            elif isinstance(self.mc, integrate.SphereUnion):
+                cls = _hpmc.ComputeFreeVolumeSphereUnion
+            else:
+                raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
+        else:
+            if isinstance(self.mc, integrate.Sphere):
+                cls = _hpmc.ComputeFreeVolumeGPUSphere
+            elif isinstance(self.mc, integrate.ConvexPolygon):
+                cls = _hpmc.ComputeFreeVolumeGPUConvexPolygon
+            elif isinstance(self.mc, integrate.SimplePolygon):
+                cls = _hpmc.ComputeFreeVolumeGPUSimplePolygon
+            elif isinstance(self.mc, integrate.ConvexPolyhedron):
+                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedron
+            elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
+                cls = _hpmc.ComputeFreeVolumeGPUSpheropolyhedron
+            elif isinstance(self.mc, integrate.Ellipsoid):
+                cls = _hpmc.ComputeFreeVolumeGPUEllipsoid
+            elif isinstance(self.mc, integrate.ConvexSpheropolygon):
+                cls = _hpmc.ComputeFreeVolumeGPUSpheropolygon
+            elif isinstance(self.mc, integrate.FacetedEllipsoid):
+                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoid
+            elif isinstance(self.mc, integrate.Polyhedron):
+                cls = _hpmc.ComputeFreeVolumeGPUPolyhedron
+            elif isinstance(self.mc, integrate.Sphinx):
+                cls = _hpmc.ComputeFreeVolumeGPUSphinx
+            elif isinstance(self.mc, integrate.SphereUnion):
+                cls = _hpmc.ComputeFreeVolumeGPUSphereUnion
+            elif isinstance(self.mc, integrate.FacetedEllipsoidUnion):
+                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoidUnion
+            elif isinstance(self.mc, integrate.ConvexSpheropolyhedronUnion):
+                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion
+            else:
+                raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
 
-        if test_type is not None:
-            itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(test_type)
-            self.cpp_compute.setTestParticleType(itype)
-        if nsample is not None:
-            self.cpp_compute.setNumSamples(int(nsample))
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
+                            self.mc._cpp_obj,
+                            _hoomd.CellList(self._simulation.state._cpp_sys_def),
+                            self.seed,
+                            self.suffix)
 
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
-        self.enabled = True
+        super()._attach()
+
+    @log
+    def free_volume(self):
+        """free volume available to a particle assembly
+        """
+        if self._attached:
+            return self._cpp_obj.getFreeVolume(self._simulation.timestep)
+        else:
+            return None
