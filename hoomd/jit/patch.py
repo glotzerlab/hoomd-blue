@@ -386,6 +386,35 @@ class UserUnionPatch(UserPatch):
                                    array_size_union = array_size_union)
         self._param_dict.update(param_dict)
 
+        typeparam_positions = TypeParameter('positions',
+                                            type_kind='particle_types',
+                                            param_dict=TypeParameterDict([],
+                                            len_keys=1))
+
+        typeparam_orientations = TypeParameter('orientations',
+                                               type_kind='particle_types',
+                                               param_dict=TypeParameterDict([],
+                                               len_keys=1))
+
+        typeparam_diameters = TypeParameter('diameters',
+                                            type_kind='particle_types',
+                                            param_dict=TypeParameterDict([],
+                                            len_keys=1))
+
+        typeparam_charges = TypeParameter('charges',
+                                          type_kind='particle_types',
+                                          param_dict=TypeParameterDict([],
+                                          len_keys=1))
+
+        typeparam_typeids = TypeParameter('typeids',
+                                          type_kind='particle_types',
+                                          param_dict=TypeParameterDict([],
+                                          len_keys=1))
+
+        self._extend_typeparam([typeparam_positions, typeparam_orientations,
+                                typeparam_diameters, typeparam_charges,
+                                typeparam_typeids])
+
         # these only exist on python
         self._code_union = code_union
         self._llvm_ir_file_union = llvm_ir_file_union
