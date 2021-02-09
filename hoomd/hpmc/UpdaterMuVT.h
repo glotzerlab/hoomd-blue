@@ -13,6 +13,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 namespace hpmc
@@ -43,16 +44,32 @@ class UpdaterMuVT : public Updater
         /*! \param type The type id for which to set the fugacity
          * \param fugacity The value of the fugacity (variant)
          */
-        void setFugacity(unsigned int type, std::shared_ptr<Variant> fugacity)
+        void setFugacity(const std::string& typ, std::shared_ptr<Variant> fugacity)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(typ);
+            m_fugacity[id] = fugacity;
+            }
+
+        //! Get the fugacity of a particle type
+        /*! \param type The type id for which to get the fugacity
+         */
+        std::shared_ptr<Variant> getFugacity(const std::string& typ)
             {
             assert(type < m_pdata->getNTypes());
-            m_fugacity[type] = fugacity;
+            unsigned int id = this->m_pdata->getTypeByName(typ);
+            return m_fugacity[id];
             }
 
         //! Set maximum factor for volume rescaling (Gibbs ensemble only)
         void setMaxVolumeRescale(Scalar fac)
             {
             m_max_vol_rescale = fac;
+            }
+
+        //! Get maximum factor for volume rescaling (Gibbs ensemble only)
+        Scalar getMaxVolumeRescale()
+            {
+            return m_max_vol_rescale;
             }
 
         //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves)
@@ -65,37 +82,50 @@ class UpdaterMuVT : public Updater
             m_volume_move_probability = volume_move_probability;
             }
 
+        //! Get the volume move probability
+        Scalar getVolumeMoveProbability()
+            {
+            return m_volume_move_probability;
+            }
+
         //! List of types that are inserted/removed/transferred
-        void setTransferTypes(std::vector<unsigned int>& transfer_types)
+        void setTransferTypes(const std::vector<std::string>& transfer_types)
             {
             assert(transfer_types.size() <= m_pdata->getNTypes());
             if (transfer_types.size() == 0)
                 {
                 throw std::runtime_error("Must transfer at least one type.\n");
                 }
-            m_transfer_types = transfer_types;
-            }
-
-
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector< std::string > result;
-
-            result.push_back("hpmc_muvt_insert_acceptance");
-            result.push_back("hpmc_muvt_remove_acceptance");
-            result.push_back("hpmc_muvt_exchange_acceptance");
-            result.push_back("hpmc_muvt_volume_acceptance");
-
-            for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
+            m_transfer_types.clear();
+            for (auto t: transfer_types)
                 {
-                result.push_back("hpmc_muvt_N_"+m_pdata->getNameByType(i));
+                unsigned int id = this->m_pdata->getTypeByName(t);
+                m_transfer_types.push_back(id);
                 }
-            return result;
             }
 
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        //! Get the list of types transferred
+        std::vector<std::string> getTransferTypes()
+            {
+            std::vector<std::string> transfer_types;
+            for (auto id: m_transfer_types)
+                {
+                transfer_types.push_back(this->m_pdata->getNameByType(id));
+                }
+            return transfer_types;
+            }
+
+        //! Get the number of particles per type
+        std::map<std::string, unsigned int> getN()
+            {
+            std::map<std::string, unsigned int> m;
+
+            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+                {
+                m[this->m_pdata->getNameByType(i)] = getNumParticlesType(i);
+                }
+            return m;
+            }
 
         //! Reset statistics counters
         void resetStats()
@@ -103,10 +133,16 @@ class UpdaterMuVT : public Updater
             m_count_run_start = m_count_total;
             }
 
-        //! Set ntrial parameter
+        //! Set ntrial parameter for configurational bias attempts per depletant
         void setNTrial(unsigned int n_trial)
             {
             m_n_trial = n_trial;
+            }
+
+        //! Get the number of configurational bias attempts
+        unsigned int getNTrial()
+            {
+            return m_n_trial;
             }
 
         //! Get the current counter values
@@ -1914,43 +1950,6 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     return nonzero;
     }
 
-template<class Shape>
-Scalar UpdaterMuVT<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    hpmc_muvt_counters_t counters = getCounters(1);
-
-    for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
-        {
-        std::string q = "hpmc_muvt_N_"+m_pdata->getNameByType(i);
-        if (quantity == q)
-            {
-            return getNumParticlesType(i);
-            }
-        }
-    if (quantity == "hpmc_muvt_insert_acceptance")
-        {
-        return counters.getInsertAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_remove_acceptance")
-        {
-        return counters.getRemoveAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_exchange_acceptance")
-        {
-        return counters.getExchangeAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_volume_acceptance")
-        {
-        return counters.getVolumeAcceptance();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "UpdaterMuVT: Log quantity " << quantity
-            << " is not supported by this Updater." << std::endl;
-        throw std::runtime_error("Error querying log value.");
-        }
-    }
-
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
     \return The current state of the acceptance counters
 
@@ -2647,12 +2646,26 @@ template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std:
     pybind11::class_< UpdaterMuVT<Shape>, Updater, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
-          .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
-          .def("setVolumeMoveProbability", &UpdaterMuVT<Shape>::setVolumeMoveProbability)
-          .def("setTransferTypes", &UpdaterMuVT<Shape>::setTransferTypes)
-          .def("setNTrial",&hpmc::UpdaterMuVT<Shape>::setNTrial)
+          .def("getFugacity", &UpdaterMuVT<Shape>::getFugacity)
+          .def_property("max_volume_rescale", &UpdaterMuVT<Shape>::getMaxVolumeRescale, &UpdaterMuVT<Shape>::setMaxVolumeRescale)
+          .def_property("volume_move_probability", &UpdaterMuVT<Shape>::getVolumeMoveProbability, &UpdaterMuVT<Shape>::setVolumeMoveProbability)
+          .def_property("transfer_types", &UpdaterMuVT<Shape>::getTransferTypes, &UpdaterMuVT<Shape>::setTransferTypes)
+          .def_property("ntrial", &UpdaterMuVT<Shape>::getNTrial, &UpdaterMuVT<Shape>::setNTrial)
+          .def_property_readonly("N", &UpdaterMuVT<Shape>::getN)
+          .def("getCounters", &UpdaterMuVT<Shape>::getCounters)
           ;
     }
+
+inline void export_hpmc_muvt_counters(pybind11::module &m)
+    {
+    pybind11::class_< hpmc_muvt_counters_t >(m, "hpmc_muvt_counters_t")
+        .def_property_readonly("insert",  &hpmc_muvt_counters_t::getInsertCounts)
+        .def_property_readonly("remove",  &hpmc_muvt_counters_t::getRemoveCounts)
+        .def_property_readonly("exchange",  &hpmc_muvt_counters_t::getExchangeCounts)
+        .def_property_readonly("volume",  &hpmc_muvt_counters_t::getVolumeCounts)
+        ;
+    }
+
 
 } // end namespace hpmc
 #endif

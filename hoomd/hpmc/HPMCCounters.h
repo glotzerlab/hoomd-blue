@@ -245,6 +245,14 @@ struct hpmc_muvt_counters_t
             return double(insert_accept_count) / double(insert_reject_count + insert_accept_count);
         }
 
+    //! Get the insert acceptance
+    /*! \returns The number of insertion moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getInsertCounts()
+        {
+        return std::make_pair(insert_accept_count, insert_reject_count);
+        }
+
     //! Get the acceptance for removing particles
     /*! \returns The ratio of deletion moves that are accepted, or 0 if there are no deletion moves
     */
@@ -254,6 +262,30 @@ struct hpmc_muvt_counters_t
             return 0.0;
         else
             return double(remove_accept_count) / double(remove_reject_count + remove_accept_count);
+        }
+
+    //! Get the remove acceptance
+    /*! \returns The number of removal moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getRemoveCounts()
+        {
+        return std::make_pair(remove_accept_count, remove_reject_count);
+        }
+
+    //! Get the exchange acceptance
+    /*! \returns The number of exchange moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getExchangeCounts()
+        {
+        return std::make_pair(exchange_accept_count, exchange_reject_count);
+        }
+
+    //! Get the volume acceptance
+    /*! \returns The number of volume moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getVolumeCounts()
+        {
+        return std::make_pair(volume_accept_count, volume_reject_count);
         }
 
     //! Get the acceptance for exchanging particle identities

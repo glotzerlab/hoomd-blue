@@ -9,7 +9,8 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
@@ -304,46 +305,123 @@ class MuVT(Updater):
     Attributes:
         seed (int): Random number seed.
         trigger (int): Select the timesteps on which to perform cluster moves.
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
+        max_volume_rescale (float): Maximum step size in ln(V) (applies to Gibbs ensemble)
+        move_ratio (float): The ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+        ntrial (float): (**default**: 1) Number of configurational bias attempts to swap depletants
 
     Example::
 
         TODO: link to example notebooks
 
     """
-    def __init__(self, seed, transfer_types=None, ngibbs=1, max_volume_rescale=0.1,
-        move_ratio=0.5, trigger=1):
+    def __init__(self, seed, transfer_types, ngibbs=1, max_volume_rescale=0.1,
+        volume_move_probability=0.5, trigger=1):
         super().__init__(trigger)
 
         self.ngibbs = int(ngibbs)
+        self.seed = int(seed)
 
-        param_dict = ParameterDict(seed=int(seed),
-                                   transfer_types=list(transfer_types),
+        _default_dict = dict(ntrial=1)
+        param_dict = ParameterDict(transfer_types=list(transfer_types),
                                    max_volume_rescale=float(max_volume_rescale),
-                                   move_ratio=float(move_ratio))
+                                   volume_move_probability=float(volume_move_probability),
+                                   **_default_dict)
         self._param_dict.update(param_dict)
 
         typeparam_fugacity = TypeParameter('fugacity',
                                     type_kind='particle_types',
-                                    param_dict=TypeParameterDict(float(a),
-                                                                 len_keys=1))
+                                    param_dict=TypeParameterDict(hoomd.variant.Variant,
+                                                                 len_keys=1,
+                                                                 _defaults = hoomd.variant.Constant(0.0)))
         self._extend_typeparam([typeparam_fugacity])
 
-    def attach(self, simulation):
-        integrator = simulation.operations.integrator
-        if not isinstance(integrator, integrate._HPMCIntegrator):
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
         cpp_cls_name = "UpdaterMuVT"
-        if simulation.device.mode == 'gpu':
-            cpp_cls_name += "GPU"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        self._cpp_obj = cpp_cls(simulation.state._cpp_sys_def,
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
                                 int(self.seed),
                                 self.ngibbs)
-        super().attach(simulation)
+        super()._attach()
+
+    @log(category='sequence')
+    def insert_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle insertion moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.insert
+
+    @log(category='sequence')
+    def remove_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle removal moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.remove
+
+    @log(category='sequence')
+    def exchange_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle exchange moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.exchange
+
+    @log(category='sequence')
+    def volume_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle volume moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.volume
+
+    @log(category='object')
+    def N(self):
+        """dict: Map of number of particles per type
+
+        None when not attached
+        """
+        n_dict = None
+        if self._attached:
+            N_dict = self._cpp_obj.N
+
+        return N_dict
 
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
