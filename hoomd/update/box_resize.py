@@ -59,13 +59,13 @@ class BoxResize(Updater):
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
-        params['scale_particles'] = scale_particles
+        # params['scale_particles'] = scale_particles
         self._param_dict.update(params)
         self.scale_particles = scale_particles
         super().__init__(trigger)
 
     def _attach(self):
-        group = self._simulation.state._get_group(self.filter)
+        group = self._simulation.state._get_group(self.scale_particles)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
             self._simulation.state._cpp_sys_def,
             self.box1,
@@ -93,15 +93,15 @@ class BoxResize(Updater):
         else:
             return None
 
-    # @staticmethod
-    def update(self, state, box):
+    @staticmethod
+    def update(state, box):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
             state (State): System state to scale.
             box (Box): New box.
         """
-        group = self._simulation.state._get_group(self.filter)
+        group = state._get_group(All())
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
                                           state.box,
                                           box,

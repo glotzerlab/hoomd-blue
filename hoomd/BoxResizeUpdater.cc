@@ -110,57 +110,47 @@ void BoxResizeUpdater::update(unsigned int timestep)
         // set the new box
         m_pdata->setGlobalBox(new_box);
 
-        unsigned int nparticles = m_scale_particles->getNumMembersGlobal();
-        
         // scale the particle positions (if we have been asked to)
-        if (nparticles > 0)
-            {
-            // move the particles to be inside the new box
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::readwrite);
+        // move the particles to be inside the new box
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
 
-            for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
-                {
-                unsigned int i = m_scale_particles->getNumMembersGlobal();
-                // obtain scaled coordinates in the old global box
-                Scalar3 fractional_pos = cur_box.makeFraction(
-                    make_scalar3(h_pos.data[i].x,
-                                 h_pos.data[i].y,
-                                 h_pos.data[i].z));
+        unsigned int n_particle_group = m_scale_particles->getNumMembersGlobal();
 
-                // intentionally scale both rigid body and free particles, this
-                // may waste a few cycles but it enables the debug inBox checks
-                // to be left as is (otherwise, setRV cannot fixup rigid body
-                // positions without failing the check)
-                Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
-                h_pos.data[i].x = scaled_pos.x;
-                h_pos.data[i].y = scaled_pos.y;
-                h_pos.data[i].z = scaled_pos.z;
-                }
-            }
+        for (unsigned int i = 0; i < n_particle_group; i++)
+        {
+        // obtain scaled coordinates in the old global box
+        Scalar3 fractional_pos = cur_box.makeFraction(
+        make_scalar3(h_pos.data[i].x,
+                     h_pos.data[i].y,
+                     h_pos.data[i].z));
+
+        // intentionally scale both rigid body and free particles, this
+        // may waste a few cycles but it enables the debug inBox checks
+        // to be left as is (otherwise, setRV cannot fixup rigid body
+        // positions without failing the check)
+        Scalar3 scaled_pos = new_box.makeCoordinates(fractional_pos);
+        h_pos.data[i].x = scaled_pos.x;
+        h_pos.data[i].y = scaled_pos.y;
+        h_pos.data[i].z = scaled_pos.z;
+        }
 
         // otherwise, we need to ensure that the particles are still in their
         // local boxes by wrapping them if they are not
-        else
-            {
-            ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
-                                       access_location::host,
-                                       access_mode::readwrite);
+        ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
 
-            ArrayHandle<int3> h_image(m_pdata->getImages(),
-                                      access_location::host,
-                                      access_mode::readwrite);
+        const BoxDim& local_box = m_pdata->getBox();
 
-            const BoxDim& local_box = m_pdata->getBox();
-
-            for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                {
-                // need to update the image if we move particles from one side
-                // of the box to the other
-                local_box.wrap(h_pos.data[i], h_image.data[i]);
-                }
-            }
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+          {
+          // need to update the image if we move particles from one side
+          // of the box to the other
+          local_box.wrap(h_pos.data[i], h_image.data[i]);
+          }
+          //TODO: Is it faster/better to do it like this, or one loop and if statement with isMember
         }
     if (m_prof) m_prof->pop();
     }
@@ -178,9 +168,9 @@ void export_BoxResizeUpdater(py::module& m)
                         pybind11::object, pybind11::object,
                         std::shared_ptr<Variant>,
                         std::shared_ptr<ParticleGroup> >())
-    .def_property("scale_particles",
-                  &BoxResizeUpdater::getScaleParticles,
-                  &BoxResizeUpdater::setScaleParticles)
+//    .def_property("scale_particles",
+//                  &BoxResizeUpdater::getScaleParticles,
+//                  &BoxResizeUpdater::setScaleParticles)
     .def_property("box1",
                   &BoxResizeUpdater::getPyBox1,
                   &BoxResizeUpdater::setPyBox1)

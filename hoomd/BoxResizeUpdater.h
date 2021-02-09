@@ -45,14 +45,14 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         /// Destructor
         virtual ~BoxResizeUpdater();
 
-        /// Sets particle scaling. When true, particle positions are scaled with the box.
-        void setScaleParticles(std::shared_ptr<ParticleGroup> scale_particles)
-            {
-            m_scale_particles = scale_particles;
-            }
-
-        /// Gets particle scaling setting
-        std::shared_ptr<ParticleGroup> getScaleParticles() {return m_scale_particles;}
+//        /// Sets particle scaling. When true, particle positions are scaled with the box.
+//        void setScaleParticles(std::shared_ptr<ParticleGroup> scale_particles)
+//            {
+//            m_scale_particles = scale_particles;
+//            }
+//
+//        /// Gets particle scaling setting
+//        std::shared_ptr<ParticleGroup> getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
         void setPyBox1(pybind11::object box1);
