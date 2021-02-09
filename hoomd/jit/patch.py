@@ -480,11 +480,11 @@ class UserUnionPatch(UserPatch):
 
             gpu_code = self._wrap_gpu_code(code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(self._simulation.state._cpp_sys_def, cpp_exec_conf,
-                self.llvm_ir, self.r_cut, self.array_size, self.llvm_ir_union, self.r_cut_union,  self.array_size_union,
+                llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(self._simulation.state._cpp_sys_def, cpp_exec_conf,
-                self.llvm_ir, self.r_cut, self.array_size, self.llvm_ir_union, self.r_cut_union,  self.array_size_union)
+                llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
