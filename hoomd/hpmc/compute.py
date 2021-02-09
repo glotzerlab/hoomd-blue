@@ -19,30 +19,30 @@ class FreeVolume(Compute):
     R""" Compute the free volume available to a test particle by stochastic integration.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        mc (:py:mod:`hoomd.hpmc.integrate.HPMCIntegrator`): MC integrator.
         seed (int): Random seed for MC integration.
         type (str): Type of particle to use for integration
         nsample (int): Number of samples to use in MC integration
         suffix (str): Suffix to use for log quantity
 
-    :py:class`free_volume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
+    :py:class`FreeVolume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
     It works together with an HPMC integrator, which defines the particle types used in the simulation.
     As parameters it requires the number of MC integration samples (*nsample*), and the type of particle (*test_type*)
     to use for the integration.
 
-    Once initialized, the compute provides a log quantity
-    called **hpmc_free_volume**, that can be logged via ``hoomd.analyze.log``.
-    If a suffix is specified, the log quantities name will be
-    **hpmc_free_volume_suffix**.
+    A :py:class`FreeVolume` object can be added to a logger for logging during a simulation,
+    see :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        compute.free_volume(mc=mc, seed=123, test_type='B', nsample=1000)
-        log = analyze.log(quantities=['hpmc_free_volume'], period=100, filename='log.dat', overwrite=True)
+        mc = hoomd.hpmc.integrate.Sphere(seed=415236)
+        mc.shape["A"] = {'diameter': 1.0}
+        mc.shape["B"] = {'diameter': 0.2}
+        mc.depletant_fugacity["B"] = 1.5
+        fv = hoomd.hpmc.compute.FreeVolume(mc=mc, seed=123, test_type='B', nsample=1000)
 
     """
-    def __init__(self, mc, seed, suffix='', test_type=None, nsample=None):
+    def __init__(self, mc, seed, test_type=None, nsample=None, suffix=''):
         if suffix != '':
             suffix = '_' + suffix
         # store metadata
