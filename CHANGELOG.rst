@@ -4,6 +4,27 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.4 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.write.DCD`` - DCD trajectory writer.
+- ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
+  potentials.
+- ``hoomd.md.methods.Berendsen`` - Berendsen integration method.
+- ``hoomd.md.pair.TWF`` - Potential for modeling globular proteins by Pieter
+  Rein ten Wolde and Daan Frenkel.
+
+*Changed*
+
+*Fixed*
+
+- Correctly determine the maximum ``r_cut`` in simulations with more than one
+  pair potential and more than one type.
+
+*Removed*
+
 v3.0.0-beta.3 (2021-01-11)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

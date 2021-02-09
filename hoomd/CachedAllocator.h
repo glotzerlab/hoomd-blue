@@ -216,6 +216,10 @@ T* CachedAllocator::getTemporaryBuffer(size_t num_elements)
 //                << "reached; removing unused block ("
 //                << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
+<<<<<<< HEAD
+=======
+            // transform the pointer to cuda::pointer before calling cuda::free
+>>>>>>> master
             hipFree((void *) i->second);
 
             CHECK_CUDA();
