@@ -109,6 +109,39 @@ class _LoggableEntry:
         self.default = default
 
 
+class _NamespaceFilter:
+    """Filter for creating the proper namespace for logging object properties.
+
+    Attributes:
+        remove_names (set[str]): A set of names which to remove for the logging
+            namespace whenever encountered.
+        base_names (set[str]): A set of names which indicate that the next
+            encountered name in the string should be skipped. For example, if a
+            module hierarchy went like ``project.foo.bar.Bar`` and ``foo``
+            directly imports ``Bar``, ``bar`` may not be desirable to have in
+            the logging namespace since users interact with it via ``foo.Bar``.
+            Currently, this only handles a single level of nesting like this.
+    """
+
+    def __init__(self, remove_names=None, base_names=None):
+        self.remove_names = set() if remove_names is None else remove_names
+        self.base_names = set() if base_names is None else base_names
+        self._skip_next = False
+
+    def __call__(self, namespace):
+        for name in namespace:
+            if name in self.remove_names:
+                continue
+            elif self._skip_next:
+                self._skip_next = False
+                continue
+            elif name in self.base_names:
+                self._skip_next = True
+            yield name
+        # Reset for next call of filter
+        self._skip_next = False
+
+
 class _LoggerQuantity:
     """The information to automatically log to a `hoomd.logging.Logger`.
 
@@ -124,6 +157,15 @@ class _LoggerQuantity:
         `hoomd.custom.Action` for exposing loggable quantities for custom user
         actions.
     """
+
+    namespace_filter = _NamespaceFilter(
+        # Names that are imported directly into the hoomd namespace
+        remove_names={'simulation', 'state', 'operations', 'snapshot'},
+        # Names that have their submodules' classes directly imported into them
+        # (e.g. `hoomd.update.box_resize.BoxResize` gets used as
+        # `hoomd.update.BoxResize`)
+        base_names={'update', 'tune', 'write'}
+    )
 
     def __init__(self, name, cls, category='scalar', default=True):
         self.name = name
@@ -168,46 +210,16 @@ class _LoggerQuantity:
         self.namespace = self._generate_namespace(cls)
         return self
 
-    @staticmethod
-    def _generate_namespace(cls):
+    @classmethod
+    def _generate_namespace(cls, loggable_cls):
         """Generate the namespace of a class given its module hierarchy."""
-        ns = tuple(cls.__module__.split('.'))
+        ns = tuple(loggable_cls.__module__.split('.'))
+        cls_name = loggable_cls.__name__
+        # Only filter namespaces of objects in the hoomd package
         if ns[0] == 'hoomd':
-
-            def namespace_filter(name):
-                if namespace_filter._drop_name:
-                    namespace_filter._drop_name = False
-                    return False
-                # These namespaces are those that we import directly into the
-                # hoomd namespace. We could add any files that are the same for
-                # md, hpmc, or other submodules.
-                remove_namespace = {'simulation',
-                                    'state',
-                                    'operations',
-                                    'snapshot'}
-                # We assume that these namespaces only have one more level of
-                # depth (e.g. update.box_resize.BoxResize) if this is broken
-                # for example, tune.new_level.nlist.TuneSomething, this will
-                # break.
-                base_namespaces = {'update', 'tune', 'write'}
-                if name in remove_namespace:
-                    return False
-                elif name in base_namespaces:
-                    # We use function attributes to mark that the next name
-                    # should be dropped. This makes the filter stateful which
-                    # should be fine for this limited use, but needs to be kept
-                    # in mind for any future refactoring.
-                    namespace_filter._drop_name = True
-                    return True
-                else:
-                    return True
-
-            namespace_filter._drop_name = False
-
-            cls_ns = tuple(filter(namespace_filter, ns[1:])) + (cls.__name__,)
-            return cls_ns
+            return tuple(cls.namespace_filter(ns[1:])) + (cls_name,)
         else:
-            return ns + (cls.__name__,)
+            return ns + (cls_name,)
 
 
 class Loggable(type):
