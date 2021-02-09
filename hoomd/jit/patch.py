@@ -456,7 +456,6 @@ class UserUnionPatch(UserPatch):
                 llvm_ir = self._compile_user(self.array_size, self.array_size_union,
                                              'return 0.0;', self._clang)
 
-        # self.compute_name = "patch_union"
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
