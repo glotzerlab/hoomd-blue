@@ -6,7 +6,8 @@ from hoomd.hpmc import integrate
 from hoomd import _hoomd
 from hoomd.jit import _jit
 from hoomd.operation import Compute
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
 
 import subprocess
