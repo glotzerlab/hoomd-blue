@@ -121,15 +121,32 @@ class _NamespaceFilter:
             directly imports ``Bar``, ``bar`` may not be desirable to have in
             the logging namespace since users interact with it via ``foo.Bar``.
             Currently, this only handles a single level of nesting like this.
+        skip_duplicates (bool, optional): Whether or not to remove consecutive
+            duplicates from a logging namespace (e.g. ``foo.foo.bar`` ->
+            ``foo.bar``), default ``True``. By default we assume that this
+            pattern means that the inner module is imported into its parent.
     """
 
-    def __init__(self, remove_names=None, base_names=None):
+    def __init__(self,
+                 remove_names=None,
+                 base_names=None,
+                 skip_duplicates=True):
         self.remove_names = set() if remove_names is None else remove_names
         self.base_names = set() if base_names is None else base_names
         self._skip_next = False
+        self.skip_duplicates = skip_duplicates
+        if skip_duplicates:
+            self._last_name = None
 
     def __call__(self, namespace):
         for name in namespace:
+            # check for duplicates in the namespace and remove them (e.g.
+            # `md.pair.pair.LJ` -> `md.pair.LJ`).
+            if self.skip_duplicates:
+                last_name = self._last_name
+                self._last_name = name
+                if last_name == name:
+                    continue
             if name in self.remove_names:
                 continue
             elif self._skip_next:
@@ -164,8 +181,8 @@ class _LoggerQuantity:
         # Names that have their submodules' classes directly imported into them
         # (e.g. `hoomd.update.box_resize.BoxResize` gets used as
         # `hoomd.update.BoxResize`)
-        base_names={'update', 'tune', 'write'}
-    )
+        base_names={'update', 'tune', 'write'},
+        skip_duplicates=True)
 
     def __init__(self, name, cls, category='scalar', default=True):
         self.name = name
