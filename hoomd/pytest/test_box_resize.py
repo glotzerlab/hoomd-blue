@@ -120,11 +120,11 @@ def assert_positions(sim, reference_points, filter=None):
     with sim.state.cpu_local_snapshot as data:
         if filter is not None:
             filter_tags = np.copy(filter(sim.state)).astype(int)
-            rank_tags = np.isin(data.particles.tag, filter_tags, assume_unique=True)
-            reference_point = reference_points[data.particles.tag[rank_tags]]
-            pos = data.particles.position[rank_tags]
+            is_particle_local = np.isin(data.particles.tag, filter_tags, assume_unique=True)
+            reference_point = reference_points[data.particles.tag[is_particle_local]]
+            pos = data.particles.position[is_particle_local]
         else:
-            pos = data.particles.position[np.argsort(data.particles.tag)]
+            pos = data.particles.position[data.particles.rtag[data.particles.tag]]
             reference_point = reference_points[data.particles.tag]
         npt.assert_allclose(pos, reference_point)
 
