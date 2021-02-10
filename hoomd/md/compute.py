@@ -344,3 +344,11 @@ class thermoHMA(Compute):
                                    self.harmonicPressure,
                                    "")
         super()._attach()
+
+    @log
+    def potential_energyHMA(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.potential_energyHMA
+        else:
+            return None
