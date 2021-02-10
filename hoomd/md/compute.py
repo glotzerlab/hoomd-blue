@@ -8,6 +8,7 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import Compute
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
 
@@ -318,14 +319,22 @@ class thermoHMA(Compute):
         compute.thermoHMA(group=g, temperature=1.0)
     """
 
-    def __init__(self, group, temperature, harmonicPressure=0):
+    def __init__(self, filter, temperature, harmonicPressure=0):
+
+        # store metadata
+        param_dict = ParameterDict(
+            temperature=float(temperature),
+            harmonicPressure=float(harmonicPressure),
+        )
+        # set defaults
+        self._param_dict.update(param_dict)
 
         # initialize base class
-        _compute.__init__(self);
+        _compute.__init__(filter)
 
-        suffix = '';
+        suffix = ''
         if group.name != 'all':
-            suffix = '_' + group.name;
+            suffix = '_' + group.name
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
