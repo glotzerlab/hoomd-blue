@@ -13,6 +13,7 @@ def test_before_attaching():
     assert free_volume.seed == 23456
     assert free_volume.test_particle_type == 'B'
     assert free_volume.num_samples == 100
+    assert free_volume.free_volume is None
 
 
 def test_after_attaching(simulation_factory, lattice_snapshot_factory):
@@ -39,3 +40,7 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
 
     sim.run(10)
     assert isinstance(free_volume.free_volume, float)
+
+    sim.operations.remove(free_volume)
+    assert len(sim.operations.computes) == 0
+    assert free_volume.free_volume is None
