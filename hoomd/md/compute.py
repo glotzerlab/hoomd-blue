@@ -352,3 +352,11 @@ class thermoHMA(Compute):
             return self._cpp_obj.potential_energyHMA
         else:
             return None
+
+    @log
+    def pressureHMA(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.pressureHMA
+        else:
+            return None
