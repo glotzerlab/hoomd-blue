@@ -343,7 +343,7 @@ class UserUnionPatch(UserPatch):
             The charges of the constituent particles (list of floats)
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
             The charges of the constituent particles (list of floats)
-        leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
+        leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
         alpha_union (numpy.ndarray, float): Length array_size_union numpy array containing dynamically adjustable elements
                                             defined by the user for unions of shapes (added in version 2.8)
 
@@ -402,7 +402,8 @@ class UserUnionPatch(UserPatch):
         super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
 
         param_dict = ParameterDict(r_cut_union = r_cut_union,
-                                   array_size_union = array_size_union)
+                                   array_size_union = array_size_union,
+                                   leaf_capacity = int(4))
         self._param_dict.update(param_dict)
 
         typeparam_positions = TypeParameter('positions',
