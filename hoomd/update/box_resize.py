@@ -59,7 +59,6 @@ class BoxResize(Updater):
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
-        # params['scale_particles'] = scale_particles
         self._param_dict.update(params)
         self.scale_particles = scale_particles
         super().__init__(trigger)
