@@ -17,7 +17,7 @@ import numpy as np
 
 class PatchCompute(Compute):
     """Base class for HOOMD patch interaction computes. Provides helper
-       methods to compile the user provided code in both CPU and GPU devices.
+       methods to compile the user code in both CPU and GPU devices.
 
     Note:
         This class should not be instantiated by users. The class can be used
@@ -310,6 +310,7 @@ class UserPatch(PatchCompute):
     @log
     def energy(self):
         """float: Total interaction energy of the system in the current state.
+                  Returns `None` when the patch object and integrator are not attached.
         """
         integrator = self._simulation.operations.integrator
         if self._attached and integrator._attached:
