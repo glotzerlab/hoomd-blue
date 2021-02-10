@@ -6,6 +6,8 @@ import numpy as np
 
 import hoomd
 from hoomd import md
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 import pytest
 import itertools
 from copy import deepcopy
@@ -940,3 +942,34 @@ def test_force_energy_accuracy(simulation_factory,
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
             assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
+
+
+# Test logging
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+        itertools.repeat({
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'energies': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'forces': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'torques': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'virials': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+        })))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
