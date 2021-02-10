@@ -330,22 +330,20 @@ class thermoHMA(Compute):
         self._param_dict.update(param_dict)
 
         # initialize base class
-        _compute.__init__(filter)
+        super().__init__(filter)
 
-        suffix = ''
-        if group.name != 'all':
-            suffix = '_' + group.name
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
+     def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            thermoHMA_cls = _hoomd.ComputeThermoHMA
         else:
-            self.cpp_compute = _hoomd.ComputeThermoHMAGPU(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
-
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
-
-        # save the group for later referencing
-        self.group = group;
+            thermoHMA_cls = _hoomd.ComputeThermoHMAGPU
+        group = self._simulation.state._get_group(self._filter)
+        self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def,
+                                   group,
+                                   self.temperature,
+                                   self.harmonicPressure,
+                                   "")
+        super()._attach()
 
     def disable(self):
         R""" Disables the thermoHMA.
