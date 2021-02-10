@@ -343,7 +343,7 @@ class UserUnionPatch(UserPatch):
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
             The charges of the constituent particles (list of floats)
         leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
-        alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
+        alpha_union (numpy.ndarray, float): Length array_size_union numpy array containing dynamically adjustable elements
                                             defined by the user for unions of shapes (added in version 2.8)
 
     Example:
