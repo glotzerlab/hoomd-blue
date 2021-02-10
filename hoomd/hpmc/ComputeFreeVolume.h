@@ -53,6 +53,7 @@ class ComputeFreeVolume : public Compute
             }
 
         //! Set the number of MC samples to perform
+        //! \param n_sample number of MC steps to sample
         void setNumSamples(unsigned int n_sample)
             {
             m_n_sample = n_sample;
@@ -65,6 +66,7 @@ class ComputeFreeVolume : public Compute
             }
 
         //! Set the type of depletant particle
+        //! \param type particle type to set test particle to
         void setTestParticleType(unsigned int type)
             {
             assert(type < m_pdata->getNTypes());
@@ -319,7 +321,7 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
     }
 
 /*! \param timestep Current time step of the simulation
-    \return the requested log quantity.
+    \return the free volume.
 */
 template<class Shape>
 Scalar ComputeFreeVolume<Shape>::getFreeVolume(unsigned int timestep)
@@ -349,7 +351,7 @@ Scalar ComputeFreeVolume<Shape>::getFreeVolume(unsigned int timestep)
 
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
-    \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
+    \tparam Shape An instantiation of ComputeFreeVolume<Shape> will be exported
 */
 template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, const std::string& name)
     {
