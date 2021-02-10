@@ -332,10 +332,19 @@ class UserUnionPatch(UserPatch):
         array_size (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
 
     Attributes:
+        positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
+            The positions of the constituent particles
+        orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float, `float`]]])
+            The orientations of the constituent particles (list of four-vectors)
+        diameters (`TypeParameter` [``particle type``, `list` [`float`]])
+            The diameters of the constituent particles (list of floats)
+        charges (`TypeParameter` [``particle type``, `list` [`float`]])
+            The charges of the constituent particles (list of floats)
+        typeids (`TypeParameter` [``particle type``, `list` [`float`]])
+            The charges of the constituent particles (list of floats)
+        leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
         alpha_union (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
                                             defined by the user for unions of shapes (added in version 2.8)
-        alpha_iso (numpy.ndarray, float): Length array_size_iso numpy array containing dynamically adjustable elements
-                                          defined by the user for the isotropic part. (added in version 2.8)
 
     Example:
 
@@ -347,8 +356,9 @@ class UserUnionPatch(UserPatch):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
-        patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
+        patch = hoomd.jit.patch.UserUnionPatch(r_cut_union=1.1, code_union=square_well)
+        patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
+        patch.typeids['A'] =[0,0]
 
     Example with added isotropic interactions:
 
@@ -372,8 +382,8 @@ class UserUnionPatch(UserPatch):
                                     return 0.0f;
                          """
 
-        patch = hoomd.jit.patch.UserUnionPatch(r_cut=2.5, code=square_well, array_size=2, \
-                                               r_cut_iso=5, code_iso=soft_repulsion, array_size_iso=2)
+        patch = hoomd.jit.patch.UserUnionPatch(r_cut_union=2.5, code_union=square_well, array_size_union=2, \
+                                               r_cut=5, code=soft_repulsion, array_size=2)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.typeids['A'] = [0,0]
         # [r_cut, epsilon]
