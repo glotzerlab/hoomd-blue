@@ -179,13 +179,11 @@ def filters(request):
     return request.param
 
 
-def test_position_scale(device, get_snapshot, sys, filters):
+def test_position_scale(device, get_snapshot, sys, variant, trigger, filters):
     filter_scale, filter_noscale = filters
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
 
-    variant = hoomd.variant.Power(0., 1., _power, _t_start, _t_ramp)
-    trigger = hoomd.trigger.After(variant.t_start)
     box_resize = hoomd.update.BoxResize(box1=sys1[0],
                                         box2=sys2[0],
                                         variant=variant,
@@ -207,3 +205,15 @@ def test_position_scale(device, get_snapshot, sys, filters):
     assert sim.state.box == sys2[0]
     assert_positions(sim, sys1[1], filter_noscale)
     assert_positions(sim, sys2[1], filter_scale)
+
+
+def test_get_scale_particles(device, get_snapshot, sys, variant, trigger, filters):
+    filter_scale, _ = filters
+    sys1, _, sys2 = sys
+    box_resize = hoomd.update.BoxResize(box1=sys1[0],
+                                        box2=sys2[0],
+                                        variant=variant,
+                                        trigger=trigger,
+                                        scale_particles=filter_scale)
+
+    assert box_resize.scale_particles == filter_scale

@@ -165,11 +165,7 @@ void export_BoxResizeUpdater(py::module& m)
                std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater")
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         pybind11::object, pybind11::object,
-                        std::shared_ptr<Variant>,
-                        std::shared_ptr<ParticleGroup> >())
-//    .def_property("scale_particles",
-//                  &BoxResizeUpdater::getScaleParticles,
-//                  &BoxResizeUpdater::setScaleParticles)
+                        std::shared_ptr<Variant>, std::shared_ptr<ParticleGroup> >())
     .def_property("box1",
                   &BoxResizeUpdater::getPyBox1,
                   &BoxResizeUpdater::setPyBox1)
@@ -179,6 +175,10 @@ void export_BoxResizeUpdater(py::module& m)
     .def_property("variant",
                   &BoxResizeUpdater::getVariant,
                   &BoxResizeUpdater::setVariant)
+    .def_property_readonly("scale_particles", [](const std::shared_ptr<BoxResizeUpdater> method)
+                                                  {
+                                                  return method->getScaleParticles()->getFilter();
+                                                  })
     .def("get_current_box", &BoxResizeUpdater::getCurrentBox)
     ;
     }
