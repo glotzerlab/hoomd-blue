@@ -217,3 +217,11 @@ def test_get_scale_particles(device, get_snapshot, sys, variant, trigger, filter
                                         scale_particles=filter_scale)
 
     assert box_resize.scale_particles == filter_scale
+
+
+def test_update_filters(device, get_snapshot, sys, filters):
+    sys1, _, sys2 = sys
+    filter_scale, _ = filters
+    sim = hoomd.Simulation(device)
+    sim.create_state_from_snapshot(get_snapshot())
+    hoomd.update.BoxResize.update(sim.state, sys2[0], scale_particles=filter_scale)

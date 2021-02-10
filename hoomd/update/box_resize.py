@@ -94,14 +94,14 @@ class BoxResize(Updater):
             return None
 
     @staticmethod
-    def update(state, box):
+    def update(state, box, scale_particles=All()):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
             state (State): System state to scale.
             box (Box): New box.
         """
-        group = state._get_group(All())
+        group = state._get_group(scale_particles)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
                                           state.box,
                                           box,
