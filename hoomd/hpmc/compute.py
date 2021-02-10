@@ -53,7 +53,6 @@ class FreeVolume(Compute):
         param_dict.update(
             dict(mc=mc,
                  seed=int(seed),
-                 suffix=str(suffix),
                  test_particle_type=str(test_type),
                  num_samples=int(nsample)))
         # set defaults
