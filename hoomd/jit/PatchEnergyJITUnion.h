@@ -101,7 +101,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_position[pid].resize(N);
             for (unsigned int i = 0; i < N; i++)
                 {
-                pybind11::list p_i = position[i];
+                pybind11::tuple p_i = position[i];
                 vec3<float> pos(p_i[0].cast<float>(),
                                 p_i[1].cast<float>(),
                                 p_i[2].cast<float>());
@@ -117,10 +117,9 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             pybind11::list ret;
             for (unsigned int i = 0; i < m_position[pid].size(); i++)
                 {
-                pybind11::list tmp;
-                tmp.append(m_position[pid][i].x);
-                tmp.append(m_position[pid][i].y);
-                tmp.append(m_position[pid][i].z);
+                pybind11::tuple tmp = pybind11::make_tuple(m_position[pid][i].x,
+                                                           m_position[pid][i].y,
+                                                           m_position[pid][i].z);
                 ret.append(tmp);
                 }
             return ret;
@@ -134,7 +133,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_orientation[pid].resize(N);
             for (unsigned int i = 0; i < N; i++)
                 {
-                pybind11::list q_i = orientation[i];
+                pybind11::tuple q_i = orientation[i];
                 float s = q_i[0].cast<float>();
                 float x = q_i[1].cast<float>();
                 float y = q_i[2].cast<float>();
@@ -151,11 +150,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             pybind11::list ret;
             for (unsigned int i = 0; i < m_orientation[pid].size(); i++)
                 {
-                pybind11::list tmp;
-                tmp.append(m_orientation[pid][i].s);
-                tmp.append(m_orientation[pid][i].v.x);
-                tmp.append(m_orientation[pid][i].v.y);
-                tmp.append(m_orientation[pid][i].v.z);
+                pybind11::tuple tmp = pybind11::make_tuple(m_orientation[pid][i].s,
+                                                           m_orientation[pid][i].v.x,
+                                                           m_orientation[pid][i].v.y,
+                                                           m_orientation[pid][i].v.z);
                 ret.append(tmp);
                 }
             return ret;
