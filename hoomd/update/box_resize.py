@@ -34,7 +34,7 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (hoomd.filter.Particle.Filter): The subset of particle positions to
+        scale_particles (hoomd.filter.ParticleFilter): The subset of particle positions to
             update.
 
     Attributes:
