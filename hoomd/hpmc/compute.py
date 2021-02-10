@@ -98,31 +98,31 @@ class FreeVolume(Compute):
                 raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
         else:
             if isinstance(self.mc, integrate.Sphere):
-                cls = _hpmc.ComputeFreeVolumeGPUSphere
+                cls = _hpmc.ComputeFreeVolumeSphereGPU
             elif isinstance(self.mc, integrate.ConvexPolygon):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolygon
+                cls = _hpmc.ComputeFreeVolumeConvexPolygonGPU
             elif isinstance(self.mc, integrate.SimplePolygon):
-                cls = _hpmc.ComputeFreeVolumeGPUSimplePolygon
+                cls = _hpmc.ComputeFreeVolumeSimplePolygonGPU
             elif isinstance(self.mc, integrate.ConvexPolyhedron):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedron
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronGPU
             elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
-                cls = _hpmc.ComputeFreeVolumeGPUSpheropolyhedron
+                cls = _hpmc.ComputeFreeVolumeSpheropolyhedronGPU
             elif isinstance(self.mc, integrate.Ellipsoid):
-                cls = _hpmc.ComputeFreeVolumeGPUEllipsoid
+                cls = _hpmc.ComputeFreeVolumeEllipsoidGPU
             elif isinstance(self.mc, integrate.ConvexSpheropolygon):
-                cls = _hpmc.ComputeFreeVolumeGPUSpheropolygon
+                cls = _hpmc.ComputeFreeVolumeSpheropolygonGPU
             elif isinstance(self.mc, integrate.FacetedEllipsoid):
-                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoid
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidGPU
             elif isinstance(self.mc, integrate.Polyhedron):
-                cls = _hpmc.ComputeFreeVolumeGPUPolyhedron
+                cls = _hpmc.ComputeFreeVolumePolyhedronGPU
             elif isinstance(self.mc, integrate.Sphinx):
-                cls = _hpmc.ComputeFreeVolumeGPUSphinx
+                cls = _hpmc.ComputeFreeVolumeSphinxGPU
             elif isinstance(self.mc, integrate.SphereUnion):
-                cls = _hpmc.ComputeFreeVolumeGPUSphereUnion
+                cls = _hpmc.ComputeFreeVolumeSphereUnionGPU
             elif isinstance(self.mc, integrate.FacetedEllipsoidUnion):
-                cls = _hpmc.ComputeFreeVolumeGPUFacetedEllipsoidUnion
+                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnionGPU
             elif isinstance(self.mc, integrate.ConvexSpheropolyhedronUnion):
-                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnionGPU
             else:
                 raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
 
