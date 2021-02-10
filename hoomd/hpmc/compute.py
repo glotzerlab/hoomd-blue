@@ -23,7 +23,6 @@ class FreeVolume(Compute):
         seed (int): Random seed for MC integration.
         type (str): Type of particle to use for integration
         nsample (int): Number of samples to use in MC integration
-        suffix (str): Suffix to use for log quantity
 
     :py:class`FreeVolume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
     It works together with an HPMC integrator, which defines the particle types used in the simulation.
@@ -42,14 +41,11 @@ class FreeVolume(Compute):
         fv = hoomd.hpmc.compute.FreeVolume(mc=mc, seed=123, test_type='B', nsample=1000)
 
     """
-    def __init__(self, mc, seed, test_type=None, nsample=None, suffix=''):
-        if suffix != '':
-            suffix = '_' + suffix
+    def __init__(self, mc, seed, test_type=None, nsample=None):
         # store metadata
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
             seed=int,
-            suffix=str,
             test_particle_type=Either([to_type_converter(str),
                                       to_type_converter(int)]),
             num_samples=int
@@ -130,7 +126,7 @@ class FreeVolume(Compute):
                             self.mc._cpp_obj,
                             _hoomd.CellList(self._simulation.state._cpp_sys_def),
                             self.seed,
-                            self.suffix)
+                            "")
 
         super()._attach()
 
