@@ -283,7 +283,7 @@ class ThermodynamicQuantities(_Thermo):
             return None
 
 
-class thermoHMA(Compute):
+class ThermoHMA(Compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
     Args:
