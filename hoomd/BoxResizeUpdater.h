@@ -45,7 +45,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         /// Destructor
         virtual ~BoxResizeUpdater();
 
-        /// Gets particle scaling setting
+        /// Gets particle scaling filter
         std::shared_ptr<ParticleGroup> getScaleParticles() {return m_scale_particles;}
 
         /// Set a new initial box from a python object
@@ -78,7 +78,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxDim& m_box1;  ///< C++ box assoc with min
         BoxDim& m_box2;  ///< C++ box assoc with max
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
-        std::shared_ptr<ParticleGroup> m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+        std::shared_ptr<ParticleGroup> m_scale_particles; //!< Selected particles to scale when resizing the box.
     };
 
 /// Export the BoxResizeUpdater to python

@@ -135,7 +135,7 @@ void BoxResizeUpdater::update(unsigned int timestep)
         h_pos.data[j].z = scaled_pos.z;
         }
 
-        // otherwise, we need to ensure that the particles are still in their
+        // ensure that the particles are still in their
         // local boxes by wrapping them if they are not
         ArrayHandle<int3> h_image(m_pdata->getImages(),
                                   access_location::host,
@@ -149,7 +149,6 @@ void BoxResizeUpdater::update(unsigned int timestep)
           // of the box to the other
           local_box.wrap(h_pos.data[i], h_image.data[i]);
           }
-          //TODO: Is it faster/better to do it like this, or one loop and if statement with isMember
         }
     if (m_prof) m_prof->pop();
     }

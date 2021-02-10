@@ -34,8 +34,8 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (bool): Whether to scale particles to the new box
-            dimensions when the box is resized.
+        scale_particles (hoomd.filter.Particle.Filter): The subset of particle positions to
+            update.
 
     Attributes:
         box1 (hoomd.Box): The box associated with the minimum of the
@@ -45,8 +45,8 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (bool): Whether to scale particles to the new box
-            dimensions when the box is resized.
+        scale_particles (hoomd.filter.ParticleFilter): The subset of particles to
+            update.
     """
     def __init__(self, box1, box2,
                  variant, trigger, scale_particles=All()):
@@ -100,6 +100,8 @@ class BoxResize(Updater):
         Args:
             state (State): System state to scale.
             box (Box): New box.
+            scale_particles (hoomd.filter.ParticleFilter): The subset of particles to
+                update.
         """
         group = state._get_group(scale_particles)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
