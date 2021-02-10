@@ -344,29 +344,3 @@ class thermoHMA(Compute):
                                    self.harmonicPressure,
                                    "")
         super()._attach()
-
-    def disable(self):
-        R""" Disables the thermoHMA.
-
-        Examples::
-
-            my_thermo.disable()
-
-        Executing the disable command will remove the thermoHMA compute from the system. Any ```hoomd.run``` command
-        executed after disabling a thermoHMA compute will not be able to log computed values with ``hoomd.analyze.log``.
-
-        A disabled thermoHMA compute can be re-enabled with :py:meth:`enable()`.
-        """
-
-        _compute.disable(self)
-
-    def enable(self):
-        R""" Enables the thermoHMA compute.
-
-        Examples::
-
-            my_thermo.enable()
-
-        See ``disable``.
-        """
-        _compute.enable(self)
