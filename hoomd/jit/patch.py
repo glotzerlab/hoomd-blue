@@ -506,39 +506,3 @@ class UserUnionPatch(UserPatch):
         # attach patch object to the integrator
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
-
-    def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
-        R''' Set the union shape parameters for a given particle type
-
-        Args:
-            type (str): The type to set the interactions for
-            positions (list): The positions of the constituent particles (list of vectors)
-            orientations (list): The orientations of the constituent particles (list of four-vectors)
-            diameters (list): The diameters of the constituent particles (list of floats)
-            charges (list): The charges of the constituent particles (list of floats)
-            leaf_capacity (int): The number of particles in a leaf of the internal tree data structure
-        '''
-
-        if orientations is None:
-            orientations = [[1,0,0,0]]*len(positions)
-
-        if charges is None:
-            charges = [0]*len(positions)
-
-        if diameters is None:
-            diameters = [0.0]*len(positions)
-
-        positions = np.array(positions).tolist()
-        orientations = np.array(orientations).tolist()
-        diameters = np.array(diameters).tolist()
-        charges = np.array(charges).tolist()
-        typeids = np.array(typeids).tolist()
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
-        if not type in type_names:
-            hoomd.context.current.device.cpp_msg.error("{} is not a valid particle type.\n".format(type));
-            raise RuntimeError("Error initializing patch energy.");
-        typeid = type_names.index(type)
-
-        self._cpp_obj.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
