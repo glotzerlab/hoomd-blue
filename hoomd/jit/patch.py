@@ -507,4 +507,3 @@ class UserUnionPatch(UserPatch):
         self.alpha_union = self._cpp_obj.alpha_union
         # attach patch object to the integrator
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
-        # super()._attach()
