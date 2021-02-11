@@ -1,5 +1,6 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
+          test_jit_patch.py
           test_clusters.py
           test_boxmc.py
           test_shape.py

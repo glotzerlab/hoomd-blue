@@ -450,7 +450,7 @@ class UserUnionPatch(UserPatch):
 
         if self._code_union is not None:
             llvm_ir_union = self._compile_user(self.array_size, self.array_size_union,
-                                               self._code_union, self._clang)
+                                               self._code_union, self._clang_exec)
         else:
             # IR is a text file
             with open(self._llvm_ir_file_union,'r') as f:
@@ -458,7 +458,7 @@ class UserUnionPatch(UserPatch):
 
         if self._code is not None:
             llvm_ir = self._compile_user(self.array_size, self.array_size_union,
-                                         self._code, self._clang)
+                                         self._code, self._clang_exec)
         else:
             if self._llvm_ir_file is not None:
                 # IR is a text file
@@ -507,4 +507,4 @@ class UserUnionPatch(UserPatch):
         self.alpha_union = self._cpp_obj.alpha_union
         # attach patch object to the integrator
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
-        super()._attach()
+        # super()._attach()
