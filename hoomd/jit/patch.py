@@ -23,7 +23,7 @@ class PatchCompute(Compute):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
-    def _compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
+    def _compile_user(self, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
 
         Args:
@@ -269,7 +269,7 @@ class UserPatch(PatchCompute):
 
         clang = self._clang_exec if self._clang_exec is not None else 'clang'
         if self._code is not None:
-            _llvm_ir = self._compile_user(self.array_size, 1, self._code, clang)
+            _llvm_ir = self._compile_user(self._code, clang)
         else:
             # IR is a text file
             with open(self._llvm_ir_file,'r') as f:
@@ -449,16 +449,14 @@ class UserUnionPatch(UserPatch):
             raise RuntimeError("Integrator is not attached yet.")
 
         if self._code_union is not None:
-            llvm_ir_union = self._compile_user(self.array_size, self.array_size_union,
-                                               self._code_union, self._clang_exec)
+            llvm_ir_union = self._compile_user(self._code_union, self._clang_exec)
         else:
             # IR is a text file
             with open(self._llvm_ir_file_union,'r') as f:
                 llvm_ir_union = f.read()
 
         if self._code is not None:
-            llvm_ir = self._compile_user(self.array_size, self.array_size_union,
-                                         self._code, self._clang_exec)
+            llvm_ir = self._compile_user(self._code, self._clang_exec)
         else:
             if self._llvm_ir_file is not None:
                 # IR is a text file
@@ -466,8 +464,7 @@ class UserUnionPatch(UserPatch):
                     llvm_ir = f.read()
             else:
                 # provide a dummy function
-                llvm_ir = self._compile_user(self.array_size, self.array_size_union,
-                                             'return 0.0;', self._clang)
+                llvm_ir = self._compile_user('return 0.0;', self._clang_exec)
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
