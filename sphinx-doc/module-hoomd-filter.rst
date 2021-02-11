@@ -28,7 +28,7 @@ hoomd.filter
         :special-members: __call__, __hash__, __eq__, __str__
     .. autoclass:: All()
     .. autoclass:: CustomFilter()
-        :special-members: __call__, __hash__, __eq__
+        :special-members: __call__
     .. autoclass:: Intersection(f, g)
     .. autoclass:: Null()
     .. autoclass:: SetDifference(f, g)

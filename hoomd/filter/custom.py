@@ -2,12 +2,22 @@
 from abc import abstractmethod
 from collections.abc import Hashable, Callable
 
+
 class CustomFilter(Hashable, Callable):
     """Abstract base class for custom particle filters.
 
     The class allows the definition of particle filters in Python (see
     `hoomd.filter.ParticleFilter`).
+
+    Subclasses of this class must have ``__hash__``, ``__eq__``, and
+    ``__call__`` methods. The ``__hash__`` and ``__eq__`` methods will be used
+    to cache the particle tags associated with a filter, thus ``__eq__`` must
+    correctly disambiguity any filters that would choose different particles.
+    For more information on the Python data model see
+    `<https://docs.python.org/3/reference/datamodel.html#object.__hash__>`_ and
+    `<https://docs.python.org/3/reference/datamodel.html#object.__eq__>`_.
     """
+
     @abstractmethod
     def __call__(self, state):
         """Return the local particle tags that match the filter.
@@ -32,15 +42,6 @@ class CustomFilter(Hashable, Callable):
         Returns:
             (N,) `numpy.ndarray` of `numpy.uint64`:
                 An array of MPI local tags that match the filter.
-        """
-        pass
-
-    @abstractmethod
-    def __hash__(self):
-        """A hashed value to represent this instance.
-
-        This is necessary to allow for proper caching of filter tags internally
-        in HOOMD-blue.
         """
         pass
 
