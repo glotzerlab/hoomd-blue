@@ -46,6 +46,12 @@ class CustomFilter(Hashable, Callable):
         # All particles with 1.0 < mass < 5.0
         filter_ = DiameterFilter(1.0, 5.0)
         gsd = hoomd.write.GSD('example.gsd', 100, filter=filter_)
+
+    Warning:
+        Custom filters will not work with the set operation particle filters
+        (i.e.  `hoomd.filter.Union`, `hoomd.filter.Intersection`, or
+        `hoomd.filter.SetDifference`). This restriction may be lifted in a
+        future version.
     """
 
     @abstractmethod
