@@ -16,6 +16,36 @@ class CustomFilter(Hashable, Callable):
     For more information on the Python data model see
     `<https://docs.python.org/3/reference/datamodel.html#object.__hash__>`_ and
     `<https://docs.python.org/3/reference/datamodel.html#object.__eq__>`_.
+
+    The example below creates a custom filter that filters out particles above
+    and below a certain mass, and uses that filter in a `hoomd.write.GSD`
+    object.
+
+    Example::
+
+        class MassFilter(hoomd.filter.CustomFilter):
+            def __init__(self, min_mass, max_mass):
+                self.min_mass = min_mass
+                self.max_mass = max_mass
+
+            def __hash__(self):
+                return hash((self.min_mass, self.max_mass))
+
+            def __eq__(self, other):
+                return (isinstance(other, DiameterFilter)
+                        and self.min_mass == other.min_mass
+                        and self.max_mass == other.max_mass)
+
+            def __call__(self, state):
+                with state.cpu_local_snapshot as snap:
+                    masses = snap.particles.mass
+                    indices = ((masses > self.min_mass)
+                               & (masses < self.max_mass))
+                    return np.copy(snap.particles.tag[indices])
+
+        # All particles with 1.0 < mass < 5.0
+        filter_ = DiameterFilter(1.0, 5.0)
+        gsd = hoomd.write.GSD('example.gsd', 100, filter=filter_)
     """
 
     @abstractmethod
