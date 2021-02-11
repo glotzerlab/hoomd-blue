@@ -151,11 +151,13 @@ class OnlyIf(_HelpValidate):
 
 
 class OnlyTypes(_HelpValidate):
-    """Only alllow values that are instances of type.
+    """Only allow values that are instances of type.
 
     Developers should consider the `collections.abc` module in using this type.
-    In general `OnlyTypes(Sequence)` is more readible than the similar
-    `OnlyIf(lambda x: hasattr(x, '__iter__'))`.
+    In general `OnlyTypes(Sequence)` is more readable than the similar
+    `OnlyIf(lambda x: hasattr(x, '__iter__'))`. If a sequence of types is provided
+    and ``strict`` is ``False``, conversions will be attempted in the order
+    of the ``types`` sequence.
     """
     def __init__(self, types, strict=False,
                  preprocess=None, postprocess=None, allow_none=False):

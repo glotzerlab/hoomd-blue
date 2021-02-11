@@ -1,12 +1,12 @@
 """Contains a class for custom particle filters in Python."""
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections.abc import Hashable, Callable
 
 class CustomFilter(Hashable, Callable):
     """Abstract base class for custom particle filters.
 
     The class allows the definition of particle filters in Python (see
-    `hoomd.filter.ParticleFilter`.
+    `hoomd.filter.ParticleFilter`).
     """
     @abstractmethod
     def __call__(self, state):
@@ -18,11 +18,11 @@ class CustomFilter(Hashable, Callable):
         Note:
             The exact requirements for the tags returned by custom filters on
             each MPI rank is that the set union of the returned arrays from each
-            MPI rank be all particles that match the filter. For general use, it
-            is recommended, however, that each rank only return the tags for
+            MPI rank be all particles that match the filter. For general use,
+            however, it is recommended that each rank only return the tags for
             particles that are in the local MPI rank (excluding ghost
             particles). This is preferable for ease of use with local snapshots
-            by avoiding accidentally attempting to access invalid array indices
+            to avoid accidentally attempting to access invalid array indices
             from tags outside of the MPI rank.
 
         Args:
