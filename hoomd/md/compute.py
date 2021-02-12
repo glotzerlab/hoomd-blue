@@ -290,7 +290,7 @@ class ThermoHMA(Compute):
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
         temperature (float): Temperature
-        harmonicPressure (float): Harmonic contribution to the pressure.
+        harmonic_pressure (float): Harmonic contribution to the pressure.
             If ommitted, the HMA pressure can still be computed, but will be
             similar in precision to the conventional pressure.
 
