@@ -73,15 +73,13 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
          */
         virtual void validateRigidBodies(bool create=false);
 
-        //! Set body parameters from python
-        void setBody(std::string typ, pybind11::object v);
         
         /// Construct from a Python dictionary
-        setBody(std::string typ, pybind11::object v)
+        void setBody(std::string typ, pybind11::object v)
             {   
             pybind11::list types = v["types"];
             pybind11::list positions = v["positions"];
-            N = (unsigned int)len(positions);
+            int N = (unsigned int)len(positions);
 
             // extract the positions from the python list
             std::vector<vec3<OverlapReal>> pos_vector;
