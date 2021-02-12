@@ -364,7 +364,7 @@ class Active(Force):
             filter=ParticleFilter,
             seed=int(seed),
             rotation_diff=float(rotation_diff),
-            constraint=OnlyType(
+            constraint=OnlyTypes(
                 ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
             ),
         )
