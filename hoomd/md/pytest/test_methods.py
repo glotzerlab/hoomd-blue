@@ -28,7 +28,7 @@ def test_brownian_attributes():
 
 
 def test_brownian_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
+                                      two_particle_snapshot_factory, capsys):
     """Test attributes of the Brownian integrator after attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
@@ -37,6 +37,11 @@ def test_brownian_attributes_attached(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
     sim.operations._schedule()
+
+    # test the seed warning is issued
+    captured = capsys.readouterr()
+    assert captured.err == "*Warning*: Simulation.seed is not set, using " \
+                           "default seed=0\n"
 
     assert brownian.filter is all_
     assert brownian.kT is constant
@@ -84,7 +89,7 @@ def test_langevin_attributes():
 
 
 def test_langevin_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
+                                      two_particle_snapshot_factory, capsys):
     """Test attributes of the Langevin integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
@@ -93,6 +98,11 @@ def test_langevin_attributes_attached(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin])
     sim.operations._schedule()
+
+    # test the seed warning is issued
+    captured = capsys.readouterr()
+    assert captured.err == "*Warning*: Simulation.seed is not set, using " \
+                           "default seed=0\n"
 
     assert langevin.filter is all_
     assert langevin.kT is constant
