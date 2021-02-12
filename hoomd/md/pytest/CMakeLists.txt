@@ -7,6 +7,7 @@ set(files __init__.py
     test_potential.py
     test_methods.py
     test_thermo.py
+    test_thermoHMA.py
     forces_and_energies.json
     test_write_debug_data_md.py
     )
