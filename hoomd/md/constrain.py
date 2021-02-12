@@ -202,11 +202,11 @@ class distance(ConstraintForce):
     The constraint algorithm implemented is described in:
 
      * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
-        Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
-        vol. 13, no. 6, pp. 395--405, 1994.
+     Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
+     vol. 13, no. 6, pp. 395--405, 1994.
      * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
-        Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
-        188--197, Sep. 2001.
+     Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
+     188--197, Sep. 2001.
 
     In brief, the second derivative of the Lagrange multipliers with respect to
     time is set to zero, such that both the distance constraints and their time
