@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -35,7 +35,7 @@ using namespace std;
     <b>Ellipsoid specifics</b>
 
     ManifoldClassEllipsoid constructs the surface:
-    1 = ((x-P_x)/a)^2 + ((y-P_y)/b)^2 + ((z-P_z)/c)^2 
+    1 = ((x-P_x)/a)^2 + ((y-P_y)/b)^2 + ((z-P_z)/c)^2
 
     These are the parameters:
     - \a P_x = center position of the ellipsoid in x-direction;
@@ -55,9 +55,9 @@ class ManifoldClassEllipsoid
         /*! \param _Px center position in x-direction
             \param _Py center position in y-direction
             \param _Pz center position in z-direction
-            \param _a x-axis 
-            \param _b y-axis 
-            \param _c z-axis 
+            \param _a x-axis
+            \param _b y-axis
+            \param _c z-axis
         */
         DEVICE ManifoldClassEllipsoid(Scalar _a, Scalar _b, Scalar _c, Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), a(Scalar(1.0)/(_a*_a)), b(Scalar(1.0)/(_b*_b)), c(Scalar(1.0)/(_c*_c))
@@ -72,7 +72,7 @@ class ManifoldClassEllipsoid
 
         DEVICE Scalar implicit_function(Scalar3 point)
         {
-            return  a*(point.x - Px)*(point.x - Px) + b*(point.y - Py)*(point.y - Py) + c*(point.z - Pz)*(point.z - Pz) - 1;	
+            return  a*(point.x - Px)*(point.x - Px) + b*(point.y - Py)*(point.y - Py) + c*(point.z - Pz)*(point.z - Pz) - 1;
         }
 
         //! Evaluate deriviative of implicit function
@@ -85,8 +85,8 @@ class ManifoldClassEllipsoid
         {
             Scalar3 delta;
             delta.x = 2*a*(point.x - Px);
-            delta.y = 2*b*(point.y - Py);	
-            delta.z = 2*c*(point.z - Pz);	
+            delta.y = 2*b*(point.y - Py);
+            delta.z = 2*c*(point.z - Pz);
             return delta;
         }
 
@@ -102,12 +102,12 @@ class ManifoldClassEllipsoid
             }
 
     protected:
-        Scalar Px;       
-        Scalar Py;       
-        Scalar Pz;       
-        Scalar a;        
-        Scalar b;        
-        Scalar c;        
+        Scalar Px;
+        Scalar Py;
+        Scalar Pz;
+        Scalar a;
+        Scalar b;
+        Scalar c;
     };
 
 //! Exports the Ellipsoid manifold class to python

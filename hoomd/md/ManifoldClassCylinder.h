@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -53,7 +53,7 @@ class ManifoldClassCylinder
         /*! \param _Px center position in x-direction
             \param _Py center position in y-direction
             \param _Pz center position in z-direction
-            \param _R radius 
+            \param _R radius
         */
         DEVICE ManifoldClassCylinder(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
@@ -68,7 +68,7 @@ class ManifoldClassCylinder
 
         DEVICE Scalar implicit_function(Scalar3 point)
         {
-            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R;	
+            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R;
         }
 
         //! Evaluate deriviative of implicit function
@@ -81,7 +81,7 @@ class ManifoldClassCylinder
         {
             Scalar3 delta;
             delta.x = 2*(point.x - Px);
-            delta.y = 2*(point.y - Py);	
+            delta.y = 2*(point.y - Py);
             delta.z = 0;
             return delta;
         }
@@ -98,10 +98,10 @@ class ManifoldClassCylinder
             }
 
     protected:
-        Scalar Px;       
-        Scalar Py;       
-        Scalar Pz;       
-        Scalar R;        
+        Scalar Px;
+        Scalar Py;
+        Scalar Pz;
+        Scalar R;
     };
 
 //! Exports the Cylinder manifold class to python

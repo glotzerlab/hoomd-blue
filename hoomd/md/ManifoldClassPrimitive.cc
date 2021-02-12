@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -25,7 +25,7 @@ DEVICE bool ManifoldClassPrimitive::validate(const BoxDim box)
  Lx = 2*M_PI*Nx/box_length.x;
  Ly = 2*M_PI*Ny/box_length.y;
  Lz = 2*M_PI*Nz/box_length.z;
- 
+
  return false;
 }
 

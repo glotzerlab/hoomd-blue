@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -376,7 +376,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
 
         // first, calculate the BD forces on manifold
         // Generate two random numbers
-        
+
         Scalar rx, ry, rz, coeff;
 
 	Scalar gamma;
@@ -407,7 +407,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
 		Scalar proj_x = normal.x/fast::sqrt(ndotn);
 		Scalar proj_y = normal.y/fast::sqrt(ndotn);
 		Scalar proj_z = normal.z/fast::sqrt(ndotn);
-		
+
 		Scalar proj_r = rx*proj_x + ry*proj_y + rz*proj_z;
 		rx = rx - proj_r*proj_x;
 		ry = ry - proj_r*proj_y;
@@ -435,8 +435,8 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
         Scalar mu = 0;
         Scalar inv_alpha = -Scalar(1.0/2.0)*m_deltaT;
 	inv_alpha = Scalar(1.0)/inv_alpha;
-   
-        Scalar3 next_vel; 
+
+        Scalar3 next_vel;
         next_vel.x = h_vel.data[j].x + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].x;
         next_vel.y = h_vel.data[j].y + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].y;
         next_vel.z = h_vel.data[j].z + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].z;
@@ -444,7 +444,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
         Scalar3 residual;
         Scalar resid;
         Scalar3 vel_dot;
-   
+
         unsigned int iteration = 0;
         do
             {
@@ -606,7 +606,7 @@ void TwoStepRATTLELangevin<Manifold>::IncludeRATTLEForce(unsigned int timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
 
 	    Scalar alpha = 0.0;
-            
+
 	    Scalar3 next_pos;
 	    next_pos.x = h_pos.data[j].x;
 	    next_pos.y = h_pos.data[j].y;
@@ -614,7 +614,7 @@ void TwoStepRATTLELangevin<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 
 
 	    Scalar3 normal = m_manifold.derivative(next_pos);
-        
+
 
 	    Scalar inv_mass = Scalar(1.0)/h_vel.data[j].w;
 	    Scalar deltaT_half = Scalar(1.0/2.0)*m_deltaT;
@@ -644,11 +644,11 @@ void TwoStepRATTLELangevin<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 	        Scalar nndotn = dot(next_normal,normal);
 	        Scalar beta = (resid + nndotr)/nndotn;
 
-                next_pos.x = next_pos.x - beta*normal.x + residual.x;   
-                next_pos.y = next_pos.y - beta*normal.y + residual.y;   
+                next_pos.x = next_pos.x - beta*normal.x + residual.x;
+                next_pos.y = next_pos.y - beta*normal.y + residual.y;
                 next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	        alpha = alpha - beta*inv_alpha;
-	     
+
 	        } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
 
 	    h_net_force.data[j].x -= alpha*normal.x;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -38,7 +38,7 @@ using namespace std;
     \a Nx The number of unitcells in x-direction
     \a Ny The number of unitcells in y-direction
     \a Nz The number of unitcells in z-direction
-    \a epsilon Defines the specific constant mean curvture companion 
+    \a epsilon Defines the specific constant mean curvture companion
 
 */
 
@@ -49,7 +49,7 @@ class ManifoldClassDiamond
          /* \param _Nx The number of unitcells in x-direction
             \param _Ny The number of unitcells in y-direction
             \param _Nz The number of unitcells in z-direction
-            \param _epsilon Defines the specific constant mean curvture companion 
+            \param _epsilon Defines the specific constant mean curvture companion
         */
         DEVICE ManifoldClassDiamond(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
             : Nx(_Nx), Ny(_Ny), Nz(_Nz), epsilon(_epsilon)
@@ -97,10 +97,10 @@ class ManifoldClassDiamond
         int Nx;
         int Ny;
         int Nz;
-        Scalar Lx;       
-        Scalar Ly;       
-        Scalar Lz;       
-        Scalar epsilon;        
+        Scalar Lx;
+        Scalar Ly;
+        Scalar Lz;
+        Scalar epsilon;
     };
 
 //! Exports the Diamond manifold class to python

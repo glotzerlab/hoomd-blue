@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -410,7 +410,7 @@ void TwoStepRATTLEBD<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 
             // update position
 	    Scalar mu = 0.0;
-            
+
 	    Scalar inv_alpha = -deltaT_gamma;
 	    inv_alpha = Scalar(1.0)/inv_alpha;
 
@@ -433,11 +433,11 @@ void TwoStepRATTLEBD<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 	        Scalar nndotn = dot(next_normal,normal);
 	        Scalar beta = (resid + nndotr)/nndotn;
 
-            next_pos.x = next_pos.x - beta*normal.x + residual.x;   
-            next_pos.y = next_pos.y - beta*normal.y + residual.y;   
+            next_pos.x = next_pos.x - beta*normal.x + residual.x;
+            next_pos.y = next_pos.y - beta*normal.y + residual.y;
             next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	        mu = mu - beta*inv_alpha;
-	    
+
 	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
 
 	    h_net_force.data[j].x -= mu*normal.x;

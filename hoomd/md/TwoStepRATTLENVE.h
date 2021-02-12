@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -366,7 +366,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
 
 	Scalar mass = h_vel.data[j].w;
 	Scalar inv_mass = Scalar(1.0)/mass;
-        
+
 	if (m_zero_force)
             {
             h_accel.data[j].x = h_accel.data[j].y = h_accel.data[j].z = 0.0;
@@ -382,19 +382,19 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
            Scalar mu = 0;
            Scalar inv_alpha = -Scalar(1.0/2.0)*m_deltaT;
 	   inv_alpha = Scalar(1.0)/inv_alpha;
-   
+
            Scalar3 normal = m_manifold.derivative(make_scalar3(h_pos.data[j].x,h_pos.data[j].y,h_pos.data[j].z));
-   
-           Scalar3 next_vel; 
+
+           Scalar3 next_vel;
            next_vel.x = h_vel.data[j].x + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].x;
            next_vel.y = h_vel.data[j].y + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].y;
            next_vel.z = h_vel.data[j].z + Scalar(1.0/2.0)*m_deltaT*h_accel.data[j].z;
 
-   
+
            Scalar3 residual;
            Scalar resid;
            Scalar3 vel_dot;
-   
+
            unsigned int iteration = 0;
            do
                {
@@ -417,14 +417,14 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
                mu =  mu - mass*beta*inv_alpha;
 
 	       } while (maxNorm(residual,resid)*mass > m_eta && iteration < maxiteration );
-   
+
 
            // then, update the velocity
            h_vel.data[j].x += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].x - mu*inv_mass*normal.x);
            h_vel.data[j].y += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].y - mu*inv_mass*normal.y);
            h_vel.data[j].z += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].z - mu*inv_mass*normal.z);
 
-	
+
         // limit the movement of the particles
         if (m_limit)
             {
@@ -509,7 +509,7 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 	}
 
 	Scalar lambda = 0.0;
-        
+
 	Scalar3 next_pos;
 	next_pos.x = h_pos.data[j].x;
 	next_pos.y = h_pos.data[j].y;
@@ -526,7 +526,7 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 	Scalar resid;
 	Scalar3 half_vel;
 
-	
+
 	unsigned int iteration = 0;
 	do
 	    {
@@ -545,11 +545,11 @@ void TwoStepRATTLENVE<Manifold>::IncludeRATTLEForce(unsigned int timestep)
 	    Scalar nndotn = dot(next_normal,normal);
 	    Scalar beta = (resid + nndotr)/nndotn;
 
-        next_pos.x = next_pos.x - beta*normal.x + residual.x;   
-        next_pos.y = next_pos.y - beta*normal.y + residual.y;   
+        next_pos.x = next_pos.x - beta*normal.x + residual.x;
+        next_pos.y = next_pos.y - beta*normal.y + residual.y;
         next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	    lambda = lambda - beta*inv_alpha;
-	 
+
 	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
 
 	h_net_force.data[j].x -= lambda*normal.x;

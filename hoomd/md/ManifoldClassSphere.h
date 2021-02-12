@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -35,7 +35,7 @@ using namespace std;
     <b>Sphere specifics</b>
 
     ManifoldClassSphere constructs the surface:
-    R^2 = (x-P_x)^2 + (y-P_y)^2 + (z-P_z)^2 
+    R^2 = (x-P_x)^2 + (y-P_y)^2 + (z-P_z)^2
 
     These are the parameters:
     - \a P_x = center position of the sphere in x-direction;
@@ -52,7 +52,7 @@ class ManifoldClassSphere
         /*! \param _Px center position in x-direction
             \param _Py center position in y-direction
             \param _Pz center position in z-direction
-            \param _R radius 
+            \param _R radius
         */
         DEVICE ManifoldClassSphere(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
@@ -67,7 +67,7 @@ class ManifoldClassSphere
 
         DEVICE Scalar implicit_function(const Scalar3 point)
         {
-            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R;	
+            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R;
         }
 
         //! Evaluate deriviative of implicit function
@@ -80,8 +80,8 @@ class ManifoldClassSphere
         {
             Scalar3 delta;
             delta.x = 2*(point.x - Px);
-            delta.y = 2*(point.y - Py);	
-            delta.z = 2*(point.z - Pz);	
+            delta.y = 2*(point.y - Py);
+            delta.z = 2*(point.z - Pz);
             return delta;
         }
 
@@ -99,10 +99,10 @@ class ManifoldClassSphere
             }
 
     protected:
-        Scalar Px;       
-        Scalar Py;       
-        Scalar Pz;       
-        Scalar R;        
+        Scalar Px;
+        Scalar Py;
+        Scalar Pz;
+        Scalar R;
     };
 
 //! Exports the Sphere manifold class to python

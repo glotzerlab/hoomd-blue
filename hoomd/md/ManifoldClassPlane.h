@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -61,7 +61,7 @@ class ManifoldClassPlane
 
         DEVICE Scalar implicit_function(const Scalar3 point)
         {
-            return point.z - shift;	
+            return point.z - shift;
         }
 
         //! Evaluate deriviative of implicit function
@@ -74,8 +74,8 @@ class ManifoldClassPlane
         {
             Scalar3 delta;
             delta.x = 0;
-            delta.y = 0;	
-            delta.z = 1;	
+            delta.y = 0;
+            delta.z = 1;
             return delta;
         }
 
@@ -91,7 +91,7 @@ class ManifoldClassPlane
             }
 
     protected:
-        Scalar shift;   
+        Scalar shift;
     };
 
 //! Exports the Plane manifold class to python
