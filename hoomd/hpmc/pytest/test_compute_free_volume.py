@@ -40,7 +40,3 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
 
     sim.run(10)
     assert isinstance(free_volume.free_volume, float)
-
-    sim.operations.remove(free_volume)
-    assert len(sim.operations.computes) == 0
-    assert free_volume.free_volume is None
