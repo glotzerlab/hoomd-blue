@@ -134,6 +134,7 @@ class FreeVolume(Compute):
         """free volume available to a particle assembly
         """
         if self._attached:
-            return self._cpp_obj.getFreeVolume(self._simulation.timestep)
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.free_volume
         else:
             return None
