@@ -335,6 +335,7 @@ class rigid(ConstraintForce):
         rigid = hoomd.group.rigid_center()
         hoomd.md.integrate.langevin(group=rigid, kT=1.0, seed=42)
 
+
     .. rubric:: Thermodynamic quantities of bodies
 
     HOOMD computes thermodynamic quantities (temperature, kinetic energy,
