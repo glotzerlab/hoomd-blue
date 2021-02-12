@@ -1,7 +1,7 @@
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyType, box_preprocessing
+from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 
@@ -50,8 +50,8 @@ class BoxResize(Updater):
     def __init__(self, box1, box2,
                  variant, trigger, scale_particles=True):
         params = ParameterDict(
-            box1=OnlyType(Box, preprocess=box_preprocessing),
-            box2=OnlyType(Box, preprocess=box_preprocessing),
+            box1=OnlyTypes(Box, preprocess=box_preprocessing),
+            box2=OnlyTypes(Box, preprocess=box_preprocessing),
             variant=Variant,
             scale_particles=bool)
         params['box1'] = box1

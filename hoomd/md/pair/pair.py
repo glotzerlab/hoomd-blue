@@ -10,12 +10,12 @@ from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyType, positive_real, nonnegative_real)
+    OnlyFrom, OnlyTypes, positive_real, nonnegative_real)
 
 import math
 
 
-validate_nlist = OnlyType(NList)
+validate_nlist = OnlyTypes(NList)
 
 
 class Pair(force.Force):
@@ -1829,5 +1829,60 @@ class OPP(Pair):
                                TypeParameterDict(
                                    C1=float, C2=float, eta1=float, eta2=float,
                                    k=float, phi=float, len_keys=2)
+                               )
+        self._add_typeparam(params)
+
+
+class TWF(Pair):
+    r"""Pair potential model for globular proteins.
+
+    This potential was introduced by Ten-wolde and Daan Frenkel in 1997 for
+    studying globular protein crystallization. The potential has the following
+    form:
+
+    .. math::
+        :nowrap:
+
+        \\begin{equation}
+        V_{\\mathrm{TWF}}(r) = \\frac{4 \\epsilon}{\\alpha^2} {\\left[
+        {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^6 -
+        \\alpha {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^3\\right]}
+        \\end{equation}
+
+    See `hoomd.md.pair.Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use `params` dictionary
+    to set potential coefficients. The coefficients must be set per
+    unique pair of particle types.
+
+    The potential comes from
+    `Pieter Rein ten Wolde and Daan Frenkel 1997 <https://dx.doi.org/10.1126/science.277.5334.1975 >`_.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The LJ potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (`float`, **required**) -
+              energy parameter :math:`\\varepsilon` (units: [energy])
+            * ``sigma`` (`float`, **required**) -
+              particle size :math:`\\sigma` (units: [length])
+            * ``alpha`` (`float`, **required**) -
+              controls well-width :math:`\\alpha` (unitless)
+
+    Example::
+
+        nl = nlist.Cell()
+        twf = hoomd.md.pair.TWF(nl, r_cut=3.0)
+        twf.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 50.0}
+        twf.r_cut[('A', 'B')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairTWF"
+
+    def __init__(self, nlist, r_cut=None, r_on=0.0, mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 alpha=float, len_keys=2)
                                )
         self._add_typeparam(params)

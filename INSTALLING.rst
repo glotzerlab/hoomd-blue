@@ -37,7 +37,7 @@ from the ``conda-forge`` channel::
 
 Install the v3.0.0-beta release with::
 
-    $ conda install -c conda-forge/label/hoomd_dev hoomd
+    $ conda install -c conda-forge/label/hoomd_dev -c conda-forge hoomd
 
 A build of HOOMD with support for NVIDIA GPUs is also available from the
 ``conda-forge`` channel::
