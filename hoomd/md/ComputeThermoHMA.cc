@@ -212,6 +212,8 @@ void export_ComputeThermoHMA(py::module& m)
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double,const std::string& >())
     .def("setLoggingEnabled", &ComputeThermoHMA::setLoggingEnabled)
+    .def_property("temperature", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
+    .def_property("harmonic_pressure", &ComputeThermoHMA::getHarmonicPressure, &ComputeThermoHMA::setHarmonicPressure)
     .def_property_readonly("potential_energyHMA", &ComputeThermoHMA::getPotentialEnergyHMA)
     .def_property_readonly("pressureHMA", &ComputeThermoHMA::getPressureHMA)
     ;

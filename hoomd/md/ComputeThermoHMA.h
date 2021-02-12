@@ -103,6 +103,34 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
             return m_properties;
             }
 
+        /*! Set the temperature
+            \param temperature Temperature to set
+        */
+        void setTemperature(Scalar temperature)
+        {
+        m_temperature = temperature;
+        }
+
+        //! Get the temperature
+        Scalar getTemperature()
+        {
+        return m_temperature;
+        }
+
+        /*! Set the harmonic pressure
+            \param harmonicPressure Harmonic pressure to set
+        */
+        void setHarmonicPressure(Scalar harmonicPressure)
+        {
+        m_harmonicPressure = harmonicPressure;
+        }
+
+        //! Get the harmonic pressure
+        Scalar getHarmonicPressure()
+        {
+        return m_harmonicPressure;
+        }
+
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
 
