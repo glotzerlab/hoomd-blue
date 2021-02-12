@@ -92,8 +92,8 @@ class ComputeFreeVolume : public Compute
         //! Analyze the current configuration
         virtual void compute(unsigned int timestep);
 
-        //! Analyze the current configuration
-        virtual Scalar getFreeVolume(unsigned int timestep);
+        //! Return an estimate of the overlap volume
+        virtual Scalar getFreeVolume();
 
     protected:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
@@ -320,15 +320,10 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
     throw std::runtime_error("Undefined log quantity");
     }
 
-/*! \param timestep Current time step of the simulation
-    \return the free volume.
-*/
+// \return the free volume.
 template<class Shape>
-Scalar ComputeFreeVolume<Shape>::getFreeVolume(unsigned int timestep)
+Scalar ComputeFreeVolume<Shape>::getFreeVolume()
     {
-    // perform MC integration
-    compute(timestep);
-
     // access counters
     ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::read);
 
@@ -363,7 +358,7 @@ template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, cons
                 std::string >())
         .def_property("num_samples", &ComputeFreeVolume<Shape>::getNumSamples, &ComputeFreeVolume<Shape>::setNumSamples)
         .def_property("test_particle_type", &ComputeFreeVolume<Shape>::getTestParticleType, &ComputeFreeVolume<Shape>::setTestParticleType)
-        .def("getFreeVolume", &ComputeFreeVolume<Shape>::getFreeVolume)
+        .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume)
         ;
     }
 
