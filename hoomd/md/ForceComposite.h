@@ -73,7 +73,52 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
          */
         virtual void validateRigidBodies(bool create=false);
 
-    protected:
+        //! Set body parameters from python
+        void setBody(std::string typ, pybind11::object v);
+        
+        /// Construct from a Python dictionary
+        setBody(std::string typ, pybind11::object v)
+            {   
+            pybind11::list types = v["types"];
+            pybind11::list positions = v["positions"];
+            N = (unsigned int)len(positions);
+
+            // extract the positions from the python list
+            std::vector<vec3<OverlapReal>> pos_vector;
+            for (unsigned int i = 0; i < N; i++)
+                {   
+                pybind11::list pos_i = positions[i];
+                if (len(pos_i) != 3)
+                    throw std::runtime_error("Each position must have 3 coordinates");
+                vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(pos_i[0]),
+                                                          pybind11::cast<OverlapReal>(pos_i[1]),
+                                                          pybind11::cast<OverlapReal>(pos_i[2]));
+                pos_vector.push_back(pos);
+                }   
+
+            }   
+
+        /// Convert parameters to a python dictionary
+        pybind11::dict asDict()
+            {
+            pybind11::dict v;
+            pybind11::list types;
+            pybind11::list positions;
+            for(unsigned int i = 0; i < N; i++)
+                {
+                pybind11::list pos;
+                pos.append(x[i]);
+                pos.append(y[i]);
+                pos.append(z[i]);
+                pybind11::tuple pos_tuple = pybind11::tuple(pos);
+                positions.append(pos_tuple);
+                }
+            v["types"] = types;
+            v["positions"] = positions;
+            return v;
+            }
+
+    protected
         bool m_bodies_changed;          //!< True if constituent particles have changed
         bool m_ptls_added_removed;      //!< True if particles have been added or removed
 
