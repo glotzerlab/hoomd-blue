@@ -290,15 +290,19 @@ class ThermoHMA(Compute):
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
         temperature (float): Temperature
-        harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
-            computed, but will be similar in precision to the conventional pressure.
+        harmonicPressure (float): Harmonic contribution to the pressure.
+            If ommitted, the HMA pressure can still be computed, but will be
+            similar in precision to the conventional pressure.
 
-    :py:class:`thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
-    averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
-    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vacancy hopping, etc.) will prevent
-    HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
-    :py:class:`thermoHMA` is instantiated. :py:class:`ThermodynamicQuantities` objects can be added to a
-    logger for logging during a simulation, see :py:class:`hoomd.logging.Logger` for more details.
+    :py:class:`ThermoHMA` acts on a given group of particles and calculates HMA
+    (harmonically mapped averaging) properties of those particles when
+    requested. HMA computes properties more precisely (with less variance) for
+    atomic crystals in NVT simulations.  The presence of diffusion (vacancy
+    hopping, etc.) will prevent HMA from providing improvement.  HMA tracks
+    displacements from the lattice positions, which are saved when the
+    :py:class:`ThermoHMA` is instantiated. :py:class:`ThermoHMA` objects can be
+    added to a logger for logging during a simulation, see
+    :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
 
