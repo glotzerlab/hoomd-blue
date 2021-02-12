@@ -431,7 +431,7 @@ class rigid(ConstraintForce):
 
         if type_name not in type_list:
             hoomd.context.current.device.cpp_msg.error(
-                "Type " "{}" " not found.\n".format(type_name)
+                "Type '{}' not found.\n".format(type_name)
             )
             raise RuntimeError(
                 "Error setting up parameters for constrain.rigid()"
@@ -451,7 +451,7 @@ class rigid(ConstraintForce):
         for t in types:
             if t not in type_list:
                 hoomd.context.current.device.cpp_msg.error(
-                    "Type " "{}" " not found.\n".format(t)
+                    "Type '{}' not found.\n".format(t)
                 )
                 raise RuntimeError(
                     "Error setting up parameters for constrain.rigid()"
