@@ -287,36 +287,22 @@ class ThermoHMA(Compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
     Args:
-        group (``hoomd.group``): Group to compute thermodynamic properties for.
+        filter (``hoomd.filter``): Particle filter to compute thermodynamic
+            properties for.
         temperature (float): Temperature
         harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
             computed, but will be similar in precision to the conventional pressure.
 
     :py:class:`thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
     averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
-    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vanacy hopping, etc.) will prevent
+    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vacancy hopping, etc.) will prevent
     HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
-    :py:class:`thermoHMA` is instantiated.
-
-    The specified properties are available for logging via the ``hoomd.analyze.log`` command. Each one provides
-    a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
-    in the log file. The default :py:class:`thermoHMA` specified on the group of all particles has no suffix
-    placed on its quantity names.
-
-    The quantities provided are (where **groupname** is replaced with the name of the group):
-
-    * **potential_energyHMA_groupname** - :math:`U` HMA potential energy that the group contributes to the entire
-      system (in energy units)
-    * **pressureHMA_groupname** - :math:`P` HMA pressure that the group contributes to the entire
-      system (in pressure units)
-
-    See Also:
-        ``hoomd.analyze.log``.
+    :py:class:`thermoHMA` is instantiated. :py:class:`ThermodynamicQuantities` objects can be added to a
+    logger for logging during a simulation, see :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
 
-        g = group.all()
-        compute.thermoHMA(group=g, temperature=1.0)
+        hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), temperature=1.0)
     """
 
     def __init__(self, filter, temperature, harmonicPressure=0):
