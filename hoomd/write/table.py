@@ -7,7 +7,7 @@ from hoomd.write.custom_writer import _InternalCustomWriter
 from hoomd.custom.custom_action import _InternalAction
 from hoomd.logging import LoggerCategories, Logger
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyType
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.util import dict_flatten
 
 
@@ -162,11 +162,11 @@ class _TableInternal(_InternalAction):
         param_dict = ParameterDict(header_sep=str,
                                    delimiter=str,
                                    min_column_width=int,
-                                   max_header_len=OnlyType(int,
+                                   max_header_len=OnlyTypes(int,
                                                            allow_none=True),
                                    pretty=bool,
                                    max_precision=int,
-                                   output=OnlyType(_OutputWriter,
+                                   output=OnlyTypes(_OutputWriter,
                                                    postprocess=writable),
                                    logger=Logger)
 

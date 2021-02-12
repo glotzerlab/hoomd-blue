@@ -773,7 +773,7 @@ class QuickCompress(Updater):
             seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
-            target_box=hoomd.data.typeconverter.OnlyType(
+            target_box=hoomd.data.typeconverter.OnlyTypes(
                 hoomd.Box,
                 preprocess=hoomd.data.typeconverter.box_preprocessing))
         param_dict['seed'] = seed
