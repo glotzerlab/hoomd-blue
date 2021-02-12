@@ -305,30 +305,31 @@ class ThermoHMA(Compute):
         hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), temperature=1.0)
     """
 
-    def __init__(self, filter, temperature, harmonicPressure=0):
+    def __init__(self, filter, temperature, harmonic_pressure=0):
 
         # store metadata
         param_dict = ParameterDict(
             temperature=float(temperature),
-            harmonicPressure=float(harmonicPressure),
+            harmonic_pressure=float(harmonic_pressure)
         )
         # set defaults
         self._param_dict.update(param_dict)
 
+        self._filter = filter
         # initialize base class
-        super().__init__(filter)
+        super().__init__()
 
-     def _attach(self):
+    def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            thermoHMA_cls = _hoomd.ComputeThermoHMA
+            thermoHMA_cls = _md.ComputeThermoHMA
         else:
-            thermoHMA_cls = _hoomd.ComputeThermoHMAGPU
+            thermoHMA_cls = _md.ComputeThermoHMAGPU
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def,
-                                   group,
-                                   self.temperature,
-                                   self.harmonicPressure,
-                                   "")
+        self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
+                                      group,
+                                      self.temperature,
+                                      self.harmonic_pressure,
+                                      "")
         super()._attach()
 
     @log
