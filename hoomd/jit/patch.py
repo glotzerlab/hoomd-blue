@@ -51,6 +51,39 @@ class PatchCompute(Compute):
         else:
             return None
 
+    @property
+    def code(self):
+        return self._code
+
+    @code.setter
+    def code(self, code):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._code = code
+
+    @property
+    def llvm_ir_file(self):
+        return self._llvm_ir_file
+
+    @llvm_ir_file.setter
+    def llvm_ir_file(self, llvm_ir):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._llvm_ir_file = llvm_ir
+
+    @property
+    def clang_exec(self):
+        return self._clang_exec
+
+    @clang_exec.setter
+    def clang_exec(self, clang):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._clang_exec = clang
+
     def _setup_gpu_code_path(self):
         include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
         include_path_source = hoomd.version.source_dir
@@ -506,3 +539,25 @@ class UserUnionPatch(PatchCompute):
         # attach patch object to the integrator
         self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
+
+    @property
+    def code_union(self):
+        return self._code_union
+
+    @code_union.setter
+    def code_union(self, code):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._code_union = code_union
+
+    @property
+    def llvm_ir_file_union(self):
+        return self._llvm_ir_file
+
+    @llvm_ir_file_union.setter
+    def llvm_ir_file_union(self, llvm_ir):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._llvm_ir_file_union = llvm_ir
