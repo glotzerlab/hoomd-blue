@@ -23,6 +23,51 @@ class PatchCompute(Compute):
         This class should not be instantiated by users. The class can be used
         for `isinstance` or `issubclass` checks.
     """
+
+    def __init__(self, r_cut, array_size=1, log_only=False,
+                 code=None, llvm_ir_file=None, clang_exec=None):
+        param_dict = ParameterDict(r_cut = r_cut,
+                                   array_size = array_size,
+                                   log_only = log_only)
+        self._param_dict.update(param_dict)
+        # these only exist on python
+        self._code = code
+        self._llvm_ir_file = llvm_ir_file
+        self._clang_exec = clang_exec
+        self.alpha_iso = np.zeros(array_size)
+
+    def _attach(self):
+        super()._attach()
+
+    @log
+    def energy(self):
+        """float: Total interaction energy of the system in the current state.
+                  Returns `None` when the patch object and integrator are not attached.
+        """
+        integrator = self._simulation.operations.integrator
+        if self._attached and integrator._attached:
+            timestep = self._simulation.timestep
+            return integrator._cpp_obj.computePatchEnergy(timestep)
+        else:
+            return None
+
+    def _setup_gpu_code_path(self):
+        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_source = hoomd.version.source_dir
+        include_path_cuda = _jit.__cuda_include_path__
+        self._options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+        self._cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
+
+        # select maximum supported compute capability out of those we compile for
+        self._compute_archs = _jit.__cuda_compute_archs__;
+        compute_archs_vec = _hoomd.std_vector_uint()
+        compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
+        compute_major, compute_minor = compute_capability.split('.')
+        self._max_arch = 0
+        for a in self._compute_archs.split('_'):
+            if int(a) < int(compute_major)*10+int(compute_major):
+                self._max_arch = int(a)
+
     def _compile_user(self, code, clang_exec, fn=None):
         R'''Helper function to compile the provided code into an executable
 
@@ -247,15 +292,8 @@ class UserPatch(PatchCompute):
     '''
     def __init__(self, r_cut, array_size=1, log_only=False,
                  code=None, llvm_ir_file=None, clang_exec=None):
-        param_dict = ParameterDict(r_cut = r_cut,
-                                   array_size = array_size,
-                                   log_only = log_only)
-        self._param_dict.update(param_dict)
-        # these only exist on python
-        self._code = code
-        self._llvm_ir_file = llvm_ir_file
-        self._clang_exec = clang_exec
-        self.alpha_iso = np.zeros(array_size)
+        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
+                         code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -266,58 +304,34 @@ class UserPatch(PatchCompute):
             raise RuntimeError("Integrator is not attached yet.")
 
         clang = self._clang_exec if self._clang_exec is not None else 'clang'
+        # compile code if provided
         if self._code is not None:
-            _llvm_ir = self._compile_user(self._code, clang)
-        else:
+            llvm_ir = self._compile_user(self._code, clang)
+        # fall back to LLVM IR file in case code is not provided
+        elif self._llvm_ir_file is None:
             # IR is a text file
             with open(self._llvm_ir_file,'r') as f:
-                _llvm_ir = f.read()
+                llvm_ir = f.read()
+        else:
+            raise RuntimeError("")
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
-            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
-            include_path_source = hoomd.version.source_dir
-            include_path_cuda = _jit.__cuda_include_path__
-            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
-            cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
-
-            # select maximum supported compute capability out of those we compile for
-            compute_archs = _jit.__cuda_compute_archs__;
-            compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
-            compute_major, compute_minor = compute_capability.split('.')
-            max_arch = 0
-            for a in compute_archs.split('_'):
-                if int(a) < int(compute_major)*10+int(compute_major):
-                    max_arch = int(a)
-
-            gpu_code = self._wrap_gpu_code(code)
-            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, _llvm_ir, self.r_cut, self.array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+            self._setup_gpu_code_path()
+            gpu_code = self._wrap_gpu_code(self._code)
+            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, llvm_ir, self.r_cut, self.array_size,
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options, self._cuda_devrt_library_path, self._max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, _llvm_ir, self.r_cut, self.array_size)
-
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, llvm_ir, self.r_cut, self.array_size)
         # Set the C++ mirror array with the cached values
         # and override the python array
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
         # attach patch object to the integrator
-        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
-    @log
-    def energy(self):
-        """float: Total interaction energy of the system in the current state.
-                  Returns `None` when the patch object and integrator are not attached.
-        """
-        integrator = self._simulation.operations.integrator
-        if self._attached and integrator._attached:
-            timestep = self._simulation.timestep
-            return integrator._cpp_obj.computePatchEnergy(timestep)
-        else:
-            return None
-
-class UserUnionPatch(UserPatch):
+class UserUnionPatch(PatchCompute):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
@@ -399,11 +413,13 @@ class UserUnionPatch(UserPatch):
         # initialize base class
         super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
 
+        # add union specific params
         param_dict = ParameterDict(r_cut_union = r_cut_union,
                                    array_size_union = array_size_union,
                                    leaf_capacity = int(4))
         self._param_dict.update(param_dict)
 
+        # add union specific per-type parameters
         typeparam_positions = TypeParameter('positions',
                                             type_kind='particle_types',
                                             param_dict=TypeParameterDict([],
@@ -446,50 +462,37 @@ class UserUnionPatch(UserPatch):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
+        clang = self._clang_exec if self._clang_exec is not None else 'clang'
+        # compile code if provided
         if self._code_union is not None:
-            llvm_ir_union = self._compile_user(self._code_union, self._clang_exec)
-        else:
+            llvm_ir_union = self._compile_user(self._code_union, clang)
+        # fall back to LLVM IR file in case code is not provided
+        elif self._llvm_ir_file_union is None:
             # IR is a text file
             with open(self._llvm_ir_file_union,'r') as f:
                 llvm_ir_union = f.read()
+        else:
+            raise RuntimeError("")
 
         if self._code is not None:
-            llvm_ir = self._compile_user(self._code, self._clang_exec)
+            llvm_ir = self._compile_user(self._code, clang)
+        elif self._llvm_ir_file is not None:
+            # IR is a text file
+            with open(self._llvm_ir_file,'r') as f:
+                llvm_ir = f.read()
         else:
-            if self._llvm_ir_file is not None:
-                # IR is a text file
-                with open(self._llvm_ir_file,'r') as f:
-                    llvm_ir = f.read()
-            else:
-                # provide a dummy function
-                llvm_ir = self._compile_user('return 0.0;', self._clang_exec)
+            # provide a dummy function
+            llvm_ir = self._compile_user('return 0.0;', clang)
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
-            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
-            include_path_source = hoomd.version.source_dir
-            include_path_cuda = _jit.__cuda_include_path__
-            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
-
+            self._setup_gpu_code_path()
             # use union evaluator
-            options += ["-DUNION_EVAL"]
-
-            cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
-
-            # select maximum supported compute capability out of those we compile for
-            compute_archs = _jit.__cuda_compute_archs__;
-            compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability =  cpp_exec_conf.getComputeCapability(0) # GPU 0
-            compute_major, compute_minor = compute_capability.split('.')
-            max_arch = 0
-            for a in compute_archs.split('_'):
-                if int(a) < int(compute_major)*10+int(compute_major):
-                    max_arch = int(a)
-
-            gpu_code = self._wrap_gpu_code(code)
+            self._options += ["-DUNION_EVAL"]
+            gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(self._simulation.state._cpp_sys_def, cpp_exec_conf,
                 llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options, self._cuda_devrt_library_path, self._max_arch);
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(self._simulation.state._cpp_sys_def, cpp_exec_conf,
                 llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union)
@@ -501,4 +504,5 @@ class UserUnionPatch(UserPatch):
         self.alpha_iso = self._cpp_obj.alpha_iso
         self.alpha_union = self._cpp_obj.alpha_union
         # attach patch object to the integrator
-        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        super()._attach()

@@ -70,7 +70,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                           unsigned int leaf_capacity);
 
         //! Set per-type typeid of constituent particles
-        virtual void setTypeID(std::string type, pybind11::list typeids)
+        virtual void setTypeids(std::string type, pybind11::list typeids)
             {
             unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
             unsigned int N = (unsigned int) pybind11::len(typeids);
@@ -82,7 +82,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             }
 
         //! Get per-type typeid of constituent particles as a python list
-        virtual pybind11::list getTypeID(std::string type)
+        virtual pybind11::list getTypeids(std::string type)
             {
             unsigned int pid = m_sysdef->getParticleData()->getTypeByName(type);
             pybind11::list ret;
