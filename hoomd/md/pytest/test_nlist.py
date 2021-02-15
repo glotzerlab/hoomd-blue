@@ -1,7 +1,22 @@
+import copy as cp
+import hoomd
 import numpy as np
 import pytest
 import random
 from hoomd.md.nlist import Cell, Stencil, Tree
+
+
+def _nlist_params():
+    """ Each entry in the lsit is a tuple (class_obj, dict(required_args)). """
+    nlists = []
+    nlists.append((Cell, {}))
+    nlists.append((Tree, {}))
+    nlists.append((Stencil, dict(cell_width=0.5)))
+    return nlists
+
+@pytest.fixture(scope="function", params=_nlist_params(), ids=(lambda x: x[0].__name__))
+def nlist_params(request):
+    return cp.deepcopy(request.param)
 
 
 def _assert_nlist_params(nlist, param_dict):
@@ -10,9 +25,9 @@ def _assert_nlist_params(nlist, param_dict):
         assert getattr(nlist, param) == param_dict[param]
 
 
-@pytest.mark.parametrize("nlist_cls", [Cell, Tree, Stencil])
-def test_common_params(nlist_cls):
-    nlist = nlist_cls()
+def test_common_params(nlist_params):
+    nlist_cls, required_args = nlist_params
+    nlist = nlist_cls(**required_args)
     default_params_dict = {
         "buffer": 0.4,
         "exclusions": ('bond',),
@@ -45,14 +60,28 @@ def test_cell_specific_params():
 
 
 def test_stencil_specific_params():
-    nlist = Stencil()
-    _assert_nlist_params(nlist, dict(deterministic=False, cell_width=None))
+    cell_width = np.random.uniform(12.1)
+    nlist = Stencil(cell_width)
+    _assert_nlist_params(nlist, dict(deterministic=False, cell_width=cell_width))
     nlist.deterministic = True
     x = np.random.uniform(25.5)
     nlist.cell_width = x
     _assert_nlist_params(nlist, dict(deterministic=True, cell_width=x))
 
 
-@pytest.mark.parametrize("nlist_cls", [Cell, Tree, Stencil])
-def test_simple_simulation(nlist_cls, device, lattice_snapshot_factory):
-    pass
+def test_simple_simulation(nlist_params, simulation_factory, lattice_snapshot_factory):
+    nlist_cls, required_args = nlist_params
+    nlist = nlist_cls(**required_args)
+    lj = hoomd.md.pair.LJ(nlist,  r_cut=1.1)
+    lj.params[('A', 'A')] = dict(epsilon=1, sigma=1)
+    lj.params[('A', 'B')] = dict(epsilon=1, sigma=1)
+    lj.params[('B', 'B')] = dict(epsilon=1, sigma=1)
+    integrator = hoomd.md.Integrator(0.005)
+    integrator.forces.append(lj)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1,
+                                                        seed=1))
+
+    sim = simulation_factory(lattice_snapshot_factory())
+    sim.operations.integrator = integrator
+    sim.run(2)

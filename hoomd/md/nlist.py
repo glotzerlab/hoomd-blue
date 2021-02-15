@@ -243,16 +243,15 @@ class Stencil(NList):
         shifting, and setting *d_max* for other potentials may lead to
         significantly degraded performance or incorrect results.
     """
-    def __init__(self, buffer=0.4, check_dist=True, deterministic=False,
+    def __init__(self, cell_width, buffer=0.4, check_dist=True, deterministic=False,
                  diameter_shift=False, exclusions=('bond',), max_diameter=1.0,
-                 rebuild_check_delay=1, cell_width=None):
+                 rebuild_check_delay=1):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
                          diameter_shift, check_dist, max_diameter)
 
         params = ParameterDict(deterministic=bool(deterministic),
-                               cell_width=float,
-                               _defaults=dict(cell_width=cell_width))
+                               cell_width=float(cell_width))
 
         self._param_dict.update(params)
 
@@ -263,8 +262,9 @@ class Stencil(NList):
         else:
             cl_cls = _hoomd.CellListGPU
             nlist_cls = _md.NeighborListGPUStencil
-        self._cpp_stencil = _hoomd.CellListStencil()
         self._cpp_cell = cl_cls(self._simulation.state._cpp_sys_def)
+        self._cpp_stencil = _hoomd.CellListStencil(self._simulation.state._cpp_sys_def,
+                                                   self._cpp_cell)
         # TODO remove 0.0 r_cut from constructor
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
                                   self.buffer, self._cpp_cell, self._cpp_stencil)
@@ -326,7 +326,7 @@ class Tree(NList):
                          check_dist, max_diameter)
 
     def _attach(self):
-        if isinstance(self._simulatino.device, hoomd.device.CPU):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             nlist_cls = _md.NeighborListTree
         else:
             nlist_cls = _md.NeighborListGPUTree
