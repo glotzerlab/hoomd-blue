@@ -1,5 +1,6 @@
 from itertools import product, combinations_with_replacement
-from copy import copy, deepcopy
+from copy import copy
+
 from hoomd.util import to_camel_case, is_iterable
 from hoomd.data.typeconverter import (
     to_type_converter, TypeConversionError, RequiredArg)
