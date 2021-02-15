@@ -289,7 +289,8 @@ class ThermoHMA(Compute):
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
-        temperature (float): Temperature
+        temperature (float): Temperature of the integrator methods applied
+            to the particle group.
         harmonic_pressure (float): Harmonic contribution to the pressure.
             If ommitted, the HMA pressure can still be computed, but will be
             similar in precision to the conventional pressure.
