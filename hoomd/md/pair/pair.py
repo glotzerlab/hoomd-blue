@@ -10,12 +10,12 @@ from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyType, positive_real, nonnegative_real)
+    OnlyFrom, OnlyTypes, positive_real, nonnegative_real)
 
 import math
 
 
-validate_nlist = OnlyType(NList)
+validate_nlist = OnlyTypes(NList)
 
 
 class Pair(force.Force):
