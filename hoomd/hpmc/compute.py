@@ -46,8 +46,7 @@ class FreeVolume(Compute):
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
             seed=int,
-            test_particle_type=Either([to_type_converter(str),
-                                      to_type_converter(int)]),
+            test_particle_type=OnlyTypes((str, int)),
             num_samples=int
         )
         param_dict.update(
