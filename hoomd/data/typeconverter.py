@@ -1,7 +1,7 @@
 from numpy import array, ndarray
 from itertools import repeat, cycle
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from inspect import isclass
 from hoomd.util import is_iterable
 from hoomd.variant import Variant, Constant
@@ -433,7 +433,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         yield from self.converter
 
 
-class TypeConverterMapping(TypeConverter):
+class TypeConverterMapping(TypeConverter, MutableMapping):
     """Validation for a mapping of string keys to any type values.
 
     Uses `to_type_converter` for construction the validation. For each value in
@@ -482,8 +482,8 @@ class TypeConverterMapping(TypeConverter):
                                       "".format(str(key), str(err)))
         return new_mapping
 
-    def keys(self):
-        yield from self.converter.keys()
+    def __iter__(self):
+        yield from self.converter
 
     def __getitem__(self, key):
         return self.converter[key]
@@ -491,8 +491,11 @@ class TypeConverterMapping(TypeConverter):
     def __setitem__(self, key, value):
         self.converter[key] = value
 
-    def __contains__(self, value):
-        return value in self.converter
+    def __delitem__(self, key):
+        del self.converter[key]
+
+    def __len__(self):
+        return len(self.converter)
 
 
 def to_type_converter(value):
