@@ -16,6 +16,26 @@ positions_orientations_result = [
                                  ([(0,0,0),(0,0,1)], [(1,0,0,0),(0,0,1,0)], -1/2),
 ]
 
+valid_constructor_args = [
+    dict(r_cut = 3,
+         array_size=2,
+         log_only=True,
+         code='return -1;',
+         llvm_ir_file="code.ll",
+         clang_exec='/usr/bin/clang'),
+    dict(r_cut = 2,
+         array_size=4,
+         log_only=False,
+         code='return -1;'),
+]
+
+valid_attrs = [('r_cut', 2),
+               ('array_size', 2),
+               ('code', 'return -1;'),
+               ('llvm_ir_file', 'code.ll'),
+               ('clang_exec', 'clang')
+]
+
 # interaction between point dipoles
 dipole_dipole = """ float rsq = dot(r_ij, r_ij);
                     float r_cut = {0};
@@ -56,6 +76,95 @@ lennard_jones =  """
                      return 0.0f;
                      }}
                  """
+
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_valid_construction(constructor_args):
+    """"""
+    patch = jit.patch.UserPatch(**constructor_args)
+
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert getattr(patch, attr) == value
+
+@pytest.mark.parametrize("constructor_args", valid_constructor_args)
+def test_valid_construction_and_attach(simulation_factory,
+                                       two_particle_snapshot_factory,
+                                       constructor_args):
+    """"""
+    # create objects
+    patch = jit.patch.UserPatch(**constructor_args)
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert getattr(patch, attr) == value
+
+
+@pytest.mark.parametrize("attr,value", valid_attrs)
+def test_valid_setattr(attr, value):
+    """"""
+    patch = jit.patch.UserPatch(r_cut=2)
+
+    setattr(patch, attr, value)
+    assert getattr(patch, attr) == value
+
+
+@pytest.mark.parametrize("attr,value", valid_attrs)
+def test_valid_setattr_attached(attr, value, simulation_factory,
+                                two_particle_snapshot_factory):
+    """"""
+
+    patch = jit.patch.UserPatch(r_cut=2)
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # validate the params were set properly
+    setattr(patch, attr, value)
+    assert getattr(patch, attr) == value
+
+    # integrator = valid_args[0]
+    # args = valid_args[1]
+    # # Need to unpack union integrators
+    # if isinstance(integrator, tuple):
+    #     inner_integrator = integrator[0]
+    #     integrator = integrator[1]
+    #     inner_mc = inner_integrator(23456)
+    #     for i in range(len(args["shapes"])):
+    #         # This will fill in default values for the inner shape objects
+    #         inner_mc.shape["A"] = args["shapes"][i]
+    #         args["shapes"][i] = inner_mc.shape["A"]
+    # mc = integrator(23456)
+    # mc.shape["A"] = args
+    #
+    # patch = jit.patch.UserPatch(r_cut=2)
+    #
+    # dim = 2 if 'polygon' in integrator.__name__.lower() else 3
+    # sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
+    #                                                        dimensions=dim, d=2, L=50))
+    # sim.operations.integrator = mc
+    # sim.operations += patch
+    # sim.run(0)
+    #
+    # setattr(patch, attr, value)
+    # assert getattr(patch, attr) == value
+
 
 @pytest.mark.parametrize("positions,orientations,result",
                           positions_orientations_result)
