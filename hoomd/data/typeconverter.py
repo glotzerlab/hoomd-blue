@@ -75,6 +75,10 @@ def nonnegative_real(number):
     return float_number
 
 
+def identity(value):
+    return value
+
+
 class _HelpValidate(ABC):
     """Base class for classes that perform validation on an inputed value.
 
@@ -84,9 +88,6 @@ class _HelpValidate(ABC):
     validated/transformed value.
     """
     def __init__(self, preprocess=None, postprocess=None, allow_none=False):
-        def identity(value):
-            return value
-
         self._preprocess = identity if preprocess is None else preprocess
         self._postprocess = identity if postprocess is None else postprocess
         self._allow_none = allow_none
