@@ -30,3 +30,17 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
     assert len(sim.operations.computes) == 0
     assert thermoHMA.potential_energy is None
     assert thermoHMA.pressure is None
+
+def test_logging(simulation_factory, two_particle_snapshot_factory):
+    filt = hoomd.filter.All()
+    thermoHMA = hoomd.md.compute.ThermoHMA(filt, 1.0)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.add(thermoHMA)
+
+    log = hoomd.logging.Logger()
+    log += thermoHMA
+    for _ in range(5):
+        sim.run(5)
+        for key, (val, _) in log.log()['md']['compute']['ThermoHMA']['state']['__params__'].items():
+            assert val == getattr(thermoHMA, key)
