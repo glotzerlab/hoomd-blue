@@ -82,13 +82,13 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             int N = (unsigned int)len(positions);
 
             // extract the positions from the python list
-            std::vector<vec3<OverlapReal>> pos_vector;
+            std::vector<vec3<Scalar>> pos_vector;
             for (unsigned int i = 0; i < N; i++)
                 {   
                 pybind11::list pos_i = positions[i];
                 if (len(pos_i) != 3)
                     throw std::runtime_error("Each position must have 3 coordinates");
-                vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(pos_i[0]),
+                vec3<OverlapReal> pos = vec3<Scalar>(pybind11::cast<Scalar>(pos_i[0]),
                                                           pybind11::cast<OverlapReal>(pos_i[1]),
                                                           pybind11::cast<OverlapReal>(pos_i[2]));
                 pos_vector.push_back(pos);
@@ -97,7 +97,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             }   
 
         /// Convert parameters to a python dictionary
-        pybind11::dict asDict()
+        pybind11::dict getBody(std::string typ)
             {
             pybind11::dict v;
             pybind11::list types;
