@@ -24,8 +24,8 @@ class PatchCompute(Compute):
         for `isinstance` or `issubclass` checks.
     """
 
-    def __init__(self, r_cut, code, array_size=1, log_only=False,
-                 clang_exec='clang', llvm_ir_file=None):
+    def __init__(self, r_cut, array_size=1, log_only=False,
+                 clang_exec='clang', code=None, llvm_ir_file=None):
         param_dict = ParameterDict(r_cut = r_cut,
                                    log_only = log_only)
         self._param_dict.update(param_dict)
@@ -39,17 +39,6 @@ class PatchCompute(Compute):
     def _attach(self):
         super()._attach()
 
-    @property
-    def array_size(self):
-        return self._array_size
-
-    @array_size.setter
-    def array_size(self, size):
-        if self._attached():
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
-        else:
-            self._array_size = size
-
     @log
     def energy(self):
         """float: Total interaction energy of the system in the current state.
@@ -61,6 +50,17 @@ class PatchCompute(Compute):
             return integrator._cpp_obj.computePatchEnergy(timestep)
         else:
             return None
+
+    @property
+    def array_size(self):
+        return self._array_size
+
+    @array_size.setter
+    def array_size(self, size):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._array_size = size
 
     @property
     def code(self):
@@ -330,9 +330,9 @@ class UserPatch(PatchCompute):
     .. versionadded:: 2.3
     '''
     def __init__(self, r_cut, array_size=1, log_only=False,
-                 code=None, llvm_ir_file=None, clang_exec=None):
-        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
-                         code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
+                 clang_exec='clang', code=None, llvm_ir_file=None):
+        super().__init__(r_cut=r_cut, , array_size=array_size, log_only=log_only,
+                         clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -443,17 +443,15 @@ class UserUnionPatch(PatchCompute):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, r_cut_union, array_size_union=1, code_union=None, llvm_ir_file_union=None,
-                 r_cut=None, array_size=1, log_only=False, code=None, llvm_ir_file=None, clang_exec=None):
-
-        r_cut = r_cut if r_cut is not None else -1.0
+    def __init__(self, r_cut_union, array_size_union=1, clang_exec='clang',
+                 code_union=None, llvm_ir_file_union=None, r_cut=-1, array_size=1,
+                 log_only=False, code=None, llvm_ir_file=None ):
 
         # initialize base class
         super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union = r_cut_union,
-                                   array_size_union = array_size_union,
                                    leaf_capacity = int(4))
         self._param_dict.update(param_dict)
 
@@ -489,6 +487,7 @@ class UserUnionPatch(PatchCompute):
 
         # these only exist on python
         self._code_union = code_union
+        self._array_size_union = array_size_union
         self._llvm_ir_file_union = llvm_ir_file_union
         self.alpha_union = np.zeros(array_size_union)
 
@@ -512,14 +511,14 @@ class UserUnionPatch(PatchCompute):
             raise RuntimeError("")
 
         if self._code is not None:
-            llvm_ir = self._compile_user(self._code, clang)
+            llvm_ir = self._compile_user(self._code, self._clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
         else:
             # provide a dummy function
-            llvm_ir = self._compile_user('return 0.0;', clang)
+            llvm_ir = self._compile_user('return 0.0;', self._clang_exec)
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
@@ -565,3 +564,14 @@ class UserUnionPatch(PatchCompute):
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._llvm_ir_file_union = llvm_ir
+
+    @property
+    def array_size_union(self):
+        return self._array_size
+
+    @array_size_union.setter
+    def array_size_union(self, size):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._array_size_union = size
