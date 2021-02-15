@@ -9,12 +9,12 @@ from hoomd import jit
 import pytest
 import numpy as np
 
-positions_orientations_result = [
-                                 ([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
+positions_orientations_result = [([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
                                  ([(0,0,0),(1,0,0)], [(1,0,0,0),(0,0,1,0)], 1),
                                  ([(0,0,0),(0,0,1)], [(1,0,0,0),(1,0,0,0)], 1/2),
                                  ([(0,0,0),(0,0,1)], [(1,0,0,0),(0,0,1,0)], -1/2),
 ]
+
 
 valid_constructor_args = [
     dict(r_cut = 3,
@@ -29,6 +29,7 @@ valid_constructor_args = [
          code='return -1;'),
 ]
 
+
 valid_attrs = [('r_cut', 2),
                ('array_size', 2),
                ('code', 'return -1;'),
@@ -36,46 +37,6 @@ valid_attrs = [('r_cut', 2),
                ('clang_exec', 'clang')
 ]
 
-# interaction between point dipoles
-dipole_dipole = """ float rsq = dot(r_ij, r_ij);
-                    float r_cut = {0};
-                    if (rsq < r_cut*r_cut)
-                        {{
-                        float lambda = 1.0;
-                        float r = fast::sqrt(rsq);
-                        float r3inv = 1.0 / rsq / r;
-                        vec3<float> t = r_ij / r;
-                        vec3<float> pi_o(1,0,0);
-                        vec3<float> pj_o(1,0,0);
-                        rotmat3<float> Ai(q_i);
-                        rotmat3<float> Aj(q_j);
-                        vec3<float> pi = Ai * pi_o;
-                        vec3<float> pj = Aj * pj_o;
-                        float Udd = (lambda*r3inv/2)*( dot(pi,pj)
-                                     - 3 * dot(pi,t) * dot(pj,t));
-                        return Udd;
-                       }}
-                    else
-                        return 0.0f;
-                """
-
-lennard_jones =  """
-                 float rsq = dot(r_ij, r_ij);
-                 float rcut  = alpha_iso[0];
-                 if (rsq <= rcut*rcut)
-                     {{
-                     float sigma = alpha_iso[1];
-                     float eps   = alpha_iso[2];
-                     float sigmasq = sigma*sigma;
-                     float rsqinv = sigmasq / rsq;
-                     float r6inv = rsqinv*rsqinv*rsqinv;
-                     return 4.0f*eps*r6inv*(r6inv-1.0f);
-                     }}
-                 else
-                     {{
-                     return 0.0f;
-                     }}
-                 """
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(constructor_args):
@@ -139,38 +100,35 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     setattr(patch, attr, value)
     assert getattr(patch, attr) == value
 
-    # integrator = valid_args[0]
-    # args = valid_args[1]
-    # # Need to unpack union integrators
-    # if isinstance(integrator, tuple):
-    #     inner_integrator = integrator[0]
-    #     integrator = integrator[1]
-    #     inner_mc = inner_integrator(23456)
-    #     for i in range(len(args["shapes"])):
-    #         # This will fill in default values for the inner shape objects
-    #         inner_mc.shape["A"] = args["shapes"][i]
-    #         args["shapes"][i] = inner_mc.shape["A"]
-    # mc = integrator(23456)
-    # mc.shape["A"] = args
-    #
-    # patch = jit.patch.UserPatch(r_cut=2)
-    #
-    # dim = 2 if 'polygon' in integrator.__name__.lower() else 3
-    # sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
-    #                                                        dimensions=dim, d=2, L=50))
-    # sim.operations.integrator = mc
-    # sim.operations += patch
-    # sim.run(0)
-    #
-    # setattr(patch, attr, value)
-    # assert getattr(patch, attr) == value
-
 
 @pytest.mark.parametrize("positions,orientations,result",
                           positions_orientations_result)
 def test_user_patch(positions,orientations,result,
                     simulation_factory, two_particle_snapshot_factory):
     """"""
+
+    # interaction between point dipoles
+    dipole_dipole = """ float rsq = dot(r_ij, r_ij);
+                        float r_cut = {0};
+                        if (rsq < r_cut*r_cut)
+                            {{
+                            float lambda = 1.0;
+                            float r = fast::sqrt(rsq);
+                            float r3inv = 1.0 / rsq / r;
+                            vec3<float> t = r_ij / r;
+                            vec3<float> pi_o(1,0,0);
+                            vec3<float> pj_o(1,0,0);
+                            rotmat3<float> Ai(q_i);
+                            rotmat3<float> Aj(q_j);
+                            vec3<float> pi = Ai * pi_o;
+                            vec3<float> pj = Aj * pj_o;
+                            float Udd = (lambda*r3inv/2)*( dot(pi,pj)
+                                         - 3 * dot(pi,t) * dot(pj,t));
+                            return Udd;
+                           }}
+                        else
+                            return 0.0f;
+                    """
 
     sim = simulation_factory(two_particle_snapshot_factory())
 
@@ -194,6 +152,24 @@ def test_user_patch(positions,orientations,result,
 @pytest.mark.parametrize("cls", [jit.patch.UserPatch, jit.patch.UserUnionPatch])
 def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     """"""
+
+    lennard_jones =  """
+                     float rsq = dot(r_ij, r_ij);
+                     float rcut  = alpha_iso[0];
+                     if (rsq <= rcut*rcut)
+                         {{
+                         float sigma = alpha_iso[1];
+                         float eps   = alpha_iso[2];
+                         float sigmasq = sigma*sigma;
+                         float rsqinv = sigmasq / rsq;
+                         float r6inv = rsqinv*rsqinv*rsqinv;
+                         return 4.0f*eps*r6inv*(r6inv-1.0f);
+                         }}
+                     else
+                         {{
+                         return 0.0f;
+                         }}
+                     """
 
     sim = simulation_factory(two_particle_snapshot_factory())
 
@@ -237,3 +213,27 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     patch.alpha_iso[0] = 0
     sim.run(0)
     assert np.isclose(patch.energy, 0.0)
+
+def test_alpha_union(cls, simulation_factory,two_particle_snapshot_factory):
+    """"""
+    sim = simulation_factory(two_particle_snapshot_factory())
+
+    patch = jit.patch.UserUnionPatch(r_cut_union=2)
+    patch.code_union = "return -1.0;"
+    patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
+    patch.orientations['A'] = [(1,0,0,0)]*2
+    patch.diameters['A'] = [1, 1]
+    patch.typeids['A'] = [0, 0]
+    mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
+    mc.shape['A'] = dict(diameter=0)
+
+    sim.operations.integrator = mc
+    sim.operations += patch
+    with sim.state.cpu_local_snapshot as data:
+        data.particles.position[0, :] = positions[0]
+        data.particles.position[1, :] = positions[1]
+        data.particles.orientation[0, :] = orientations[0]
+        data.particles.orientation[1, :] = orientations[1]
+    sim.run(0)
+
+    assert np.isclose(patch.energy, result)
