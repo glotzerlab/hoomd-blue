@@ -214,7 +214,7 @@ void export_ComputeThermoHMA(py::module& m)
     .def("setLoggingEnabled", &ComputeThermoHMA::setLoggingEnabled)
     .def_property("temperature", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
     .def_property("harmonic_pressure", &ComputeThermoHMA::getHarmonicPressure, &ComputeThermoHMA::setHarmonicPressure)
-    .def_property_readonly("potential_energyHMA", &ComputeThermoHMA::getPotentialEnergyHMA)
-    .def_property_readonly("pressureHMA", &ComputeThermoHMA::getPressureHMA)
+    .def_property_readonly("potential_energy", &ComputeThermoHMA::getPotentialEnergyHMA)
+    .def_property_readonly("pressure", &ComputeThermoHMA::getPressureHMA)
     ;
     }
