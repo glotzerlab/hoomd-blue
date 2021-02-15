@@ -59,66 +59,47 @@ class FreeVolume(Compute):
 
     def _attach(self):
         self.test_particle_type = self._simulation.state._cpp_sys_def.getParticleData().getTypeByName(self.test_particle_type)
-        # create the c++ mirror class
-        cls = None
+
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be an HPMC integrator.")
+
+        integrator_pairs = None
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            if isinstance(self.mc, integrate.Sphere):
-                cls = _hpmc.ComputeFreeVolumeSphere
-            elif isinstance(self.mc, integrate.ConvexPolygon):
-                cls = _hpmc.ComputeFreeVolumeConvexPolygon
-            elif isinstance(self.mc, integrate.SimplePolygon):
-                cls = _hpmc.ComputeFreeVolumeSimplePolygon
-            elif isinstance(self.mc, integrate.ConvexPolyhedron):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedron
-            elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
-                cls = _hpmc.ComputeFreeVolumeSpheropolyhedron
-            elif isinstance(self.mc, integrate.Ellipsoid):
-                cls = _hpmc.ComputeFreeVolumeEllipsoid
-            elif isinstance(self.mc, integrate.ConvexSpheropolygon):
-                cls = _hpmc.ComputeFreeVolumeSpheropolygon
-            elif isinstance(self.mc, integrate.FacetedEllipsoid):
-                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoid
-            elif isinstance(self.mc, integrate.Polyhedron):
-                cls = _hpmc.ComputeFreeVolumePolyhedron
-            elif isinstance(self.mc, integrate.Sphinx):
-                cls = _hpmc.ComputeFreeVolumeSphinx
-            elif isinstance(self.mc, integrate.ConvexSpheropolyhedronUnion):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
-            elif isinstance(self.mc, integrate.FacetedEllipsoidUnion):
-                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion
-            elif isinstance(self.mc, integrate.SphereUnion):
-                cls = _hpmc.ComputeFreeVolumeSphereUnion
-            else:
-                raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
+            integrator_pairs = [(integrate.Sphere, _hpmc.ComputeFreeVolumeSphere),
+                                (integrate.ConvexPolygon, _hpmc.ComputeFreeVolumeConvexPolygon),
+                                (integrate.SimplePolygon, _hpmc.ComputeFreeVolumeSimplePolygon),
+                                (integrate.ConvexPolyhedron, _hpmc.ComputeFreeVolumeConvexPolyhedron),
+                                (integrate.ConvexSpheropolyhedron, _hpmc.ComputeFreeVolumeSpheropolyhedron),
+                                (integrate.Polyhedron, _hpmc.ComputeFreeVolumePolyhedron),
+                                (integrate.Ellipsoid, _hpmc.ComputeFreeVolumeEllipsoid),
+                                (integrate.ConvexSpheropolygon, _hpmc.ComputeFreeVolumeSpheropolygon),
+                                (integrate.FacetedEllipsoid, _hpmc.ComputeFreeVolumeFacetedEllipsoid),
+                                (integrate.Sphinx, _hpmc.ComputeFreeVolumeSphinx),
+                                (integrate.SphereUnion, _hpmc.ComputeFreeVolumeSphereUnion),
+                                (integrate.ConvexSpheropolyhedronUnion, _hpmc.ComputeFreeVolumeConvexPolyhedronUnion),
+                                (integrate.FacetedEllipsoidUnion, _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion)]
         else:
-            if isinstance(self.mc, integrate.Sphere):
-                cls = _hpmc.ComputeFreeVolumeSphereGPU
-            elif isinstance(self.mc, integrate.ConvexPolygon):
-                cls = _hpmc.ComputeFreeVolumeConvexPolygonGPU
-            elif isinstance(self.mc, integrate.SimplePolygon):
-                cls = _hpmc.ComputeFreeVolumeSimplePolygonGPU
-            elif isinstance(self.mc, integrate.ConvexPolyhedron):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronGPU
-            elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
-                cls = _hpmc.ComputeFreeVolumeSpheropolyhedronGPU
-            elif isinstance(self.mc, integrate.Ellipsoid):
-                cls = _hpmc.ComputeFreeVolumeEllipsoidGPU
-            elif isinstance(self.mc, integrate.ConvexSpheropolygon):
-                cls = _hpmc.ComputeFreeVolumeSpheropolygonGPU
-            elif isinstance(self.mc, integrate.FacetedEllipsoid):
-                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidGPU
-            elif isinstance(self.mc, integrate.Polyhedron):
-                cls = _hpmc.ComputeFreeVolumePolyhedronGPU
-            elif isinstance(self.mc, integrate.Sphinx):
-                cls = _hpmc.ComputeFreeVolumeSphinxGPU
-            elif isinstance(self.mc, integrate.SphereUnion):
-                cls = _hpmc.ComputeFreeVolumeSphereUnionGPU
-            elif isinstance(self.mc, integrate.FacetedEllipsoidUnion):
-                cls = _hpmc.ComputeFreeVolumeFacetedEllipsoidUnionGPU
-            elif isinstance(self.mc, integrate.ConvexSpheropolyhedronUnion):
-                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnionGPU
-            else:
-                raise RuntimeError("compute.free_volume: Unsupported integrator.\n")
+            integrator_pairs = [(integrate.Sphere, _hpmc.ComputeFreeVolumeSphereGPU),
+                                (integrate.ConvexPolygon, _hpmc.ComputeFreeVolumeConvexPolygonGPU),
+                                (integrate.SimplePolygon, _hpmc.ComputeFreeVolumeSimplePolygonGPU),
+                                (integrate.ConvexPolyhedron, _hpmc.ComputeFreeVolumeConvexPolyhedronGPU),
+                                (integrate.ConvexSpheropolyhedron, _hpmc.ComputeFreeVolumeSpheropolyhedronGPU),
+                                (integrate.Polyhedron, _hpmc.ComputeFreeVolumePolyhedronGPU),
+                                (integrate.Ellipsoid, _hpmc.ComputeFreeVolumeEllipsoidGPU),
+                                (integrate.ConvexSpheropolygon, _hpmc.ComputeFreeVolumeSpheropolygonGPU),
+                                (integrate.FacetedEllipsoid, _hpmc.ComputeFreeVolumeFacetedEllipsoidGPU),
+                                (integrate.Sphinx, _hpmc.ComputeFreeVolumeSphinxGPU),
+                                (integrate.SphereUnion, _hpmc.ComputeFreeVolumeSphereUnionGPU),
+                                (integrate.ConvexSpheropolyhedronUnion, _hpmc.ComputeFreeVolumeConvexPolyhedronUnionGPU),
+                                (integrate.FacetedEllipsoidUnion, _hpmc.ComputeFreeVolumeFacetedEllipsoidUnionGPU)]
+
+        cpp_cls = None
+        for python_integrator, cpp_compute in integrator_pairs:
+            if isinstance(integrator, python_integrator):
+                cpp_cls = cpp_compute
+        if cpp_cls is None:
+            raise RuntimeError("Unsupported integrator.\n")
 
         self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
                             self.mc._cpp_obj,
