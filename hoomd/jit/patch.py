@@ -24,8 +24,8 @@ class PatchCompute(Compute):
         for `isinstance` or `issubclass` checks.
     """
 
-    def __init__(self, r_cut, array_size=1, log_only=False,
-                 code=None, llvm_ir_file=None, clang_exec=None):
+    def __init__(self, r_cut, code, array_size=1, log_only=False,
+                 clang_exec='clang', llvm_ir_file=None):
         param_dict = ParameterDict(r_cut = r_cut,
                                    log_only = log_only)
         self._param_dict.update(param_dict)
@@ -153,15 +153,10 @@ class PatchCompute(Compute):
         include_path = os.path.dirname(hoomd.__file__) + '/include';
         include_path_source = hoomd.version.source_dir
 
-        if clang_exec is not None:
-            clang = clang_exec;
-        else:
-            clang = 'clang';
-
         if fn is not None:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
         else:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
         p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
         # pass C++ function to stdin
@@ -347,10 +342,9 @@ class UserPatch(PatchCompute):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        clang = self._clang_exec if self._clang_exec is not None else 'clang'
         # compile code if provided
         if self._code is not None:
-            llvm_ir = self._compile_user(self._code, clang)
+            llvm_ir = self._compile_user(self._code, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file is None:
             # IR is a text file
@@ -506,10 +500,9 @@ class UserUnionPatch(PatchCompute):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        clang = self._clang_exec if self._clang_exec is not None else 'clang'
         # compile code if provided
         if self._code_union is not None:
-            llvm_ir_union = self._compile_user(self._code_union, clang)
+            llvm_ir_union = self._compile_user(self._code_union, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is None:
             # IR is a text file
