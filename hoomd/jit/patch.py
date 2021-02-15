@@ -27,17 +27,28 @@ class PatchCompute(Compute):
     def __init__(self, r_cut, array_size=1, log_only=False,
                  code=None, llvm_ir_file=None, clang_exec=None):
         param_dict = ParameterDict(r_cut = r_cut,
-                                   array_size = array_size,
                                    log_only = log_only)
         self._param_dict.update(param_dict)
         # these only exist on python
         self._code = code
+        self._array_size = array_size
         self._llvm_ir_file = llvm_ir_file
         self._clang_exec = clang_exec
         self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
         super()._attach()
+
+    @property
+    def array_size(self):
+        return self._array_size
+
+    @array_size.setter
+    def array_size(self, size):
+        if self._attached():
+            raise AttributeError("This attribute can only be set when the patch is not attached.")
+        else:
+            self._array_size = size
 
     @log
     def energy(self):
