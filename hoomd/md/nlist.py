@@ -265,25 +265,25 @@ class Tree(NList):
     """Bounding volume hierarchy based neighbor list.
 
     Args:
-        r_buff (float):  Buffer width.
-        check_period (int): How often to attempt to rebuild the neighbor list.
-        d_max (float): The maximum diameter a particle will achieve, only used
-            in conjunction with slj diameter shifting.
-        dist_check (bool): Flag to enable / disable distance checking.
-        name (str): Optional name for this neighbor list instance.
+        buffer (float): Buffer width.
+        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
+            excludes them from the pair potential calculation.
+        rebuild_check_delay (int): How often to attempt to rebuild the neighbor
+            list.
+        diameter_shift (bool): Flag to enable / disable diameter shifting.
+        check_dist (bool): Flag to enable / disable distance checking.
+        max_diameter (float): The maximum diameter a particle will achieve.
 
-    :py:class:`tree` creates a neighbor list using bounding volume hierarchy
-    (BVH) tree traversal. Pair potentials are attached for computing non-bonded
-    pairwise interactions. A BVH tree of axis-aligned bounding boxes is
-    constructed per particle type, and each particle queries each tree to
-    determine its neighbors. This method of searching leads to significantly
-    improved performance compared to cell lists in systems with moderate size
-    asymmetry, but has slightly poorer performance (10% slower) for monodisperse
-    systems. :py:class:`tree` can also be slower than :py:class:`Cell` if there
-    are multiple types in the system, but the cutoffs between types are
-    identical. (This is because one BVH is created per type.) The user should
-    carefully benchmark neighbor list build times to select the appropriate
-    neighbor list construction type.
+    `Tree` creates a neighbor list using bounding volume hierarchy (BVH) tree
+    traversal. A BVH tree of axis-aligned bounding boxes is constructed per
+    particle type, and each particle queries each tree to determine its
+    neighbors. This method of searching leads to significantly improved
+    performance compared to cell lists in systems with moderate size asymmetry,
+    but has slightly poorer performance (10% slower) for monodisperse systems.
+    `Tree` can also be slower than `Cell` if there are multiple types in the
+    system, but the cutoffs between types are identical. (This is because one
+    BVH is created per type.) The user should carefully benchmark neighbor list
+    build times to select the appropriate neighbor list construction type.
 
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
     describes the original implementation of this algorithm for HOOMD-blue.
@@ -293,16 +293,8 @@ class Tree(NList):
 
     Examples::
 
-        nl_t = nlist.tree(check_period = 1)
-        nl_t.set_params(r_buff=0.5)
-        nl_t.reset_exclusions([]);
-        nl_t.tune()
-
-    Note:
-        *d_max* should only be set when slj diameter shifting is required by a
-        pair potential. Currently, slj is the only pair potential requiring
-        this shifting, and setting *d_max* for other potentials may lead to
-        significantly degraded performance or incorrect results.
+        nl_t = nlist.Tree(check_dist=False)
+        pair = hoomd.md.pair.LJ(nl_t)
     """
     def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
                  diameter_shift=False, check_dist=True, max_diameter=1.0):
