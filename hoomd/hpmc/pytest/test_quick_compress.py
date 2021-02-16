@@ -85,7 +85,7 @@ def test_valid_setattr(attr, value):
 
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(attr, value, simulation_factory,
-                                two_particle_snapshot_factory, capsys):
+                                two_particle_snapshot_factory):
     """Test that QuickCompress can get and set attributes while attached."""
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
                                          target_box=hoomd.Box.from_box(
@@ -100,13 +100,6 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     sim.operations.integrator = mc
 
     sim.operations._schedule()
-
-    # test the seed warning is issued
-    captured = capsys.readouterr()
-    assert captured.err == "*Warning*: Simulation.seed is not set, using " \
-                           "default seed=0\n" \
-                           "*Warning*: Simulation.seed is not set, using " \
-                           "default seed=0\n"
 
     setattr(qc, attr, value)
     assert getattr(qc, attr) == value

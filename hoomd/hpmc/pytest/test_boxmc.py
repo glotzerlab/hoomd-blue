@@ -106,8 +106,7 @@ def test_valid_construction(constructor_args):
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
-                                       constructor_args,
-                                       capsys):
+                                       constructor_args):
     """Test that BoxMC can be attached with valid arguments."""
     boxmc = hoomd.hpmc.update.BoxMC(**constructor_args)
 
@@ -121,13 +120,6 @@ def test_valid_construction_and_attach(simulation_factory,
 
     # create C++ mirror classes and set parameters
     sim.run(0)
-
-    # test the seed warning is issued
-    captured = capsys.readouterr()
-    assert captured.err == "*Warning*: Simulation.seed is not set, using " \
-                           "default seed=0\n" \
-                           "*Warning*: Simulation.seed is not set, using " \
-                           "default seed=0\n"
 
     # validate the params were set properly
     for attr, value in constructor_args.items():

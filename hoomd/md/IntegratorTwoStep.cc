@@ -87,6 +87,13 @@ Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, uint64_t time
 */
 void IntegratorTwoStep::update(uint64_t timestep)
     {
+    // issue a warning if no integration methods are set
+    if (!m_gave_warning && m_methods.size() == 0)
+        {
+        m_exec_conf->msg->warning() << "integrate.mode_standard: No integration methods are set, continuing anyways." << endl;
+        m_gave_warning = true;
+        }
+
     // ensure that prepRun() has been called
     assert(m_prepared);
 

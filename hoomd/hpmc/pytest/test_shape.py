@@ -63,18 +63,6 @@ def test_valid_shape_params(valid_args):
     check_dict(mc.shape["A"], args)
 
 
-def test_seed_warning(valid_args, simulation_factory, capsys):
-    integrator = valid_args[0]
-    if isinstance(integrator, tuple):
-        integrator = integrator[1]
-
-    sim = simulation_factory()
-    sim.operations.integrator = integrator()
-    captured = capsys.readouterr()
-    assert captured.err == "*Warning*: Simulation.seed is not set, using " \
-                           "default seed=0\n"
-
-
 def test_invalid_shape_params(invalid_args):
     integrator = invalid_args[0]
     if isinstance(integrator, tuple):

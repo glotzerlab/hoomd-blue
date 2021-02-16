@@ -608,7 +608,7 @@ def _skip_if_triplet_gpu_mpi(sim, pair_potential):
 
 
 def test_attached_params(simulation_factory, lattice_snapshot_factory,
-                         valid_params, capsys):
+                         valid_params):
     pair_potential, pair_potential_dict, extra_args = valid_params
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
@@ -630,19 +630,8 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator = hoomd.md.Integrator(dt=0.005)
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
-
-    # test the seed warning is issued for appropriate potentials
-    if pair_potential is hoomd.md.pair.DPD or \
-       pair_potential is hoomd.md.pair.DPDLJ:
-        captured = capsys.readouterr()
-        assert captured.err == "*Warning*: Simulation.seed is not set, using " \
-                               "default seed=0\n"
-
-
     assert _equivalent_data_structures(valid_params.pair_potential_params,
                                        pot.params.to_dict())
-
-
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):

@@ -288,7 +288,7 @@ def test_run_limit(simulation_factory, lattice_snapshot_factory):
         sim.run(-1)
 
 
-def test_seed(simulation_factory, lattice_snapshot_factory, capsys):
+def test_seed(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
     assert sim.seed is None
 
@@ -297,9 +297,6 @@ def test_seed(simulation_factory, lattice_snapshot_factory, capsys):
 
     sim.seed = 0x123456789abcdef
     assert sim.seed == 0xcdef
-    captured = capsys.readouterr()
-    assert captured.err == "*Warning*: Provided seed 81985529216486895 is " \
-                           "larger than 65535. Truncating to 52719.\n"
 
     sim.create_state_from_snapshot(lattice_snapshot_factory())
     assert sim.seed == 0xcdef

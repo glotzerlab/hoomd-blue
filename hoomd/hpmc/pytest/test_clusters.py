@@ -74,8 +74,7 @@ def test_valid_construction(constructor_args):
 def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args,
-                                       valid_args,
-                                       capsys):
+                                       valid_args):
     """Test that Clusters can be attached with valid arguments."""
 
     integrator = valid_args[0]
@@ -101,16 +100,6 @@ def test_valid_construction_and_attach(simulation_factory,
     sim.operations.integrator = mc
 
     sim.run(0)
-
-    # test the seed warning is issued
-    captured = capsys.readouterr()
-    if integrator is not hoomd.hpmc.integrate.Sphinx and \
-       isinstance(sim.device, hoomd.device.GPU):
-        # Sphinx may issue additional warnings on the GPU
-        assert captured.err == "*Warning*: Simulation.seed is not set, using " \
-                               "default seed=0\n" \
-                               "*Warning*: Simulation.seed is not set, using " \
-                               "default seed=0\n"
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
