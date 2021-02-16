@@ -545,7 +545,7 @@ def test_nph_thermalize_barostat_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
     sim.run(0)
 
-    nph.thermalize_barostat_dof(100)
+    nph.thermalize_barostat_dof()
     for v in nph.barostat_dof:
         assert v != 0.0
 

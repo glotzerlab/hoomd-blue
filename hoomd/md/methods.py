@@ -590,11 +590,8 @@ class NPH(_Method):
         else:
             return (value, value, value, 0, 0, 0)
 
-    def thermalize_barostat_dof(self, seed):
+    def thermalize_barostat_dof(self):
         r"""Set the barostat momentum to random values.
-
-        Args:
-            seed (int): Random number seed
 
         `thermalize_barostat_dof` sets a random value for the
         barostat :math:`\nu_{\mathrm{ij}}`. Call
@@ -607,17 +604,13 @@ class NPH(_Method):
             prepare a newly created `Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
-
-        Note:
-            The seed for the pseudorandom number stream includes the
-            simulation timestep and the provided *seed*.
         """
         if not self._attached:
             raise RuntimeError("Call Simulation.run(0) before"
                                "thermalize_thermostat_and_barostat_dof")
 
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
-            seed, self._simulation.timestep)
+            self._simulation.timestep)
 
 
 class NVE(_Method):
