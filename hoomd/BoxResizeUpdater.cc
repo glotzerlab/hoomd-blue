@@ -28,13 +28,13 @@ BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                    pybind11::object box1,
                                    pybind11::object box2,
                                    std::shared_ptr<Variant> variant,
-                                   std::shared_ptr<ParticleGroup> scale_particles)
+                                   std::shared_ptr<ParticleGroup> group)
     : Updater(sysdef),
       m_py_box1(box1),
       m_py_box2(box2),
       m_box1(getBoxDimFromPyObject(box1)),
       m_box2(getBoxDimFromPyObject(box2)),
-      m_variant(variant), m_scale_particles(scale_particles)
+      m_variant(variant), m_group(group)
     {
     assert(m_pdata);
     assert(m_variant);
@@ -116,9 +116,9 @@ void BoxResizeUpdater::update(unsigned int timestep)
                                    access_location::host,
                                    access_mode::readwrite);
 
-        for (unsigned int group_idx = 0; group_idx < m_scale_particles->getNumMembers(); group_idx++)
+        for (unsigned int group_idx = 0; group_idx < m_group->getNumMembers(); group_idx++)
         {
-        unsigned int j = m_scale_particles->getMemberIndex(group_idx);
+        unsigned int j = m_group->getMemberIndex(group_idx);
         // obtain scaled coordinates in the old global box
         Scalar3 fractional_pos = cur_box.makeFraction(
         make_scalar3(h_pos.data[j].x,
@@ -174,9 +174,9 @@ void export_BoxResizeUpdater(py::module& m)
     .def_property("variant",
                   &BoxResizeUpdater::getVariant,
                   &BoxResizeUpdater::setVariant)
-    .def_property_readonly("scale_particles", [](const std::shared_ptr<BoxResizeUpdater> method)
+    .def_property_readonly("filter", [](const std::shared_ptr<BoxResizeUpdater> method)
                                                   {
-                                                  return method->getScaleParticles()->getFilter();
+                                                  return method->getGroup()->getFilter();
                                                   })
     .def("get_current_box", &BoxResizeUpdater::getCurrentBox)
     ;

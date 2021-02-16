@@ -40,13 +40,13 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
                          pybind11::object box1,
                          pybind11::object box2,
                          std::shared_ptr<Variant> variant,
-                         std::shared_ptr<ParticleGroup> m_scale_particles);
+                         std::shared_ptr<ParticleGroup> m_group);
 
         /// Destructor
         virtual ~BoxResizeUpdater();
 
         /// Gets particle scaling filter
-        std::shared_ptr<ParticleGroup> getScaleParticles() {return m_scale_particles;}
+        std::shared_ptr<ParticleGroup> getGroup() {return m_group;}
 
         /// Set a new initial box from a python object
         void setPyBox1(pybind11::object box1);
@@ -78,7 +78,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxDim& m_box1;  ///< C++ box assoc with min
         BoxDim& m_box2;  ///< C++ box assoc with max
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
-        std::shared_ptr<ParticleGroup> m_scale_particles; //!< Selected particles to scale when resizing the box.
+        std::shared_ptr<ParticleGroup> m_group; //!< Selected particles to scale when resizing the box.
     };
 
 /// Export the BoxResizeUpdater to python

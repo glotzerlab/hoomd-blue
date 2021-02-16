@@ -34,7 +34,7 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (hoomd.filter.ParticleFilter): The subset of particle positions to
+        filter (hoomd.filter.ParticleFilter): The subset of particle positions to
             update.
 
     Attributes:
@@ -45,26 +45,26 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (hoomd.filter.ParticleFilter): The subset of particles to
+        filter (hoomd.filter.ParticleFilter): The subset of particles to
             update.
     """
     def __init__(self, box1, box2,
-                 variant, trigger, scale_particles=All()):
+                 variant, trigger, filter=All()):
         params = ParameterDict(
             box1=OnlyTypes(Box, preprocess=box_preprocessing),
             box2=OnlyTypes(Box, preprocess=box_preprocessing),
             variant=Variant,
-            scale_particles=ParticleFilter)
+            filter=ParticleFilter)
         params['box1'] = box1
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
-        params['scale_particles'] = scale_particles
+        params['filter'] = filter
         self._param_dict.update(params)
         super().__init__(trigger)
 
     def _attach(self):
-        group = self._simulation.state._get_group(self.scale_particles)
+        group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
             self._simulation.state._cpp_sys_def,
             self.box1,
@@ -93,16 +93,16 @@ class BoxResize(Updater):
             return None
 
     @staticmethod
-    def update(state, box, scale_particles=All()):
+    def update(state, box, filter=All()):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
             state (State): System state to scale.
             box (Box): New box.
-            scale_particles (hoomd.filter.ParticleFilter): The subset of particles to
+            filter (hoomd.filter.ParticleFilter): The subset of particles to
                 update.
         """
-        group = state._get_group(scale_particles)
+        group = state._get_group(filter)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
                                           state.box,
                                           box,

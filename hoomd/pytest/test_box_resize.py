@@ -188,7 +188,7 @@ def test_position_scale(device, get_snapshot, sys, variant, trigger, filters):
                                         box2=sys2[0],
                                         variant=variant,
                                         trigger=trigger,
-                                        scale_particles=filter_scale)
+                                        filter=filter_scale)
 
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
@@ -207,16 +207,16 @@ def test_position_scale(device, get_snapshot, sys, variant, trigger, filters):
     assert_positions(sim, sys2[1], filter_scale)
 
 
-def test_get_scale_particles(device, get_snapshot, sys, variant, trigger, filters):
+def test_get_filter(device, get_snapshot, sys, variant, trigger, filters):
     filter_scale, _ = filters
     sys1, _, sys2 = sys
     box_resize = hoomd.update.BoxResize(box1=sys1[0],
                                         box2=sys2[0],
                                         variant=variant,
                                         trigger=trigger,
-                                        scale_particles=filter_scale)
+                                        filter=filter_scale)
 
-    assert box_resize.scale_particles == filter_scale
+    assert box_resize.filter == filter_scale
 
 
 def test_update_filters(device, get_snapshot, sys, filters):
@@ -224,4 +224,4 @@ def test_update_filters(device, get_snapshot, sys, filters):
     filter_scale, _ = filters
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
-    hoomd.update.BoxResize.update(sim.state, sys2[0], scale_particles=filter_scale)
+    hoomd.update.BoxResize.update(sim.state, sys2[0], filter=filter_scale)
