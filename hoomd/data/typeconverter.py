@@ -155,15 +155,15 @@ class OnlyTypes(_HelpValidate):
 
     Developers should consider the `collections.abc` module in using this type.
     In general `OnlyTypes(Sequence)` is more readable than the similar
-    `OnlyIf(lambda x: hasattr(x, '__iter__'))`. If a sequence of types is provided
-    and ``strict`` is ``False``, conversions will be attempted in the order
-    of the ``types`` sequence.
+    `OnlyIf(lambda x: hasattr(x, '__iter__'))`. If a sequence of types is
+    provided and ``strict`` is ``False``, conversions will be attempted in the
+    order of the ``types`` sequence.
     """
-    def __init__(self, types, strict=False,
+    def __init__(self, *types, strict=False,
                  preprocess=None, postprocess=None, allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
-        self.types = (types,) if isclass(types) else tuple(types)
+        self.types = types
         self.strict = strict
 
     def _validate(self, value):
@@ -184,10 +184,8 @@ class OnlyTypes(_HelpValidate):
                 f"{self.types}"
             )
 
-
-
     def __str__(self):
-        return "OnlyTypes({})".format(str(self.types))
+        return f"OnlyTypes({str(self.types)})"
 
 
 class OnlyFrom(_HelpValidate):
@@ -289,7 +287,7 @@ class TypeConverterValue(TypeConverter):
     """
     _conversion_func_dict = {
         Variant: OnlyTypes(Variant, preprocess=variant_preprocessing),
-        ParticleFilter: OnlyTypes((ParticleFilter, CustomFilter), strict=True),
+        ParticleFilter: OnlyTypes(ParticleFilter, CustomFilter, strict=True),
         str: OnlyTypes(str, strict=True),
         Trigger: OnlyTypes(Trigger, preprocess=trigger_preprocessing),
         ndarray: OnlyTypes(ndarray, preprocess=array),
