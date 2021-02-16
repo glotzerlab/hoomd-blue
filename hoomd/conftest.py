@@ -245,3 +245,35 @@ def pytest_sessionfinish(session, exitstatus):
 
     if exitstatus != 0 and hoomd.version.mpi_enabled:
         atexit.register(abort, exitstatus)
+
+
+def logging_check(cls, expected_namespace, expected_loggables):
+    """Function for testing object logging specification.
+
+    Args:
+        cls (object): The loggable class to test for the correct logging
+            specfication.
+        expected_namespace (tuple[str]): A tuple of strings that indicate the
+            expected namespace minus the class name.
+        expected_loggables (dict[str, dict[str, Any]]): A dict with string keys
+            representing the expected loggable quantities. If the value for a
+            key is ``None`` then, only check for the existence of the loggable
+            quantity. Otherwise, the inner `dict` should consist of some
+            combination of the keys ``default`` and ``category`` indicating the
+            expected value of each for the loggable.
+    """
+    # Check namespace
+    assert all(log_quantity.namespace == expected_namespace + (cls.__name__,)
+               for log_quantity in cls._export_dict.values())
+
+    # Check specific loggables
+    def check_loggable(cls, name, properties):
+        assert name in cls._export_dict
+        if properties is None:
+            return None
+        log_quantity = cls._export_dict[name]
+        for name, prop in properties.items():
+            assert getattr(log_quantity, name) == prop
+
+    for name, properties in expected_loggables.items():
+        check_loggable(cls, name, properties)

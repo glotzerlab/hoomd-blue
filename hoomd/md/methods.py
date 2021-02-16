@@ -12,7 +12,7 @@ from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyType, OnlyIf, to_type_converter
+from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
@@ -442,69 +442,182 @@ class NPT(_Method):
             self._simulation.timestep)
 
 
-class nph(NPT):
-    R""" NPH Integration via MTK barostat-thermostat..
+class NPH(_Method):
+    r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
-        params: keyword arguments passed to :py:class:`NPT`.
-        gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply this method.
 
-    :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
-    explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
-    cells and uses the same underlying integrator as :py:class:`NPT` (with *nph=True*).
+        S (`tuple` [ `hoomd.variant.Variant` ] or `float`): Stress components set
+            point for the barostat (in pressure units). Converted to a tuple
+            during NPH instantiation.  In Voigt notation:
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
+            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
-    The available options are identical to those of :py:class:`NPT`, except that *kT* cannot be specified.
-    For further information, refer to the documentation of :py:class:`NPT`.
+        tauS (`float`): Coupling constant for the barostat (in time units).
+
+        couple (`str`): Couplings of diagonal elements of the stress tensor,
+            can be "none", "xy", "xz","yz", or "all", default to "all".
+
+        box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
+            elements corresponding to x, y, z, xy, xz, yz, each. Default to
+            [True,True,True,False,False,False]). If turned on to True,
+            rescale corresponding lengths or tilt factors and components of
+            particle coordinates and velocities.
+
+        rescale_all (`bool`): if True, rescale all particles, not only those in
+            the group, Default to False.
+
+        gamma (`float`): Dimensionless damping factor for the box degrees of
+            freedom, Default to 0.
 
     Note:
-         A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
-         relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
-         is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tau_P^2`, where :math:`d` is the dimensionality and :math:`N` the number
-         of particles.
-
-    :py:class:`nph` is an integration method and must be used with ``mode_standard``.
+        Coupling constant for barostat `tauS` should be set within appropriate
+        range for pressure and volume to fluctuate in reasonable rate and
+        equilibrate. Too small `tauS` can cause abrupt fluctuation, whereas too
+        large `tauS` would take long time to equilibrate. In most of systems,
+        recommended value for `tauS` is ``1000 * dt``, where ``dt`` is the
+        length of the time step.
 
     Examples::
+        dt = 0.005
+        tauS = 1000 * dt
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0)
+        # orthorhombic symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="none")
+        # tetragonal symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="xy")
+        # triclinic symmetry
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="none", rescale_all=True)
+        integrator = hoomd.md.Integrator(dt=dt, methods=[nph], forces=[lj])
 
-        # Triclinic unit cell
-        nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
-        # Cubic unit cell
-        nph = integrate.nph(group=all, P=2.0, tauP=1.0)
-        # Relax the box
-        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this method.
+
+        S (tuple[hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant]): Stress components set
+            point for the barostat (in pressure units). In Voigt notation,
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
+            be reset after method object is created. For example, An isoropic
+            pressure can be set by ``nph.S = 4.``
+
+        tauS (float): Coupling constant for the barostat (in time units).
+
+        couple (str): Couplings of diagonal elements of the stress tensor,
+            can be "none", "xy", "xz","yz", or "all".
+
+        box_dof(tuple[bool, bool, bool, bool, bool, bool]): Box degrees of freedom
+            with six boolean elements corresponding to x, y, z, xy, xz, yz, each.
+
+        rescale_all (bool): if True, rescale all particles, not only those in
+            the group.
+
+        gamma (float): Dimensionless damping factor for the box degrees of
+            freedom.
+
+        barostat_dof (tuple[float, float, float, float, float, float]):
+            Additional degrees of freedom for the barostat (:math:`\nu_{xx}`,
+            :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
+            :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
-    def __init__(self, **params):
 
-        # initialize base class
-        npt.__init__(self, nph=True, kT=1.0, **params)
+    def __init__(self,
+                 filter,
+                 S,
+                 tauS,
+                 couple,
+                 box_dof=(True, True, True, False, False, False),
+                 rescale_all=False,
+                 gamma=0.0):
+        # store metadata
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            S=OnlyIf(to_type_converter((Variant,) * 6),
+                     preprocess=self._preprocess_stress),
+            tauS=float,
+            couple=str,
+            box_dof=(bool,) * 6,
+            rescale_all=bool,
+            gamma=float,
+            barostat_dof=(float,) * 6)
 
-    def randomize_velocities(self, kT, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
+        param_dict.update(
+            dict(filter=filter,
+                 kT=hoomd.variant.Constant(1.0),
+                 S=S,
+                 tauS=float(tauS),
+                 couple=str(couple),
+                 box_dof=tuple(box_dof),
+                 rescale_all=bool(rescale_all),
+                 gamma=float(gamma),
+                 barostat_dof=(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)))
 
-        .. versionadded:: 2.3
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        Starting in version 2.5, `randomize_velocities` also chooses random values
-        for the internal integrator variables.
+    def _attach(self):
+        # initialize the reflected c++ class
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = _md.TwoStepNPTMTK
+            thermo_cls = _md.ComputeThermo
+        else:
+            cpp_cls = _md.TwoStepNPTMTKGPU
+            thermo_cls = _md.ComputeThermoGPU
+
+        cpp_sys_def = self._simulation.state._cpp_sys_def
+        thermo_group = self._simulation.state._get_group(self.filter)
+
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group, "")
+
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group, "")
+
+        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
+                                thermo_full_step, 1.0, self.tauS, self.kT,
+                                self.S, self.couple, self.box_dof, True)
+
+        # Attach param_dict and typeparam_dict
+        super()._attach()
+
+    @staticmethod
+    def _preprocess_stress(value):
+        if isinstance(value, Sequence):
+            if len(value) != 6:
+                raise ValueError(
+                    "Expected a single hoomd.variant.Variant / float or six.")
+            return tuple(value)
+        else:
+            return (value, value, value, 0, 0, 0)
+
+    def thermalize_barostat_dof(self, seed):
+        r"""Set the barostat momentum to random values.
 
         Args:
-            kT (float): Temperature (in energy units)
             seed (int): Random number seed
 
+        `thermalize_barostat_dof` sets a random value for the
+        barostat :math:`\nu_{\mathrm{ij}}`. Call
+        `thermalize_barostat_dof` to set a new random state for
+        the barostat.
+
+        .. important::
+            You must call `Simulation.run` before
+            `thermalize_barostat_dof`. Call ``run(steps=0)`` to
+            prepare a newly created `Simulation`.
+
+        .. seealso:: `State.thermalize_particle_momenta`
+
         Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.nph(group=group.all(), P=2.0, tauP=1.0)
-            integrator.randomize_velocities(kT=1.0, seed=42)
-            run(100)
-
+            The seed for the pseudorandom number stream includes the
+            simulation timestep and the provided *seed*.
         """
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        if not self._attached:
+            raise RuntimeError("Call Simulation.run(0) before"
+                               "thermalize_thermostat_and_barostat_dof")
+
+        self._cpp_obj.thermalizeThermostatAndBarostatDOF(
+            seed, self._simulation.timestep)
 
 
 class NVE(_Method):
@@ -547,8 +660,8 @@ class NVE(_Method):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
-            limit=OnlyType(float, allow_none=True),
-            zero_force=OnlyType(bool, allow_none=False),
+            limit=OnlyTypes(float, allow_none=True),
+            zero_force=OnlyTypes(bool, allow_none=False),
         )
         param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
@@ -679,7 +792,7 @@ class Langevin(_Method):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            alpha=OnlyType(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
         )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
@@ -833,7 +946,7 @@ class Brownian(_Method):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
-            alpha=OnlyType(float, allow_none=True),
+            alpha=OnlyTypes(float, allow_none=True),
             )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
@@ -876,15 +989,19 @@ class Brownian(_Method):
         super()._attach()
 
 
-class berendsen(_Method):
-    R""" Applies the Berendsen thermostat.
+class Berendsen(_Method):
+    r"""Applies the Berendsen thermostat.
 
     Args:
-        group (``hoomd.group``): Group to which the Berendsen thermostat will be applied.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat. (in energy units).
-        tau (float): Time constant of thermostat. (in time units)
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
 
-    :py:class:`berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
+            simulation (in energy units).
+
+        tau (`float`): Time constant of thermostat. (in time units)
+
+    :py:class:`Berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
     the difference in the current temperature from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
@@ -893,68 +1010,56 @@ class berendsen(_Method):
         \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 
     .. attention::
-        :py:class:`berendsen` does not function with MPI parallel simulations.
+        :py:class:`Berendsen` does not function with MPI parallel simulations.
 
     .. attention::
-        :py:class:`berendsen` does not integrate rotational degrees of freedom.
+        :py:class:`Berendsen` does not integrate rotational degrees of freedom.
+
+        Examples::
+
+        berendsen = hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=0.2,
+        tau=10.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[berendsen], forces=[lj])
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        kT (hoomd.variant.Variant): Temperature of the
+            simulation (in energy units).
+
+        tau (float): Time constant of thermostat. (in time units)
     """
-    def __init__(self, group, kT, tau):
 
-        # Error out in MPI simulations
-        if (hoomd.version.mpi_enabled):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.current.device.cpp_msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration method.")
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        thermo = hoomd.compute._get_unique_thermo(group = group)
-
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepBerendsen(hoomd.context.current.system_definition,
-                                                     group.cpp_group,
-                                                     thermo.cpp_compute,
-                                                     tau,
-                                                     kT.cpp_variant)
-        else:
-            self.cpp_method = _md.TwoStepBerendsenGPU(hoomd.context.current.system_definition,
-                                                        group.cpp_group,
-                                                        thermo.cpp_compute,
-                                                        tau,
-                                                        kT.cpp_variant)
-
+    def __init__(self, filter, kT, tau):
         # store metadata
-        self.kT = kT
-        self.tau = tau
-        self.metadata_fields = ['kT','tau']
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            tau=float(tau))
+        param_dict.update(dict(filter=filter, kT=kT))
 
-    def randomize_velocities(self, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        .. versionadded:: 2.3
+    def _attach(self):
+        sim = self._simulation
+        # Error out in MPI simulations
+        if hoomd.version.mpi_enabled:
+            if sim.device._comm.num_ranks > 1:
+                raise RuntimeError("hoomd.md.methods.Berendsen is not supported in multi-processor simulations.")
 
-        Args:
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.berendsen(group=group.all(), kT=1.0, tau=0.5)
-            integrator.randomize_velocities(seed=42)
-            run(100)
-
-        """
-        timestep = hoomd.get_step()
-        kT = self.kT.cpp_variant.getValue(timestep)
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        group = sim.state._get_group(self.filter)
+        if isinstance(sim.device, hoomd.device.CPU):
+            cpp_method = _md.TwoStepBerendsen
+            thermo_cls = _md.ComputeThermo
+        else:
+            cpp_method = _md.TwoStepBerendsenGPU
+            thermo_cls = _md.ComputeThermoGPU
+        self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
+                                   group,
+                                   thermo_cls(sim.state._cpp_sys_def, group, ""),
+                                   self.tau,
+                                   self.kT)
+        super()._attach()
