@@ -28,8 +28,6 @@ v3.0.0-beta.4 (2021-02-16)
 - Correctly determine the maximum ``r_cut`` in simulations with more than one
   pair potential and more than one type.
 
-*Removed*
-
 v3.0.0-beta.3 (2021-01-11)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
