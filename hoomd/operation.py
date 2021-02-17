@@ -9,6 +9,9 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 
+from collections.abc import Mapping
+from copy import copy, deepcopy
+
 from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
@@ -18,9 +21,6 @@ from hoomd.data.typeconverter import RequiredArg
 from hoomd.util import NamespaceDict
 from hoomd._hoomd import GSDStateReader
 from hoomd.data.parameterdicts import ParameterDict
-
-from collections.abc import Mapping
-from copy import deepcopy
 
 
 def _convert_values_to_log_form(value):
@@ -237,6 +237,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
                                '_dependencies': _ReturnCopies([])}
 
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+    _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
         if self._attached:
@@ -335,6 +336,12 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
         are owned in lists or members of those operations.
         """
         return []
+
+    def __getstate__(self):
+        state = copy(self.__dict__)
+        for attr in self._remove_for_pickling:
+            state.pop(attr, None)
+        return state
 
 
 class Operation(_HOOMDBaseObject):
