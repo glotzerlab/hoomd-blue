@@ -1,4 +1,5 @@
 import hoomd
+import math
 
 
 def test_before_attaching():
@@ -21,16 +22,18 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.add(thermoHMA)
-    sim.always_compute_pressure = True
     assert len(sim.operations.computes) == 1
     sim.run(0)
-    assert isinstance(thermoHMA.potential_energy, float)
+    assert math.isnan(thermoHMA.pressure)
+    sim.always_compute_pressure = True
+    assert not math.isnan(thermoHMA.pressure)
     assert isinstance(thermoHMA.pressure, float)
+    assert isinstance(thermoHMA.potential_energy, float)
 
     sim.operations.remove(thermoHMA)
     assert len(sim.operations.computes) == 0
-    assert thermoHMA.potential_energy is None
     assert thermoHMA.pressure is None
+    assert thermoHMA.potential_energy is None
 
 
 def test_logging(simulation_factory, two_particle_snapshot_factory):
