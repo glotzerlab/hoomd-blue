@@ -193,6 +193,7 @@ class Operations(Collection):
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
+            self._integrator._add(self._simulation)
             self.integrator._attach()
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
