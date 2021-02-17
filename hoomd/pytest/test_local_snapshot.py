@@ -66,8 +66,8 @@ _particle_data = dict(
                   new_value=[2, 1, 0.5, 1, 2], shape=(Np,)),
     image=dict(
         np_type=np.integer,
-        value=np.linspace(-10, 20, Np * 3, dtype=np.int).reshape(Np, 3),
-        new_value=np.linspace(-20, 10, Np * 3, dtype=np.int).reshape(Np, 3),
+        value=np.linspace(-10, 20, Np * 3, dtype=int).reshape(Np, 3),
+        new_value=np.linspace(-20, 10, Np * 3, dtype=int).reshape(Np, 3),
         shape=(Np, 3)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
     _types=['p1', 'p2']

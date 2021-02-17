@@ -348,7 +348,7 @@ class Box:
     def periodic(self):
         """(3) `numpy.ndarray` of `bool`: The periodicity of
         each dimension."""
-        return _vec3_to_array(self._cpp_obj.getPeriodic(), np.bool)
+        return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
     def lattice_vectors(self):
@@ -416,7 +416,7 @@ class Box:
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
         """
-        s = np.asarray(s, dtype=np.float)
+        s = np.asarray(s, dtype=float)
         self.L *= s
 
     # Magic Methods
