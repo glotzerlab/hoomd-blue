@@ -305,3 +305,10 @@ class Operations(Collection):
         be modified as a standard Python list.
         """
         return self._computes
+
+    def __getstate__(self):
+        # ensure that top level changes to self.__dict__ are not propegated
+        state = copy(self.__dict__)
+        state['_simulation'] = None
+        state['_scheduled'] = False
+        return state
