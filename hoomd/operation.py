@@ -66,6 +66,14 @@ def _handle_gsd_arrays(arr):
         return arr
 
 
+class _ReturnCopies:
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __call__(self):
+        return deepcopy(self.obj)
+
+
 class _HOOMDGetSetAttrBase:
     """Provides the use of `ParameterDicts` and `TypeParameterDicts` as attrs.
 
@@ -371,9 +379,9 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
-                               '_cpp_obj': lambda: None,
-                               '_dependents': lambda: [],
-                               '_dependencies': lambda: []}
+                               '_cpp_obj': _ReturnCopies(None),
+                               '_dependents': _ReturnCopies([]),
+                               '_dependencies': _ReturnCopies([])}
 
     _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
 
