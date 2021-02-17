@@ -9,9 +9,11 @@ added and removed from a `hoomd.Simulation`.
 # destroying C++ objects) for all hoomd operations.
 
 from collections.abc import Collection
+from copy import copy
 from itertools import chain
+from functools import partial
 import hoomd.integrate
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data import syncedlist
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
@@ -62,14 +64,15 @@ class Operations(Collection):
     """
 
     def __init__(self):
-        self._compute = list()
         self._scheduled = False
-        self._updaters = SyncedList(OnlyTypes(Updater),
-                                    _triggered_op_conversion)
-        self._writers = SyncedList(OnlyTypes(Writer),
-                                     _triggered_op_conversion)
-        self._tuners = SyncedList(OnlyTypes(Tuner), lambda x: x._cpp_obj)
-        self._computes = SyncedList(OnlyTypes(Compute), lambda x: x._cpp_obj)
+        self._simulation = None
+        self._updaters = syncedlist.SyncedList(
+            Updater, _triggered_op_conversion)
+        self._writers = syncedlist.SyncedList(Writer, _triggered_op_conversion)
+        self._tuners = syncedlist.SyncedList(
+            Tuner, syncedlist._PartialGetAttr('_cpp_obj'))
+        self._computes = syncedlist.SyncedList(
+            Compute, syncedlist._PartialGetAttr('_cpp_obj'))
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
