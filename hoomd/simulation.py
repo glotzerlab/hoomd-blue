@@ -228,7 +228,7 @@ class Simulation(metaclass=Loggable):
         # This condition is necessary to allow for += and -= operators to work
         # correctly with simulation.operations (+=/-=).
         if operations is self._operations:
-            self._operations = operations
+            return
         else:
             # Handle error cases first
             if operations._scheduled or operations._simulation is not None:
@@ -240,8 +240,10 @@ class Simulation(metaclass=Loggable):
                 self._operations._unschedule()
                 self._operations._simulation = None
                 operations._simulation = self
-                operations._schedule()
                 self._operations = operations
+                # This must currently be done after setting _operations so that
+                # self.state.update_group_dof runs without erroring
+                operations._schedule()
 
     @log
     def tps(self):
