@@ -14,7 +14,7 @@ def test_init(op_list):
         return isinstance(x, DummyOperation)
 
     # Test automatic to_synced_list function generation
-    slist = SyncedList(validation_func=validate)
+    slist = SyncedList(validation=validate)
     assert slist._validate == validate
     op = DummyOperation()
     assert slist._to_synced_list_conversion(op) is op
@@ -23,13 +23,13 @@ def test_init(op_list):
     def cpp_identity(x):
         return x._cpp_obj
 
-    slist = SyncedList(validation_func=validate, to_synced_list=cpp_identity)
+    slist = SyncedList(validation=validate, to_synced_list=cpp_identity)
     assert slist._to_synced_list_conversion == cpp_identity
     op._cpp_obj = 2
     assert slist._to_synced_list_conversion(op) == 2
 
     # Test full initialziation
-    slist = SyncedList(validation_func=validate, to_synced_list=cpp_identity,
+    slist = SyncedList(validation=validate, to_synced_list=cpp_identity,
                        iterable=op_list)
     assert len(slist._list) == 3
     assert all(op._added for op in slist)

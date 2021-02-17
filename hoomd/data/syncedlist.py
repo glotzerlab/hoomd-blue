@@ -1,3 +1,27 @@
+import inspect
+from copy import copy
+
+
+class _PartialIsInstance:
+    def __init__(self, classes):
+        self.classes = classes
+
+    def __call__(self, instance):
+        return isinstance(instance, self.classes)
+
+
+class _PartialGetAttr:
+    def __init__(self, attr):
+        self.attr = attr
+
+    def __call__(self, obj):
+        return getattr(obj, self.attr)
+
+
+def identity(obj):
+    return obj
+
+
 class SyncedList:
     """Provides syncing and validation for a python and cpp list.
 
@@ -6,10 +30,11 @@ class SyncedList:
     the public API.
 
     Args:
-        validation_func (function): A function that takes one argument
+        validation (function or class): A function that takes one argument
             and returns a boolean based on whether the value is appropriate for
             the list. Can raise ValueError for helpful diagnosis of the problem
-            with validation.
+            with validation. Alternatively validation can be a class which
+            indicates the expected type of items of the list.
         to_synced_list (function, optional): A function that takes one
             argument (a valid SyncedList python value) and does necessary
             conversion before adding to the cpp list. Defaults to a function
@@ -19,14 +44,17 @@ class SyncedList:
             SyncedList to start with an empty list.
     """
 
-    def __init__(self, validation_func,
+    def __init__(self, validation,
                  to_synced_list=None,
                  iterable=None):
         if to_synced_list is None:
-            def identity(x):
-                return x
             to_synced_list = identity
-        self._validate = validation_func
+
+        if inspect.isclass(validation):
+            self._validate = _PartialIsInstance(validation)
+        else:
+            self._validate = validation
+
         self._to_synced_list_conversion = to_synced_list
         self._simulation = None
         self._list = []
@@ -200,3 +228,9 @@ class SyncedList:
             raise ValueError(f"{value} is not in list.")
         for index in removal_list:
             del self[index]
+
+    def __getstate__(self):
+        state = copy(self.__dict__)
+        state['_simulation'] = None
+        state.pop('_synced_list', None)
+        return state
