@@ -101,11 +101,11 @@ class FreeVolume(Compute):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
-                            self.mc._cpp_obj,
-                            _hoomd.CellList(self._simulation.state._cpp_sys_def),
-                            self.seed,
-                            "")
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                self.mc._cpp_obj,
+                                _hoomd.CellList(self._simulation.state._cpp_sys_def),
+                                self.seed,
+                                "")
 
         super()._attach()
 
