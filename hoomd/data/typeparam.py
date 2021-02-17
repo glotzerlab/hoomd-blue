@@ -1,14 +1,17 @@
 from hoomd.data.parameterdicts import AttachedTypeParameterDict
-from copy import deepcopy
 
 
 class TypeParameter:
+    __slots__ = ('name', 'type_kind', 'param_dict')
+
     def __init__(self, name, type_kind, param_dict):
         self.name = name
         self.type_kind = type_kind
         self.param_dict = param_dict
 
     def __getattr__(self, attr):
+        if attr in self.__slots__:
+            return super().__getattr__(attr)
         try:
             return getattr(self.param_dict, attr)
         except AttributeError:
@@ -52,14 +55,15 @@ class TypeParameter:
     def keys(self):
         yield from self.param_dict.keys()
 
-    @property
-    def state(self):
-        state = self.to_dict()
-        if self.param_dict._len_keys > 1:
-            state = {str(key): value for key, value in state.items()}
-        state['__default__'] = self.default
+    def __getstate__(self):
+        state = {'name': self.name,
+                 'type_kind': self.type_kind,
+                 'param_dict': self.param_dict
+                 }
+        if isinstance(self.param_dict, AttachedTypeParameterDict):
+            state['param_dict'] = self.param_dict.to_dettached()
         return state
 
-    def __deepcopy__(self, memo):
-        return TypeParameter(self.name, self.type_kind,
-                             deepcopy(self.param_dict))
+    def __setstate__(self, state):
+        for attr, value in state.items():
+            setattr(self, attr, value)
