@@ -38,7 +38,6 @@ class distance(ConstraintForce):
      * [1] M. Yoneya, H. J. C. Berendsen, and K. Hirasawa, "A Non-Iterative
      Matrix Method for Constraint Molecular Dynamics Simulations," Mol. Simul.,
      vol. 13, no. 6, pp. 395--405, 1994.
-
      * [2] M. Yoneya, "A Generalized Non-iterative Matrix Method for Constraint
      Molecular Dynamics Simulations," J. Comput. Phys., vol. 172, no. 1, pp.
      188--197, Sep. 2001.
@@ -74,11 +73,11 @@ class distance(ConstraintForce):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceDistanceConstraint(
-                self._simulation.state._cpp_sys_def
+                hoomd.context.current.system_definition
             )
         else:
             self.cpp_force = _md.ForceDistanceConstraintGPU(
-                self._simulation.state._cpp_sys_def
+                hoomd.context.current.system_definition
             )
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
