@@ -11,6 +11,7 @@ from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyType
 from hoomd.logging import log
 import hoomd
 
@@ -45,7 +46,7 @@ class FreeVolume(Compute):
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
             seed=int,
-            test_particle_type=hoomd.data.typeconverter.OnlyType((str, int)),
+            test_particle_type=OnlyType((str, int)),
             num_samples=int
         )
         param_dict.update(
