@@ -400,8 +400,8 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
         unsigned int n_groups = run_block_size/(tpp*overlap_threads);
         unsigned int max_queue_size = n_groups*tpp;
 
-        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
-            + args.overlap_idx.getNumElements() * sizeof(unsigned int);
+        const unsigned int min_shared_bytes = static_cast<unsigned int>(args.num_types * sizeof(typename Shape::param_type)
+            + args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
         unsigned int shared_bytes = (unsigned int) (n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
             + max_queue_size * 2 * sizeof(unsigned int)
@@ -426,14 +426,14 @@ void narrow_phase_launcher(const hpmc_args_t& args, const typename Shape::param_
             n_groups = run_block_size/(tpp*overlap_threads);
             max_queue_size = n_groups*tpp;
 
-            shared_bytes = n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+            shared_bytes = static_cast<unsigned int>(n_groups * (2*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
                 + max_queue_size * 2 * sizeof(unsigned int)
-                + min_shared_bytes;
+                + min_shared_bytes);
             }
 
         // determine dynamically allocated shared memory size
-        unsigned int base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        unsigned int base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
+        unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - base_shared_bytes);
         char *ptr = (char *)nullptr;
         unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)

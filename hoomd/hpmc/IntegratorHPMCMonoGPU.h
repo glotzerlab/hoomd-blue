@@ -217,8 +217,6 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             }
         #endif
 
-        virtual std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
-
     protected:
         std::shared_ptr<CellList> m_cl;                      //!< Cell list
         uint3 m_last_dim;                                    //!< Dimensions of the cell list on the last call to update
@@ -784,18 +782,20 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         #endif
 
         GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
-        unsigned int nparticles_rank = this->m_pdata->getN();
+
+        // TODO: Jens - verify if this is correct. These values are used below outside the
+        // #ifdef ENABLE_MPI
+        int particle_comm_size=1;
+        int particle_comm_rank=0;
 
         #ifdef ENABLE_MPI
-        int particle_comm_size;
-        int particle_comm_rank;
         if (m_particle_comm)
             {
             // split local particle data further if a communicator is supplied
             MPI_Comm_size((*m_particle_comm)(), &particle_comm_size);
             MPI_Comm_rank((*m_particle_comm)(), &particle_comm_rank);
 
-            nparticles_rank = this->m_pdata->getN()/particle_comm_size + 1;
+            unsigned int nparticles_rank = this->m_pdata->getN()/particle_comm_size + 1;
             unsigned int offset = (particle_comm_rank*nparticles_rank < this->m_pdata->getN()) ?
                 particle_comm_rank*nparticles_rank : this->m_pdata->getN();
             unsigned np = ((offset + nparticles_rank) < this->m_pdata->getN()) ?
@@ -1836,27 +1836,6 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
             }
         }
     }
-
-#ifdef ENABLE_MPI
-template<class Shape>
-std::vector<hpmc_implicit_counters_t> IntegratorHPMCMonoGPU<Shape>::getImplicitCounters(unsigned int mode)
-    {
-    std::vector<hpmc_implicit_counters_t> result = IntegratorHPMCMono<Shape>::getImplicitCounters(mode);
-
-    if (m_ntrial_comm)
-        {
-        // MPI Reduction to total result values on all ranks
-        for (unsigned int i = 0; i < this->m_depletant_idx.getNumElements(); ++i)
-            {
-            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_count, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
-            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_accept_count, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
-            MPI_Allreduce(MPI_IN_PLACE, &result[i].insert_accept_count_sq, 1, MPI_LONG_LONG_INT, MPI_SUM, (*m_ntrial_comm)());
-            }
-        }
-
-    return result;
-    }
-#endif
 
 //! Export this hpmc integrator to python
 /*! \param name Name of the class in the exported python module

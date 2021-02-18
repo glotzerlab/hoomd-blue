@@ -306,7 +306,7 @@ void connected_components(
     auto new_last = thrust::unique(thrust::cuda::par(alloc),
         adj,
         adj + n_elements);
-    unsigned int nnz = new_last - adj;
+    unsigned int nnz = static_cast<unsigned int>(new_last - adj);
 
     auto source = thrust::make_transform_iterator(adj, get_source());
     auto destination = thrust::make_transform_iterator(adj, get_destination());
@@ -372,7 +372,7 @@ void connected_components(
         unique,
         thrust::discard_iterator<int>());
 
-    num_components = it.first - unique;
+    num_components = static_cast<unsigned int>(it.first - unique);
 
     // make contiguous
     thrust::lower_bound(

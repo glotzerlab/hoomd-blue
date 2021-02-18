@@ -801,13 +801,13 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
-        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+        const unsigned int min_shared_bytes = static_cast<unsigned int>(args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
+        unsigned int shared_bytes = static_cast<unsigned int>(n_groups *(sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
                                     max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
-                                    min_shared_bytes;
+                                    min_shared_bytes);
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -823,17 +823,17 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
+            shared_bytes = static_cast<unsigned int>(n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int)) +
                            max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
-                           min_shared_bytes;
+                           min_shared_bytes);
             }
 
         static unsigned int base_shared_bytes = UINT_MAX;
         bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
 
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - base_shared_bytes);
         static unsigned int extra_bytes = UINT_MAX;
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
@@ -864,7 +864,7 @@ void clusters_depletants_launcher(const cluster_args_t& args, const hpmc_implici
 
             dim3 grid( range.second-range.first, blocks_per_particle, 1);
 
-            if (blocks_per_particle > args.devprop.maxGridSize[1])
+            if (blocks_per_particle > static_cast<unsigned int>(args.devprop.maxGridSize[1]))
                 {
                 grid.y = args.devprop.maxGridSize[1];
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;

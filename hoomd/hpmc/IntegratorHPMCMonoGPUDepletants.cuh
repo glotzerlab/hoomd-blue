@@ -187,7 +187,7 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
     if (master && group == 0)
         {
-        // load from output, this race condition is intentional and implements an 
+        // load from output, this race condition is intentional and implements an
         // optional early exit flag between concurrently running kernels
         s_reject = atomicCAS(&d_reject_out[i], 0, 0);
         }
@@ -664,13 +664,13 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
-        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+        const unsigned int min_shared_bytes = static_cast<unsigned int>(args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
+        unsigned int shared_bytes = static_cast<unsigned int>(n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
                                     max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
-                                    min_shared_bytes;
+                                    min_shared_bytes);
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -689,16 +689,16 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
+            shared_bytes = static_cast<unsigned int>(n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
                            max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
-                           min_shared_bytes;
+                           min_shared_bytes);
             }
 
 
         // determine dynamically requested shared memory
-        unsigned int base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        unsigned int base_shared_bytes = static_cast<unsigned int>(shared_bytes + attr.sharedSizeBytes);
+        unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - base_shared_bytes);
         char *ptr = (char *) nullptr;
         unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)
@@ -723,7 +723,7 @@ void depletants_launcher(const hpmc_args_t& args, const hpmc_implicit_args_t& im
 
             dim3 grid( range.second-range.first, blocks_per_particle, 1);
 
-            if (blocks_per_particle > args.devprop.maxGridSize[1])
+            if (blocks_per_particle > static_cast<unsigned int>(args.devprop.maxGridSize[1]))
                 {
                 grid.y = args.devprop.maxGridSize[1];
                 grid.z = blocks_per_particle/args.devprop.maxGridSize[1]+1;
