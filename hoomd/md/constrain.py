@@ -137,9 +137,9 @@ class Rigid(ConstraintForce):
     file are left unchanged).
 
     .. danger:: Automatic creation of constituent particles can change particle
-        tags. If bonds have been defined between particles in the initial
-        configuration, or bonds connect to constituent particles, rigid bodies
-        should be created manually.
+    tags. If bonds have been defined between particles in the initial
+    configuration, or bonds connect to constituent particles, rigid bodies
+    should be created manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
