@@ -18,9 +18,9 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``static`` parameter in ``hoomd.dump.gsd``
      - ``dynamic`` parameter
    * - ``set_params`` and other ``set_*`` methods
-     - Properties (*under development*)
+     - Parameters and type parameters accessed by properties.
    * - ``context.initialize``
-     - New context API (*under development*)
+     - ``device.CPU`` / ``device.GPU``
    * - ``util.quiet_status`` and ``util.unquiet_status``
      - No longer needed.
 
