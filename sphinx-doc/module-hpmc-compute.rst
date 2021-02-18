@@ -1,5 +1,5 @@
 hpmc.compute
-----------
+------------
 
 .. rubric:: Overview
 
