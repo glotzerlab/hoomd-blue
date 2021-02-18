@@ -60,7 +60,7 @@ void BoxResizeUpdater::setPyBox2(pybind11::object box2)
     }
 
 /// Get the current box based on the timestep
-BoxDim BoxResizeUpdater::getCurrentBox(unsigned int timestep)
+BoxDim BoxResizeUpdater::getCurrentBox(uint64_t timestep)
 {
 Scalar min = m_variant->min();
 Scalar max = m_variant->max();
@@ -92,7 +92,7 @@ return new_box;
 /** Perform the needed calculations to scale the box size
     \param timestep Current time step of the simulation
 */
-void BoxResizeUpdater::update(unsigned int timestep)
+void BoxResizeUpdater::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(10) << "Box resize update" << endl;
     if (m_prof) m_prof->push("BoxResize");

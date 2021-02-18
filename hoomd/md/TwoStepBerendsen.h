@@ -62,10 +62,10 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
             }
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
         const std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities

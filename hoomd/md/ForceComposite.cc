@@ -730,7 +730,7 @@ void ForceComposite::validateRigidBodies(bool create)
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
+CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -757,7 +757,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 #endif
 
 //! Compute the forces and torques on the central particle
-void ForceComposite::computeForces(unsigned int timestep)
+void ForceComposite::computeForces(uint64_t timestep)
     {
     // access local molecule data
     // need to move this on top because of scoping issues
@@ -922,7 +922,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     based on the body center of mass and particle relative position in each body frame.
 */
 
-void ForceComposite::updateCompositeParticles(unsigned int timestep)
+void ForceComposite::updateCompositeParticles(uint64_t timestep)
     {
     // access molecule order (this needs to be on top because of ArrayHandle scope)
     ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);

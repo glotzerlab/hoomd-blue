@@ -15,20 +15,16 @@ import hoomd.hpmc.pytest.conftest
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
          pivot_move_ratio=0.1,
-         flip_probability=0.8,
-         seed=1),
+         flip_probability=0.8),
     dict(trigger=hoomd.trigger.After(100),
          pivot_move_ratio=0.7,
-         flip_probability=1,
-         seed=4),
+         flip_probability=1),
     dict(trigger=hoomd.trigger.Before(100),
          pivot_move_ratio=0.7,
-         flip_probability=1,
-         seed=4),
+         flip_probability=1),
     dict(trigger=hoomd.trigger.Periodic(1000),
          pivot_move_ratio=0.7,
-         flip_probability=1,
-         seed=4),
+         flip_probability=1),
 ]
 
 valid_attrs = [
@@ -68,12 +64,12 @@ def test_valid_construction_and_attach(device, simulation_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
@@ -95,8 +91,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(device, attr, value):
     """Test that Clusters can get and set attributes."""
-    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    seed=1)
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10))
 
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
@@ -115,17 +110,16 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     mc.shape["B"] = args
 
-    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10),
-                                    seed=1)
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(10))
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
                                                            dimensions=dim, d=2, L=50))
@@ -145,14 +139,13 @@ def test_pivot_moves(device, simulation_factory,
     sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
                                                       dimensions=3, a=4, n=7, r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    pivot_move_ratio=0.5,
-                                    seed=12)
+                                    pivot_move_ratio=0.5)
     sim.operations.updaters.append(cl)
 
     sim.run(100)

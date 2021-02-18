@@ -9,7 +9,7 @@ class PYBIND11_EXPORT PythonTuner : public Tuner
                     std::shared_ptr<Trigger> trigger,
                       pybind11::object tuner);
 
-        void update(unsigned int timestep);
+        void update(uint64_t timestep);
 
         PDataFlags getRequestedPDataFlags();
 

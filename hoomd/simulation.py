@@ -13,25 +13,33 @@ from hoomd.operations import Operations
 import hoomd
 import json
 
+TIMESTEP_MAX = 2**64 - 1
+SEED_MAX = 2**16 - 1
+
 
 class Simulation(metaclass=Loggable):
     """Define a simulation.
 
     Args:
         device (`hoomd.device.Device`): Device to execute the simulation.
+        seed (int): Random number seed.
 
     `Simulation` is the central class in HOOMD-blue that defines a simulation,
     including the `state` of the system, the `operations` that apply to the
     state during a simulation `run`, and the `device` to use when executing
     the simulation.
+
+    `seed` sets the seed for the random number generator used by all operations
+    added to this `Simulation`.
     """
 
-    def __init__(self, device):
+    def __init__(self, device, seed=None):
         self._device = device
         self._state = None
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
+        self._seed = seed
 
     @property
     def device(self):
@@ -63,12 +71,58 @@ class Simulation(metaclass=Loggable):
 
     @timestep.setter
     def timestep(self, step):
-        if step < 0:
-            raise ValueError("Timestep must be positive.")
+        if int(step) < 0 or int(step) > TIMESTEP_MAX:
+            raise ValueError(f"steps must be in the range [0, {TIMESTEP_MAX}]")
         elif self._state is None:
             self._timestep = step
         else:
             raise RuntimeError("State must not be set to change timestep.")
+
+    @log
+    def seed(self):
+        """int: Random number seed.
+
+        Seeds are in the range [0, 65535]. When set, `seed` will take only the
+        lowest 16 bits of the given value.
+
+        HOOMD-blue uses a deterministic counter based pseudorandom number
+        generator. Any time a random value is needed, HOOMD-blue computes it as
+        a function of the user provided seed `seed` (16 bits), the current
+        `timestep` (lower 40 bits), particle identifiers, MPI ranks, and other
+        unique identifying values as needed to sample uncorrelated values:
+        ``random_value = f(seed, timestep, ...)``
+        """
+        if self.state is None or self._seed is None:
+            return self._seed
+        else:
+            return self._state._cpp_sys_def.getSeed()
+
+    @seed.setter
+    def seed(self, v):
+        v_int = int(v)
+        if v_int < 0 or v_int > SEED_MAX:
+            v_int = v_int & SEED_MAX
+            self.device._cpp_msg.warning(
+                f"Provided seed {v} is larger than {SEED_MAX}. "
+                f"Truncating to {v_int}.\n")
+
+        self._seed = v_int
+
+        if self._state is not None:
+            self._state._cpp_sys_def.setSeed(v_int)
+
+    def _init_system(self, step):
+        """Initialize the system State.
+
+        Perform additional initialization operations not in the State
+        constructor.
+        """
+        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+
+        if self._seed is not None:
+            self._state._cpp_sys_def.setSeed(self._seed)
+
+        self._init_communicator()
 
     def _init_communicator(self):
         """Initialize the Communicator."""
@@ -93,6 +147,11 @@ class Simulation(metaclass=Loggable):
         else:
             self._system_communicator = None
 
+    def _warn_if_seed_unset(self):
+        if self.seed is None:
+            self.device._cpp_msg.warning(
+                "Simulation.seed is not set, using default seed=0\n")
+
     def create_state_from_gsd(self, filename, frame=-1):
         """Create the simulation state from a GSD file.
 
@@ -116,10 +175,8 @@ class Simulation(metaclass=Loggable):
         self._state = State(self, snapshot)
 
         reader.clearSnapshot()
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
-        self.operations._store_reader(reader)
+
+        self._init_system(step)
 
     def create_state_from_snapshot(self, snapshot):
         """Create the simulations state from a `Snapshot`.
@@ -154,9 +211,7 @@ class Simulation(metaclass=Loggable):
         if self.timestep is not None:
             step = self.timestep
 
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
+        self._init_system(step)
 
     @property
     def state(self):
@@ -327,7 +382,12 @@ class Simulation(metaclass=Loggable):
         if not self.operations._scheduled:
             self.operations._schedule()
 
-        self._cpp_sys.run(int(steps), write_at_start)
+        steps_int = int(steps)
+        if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
+            raise ValueError(f"steps must be in the range [0, "
+                             f"{TIMESTEP_MAX-1}]")
+
+        self._cpp_sys.run(steps_int, write_at_start)
 
     def write_debug_data(self, filename):
         """Write debug data to a JSON file.
@@ -408,5 +468,5 @@ class Simulation(metaclass=Loggable):
 
 
 def _match_class_path(obj, *matches):
-     return any(cls.__module__ + '.' + cls.__name__ in matches
-             for cls in inspect.getmro(type(obj)))
+    return any(cls.__module__ + '.' + cls.__name__ in matches
+               for cls in inspect.getmro(type(obj)))

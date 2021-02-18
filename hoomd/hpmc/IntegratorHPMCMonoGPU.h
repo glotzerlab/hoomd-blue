@@ -60,8 +60,8 @@ class UpdateOrderGPU
         /*! \param seed Random number seed
             \param N number of integers to shuffle
         */
-        UpdateOrderGPU(std::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int seed, unsigned int N=0)
-            : m_seed(seed), m_is_reversed(false), m_update_order(exec_conf), m_reverse_update_order(exec_conf)
+        UpdateOrderGPU(std::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int N=0)
+            : m_is_reversed(false), m_update_order(exec_conf), m_reverse_update_order(exec_conf)
             {
             resize(N);
             }
@@ -95,9 +95,10 @@ class UpdateOrderGPU
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(unsigned int timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, uint16_t seed, unsigned int rank, unsigned int select = 0)
             {
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, seed),
+                                       hoomd::Counter(rank, select));
 
             // reverse the order with 1/2 probability
             m_is_reversed = hoomd::UniformIntDistribution(1)(rng);
@@ -121,7 +122,6 @@ class UpdateOrderGPU
             }
 
     private:
-        unsigned int m_seed;                               //!< Random number seed
         bool m_is_reversed;                                //!< True if order is reversed
         GlobalVector<unsigned int> m_update_order;            //!< Update order
         GlobalVector<unsigned int> m_reverse_update_order;    //!< Inverse permutation
@@ -139,8 +139,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
     public:
         //! Construct the integrator
         IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                              std::shared_ptr<CellList> cl,
-                              unsigned int seed);
+                              std::shared_ptr<CellList> cl);
         //! Destructor
         virtual ~IntegratorHPMCMonoGPU();
 
@@ -201,7 +200,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         virtual void slotNumTypesChange();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         #ifdef ENABLE_MPI
         void setNtrialCommunicator(std::shared_ptr<MPIConfiguration> mpi_conf)
@@ -289,10 +288,9 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
 template< class Shape >
 IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                   std::shared_ptr<CellList> cl,
-                                                                   unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl),
-      m_update_order(this->m_exec_conf, seed+this->m_exec_conf->getRank())
+                                                                   std::shared_ptr<CellList> cl)
+    : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl),
+      m_update_order(this->m_exec_conf),
     {
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
@@ -683,7 +681,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
     }
 
 template< class Shape >
-void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
+void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
     {
     IntegratorHPMC::update(timestep);
 
@@ -697,7 +695,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         }
 
     // rng for shuffle and grid shift
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShift, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter());
 
     if (this->m_pdata->getN() > 0)
         {
@@ -879,7 +878,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         Scalar3 ghost_width = this->m_cl->getGhostWidth();
 
         // randomize particle update order
-        this->m_update_order.shuffle(timestep);
+        this->m_update_order.shuffle(timestep, this->m_sysdef->getSeed(), this->m_exec_conf->getRank());
 
         // expanded cells & neighbor list
         ArrayHandle< unsigned int > d_excell_idx(m_excell_idx, access_location::device, access_mode::overwrite);
@@ -937,7 +936,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     ghost_width,
                     this->m_pdata->getN(),
                     this->m_pdata->getNTypes(),
-                    this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i,
+                    this->m_sysdef->getSeed(),
+                    this->m_exec_conf->getRank(),
                     d_d.data,
                     d_a.data,
                     d_overlaps.data,
@@ -1101,7 +1101,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         ghost_width,
                         this->m_pdata->getN(),
                         this->m_pdata->getNTypes(),
-                        this->m_seed,
+                        this->m_sysdef->getSeed(),
+                        this->m_exec_conf->getRank(),
                         d_d.data,
                         d_a.data,
                         d_overlaps.data,
@@ -1110,7 +1111,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
-                        this->m_exec_conf->getRank()*this->m_nselect + i,
+                        i,
                         ghost_fraction,
                         domain_decomposition,
                         0, // block size
@@ -1510,9 +1511,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         this->m_cl->getDim(),
                         ghost_width,
                         this->m_pdata->getN(),
-                        this->m_seed,
+                        this->m_sysdef->getSeed(),
+                        this->m_exec_conf->getRank(),
                         timestep,
-                        this->m_exec_conf->getRank()*this->m_nselect + i,
                         this->m_pdata->getNTypes(),
                         box,
                         d_excell_idx.data,
@@ -1845,7 +1846,7 @@ template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, 
     {
      pybind11::class_<IntegratorHPMCMonoGPU<Shape>, IntegratorHPMCMono<Shape>,
         std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str())
-              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>>())
               #ifdef ENABLE_MPI
               .def("setNtrialCommunicator", &IntegratorHPMCMonoGPU<Shape>::setNtrialCommunicator)
               .def("setParticleCommunicator", &IntegratorHPMCMonoGPU<Shape>::setParticleCommunicator)

@@ -51,7 +51,7 @@ class PYBIND11_EXPORT CellListStencil : public Compute
         virtual ~CellListStencil();
 
         //! Computes the stencil for each type
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Set the per-type stencil radius
         void setRStencil(const std::vector<Scalar>& rstencil)
@@ -90,7 +90,7 @@ class PYBIND11_EXPORT CellListStencil : public Compute
             }
 
     protected:
-        virtual bool shouldCompute(unsigned int timestep);
+        virtual bool shouldCompute(uint64_t timestep);
 
     private:
         std::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
