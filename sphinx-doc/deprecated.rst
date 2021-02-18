@@ -77,6 +77,10 @@ Commands and features deprecated in v2.x will be removed in v3.0.
      - Replace with
    * - ``group`` parameter to ``integrate.mode_minimize_fire``
      - Pass group to integration method.
+   * - ``alpha`` parameter to ``pair.lj`` and related classes
+     - n/a
+   * - LJ 12-8 pair potential
+     - Mie potential
 
 ``hoomd.cgcmm``:
 
