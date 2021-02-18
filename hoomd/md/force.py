@@ -60,7 +60,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(category='particle')
+    @log(category="particle")
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies
         for all particles."""
@@ -70,7 +70,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(category='particle')
+    @log(category="particle")
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces
         for all particles."""
@@ -80,7 +80,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(category='particle')
+    @log(category="particle")
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque
         for all particles."""
@@ -90,7 +90,7 @@ class Force(_HOOMDBaseObject):
         else:
             return None
 
-    @log(category='particle')
+    @log(category="particle")
     def virials(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial
         for all particles."""
@@ -362,7 +362,7 @@ class Active(Force):
             filter=ParticleFilter,
             seed=int(seed),
             rotation_diff=float(rotation_diff),
-            constraint=OnlyType(
+            constraint=OnlyTypes(
                 ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
             ),
         )
@@ -372,8 +372,6 @@ class Active(Force):
                 rotation_diff=rotation_diff,
                 seed=seed,
                 filter=filter,
-            constraint=OnlyTypes(ConstraintForce, allow_none=True,
-                                preprocess=ellip_preprocessing),
             )
         )
         # set defaults

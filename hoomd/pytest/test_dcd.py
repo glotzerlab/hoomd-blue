@@ -11,6 +11,9 @@ def test_attach(simulation_factory, two_particle_snapshot_factory, tmp_path):
     sim.run(10)
 
 
+# pip installing garnett does not use Cythonized code, so this warning will
+# always be raised unless garnett is built locally.
+@pytest.mark.filterwarnings("ignore:Failed to import dcdreader library")
 def test_write(simulation_factory, two_particle_snapshot_factory, tmp_path):
     garnett = pytest.importorskip("garnett")
     dcd_reader = garnett.reader.DCDFileReader()
