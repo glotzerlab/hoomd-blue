@@ -19,9 +19,10 @@ def test_before_attaching():
 
 def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'])
-    for i in range(snap.particles.N):
-        if i % 2 == 0:
-            snap.particles.typeid[i] = 1
+    if snap.exists:
+        for i in range(snap.particles.N):
+            if i % 2 == 0:
+                snap.particles.typeid[i] = 1
     sim = simulation_factory(snap)
     mc = hoomd.hpmc.integrate.Sphere(23456)
     mc.shape["A"] = {'diameter': 1.0}
