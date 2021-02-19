@@ -48,10 +48,10 @@ struct cluster_args_t
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
                 const unsigned int *_check_overlaps,
                 const Index2D& _overlap_idx,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const BoxDim& _box,
                 const unsigned int _block_size,
                 const unsigned int _tpp,
@@ -115,10 +115,10 @@ struct cluster_args_t
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;              //!< RNG seed
     const unsigned int *d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;       //!< Indexer into interaction matrix
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;          //!< Current time step
     const BoxDim& box;                //!< Current simulation box
     unsigned int block_size;          //!< Block size to execute
     unsigned int tpp;                 //!< Threads per particle
@@ -176,8 +176,8 @@ void flip_clusters(
     const int3 *d_image_backup,
     const int *d_components,
     float flip_probability,
-    unsigned int seed,
-    unsigned int timestep,
+    uint16_t seed,
+    uint64_t timestep,
     const GPUPartition& gpu_partition,
     const unsigned int block_size);
 

@@ -518,7 +518,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             Scalar4 *h_postype, Scalar4 *h_orientation, const unsigned int *h_tag, const Scalar4 *h_vel,
             unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters,
-            unsigned int timestep, hoomd::RandomGenerator& rng_depletants,
+            uint64_t timestep, hoomd::RandomGenerator& rng_depletants,
             unsigned int seed_i_old, unsigned int seed_i_new);
 
         //! Set the nominal width appropriate for looped moves
@@ -2469,7 +2469,7 @@ template<class Shape>
 inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i,
     Shape shape_i, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, const unsigned int *h_tag,
     const Scalar4 *h_vel, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t *implicit_counters,
-    unsigned int timestep, hoomd::RandomGenerator& rng_depletants,
+    uint64_t timestep, hoomd::RandomGenerator& rng_depletants,
     unsigned int seed_i_old, unsigned int seed_i_new)
     {
     const unsigned int n_images = (unsigned int) this->m_image_list.size();
@@ -2754,8 +2754,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     Scalar lambda = std::abs(fugacity)*V_i;
                     hoomd::PoissonDistribution<Scalar> poisson(lambda);
                     unsigned int ntypes = this->m_pdata->getNTypes();
-                    hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNum,
-                        type_a*ntypes+type_b, new_config ? seed_i_new : seed_i_old, i_trial);
+                    hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum,
+                                                               0,
+                                                               0),
+                                                   hoomd::Counter(type_a*ntypes+type_b,
+                                                                  new_config ? seed_i_new : seed_i_old,
+                                                                  i_trial)
+                                                   );
 
                     unsigned int n = poisson(rng_num);
 
@@ -2775,8 +2780,14 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                     for (unsigned int l = 0; l < n; ++l)
                     #endif
                         {
-                        hoomd::RandomGenerator my_rng(hoomd::RNGIdentifier::HPMCDepletants,
-                                new_config ? seed_i_new : seed_i_old, type_a+type_b*ntypes, l, i_trial);
+                        hoomd::RandomGenerator my_rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                                  0,
+                                                                  0),
+                                                      hoomd::Counter(new_config ? seed_i_new : seed_i_old,
+                                                                     l,
+                                                                     i_trial,
+                                                                     static_cast<uint16_t>(type_a+type_b*ntypes))
+                                                      );
 
                         if (! shape_i.ignoreStatistics())
                             {
@@ -3003,8 +3014,13 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         hoomd::PoissonDistribution<Scalar> poisson(lambda);
                         unsigned int ntypes = this->m_pdata->getNTypes();
                         unsigned int seed_j = new_config ? seed_j_new[k] : seed_j_old[k];
-                        hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNum,
-                            type_a*ntypes+type_b, seed_j, i_trial);
+                        hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum,
+                                                                   0,
+                                                                   0),
+                                                       hoomd::Counter(type_a*ntypes+type_b,
+                                                                      seed_j,
+                                                                      i_trial)
+                                                        );
 
                         unsigned int n = poisson(rng_num);
 
@@ -3021,8 +3037,14 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
                         for (unsigned int l = 0; l < n; ++l)
                         #endif
                             {
-                            hoomd::RandomGenerator my_rng(hoomd::RNGIdentifier::HPMCDepletants,
-                                seed_j, type_a+type_b*ntypes, l, i_trial);
+                            hoomd::RandomGenerator my_rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                                      0,
+                                                                      0),
+                                                          hoomd::Counter(seed_j,
+                                                                         l,
+                                                                         i_trial,
+                                                                         static_cast<uint16_t>(type_a+type_b*ntypes))
+                                                        );
 
                             if (! shape_i.ignoreStatistics())
                                 {

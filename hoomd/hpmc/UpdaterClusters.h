@@ -395,7 +395,7 @@ class UpdaterClusters : public Updater
         inline void checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
             const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup,
             unsigned int *h_overlaps, const Scalar *h_fugacity,
-            unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+            uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
         //! Save current state of particle data
         virtual void backupState();
@@ -412,7 +412,7 @@ class UpdaterClusters : public Updater
         virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
 
         //! Flip clusters randomly
-        virtual void flip(unsigned int timestep);
+        virtual void flip(uint64_t timestep);
     };
 
 template< class Shape >
@@ -458,7 +458,7 @@ template<class Shape>
 inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i,
     const Scalar4 *h_postype_backup, const Scalar4 *h_orientation_backup,
     unsigned int *h_overlaps, const Scalar *h_fugacity,
-    unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
+    uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -470,6 +470,8 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     Index2D overlap_idx = m_mc->getOverlapIndexer();
 
     detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+
+    const uint16_t seed = this->m_sysdef->getSeed();
 
     // get image of particle i after transformation
     const BoxDim& box = m_pdata->getGlobalBox();
@@ -611,8 +613,8 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
             hoomd::PoissonDistribution<Scalar> poisson(
                 std::abs(h_fugacity[this->m_mc->getDepletantIndexer()(type_a,type_b)]*V_tot));
             unsigned int ntypes = this->m_pdata->getNTypes();
-            hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNumClusters,
-                this->m_seed, type_a*ntypes+type_b, i, timestep);
+            hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNumClusters, timestep, seed),
+                                           hoomd::Counter(type_a, type_b, i));
 
             unsigned int n = poisson(rng_num);
 
@@ -658,9 +660,8 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
                     // no insertion volume
                     continue;
                     }
-                hoomd::RandomGenerator my_rng(
-                    (hoomd::RNGIdentifier::HPMCDepletantsClusters)^(this->m_seed), i,
-                        type_a+type_b*ntypes, timestep, l);
+                hoomd::RandomGenerator my_rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
+                                              hoomd::Counter(i, type_a+type_b*ntypes, l));
 
                 Scalar V_rand = hoomd::UniformDistribution<Scalar>(0.0, V_tot)(my_rng);
 
@@ -1100,7 +1101,7 @@ void UpdaterClusters<Shape>::transform(const quat<Scalar>& q, const vec3<Scalar>
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::flip(unsigned int timestep)
+void UpdaterClusters<Shape>::flip(uint64_t timestep)
     {
     if (this->m_prof) this->m_prof->push("flip");
 
@@ -1116,13 +1117,15 @@ void UpdaterClusters<Shape>::flip(unsigned int timestep)
         ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::read);
         ArrayHandle<int3> h_image_backup(m_image_backup, access_location::host, access_mode::read);
 
+        uint16_t seed = this->m_sysdef->getSeed();
+
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
             {
             m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
 
             // seed by id of first particle in cluster to make independent of cluster labeling
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, this->m_seed, timestep,
-                m_clusters[icluster][0]);
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters2, timestep, seed),
+                                         hoomd::Counter(m_clusters[icluster][0]));
 
             bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= m_flip_probability;
 
@@ -1146,7 +1149,7 @@ void UpdaterClusters<Shape>::flip(unsigned int timestep)
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
+void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     if (m_prof)
         m_prof->push(m_exec_conf,"Interactions");
@@ -1542,7 +1545,7 @@ void UpdaterClusters<Shape>::connectedComponents()
     \param timestep Current time step of the simulation
 */
 template< class Shape >
-void UpdaterClusters<Shape>::update(unsigned int timestep)
+void UpdaterClusters<Shape>::update(uint64_t timestep)
     {
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
@@ -1558,8 +1561,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
+    const uint16_t seed = m_sysdef->getSeed();
+
     // generate the move, select a pivot
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters, timestep, seed),
+                               hoomd::Counter(m_instance));
     vec3<Scalar> pivot(0,0,0);
 
     // is this a line reflection?
@@ -1722,8 +1728,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int j = it->first.second;
 
                 // create a RNG specific to this particle pair
-                hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise,
-                    this->m_seed, timestep, std::min(i,j), std::max(i,j));
+                hoomd::RandomGenerator rng_ij(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClustersPairwise, timestep, seed),
+                                              hoomd::Counter(std::min(i,j), std::max(i,j)));
 
                 float pij = 1.0f-exp(-delU);
                 if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA

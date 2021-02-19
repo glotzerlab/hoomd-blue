@@ -62,6 +62,7 @@ struct RNGIdentifier
     static const uint8_t HPMCDepletantsClusters = 37;
     static const uint8_t HPMCDepletantNumClusters = 38;
     static const uint8_t HPMCMonoPatch = 39;
+    static const uint8_t UpdaterClusters2 = 40;
     };
 
 }

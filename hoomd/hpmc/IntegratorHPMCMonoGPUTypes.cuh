@@ -30,13 +30,14 @@ struct hpmc_args_t
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
+                const unsigned int _rank,
                 const Scalar* _d,
                 const Scalar* _a,
                 const unsigned int *_check_overlaps,
                 const Index2D& _overlap_idx,
                 const unsigned int _move_ratio,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
                 const unsigned int _select,
@@ -71,6 +72,7 @@ struct hpmc_args_t
                   N(_N),
                   num_types(_num_types),
                   seed(_seed),
+                  rank(_rank),
                   d_d(_d),
                   d_a(_a),
                   d_check_overlaps(_check_overlaps),
@@ -113,13 +115,14 @@ struct hpmc_args_t
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;              //!< RNG seed
+    const unsigned int rank;          //!< MPI Rank
     const Scalar* d_d;                //!< Maximum move displacement
     const Scalar* d_a;                //!< Maximum move angular displacement
     const unsigned int *d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;       //!< Indexer into interaction matrix
     const unsigned int move_ratio;    //!< Ratio of translation to rotation moves
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
     unsigned int select;              //!< Current selection

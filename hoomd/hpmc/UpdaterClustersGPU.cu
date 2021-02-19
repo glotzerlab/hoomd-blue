@@ -154,8 +154,8 @@ __global__ void flip_clusters(
     const int3 *d_image_backup,
     const int *d_components,
     float flip_probability,
-    unsigned int seed,
-    unsigned int timestep,
+    uint16_t seed,
+    uint64_t timestep,
     unsigned int nwork,
     unsigned int work_offset)
     {
@@ -168,7 +168,8 @@ __global__ void flip_clusters(
 
     // seed by cluster id
     int component = d_components[i];
-    hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterClusters+1, seed, timestep, component);
+    hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters2, timestep, seed),
+                                 hoomd::Counter(component));
 
     bool flip = hoomd::detail::generate_canonical<float>(rng_i) <= flip_probability;
 
@@ -240,8 +241,8 @@ void flip_clusters(
     const int3 *d_image_backup,
     const int *d_components,
     float flip_probability,
-    unsigned int seed,
-    unsigned int timestep,
+    uint16_t seed,
+    uint64_t timestep,
     const GPUPartition& gpu_partition,
     const unsigned int block_size)
     {

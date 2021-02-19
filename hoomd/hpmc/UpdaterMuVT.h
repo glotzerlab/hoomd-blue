@@ -31,7 +31,6 @@ class UpdaterMuVT : public Updater
         //! Constructor
         UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-            unsigned int seed,
             unsigned int npartition);
         virtual ~UpdaterMuVT();
 
@@ -151,7 +150,6 @@ class UpdaterMuVT : public Updater
     protected:
         std::vector<std::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
-        unsigned int m_seed;                                  //!< RNG seed
         unsigned int m_npartition;                            //!< The number of partitions to use for Gibbs ensemble
         bool m_gibbs;                                         //!< True if we simulate a Gibbs ensemble
 
@@ -304,18 +302,11 @@ class UpdaterMuVT : public Updater
 template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
-    unsigned int seed,
     unsigned int npartition)
-    : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
+    : Updater(sysdef), m_mc(mc), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0),
       m_n_trial(1)
     {
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
-
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
@@ -2494,7 +2485,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsig
     #endif
 
     // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed, this->m_exec_conf->getPartition());
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2619,7 +2611,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsig
 template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterMuVT<Shape>, Updater, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("getFugacity", &UpdaterMuVT<Shape>::getFugacity)
           .def_property("max_volume_rescale", &UpdaterMuVT<Shape>::getMaxVolumeRescale, &UpdaterMuVT<Shape>::setMaxVolumeRescale)

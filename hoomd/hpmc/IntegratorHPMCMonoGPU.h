@@ -290,7 +290,7 @@ template< class Shape >
 IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                    std::shared_ptr<CellList> cl)
     : IntegratorHPMCMono<Shape>(sysdef), m_cl(cl),
-      m_update_order(this->m_exec_conf),
+      m_update_order(this->m_exec_conf)
     {
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
@@ -1169,9 +1169,10 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
                                 // draw random number of depletant insertions per particle from Poisson distribution
                                 m_tuner_num_depletants->begin();
                                 gpu::generate_num_depletants(
-                                    this->m_seed,
+                                    this->m_sysdef->getSeed(),
                                     timestep,
-                                    this->m_exec_conf->getRank()*this->m_nselect + i,
+                                    i,
+                                    this->m_exec_conf->getRank(),
                                     itype,
                                     jtype,
                                     this->m_depletant_idx,
@@ -1460,9 +1461,10 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
                     this->m_exec_conf->beginMultiGPU();
                     m_tuner_depletants_accept->begin();
                     gpu::hpmc_depletants_accept(
-                        this->m_seed,
+                        this->m_sysdef->getSeed(),
                         timestep,
-                        this->m_exec_conf->getRank()*this->m_nselect + i,
+                        i,
+                        this->m_exec_conf->getRank(),
                         d_deltaF_int.data,
                         this->m_depletant_idx,
                         this->m_pdata->getMaxN(),

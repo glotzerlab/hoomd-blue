@@ -38,10 +38,11 @@ __global__ void hpmc_gen_moves(const Scalar4 *d_postype,
                            const Scalar3 ghost_width,
                            const unsigned int num_types,
                            const unsigned int seed,
+                           const unsigned int rank,
                            const Scalar* d_d,
                            const Scalar* d_a,
                            const unsigned int move_ratio,
-                           const unsigned int timestep,
+                           const uint64_t timestep,
                            const BoxDim box,
                            const unsigned int select,
                            const Scalar3 ghost_fraction,
@@ -118,7 +119,8 @@ __global__ void hpmc_gen_moves(const Scalar4 *d_postype,
         move_active = false;
 
     // make the move
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoTrialMove, idx, seed, select, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+                               hoomd::Counter(idx, select, rank));
 
     // do not move particles that are outside the boundaries
     unsigned int reject = old_cell >= ci.getNumElements();
@@ -310,6 +312,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.ghost_width,
                                                                      args.num_types,
                                                                      args.seed,
+                                                                     args.rank,
                                                                      args.d_d,
                                                                      args.d_a,
                                                                      args.move_ratio,
@@ -359,6 +362,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.ghost_width,
                                                                      args.num_types,
                                                                      args.seed,
+                                                                     args.rank,
                                                                      args.d_d,
                                                                      args.d_a,
                                                                      args.move_ratio,

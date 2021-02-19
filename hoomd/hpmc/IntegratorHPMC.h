@@ -49,7 +49,7 @@ struct hpmc_patch_args_t
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
-                const unsigned uint16_t _seed,
+                const uint16_t _seed,
                 const unsigned int _rank,
                 const uint64_t _timestep,
                 const unsigned int _num_types,
@@ -103,10 +103,9 @@ struct hpmc_patch_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
-    const unsigned uint16_t seed;          //!< RNG seed
+    const uint16_t seed;              //!< RNG seed
     const unsigned int rank;          //!< MPI Rank
     const uint64_t timestep;          //!< Current timestep
-    const unsigned int select;        //!< loop iteration nselect
     const unsigned int num_types;     //!< Number of particle types
     const BoxDim& box;                //!< Current simulation box
     const unsigned int *d_excell_idx;       //!< Expanded cell list

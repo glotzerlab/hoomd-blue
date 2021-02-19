@@ -33,8 +33,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         */
         UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
                         std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                        std::shared_ptr<CellList> cl,
-                        unsigned int seed);
+                        std::shared_ptr<CellList> cl);
 
         //! Destructor
         virtual ~UpdaterClustersGPU();
@@ -70,7 +69,7 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     protected:
         GlobalArray<unsigned int> m_adjacency;     //!< List of overlaps between old and new configuration
@@ -115,13 +114,13 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 
          /*! \param timestep Current time step
          */
-        virtual void findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
+        virtual void findInteractions(uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line);
 
         //! Transform particles
         virtual void transform(const quat<Scalar>& q, const vec3<Scalar>& pivot, bool line);
 
         //! Flip clusters randomly
-        virtual void flip(unsigned int timestep);
+        virtual void flip(uint64_t timestep);
 
         //! Set up excell_list
         virtual void initializeExcellMem();
@@ -139,9 +138,8 @@ class UpdaterClustersGPU : public UpdaterClusters<Shape>
 template< class Shape >
 UpdaterClustersGPU<Shape>::UpdaterClustersGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             std::shared_ptr<CellList> cl,
-                             unsigned int seed)
-    : UpdaterClusters<Shape>(sysdef, mc, seed), m_cl(cl)
+                             std::shared_ptr<CellList> cl)
+    : UpdaterClusters<Shape>(sysdef, mc), m_cl(cl)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing UpdaterClustersGPU" << std::endl;
 
@@ -308,7 +306,7 @@ UpdaterClustersGPU<Shape>::~UpdaterClustersGPU()
     \param timestep Current time step of the simulation
 */
 template< class Shape >
-void UpdaterClustersGPU<Shape>::update(unsigned int timestep)
+void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     {
     // compute nominal cell width
     auto& params = this->m_mc->getParams();
@@ -580,7 +578,7 @@ void UpdaterClustersGPU<Shape>::transform(const quat<Scalar>& q, const vec3<Scal
     }
 
 template<class Shape>
-void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
+void UpdaterClustersGPU<Shape>::flip(uint64_t timestep)
     {
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "flip");
@@ -606,7 +604,7 @@ void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
         d_image_backup.data,
         d_components.data,
         (float) this->m_flip_probability,
-        this->m_seed,
+        this->m_sysdef->getSeed(),
         timestep,
         this->m_pdata->getGPUPartition(),
         m_tuner_flip->getParam());
@@ -620,7 +618,7 @@ void UpdaterClustersGPU<Shape>::flip(unsigned int timestep)
     }
 
 template<class Shape>
-void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
+void UpdaterClustersGPU<Shape>::findInteractions(uint64_t timestep, const quat<Scalar> q, const vec3<Scalar> pivot, bool line)
     {
     const auto& params = this->m_mc->getParams();
 
@@ -743,7 +741,7 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                     ghost_width,
                     this->m_pdata->getN(),
                     this->m_pdata->getNTypes(),
-                    this->m_seed,
+                    this->m_sysdef->getSeed(),
                     d_overlaps.data,
                     this->m_mc->getOverlapIndexer(),
                     timestep,
@@ -818,8 +816,9 @@ void UpdaterClustersGPU<Shape>::findInteractions(unsigned int timestep, const qu
                         // draw random number of depletant insertions per particle from Poisson distribution
                         m_tuner_num_depletants->begin();
                         gpu::generate_num_depletants(
-                            this->m_seed,
+                            this->m_sysdef->getSeed(),
                             timestep,
+                            0,  // is select really always 0 here?
                             this->m_exec_conf->getRank(),
                             itype,
                             jtype,
@@ -1027,8 +1026,7 @@ void export_UpdaterClustersGPU(pybind11::module& m, const std::string& name)
         std::shared_ptr< UpdaterClustersGPU<Shape> > >(m, name.c_str())
         .def( pybind11::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
-                         std::shared_ptr<CellList>,
-                         unsigned int >())
+                         std::shared_ptr<CellList>>())
     ;
     }
 

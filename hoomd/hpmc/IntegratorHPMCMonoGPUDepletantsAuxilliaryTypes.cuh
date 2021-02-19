@@ -82,9 +82,10 @@ void hpmc_depletants_auxilliary_phase1(const hpmc_args_t& args,
 
 //! Driver for kernel::hpmc_depletants_accept
 void hpmc_depletants_accept(
-    const unsigned int seed,
-    const unsigned int timestep,
+    const uint16_t seed,
+    const uint64_t timestep,
     const unsigned int select,
+    const unsigned int rank,
     const int *d_deltaF_int,
     const Index2D depletant_idx,
     const unsigned int deltaF_pitch,
