@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -417,7 +417,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         ArrayHandle<Scalar4> h_net_torque(pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(pdata->getNetVirial(), access_location::host, access_mode::readwrite);
 
-        unsigned int net_virial_pitch = pdata->getNetVirial().getPitch();
+        unsigned int net_virial_pitch = (unsigned int)pdata->getNetVirial().getPitch();
 
         for (unsigned int i = 0; i < 8; ++i)
             {
@@ -555,7 +555,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         ArrayHandle<Scalar4> h_net_torque(pdata->getNetTorqueArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_net_virial(pdata->getNetVirial(), access_location::host, access_mode::read);
 
-        unsigned int net_virial_pitch = pdata->getNetVirial().getPitch();
+        unsigned int net_virial_pitch = (unsigned int)pdata->getNetVirial().getPitch();
 
         for (unsigned int i = 0; i < 8; ++i)
             {
@@ -2683,7 +2683,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
         UP_ASSERT_EQUAL(h_n_bonds.data[0],3);
-        unsigned int pitch = bdata->getGPUTableIndexer().getW();
+        size_t pitch = bdata->getGPUTableIndexer().getW();
 
         unsigned int sorted_tags[3];
         sorted_tags[0] = h_tag.data[h_gpu_bondlist.data[0].idx[0]];

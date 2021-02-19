@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -192,7 +192,9 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
 UP_TEST( mpcd_cell_communicator )
     {
     if (!exec_conf_cpu)
+        {
         exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+        }
 
     // mpi in 1d
         {
@@ -228,7 +230,9 @@ UP_TEST( mpcd_cell_communicator_overdecompose )
 UP_TEST( mpcd_cell_communicator_gpu )
     {
     if (!exec_conf_gpu)
+        {
         exec_conf_gpu = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+        }
 
     // mpi in 1d
         {

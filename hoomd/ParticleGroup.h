@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -292,7 +292,7 @@ class PYBIND11_EXPORT ParticleGroup
             }
 
         /// Get the number translational degrees of freedom
-        unsigned int getTranslationalDOF()
+        Scalar getTranslationalDOF()
             {
             return m_translational_dof;
             }
@@ -304,7 +304,7 @@ class PYBIND11_EXPORT ParticleGroup
             }
 
         /// Get the number of degrees of freedom
-        unsigned int getRotationalDOF()
+        Scalar getRotationalDOF()
             {
             return m_rotational_dof;
             }
@@ -314,6 +314,16 @@ class PYBIND11_EXPORT ParticleGroup
             @param other Second group
         */
         unsigned int intersectionSize(std::shared_ptr<ParticleGroup> other);
+
+        /** Thermalize the particle momenta
+
+            Draw Gaussian random momenta for all particles in the group.
+
+            @param kT Thermal energy
+            @param seed Random number seed
+            @param timestep The current simulation timestep
+        */
+        void thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep);
 
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with

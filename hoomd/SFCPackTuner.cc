@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -170,12 +170,14 @@ void SFCPackTuner::applySortOrder()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal3_tmp[i] = h_inertia.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
         h_inertia.data[i] = scal3_tmp[i];
+        }
 
     // in case anyone access it from frame to frame, sort the net virial
         {
         ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
-        unsigned int virial_pitch = m_pdata->getNetVirial().getPitch();
+        size_t virial_pitch = m_pdata->getNetVirial().getPitch();
 
         for (unsigned int j = 0; j < 6; j++)
             {

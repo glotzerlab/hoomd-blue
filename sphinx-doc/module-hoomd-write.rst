@@ -1,18 +1,23 @@
-hoomd.output
+hoomd.write
 ------------
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd.output
+.. py:currentmodule:: hoomd.write
 
 .. autosummary::
     :nosignatures:
 
-    CSV
+    DCD
+    CustomWriter
+    GSD
+    Table
 
 .. rubric:: Details
 
-.. automodule:: hoomd.output
+.. automodule:: hoomd.write
     :synopsis: Write data out.
-    :members: CSV
-    :imported-members:
+    :members: DCD, CustomWriter, GSD
+
+    .. autoclass:: Table(trigger, logger, output=stdout, header_sep='.', delimiter=' ', pretty=True, max_precision=10, max_header_len=None)
+        :members:

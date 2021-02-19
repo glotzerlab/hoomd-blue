@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -170,7 +170,7 @@ cudaError_t slit_pore_draw_particles(Scalar4 *d_pos,
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N_tot / run_block_size + 1);
-    const unsigned int shared_bytes = num_boxes*(sizeof(Scalar4) + sizeof(uint2));
+    const unsigned int shared_bytes = (unsigned int)(num_boxes*(sizeof(Scalar4) + sizeof(uint2)));
     kernel::slit_pore_draw_particles<<<grid, run_block_size, shared_bytes>>>
         (d_pos, d_vel, d_tag, box, d_boxes, d_ranges, num_boxes, N_tot,
          type, first_tag, first_idx, vel_factor, timestep, seed);

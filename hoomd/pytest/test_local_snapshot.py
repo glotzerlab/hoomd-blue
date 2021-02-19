@@ -2,7 +2,7 @@
 """
 from copy import deepcopy
 import hoomd
-from hoomd.array import HOOMDGPUArray
+from hoomd.data.array import HOOMDGPUArray
 import numpy as np
 import pytest
 try:
@@ -66,8 +66,8 @@ _particle_data = dict(
                   new_value=[2, 1, 0.5, 1, 2], shape=(Np,)),
     image=dict(
         np_type=np.integer,
-        value=np.linspace(-10, 20, Np * 3, dtype=np.int).reshape(Np, 3),
-        new_value=np.linspace(-20, 10, Np * 3, dtype=np.int).reshape(Np, 3),
+        value=np.linspace(-10, 20, Np * 3, dtype=int).reshape(Np, 3),
+        new_value=np.linspace(-20, 10, Np * 3, dtype=int).reshape(Np, 3),
         shape=(Np, 3)),
     tag=dict(np_type=np.unsignedinteger, value=None, shape=(Np,)),
     _types=['p1', 'p2']
@@ -192,7 +192,7 @@ def base_snapshot(device):
             except TypeError:
                 setattr(snap_section, k, data[k]['value'])
 
-    snapshot = hoomd.Snapshot(device.comm)
+    snapshot = hoomd.Snapshot(device.communicator)
 
     if snapshot.exists:
         snapshot.configuration.box = [2.1, 2.1, 2.1, 0, 0, 0]
@@ -374,7 +374,7 @@ class _TestLocalSnapshots:
         sim = simulation_factory()
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
-                self.check_box(data, sim.state.box, sim.device.num_ranks)
+                self.check_box(data, sim.state.box, sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_tag_shape(base_snapshot, local_snapshot, group, ranks):
@@ -411,7 +411,7 @@ class _TestLocalSnapshots:
         for lcl_snapshot_attr in self._lcl_snapshot_attrs:
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 self.check_tag_shape(
-                    base_snapshot, data, snapshot_section, sim.device.num_ranks)
+                    base_snapshot, data, snapshot_section, sim.device.communicator.num_ranks)
 
     @staticmethod
     def check_global_properties(prop, global_property_dict, N):
@@ -445,7 +445,7 @@ class _TestLocalSnapshots:
                 getattr(getattr(data, section_name), prop_name), prop_dict, N)
 
     @pytest.mark.cupy_optional
-    def test_arrays_properties(self, simulation_factory, base_snapshot,
+    def test_arrays_properties(self, simulation_factory,
                                section_name_dict, affix, property_check):
         """This test makes extensive use of parameterizing in pytest.
 
@@ -466,15 +466,30 @@ class _TestLocalSnapshots:
                 tags = getattr(snapshot_section, tag_name)
                 property_check(hoomd_buffer, property_dict, tags)
 
+    def test_run_failure(self, simulation_factory):
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                with pytest.raises(RuntimeError):
+                    sim.run(1)
 
+    def test_setting_snapshot_failure(self, simulation_factory, base_snapshot):
+        sim = simulation_factory()
+        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+            with getattr(sim.state, lcl_snapshot_attr) as data:
+                with pytest.raises(RuntimeError):
+                    sim.state.snapshot = base_snapshot
+
+
+@pytest.mark.cpu
 class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot']
 
     @pytest.fixture
-    def simulation_factory(self, device_cpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_cpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:
@@ -485,15 +500,18 @@ class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
             return sim
         return factory
 
-
+@pytest.mark.gpu
 class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
     _lcl_snapshot_attrs = ['cpu_local_snapshot', 'gpu_local_snapshot']
 
+    #TODO: see if this could work with the global simulation_factory to avoid
+    # code duplication
+
     @pytest.fixture
-    def simulation_factory(self, device_gpu, base_snapshot):
+    def simulation_factory(self, device, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device_gpu)
+            sim = hoomd.Simulation(device)
 
             # reduce sorter grid to avoid Hilbert curve overhead in unit tests
             for tuner in sim.operations.tuners:

@@ -8,9 +8,8 @@ md.pair
 .. autosummary::
     :nosignatures:
 
-    _Pair
+    Pair
     Buckingham
-    dipole
     DLVO
     DPD
     DPDLJ
@@ -19,18 +18,14 @@ md.pair
     ForceShiftedLJ
     Fourier
     Gauss
-    gb
     LJ
     LJ1208
     Mie
     Morse
     Moliere
+    OPP
     ReactionField
-    revcross
     SLJ
-    square_density
-    table
-    tersoff
     Yukawa
     ZBL
 
@@ -38,9 +33,8 @@ md.pair
 
 .. automodule:: hoomd.md.pair
     :synopsis: Pair potentials.
-    :members: _Pair,
+    :members: Pair,
         Buckingham,
-        dipole,
         DLVO,
         DPD,
         DPDLJ,
@@ -49,17 +43,20 @@ md.pair
         ForceShiftedLJ,
         Fourier,
         Gauss,
-        gb,
         LJ,
         LJ1208,
         Mie,
         Morse,
         Moliere,
+        OPP,
         ReactionField,
-        revcross,
         SLJ,
-        square_density,
-        table,
-        tersoff,
         Yukawa,
         ZBL
+
+.. rubric:: Modules
+
+.. toctree::
+   :maxdepth: 3
+
+   module-md-pair-aniso

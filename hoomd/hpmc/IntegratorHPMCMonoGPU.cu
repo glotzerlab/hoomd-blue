@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPU.cuh"
@@ -325,8 +325,9 @@ void hpmc_excell(unsigned int *d_excell_idx,
         }
 
     // setup the grid to run the kernel
-    dim3 threads(min(block_size, (unsigned int)max_block_size), 1, 1);
-    dim3 grid(ci.getNumElements() / block_size + 1, 1, 1);
+    unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
+    dim3 threads(run_block_size, 1, 1);
+    dim3 grid(ci.getNumElements() / run_block_size + 1, 1, 1);
 
     hipLaunchKernelGGL(kernel::hpmc_excell, dim3(grid), dim3(threads), 0, 0, d_excell_idx,
                                            d_excell_size,
@@ -421,7 +422,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
         const unsigned int num_blocks = (nwork + n_groups - 1)/n_groups;
         dim3 grid(num_blocks, 1, 1);
 
-        unsigned int shared_bytes = n_groups * (2*sizeof(float) + sizeof(unsigned int));
+        unsigned int shared_bytes = (unsigned int)(n_groups * (2*sizeof(float) + sizeof(unsigned int)));
         hipLaunchKernelGGL(kernel::hpmc_accept, grid, threads, shared_bytes, 0,
             d_update_order_by_ptl,
             d_trial_move_type,

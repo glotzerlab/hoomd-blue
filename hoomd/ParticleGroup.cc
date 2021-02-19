@@ -1,9 +1,12 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 #include "ParticleGroup.h"
+
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 
 #ifdef ENABLE_HIP
 #include "ParticleGroup.cuh"
@@ -279,7 +282,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     if (m_pdata->getDomainDecomposition())
         {
         // do a simple sanity check
-        unsigned int nptl = member_tags.size();
+        unsigned int nptl = (unsigned int)member_tags.size();
         bcast(nptl, 0, m_exec_conf->getMPICommunicator());
 
         if (nptl != member_tags.size())
@@ -647,8 +650,8 @@ void ParticleGroup::buildTagHash() const
     // reset member ship flags
     memset(h_is_member_tag.data, 0, sizeof(unsigned int)*(m_pdata->getRTags().size()));
 
-    unsigned int num_members = m_member_tags.getNumElements();
-    for (unsigned int member = 0; member < num_members; member++)
+    size_t num_members = m_member_tags.getNumElements();
+    for (size_t member = 0; member < num_members; member++)
         {
         h_is_member_tag.data[h_member_tags.data[member]] = 1;
         }
@@ -789,6 +792,100 @@ unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> othe
     return n;
     }
 
+void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep)
+    {
+    unsigned int group_size = this->getNumMembers();
+
+    const unsigned int n_dimensions = m_sysdef->getNDimensions();
+
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
+
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
+
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                    access_location::host,
+                                    access_mode::read);
+
+    // Total the system's linear momentum
+    vec3<Scalar> tot_momentum(0, 0, 0);
+
+    // Loop over all particles in the group
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = this->getMemberIndex(group_idx);
+        unsigned int ptag = h_tag.data[j];
+
+        // Seed the RNG
+        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ParticleGroupThermalize, seed, ptag, timestep);
+
+        // Generate a random velocity
+        Scalar mass =  h_vel.data[j].w;
+        Scalar sigma = slow::sqrt(kT / mass);
+        hoomd::NormalDistribution<Scalar> normal(sigma);
+        h_vel.data[j].x = normal(rng);
+        h_vel.data[j].y = normal(rng);
+        if (n_dimensions > 2)
+            h_vel.data[j].z = normal(rng);
+        else
+            h_vel.data[j].z = 0; // For 2D systems
+
+        tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
+
+        // Generate random angular momentum if the particle has rotational degrees of freedom.
+        vec3<Scalar> p_vec(0,0,0);
+        quat<Scalar> q(h_orientation.data[j]);
+        vec3<Scalar> I(h_inertia.data[j]);
+
+        if (I.x > 0)
+            p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
+        if (I.y > 0)
+            p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
+        if (I.z > 0)
+            p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);
+
+        // Store the angular momentum quaternion
+        quat<Scalar> p = Scalar(2.0) * q * p_vec;
+        h_angmom.data[j] = quat_to_scalar4(p);
+        }
+
+    // Remove the center of mass momentum
+
+    #ifdef ENABLE_MPI
+    // Reduce the total momentum from all MPI ranks
+    if (m_pdata->getDomainDecomposition())
+       {
+       MPI_Allreduce(MPI_IN_PLACE, &tot_momentum, 3, MPI_HOOMD_SCALAR,
+                     MPI_SUM, m_exec_conf->getMPICommunicator());
+       }
+    #endif
+
+    vec3<Scalar> com_momentum(tot_momentum /
+                              Scalar(this->getNumMembersGlobal()));
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = this->getMemberIndex(group_idx);
+        Scalar mass =  h_vel.data[j].w;
+        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
+        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
+        if (n_dimensions > 2)
+            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
+        else
+            h_vel.data[j].z = 0; // For 2D systems
+        }
+    }
 
 void export_ParticleGroup(py::module& m)
     {
@@ -809,5 +906,6 @@ void export_ParticleGroup(py::module& m)
             .def("getTranslationalDOF", &ParticleGroup::getTranslationalDOF)
             .def("setRotationalDOF", &ParticleGroup::setRotationalDOF)
             .def("getRotationalDOF", &ParticleGroup::getRotationalDOF)
+            .def("thermalizeParticleMomenta", &ParticleGroup::thermalizeParticleMomenta)
             ;
     }

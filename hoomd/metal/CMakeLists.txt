@@ -30,7 +30,7 @@ add_library(HOOMD::_${PACKAGE_NAME} ALIAS _${PACKAGE_NAME})
 if (APPLE)
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN/../md;$ORIGIN")
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN/../md;\$ORIGIN")
 endif()
 
 # link the library to its dependencies

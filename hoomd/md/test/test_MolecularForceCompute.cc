@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -169,8 +169,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
             if (*it != NO_MOLECULE) unique_tags.insert(*it);
             }
 
-        mfc_cpu.setNMolecules(unique_tags.size());
-        mfc_gpu.setNMolecules(unique_tags.size());
+        mfc_cpu.setNMolecules((unsigned int)unique_tags.size());
+        mfc_gpu.setNMolecules((unsigned int)unique_tags.size());
 
         mfc_cpu.setMoleculeTags(molecule_tags);
         mfc_gpu.setMoleculeTags(molecule_tags);

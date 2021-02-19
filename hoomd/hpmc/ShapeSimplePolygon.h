@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -148,7 +148,7 @@ DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& 
 //! Test if 3 points are in ccw order
 DEVICE inline unsigned int tri_orientation(const vec2<OverlapReal>& a, const vec2<OverlapReal>& b, const vec2<OverlapReal>& c)
     {
-    const OverlapReal precision_tol = 1e-6;
+    const OverlapReal precision_tol = OverlapReal(1e-6);
     OverlapReal v = ((c.y - a.y)*(b.x - a.x) - (b.y - a.y)*(c.x - a.x));
 
     if (fabs(v) < precision_tol)
@@ -311,7 +311,7 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                                        Scalar sweep_radius_b)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     return detail::test_simple_polygon_overlap(a.verts,
                                                b.verts,

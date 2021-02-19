@@ -3,17 +3,15 @@ from functools import partial
 import hoomd._hoomd as _hoomd
 
 
-def _make_vec_three(vec, vec_factory, scalar_type):
-    """A helper function for converting Python sequences to HOOMD T3 classes (e.g. Scalar3, Int3).
+def _make_vec3(vec, vec_factory, scalar_type):
+    """Converts Python types to HOOMD T3 classes (e.g. Scalar3, Int3).
 
     Args:
-        vec (Sequence[X] or X): A sequence of type X where X is the type
-            returned by scalar_type.
+        vec (Sequence[T] or T): A sequence or scalar of type ``scalar_type``.
         vec_factory (function): A function from `hoomd._hoomd` that makes a T3
             class (e.g. Scalar3, Int3).
-        scalar_type (function): A function to convert a Python value into the
-            base type for the vec_factory function. For `Scalar3` this would be
-            `float`.
+        scalar_type (class): A class defining the base type ``T`` for the
+            vec_factory function. For `Scalar3` this would be `float`.
     """
     try:
         l_vec = len(vec)
@@ -32,24 +30,24 @@ def _make_vec_three(vec, vec_factory, scalar_type):
         except (ValueError, TypeError):
             raise ValueError("Expected values of type {}.".format(scalar_type))
     else:
-        raise ValueError("Expected three or one value received {}.".format(
-            len(vec)))
+        raise ValueError("Expected a sequence of three values or a single "
+                         "value. Received {} values.".format(len(vec)))
 
 
-_make_scalar3 = partial(_make_vec_three,
+_make_scalar3 = partial(_make_vec3,
                         vec_factory=_hoomd.make_scalar3,
                         scalar_type=float)
 
-_make_int3 = partial(_make_vec_three,
+_make_int3 = partial(_make_vec3,
                      vec_factory=_hoomd.make_int3,
                      scalar_type=int)
 
-_make_char3 = partial(_make_vec_three,
+_make_char3 = partial(_make_vec3,
                       vec_factory=_hoomd.make_char3,
                       scalar_type=int)
 
 
-def _to_three_array(vec, dtype=None):
+def _vec3_to_array(vec, dtype=None):
     return np.array((vec.x, vec.y, vec.z), dtype=dtype)
 
 
@@ -73,30 +71,32 @@ class Box:
 
     Access attributes directly::
 
-        b = hoomd.box.Box(L=20)
-        b.xy = 1.0
-        b.yz = 0.5
-        b.Lz = 40
+        box = hoomd.Box.cube(L=20)
+        box.xy = 1.0
+        box.yz = 0.5
+        box.Lz = 40
 
     .. rubric:: Two dimensional systems
 
     2D simulations in HOOMD use boxes with ``Lz == 0``. 2D boxes ignore ``xz``
-    and ``yz``. If a new `Box` is assigned to a system with differnt
+    and ``yz``. If a new `Box` is assigned to a system with different
     dimensionality, a warning will be shown.
 
     In 2D boxes, *volume* is in units of area.
 
     .. rubric:: Factory Methods
 
-    `Box` has factory methods to enable easier creation of boxes:
-    `cube` and `from_matrix`. See the method documentation for usage.
+    `Box` has factory methods to enable easier creation of boxes: `cube`,
+    `square`, `from_matrix`, and `from_box`. See the method documentation for
+    usage.
 
     Examples:
 
-    * Cubic box with given length: ``Box.cube(L=1)``
-    * Square box with given length: ``Box.cube(L=1, dimensions=2)``
-    * From an upper triangular matrix: ``Box.from_matrix(matrix)``
-    * Full spec: ``Box(Lx=1, Ly=2, Lz=3, xy=1., xz=2., yz=3.)``
+    * Cubic box with given length: ``hoomd.Box.cube(L=1)``
+    * Square box with given length: ``hoomd.Box.square(L=1)``
+    * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
+    * Specify all values: ``hoomd.Box(Lx=1., Ly=2., Lz=3., xy=1., xz=2.,
+      yz=3.)``
     """
 
     # Constructors
@@ -114,7 +114,7 @@ class Box:
             L (float): The box side length (distance units).
 
         Returns:
-            hoomd.Box: The created box.
+            hoomd.Box: The created 3D box.
         """
         return cls(L, L, L, 0, 0, 0)
 
@@ -175,9 +175,9 @@ class Box:
         .. note:: Objects that can be converted to HOOMD-blue boxes include
                   lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
                   dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
+                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
                   objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
+                  :code:`Lx, Ly, Lz, xy, xz, yz,
                   3x3 matrices (see `from_matrix`),
                   or existing :class:`hoomd.Box` objects.
 
@@ -254,7 +254,7 @@ class Box:
 
         Can be set with a float which sets all lengths, or a length 3 vector.
         """
-        return _to_three_array(self._cpp_obj.getL())
+        return _vec3_to_array(self._cpp_obj.getL())
 
     @L.setter
     def L(self, new_L):
@@ -348,7 +348,7 @@ class Box:
     def periodic(self):
         """(3) `numpy.ndarray` of `bool`: The periodicity of
         each dimension."""
-        return _to_three_array(self._cpp_obj.getPeriodic(), np.bool)
+        return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
     def lattice_vectors(self):
@@ -357,7 +357,7 @@ class Box:
         The lattice vectors are read-only.
         """
         return np.concatenate(
-            [_to_three_array(self._cpp_obj.getLatticeVector(i))
+            [_vec3_to_array(self._cpp_obj.getLatticeVector(i))
              for i in range(3)]).reshape(3, 3)
 
     @property
@@ -416,7 +416,7 @@ class Box:
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
         """
-        s = np.asarray(s, dtype=np.float)
+        s = np.asarray(s, dtype=float)
         self.L *= s
 
     # Magic Methods
@@ -425,9 +425,13 @@ class Box:
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
 #     def wrap(self, v, image=(0, 0, 0)):
@@ -445,7 +449,7 @@ class Box:
 #         image = _make_int3(image)
 #         c = _make_char3([0, 0, 0])
 #         self._cpp_obj.wrap(u, image, c)
-#         return _to_three_array(u), _to_three_array(image)
+#         return _vec3_to_array(u), _vec3_to_array(image)
 
 #     def min_image(self, v):
 #         R""" Apply the minimum image convention to a vector.
@@ -457,7 +461,7 @@ class Box:
 #             The minimum image as a tuple.
 #         """
 #         u = _make_scalar3(v)
-#         return _to_three_array(self._cpp_obj.minImage(u))
+#         return _vec3_to_array(self._cpp_obj.minImage(u))
 
 #     def make_fraction(self, v):
 #         R""" Scale a vector to fractional coordinates.
@@ -474,4 +478,4 @@ class Box:
 #         """
 #         u = _make_scalar3(v)
 #         w = _make_scalar3([0., 0., 0.])
-#         return _to_three_array(self._cpp_obj.makeFraction(u, w))
+#         return _vec3_to_array(self._cpp_obj.makeFraction(u, w))

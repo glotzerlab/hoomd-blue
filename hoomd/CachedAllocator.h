@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -18,6 +18,7 @@
 
 #include <map>
 #include <cassert>
+#include <stdexcept>
 
 //! Need to define an error checking macro that can be used in .cu files
 #define CHECK_CUDA() \
@@ -76,7 +77,7 @@ class __attribute__((visibility("default"))) CachedAllocator
          * \returns a pointer to the allocated buffer
          */
         template<typename T>
-        T *getTemporaryBuffer(unsigned int num_elements);
+        T *getTemporaryBuffer(size_t num_elements);
 
         // Specifically allocate a char* buffer
         char *allocate(std::ptrdiff_t num_bytes)
@@ -105,8 +106,8 @@ class __attribute__((visibility("default"))) CachedAllocator
 
         bool m_managed;  //! True if we use unified memory
 
-        unsigned int m_num_bytes_tot;
-        unsigned int m_max_cached_bytes;
+        size_t m_num_bytes_tot;
+        size_t m_max_cached_bytes;
         float m_cache_reltol;
 
         free_blocks_type m_free_blocks;
@@ -121,35 +122,13 @@ class __attribute__((visibility("default"))) CachedAllocator
             // deallocate all outstanding blocks in both lists
             for(free_blocks_type::iterator i = m_free_blocks.begin(); i != m_free_blocks.end(); ++i)
                 {
-                #ifdef __HIP_PLATFORM_HCC__
-                if (m_managed)
-                    {
-                    // workaround, HIP doesn't fully support managed memory API
-                    hipHostFree((void *) i->second);
-                    }
-                else
-                #endif
-                    {
-                    hipFree((void *) i->second);
-                    }
-                CHECK_CUDA();
+                hipFree((void *) i->second);
                 }
 
             for(allocated_blocks_type::iterator i = m_allocated_blocks.begin();
                 i != m_allocated_blocks.end(); ++i)
                 {
-                #ifdef __HIP_PLATFORM_HCC__
-                if (m_managed)
-                    {
-                    // workaround, HIP doesn't fully support managed memory API
-                    hipHostFree((void *) i->first);
-                    }
-                else
-                #endif
-                    {
-                    hipFree((void *) i->first);
-                    }
-                CHECK_CUDA();
+                hipFree((void *) i->first);
                 }
             }
     };
@@ -162,7 +141,7 @@ class ScopedAllocation
     {
     public:
         //! Copy constructor
-        ScopedAllocation(CachedAllocator& alloc, unsigned int num_elements);
+        ScopedAllocation(CachedAllocator& alloc, size_t num_elements);
 
         //! Destructor
         ~ScopedAllocation();
@@ -183,7 +162,7 @@ class ScopedAllocation
     };
 
 template<typename T>
-T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
+T* CachedAllocator::getTemporaryBuffer(size_t num_elements)
     {
     std::ptrdiff_t num_bytes = sizeof(T)*num_elements;
     char *result = 0;
@@ -191,7 +170,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
     // short-cut to avoid storing duplicate NULL ptrs in the map
     if (!num_bytes) return (T*)NULL;
 
-    unsigned int num_allocated_bytes = num_bytes;
+    size_t num_allocated_bytes = num_bytes;
 
     // search the cache for a free block
     free_blocks_type::iterator free_block = m_free_blocks.lower_bound(num_bytes);
@@ -236,17 +215,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 //                << float(i->first)/1024.0f/1024.0f << " MB)" << std::endl;
 
             // transform the pointer to cuda::pointer before calling cuda::free
-            #ifdef __HIP_PLATFORM_HCC__
-            if (m_managed)
-                {
-                // workaround, HIP doesn't fully support managed memory API
-                hipHostFree((void *) i->second);
-                }
-            else
-            #endif
-                {
-                hipFree((void *) i->second);
-                }
+            hipFree((void *) i->second);
 
             CHECK_CUDA();
             m_num_bytes_tot -= i->first;
@@ -263,7 +232,7 @@ T* CachedAllocator::getTemporaryBuffer(unsigned int num_elements)
 
 //! Constructor
 template<typename T>
-ScopedAllocation<T>::ScopedAllocation(CachedAllocator& alloc, unsigned int num_elements)
+ScopedAllocation<T>::ScopedAllocation(CachedAllocator& alloc, size_t num_elements)
     : m_alloc(alloc)
     {
     data = m_alloc.getTemporaryBuffer<T>(num_elements);

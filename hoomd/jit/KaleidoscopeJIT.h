@@ -15,12 +15,20 @@
 #define LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H
 
 #include <utility>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include "llvm/Config/llvm-config.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
 #include "llvm/ExecutionEngine/Orc/LambdaResolver.h"
+
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 11
+#include "llvm/ADT/StringRef.h"
+#endif
 
 // work around ObjectLinkingLayer -> RTDyldObjectLinkingLayer rename
 #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 4
@@ -34,6 +42,8 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+
+#pragma GCC diagnostic pop
 
 #include <memory>
 
@@ -67,13 +77,25 @@ public:
   KaleidoscopeJIT()
       : Resolver(createLegacyLookupResolver(
             ES,
+            #if LLVM_VERSION_MAJOR < 11
             [this](const std::string &Name) -> JITSymbol {
+            #else
+            [this](llvm::StringRef Name) -> JITSymbol {
+            #endif
+              #if LLVM_VERSION_MAJOR < 11
               if (auto Sym = CompileLayer.findSymbol(Name, false))
+              #else
+              if (auto Sym = CompileLayer.findSymbol(Name.str(), false))
+              #endif
                 return Sym;
               else if (auto Err = Sym.takeError())
                 return std::move(Err);
               if (auto SymAddr =
+              #if LLVM_VERSION_MAJOR < 11
                       RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+              #else
+                      RTDyldMemoryManager::getSymbolAddressInProcess(Name.str()))
+              #endif
                 return JITSymbol(SymAddr, JITSymbolFlags::Exported);
               return nullptr;
             },

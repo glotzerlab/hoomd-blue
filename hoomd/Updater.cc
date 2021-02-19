@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -41,6 +41,7 @@ void export_Updater(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("update", &Updater::update)
     .def("setProfiler", &Updater::setProfiler)
+    .def("notifyDetach", &Updater::notifyDetach)
     #ifdef ENABLE_MPI
     .def("setCommunicator", &Updater::setCommunicator)
     #endif

@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -31,7 +31,7 @@
 */
 extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_force,
                                                                     Scalar* d_virial,
-                                                                    const unsigned int virial_pitch,
+                                                                    const size_t virial_pitch,
                                                                     const unsigned int N,
                                                                     const Scalar4 *d_pos,
                                                                     const Scalar2 *d_params,
@@ -212,7 +212,7 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
 */
 hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
                                               Scalar* d_virial,
-                                              const unsigned int virial_pitch,
+                                              const size_t virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const BoxDim& box,
@@ -241,7 +241,7 @@ hipError_t gpu_compute_cosinesq_angle_forces(Scalar4* d_force,
     dim3 threads(run_block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_cosinesq_angle_forces_kernel), dim3(grid), dim3(threads), 0, 0, 
+    hipLaunchKernelGGL((gpu_compute_cosinesq_angle_forces_kernel), dim3(grid), dim3(threads), 0, 0,
             d_force, d_virial, virial_pitch, N, d_pos, d_params, box,
             atable, apos_list, pitch, n_angles_list);
 

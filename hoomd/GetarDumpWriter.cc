@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "ParticleData.h"
@@ -688,7 +688,7 @@ namespace getardump{
                 access_location::host, access_mode::read);
 
             const unsigned int N(m_pdata->getN());
-            const unsigned int virialPitch(m_pdata->getNetVirial().getPitch());
+            size_t virialPitch(m_pdata->getNetVirial().getPitch());
 
             map<unsigned int, Scalar> sorted[6];
             for(unsigned int i(0); i < N; ++i)

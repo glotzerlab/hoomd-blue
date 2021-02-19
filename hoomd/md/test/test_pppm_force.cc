@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -89,7 +89,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
 
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
-    unsigned int pitch = fc_2->getVirialArray().getPitch();
+    size_t pitch = fc_2->getVirialArray().getPitch();
 
     MY_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
@@ -164,7 +164,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
 
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
-    unsigned int pitch = fc_2->getVirialArray().getPitch();
+    size_t pitch = fc_2->getVirialArray().getPitch();
 
     Scalar rough_tol = 0.02;
     Scalar rough_tol_2 = 10.0;

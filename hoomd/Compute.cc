@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -125,8 +125,8 @@ void export_Compute(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &Compute::compute)
     .def("benchmark", &Compute::benchmark)
-    .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
+    .def("notifyDetach", &Compute::notifyDetach)
     #ifdef ENABLE_MPI
     .def("setCommunicator", &Compute::setCommunicator)
     #endif

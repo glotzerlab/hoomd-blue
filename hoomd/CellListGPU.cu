@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,8 +6,11 @@
 
 #include "CellListGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/sort.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 /*! \file CellListGPU.cu
     \brief Defines GPU kernel code for cell list generation on the GPU

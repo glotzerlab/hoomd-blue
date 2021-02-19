@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -130,7 +130,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
 
     // compute the net force on all particles
 #ifdef ENABLE_HIP
-    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+    if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep+1);
     else
 #endif
@@ -301,7 +301,7 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
 */
 Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
-    int res = 0;
+    double res = 0;
 
     bool aniso = false;
 
@@ -425,7 +425,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 
         // compute the net force on all particles
 #ifdef ENABLE_HIP
-    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+    if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep);
     else
 #endif
@@ -437,9 +437,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeAccelerations(timestep);
         m_pdata->notifyAccelSet();
         }
-
-    for (auto& method : m_methods)
-        method->randomizeVelocities(timestep);
 
     m_prepared = true;
     }

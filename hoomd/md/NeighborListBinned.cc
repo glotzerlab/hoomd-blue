@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -200,6 +200,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 void export_NeighborListBinned(py::module& m)
     {
     py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
-                     ;
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
+        .def_property("deterministic", &NeighborListBinned::getDeterministic, &NeighborListBinned::setDeterministic)
+        ;
     }

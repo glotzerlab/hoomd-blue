@@ -15,7 +15,7 @@ skip_gsd = pytest.mark.skipif(
 @pytest.fixture(scope="function")
 def get_snapshot(device):
     def make_snapshot(n=10, particle_types=['A']):
-        s = hoomd.snapshot.Snapshot(device.comm)
+        s = hoomd.snapshot.Snapshot(device.communicator)
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
@@ -75,26 +75,17 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                     )
 
 
-def assert_equivalent_boxes(box1, box2):
-    assert box1.Lx == box2.Lx
-    assert box1.Ly == box2.Ly
-    assert box1.Lz == box2.Lz
-    assert box1.xy == box2.xy
-    assert box1.xz == box2.xz
-    assert box1.yz == box2.yz
-
-
 def random_inds(n):
     return np.random.choice(np.arange(n),
                             size=int(n * np.random.rand()),
                             replace=False)
 
 
-def test_initialization(device, simulation_factory, get_snapshot):
+def test_initialization(device):
     with pytest.raises(TypeError):
         sim = hoomd.Simulation()
 
-    sim = hoomd.Simulation(device)
+    sim = hoomd.Simulation(device) # noqa
 
 
 def test_device_property(device):
@@ -123,7 +114,17 @@ def test_run(simulation_factory, get_snapshot, device):
     sim = simulation_factory(get_snapshot())
     sim.run(1)
 
-    assert sim.operations.scheduled
+    assert sim.operations._scheduled
+
+
+def test_tps(simulation_factory, get_snapshot, device):
+    sim = hoomd.Simulation(device)
+    assert sim.tps is None
+
+    sim = simulation_factory(get_snapshot())
+    sim.run(100)
+
+    assert sim.tps > 0
 
 
 def test_timestep(simulation_factory, get_snapshot, device):
@@ -143,7 +144,7 @@ def test_timestep(simulation_factory, get_snapshot, device):
 def test_run_with_timestep(simulation_factory, get_snapshot, device):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
-    sim.operations.schedule()
+    sim.operations._schedule()
 
     steps = 0
     n_step_list = [1, 10, 100]
@@ -193,5 +194,99 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
     for step, snap in snapshot_dict.items():
         sim = hoomd.Simulation(device)
         sim.create_state_from_gsd(filename, frame=step)
-        assert_equivalent_boxes(box, sim.state.box)
+        assert box == sim.state.box
         assert_equivalent_snapshots(snap, sim.state.snapshot)
+
+@skip_gsd
+def test_state_from_snapshot(simulation_factory, get_snapshot,
+                        device, state_args, tmp_path):
+    snap_params, nsteps = state_args
+
+    d = tmp_path / "sub"
+    d.mkdir()
+    filename = d / "temporary_test_file.gsd"
+    with gsd.hoomd.open(name=filename, mode='wb+') as file:
+        sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                              particle_types=snap_params[1]))
+        snap = sim.state.snapshot
+        snap = make_gsd_snapshot(snap)
+        snapshot_dict = {}
+        snapshot_dict[0] = snap
+        file.append(snap)
+        box = sim.state.box
+        for step in range(1, nsteps):
+            particle_type = np.random.choice(snap_params[1])
+            snap = update_positions(sim.state.snapshot)
+            set_types(snap, random_inds(snap_params[0]),
+                      snap_params[1], particle_type)
+            snap = make_gsd_snapshot(snap)
+            file.append(snap)
+            snapshot_dict[step] = snap
+
+    for step, snap in snapshot_dict.items():
+        sim = hoomd.Simulation(device)
+        sim.create_state_from_snapshot(snap)
+        assert box == sim.state.box
+        assert_equivalent_snapshots(snap, sim.state.snapshot)
+
+
+def test_writer_order(simulation_factory, two_particle_snapshot_factory):
+    """Ensure that writers run at the end of the loop step."""
+
+    class StepRecorder(hoomd.custom.Action):
+
+        def __init__(self):
+            self.steps = []
+
+        def act(self, timestep):
+            self.steps.append(timestep)
+
+    record = StepRecorder()
+    periodic = hoomd.trigger.Periodic(period=100, phase=0)
+    writer = hoomd.write.CustomWriter(action=record, trigger=periodic)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.writers.append(writer)
+
+    sim.run(500)
+    assert record.steps == [100, 200, 300, 400, 500]
+    sim.run(500)
+    assert record.steps == [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+
+def test_writer_order_initial(simulation_factory,
+                              two_particle_snapshot_factory):
+    """Ensure that writers optionally run at the beginning of the loop."""
+
+    class StepRecorder(hoomd.custom.Action):
+
+        def __init__(self):
+            self.steps = []
+
+        def act(self, timestep):
+            self.steps.append(timestep)
+
+    record = StepRecorder()
+    periodic = hoomd.trigger.Periodic(period=100, phase=0)
+    writer = hoomd.write.CustomWriter(action=record, trigger=periodic)
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.writers.append(writer)
+
+    sim.run(500, write_at_start=True)
+    assert record.steps == [0, 100, 200, 300, 400, 500]
+    sim.run(500, write_at_start=True)
+    assert record.steps == [
+        0,
+        100,
+        200,
+        300,
+        400,
+        500,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000,
+    ]

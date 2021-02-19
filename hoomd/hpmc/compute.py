@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Compute properties of hard particle configurations.
@@ -9,10 +9,10 @@ from __future__ import print_function
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.compute import _compute
+from hoomd.operation import Compute
 import hoomd
 
-class free_volume(_compute):
+class free_volume(Compute):
     R""" Compute the free volume available to a test particle by stochastic integration.
 
     Args:

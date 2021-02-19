@@ -438,30 +438,6 @@ class UpdaterClusters : public Updater
             m_count_run_start = m_count_total;
             }
 
-        //! Print statistics about the cluster move updates
-        /* We only print the statistics about accepted and rejected moves.
-         */
-        void printStats()
-            {
-            hpmc_clusters_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC cluster move stats:" << std::endl;
-            if (counters.pivot_accept_count + counters.pivot_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average pivot acceptance:      " << counters.getPivotAcceptance() << std::endl;
-                }
-            if (counters.reflection_accept_count + counters.reflection_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average reflection acceptance: " << counters.getReflectionAcceptance() << std::endl;
-                }
-            if (counters.swap_accept_count + counters.swap_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average swap acceptance:       " << counters.getSwapAcceptance() << std::endl;
-                }
-            m_exec_conf->msg->notice(2) <<     "Total particles in clusters:   " << counters.getNParticlesInClusters() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Total particles moved:         " << counters.getNParticlesMoved() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Average cluster size:          " << counters.getAverageClusterSize() << std::endl;
-            }
-
             /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
                 \return The current state of the acceptance counters
             */
@@ -620,7 +596,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     auto image_list = m_mc->updateImageList();
 
     // minimum AABB extent
-    Scalar min_core_diameter = m_mc->getMinCoreDiameter();
+    OverlapReal min_core_diameter = OverlapReal(m_mc->getMinCoreDiameter());
 
     Index2D overlap_idx = m_mc->getOverlapIndexer();
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
@@ -676,10 +652,10 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
@@ -738,14 +714,14 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij, typ_i,
+                                    U += patch->energy(vec3<float>(r_ij), typ_i,
                                                         quat<float>(orientation_i),
-                                                        d_i,
-                                                        charge_i,
+                                                        float(d_i),
+                                                        float(charge_i),
                                                         typ_j,
                                                         quat<float>(m_orientation_backup[j]),
-                                                        m_diameter_backup[j],
-                                                        m_charge_backup[j]);
+                                                        float(m_diameter_backup[j]),
+                                                        float(m_charge_backup[j]));
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -800,7 +776,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
         // All image boxes (including the primary)
-        const unsigned int n_images = image_list.size();
+        const unsigned int n_images = (unsigned int)image_list.size();
 
         // check against old
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -889,7 +865,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             {
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // compute V(r'-r)
@@ -944,14 +920,14 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij, typ_i,
+                                    U += patch->energy(vec3<float>(r_ij), typ_i,
                                                             quat<float>(shape_i.orientation),
-                                                            h_diameter.data[i],
-                                                            h_charge.data[i],
+                                                            float(h_diameter.data[i]),
+                                                            float(h_charge.data[i]),
                                                             typ_j,
                                                             quat<float>(m_orientation_backup[j]),
-                                                            m_diameter_backup[j],
-                                                            m_charge_backup[j]);
+                                                            float(m_diameter_backup[j]),
+                                                            float(m_charge_backup[j]));
 
                                     // update map
                                     m_energy_new_old[p] = U;
@@ -1007,11 +983,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             if (patch)
                 extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
 
-            OverlapReal R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
 
             // check against new AABB tree
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1128,7 +1104,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
                 detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
 
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
 
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -1229,7 +1205,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
 
                 // check overlap of depletant-excluded volumes
                 detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
@@ -1331,7 +1307,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                     detail::AABB aabb_i(pos_i_new, Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
 
                     // All image boxes (including the primary)
-                    const unsigned int n_images = image_list.size();
+                    const unsigned int n_images = (unsigned int)image_list.size();
 
                     // check against new AABB tree
                     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)

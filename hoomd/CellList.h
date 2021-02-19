@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -200,6 +200,12 @@ class PYBIND11_EXPORT CellList : public Compute
             m_params_changed = true;
             }
 
+        /// Get whether the cell list is sorted
+        bool getSortCellList()
+            {
+            return m_sort_cell_list;
+            }
+
         //! Set the flag to compute the cell adjacency list
         void setComputeAdjList(bool compute_adj_list)
             {
@@ -336,9 +342,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);
-
-        //! Print statistics on the cell list
-        virtual void printStats();
 
         // @}
 

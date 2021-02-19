@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -149,67 +149,6 @@ UP_TEST( getter_setter_tests )
     std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->setPeriod(8);
     UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[1].second)->getPeriod(), (uint64_t)8);
     UP_ASSERT_EQUAL(std::dynamic_pointer_cast<PeriodicTrigger>(sys.getUpdaters()[0].second)->getPeriod(), (uint64_t)15);
-
-    // ********* Computes
-    // create two updaters to test adding
-    std::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
-    std::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
-
-    // add them both to a System
-    sys.addCompute(compute1, "compute1");
-    sys.addCompute(compute2, "compute2");
-
-    // test adding another of the same name
-    bool except = false;
-    try
-        {
-        sys.addCompute(compute2, "compute1");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
-
-    // check the get method
-    MY_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
-    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
-    except = false;
-    try
-        {
-        sys.getCompute("compute3");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
-
-    // remove the computes 1 by one and make sure they don't exist
-    sys.removeCompute("compute1");
-    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
-    except = false;
-    try
-        {
-        sys.getCompute("compute1");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
-
-    sys.removeCompute("compute2");
-    except = false;
-    try
-        {
-        sys.getCompute("compute2");
-        }
-    catch (const std::runtime_error&)
-        {
-        except = true;
-        }
-    UP_ASSERT(except);
 
     // ************ Integrator
     std::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # pragma once
@@ -137,7 +137,7 @@ struct ShapeUnionParams : ShapeParams
         ignore = v["ignore_statistics"].cast<unsigned int>();
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
-        N = pybind11::len(shapes);
+        N = (unsigned int)pybind11::len(shapes);
         mpos = ManagedArray<vec3<OverlapReal> >(N,managed);
         morientation = ManagedArray<quat<OverlapReal> >(N,managed);
         mparams = ManagedArray<typename Shape::param_type>(N,managed);
@@ -738,22 +738,22 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // extend OBBs
         if (query_node_a != cur_node_a)
             {
-            obb_a.lengths.x += sweep_radius_a;
-            obb_a.lengths.y += sweep_radius_a;
-            obb_a.lengths.z += sweep_radius_a;
+            obb_a.lengths.x += OverlapReal(sweep_radius_a);
+            obb_a.lengths.y += OverlapReal(sweep_radius_a);
+            obb_a.lengths.z += OverlapReal(sweep_radius_a);
             query_node_a = cur_node_a;
             }
 
         if (query_node_b != cur_node_b)
             {
-            obb_b.lengths.x += sweep_radius_b;
-            obb_b.lengths.y += sweep_radius_b;
-            obb_b.lengths.z += sweep_radius_b;
+            obb_b.lengths.x += OverlapReal(sweep_radius_b);
+            obb_b.lengths.y += OverlapReal(sweep_radius_b);
+            obb_b.lengths.z += OverlapReal(sweep_radius_b);
             query_node_b = cur_node_b;
             }
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot, ignore_mask)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, sweep_radius_a, sweep_radius_b, ignore_mask))
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, OverlapReal(sweep_radius_a), OverlapReal(sweep_radius_b), ignore_mask))
             return true;
         }
     #endif
@@ -866,9 +866,9 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
         unsigned int cur_node_c = tree_c.getLeafNode(cur_leaf_c);
         detail::OBB obb_c = tree_c.getOBB(cur_node_c);
 
-        obb_c.lengths.x += sweep_radius_c;
-        obb_c.lengths.y += sweep_radius_c;
-        obb_c.lengths.z += sweep_radius_c;
+        obb_c.lengths.x += OverlapReal(sweep_radius_c);
+        obb_c.lengths.y += OverlapReal(sweep_radius_c);
+        obb_c.lengths.z += OverlapReal(sweep_radius_c);
 
         // transform into b's reference frame
         obb_c.affineTransform(qbc, rbc_rot);
@@ -893,18 +893,18 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
             if (query_node_a != cur_node_a)
                 {
                 // extend OBBs
-                obb_a.lengths.x += sweep_radius_a;
-                obb_a.lengths.y += sweep_radius_a;
-                obb_a.lengths.z += sweep_radius_a;
+                obb_a.lengths.x += OverlapReal(sweep_radius_a);
+                obb_a.lengths.y += OverlapReal(sweep_radius_a);
+                obb_a.lengths.z += OverlapReal(sweep_radius_a);
                 query_node_a = cur_node_a;
                 mask_a = obb_a.mask;
                 }
 
             if (query_node_b != cur_node_b)
                 {
-                obb_b.lengths.x += sweep_radius_b;
-                obb_b.lengths.y += sweep_radius_b;
-                obb_b.lengths.z += sweep_radius_b;
+                obb_b.lengths.x += OverlapReal(sweep_radius_b);
+                obb_b.lengths.y += OverlapReal(sweep_radius_b);
+                obb_b.lengths.z += OverlapReal(sweep_radius_b);
                 query_node_b = cur_node_b;
                 mask_b = obb_b.mask;
                 }
@@ -915,7 +915,7 @@ DEVICE inline bool test_overlap_intersection(const ShapeUnion<Shape>& a,
 
             if (detail::traverseBinaryStackIntersection(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, qab, rab_rot, obb_c)
                 && test_narrow_phase_overlap_intersection(a, b, c, ab_t, ac_t,
-                    query_node_a, query_node_b, cur_node_c, err, sweep_radius_a, sweep_radius_b, sweep_radius_c))
+                    query_node_a, query_node_b, cur_node_c, err, OverlapReal(sweep_radius_a), OverlapReal(sweep_radius_b), OverlapReal(sweep_radius_c)))
                         return true;
             }
         }

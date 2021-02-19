@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 /*! \file RNGIdentifiers.h
@@ -57,6 +57,8 @@ struct RNGIdentifier
     static const uint32_t SRDCollisionMethod = 0x7b61fda0;
     static const uint32_t SlitGeometryFiller = 0xdb68c12c;
     static const uint32_t SlitPoreGeometryFiller = 0xc7af9094;
+    static const uint32_t UpdaterQuickCompress = 0x00981234;
+    static const uint32_t ParticleGroupThermalize = 1;
     };
 
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -59,13 +59,13 @@ void mpcd::SlitGeometryFiller::computeNumFill()
     if (box.getHi().z >= H)
         {
         m_z_max = cell_size * std::ceil((H-global_lo)/cell_size) + global_lo + max_shift;
-        m_N_hi = std::round((m_z_max - H) * A * m_density);
+        m_N_hi = (unsigned int)std::round((m_z_max - H) * A * m_density);
         }
 
     if (box.getLo().z <= -H)
         {
         m_z_min = cell_size * std::floor((-H-global_lo)/cell_size) + global_lo - max_shift;
-        m_N_lo = std::round((-H-m_z_min) * A * m_density);
+        m_N_lo = (unsigned int)std::round((-H-m_z_min) * A * m_density);
         }
 
     // total number of fill particles
@@ -93,7 +93,7 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, m_seed, tag, timestep);
-        signed char sign = (i >= m_N_lo) - (i < m_N_lo);
+        signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
             lo.z = m_z_min; hi.z = -m_geom->getH();

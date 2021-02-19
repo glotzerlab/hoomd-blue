@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -349,9 +349,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write x coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare y coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -361,9 +361,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write y coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // prepare z coords for writing
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
@@ -380,9 +380,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
         }
 
     // write z coords
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
     file.write((char *)m_staging_buffer, nparticles * sizeof(float));
-    write_int(file, nparticles * sizeof(float));
+    write_int(file, (unsigned int)(nparticles * sizeof(float)));
 
     // check for errors
     if (!file.good())
@@ -411,8 +411,9 @@ void export_DCDDumpWriter(py::module& m)
     {
     py::class_<DCDDumpWriter, Analyzer, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
-    .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
-    .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
-    .def("setAngleZ", &DCDDumpWriter::setAngleZ)
+    .def_property("unwrap_full", &DCDDumpWriter::getUnwrapFull, &DCDDumpWriter::setUnwrapFull)
+    .def_property("unwrap_rigid", &DCDDumpWriter::getUnwrapRigid, &DCDDumpWriter::setUnwrapRigid)
+    .def_property("angle_z", &DCDDumpWriter::getAngleZ, &DCDDumpWriter::setAngleZ)
+    .def_property_readonly("overwrite", &DCDDumpWriter::getOverwrite)
     ;
     }

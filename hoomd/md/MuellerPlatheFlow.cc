@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -261,11 +261,11 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             unsigned int index=0; //Init to shut up compiler warning
             switch(m_slab_direction)
                 {
-                case flow_enum::X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
+                case flow_enum::X: index = (unsigned int)(( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
                     break;
-                case flow_enum::Y: index = ( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs();
+                case flow_enum::Y: index = (unsigned int)(( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs());
                     break;
-                case flow_enum::Z: index = ( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs();
+                case flow_enum::Z: index = (unsigned int)(( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs());
                     break;
                 }
             index %= this->get_N_slabs(); //border cases. wrap periodic box

@@ -12,7 +12,7 @@ class _AbstractLoggable(Loggable, ABCMeta):
 
 
 class Action(metaclass=_AbstractLoggable):
-    """Base class for all Python Action's.
+    """Base class for all Python Actions.
 
     This class is the parent class for all Python `Action` subclasses. This
     class requires all subclasses to implement the :meth:`~.act` method which
@@ -20,8 +20,8 @@ class Action(metaclass=_AbstractLoggable):
     writing output, or analyzing some property of the system.
 
     To use subclasses of this class, the object must be passed as an argument
-    to a `hoomd.update.CustomUpdater` or `hoomd.analyze.CustomAnalyzer`
-    constructor.
+    to a `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
+    `hoomd.tune.CustomTuner` constructor.
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
@@ -103,7 +103,7 @@ class Action(metaclass=_AbstractLoggable):
         self._state = simulation.state
 
     @property
-    def is_attached(self):
+    def _attached(self):
         return getattr(self, '_state', None) is not None
 
     def detach(self):
@@ -148,6 +148,6 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     def _setattr_param(self, attr, value):
         """Necessary to prevent errors on setting after attaching.
 
-        See hoomd/operation.py _Operation._setattr_param for details.
+        See hoomd/operation.py BaseHOOMDObject._setattr_param for details.
         """
         self._param_dict[attr] = value

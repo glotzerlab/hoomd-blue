@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -26,8 +26,7 @@
     every time analyze() is called. When a group is specified, only write out the
     particles in the group.
 
-    On the first call to analyze() \a fname is created with a dcd header. If it already
-    exists, append to the file (unless the user specifies overwrite=True).
+    The file is not opened until the first call to analyze().
 
     \ingroup analyzers
 */
@@ -38,7 +37,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
                       std::shared_ptr<ParticleGroup> group,
-                      bool overwrite=false,
+                      std::string mode="ab",
                       bool truncate=false);
 
         //! Control attribute writes
@@ -70,9 +69,9 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             return m_fname;
             }
 
-        bool getOverwrite()
+        std::string getMode()
             {
-            return m_overwrite;
+            return m_mode;
             }
 
         bool getTruncate()
@@ -139,7 +138,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
     private:
         std::string m_fname;                //!< The file name we are writing to
-        bool m_overwrite;                   //!< True if file should be overwritten
+        std::string m_mode;                 //!< The file open mode
         bool m_truncate;                    //!< True if we should truncate the file on every analyze()
         bool m_is_initialized;              //!< True if the file is open
         bool m_write_attribute;             //!< True if attributes should be written
@@ -147,6 +146,8 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         bool m_write_momentum;              //!< True if momenta should be written
         bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
+
+        static std::list<std::string> particle_chunks;
 
         /// Callback to write log quantities to file
         pybind11::object m_log_writer;

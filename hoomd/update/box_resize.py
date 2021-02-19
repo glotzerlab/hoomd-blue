@@ -1,24 +1,12 @@
-from hoomd.operation import _Updater
+from hoomd.operation import Updater
 from hoomd.box import Box
-from hoomd.parameterdicts import ParameterDict
-from hoomd.typeconverter import OnlyType
-from hoomd.variant import Variant, Power, Constant
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
+from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
 
 
-def box_preprocessing(box):
-    if isinstance(box, Box):
-        return box
-    else:
-        try:
-            return Box.from_box(box)
-        except Exception:
-            raise ValueError(
-                "{} is not convertible into a hoomd.Box object. "
-                "using hoomd.Box.from_box".format(box))
-
-
-class BoxResize(_Updater):
+class BoxResize(Updater):
     """Resizes the box between an initial and final box.
 
     When part of a `Simulation` ``updater`` list, this object will resize the
@@ -62,8 +50,8 @@ class BoxResize(_Updater):
     def __init__(self, box1, box2,
                  variant, trigger, scale_particles=True):
         params = ParameterDict(
-            box1=OnlyType(Box, preprocess=box_preprocessing),
-            box2=OnlyType(Box, preprocess=box_preprocessing),
+            box1=OnlyTypes(Box, preprocess=box_preprocessing),
+            box2=OnlyTypes(Box, preprocess=box_preprocessing),
             variant=Variant,
             scale_particles=bool)
         params['box1'] = box1
@@ -74,12 +62,13 @@ class BoxResize(_Updater):
         self._param_dict.update(params)
         super().__init__(trigger)
 
-    def attach(self, simulation):
-        self._cpp_obj = _hoomd.BoxResizeUpdater(simulation.state._cpp_sys_def,
-                                                self.box1,
-                                                self.box2,
-                                                self.variant)
-        super().attach(simulation)
+    def _attach(self):
+        self._cpp_obj = _hoomd.BoxResizeUpdater(
+            self._simulation.state._cpp_sys_def,
+            self.box1,
+            self.box2,
+            self.variant)
+        super()._attach()
 
     def get_box(self, timestep):
         """Get the box for a given timestep.
@@ -91,7 +80,7 @@ class BoxResize(_Updater):
         Returns:
             Box: The box used at the given timestep.
         """
-        if self.is_attached:
+        if self._attached:
             timestep = int(timestep)
             if timestep < 0:
                 raise ValueError("Timestep must be a non-negative integer.")
@@ -104,6 +93,7 @@ class BoxResize(_Updater):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
+            state (State): System state to scale.
             box (Box): New box.
         """
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
@@ -111,33 +101,3 @@ class BoxResize(_Updater):
                                           box,
                                           Constant(1))
         updater.update(state._simulation.timestep)
-
-    @classmethod
-    def linear_volume(cls, box1, box2,
-                      t_start, t_size,
-                      trigger, scale_particles=True):
-        """Create a `BoxResize` object that will scale volume/area linearly.
-
-        This uses a :class:`hoomd.variant.Power` variant under the hood.
-
-        Args:
-            box1 (hoomd.Box): The box associated with *t_start*.
-            box2 (hoomd.Box): The box associated with *t_start + t_size*.
-            t_start (int): The timestep to start the volume ramp.
-            t_size (int): The length of the volume ramp
-            trigger (hoomd.trigger.Trigger): The trigger to activate this
-                updater.  scale_particles (bool): Whether to scale particles to
-                the new box dimensions when the box is resized.
-            scale_particles (bool): Whether to scale particles to the new box
-                dimensions when the box is resized.
-
-        Returns:
-            hoomd.update.BoxResize: An operation that will scale between
-            the boxes linearly in volume (area for 2D).
-        """
-        box1 = box_preprocessing(box1)
-        box2 = box_preprocessing(box2)
-        min_ = min(box1.volume, box2.volume)
-        max_ = max(box1.volume, box2.volume)
-        var = Power(min_, max_, 1 / box2.dimensions, t_start, t_size)
-        return cls(box1, box2, var, trigger, scale_particles)

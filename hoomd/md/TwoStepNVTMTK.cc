@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTK.h"
@@ -418,7 +418,7 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         Scalar &eta_rot = v.variable[3];
 
         Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_group->getRotationalDOF();
+        Scalar ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
             (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
@@ -440,23 +440,18 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
+void TwoStepNVTMTK::thermalizeThermostatDOF(unsigned int seed, unsigned int timestep)
     {
-    if (m_shouldRandomize == false)
-        {
-        return;
-        }
-
-    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing velocities" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
-    unsigned int g = m_group->getTranslationalDOF();
+    Scalar g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, seed, timestep);
 
     if (master)
         {
@@ -493,9 +488,70 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         }
 
     setIntegratorVariables(v);
+    }
 
-    // call base class method
-    IntegrationMethodTwoStep::randomizeVelocities(timestep);
+pybind11::tuple TwoStepNVTMTK::getTranslationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
+    result.append(xi);
+    result.append(eta);
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("translational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    Scalar& xi = vars.variable[0];
+    Scalar& eta = vars.variable[1];
+
+    xi = pybind11::cast<Scalar>(v[0]);
+    eta = pybind11::cast<Scalar>(v[1]);
+
+    setIntegratorVariables(vars);
+    }
+
+pybind11::tuple TwoStepNVTMTK::getRotationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    Scalar& xi_rot = v.variable[2];
+    Scalar& eta_rot = v.variable[3];
+
+    result.append(xi_rot);
+    result.append(eta_rot);
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("rotational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    Scalar& xi_rot = vars.variable[2];
+    Scalar& eta_rot = vars.variable[3];
+
+    xi_rot = pybind11::cast<Scalar>(v[0]);
+    eta_rot = pybind11::cast<Scalar>(v[1]);
+
+    setIntegratorVariables(vars);
     }
 
 void export_TwoStepNVTMTK(py::module& m)
@@ -512,5 +568,12 @@ void export_TwoStepNVTMTK(py::module& m)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
         .def_property("tau", &TwoStepNVTMTK::getTau, &TwoStepNVTMTK::setTau)
+        .def("thermalizeThermostatDOF", &TwoStepNVTMTK::thermalizeThermostatDOF)
+        .def_property("translational_thermostat_dof",
+                      &TwoStepNVTMTK::getTranslationalThermostatDOF,
+                      &TwoStepNVTMTK::setTranslationalThermostatDOF)
+        .def_property("rotational_thermostat_dof",
+                      &TwoStepNVTMTK::getRotationalThermostatDOF,
+                      &TwoStepNVTMTK::setRotationalThermostatDOF)
         ;
     }

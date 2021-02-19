@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -335,7 +335,7 @@ inline void launcher(unsigned int *d_nlist,
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
-    unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes;
+    unsigned int shared_size = (unsigned int)(sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes);
 
     unsigned int offset = range.first;
     unsigned int nwork = range.second - range.first;

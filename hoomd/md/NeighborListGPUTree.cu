@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -6,10 +6,13 @@
 #include "hip/hip_runtime.h"
 #include "NeighborListGPUTree.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/remove.h>
 #include <hipcub/hipcub.hpp>
+#pragma GCC diagnostic pop
 
 #include <neighbor/neighbor.h>
 

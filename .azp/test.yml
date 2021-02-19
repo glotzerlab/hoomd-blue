@@ -1,5 +1,19 @@
+trigger: none
+
+pr:
+  - maint
+  - master
+
+schedules:
+- cron: "0 2 * * *"
+  displayName: Daily 10PM build
+  # 2am UTC is 10PM eastern time
+  branches:
+    include:
+    - "*"
+
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2021.01
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
@@ -13,292 +27,113 @@ variables:
   always_use_managed_memory: off
   ctest_start: 1
   ctest_stride: 1
-  mpiexec_timeout: 1800
+  mpiexec_timeout: 3000
   suite_name: $(Agent.JobName)
+  cxxflags: "-Werror"
 
-trigger:
-  batch: true
-  branches:
-    include:
-    - '*'
+jobs:
+- job: linux_cpu
+  displayName: Linux
+  timeoutInMinutes: 75
 
-stages:
-- stage: build_test_cpu
-  displayName: Unit test (CPU)
-  dependsOn: []
+  strategy:
+    matrix:
+      # test the most recent platform and compiler combo here
+      # other platform and compiler tests are in validate.yml
+      clang11_py39_mpi_tbb:
+        container_image: clang11_py39
+        enable_mpi: on
+        enable_tbb: on
+        build_jit: on
+        llvm_version: '11'
 
-  jobs:
-  - job: linux_cpu
-    displayName: Linux
-    timeoutInMinutes: 75
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    strategy:
-      maxParallel: 5
-      matrix:
-        gcc10_py38_mpi_tbb:
-          container_image: gcc10_py38
-          enable_mpi: on
-          enable_tbb: on
+  container:
+    image: $(image_root)-$(container_image)
+    options: -u 0
 
-        gcc9_py38_mpi_tbb:
-          container_image: gcc9_py38
-          enable_mpi: on
-          enable_tbb: on
+  steps:
+  - template: templates/build.yml
+  - template: templates/run_tests.yml
 
-        clang10_py38_mpi_tbb:
-          container_image: clang10_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '10'
+- job: linux_gpu
+  displayName: Linux
+  timeoutInMinutes: 75
+  variables:
+    enable_gpu: on
 
-        clang9_py38_mpi_tbb:
-          container_image: clang9_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '9'
+  strategy:
+    matrix:
+      # test the most recent platform and compiler combo here
+      # other platform and compiler tests are in validate.yml
+      cuda11_py38_mpi:
+        container_image: cuda11_gcc9_py38
+        enable_mpi: on
 
-        clang8_py38_mpi_tbb:
-          container_image: clang8_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '8'
+  pool:
+    name: 'GPU'
+    demands: short_jobs
 
-        clang7_py38_mpi_tbb:
-          container_image: clang7_py38
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '7'
-
-        gcc8_py37_mpi_tbb:
-          container_image: gcc8_py37
-          enable_mpi: on
-          enable_tbb: on
-
-        gcc7_py37_tbb:
-          container_image: gcc7_py37
-          enable_tbb: on
-
-        gcc6_py37_mpi:
-          container_image: gcc6_py37
-          enable_mpi: on
-
-        gcc5_py37:
-          container_image: gcc5_py37
-
-        gcc48_py37_mpi_tbb:
-          container_image: gcc48_py37
-          enable_mpi: on
-          enable_tbb: on
-
-        clang6_py37_mpi_tbb:
-          container_image: clang6_py37
-          enable_mpi: on
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '6.0'
-
-        clang5_py37_tbb_llvm5:
-          container_image: clang5_py37
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '5.0'
-
-        gcc7_py36:
-          container_image: gcc7_py36
-
-    pool:
-      vmImage: 'ubuntu-latest'
-
-    container:
+  container:
       image: $(image_root)-$(container_image)
-      options: -u 0
+      options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
 
-    steps:
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
+  workspace:
+    clean: all
 
+  steps:
+  - template: templates/build.yml
+  - template: templates/run_tests.yml
 
-  - job: mac_cpu
-    displayName: macOS
-    timeoutInMinutes: 75
+- job: sphinx_doc
+  displayName: Sphinx
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    strategy:
-      matrix:
-        10_14:
-          mac_image: macOS-10.14
-        10_15_mpi_tbb:
-          mac_image: macOS-10.15
-          enable_mpi: on
-          enable_tbb: on
+  container:
+    image: $(image_root)-py38
+    options: -u 0
 
-    pool:
-      vmImage: '$(mac_image)'
+  workspace:
+    clean: all
 
-    steps:
-    - script: brew install cereal cmake eigen ninja open-mpi python pybind11
-      displayName: Brew install prereqs
-    # Install Intel's provided TBB builds, homebrew's tbb does not support exception translation
-    - script: |
-        curl -sLO https://github.com/intel/tbb/releases/download/2019_U8/tbb2019_20190605oss_mac.tgz &&
-        tar -xzf tbb2019_20190605oss_mac.tgz &&
-        cp -R tbb2019_20190605oss/include/tbb /usr/local/include &&
-        cp -a tbb2019_20190605oss/lib/*.dylib /usr/local/lib
-      displayName: Install TBB
-      workingDirectory: $(Pipeline.Workspace)
+  steps:
+  - checkout: self
+    submodules: true
+  - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
+    displayName: (HTML)
+    workingDirectory: sphinx-doc
 
-    - script: python3 -m pip install pytest numpy gsd
-      displayName: Pip install prereqs
+- job: pydocstyle
+  displayName: pydocstyle
+  pool:
+    vmImage: 'ubuntu-latest'
 
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
+  container:
+    image: $(image_root)-py38
+    options: -u 0
 
-- stage: build_test_nvidia
-  displayName: Unit test (NVIDIA GPU)
-  dependsOn: []
-  variables:
-    enable_gpu: on
+  workspace:
+    clean: all
 
-  jobs:
-  - job: linux_gpu
-    displayName: Linux
-    timeoutInMinutes: 75
-
-    strategy:
-      matrix:
-        cuda11_py37_mpi:
-          container_image: cuda11_gcc7_py37
-
-        cuda10_py37_mng_mpi:
-          container_image: cuda10_gcc7_py37
-          always_use_managed_memory: on
-          enable_mpi: on
-
-        cuda9_py37_mpi:
-          container_image: cuda9_gcc7_py37
-          enable_mpi: on
-
-        cuda9_py37:
-          container_image: cuda9_gcc7_py37
-
-    pool:
-      name: 'GPU'
-      demands: short_jobs
-
-    container:
-       image: $(image_root)-$(container_image)
-       options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
-
-    workspace:
-      clean: all
-
-    steps:
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
-
-- stage: build_test_amd
-  # temporarily disable testing on AMD because the containers are not functional
-  condition: false
-  displayName: Unit test (AMD GPU)
-  dependsOn: []
-  variables:
-    enable_gpu: on
-
-  jobs:
-  - job: linux_gpu
-    displayName: Linux
-    timeoutInMinutes: 150
-
-    strategy:
-      matrix:
-        rocm210_custom_gcc9_py38_mpi:
-          container_image: rocm2.10_custom_gcc9_py38
-          enable_mpi: on
-
-        rocm210_custom_gcc9_py38:
-          container_image: rocm2.10_custom_gcc9_py38
-
-        rocm210_custom_clang9_py38:
-          container_image: rocm2.10_custom_clang9_py38
-
-    pool:
-      name: 'AMDGPU'
-      demands: short_jobs
-
-    container:
-       image: $(image_root)-$(container_image)
-       options: >-
-         -u 0
-         --cpus=4
-         --device=/dev/kfd
-         --device=/dev/dri
-         --security-opt seccomp=unconfined
-         --group-add video
-         --mount type=bind,source=/etc/group,target=/etc/group_host
-         --memory=16g
-
-    workspace:
-      clean: all
-
-    steps:
-    - script: "sudo addgroup render --gid `grep render /etc/group_host | awk -F: '{printf $3}'`"
-      displayName: Add render group
-    - script: sudo usermod -G render `whoami`
-      displayName: Add user to render group
-    - template: templates/build.yml
-    - template: templates/run_tests.yml
-
-- stage: doc
-  displayName: Documentation
-  dependsOn: []
-
-  jobs:
-  - job: sphinx_doc
-    displayName: Sphinx
-    pool:
-      vmImage: 'ubuntu-latest'
-
-    container:
-      image: $(image_root)-clang10_py38
-      options: -u 0
-
-    workspace:
-      clean: all
-
-    steps:
-    - checkout: self
-      submodules: true
-    - script: sphinx-build -b html -d _build/doctrees -W -T --keep-going -n . _build/html
-      displayName: (HTML)
-      workingDirectory: sphinx-doc
-    - script: sphinx-build -b latex -d _build/doctrees -W -T --keep-going -n . _build/latex
-      displayName: (LaTeX)
-      workingDirectory: sphinx-doc
-
-- stage: style
-  displayName: Style checks
-  dependsOn: []
-
-  jobs:
-  - job: pydocstyle
-    displayName: pydocstyle
-    pool:
-      vmImage: 'ubuntu-latest'
-
-    container:
-      image: $(image_root)-clang10_py38
-      options: -u 0
-
-    workspace:
-      clean: all
-
-    steps:
-    - checkout: self
-      submodules: true
-    - script: >-
-        pydocstyle -v
-        hoomd/variant.py
-      displayName: Run pydocstyle
+  steps:
+  - checkout: self
+    submodules: true
+  - script: >-
+      pydocstyle -v
+      hoomd/tune/sorter.py
+      hoomd/variant.py
+      hoomd/device.py
+      hoomd/operation.py
+      hoomd/operations.py
+      hoomd/simulation.py
+      hoomd/state.py
+      hoomd/filter/filter_.py
+      hoomd/filter/all_.py
+      hoomd/filter/set_.py
+      hoomd/filter/tags.py
+      hoomd/filter/type_.py
+      hoomd/write/gsd.py
+    displayName: Run pydocstyle

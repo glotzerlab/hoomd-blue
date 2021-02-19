@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 /*!
@@ -19,13 +19,10 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hoomd/extern/random123/include/Random123/philox.h>
-
-// in JIT compilation, we pre-include some fake headers
-#ifndef __CUDACC_RTC__
-#include <math.h>
-#include <type_traits>
-#endif
+#pragma GCC diagnostic pop
 
 namespace r123 {
 // from random123/examples/uniform.hpp
@@ -76,12 +73,12 @@ template <typename Ftype, typename Itype>
 R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
     {
     typedef typename make_unsigned<Itype>::type Utype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Utype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Utype>()) + Ftype(1.));
     R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
 #if R123_UNIFORM_FLOAT_STORE
     volatile Ftype x = Utype(in)*factor; return x+halffactor;
 #else
-    return Utype(in)*factor + halffactor;
+    return Ftype(Utype(in))*factor + halffactor;
 #endif
     }
 
@@ -103,12 +100,12 @@ template <typename Ftype, typename Itype>
 R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
     {
     typedef typename make_signed<Itype>::type Stype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Stype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Stype>()) + Ftype(1.));
     R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
 #if R123_UNIFORM_FLOAT_STORE
     volatile Ftype x = Stype(in)*factor; return x+halffactor;
 #else
-    return Stype(in)*factor + halffactor;
+    return Ftype(Stype(in))*factor + halffactor;
 #endif
     }
 
@@ -583,7 +580,7 @@ class PoissonDistribution
             {
             Real r;
             Real x, m;
-            Real pi = M_PI;
+            Real pi = Real(M_PI);
             Real sqrt_mean = fast::sqrt(mean);
             Real log_mean = fast::log(mean);
             Real g_x;
@@ -598,7 +595,7 @@ class PoissonDistribution
                 g_x = sqrt_mean/(pi*((x-mean)*(x-mean) + mean));
                 m = slow::floor(x);
                 f_m = fast::exp(m*log_mean - mean - lgamma(m + 1));
-                r = f_m / g_x / 2.4;
+                r = f_m / g_x / Real(2.4);
             } while (detail::generate_canonical<Real>(rng) > r);
           return (int)m;
           }

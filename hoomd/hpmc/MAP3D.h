@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -74,7 +74,7 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
 
     vec3<OverlapReal> v_a, v_b, v_c;
 
-    const OverlapReal tol(4e-7); // for squares of distances, in *double* precision
+    const OverlapReal tol(OverlapReal(4e-7)); // for squares of distances, in *double* precision
 
     /*
      * Tuning parameters
@@ -83,7 +83,7 @@ DEVICE inline bool map_three(const ShapeA& a, const ShapeB& b, const ShapeC& c,
     // amount of extrapolation to apply (0 <= lambda <=1)
     OverlapReal lambda(1.0);
     const unsigned int k = 10;
-    const OverlapReal f(0.9);
+    const OverlapReal f(OverlapReal(0.9));
 
     OverlapReal sum;
     OverlapReal normsq;
@@ -186,7 +186,7 @@ DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
 
     // this seems to be a reasonable lower bound on the single-precision error, when
     // reducing further one should see an increased number of forced loop terminations
-    const OverlapReal tol(4e-7); // for squares of distances
+    const OverlapReal tol(OverlapReal(4e-7)); // for squares of distances
 
     /*
      * Tuning parameters
@@ -195,7 +195,7 @@ DEVICE inline bool map_two(const ShapeA& a, const ShapeB& b,
     // amount of extrapolation to apply (0 <= lambda <=1)
     OverlapReal lambda(1.0);
     const unsigned int k = 20;
-    const OverlapReal f(0.999);
+    const OverlapReal f(OverlapReal(0.999));
 
     OverlapReal sum;
     OverlapReal normsq;

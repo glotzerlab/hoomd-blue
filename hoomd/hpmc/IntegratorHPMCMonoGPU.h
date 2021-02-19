@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -354,7 +354,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     TAG_ALLOCATION(m_excell_idx);
 
     //! One counter per GPU, separated by an entire memory page
-    unsigned int pitch = (getpagesize() + sizeof(hpmc_counters_t)-1)/sizeof(hpmc_counters_t);
+    unsigned int pitch = (unsigned int)((getpagesize() + sizeof(hpmc_counters_t)-1)/sizeof(hpmc_counters_t));
     GlobalArray<hpmc_counters_t>(pitch, this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_counters);
     TAG_ALLOCATION(m_counters);
 
@@ -373,8 +373,8 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
     #endif
 
     // ntypes counters per GPU, separated by at least a memory page
-    pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
-    GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
+    pitch = (unsigned int)((getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t));
+    GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, (unsigned int)this->m_implicit_count.getNumElements()),
         this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
     TAG_ALLOCATION(m_implicit_counters);
 
@@ -666,7 +666,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_postype.data,
                     d_orientation.data,
                     ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                    this->m_counters.getPitch(),
+                    (unsigned int)this->m_counters.getPitch(),
                     this->m_cl->getCellIndexer(),
                     this->m_cl->getDim(),
                     ghost_width,
@@ -678,7 +678,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                     d_a.data,
                     d_overlaps.data,
                     this->m_overlap_idx,
-                    this->m_move_ratio,
+                    this->m_translation_move_probability,
                     timestep,
                     this->m_sysdef->getNDimensions(),
                     box,
@@ -748,7 +748,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_postype.data,
                         d_orientation.data,
                         ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                        this->m_counters.getPitch(),
+                        (unsigned int)this->m_counters.getPitch(),
                         this->m_cl->getCellIndexer(),
                         this->m_cl->getDim(),
                         ghost_width,
@@ -760,7 +760,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_a.data,
                         d_overlaps.data,
                         this->m_overlap_idx,
-                        this->m_move_ratio,
+                        this->m_translation_move_probability,
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
@@ -837,7 +837,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_postype.data,
                         d_orientation.data,
                         ngpu > 1 ? d_counters_per_device.data : d_counters.data,
-                        this->m_counters.getPitch(),
+                        (unsigned int)(this->m_counters.getPitch()),
                         this->m_cl->getCellIndexer(),
                         this->m_cl->getDim(),
                         ghost_width,
@@ -849,7 +849,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         d_a.data,
                         d_overlaps.data,
                         this->m_overlap_idx,
-                        this->m_move_ratio,
+                        this->m_translation_move_probability,
                         timestep,
                         this->m_sysdef->getNDimensions(),
                         box,
@@ -892,7 +892,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
                         gpu::hpmc_implicit_args_t implicit_args(itype,
                             ngpu > 1 ? d_implicit_counters_per_device.data : d_implicit_count.data,
-                            m_implicit_counters.getPitch(),
+                            (unsigned int)m_implicit_counters.getPitch(),
                             d_lambda.data,
                             this->m_fugacity[itype] < 0,
                             this->m_quermass,
@@ -1324,7 +1324,7 @@ void IntegratorHPMCMonoGPU< Shape >::initializeExcellMem()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
     {
-    unsigned int old_ntypes = this->m_params.size();
+    unsigned int old_ntypes = (unsigned int)this->m_params.size();
 
     // skip the reallocation if the number of types does not change
     // this keeps shape parameters when restoring a snapshot
@@ -1343,8 +1343,8 @@ void IntegratorHPMCMonoGPU< Shape >::slotNumTypesChange()
         TAG_ALLOCATION(m_additive_cutoff);
 
         // ntypes counters per GPU, separated by at least a memory page
-        unsigned int pitch = (getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t);
-        GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, this->m_implicit_count.getNumElements()),
+        unsigned int pitch = (unsigned int)((getpagesize() + sizeof(hpmc_implicit_counters_t)-1)/sizeof(hpmc_implicit_counters_t));
+        GlobalArray<hpmc_implicit_counters_t>(std::max(pitch, (unsigned int)this->m_implicit_count.getNumElements()),
             this->m_exec_conf->getNumActiveGPUs(), this->m_exec_conf).swap(m_implicit_counters);
         TAG_ALLOCATION(m_implicit_counters);
 
@@ -1410,12 +1410,12 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
             // get OBB and extend by depletant radius
             detail::OBB obb = shape_j.getOBB(vec3<Scalar>(0,0,0));
-            obb.lengths.x += 0.5*range;
-            obb.lengths.y += 0.5*range;
+            obb.lengths.x += float(0.5*range);
+            obb.lengths.y += float(0.5*range);
             if (this->m_sysdef->getNDimensions() == 3)
-                obb.lengths.z += 0.5*range;
+                obb.lengths.z += float(0.5*range);
             else
-                obb.lengths.z = 0.5; // unit length
+                obb.lengths.z = 0.5f; // unit length
 
             Scalar lambda = std::abs(this->m_fugacity[i_type]*obb.getVolume());
             h_lambda.data[typpair_idx(i_type,j_type)] = lambda;

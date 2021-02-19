@@ -4,6 +4,8 @@ set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
+                   ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
@@ -55,6 +57,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
+                ComputeThermoGPU.cuh
+                ComputeThermoGPU.h
+                ComputeThermoHMAGPU.cuh
+                ComputeThermoHMAGPU.h
+                ComputeThermo.h
+                ComputeThermoHMA.h
+                ComputeThermoTypes.h
+                ComputeThermoHMATypes.h
                 ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
@@ -86,9 +96,11 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
+                EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
+                EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
@@ -166,6 +178,8 @@ if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
+                           ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
@@ -202,6 +216,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
+                      ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       DLVODriverPotentialPairGPU.cu
                       DPDLJThermoDriverPotentialPairGPU.cu
                       DPDThermoDriverPotentialPairGPU.cu
@@ -212,6 +228,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       MieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
+                      OPPDriverPotentialPairGPU.cu
+                      TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
@@ -263,7 +281,7 @@ add_library(HOOMD::_md ALIAS _md)
 if(APPLE)
 set_target_properties(_md PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_md PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_md PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies
@@ -290,15 +308,16 @@ set(files __init__.py
           angle.py
           bond.py
           charge.py
+          compute.py
           constrain.py
           dihedral.py
           external.py
           force.py
           improper.py
           integrate.py
+          many_body.py
           methods.py
           nlist.py
-          pair.py
           update.py
           wall.py
           special_pair.py
@@ -314,6 +333,8 @@ copy_files_to_build("${files}" "md" "*.py")
 install(FILES ${_md_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
+
+add_subdirectory(pair)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

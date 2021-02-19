@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -9,12 +9,12 @@
 
 #include <memory>
 
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TempRescaleUpdater.h"
 #include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
-#include "hoomd/ComputeThermoGPU.h"
+#include "hoomd/md/ComputeThermoGPU.h"
 #endif
 
 #include <math.h>

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -45,7 +45,7 @@ struct hpmc_args_t
                 const Scalar* _a,
                 const unsigned int *_check_overlaps,
                 const Index2D& _overlap_idx,
-                const unsigned int _move_ratio,
+                const unsigned int _translation_move_probability,
                 const unsigned int _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
@@ -84,7 +84,7 @@ struct hpmc_args_t
                   d_a(_a),
                   d_check_overlaps(_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  move_ratio(_move_ratio),
+                  translation_move_probability(_translation_move_probability),
                   timestep(_timestep),
                   dim(_dim),
                   box(_box),
@@ -126,7 +126,7 @@ struct hpmc_args_t
     const Scalar* d_a;                //!< Maximum move angular displacement
     const unsigned int *d_check_overlaps; //!< Interaction matrix
     const Index2D& overlap_idx;       //!< Indexer into interaction matrix
-    const unsigned int move_ratio;    //!< Ratio of translation to rotation moves
+    const unsigned int translation_move_probability;    //!< Fraction of moves that are translation moves.
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
@@ -353,7 +353,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
                            const unsigned int seed,
                            const Scalar* d_d,
                            const Scalar* d_a,
-                           const unsigned int move_ratio,
+                           const unsigned int translation_move_probability,
                            const unsigned int timestep,
                            const BoxDim box,
                            const unsigned int select,
@@ -433,7 +433,7 @@ __global__ void hpmc_gen_moves(Scalar4 *d_postype,
     unsigned int reject = 0;
 
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-    bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < move_ratio);
+    bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < translation_move_probability);
 
     if (move_active)
         {
@@ -1415,7 +1415,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-        unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+        unsigned int shared_bytes = (unsigned int)(args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)));
 
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
@@ -1435,7 +1435,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.seed,
                                                                      args.d_d,
                                                                      args.d_a,
-                                                                     args.move_ratio,
+                                                                     args.translation_move_probability,
                                                                      args.timestep,
                                                                      args.box,
                                                                      args.select,
@@ -1464,7 +1464,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
 
         // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
         unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-        unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+        unsigned int shared_bytes = (unsigned int)(args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)));
 
         if (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("hpmc::kernel::gen_moves() exceeds shared memory limits");
@@ -1484,7 +1484,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type *p
                                                                      args.seed,
                                                                      args.d_d,
                                                                      args.d_a,
-                                                                     args.move_ratio,
+                                                                     args.translation_move_probability,
                                                                      args.timestep,
                                                                      args.box,
                                                                      args.select,
@@ -1527,12 +1527,12 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
     unsigned int n_groups = run_block_size/tpp;
     unsigned int max_queue_size = n_groups*tpp;
 
-    const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type)
-        + args.overlap_idx.getNumElements() * sizeof(unsigned int);
+    const unsigned int min_shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type)
+        + args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-    unsigned int shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+    unsigned int shared_bytes = (unsigned int)(n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
         + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes;
+        + min_shared_bytes);
 
     if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -1547,17 +1547,17 @@ void hpmc_narrow_phase(const hpmc_args_t& args, const typename Shape::param_type
         n_groups = run_block_size / tpp;
         max_queue_size = n_groups*tpp;
 
-        shared_bytes = n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
+        shared_bytes = (unsigned int)(n_groups * (3*sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
             + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes;
+            + min_shared_bytes);
         }
 
     // determine dynamically allocated shared memory size
     static unsigned int base_shared_bytes = UINT_MAX;
     bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+    base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+    unsigned int max_extra_bytes = (unsigned int)(args.devprop.sharedMemPerBlock - base_shared_bytes);
     static unsigned int extra_bytes = UINT_MAX;
     if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
         {
@@ -1638,13 +1638,13 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
-        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+        const unsigned int min_shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
+        unsigned int shared_bytes = (unsigned int)(n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
                                     max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
-                                    min_shared_bytes;
+                                    min_shared_bytes);
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -1659,17 +1659,17 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
+            shared_bytes = (unsigned int)(n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
                            max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
-                           min_shared_bytes;
+                           min_shared_bytes);
             }
 
         static unsigned int base_shared_bytes = UINT_MAX;
         bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        unsigned int max_extra_bytes = (unsigned int)(args.devprop.sharedMemPerBlock - base_shared_bytes);
         static unsigned int extra_bytes = UINT_MAX;
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
@@ -1759,13 +1759,13 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
         unsigned int max_queue_size = n_groups*tpp;
         unsigned int max_depletant_queue_size = n_groups;
 
-        const unsigned int min_shared_bytes = args.num_types * sizeof(typename Shape::param_type) +
-                   args.overlap_idx.getNumElements() * sizeof(unsigned int);
+        const unsigned int min_shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) +
+                   args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-        unsigned int shared_bytes = n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
+        unsigned int shared_bytes = (unsigned int)(n_groups *(sizeof(Scalar4) + sizeof(Scalar3)) +
                                     max_queue_size*2*sizeof(unsigned int) +
                                     max_depletant_queue_size*sizeof(unsigned int) +
-                                    min_shared_bytes;
+                                    min_shared_bytes);
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -1780,17 +1780,17 @@ void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t&
             max_queue_size = n_groups*tpp;
             max_depletant_queue_size = n_groups;
 
-            shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
+            shared_bytes = (unsigned int)(n_groups * (sizeof(Scalar4) + sizeof(Scalar3)) +
                            max_queue_size*2*sizeof(unsigned int) +
                            max_depletant_queue_size*sizeof(unsigned int) +
-                           min_shared_bytes;
+                           min_shared_bytes);
             }
 
         static unsigned int base_shared_bytes = UINT_MAX;
         bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+        base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+        unsigned int max_extra_bytes = (unsigned int)(args.devprop.sharedMemPerBlock - base_shared_bytes);
         static unsigned int extra_bytes = UINT_MAX;
         if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {

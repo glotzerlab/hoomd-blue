@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,8 +11,11 @@
 
 #include "NeighborListGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/scan.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 /*! \param d_result Device pointer to a single uint. Will be set to 1 if an update is needed
     \param d_last_pos Particle positions at the time the nlist was last updated
@@ -103,7 +106,7 @@ hipError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const unsigned int checkn,
                                              const GPUPartition& gpu_partition)
     {
-    const unsigned int shared_bytes = sizeof(Scalar) * ntypes;
+    const unsigned int shared_bytes = (unsigned int)sizeof(Scalar) * ntypes;
 
     unsigned int block_size = 128;
 
@@ -433,7 +436,7 @@ hipError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    unsigned int shared_bytes = ntypes*sizeof(unsigned int);
+    unsigned int shared_bytes = (unsigned int)(ntypes*sizeof(unsigned int));
 
     // initialize each particle with its number of neighbors
     hipLaunchKernelGGL((gpu_nlist_init_head_list_kernel), dim3(N/run_block_size + 1), dim3(run_block_size), shared_bytes, 0, d_head_list,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -155,14 +155,14 @@ void mpcd::ParticleData::initializeFromSnapshot(const std::shared_ptr<const mpcd
             // loop over particles in snapshot, place them into domains
             for (auto it = snapshot->position.begin(); it != snapshot->position.end(); ++it)
                 {
-                unsigned int snap_idx = it - snapshot->position.begin();
+                unsigned int snap_idx = (unsigned int)(it - snapshot->position.begin());
 
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
                 Scalar3 f = global_box.makeFraction(pos);
-                int i= f.x * ((Scalar)di.getW());
-                int j= f.y * ((Scalar)di.getH());
-                int k= f.z * ((Scalar)di.getD());
+                int i= int(f.x * ((Scalar)di.getW()));
+                int j= int(f.y * ((Scalar)di.getH()));
+                int k= int(f.z * ((Scalar)di.getD()));
 
                 // wrap particles that are exactly on a boundary
                 char3 flags = make_char3(0,0,0);
@@ -471,7 +471,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
             // write back into the snapshot in tag order, don't really care about cache coherency
             for (unsigned int rank_idx = 0; rank_idx < n_ranks; ++rank_idx)
                 {
-                const unsigned int N = pos_proc[rank_idx].size();
+                const unsigned int N = (unsigned int)pos_proc[rank_idx].size();
                 for (unsigned int idx = 0; idx < N; ++idx)
                     {
                     const unsigned int snap_idx = tag_proc[rank_idx][idx];
@@ -974,7 +974,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
         throw std::runtime_error("MPCD particles cannot be added with virtual particles set");
         }
 
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
 
     unsigned int old_nparticles = m_N;
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
@@ -1129,7 +1129,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         }
 
     unsigned int old_nparticles = m_N;
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
 
     // amortized resizing of particle data
