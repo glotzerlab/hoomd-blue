@@ -41,10 +41,10 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
 
 
 _params1 = dict(particle_types=['A', 'B'], a=2.0, n=7)
-_free_volume1 = (7 * 2)**3 - (7**3) * (4 / 3) * np.pi * 0.25**3
+_free_volume1 = (7 * 2)**3 - (7**3) * (4 / 3) * np.pi * 0.3**3
 
 _params2 = dict(particle_types=['A', 'B'], a=1.5, n=7)
-_free_volume2 = (7 * 1.5)**3 - (7**3) * (4 / 3) * np.pi * 0.25**3
+_free_volume2 = (7 * 1.5)**3 - (7**3) * (4 / 3) * np.pi * 0.3**3
 
 _params3 = dict(particle_types=['A', 'B'], a=0.1, n=7)
 _free_volume3 = 0.0
@@ -70,4 +70,4 @@ def test_validation_systems(simulation_factory,
     free_volume_compute = hoomd.hpmc.compute.FreeVolume(mc, 23456, test_type='B', nsample=1000)
     sim.operations.add(free_volume_compute)
     sim.run(0)
-    np.testing.assert_allclose(free_volume, free_volume_compute.free_volume, rtol=2e-2)
+    np.testing.assert_allclose(free_volume, free_volume_compute.free_volume, rtol=1e-2)
