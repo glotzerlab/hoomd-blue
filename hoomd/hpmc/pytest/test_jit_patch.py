@@ -214,26 +214,38 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     sim.run(0)
     assert np.isclose(patch.energy, 0.0)
 
-def test_alpha_union(cls, simulation_factory,two_particle_snapshot_factory):
+def test_alpha_union(simulation_factory,two_particle_snapshot_factory):
     """"""
     sim = simulation_factory(two_particle_snapshot_factory())
 
-    patch = jit.patch.UserUnionPatch(r_cut_union=2)
+    patch = jit.patch.UserUnionPatch(r_cut_union=10)
     patch.code_union = "return -1.0;"
+    # patch.code = "return -1.0;"
+    # patch.r_cut = 1.5
+    print("Check 1")
     patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
-    patch.orientations['A'] = [(1,0,0,0)]*2
-    patch.diameters['A'] = [1, 1]
-    patch.typeids['A'] = [0, 0]
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
-    mc.shape['A'] = dict(diameter=0)
+    print("Check 2")
+    # patch.orientations['A'] = [(1,0,0,0)]*2
+    # patch.diameters['A'] = [1.0, 1.0]
+    # patch.typeids['A'] = [0, 0]
+    # patch.charges['A'] = [0, 0]
 
+    print(patch.positions['A'])
+    print(patch.leaf_capacity)
+
+    mc = hoomd.hpmc.integrate.SphereUnion(seed=2, d=0.3, a=0.4)
+    sphere1 = dict(diameter=1)
+    sphere2 = dict(diameter=1)
+    mc.shape["A"] = dict(shapes=[sphere1, sphere2],
+                         positions=[(0,0,0.5), (0,0,-0.5)],
+                         orientations=[(1, 0, 0, 0), (1, 0, 0, 0)])
     sim.operations.integrator = mc
     sim.operations += patch
     with sim.state.cpu_local_snapshot as data:
-        data.particles.position[0, :] = positions[0]
-        data.particles.position[1, :] = positions[1]
-        data.particles.orientation[0, :] = orientations[0]
-        data.particles.orientation[1, :] = orientations[1]
+        data.particles.position[0, :] = (0, 0.5, 0)
+        data.particles.position[1, :] = (0, -0.5, 0)
+        # data.particles.orientation[0, :] = (1, 0, 0, 0)
+        # data.particles.orientation[1, :] = (1, 0, 0, 0)
     sim.run(0)
 
-    assert np.isclose(patch.energy, result)
+    assert np.isclose(patch.energy, -2.0)

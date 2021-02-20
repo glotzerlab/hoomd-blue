@@ -59,15 +59,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         // //! Builds OBB tree based on geometric properties of the constituent particles
         // //! and the leaf capacity. To be called every time positions, diameters and/or leaf
         // //! leaf capacity are updated.
-        // /*! \param type The particle type to set the constituent particles for
-        //     \param positions The positions of the constituent particles
-        //     \param diameters The diameters of the constituent particles
-        //     \param leaf_capacity Number of particles in OBB tree leaf
-        //  */
-        void buildOBBTree(unsigned int type,
-                          std::vector<vec3<float> > positions,
-                          std::vector<float> diameters,
-                          unsigned int leaf_capacity);
+        void buildOBBTree();
 
         //! Set per-type typeid of constituent particles
         virtual void setTypeids(std::string type, pybind11::list typeids)
@@ -107,7 +99,11 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                 p_i[2].cast<float>());
                 m_position[pid][i] = pos;
                 }
-            buildOBBTree(pid, m_position[pid], m_diameter[pid], m_leaf_capacity);
+            if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
+                {
+                m_updated_types.push_back(pid);
+                }
+            m_build_obb = true;
             }
 
         //! Get per-type positions of the constituent particles as a python list of 3-tuples
@@ -169,7 +165,11 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                 {
                 m_diameter[pid][i] = diameter[i].cast<float>();
                 }
-            buildOBBTree(pid, m_position[pid], m_diameter[pid], m_leaf_capacity);
+            if (std::find(m_updated_types.begin(), m_updated_types.end(), pid) == m_updated_types.end())
+                {
+                m_updated_types.push_back(pid);
+                }
+            m_build_obb = true;
             }
 
         //! Get per-type diameters of the constituent particles as a python list
@@ -212,7 +212,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         virtual void setLeafCapacity(unsigned int leaf_capacity)
             {
             m_leaf_capacity = leaf_capacity;
-            buildOBBTree(0, m_position[0], m_diameter[0], m_leaf_capacity);
+            m_build_obb = true;
             }
 
         //! Get OBB leaf_capacity
@@ -222,10 +222,23 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             }
 
         //! Get the cut-off for constituent particles
-        virtual Scalar getRCut()
+        virtual Scalar getRCutUnion()
             {
             // return cutoff for constituent particle potentials
             return m_rcut_union;
+            }
+
+        //! Set the cut-off for constituent particles
+        virtual void setRCutUnion(Scalar r_cut)
+            {
+            // return cutoff for constituent particle potentials
+            m_rcut_union = r_cut;
+            }
+
+        //! Get the size of the alpha_union array
+        unsigned int getArraySizeUnion()
+            {
+            return m_alpha_size_union;
             }
 
         //! Get the maximum geometric extent, which is added to the cutoff, per type
@@ -302,11 +315,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                      unsigned int cur_node_a,
                                      unsigned int cur_node_b);
 
-        std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaluator function, for constituent ptls
-        EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module
-        Scalar m_rcut_union;                                     //!< Cutoff on constituent particles
+        std::shared_ptr<EvalFactory> m_factory_union;                //!< The factory for the evaluator function, for constituent ptls
+        EvalFactory::EvalFnPtr m_eval_union;                         //!< Pointer to evaluator function inside the JIT module
+        Scalar m_rcut_union;                                         //!< Cutoff on constituent particles
         std::vector<float, managed_allocator<float> > m_alpha_union; //!< Data array for union
-        unsigned int m_alpha_size_union;
+        unsigned int m_alpha_size_union;                             //!< Size of the alpha_union array
+        std::vector< unsigned int>  m_updated_types;                 //!< List of types whose geometric properties were updated
     };
 
 //! Exports the PatchEnergyJITUnion class to python

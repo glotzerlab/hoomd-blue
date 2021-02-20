@@ -333,17 +333,24 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // base class method
             IntegratorHPMC::prepRun(timestep);
 
+            m_hasOrientation = false;
+            quat<Scalar> q(make_scalar4(1,0,0,0));
+            for (unsigned int i=0; i < m_pdata->getNTypes(); i++)
                 {
-                // for p in params, if Shape dummy(q_dummy, params).hasOrientation() then m_hasOrientation=true
-                m_hasOrientation = false;
-                quat<Scalar> q(make_scalar4(1,0,0,0));
-                for (unsigned int i=0; i < m_pdata->getNTypes(); i++)
+                Shape dummy(q, m_params[i]);
+                if (dummy.hasOrientation())
                     {
-                    Shape dummy(q, m_params[i]);
-                    if (dummy.hasOrientation())
-                        m_hasOrientation = true;
+                    m_hasOrientation = true;
+                    break;
                     }
                 }
+
+            //! Update the OBB tree if necessary
+            if (m_patch && m_patch->getBuildOBB())
+                {
+                m_patch->buildOBBTree();
+                }
+
             updateCellWidth(); // make sure the cell width is up-to-date and forces a rebuild of the AABB tree and image list
 
             communicate(true);

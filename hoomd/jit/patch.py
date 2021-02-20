@@ -57,7 +57,7 @@ class PatchCompute(Compute):
 
     @array_size.setter
     def array_size(self, size):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._array_size = size
@@ -68,7 +68,7 @@ class PatchCompute(Compute):
 
     @code.setter
     def code(self, code):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._code = code
@@ -79,7 +79,7 @@ class PatchCompute(Compute):
 
     @llvm_ir_file.setter
     def llvm_ir_file(self, llvm_ir):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._llvm_ir_file = llvm_ir
@@ -90,7 +90,7 @@ class PatchCompute(Compute):
 
     @clang_exec.setter
     def clang_exec(self, clang):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._clang_exec = clang
@@ -331,7 +331,7 @@ class UserPatch(PatchCompute):
     '''
     def __init__(self, r_cut, array_size=1, log_only=False,
                  clang_exec='clang', code=None, llvm_ir_file=None):
-        super().__init__(r_cut=r_cut, , array_size=array_size, log_only=log_only,
+        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
                          clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
 
     def _attach(self):
@@ -448,7 +448,8 @@ class UserUnionPatch(PatchCompute):
                  log_only=False, code=None, llvm_ir_file=None ):
 
         # initialize base class
-        super().__init__(r_cut, array_size, log_only, code, llvm_ir_file, clang_exec)
+        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
+                         code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union = r_cut_union,
@@ -458,27 +459,27 @@ class UserUnionPatch(PatchCompute):
         # add union specific per-type parameters
         typeparam_positions = TypeParameter('positions',
                                             type_kind='particle_types',
-                                            param_dict=TypeParameterDict([],
+                                            param_dict=TypeParameterDict([tuple],
                                             len_keys=1))
 
         typeparam_orientations = TypeParameter('orientations',
                                                type_kind='particle_types',
-                                               param_dict=TypeParameterDict([],
+                                               param_dict=TypeParameterDict([tuple],
                                                len_keys=1))
 
         typeparam_diameters = TypeParameter('diameters',
                                             type_kind='particle_types',
-                                            param_dict=TypeParameterDict([],
+                                            param_dict=TypeParameterDict([float],
                                             len_keys=1))
 
         typeparam_charges = TypeParameter('charges',
                                           type_kind='particle_types',
-                                          param_dict=TypeParameterDict([],
+                                          param_dict=TypeParameterDict([float],
                                           len_keys=1))
 
         typeparam_typeids = TypeParameter('typeids',
                                           type_kind='particle_types',
-                                          param_dict=TypeParameterDict([],
+                                          param_dict=TypeParameterDict([int],
                                           len_keys=1))
 
         self._extend_typeparam([typeparam_positions, typeparam_orientations,
@@ -549,29 +550,29 @@ class UserUnionPatch(PatchCompute):
 
     @code_union.setter
     def code_union(self, code):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
-            self._code_union = code_union
+            self._code_union = code
 
     @property
     def llvm_ir_file_union(self):
-        return self._llvm_ir_file
+        return self._llvm_ir_file_union
 
     @llvm_ir_file_union.setter
     def llvm_ir_file_union(self, llvm_ir):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._llvm_ir_file_union = llvm_ir
 
     @property
     def array_size_union(self):
-        return self._array_size
+        return self._array_size_union
 
     @array_size_union.setter
     def array_size_union(self, size):
-        if self._attached():
+        if self._attached:
             raise AttributeError("This attribute can only be set when the patch is not attached.")
         else:
             self._array_size_union = size

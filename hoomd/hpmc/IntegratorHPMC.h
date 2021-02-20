@@ -206,13 +206,13 @@ class PatchEnergy
             }
         #endif
 
-        //! Returns the attached status
+        //! Sets the attached status
         virtual void setAttached(bool attached)
             {
             m_attached = attached;
             }
 
-        //! Sets the attached status
+        //! Returns the attached status
         virtual bool getAttached()
             {
             return m_attached;
@@ -230,14 +230,27 @@ class PatchEnergy
             return m_log_only;
             }
 
+        //! Notify when object is detached
         virtual void notifyDetach()
             {
-            m_attached = false;
+            setAttached(false);
+            }
+
+        //! Update the OBB tree  for union of particles
+        virtual void buildOBBTree()
+            {
+            }
+
+        //! Return a flag to trigger the OBB update
+        virtual bool getBuildOBB()
+            {
+            return m_build_obb;
             }
 
     protected:
-        bool m_attached = true;  //! Track whether we have attached to the Simulation object
-        bool m_log_only = false; //!< If true, only use patch energy for logging
+        bool m_attached = true;   //! Track whether we have attached to the Simulation object
+        bool m_log_only = false;  //! If true, only use patch energy for logging
+        bool m_build_obb = false; //! Flag to update the OBB tree for union of particles
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator

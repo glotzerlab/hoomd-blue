@@ -8,39 +8,46 @@
 #endif
 
 //Builds OBB tree based on geometric properties of the constituent particles
-void PatchEnergyJITUnion::buildOBBTree(unsigned int type,
-                                       std::vector<vec3<float> > positions,
-                                       std::vector<float> diameters,
-                                       unsigned int leaf_capacity)
+void PatchEnergyJITUnion::buildOBBTree()
     {
+    // assert(positions.size() == diameters.size());
+    for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
+        {
 
-    unsigned int N = (unsigned int) positions.size();
+        unsigned int type = m_updated_types[ti];
+        unsigned int N = (unsigned int) m_position[type].size();
+        hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
+        // extract member parameters, positions, and orientations and compute the rcut along the way
+        float extent_i = 0.0;
+        for (unsigned int i = 0; i < N; i++)
+            {
+            // use a spherical OBB of radius 0.5*d
+            auto pos = m_position[type][i];
+            float diameter = 0.5f*m_diameter[type][i];
 
-    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
+            // use a spherical OBB of radius 0.5*d
+            obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
 
-    // extract member parameters, positions, and orientations and compute the rcut along the way
-    float extent_i = 0.0;
+            Scalar r = sqrt(dot(pos,pos))+0.5f*diameter;
+            extent_i = std::max(extent_i, float(2*r));
 
-    for (unsigned int i = 0; i < N; i++)
-       {
-       // use a spherical OBB of radius 0.5*d
-       obbs[i] = hpmc::detail::OBB(positions[i],0.5f*diameters[i]);
+           // we do not support exclusions
+            obbs[i].mask = 1;
+            }
 
-       Scalar r = sqrt(dot(positions[i],positions[i]))+0.5f*diameters[i];
-       extent_i = std::max(extent_i, float(2*r));
+        // set the diameter
+        m_extent_type[type] = extent_i;
 
-       // we do not support exclusions
-       obbs[i].mask = 1;
-       }
+        // build tree and store proxy structure
+        hpmc::detail::OBBTree tree;
+        tree.buildTree(obbs, N, m_leaf_capacity, false);
+        delete [] obbs;
+        m_tree[type] = hpmc::detail::GPUTree(tree,false);
+        }
 
-    // set the diameter
-    m_extent_type[type] = extent_i;
+    m_updated_types.clear();
+    m_build_obb = false;
 
-    // build tree and store proxy structure
-    hpmc::detail::OBBTree tree;
-    tree.buildTree(obbs, N, leaf_capacity, false);
-    delete [] obbs;
-    m_tree[type] = hpmc::detail::GPUTree(tree,false);
     }
 
 float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
@@ -97,15 +104,16 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
 
 
 float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
-    unsigned int type_i,
-    const quat<float>& q_i,
-    float d_i,
-    float charge_i,
-    unsigned int type_j,
-    const quat<float>& q_j,
-    float d_j,
-    float charge_j)
+                                  unsigned int type_i,
+                                  const quat<float>& q_i,
+                                  float d_i,
+                                  float charge_i,
+                                  unsigned int type_j,
+                                  const quat<float>& q_j,
+                                  float d_j,
+                                  float charge_j)
     {
+
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
 
@@ -196,6 +204,7 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&, Scalar, const unsigned int,
                                  const std::string&, Scalar, const unsigned int >())
+
             .def("getPositions", &PatchEnergyJITUnion::getPositions)
             .def("setPositions", &PatchEnergyJITUnion::setPositions)
             .def("getOrientations", &PatchEnergyJITUnion::getOrientations)
@@ -207,6 +216,8 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
             .def("getTypeids", &PatchEnergyJITUnion::getTypeids)
             .def("setTypeids", &PatchEnergyJITUnion::setTypeids)
             .def_property("leaf_capacity", &PatchEnergyJITUnion::getLeafCapacity, &PatchEnergyJITUnion::setLeafCapacity)
+            .def_property("r_cut_union", &PatchEnergyJITUnion::getRCutUnion, &PatchEnergyJITUnion::setRCutUnion)
+            .def_property_readonly("array_size_union", &PatchEnergyJITUnion::getArraySizeUnion)
             .def_property_readonly("alpha_union",&PatchEnergyJITUnion::getAlphaUnionNP)
             ;
     }
