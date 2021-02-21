@@ -85,13 +85,9 @@ class ManifoldPlane
             }
         }
 
-        //! Get the name of this manifold
-        /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
-            via analyze.log.
-        */
-        static std::string getName()
+        static unsigned int dimension()
             {
-            return std::string("Plane");
+            return 2;
             }
 
     protected:

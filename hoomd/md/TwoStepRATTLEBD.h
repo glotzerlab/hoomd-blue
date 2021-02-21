@@ -51,7 +51,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
 
         virtual ~TwoStepRATTLEBD()
         {
-        m_exec_conf->msg->notice(5) << "Destroying TwoStepBD" << endl;
+        m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
         }
 
         //! Performs the second step of the integration
@@ -69,14 +69,14 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         // get the size of the intersection between query_group and m_group
         unsigned int intersect_size = ParticleGroup::groupIntersection(group, m_group)->getNumMembersGlobal();
 
-        return ( m_sysdef->getNDimensions() - 1 ) * intersect_size;
+        return Manifold::dimension() * intersect_size;
         }
 
         /// Sets eta
-        void setEta(pybind11::object eta){ m_eta = pybind11::cast<Scalar>(eta); };
+        void setEta(Scalar eta){ m_eta = eta; };
 
         /// Gets alpha
-        pybind11::object getEta(){ return pybind11::cast(m_eta); };
+        Scalar getEta(){ return m_eta; };
 
     protected:
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
@@ -91,7 +91,6 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
 
 /*! \file TwoStepRATTLEBD.h
     \brief Contains code for the TwoStepRATTLEBD class
-    \Warning NDOF is still 3*(N_part-1) and not 2*(N_part-1)!!! Has to be considered in thermodynamic quantities calculations.
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
@@ -121,9 +120,7 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     bool manifold_error = m_manifold.validate(m_pdata->getBox());
 
     if( manifold_error){
-        this->m_exec_conf->msg->error() << "manifold." << Manifold::getName() << ": Parts of the manifold are outside the box. Constrained particle positions are probably incorrect"
-                 << std::endl;
-        throw std::runtime_error("Error setting Manifold class");
+        throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
     unsigned int group_size = m_group->getNumMembers();
@@ -190,7 +187,7 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
         unsigned int j = h_rtag.data[ptag];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep, 1);
 
         Scalar gamma;
         if (m_use_alpha)
@@ -273,7 +270,6 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
                 }
             }
         }
-    //exit(0);
     // done profiling
     if (m_prof)
         m_prof->pop();
@@ -322,7 +318,7 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
         unsigned int j = h_rtag.data[ptag];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep, 2);
 
         Scalar gamma;
         if (m_use_alpha)

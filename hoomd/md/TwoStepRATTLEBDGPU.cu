@@ -134,7 +134,7 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
 
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep, 1);
 
         
         Scalar dx = (net_force.x + brownian_force.x) * deltaT_gamma;

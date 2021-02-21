@@ -168,7 +168,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep);
+        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep, 2);
 
         
 	Scalar3 next_pos;

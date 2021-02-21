@@ -86,14 +86,14 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         // get the size of the intersection between query_group and m_group
         unsigned int intersect_size = ParticleGroup::groupIntersection(group, m_group)->getNumMembersGlobal();
 
-        return ( m_sysdef->getNDimensions() - 1 ) * intersect_size;
+        return Manifold::dimension() * intersect_size;
         }
 
         /// Sets eta
-        void setEta(pybind11::object eta){ m_eta = pybind11::cast<Scalar>(eta); };
+        void setEta(Scalar eta){ m_eta = eta; };
 
         /// Gets alpha
-        pybind11::object getEta(){ return pybind11::cast(m_eta); };
+        Scalar getEta(){ return m_eta; };
 
     protected:
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
@@ -126,9 +126,7 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
     bool manifold_error = m_manifold.validate(m_pdata->getBox());
 
     if( manifold_error){
-        this->m_exec_conf->msg->error() << "manifold." << Manifold::getName() << ": Parts of the manifold are outside the box. Constrained particle positions are probably incorrect"
-                 << std::endl;
-        throw std::runtime_error("Error setting Manifold class");
+        throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
     if (!skip_restart)
