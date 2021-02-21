@@ -5,10 +5,10 @@
 #include "TwoStepRATTLELangevinGPU.cuh"
 #include "TwoStepRATTLENVEGPU.cuh"
 
-#include "ManifoldClassPlane.h"
+#include "ManifoldPlane.h"
 
 
-template hipError_t gpu_include_rattle_force_bd<ManifoldClassPlane>(const Scalar4 *d_pos,
+template hipError_t gpu_include_rattle_force_bd<ManifoldPlane>(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar4 *d_net_force,
                                   Scalar3 *d_f_brownian,
@@ -18,14 +18,14 @@ template hipError_t gpu_include_rattle_force_bd<ManifoldClassPlane>(const Scalar
                                   const unsigned int *d_groupTags,
                                   const unsigned int group_size,
                                   const rattle_bd_step_one_args& rattle_bd_args,
-			          ManifoldClassPlane manifold,
+			          ManifoldPlane manifold,
                                   size_t net_virial_pitch,
                                   const Scalar deltaT,
                                   const bool d_noiseless_t,
                                   const GPUPartition& gpu_partition
                                   );
 
-template hipError_t gpu_rattle_langevin_step_two<ManifoldClassPlane>(const Scalar4 *d_pos,
+template hipError_t gpu_rattle_langevin_step_two<ManifoldPlane>(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar3 *d_accel,
                                   const Scalar *d_diameter,
@@ -34,17 +34,17 @@ template hipError_t gpu_rattle_langevin_step_two<ManifoldClassPlane>(const Scala
                                   unsigned int group_size,
                                   Scalar4 *d_net_force,
                                   const rattle_langevin_step_two_args& rattle_langevin_args,
-                                  ManifoldClassPlane manifold,
+                                  ManifoldPlane manifold,
                                   Scalar deltaT,
                                   unsigned int D);
 
-template hipError_t gpu_rattle_nve_step_two<ManifoldClassPlane>(Scalar4 *d_pos,
+template hipError_t gpu_rattle_nve_step_two<ManifoldPlane>(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
                              Scalar4 *d_net_force,
-                             ManifoldClassPlane manifold,
+                             ManifoldPlane manifold,
                              Scalar eta,
                              Scalar deltaT,
                              bool limit,
@@ -52,7 +52,7 @@ template hipError_t gpu_rattle_nve_step_two<ManifoldClassPlane>(Scalar4 *d_pos,
                              bool zero_force,
                              unsigned int block_size);
 
-template hipError_t gpu_include_rattle_force_nve<ManifoldClassPlane>(const Scalar4 *d_pos,
+template hipError_t gpu_include_rattle_force_nve<ManifoldPlane>(const Scalar4 *d_pos,
                              const Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              Scalar4 *d_net_force,
@@ -60,7 +60,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldClassPlane>(const Scala
                              unsigned int *d_group_members,
                              const GPUPartition& gpu_partition,
                              size_t net_virial_pitch,
-			     ManifoldClassPlane manifold,
+			     ManifoldPlane manifold,
                              Scalar eta,
                              Scalar deltaT,
                              bool zero_force,

@@ -11,11 +11,7 @@
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
-using namespace std;
-
-/*! \file ManifoldClassSphere.h
+/*! \file ManifoldSphere.h
     \brief Defines the manifold class for the Sphere minimal surface
 */
 
@@ -30,11 +26,11 @@ using namespace std;
 //! Class for constructing the Sphere minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassSphere is a low level computation class that computes the distance and normal vector to the Sphere surface.
+    ManifoldSphere is a low level computation class that computes the distance and normal vector to the Sphere surface.
 
     <b>Sphere specifics</b>
 
-    ManifoldClassSphere constructs the surface:
+    ManifoldSphere constructs the surface:
     R^2 = (x-P_x)^2 + (y-P_y)^2 + (z-P_z)^2
 
     These are the parameters:
@@ -45,7 +41,7 @@ using namespace std;
 
 */
 
-class ManifoldClassSphere
+class ManifoldSphere
     {
     public:
         //! Constructs the manifold class
@@ -54,7 +50,7 @@ class ManifoldClassSphere
             \param _Pz center position in z-direction
             \param _R radius
         */
-        DEVICE ManifoldClassSphere(const Scalar _R, const Scalar3 _P)
+        DEVICE ManifoldSphere(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
             {
             }
@@ -65,7 +61,7 @@ class ManifoldClassSphere
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3 point)
+        DEVICE Scalar implicit_function(const Scalar3& point)
         {
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R;
         }
@@ -76,17 +72,29 @@ class ManifoldClassSphere
             \return normal of the Sphere surface at input point
         */
 
-        DEVICE Scalar3 derivative(const Scalar3 point)
+        DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 delta;
-            delta.x = 2*(point.x - Px);
-            delta.y = 2*(point.y - Py);
-            delta.z = 2*(point.z - Pz);
-            return delta;
+            return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 2*(point.z - Pz));
         }
 
 
-        DEVICE bool validate(const BoxDim box);
+        DEVICE bool validate(const BoxDim& box)
+        {
+            Scalar3 lo = box.getLo();
+            Scalar3 hi = box.getHi();
+            Scalar sqR = fast::sqrt(R);
+            if (Px + sqR > hi.x || Px - sqR < lo.x ||
+                Py + sqR > hi.y || Py - sqR < lo.y ||
+                Pz + sqR > hi.z || Pz - sqR < lo.z)
+                {
+                return true;
+                }
+                else
+                {
+                return false;
+                }
+        }
+
 
 
         //! Get the name of this manifold
@@ -106,6 +114,6 @@ class ManifoldClassSphere
     };
 
 //! Exports the Sphere manifold class to python
-void export_ManifoldClassSphere(pybind11::module& m);
+void export_ManifoldSphere(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_SPHERE_H__

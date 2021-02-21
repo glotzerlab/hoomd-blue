@@ -96,7 +96,7 @@ class Cylinder(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_manifold = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Cylinder"
 
@@ -148,7 +148,7 @@ class Diamond(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_manifold = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Diamond"
 
@@ -200,7 +200,7 @@ class Ellipsoid(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_manifold = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Ellipsoid"
 
@@ -252,7 +252,7 @@ class Gyroid(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_manifold = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Gyroid"
 
@@ -297,7 +297,7 @@ class Plane(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassPlane(self.shift);
+        self._cpp_manifold = _md.ManifoldPlane(self.shift);
 
         self.name = "Plane"
 
@@ -349,7 +349,7 @@ class Primitive(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_manifold = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Primitive"
 
@@ -399,7 +399,7 @@ class Sphere(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldClassSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_manifold = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Sphere"
 

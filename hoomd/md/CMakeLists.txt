@@ -20,13 +20,13 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
-                   ManifoldClassCylinder.cc
-                   ManifoldClassDiamond.cc
-                   ManifoldClassEllipsoid.cc
-                   ManifoldClassGyroid.cc
-                   ManifoldClassPlane.cc
-                   ManifoldClassPrimitive.cc
-                   ManifoldClassSphere.cc
+                   ManifoldCylinder.cc
+                   ManifoldDiamond.cc
+                   ManifoldEllipsoid.cc
+                   ManifoldGyroid.cc
+                   ManifoldPlane.cc
+                   ManifoldPrimitive.cc
+                   ManifoldSphere.cc
                    MolecularForceCompute.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -125,13 +125,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
-                ManifoldClassCylinder.h
-                ManifoldClassDiamond.h
-                ManifoldClassEllipsoid.h
-                ManifoldClassGyroid.h
-                ManifoldClassPlane.h
-                ManifoldClassPrimitive.h
-                ManifoldClassSphere.h
+                ManifoldCylinder.h
+                ManifoldDiamond.h
+                ManifoldEllipsoid.h
+                ManifoldGyroid.h
+                ManifoldPlane.h
+                ManifoldPrimitive.h
+                ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h

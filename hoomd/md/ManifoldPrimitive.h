@@ -4,19 +4,15 @@
 
 // Maintainer: pschoenhoefer
 
-#ifndef __MANIFOLD_CLASS_GYROID_H__
-#define __MANIFOLD_CLASS_GYROID_H__
+#ifndef __MANIFOLD_CLASS_PRIMITIVE_H__
+#define __MANIFOLD_CLASS_PRIMITIVE_H__
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
-using namespace std;
-
-/*! \file ManifoldClassGyroid.h
-    \brief Defines the manifold class for the Gyroid minimal surface
+/*! \file ManifoldPrimitive.h
+    \brief Defines the manifold class for the Primitive minimal surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -27,14 +23,14 @@ using namespace std;
 #define DEVICE
 #endif
 
-//! Class for constructing the Gyroid minimal surface
+//! Class for constructing the Primitive minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassGyroid is a low level computation class that computes the distance and normal vector to the Gyroid surface.
+    ManifoldPrimitive is a low level computation class that computes the distance and normal vector to the Primitive surface.
 
-    <b>Gyroid specifics</b>
+    <b>Primitive specifics</b>
 
-    ManifoldClassGyroid constructs the surface:
+    ManifoldPrimitive constructs the surface:
     R^2 = (x-P_x)^2 + (y-P_y)^2 + (z-P_z)^2
 
     These are the parameters:
@@ -45,7 +41,7 @@ using namespace std;
 
 */
 
-class ManifoldClassGyroid
+class ManifoldPrimitive
     {
     public:
         //! Constructs the manifold class
@@ -54,8 +50,8 @@ class ManifoldClassGyroid
             \param _Nz The number of unitcells in z-direction
             \param _epsilon Defines the specific constant mean curvture companion
         */
-        DEVICE ManifoldClassGyroid(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
-            : Nx(_Nx), Ny(_Ny), Nz(_Nz), epsilon(_epsilon)
+        DEVICE ManifoldPrimitive(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
+            : Nx(_Nx), Ny(_Ny), Nz(_Nz), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
             {
             }
 
@@ -65,27 +61,33 @@ class ManifoldClassGyroid
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3 point)
+        DEVICE Scalar implicit_function(const Scalar3& point)
         {
-            return fast::sin(Lx*point.x)*fast::cos(Ly*point.y) + fast::sin(Ly*point.y)*fast::cos(Lz*point.z) + fast::sin(Lz*point.z)*fast::cos(Lx*point.x) - epsilon;
+            return  fast::cos(Lx*point.x) + fast::cos(Ly*point.y) + fast::cos(Lz*point.z) - epsilon;
         }
 
         //! Evaluate deriviative of implicit function
         /*! \param point Point at surface is calculated
 
-            \return normal of the Gyroid surface at input point
+            \return normal of the Primitive surface at input point
         */
 
-        DEVICE Scalar3 derivative(const Scalar3 point)
+        DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 delta;
-            delta.x = Lx*(fast::cos(Lx*point.x)*fast::cos(Ly*point.y) - fast::sin(Lz*point.z)*fast::sin(Lx*point.x));
-            delta.y = Ly*(fast::cos(Ly*point.y)*fast::cos(Lz*point.z) - fast::sin(Lx*point.x)*fast::sin(Ly*point.y));
-            delta.z = Lz*(fast::cos(Lz*point.z)*fast::cos(Lx*point.x) - fast::sin(Ly*point.y)*fast::sin(Lz*point.z));
-            return delta;
+            return make_scalar3(-Lx*fast::sin(Lx*point.x),-Ly*fast::sin(Ly*point.y), -Lz*fast::sin(Lz*point.z));
         }
 
-        DEVICE bool validate(const BoxDim box);
+        DEVICE bool validate(const BoxDim& box)
+        {
+            Scalar3 box_length = box.getHi() - box.getLo();
+            
+            Lx = 2*M_PI*Nx/box_length.x;
+            Ly = 2*M_PI*Ny/box_length.y;
+            Lz = 2*M_PI*Nz/box_length.z;
+            
+            return false;
+        }
+
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -93,7 +95,7 @@ class ManifoldClassGyroid
         */
         static std::string getName()
             {
-            return std::string("Gyroid");
+            return std::string("Primitive");
             }
 
     protected:
@@ -106,7 +108,7 @@ class ManifoldClassGyroid
         Scalar epsilon;
     };
 
-//! Exports the Gyroid manifold class to python
-void export_ManifoldClassGyroid(pybind11::module& m);
+//! Exports the Primitive manifold class to python
+void export_ManifoldPrimitive(pybind11::module& m);
 
-#endif // __MANIFOLD_CLASS_GYROID_H__
+#endif // __MANIFOLD_CLASS_PRIMITIVE_H__

@@ -11,11 +11,7 @@
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
-using namespace std;
-
-/*! \file ManifoldClassPlane.h
+/*! \file ManifoldPlane.h
     \brief Defines the manifold class for the Plane minimal surface
 */
 
@@ -30,11 +26,11 @@ using namespace std;
 //! Class for constructing the Plane minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassPlane is a low level computation class that computes the distance and normal vector to the xy surface.
+    ManifoldPlane is a low level computation class that computes the distance and normal vector to the xy surface.
 
     <b>Plane specifics</b>
 
-    ManifoldClassPlane constructs the surface:
+    ManifoldPlane constructs the surface:
     shift = z
 
     These are the parameters:
@@ -42,13 +38,13 @@ using namespace std;
 
 */
 
-class ManifoldClassPlane
+class ManifoldPlane
     {
     public:
         //! Constructs the manifold class
         /*! \param _shift in z direction
         */
-        DEVICE ManifoldClassPlane(const Scalar _shift)
+        DEVICE ManifoldPlane(const Scalar _shift)
             : shift(_shift)
             {
             }
@@ -59,7 +55,7 @@ class ManifoldClassPlane
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3 point)
+        DEVICE Scalar implicit_function(const Scalar3& point)
         {
             return point.z - shift;
         }
@@ -70,16 +66,24 @@ class ManifoldClassPlane
             \return normal of the Plane surface at input point
         */
 
-        DEVICE Scalar3 derivative(const Scalar3 point)
+        DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 delta;
-            delta.x = 0;
-            delta.y = 0;
-            delta.z = 1;
-            return delta;
+            return make_scalar3(0,0,1);
         }
 
-        DEVICE bool validate(const BoxDim box);
+        DEVICE bool validate(const BoxDim& box)
+        {
+        Scalar3 lo = box.getLo();
+        Scalar3 hi = box.getHi();
+        if (shift > hi.z || shift < lo.z)
+            {
+            return true;
+            }
+            else
+            {
+            return false;
+            }
+        }
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -95,6 +99,6 @@ class ManifoldClassPlane
     };
 
 //! Exports the Plane manifold class to python
-void export_ManifoldClassPlane(pybind11::module& m);
+void export_ManifoldPlane(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_PLANE_H__

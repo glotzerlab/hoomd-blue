@@ -11,11 +11,7 @@
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
-using namespace std;
-
-/*! \file ManifoldClassCylinder.h
+/*! \file ManifoldCylinder.h
     \brief Defines the manifold class for the Cylinder minimal surface
 */
 
@@ -30,11 +26,11 @@ using namespace std;
 //! Class for constructing the Cylinder minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
+    ManifoldCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
 
     <b>Cylinder specifics</b>
 
-    ManifoldClassCylinder constructs the surface:
+    ManifoldCylinder constructs the surface:
     R^2 = (x-P_x)^2 + (y-P_y)^2
 
     These are the parameters:
@@ -45,7 +41,7 @@ using namespace std;
 
 */
 
-class ManifoldClassCylinder
+class ManifoldCylinder
     {
     public:
 
@@ -55,7 +51,7 @@ class ManifoldClassCylinder
             \param _Pz center position in z-direction
             \param _R radius
         */
-        DEVICE ManifoldClassCylinder(const Scalar _R, const Scalar3 _P)
+        DEVICE ManifoldCylinder(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
             {
             }
@@ -66,7 +62,7 @@ class ManifoldClassCylinder
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(Scalar3 point)
+        DEVICE Scalar implicit_function(const Scalar3& point)
         {
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R;
         }
@@ -77,16 +73,27 @@ class ManifoldClassCylinder
             \return normal of the Cylinder surface at input point
         */
 
-        DEVICE Scalar3 derivative(Scalar3 point)
+        DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 delta;
-            delta.x = 2*(point.x - Px);
-            delta.y = 2*(point.y - Py);
-            delta.z = 0;
-            return delta;
+            return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 0);
         }
 
-        DEVICE bool validate(const BoxDim box);
+        DEVICE bool validate(const BoxDim& box)
+        {
+         Scalar3 lo = box.getLo();
+         Scalar3 hi = box.getHi();
+         Scalar sqR = fast::sqrt(R);
+         if (Px + sqR > hi.x || Px - sqR < lo.x ||
+             Py + sqR > hi.y || Py - sqR < lo.y ||
+             Pz > hi.z || Pz < lo.z)
+            {
+            return true;
+            }
+            else
+            { 
+            return false;
+            }
+        }
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -105,6 +112,6 @@ class ManifoldClassCylinder
     };
 
 //! Exports the Cylinder manifold class to python
-void export_ManifoldClassCylinder(pybind11::module& m);
+void export_ManifoldCylinder(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_CYLINDER_H__

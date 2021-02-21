@@ -97,7 +97,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         virtual void integrateStepTwo(unsigned int timestep);
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void IncludeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(unsigned int timestep);
 
         //! Get the number of degrees of freedom granted to a given group
         virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
@@ -581,7 +581,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template < class Manifold>
-void TwoStepRATTLELangevin<Manifold>::IncludeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(unsigned int timestep)
     {
 
     unsigned int group_size = m_group->getNumMembers();

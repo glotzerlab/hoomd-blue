@@ -123,7 +123,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Calculates force which keeps paricles on manifold in RATTLE integrators
         /*! \param timestep Current time step
         */
-        virtual void IncludeRATTLEForce(unsigned int timestep)
+        virtual void includeRATTLEForce(unsigned int timestep)
             {
             }
 

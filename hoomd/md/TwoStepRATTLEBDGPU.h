@@ -53,7 +53,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
         virtual void integrateStepTwo(unsigned int timestep){};
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void IncludeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(unsigned int timestep);
 
     protected:
         unsigned int m_block_size;               //!< block size
@@ -193,7 +193,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
 template<class Manifold>
-void TwoStepRATTLEBDGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
     {
 
     // access all the needed data

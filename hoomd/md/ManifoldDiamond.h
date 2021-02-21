@@ -11,11 +11,9 @@
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+//namespace py = pybind11;
 
-using namespace std;
-
-/*! \file ManifoldClassDiamond.h
+/*! \file ManifoldDiamond.h
     \brief Defines the manifold class for the Diamond minimal surface
 */
 
@@ -30,7 +28,7 @@ using namespace std;
 //! Class for constructing the Diamond minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldClassDiamond is a low level computation class that computes the distance and normal vector to the Diamond surface.
+    ManifoldDiamond is a low level computation class that computes the distance and normal vector to the Diamond surface.
 
     <b>Diamond specifics</b>
 
@@ -42,7 +40,7 @@ using namespace std;
 
 */
 
-class ManifoldClassDiamond
+class ManifoldDiamond
     {
     public:
         //! Constructs the manifold class
@@ -51,8 +49,8 @@ class ManifoldClassDiamond
             \param _Nz The number of unitcells in z-direction
             \param _epsilon Defines the specific constant mean curvture companion
         */
-        DEVICE ManifoldClassDiamond(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
-            : Nx(_Nx), Ny(_Ny), Nz(_Nz), epsilon(_epsilon)
+        DEVICE ManifoldDiamond(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
+            : Nx(_Nx), Ny(_Ny), Nz(_Nz), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
             {
             }
 
@@ -62,9 +60,9 @@ class ManifoldClassDiamond
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3 point)
+        DEVICE Scalar implicit_function(const Scalar3& point)
         {
-            return slow::cos(Lx*point.x)*slow::cos(Ly*point.y)*slow::cos(Lz*point.z) - slow::sin(Lx*point.x)*slow::sin(Ly*point.y)*slow::sin(Lz*point.z) - epsilon;
+            return fast::cos(Lx*point.x)*fast::cos(Ly*point.y)*fast::cos(Lz*point.z) - fast::sin(Lx*point.x)*fast::sin(Ly*point.y)*fast::sin(Lz*point.z) - epsilon;
         }
 
         //! Evaluate deriviative of implicit function
@@ -73,16 +71,29 @@ class ManifoldClassDiamond
             \return normal of the Diamond surface at input point
         */
 
-        DEVICE Scalar3 derivative(const Scalar3 point)
+        DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 delta;
-            delta.x = -Lx*(slow::sin(Lx*point.x)*slow::cos(Ly*point.y)*slow::cos(Lz*point.z) + slow::cos(Lx*point.x)*slow::sin(Ly*point.y)*slow::sin(Lz*point.z));
-            delta.y = -Ly*(slow::cos(Lx*point.x)*slow::sin(Ly*point.y)*slow::cos(Lz*point.z) + slow::sin(Lx*point.x)*slow::cos(Ly*point.y)*slow::sin(Lz*point.z));
-            delta.z = -Lz*(slow::cos(Lx*point.x)*slow::cos(Ly*point.y)*slow::sin(Lz*point.z) + slow::sin(Lx*point.x)*slow::sin(Ly*point.y)*slow::cos(Lz*point.z));
-            return delta;
+
+            Scalar cx,sx;
+            fast::sincos(Lx*point.x,sx,cx);
+            Scalar cy,sy;
+            fast::sincos(Ly*point.y,sy,cy);
+            Scalar cz,sz;
+            fast::sincos(Lz*point.z,sz,cz);
+
+            return make_scalar3(-Lx*(sx*cy*cz + cx*sy*sz),-Ly*(cx*sy*cz + sx*cy*sz),-Lz*(cx*cy*sz + sx*sy*cz));
         }
 
-        DEVICE bool validate(const BoxDim box);
+        DEVICE bool validate(const BoxDim& box)
+        {
+            Scalar3 box_length = box.getHi() - box.getLo();
+        
+            Lx = M_PI*Nx/box_length.x;
+            Ly = M_PI*Ny/box_length.y;
+            Lz = M_PI*Nz/box_length.z;
+        
+            return false;
+        }
 
         //! Get the name of this manifold
         /*! \returns The manifold name. Must be short and all lowercase, as this is the name manifolds will be logged as
@@ -104,6 +115,6 @@ class ManifoldClassDiamond
     };
 
 //! Exports the Diamond manifold class to python
-void export_ManifoldClassDiamond(pybind11::module& m);
+void export_ManifoldDiamond(pybind11::module& m);
 
 #endif // __MANIFOLD_CLASS_DIAMOND_H__

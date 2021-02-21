@@ -52,7 +52,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
         virtual void integrateStepTwo(unsigned int timestep);
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void IncludeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(unsigned int timestep);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -299,7 +299,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template<class Manifold>
-void TwoStepRATTLELangevinGPU<Manifold>::IncludeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
     {
 
     // access all the needed data

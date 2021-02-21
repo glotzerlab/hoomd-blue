@@ -149,7 +149,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     for (auto& method : m_methods)
     {
         method->integrateStepTwo(timestep);
-        method->IncludeRATTLEForce(timestep);
+        method->includeRATTLEForce(timestep);
     }
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
@@ -442,7 +442,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         }
 
     for (auto& method : m_methods)
-        method->IncludeRATTLEForce(timestep);
+        method->includeRATTLEForce(timestep);
 
     m_prepared = true;
     }
