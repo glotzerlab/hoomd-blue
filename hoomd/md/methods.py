@@ -913,15 +913,19 @@ class Brownian(_Method):
         super()._attach()
 
 
-class berendsen(_Method):
-    R""" Applies the Berendsen thermostat.
+class Berendsen(_Method):
+    r"""Applies the Berendsen thermostat.
 
     Args:
-        group (``hoomd.group``): Group to which the Berendsen thermostat will be applied.
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature of thermostat. (in energy units).
-        tau (float): Time constant of thermostat. (in time units)
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
+            apply this method to.
 
-    :py:class:`berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
+        kT (`hoomd.variant.Variant` or `float`): Temperature of the
+            simulation (in energy units).
+
+        tau (`float`): Time constant of thermostat. (in time units)
+
+    :py:class:`Berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
     the difference in the current temperature from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
@@ -930,68 +934,56 @@ class berendsen(_Method):
         \frac{dT_\mathrm{cur}}{dt} = \frac{T - T_\mathrm{cur}}{\tau}
 
     .. attention::
-        :py:class:`berendsen` does not function with MPI parallel simulations.
+        :py:class:`Berendsen` does not function with MPI parallel simulations.
 
     .. attention::
-        :py:class:`berendsen` does not integrate rotational degrees of freedom.
+        :py:class:`Berendsen` does not integrate rotational degrees of freedom.
+
+        Examples::
+
+        berendsen = hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=0.2,
+        tau=10.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[berendsen], forces=[lj])
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles to
+            apply this method to.
+
+        kT (hoomd.variant.Variant): Temperature of the
+            simulation (in energy units).
+
+        tau (float): Time constant of thermostat. (in time units)
     """
-    def __init__(self, group, kT, tau):
 
-        # Error out in MPI simulations
-        if (hoomd.version.mpi_enabled):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.current.device.cpp_msg.error("integrate.berendsen is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration method.")
-
-        # initialize base class
-        _Method.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        thermo = hoomd.compute._get_unique_thermo(group = group)
-
-        # initialize the reflected c++ class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_method = _md.TwoStepBerendsen(hoomd.context.current.system_definition,
-                                                     group.cpp_group,
-                                                     thermo.cpp_compute,
-                                                     tau,
-                                                     kT.cpp_variant)
-        else:
-            self.cpp_method = _md.TwoStepBerendsenGPU(hoomd.context.current.system_definition,
-                                                        group.cpp_group,
-                                                        thermo.cpp_compute,
-                                                        tau,
-                                                        kT.cpp_variant)
-
+    def __init__(self, filter, kT, tau):
         # store metadata
-        self.kT = kT
-        self.tau = tau
-        self.metadata_fields = ['kT','tau']
+        param_dict = ParameterDict(
+            filter=ParticleFilter,
+            kT=Variant,
+            tau=float(tau))
+        param_dict.update(dict(filter=filter, kT=kT))
 
-    def randomize_velocities(self, seed):
-        R""" Assign random velocities and angular momenta to particles in the
-        group, sampling from the Maxwell-Boltzmann distribution. This method
-        considers the dimensionality of the system and particle anisotropy, and
-        removes drift (the center of mass velocity).
+        # set defaults
+        self._param_dict.update(param_dict)
 
-        .. versionadded:: 2.3
+    def _attach(self):
+        sim = self._simulation
+        # Error out in MPI simulations
+        if hoomd.version.mpi_enabled:
+            if sim.device._comm.num_ranks > 1:
+                raise RuntimeError("hoomd.md.methods.Berendsen is not supported in multi-processor simulations.")
 
-        Args:
-            seed (int): Random number seed
-
-        Note:
-            Randomization is applied at the start of the next call to ```hoomd.run```.
-
-        Example::
-
-            integrator = md.integrate.berendsen(group=group.all(), kT=1.0, tau=0.5)
-            integrator.randomize_velocities(seed=42)
-            run(100)
-
-        """
-        timestep = hoomd.get_step()
-        kT = self.kT.cpp_variant.getValue(timestep)
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        group = sim.state._get_group(self.filter)
+        if isinstance(sim.device, hoomd.device.CPU):
+            cpp_method = _md.TwoStepBerendsen
+            thermo_cls = _md.ComputeThermo
+        else:
+            cpp_method = _md.TwoStepBerendsenGPU
+            thermo_cls = _md.ComputeThermoGPU
+        self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
+                                   group,
+                                   thermo_cls(sim.state._cpp_sys_def, group, ""),
+                                   self.tau,
+                                   self.kT)
+        super()._attach()

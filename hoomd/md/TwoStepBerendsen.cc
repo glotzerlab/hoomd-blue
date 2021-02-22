@@ -155,7 +155,7 @@ void export_Berendsen(py::module& m)
                          Scalar,
                          std::shared_ptr<Variant>
                          >())
-        .def("setT", &TwoStepBerendsen::setT)
-        .def("setTau", &TwoStepBerendsen::setTau)
+        .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
+        .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau)
         ;
     }
