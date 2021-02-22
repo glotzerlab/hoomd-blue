@@ -89,17 +89,18 @@ class FreeVolume(Compute):
                                 (integrate.Ellipsoid, _hpmc.ComputeFreeVolumeEllipsoidGPU),
                                 (integrate.ConvexSpheropolygon, _hpmc.ComputeFreeVolumeSpheropolygonGPU),
                                 (integrate.FacetedEllipsoid, _hpmc.ComputeFreeVolumeFacetedEllipsoidGPU),
-                                (integrate.Sphinx, _hpmc.ComputeFreeVolumeSphinxGPU),
                                 (integrate.SphereUnion, _hpmc.ComputeFreeVolumeSphereUnionGPU),
                                 (integrate.ConvexSpheropolyhedronUnion, _hpmc.ComputeFreeVolumeConvexPolyhedronUnionGPU),
                                 (integrate.FacetedEllipsoidUnion, _hpmc.ComputeFreeVolumeFacetedEllipsoidUnionGPU)]
-
-        cpp_cls = None
-        for python_integrator, cpp_compute in integrator_pairs:
-            if isinstance(integrator, python_integrator):
-                cpp_cls = cpp_compute
-        if cpp_cls is None:
-            raise RuntimeError("Unsupported integrator.\n")
+        if isinstance(integrator, integrate.Sphinx) and isinstance(self._simulation.device, hoomd.device.GPU):
+            cpp_cls = _hpmc.ComputeFreeVolumeSphinxGPU
+        else:
+            cpp_cls = None
+            for python_integrator, cpp_compute in integrator_pairs:
+                if isinstance(integrator, python_integrator):
+                    cpp_cls = cpp_compute
+            if cpp_cls is None:
+                raise RuntimeError("Unsupported integrator.\n")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.mc._cpp_obj,
