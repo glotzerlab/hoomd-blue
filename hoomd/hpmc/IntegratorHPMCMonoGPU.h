@@ -152,7 +152,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_narrow->setPeriod(period*this->m_nselect);
             m_tuner_narrow->setEnabled(enable);
 
-            if (this->m_patch->getAttached() && !this->m_patch->getLogOnly())
+            if (this->m_patch && !this->m_patch->getLogOnly())
                 {
                 this->m_patch->setAutotunerParams(enable,period*this->m_nselect);
                 }
@@ -466,7 +466,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateGPUAdvice()
             cudaMemAdvise(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemPrefetchAsync(m_reject_out_of_cell.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
 
-            if (this->m_patch->getAttached() && !this->m_patch->getLogOnly())
+            if (this->m_patch && !this->m_patch->getLogOnly())
                 {
                 cudaMemAdvise(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 cudaMemPrefetchAsync(m_nneigh_patch_old.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
@@ -485,7 +485,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     {
     IntegratorHPMC::update(timestep);
 
-    if (this->m_patch->getAttached() && !this->m_patch->getLogOnly())
+    if (this->m_patch && !this->m_patch->getLogOnly())
         {
         ArrayHandle<Scalar> h_additive_cutoff(m_additive_cutoff, access_location::host, access_mode::overwrite);
         for (unsigned int itype = 0; itype < this->m_pdata->getNTypes(); ++itype)
@@ -559,7 +559,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
             }
 
         if (m_nneigh_patch_old.getNumElements() < this->m_pdata->getMaxN()
-            && this->m_patch->getAttached() && !this->m_patch->getLogOnly())
+            && this->m_patch && !this->m_patch->getLogOnly())
             {
             m_nneigh_patch_old.resize(this->m_pdata->getMaxN());
             m_nneigh_patch_new.resize(this->m_pdata->getMaxN());
@@ -909,7 +909,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                 reallocate = checkReallocate();
                 } while (reallocate);
 
-            if (this->m_patch->getAttached() && !this->m_patch->getLogOnly())
+            if (this->m_patch && !this->m_patch->getLogOnly())
                 {
                 // make sure neighbor list size is sufficient before running the kernels
                 checkReallocatePatch();
@@ -1026,7 +1026,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                         this->m_pdata->getN(),
                         this->m_pdata->getGPUPartition(),
                         m_maxn,
-                        (this->m_patch->getAttached() != 0) && !this->m_patch->getLogOnly(),
+                        (this->m_patch != 0) && !this->m_patch->getLogOnly(),
                         d_nlist_patch_old.data,
                         d_nlist_patch_new.data,
                         d_nneigh_patch_old.data,

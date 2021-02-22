@@ -503,7 +503,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
-            m_patch->setAttached(true);
             }
 
         //! Get the seed
