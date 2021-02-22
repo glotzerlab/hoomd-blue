@@ -73,7 +73,7 @@ class PatchCompute(Compute):
 
     @property
     def code(self):
-        """str: The C++ code defining the costum pair interaction.
+        """str: The C++ code defining the custom pair interaction.
         """
         return self._code
 
@@ -126,15 +126,15 @@ class PatchCompute(Compute):
                 self._max_arch = int(a)
 
     def _compile_user(self, code, clang_exec, fn=None):
-        R'''Helper function to compile the provided code into an executable
+        R"""Helper function to compile the provided code into an executable
 
         Args:
-            code (str): C++ code to compile
-            clang_exec (str): The Clang executable to use
-            fn (str): If provided, the code will be written to a file.
+            code (`str`): C++ code to compile
+            clang_exec (`str`): The Clang executable to use
+            fn (`str`, **optional**): If provided, the code will be written to a file.
 
         .. versionadded:: 2.3
-        '''
+        """
         cpp_function =  """
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
@@ -185,13 +185,13 @@ class PatchCompute(Compute):
         return llvm_ir
 
     def _wrap_gpu_code(self, code):
-        R'''Helper function to compile the provided code into a device function
+        R"""Helper function to compile the provided code into a device function
 
         Args:
-            code (str): C++ code to compile
+            code (`str`): C++ code to compile
 
         .. versionadded:: 3.0
-        '''
+        """
         cpp_function =  """
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
@@ -220,7 +220,7 @@ class PatchCompute(Compute):
         return cpp_function
 
 class UserPatch(PatchCompute):
-    R''' Define an arbitrary patch energy.
+    r'''Define an arbitrary patch energy.
 
     Args:
         r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
@@ -385,9 +385,9 @@ class UserUnionPatch(PatchCompute):
 
     Args:
         r_cut_union (`float`): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        r_cut (`float`, **optional**): Cut-off for isotropic interaction between centers of union particles
+        r_cut (`float`, **default** 0): Cut-off for isotropic interaction between centers of union particles
         code_union (`str`): C++ code defining the custom pair interactions between constituent particles.
-        code (str, **optional**): C++ code for isotropic part.
+        code (`str`): C++ code for isotropic part.
         llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
         llvm_ir_fname (`str`): File name of the llvm IR file to load for isotropic interaction.
         clang_exec (`str`, **default:** `clang`): The Clang executable to compile the provided code.
@@ -463,8 +463,8 @@ class UserUnionPatch(PatchCompute):
     .. versionadded:: 2.3
     '''
     def __init__(self, r_cut_union, array_size_union=1, clang_exec='clang',
-                 code_union=None, llvm_ir_file_union=None, r_cut=-1, array_size=1,
-                 log_only=False, code=None, llvm_ir_file=None ):
+                 code_union=None, llvm_ir_file_union=None, r_cut=0, array_size=1,
+                 log_only=False, code='return 0;', llvm_ir_file=None ):
 
         # initialize base class
         super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
