@@ -21,7 +21,27 @@ class PatchCompute(Compute):
 
     Note:
         This class should not be instantiated by users. The class can be used
-        for `isinstance` or `issubclass` checks.
+        for `isinstance` or `issubclass` checks. The attributes documented here
+        are available to all patch computes.
+
+    Args:
+        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between particles.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
+        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
+        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
+
+    Atrributes:
+        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between particles.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str`): The Clang executable to compile the provided code.
+        array_size (`int`): Size of array with adjustable elements. (added in version 2.8)
+        log_only (`bool`): Enable patch interaction for logging purposes only.
+        energy (`float`): Total interaction energy of the system in the current state.
+        alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
+                                          defined by the user (added in version 2.8).
     """
 
     def __init__(self, r_cut, array_size=1, log_only=False,
@@ -53,45 +73,51 @@ class PatchCompute(Compute):
 
     @property
     def array_size(self):
+        """int: Total interaction energy of the system in the current state.
+        """
         return self._array_size
 
     @array_size.setter
     def array_size(self, size):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._array_size = size
 
     @property
     def code(self):
+        """str: The C++ code defining the costum pair interaction.
+        """
         return self._code
 
     @code.setter
     def code(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._code = code
 
     @property
     def llvm_ir_file(self):
+        """str: File name of the llvm IR file to load."""
         return self._llvm_ir_file
 
     @llvm_ir_file.setter
     def llvm_ir_file(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._llvm_ir_file = llvm_ir
 
     @property
     def clang_exec(self):
+        """str: The Clang executable to compile the provided code."""
         return self._clang_exec
 
     @clang_exec.setter
     def clang_exec(self, clang):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._clang_exec = clang
 
@@ -210,11 +236,16 @@ class UserPatch(PatchCompute):
     R''' Define an arbitrary patch energy.
 
     Args:
-        r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (str): C++ code defining the costum pair interactions between particles.
-        llvm_ir_fname (str): File name of the llvm IR file to load.
-        clang_exec (str): The Clang executable to use
-        array_size (int): Size of array with adjustable elements. (added in version 2.8)
+        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between particles.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
+        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
+        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
+
+    Note:
+        If both `code` and `llvm_ir_fname` are provided, the former takes precedence. The latter will be used
+        as a fallback in case the compilation of `code` fails.
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
     Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
@@ -225,14 +256,6 @@ class UserPatch(PatchCompute):
     interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`UserPatch` provides a mechanism,
     through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
     to recompile the patch energy code. These arrays are **read-only** during function evaluation.
-
-    Attributes:
-        r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        log_only (bool): Enable patch interaction for logging purposes only.
-        array_size (int): Size of array with adjustable elements. (added in version 2.8)
-        energy (float): Total interaction energy of the system in the current state.
-        alpha_iso (numpy.ndarray, float): Length array_size numpy array containing dynamically adjustable elements
-                                          defined by the user (added in version 2.8).
 
     .. rubric:: C++ code
 
@@ -329,6 +352,7 @@ class UserPatch(PatchCompute):
 
     .. versionadded:: 2.3
     '''
+
     def __init__(self, r_cut, array_size=1, log_only=False,
                  clang_exec='clang', code=None, llvm_ir_file=None):
         super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
@@ -351,7 +375,7 @@ class UserPatch(PatchCompute):
             with open(self._llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
         else:
-            raise RuntimeError("")
+            raise RuntimeError("Must provide code or LLVM IR file.")
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
@@ -366,36 +390,42 @@ class UserPatch(PatchCompute):
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
         # attach patch object to the integrator
-        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
 class UserUnionPatch(PatchCompute):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
-        r_cut_union (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        r_cut (float, **optional**): Cut-off for isotropic interaction between centers of union particles
-        code_union (str): C++ code to compile
-        code (str, **optional**): C++ code for isotropic part
-        llvm_ir_fname_union (str): File name of the llvm IR file to load.
-        llvm_ir_fname (str, **optional**): File name of the llvm IR file to load for isotropic interaction
-        array_size_union (int): Size of array with adjustable elements. (added in version 2.8)
-        array_size (int): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+        r_cut_union (`float`): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        r_cut (`float`, **optional**): Cut-off for isotropic interaction between centers of union particles
+        code_union (`str`): C++ code defining the custom pair interactions between constituent particles.
+        code (str, **optional**): C++ code for isotropic part.
+        llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load for isotropic interaction.
+        clang_exec (`str`, **default:** `clang`): The Clang executable to compile the provided code.
+        array_size_union (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
+        array_size (`int`, **default:** 1): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
+
+    Note:
+        If both `code_union` and `llvm_ir_fname_union` are provided, the former takes precedence. The latter will be used
+        as a fallback in case the compilation of `code_union` fails.
 
     Attributes:
         positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
-            The positions of the constituent particles
+            The positions of the constituent particles.
         orientations (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float, `float`]]])
-            The orientations of the constituent particles (list of four-vectors)
+            The orientations of the constituent particles.
         diameters (`TypeParameter` [``particle type``, `list` [`float`]])
-            The diameters of the constituent particles (list of floats)
+            The diameters of the constituent particles.
         charges (`TypeParameter` [``particle type``, `list` [`float`]])
-            The charges of the constituent particles (list of floats)
+            The charges of the constituent particles.
         typeids (`TypeParameter` [``particle type``, `list` [`float`]])
-            The charges of the constituent particles (list of floats)
+            The charges of the constituent particles.
         leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
-        alpha_union (numpy.ndarray, float): Length array_size_union numpy array containing dynamically adjustable elements
-                                            defined by the user for unions of shapes (added in version 2.8)
+        alpha_union (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
+                                          defined by the user for unions of shapes (added in version 2.8)
 
     Example:
 
@@ -409,6 +439,7 @@ class UserUnionPatch(PatchCompute):
                       """
         patch = hoomd.jit.patch.UserUnionPatch(r_cut_union=1.1, code_union=square_well)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
+        patch.diameters['A'] =[0,0]
         patch.typeids['A'] =[0,0]
 
     Example with added isotropic interactions:
@@ -437,6 +468,7 @@ class UserUnionPatch(PatchCompute):
                                                r_cut=5, code=soft_repulsion, array_size=2)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.typeids['A'] = [0,0]
+        patch.diameters['A'] = [0,0]
         # [r_cut, epsilon]
         patch.alpha_iso[:] = [2.5, 1.3];
         patch.alpha_union[:] = [2.5, -1.7];
@@ -509,7 +541,7 @@ class UserUnionPatch(PatchCompute):
             with open(self._llvm_ir_file_union,'r') as f:
                 llvm_ir_union = f.read()
         else:
-            raise RuntimeError("")
+            raise RuntimeError("Must provide code or LLVM IR file.")
 
         if self._code is not None:
             llvm_ir = self._compile_user(self._code, self._clang_exec)
@@ -541,38 +573,41 @@ class UserUnionPatch(PatchCompute):
         self.alpha_iso = self._cpp_obj.alpha_iso
         self.alpha_union = self._cpp_obj.alpha_union
         # attach patch object to the integrator
-        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
     @property
     def code_union(self):
+        """str: The C++ code defining the custom pair interactions between constituent particles."""
         return self._code_union
 
     @code_union.setter
     def code_union(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._code_union = code
 
     @property
     def llvm_ir_file_union(self):
+        """str: File name of the llvm IR file to load."""
         return self._llvm_ir_file_union
 
     @llvm_ir_file_union.setter
     def llvm_ir_file_union(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._llvm_ir_file_union = llvm_ir
 
     @property
     def array_size_union(self):
+        """int:  Size of array with adjustable elements."""
         return self._array_size_union
 
     @array_size_union.setter
     def array_size_union(self, size):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch is not attached.")
+            raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._array_size_union = size
