@@ -209,7 +209,7 @@ class Rigid(ConstraintForce):
 
     Example::
 
-        rigid = constrain.rigid()
+        rigid = constrain.Rigid()
         rigid.set_param(
             'A',
             types = ['A_const', 'A_const'],
