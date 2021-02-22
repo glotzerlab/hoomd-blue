@@ -39,35 +39,28 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     sim.run(10)
     assert isinstance(free_volume.free_volume, float)
 
+_radii = [(0.25, 0.05),
+          (0.4, 0.05),
+          (1.5, 0.05),
+          (0.25, 1.5)]
 
-_params1 = dict(particle_types=['A', 'B'], a=2.0, n=7)
-_free_volume1 = (7 * 2)**3 - (7**3) * (4 / 3) * np.pi * 0.3**3
-
-_params2 = dict(particle_types=['A', 'B'], a=1.5, n=7)
-_free_volume2 = (7 * 1.5)**3 - (7**3) * (4 / 3) * np.pi * 0.3**3
-
-_params3 = dict(particle_types=['A', 'B'], a=0.1, n=7)
-_free_volume3 = 0.0
-
-_validation_systems = [(_params1, _free_volume1),
-                       (_params2, _free_volume2),
-                       (_params3, _free_volume3)]
-
-@pytest.mark.parametrize("snapshot_params, free_volume", _validation_systems)
+@pytest.mark.parametrize("radius1, radius2", _radii)
 def test_validation_systems(simulation_factory,
                             two_particle_snapshot_factory,
                             lattice_snapshot_factory,
-                            snapshot_params,
-                            free_volume):
-    sim = simulation_factory(lattice_snapshot_factory(**snapshot_params))
+                            radius1,
+                            radius2):
+    free_volume = (7**3) * (1 - (4 / 3) * np.pi * (radius1 + radius2)**3)
+    free_volume = max([0.0, free_volume])
+    sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B']))
     mc = hoomd.hpmc.integrate.Sphere(23456)
-    mc.shape["A"] = {'diameter': 0.5}
-    mc.shape["B"] = {'diameter': 0.1}
+    mc.shape["A"] = {'diameter': radius1 * 2}
+    mc.shape["B"] = {'diameter': radius2 * 2}
     mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
     sim.operations._schedule()
-    free_volume_compute = hoomd.hpmc.compute.FreeVolume(mc, 23456, test_type='B', nsample=1000)
+    free_volume_compute = hoomd.hpmc.compute.FreeVolume(mc, 23456, test_type='B', nsample=10000)
     sim.operations.add(free_volume_compute)
     sim.run(0)
     np.testing.assert_allclose(free_volume, free_volume_compute.free_volume, rtol=1e-2)
