@@ -9,12 +9,6 @@ from hoomd import jit
 import pytest
 import numpy as np
 
-positions_orientations_result = [([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
-                                 ([(0,0,0),(1,0,0)], [(1,0,0,0),(0,0,1,0)], 1),
-                                 ([(0,0,0),(0,0,1)], [(1,0,0,0),(1,0,0,0)], 1/2),
-                                 ([(0,0,0),(0,0,1)], [(1,0,0,0),(0,0,1,0)], -1/2),
-]
-
 
 valid_constructor_args = [
     dict(r_cut = 3,
@@ -30,28 +24,101 @@ valid_constructor_args = [
 ]
 
 
-valid_attrs = [('r_cut', 2),
-               ('array_size', 2),
+valid_constructor_args_union = [
+    dict(r_cut_union = 3,
+         r_cut = 3,
+         array_size = 2,
+         array_size_union = 2,
+         log_only=True,
+         code ='return -3;',
+         code_union='return -1;',
+         llvm_ir_file_union="code_union.ll",
+         llvm_ir_file="code.ll",
+         clang_exec='/usr/bin/clang'),
+    dict(r_cut_union = 3,
+         array_size_union = 2,
+         log_only=True,
+         code_union='return -1;',
+         llvm_ir_file_union="code_union.ll"),
+]
+
+
+# setable attributes before attach for UserPatch objects
+valid_attrs = [('r_cut', 1.4),
                ('code', 'return -1;'),
                ('llvm_ir_file', 'code.ll'),
-               ('clang_exec', 'clang')
+               ('clang_exec', 'clang'),
+               ('log_only', True)
+]
+
+
+# setable attributes before attach for UserUnionPatch objects
+valid_attrs_union = valid_attrs + [ ('r_cut_union', 3.6),
+                                    ('code_union', 'return -2;'),
+                                    ('llvm_ir_file_union', 'code_union.ll'),
+                                    ('leaf_capacity', 2)
+]
+
+
+# setable attributes after attach for UserPatch objects
+valid_attrs_after_attach = [ ('r_cut', 1.3),
+                             ('log_only', True)
+]
+
+
+# setable attributes after attach for UserUnionPatch objects
+valid_attrs_after_attach_union = valid_attrs_after_attach + [ ('r_cut_union', 2),
+                                                              ('leaf_capacity',3)
+]
+
+
+# attributes that cannot be set after object is attached
+attr_error =  [('array_size', 1.1),
+               ('code', 'return -1.0;'),
+               ('llvm_ir_file', 'test.ll'),
+               ('clang_exec', '/usr/bin/clang')
+]
+
+
+# attributes that cannot be set after object is attached
+attr_error_union =  attr_error+ [('array_size_union', 2.1),
+                                 ('code_union', 'return -3.0;'),
+                                 ('llvm_ir_file_union', 'test.ll')
+]
+
+
+positions_orientations_result = [([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
+                                 ([(0,0,0),(1,0,0)], [(1,0,0,0),(0,0,1,0)], 1),
+                                 ([(0,0,0),(0,0,1)], [(1,0,0,0),(1,0,0,0)], 1/2),
+                                 ([(0,0,0),(0,0,1)], [(1,0,0,0),(0,0,1,0)], -1/2),
 ]
 
 
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction(constructor_args):
-    """"""
+def test_valid_construction_user_patch(constructor_args):
+    """Test that UserPatch can be constructed with valid arguments."""
     patch = jit.patch.UserPatch(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
         assert getattr(patch, attr) == value
 
+
+@pytest.mark.parametrize("constructor_args", valid_constructor_args_union)
+def test_valid_construction_user_union_patch(constructor_args):
+    """Test that UserUnionPatch can be constructed with valid arguments."""
+    patch = jit.patch.UserUnionPatch(**constructor_args)
+
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert getattr(patch, attr) == value
+
+
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_and_attach(simulation_factory,
+def test_valid_construction_and_attach_user_patch(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args):
-    """"""
+    """Test that UserPatch can be attached with valid arguments."""
     # create objects
     patch = jit.patch.UserPatch(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere(seed=1)
@@ -70,21 +137,61 @@ def test_valid_construction_and_attach(simulation_factory,
         assert getattr(patch, attr) == value
 
 
+@pytest.mark.parametrize("constructor_args", valid_constructor_args_union)
+def test_valid_construction_and_attach_user_union_patch(simulation_factory,
+                                       two_particle_snapshot_factory,
+                                       constructor_args):
+    """Test that UserUnionPatch can be attached with valid arguments."""
+    # create objects
+    patch = jit.patch.UserUnionPatch(**constructor_args)
+    patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
+    patch.orientations['A'] = [(1,0,0,0)]*2
+    patch.diameters['A'] = [0, 0]
+    patch.typeids['A'] = [0, 0]
+    patch.charges['A'] = [0, 0]
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # validate the params were set properly
+    for attr, value in constructor_args.items():
+        assert getattr(patch, attr) == value
+
+
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr(attr, value):
-    """"""
+def test_valid_setattr_user_patch(attr, value):
+    """Test that UserPatch can get and set attributes before attached."""
     patch = jit.patch.UserPatch(r_cut=2)
 
     setattr(patch, attr, value)
     assert getattr(patch, attr) == value
 
 
-@pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(attr, value, simulation_factory,
-                                two_particle_snapshot_factory):
-    """"""
+@pytest.mark.parametrize("attr,value", valid_attrs_union)
+def test_valid_setattr_user_union_patch(attr, value):
+    """Test that UserUnionPatch can get and set attributes before attached."""
 
-    patch = jit.patch.UserPatch(r_cut=2)
+    patch = jit.patch.UserUnionPatch(r_cut_union=2)
+
+    setattr(patch, attr, value)
+    assert getattr(patch, attr) == value
+
+
+@pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
+def test_valid_setattr_attached_user_patch(attr, value,
+                                           simulation_factory,
+                                           two_particle_snapshot_factory):
+    """Test that UserPatch can get and set attributes after attached."""
+
+    patch = jit.patch.UserPatch(r_cut=2, code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere(seed=1)
     mc.shape['A'] = dict(diameter=0)
 
@@ -101,11 +208,98 @@ def test_valid_setattr_attached(attr, value, simulation_factory,
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.parametrize("attr,value", valid_attrs_after_attach_union)
+def test_valid_setattr_attached_user_union_patch(attr, value,
+                                                 simulation_factory,
+                                                 two_particle_snapshot_factory):
+    """Test that UserUnionPatch can get and set attributes after attached."""
+
+    patch = jit.patch.UserUnionPatch(r_cut_union=2, code_union='return 0;')
+    patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
+    patch.orientations['A'] = [(1,0,0,0)]*2
+    patch.diameters['A'] = [0, 0]
+    patch.typeids['A'] = [0, 0]
+    patch.charges['A'] = [0, 0]
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+
+    # create C++ mirror classes and set parameters
+    sim.run(0)
+
+    # validate the params were set properly
+    setattr(patch, attr, value)
+    assert getattr(patch, attr) == value
+
+
+@pytest.mark.parametrize("attr,val",  attr_error)
+def test_raise_attr_error_user_patch(attr, val,
+                                     simulation_factory,
+                                     two_particle_snapshot_factory):
+    """Test that UserPatch raises AttributeError if we
+       try to set certain attributes after attaching.
+    """
+
+    patch = jit.patch.UserPatch(r_cut=2,
+                                code='return 0;',
+                                llvm_ir_file='code.ll')
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+    sim.run(0)
+    # try to reset when attached
+    with pytest.raises(AttributeError):
+        setattr(patch, attr, val)
+
+
+@pytest.mark.parametrize("attr,val",  attr_error)
+def test_raise_attr_error_user_union_patch(attr, val,
+                                           simulation_factory,
+                                           two_particle_snapshot_factory):
+    """Test that UserunionPatch raises AttributeError if we
+       try to set certain attributes after attaching.
+    """
+    patch = jit.patch.UserUnionPatch(r_cut_union=2,
+                                     code_union='return 0;',
+                                     llvm_ir_file_union ='code.ll')
+
+    patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
+    patch.orientations['A'] = [(1,0,0,0)]*2
+    patch.diameters['A'] = [0, 0]
+    patch.typeids['A'] = [0, 0]
+    patch.charges['A'] = [0, 0]
+
+    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc.shape['A'] = dict(diameter=0)
+    # create simulation & attach objects
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = mc
+    sim.operations += patch
+    sim.run(0)
+
+    # try to reset when attached
+    with pytest.raises(AttributeError):
+        setattr(patch, attr, val)
+
+    if attr != 'clang_exec':
+        with pytest.raises(AttributeError):
+            setattr(patch, attr + '_union', val)
+
+
 @pytest.mark.parametrize("positions,orientations,result",
                           positions_orientations_result)
 def test_user_patch(positions,orientations,result,
                     simulation_factory, two_particle_snapshot_factory):
-    """"""
+    """Test that UserPatch computes the correct."""
 
     # interaction between point dipoles
     dipole_dipole = """ float rsq = dot(r_ij, r_ij);
@@ -151,7 +345,10 @@ def test_user_patch(positions,orientations,result,
 
 @pytest.mark.parametrize("cls", [jit.patch.UserPatch, jit.patch.UserUnionPatch])
 def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
-    """"""
+    """Test that: i) changes to the alpha_iso array reflect on the energy
+       caltulation, ii) that it can be accessed from UserPatch and UserUnionPatch
+       objects and iii) that the energy computed from both classes agree.
+    """
 
     lennard_jones =  """
                      float rsq = dot(r_ij, r_ij);
@@ -173,21 +370,25 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
 
     sim = simulation_factory(two_particle_snapshot_factory())
 
-    r_cut = sim.state.box.Lx/2
-    params = dict(code=lennard_jones, array_size=3)
+    r_cut = 5
+    params = dict(code=lennard_jones, array_size=3, r_cut=r_cut)
     if "union" in cls.__name__.lower():
-        params.update({"r_cut_union" :r_cut})
-        params.update({"code_union" : "return 0;"})
-    else:
-        params.update({"r_cut" :r_cut})
+        params.update({"r_cut_union": 0})
+        params.update({"code_union": "return 0;"})
     patch = cls(**params)
+    if "union" in cls.__name__.lower():
+        patch.positions['A'] = [(0,0,0)]
+        patch.orientations['A'] = [(1,0,0,0)]
+        patch.diameters['A'] = [0]
+        patch.typeids['A'] = [0]
+        patch.charges['A'] = [0]
     mc = hoomd.hpmc.integrate.Sphere(d=0, seed=1)
     mc.shape['A'] = dict(diameter=0)
 
     sim.operations.integrator = mc
     sim.operations += patch
 
-    dist = 2
+    dist = 1
     with sim.state.cpu_local_snapshot as data:
         data.particles.position[0, :] = (0,0,0)
         data.particles.position[1, :] = (dist,0,0)
@@ -202,7 +403,7 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     # make sure energies are calculated properly when using alpha
     sigma_r_6 = (patch.alpha_iso[1] / dist)**6
     energy_actual = 4.0*patch.alpha_iso[2]*sigma_r_6*(sigma_r_6-1.0)
-    assert np.isclose(patch.energy, energy_old)
+    assert np.isclose(energy_old, energy_actual)
 
     # double epsilon and check that energy is doubled
     patch.alpha_iso[2] = 2
@@ -214,12 +415,19 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     sim.run(0)
     assert np.isclose(patch.energy, 0.0)
 
-def test_user_union_patch(simulation_factory,two_particle_snapshot_factory):
-    """"""
-    sim = simulation_factory(two_particle_snapshot_factory())
 
+def test_user_union_patch(simulation_factory,two_particle_snapshot_factory):
+    """Test that alpha_iso and alpha_union are accessed proberly by
+       UserUnionPatch and that it computes the correct energy for
+       unions of particles (dumbells).
+    """
+
+    sim = simulation_factory(two_particle_snapshot_factory())
     patch = jit.patch.UserUnionPatch(r_cut_union=1.4, r_cut=0)
-    patch.code_union = "return -1.0;"
+    patch.code = "return alpha_iso[0];"
+    patch.code_union = "return alpha_union[0];"
+
+    # define dumbell parameters
     patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
     patch.orientations['A'] = [(1,0,0,0)]*2
     patch.diameters['A'] = [0, 0]
@@ -229,15 +437,30 @@ def test_user_union_patch(simulation_factory,two_particle_snapshot_factory):
     mc = hoomd.hpmc.integrate.Sphere(seed=2, d=0, a=0)
     mc.shape["A"] = dict(diameter=0)
 
+    # attach objects
     sim.operations.integrator = mc
     sim.operations += patch
+
+    # place dumbells side by side (parallel along the axis joining the particles)
     with sim.state.cpu_local_snapshot as data:
         data.particles.position[0, :] = (0, 0.5, 0)
         data.particles.position[1, :] = (0, -0.5, 0)
     sim.run(0)
 
+    patch.alpha_union[0] = 0
+    assert np.isclose(patch.energy, 0)
+
+    patch.alpha_union[0] = -1.0
     assert np.isclose(patch.energy, -2.0)
 
+    patch.alpha_union[0] = -1.5
+    assert np.isclose(patch.energy, -3.0)
+
+    # slightly increase the range to include diagonal interactions
     patch.r_cut_union = 1.5
-    sim.run(0)
-    assert np.isclose(patch.energy, -4.0)
+    assert np.isclose(patch.energy, -6.0)
+
+    # add isotropic repulsion
+    patch.r_cut = 1.5
+    patch.alpha_iso[0] = 2.5
+    assert np.isclose(patch.energy, -3.5)

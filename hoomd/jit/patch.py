@@ -46,12 +46,12 @@ class PatchCompute(Compute):
 
     def __init__(self, r_cut, array_size=1, log_only=False,
                  clang_exec='clang', code=None, llvm_ir_file=None):
-        param_dict = ParameterDict(r_cut = r_cut,
+        param_dict = ParameterDict(r_cut = float(r_cut),
+                                   array_size = int(array_size),
                                    log_only = log_only)
         self._param_dict.update(param_dict)
         # these only exist on python
         self._code = code
-        self._array_size = array_size
         self._llvm_ir_file = llvm_ir_file
         self._clang_exec = clang_exec
         self.alpha_iso = np.zeros(array_size)
@@ -70,19 +70,6 @@ class PatchCompute(Compute):
             return integrator._cpp_obj.computePatchEnergy(timestep)
         else:
             return None
-
-    @property
-    def array_size(self):
-        """int: Total interaction energy of the system in the current state.
-        """
-        return self._array_size
-
-    @array_size.setter
-    def array_size(self, size):
-        if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
-        else:
-            self._array_size = size
 
     @property
     def code(self):
@@ -370,7 +357,7 @@ class UserPatch(PatchCompute):
         if self._code is not None:
             llvm_ir = self._compile_user(self._code, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
-        elif self._llvm_ir_file is None:
+        elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
@@ -484,7 +471,8 @@ class UserUnionPatch(PatchCompute):
                          code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
 
         # add union specific params
-        param_dict = ParameterDict(r_cut_union = r_cut_union,
+        param_dict = ParameterDict(r_cut_union = float(r_cut_union),
+                                   array_size_union = int(array_size_union),
                                    leaf_capacity = int(4))
         self._param_dict.update(param_dict)
 
@@ -520,7 +508,6 @@ class UserUnionPatch(PatchCompute):
 
         # these only exist on python
         self._code_union = code_union
-        self._array_size_union = array_size_union
         self._llvm_ir_file_union = llvm_ir_file_union
         self.alpha_union = np.zeros(array_size_union)
 
@@ -536,7 +523,7 @@ class UserUnionPatch(PatchCompute):
         if self._code_union is not None:
             llvm_ir_union = self._compile_user(self._code_union, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
-        elif self._llvm_ir_file_union is None:
+        elif self._llvm_ir_file_union is not None:
             # IR is a text file
             with open(self._llvm_ir_file_union,'r') as f:
                 llvm_ir_union = f.read()
@@ -599,15 +586,3 @@ class UserUnionPatch(PatchCompute):
             raise AttributeError("This attribute can only be set when the patch object is not attached.")
         else:
             self._llvm_ir_file_union = llvm_ir
-
-    @property
-    def array_size_union(self):
-        """int:  Size of array with adjustable elements."""
-        return self._array_size_union
-
-    @array_size_union.setter
-    def array_size_union(self, size):
-        if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
-        else:
-            self._array_size_union = size
