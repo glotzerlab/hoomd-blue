@@ -6,6 +6,7 @@ set (_header_files filter/ParticleFilter.h
                    filter/ParticleFilterTags.h
                    filter/ParticleFilterType.h
                    filter/ParticleFilterUnion.h
+                   filter/ParticleFilterCustom.h
                    filter/export_filters.h
            )
 
@@ -20,6 +21,7 @@ set(files __init__.py
           set_.py
           tags.py
           type_.py
+          custom.py
           )
 
 install(FILES ${files}
