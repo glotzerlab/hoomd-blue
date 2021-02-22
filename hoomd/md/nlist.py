@@ -181,15 +181,15 @@ class Stencil(NList):
     Args:
         cell_width (float): The underlying stencil bin width for the cell list.
         buffer (float): Buffer width.
-        check_dist (bool): Flag to enable / disable distance checking.
-        deterministic (bool): When `True`, sort neighbors to help provide
-            deterministic simulation runs.
-        diameter_shift (bool): Flag to enable / disable diameter shifting.
         exclusions (tuple[str]): Excludes pairs from the neighbor list, which
             excludes them from the pair potential calculation.
-        max_diameter (float): The maximum diameter a particle will achieve.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
+        diameter_shift (bool): Flag to enable / disable diameter shifting.
+        check_dist (bool): Flag to enable / disable distance checking.
+        max_diameter (float): The maximum diameter a particle will achieve.
+        deterministic (bool): When `True`, sort neighbors to help provide
+            deterministic simulation runs.
 
     `Stencil` creates a cell list based neighbor list object to which pair
     potentials can be attached for computing non-bonded pairwise interactions.
@@ -227,9 +227,9 @@ class Stencil(NList):
         deterministic (bool): When `True`, sort neighbors to help provide
             deterministic simulation runs.
     """
-    def __init__(self, cell_width, buffer=0.4, check_dist=True, deterministic=False,
-                 diameter_shift=False, exclusions=('bond',), max_diameter=1.0,
-                 rebuild_check_delay=1):
+    def __init__(self, cell_width, buffer=0.4, exclusions=('bond',),
+                 rebuild_check_delay=1, diameter_shift=False, check_dist=True,
+                 max_diameter=1.0, deterministic=False):
 
         super().__init__(buffer, exclusions, rebuild_check_delay,
                          diameter_shift, check_dist, max_diameter)
