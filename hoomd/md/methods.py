@@ -17,9 +17,6 @@ from hoomd.data.typeconverter import OnlyType, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
-
-validate_manifold = OnlyType(Manifold)
-
 class _Method(_HOOMDBaseObject):
     """Base class integration method.
 
@@ -27,6 +24,29 @@ class _Method(_HOOMDBaseObject):
 
     Note:
         Users should use the subclasses and not instantiate `_Method` directly.
+    """
+
+class _MethodRATTLE(_Method):
+    """Base class rattle integration method.
+
+    Provides common methods for all subclasses which are compatible with the RATTLE 
+    algorithm. Particles can be constrained to a manifold surface using the
+    RATTLE scheme. For poor initial conditions that include overlapping atoms, 
+    a limit can be specified to the movement a particle is allowed to make in 
+    one time step. After a few thousand time steps with the limit set, the 
+    system should be in a safe state to continue with unconstrained integration.
+
+    Warning:
+        The particles have to be initialised close to the implicit surface of
+        the manifold.
+
+    For the MTK equations of motion, see:
+
+    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
+
+    Note:
+        Users should use the subclasses and not instantiate `_MethodRATTLE` directly.
+
     """
 
 
@@ -356,7 +376,7 @@ class NPT(_Method):
             filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
@@ -415,7 +435,7 @@ class NPT(_Method):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def __preprocess_stress(self,value):
+    def _preprocess_stress(self,value):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(
@@ -522,8 +542,8 @@ class nph(NPT):
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 
-class NVE(_Method):
-    R""" NVE Integration via Velocity-Verlet
+class NVE(_MethodRATTLE):
+    R""" NVE Integration via Velocity-Verlet with or without RATTLE
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -532,8 +552,16 @@ class NVE(_Method):
         limit (None or `float`): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
+        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold 
+            constraint. Defaults to None.
+
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. This is only
+            used if RATTLE algorithm is triggered. Defaults to 1e-5
+
     `NVE` performs constant volume, constant energy simulations using
-    the standard Velocity-Verlet method. For poor initial conditions that
+    the standard Velocity-Verlet method. If a manifold constraint is set, 
+    the RATTLE algorithm is used additionally. For poor initial conditions that
     include overlapping atoms, a limit can be specified to the movement a
     particle is allowed to make in one time step. After a few thousand time
     steps with the limit set, the system should be in a safe state to continue
@@ -547,80 +575,10 @@ class NVE(_Method):
         nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve], forces=[lj])
 
-
-    Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
-            apply this method.
-
-        limit (None or float): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
-    """
-
-    def __init__(self, filter, limit=None):
-
-        # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            limit=OnlyType(float, allow_none=True),
-            zero_force=OnlyType(bool, allow_none=False),
-        )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
-
-        # set defaults
-        self._param_dict.update(param_dict)
-
-    def _attach(self):
-
-        # initialize the reflected c++ class
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            self._cpp_obj = _md.TwoStepNVE(self._simulation.state._cpp_sys_def,
-                                        self._simulation.state._get_group(self.filter), False)
-        else:
-            self._cpp_obj = _md.TwoStepNVEGPU(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state._get_group(self.filter))
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
-
-class NVE_Rattle(_Method):
-    R""" NVE Integration via Velocity-Verlet and RATTLE
-
-    Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
-         apply this method.
-
-        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
-
-        limit (None or `float`): Enforce that no particle moves more than a
-            distance of a limit in a single time step. Defaults to None
-
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
-
-    :py:class:`NVE_Rattle` performs similar to :py:class:`NVE` constant volume, 
-    constant energy simulations using the standard Velocity-Verlet method. 
-    In addition particles are constrained to a manifold surface using the
-    RATTLE algorithm. For poor initial conditions that include overlapping atoms, 
-    a limit can be specified to the movement a particle is allowed to make in 
-    one time step. After a few thousand time steps with the limit set, the 
-    system should be in a safe state to continue with unconstrained integration.
-
-    Warning:
-        The particles have to be initialised close to the implicit surface of
-        the manifold.
-
-    For the MTK equations of motion, see:
-
-    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
-
-    .. todo::
-        Update when zero momentum updater is added.
-
-    Examples::
+    Examples of using ``manifold_constraint``::
         
         sphere = hoomd.md.manifold.Sphere(r=10)
-        nve_rattle = hoomd.md.methods.NVE_Rattle(filter=hoomd.filter.All(),maifold=sphere)
+        nve_rattle = hoomd.md.methods.NVE(filter=hoomd.filter.All(),maifold=sphere)
         integrator = hoomd.md.Integrator(dt=0.005, methods=[nve_rattle], forces=[lj])
 
 
@@ -628,102 +586,69 @@ class NVE_Rattle(_Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is 
-            used by the RATTLE algorithm of this method.
-
         limit (None or float): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
+
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by and as a trigger for the RATTLE algorithm of this method. 
+            Defaults to None
 
         eta (float): Defines the error particles are allowed to deviate
             from the manifold in terms of the implicit function. Defaults to 1e-5
 
     """
 
-    def __init__(self, filter, manifold, limit=None, eta=0.000001):
+    def __init__(self, filter, limit=None, manifold_constraint=None, eta=0.000001):
 
-        self._manifold = validate_manifold(manifold)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             limit=OnlyType(float, allow_none=True),
             zero_force=OnlyType(bool, allow_none=False),
+            manifold_constraint=OnlyType(Manifold, allow_none=True),
             eta=float(eta)
         )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=False, manifold_constraint=manifold_constraint))
 
         # set defaults
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        if not self._manifold._added:
-            self._manifold._add(self._simulation)
-        else:
-            if self._simulation != self._manifold._simulation:
-                raise RuntimeError("{} object's manifold is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.manifold._attached:
-            self.manifold._attach()
 
-        # initialize the reflected c++ class
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLENVECylinder
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLENVEDiamond
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLENVEEllipsoid
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLENVEGyroid
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLENVEPlane
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLENVEPrimitive
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLENVESphere
+        if self.manifold_constraint is None:
+            # initialize the reflected c++ class
+            if isinstance(sim.device, hoomd.device.CPU):
+                self._cpp_obj = _md.TwoStepNVE(sim.state._cpp_sys_def,
+                                            sim.state._get_group(self.filter), False)
             else:
-                raise AttributeError("Manifold class not implemented")
+                self._cpp_obj = _md.TwoStepNVEGPU(sim.state._cpp_sys_def,
+                                 sim.state._get_group(self.filter))
         else:
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLENVECylinderGPU
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLENVEDiamondGPU
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLENVEEllipsoidGPU
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLENVEGyroidGPU
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLENVEPlaneGPU
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLENVEPrimitiveGPU
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLENVESphereGPU
+            sim = self._simulation
+            if not self.manifold_constraint._added:
+                self.manifold_constraint._add(sim)
             else:
-                raise AttributeError("Manifold class not implemented")
+                if sim != self.manifold_constraint._simulation:
+                    raise RuntimeError("{} object's manifold_constraint is used in a "
+                                       "different simulation.".format(type(self)))
+            if not self.manifold_constraint._attached:
+                self.manifold_constraint._attach()
 
-        self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state._get_group(self.filter), 
-                                 self.manifold._cpp_manifold, False, self.eta)
+            # initialize the reflected c++ class
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.name)
+            else:
+                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.name + 'GPU')
+
+            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
+                                     self._simulation.state._get_group(self.filter), 
+                                     self.manifold_constraint._cpp_obj, False, self.eta)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    @property
-    def manifold(self):
-        return self._manifold
-
-    @manifold.setter
-    def manifold(self, value):
-        if self._attached:
-            raise AttributeError("manifold cannot be set after scheduling.")
-        else:
-            self._manifold = validate_manifold(value)
-
-    @property
-    def _children(self):
-        return [self.manifold]
-
-class Langevin(_Method):
-    R""" Langevin dynamics.
+class Langevin(_MethodRATTLE):
+    R""" Langevin dynamics with or without RATTLE
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -744,6 +669,13 @@ class Langevin(_Method):
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
             Defaults to False.
+
+        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold 
+            constraint. Defaults to None.
+
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. This is only
+            used if RATTLE algorithm is triggered. Defaults to 1e-5
 
     .. rubric:: Translational degrees of freedom
 
@@ -766,7 +698,8 @@ class Langevin(_Method):
     or 3).  The magnitude of the random force is chosen via the
     fluctuation-dissipation theorem to be consistent with the specified drag and
     temperature, :math:`T`.  When :math:`kT=0`, the random force
-    :math:`\vec{F}_\mathrm{R}=0`.
+    :math:`\vec{F}_\mathrm{R}=0`. If a manifold constraint is set, 
+    the RATTLE algorithm is used additionally.
 
     `Langevin` generates random numbers by hashing together the
     particle tag, user seed, and current time step index. See `C. L. Phillips
@@ -814,6 +747,12 @@ class Langevin(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin],
         forces=[lj])
 
+    Examples of using ``manifold_constraint``::
+
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(), 
+        kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
+
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
         langevin = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=0.2,
@@ -821,122 +760,9 @@ class Langevin(_Method):
         langevin.gamma.default = 2.0
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
-    Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
-
-        kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
-
-        seed (int): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
-
-        alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
-
-        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
-
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
-
-    """
-
-    def __init__(self, filter, kT, seed, alpha=None,
-                 tally_reservoir_energy=False):
-
-        # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            seed=int(seed),
-            alpha=OnlyType(float, allow_none=True),
-            tally_reservoir_energy=bool(tally_reservoir_energy),
-        )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
-        # set defaults
-        self._param_dict.update(param_dict)
-
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
-
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1)
-                                )
-
-        self._extend_typeparam([gamma,gamma_r])
-
-    def _attach(self):
-
-        # initialize the reflected c++ class
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            my_class = _md.TwoStepLangevin
-        else:
-            my_class = _md.TwoStepLangevinGPU
-
-        self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                 self._simulation.state._get_group(self.filter),
-                                 self.kT, self.seed)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
-
-
-class Langevin_Rattle(_Method):
-    R""" Langevin dynamics with RATTLE.
-
-    Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
-            apply this method to.
-
-        kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
-
-        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
-
-        seed (`int`): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
-
-        alpha (`float`): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
-
-        tally_reservoir_energy (`bool`): If true, the energy exchange
-            between the thermal reservoir and the particles is tracked. Total
-            energy conservation can then be monitored by adding
-            ``langevin_reservoir_energy_groupname`` to the logged quantities.
-            Defaults to False.
-
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
-
-
-    :py:class:`Langevin_Rattle` integrates particles forward in time according to the
-    Langevin equations (for details see :py:class:`Langevin`). In addition particles 
-    are constrained to a manifold surface using the RATTLE algorithm.
-
-    Warning:
-        The particles have to be initialised close to the implicit surface of
-        the manifold.
-
-    For the MTK equations of motion, see:
-
-    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
-
-    Examples::
-
         sphere = hoomd.md.manifold.Sphere(r=10)
         langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(), 
-        kT=0.2, manifold = sphere, seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[langevin_rattle],
-        forces=[lj])
+        kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -945,15 +771,16 @@ class Langevin_Rattle(_Method):
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
-        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is 
-            used by the RATTLE algorithm of this method.
-
         seed (int): Random seed to use for generating
             :math:`\vec{F}_\mathrm{R}`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
+
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by and as a trigger for the RATTLE algorithm of this method. 
+            Defaults to None
 
         eta (float): Defines the error particles are allowed to deviate
             from the manifold in terms of the implicit function. Defaults to 1e-5
@@ -970,10 +797,10 @@ class Langevin_Rattle(_Method):
 
     """
 
-    def __init__(self, filter, kT, seed, manifold, alpha=None,
-                 tally_reservoir_energy=False, eta=0.000001):
+    def __init__(self, filter, kT, seed, alpha=None,
+                 tally_reservoir_energy=False, manifold_constraint=None,
+                 eta=0.000001):
 
-        self._manifold = validate_manifold(manifold)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -981,9 +808,10 @@ class Langevin_Rattle(_Method):
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
+            manifold_constraint=OnlyType(Manifold, allow_none=True),
             eta=float(eta)
             )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter, manifold_constraint=manifold_constraint))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -1000,79 +828,42 @@ class Langevin_Rattle(_Method):
 
     def _attach(self):
 
-        # initialize the reflected c++ class
         sim = self._simulation
-        if not self._manifold._added:
-            self._manifold._add(sim)
-        else:
-            if sim != self._manifold._simulation:
-                raise RuntimeError("{} object's manifold is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.manifold._attached:
-            self.manifold._attach()
-
-        if isinstance(sim.device, hoomd.device.CPU):
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLELangevinCylinder
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLELangevinDiamond
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLELangevinEllipsoid
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLELangevinGyroid
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLELangevinPlane
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLELangevinPrimitive
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLELangevinSphere
+        if self.manifold_constraint is None:
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = _md.TwoStepLangevin
             else:
-                raise AttributeError("Manifold class not implemented")
-            
-        else:
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLELangevinCylinderGPU
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLELangevinDiamondGPU
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLELangevinEllipsoidGPU
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLELangevinGyroidGPU
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLELangevinPlaneGPU
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLELangevinPrimitiveGPU
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLELangevinSphereGPU
-            else:
-                raise AttributeError("Manifold class not implemented")
+                my_class = _md.TwoStepLangevinGPU
 
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter),
-                                 self.manifold._cpp_manifold,
-                                 self.kT, self.seed, self.eta);
+                                 self.kT, self.seed)
+        else:
+            # initialize the reflected c++ class
+            if not self.manifold_constraint._added:
+                self.manifold_constraint._add(sim)
+            else:
+                if sim != self.manifold_constraint._simulation:
+                    raise RuntimeError("{} object's manifold_constraint is used in a "
+                                       "different simulation.".format(type(self)))
+            if not self.manifold_constraint._attached:
+                self.manifold_constraint._attach()
 
-        # Attach param_dict and typeparam_dict
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.name)
+            else:
+                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.name + 'GPU')
+
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                     sim.state._get_group(self.filter),
+                                     self.manifold_constraint._cpp_obj,
+                                     self.kT, self.seed, self.eta);
+
+            # Attach param_dict and typeparam_dict
         super()._attach()
 
-    @property
-    def manifold(self):
-        return self._manifold
-
-    @manifold.setter
-    def manifold(self, value):
-        if self._attached:
-            raise AttributeError("manifold cannot be set after scheduling.")
-        else:
-            self._manifold = validate_manifold(value)
-
-    @property
-    def _children(self):
-        return [self.manifold]
-
-
-class Brownian(_Method):
-    R""" Brownian dynamics.
+class Brownian(_MethodRATTLE):
+    R""" Brownian dynamics with and without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -1087,6 +878,13 @@ class Brownian(_Method):
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
+
+        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold 
+            constraint. Defaults to None.
+
+        eta (`float`): Defines the error particles are allowed to deviate
+            from the manifold in terms of the implicit function. This is only
+            used if RATTLE algorithm is triggered. Defaults to 1e-5
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics, or the
@@ -1112,7 +910,8 @@ class Brownian(_Method):
     particle's velocity, and :math:`d` is the dimensionality of the system.
     The magnitude of the random force is chosen via the fluctuation-dissipation
     theorem to be consistent with the specified drag and temperature, :math:`T`.
-    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`.
+    When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`. If a 
+    manifold constraint is set, the RATTLE algorithm is used additionally.
 
     `Brownian` generates random numbers by hashing together the particle tag,
     user seed, and current time step index. See
@@ -1161,6 +960,13 @@ class Brownian(_Method):
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian],
         forces=[lj])
 
+    Examples of using ``manifold_constraint``::
+
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(), 
+        kT=0.2, manifold=sphere, seed=1, alpha=1.0)
+        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
+        forces=[lj])
 
     Examples of using ``gamma`` pr ``gamma_r`` on drag coefficient::
 
@@ -1169,114 +975,6 @@ class Brownian(_Method):
         brownian.gamma.default = 2.0
         brownian.gamma_r.default = [1.0, 2.0, 3.0]
 
-
-    Attributes:
-        filter (hoomd.filter.ParticleFilter): Subset of particles to
-            apply this method to.
-
-        kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
-
-        seed (int): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
-
-        alpha (float): When set, use :math:`\alpha d_i` for the drag
-            coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
-
-        gamma (TypeParameter[ ``particle type``, `float` ]): The drag
-            coefficient can be directly set instead of the ratio of particle
-            diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
-
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
-            The rotational drag coefficient can be set. The type of ``gamma_r``
-            parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
-    """
-
-    def __init__(self, filter, kT, seed, alpha=None):
-
-        # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            seed=int(seed),
-            alpha=OnlyType(float, allow_none=True),
-            )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
-
-        #set defaults
-        self._param_dict.update(param_dict)
-
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
-
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
-                                )
-        self._extend_typeparam([gamma,gamma_r])
-
-
-    def _attach(self):
-
-        # initialize the reflected c++ class
-        sim = self._simulation
-        if isinstance(sim.device, hoomd.device.CPU):
-            self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
-                                          sim.state._get_group(self.filter),
-                                          self.kT, self.seed)
-        else:
-            self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
-                                             sim.state._get_group(self.filter),
-                                             self.kT, self.seed)
-
-        # Attach param_dict and typeparam_dict
-        super()._attach()
-
-class Brownian_Rattle(_Method):
-    R""" Brownian dynamics with RATTLE.
-
-    Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles to
-            apply this method to.
-
-        kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
-
-        manifold (:py:mod:`hoomd.md.manifold.Manifold`): Manifold constraint
-
-        seed (`int`): Random seed to use for generating
-            :math:`\vec{F}_\mathrm{R}`.
-
-        alpha (`float`): When set, use :math:`\alpha d_i` for the
-            drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
-
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
-
-    :py:class:`Brownian_Rattle` integrates particles forward in time according to 
-    the overdamped Langevin equations of motion, sometimes called Brownian dynamics, 
-    or the diffusive limit (for details see :py:class:`Brownian`). In addition 
-    particles are constrained to a manifold surface using the RATTLE algorithm.
-
-    Warning:
-        The particles have to be initialised close to the implicit surface of
-        the manifold.
-
-    For the MTK equations of motion, see:
-
-    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
-
-    Examples::
-
-        sphere = hoomd.md.manifold.Sphere(r=10)
-        brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(), 
-        kT=0.2, manifold=sphere, seed=1, alpha=1.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
-        forces=[lj])
 
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles to
@@ -1295,8 +993,12 @@ class Brownian_Rattle(_Method):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is 
+            used by and as a trigger for the RATTLE algorithm of this method. 
+            Defaults to None
+
         eta (float): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+            from the manifold in terms of the implicit function. Defaults to 1e-5
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -1309,18 +1011,18 @@ class Brownian_Rattle(_Method):
             tuple is either positive float or zero.
     """
 
-    def __init__(self, filter, kT, manifold, seed, eta=0.000001, alpha=None):
+    def __init__(self, filter, kT, seed, manifold_constraint=None, eta=0.000001, alpha=None):
 
-        self._manifold = validate_manifold(manifold)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
-            eta=float(eta),
-            alpha=OnlyType(float, allow_none=True)
+            alpha=OnlyType(float, allow_none=True),
+            manifold_constraint=OnlyType(Manifold, allow_none=True),
+            eta=float(eta)
             )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter, manifold_constraint=manifold_constraint))
 
         #set defaults
         self._param_dict.update(param_dict)
@@ -1337,75 +1039,39 @@ class Brownian_Rattle(_Method):
 
     def _attach(self):
 
-        # initialize the reflected c++ class
         sim = self._simulation
-        if not self._manifold._added:
-            self._manifold._add(sim)
-        else:
-            if sim != self._manifold._simulation:
-                raise RuntimeError("{} object's manifold is used in a "
-                                   "different simulation.".format(type(self)))
-        if not self.manifold._attached:
-            self.manifold._attach()
-
-        if isinstance(sim.device, hoomd.device.CPU):
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLEBDCylinder
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLEBDDiamond
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLEBDEllipsoid
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLEBDGyroid
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLEBDPlane
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLEBDPrimitive
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLEBDSphere
+        if self.manifold_constraint is None:
+            if isinstance(sim.device, hoomd.device.CPU):
+                self._cpp_obj = _md.TwoStepBD(sim.state._cpp_sys_def,
+                                              sim.state._get_group(self.filter),
+                                              self.kT, self.seed)
             else:
-                raise AttributeError("Manifold class not implemented")
-            
+                self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
+                                                 sim.state._get_group(self.filter),
+                                                 self.kT, self.seed)
         else:
-            if self.manifold.name == "Cylinder":
-                my_class = _md.TwoStepRATTLEBDCylinderGPU
-            elif self.manifold.name == "Diamond":
-                my_class = _md.TwoStepRATTLEBDDiamondGPU
-            elif self.manifold.name == "Ellipsoid":
-                my_class = _md.TwoStepRATTLEBDEllipsoidGPU
-            elif self.manifold.name == "Gyroid":
-                my_class = _md.TwoStepRATTLEBDGyroidGPU
-            elif self.manifold.name == "Plane":
-                my_class = _md.TwoStepRATTLEBDPlaneGPU
-            elif self.manifold.name == "Primitive":
-                my_class = _md.TwoStepRATTLEBDPrimitiveGPU
-            elif self.manifold.name == "Sphere":
-                my_class = _md.TwoStepRATTLEBDSphereGPU
+            # initialize the reflected c++ class
+            if not self.manifold_constraint._added:
+                self.manifold_constraint._add(sim)
             else:
-                raise AttributeError("Manifold class not implemented")
+                if sim != self.manifold_constraint._simulation:
+                    raise RuntimeError("{} object's manifold is used in a "
+                                       "different simulation.".format(type(self)))
+            if not self.manifold_constraint._attached:
+                self.manifold_constraint._attach()
 
-        self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter),
-                                 self.manifold._cpp_manifold,
-                                 self.kT, self.seed, self.eta);
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.name)
+            else:
+                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.name + 'GPU')
+
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                     sim.state._get_group(self.filter),
+                                     self.manifold_constraint._cpp_obj,
+                                     self.kT, self.seed, self.eta);
 
         # Attach param_dict and typeparam_dict
         super()._attach()
-
-    @property
-    def manifold(self):
-        return self._manifold
-
-    @manifold.setter
-    def manifold(self, value):
-        if self._attached:
-            raise AttributeError("Manifold cannot be set after scheduling.")
-        else:
-            self._manifold = validate_manifold(value)
-
-    @property
-    def _children(self):
-        return [self.manifold]
 
 class berendsen(_Method):
     R""" Applies the Berendsen thermostat.

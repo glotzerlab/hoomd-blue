@@ -14,13 +14,13 @@ from collections.abc import Sequence
 ## \internal
 # \brief Base class for manifold
 #
-# A manifold in hoomd reflects a Manifold in c++. It is respnsible to define the manifold 
-# used for RATTLE intergrators and the active force constraints.
+# A manifold in hoomd reflects a Manifold in c++. It is responsible to define the manifold 
+# used for RATTLE integrators and the active force constraints.
 class Manifold(_HOOMDBaseObject):
     r"""Base class manifold object.
 
     Manifold defines a positional constraint to a given set of particles. A manifold can 
-    be applied to an integrator (RATTLE) and/or the active force class. The degrees of freedom removed from 
+    be applied to a RATTLE method and/or the active force class. The degrees of freedom removed from 
     the system by constraints are correctly taken into account, i.e. when computing temperature 
     for thermostatting and/or logging.
 
@@ -31,32 +31,28 @@ class Manifold(_HOOMDBaseObject):
         Users should not instantiate :py:class:`Manifold` directly.
 
     Warning:
-        Only one manifold can be applied to the integrators/active forces.
+        Only one manifold can be applied to the methods/active forces.
 
     """
     def __init__(self):
 
-        self._cpp_manifold = None;
+        self._cpp_obj = None
 
-        self.name = None;
-
-    ## \var cpp_manifold
-    # \internal
-    # \brief Stores the C++ side Manifold managed by this class
+        self.name = None
 
     def implicit_function(self, point):
         """Compute the implicit function evaluated at a point in space.
 
         Args:
             point (tuple): The point applied to the implicit function."""
-        return self._cpp_manifold.implicit_function(_hoomd.make_scalar3(point[0], point[1], point[2]))
+        return self._cpp_obj.implicit_function(_hoomd.make_scalar3(point[0], point[1], point[2]))
 
     def derivative(self, point):
         """Compute the deriviative of the implicit function evaluated at a point in space.
 
         Args:
             point (tuple): The point applied to the implicit function."""
-        return self._cpp_manifold.derivative(_hoomd.make_scalar3(point[0], point[1], point[2]))
+        return self._cpp_obj.derivative(_hoomd.make_scalar3(point[0], point[1], point[2]))
 
 
 class Cylinder(Manifold):
@@ -64,7 +60,7 @@ class Cylinder(Manifold):
 
     Args:
         r (`float`): radius of the cylinder constraint (in distance units).
-        P (`tuple`): point defining position of the cylinder axis (default origin).
+        P (`tuple`[ `float`, `float`, `float`]): point defining position of the cylinder axis (default origin).
 
     :py:class:`Cylinder` specifies that a cylindric manifold is defined as
     a constraint.
@@ -96,7 +92,7 @@ class Cylinder(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_obj = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Cylinder"
 
@@ -107,7 +103,7 @@ class Diamond(Manifold):
     R""" Triply periodic diamond manifold.
 
     Args:
-        N (`list` [ `int` ] or `int`): number of unit cells in all 3 directions.
+        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Diamond surface (default 0) 
@@ -140,7 +136,7 @@ class Diamond(Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
         param_dict.update(
@@ -148,13 +144,13 @@ class Diamond(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Diamond"
 
         super()._attach()
 
-    def __preprocess_unitcell(self,value):
+    def _preprocess_unitcell(self,value):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
@@ -170,7 +166,7 @@ class Ellipsoid(Manifold):
         a (`float`): length of the a-axis of the ellipsoidal constraint (in distance units).
         b (`float`): length of the b-axis of the ellipsoidal constraint (in distance units).
         c (`float`): length of the c-axis of the ellipsoidal constraint (in distance units).
-        P (`tuple`): center of the ellipsoidal constraint (default origin).
+        P (`tuple`[ `float`, `float`, `float`]): center of the ellipsoidal constraint (default origin).
     
     :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a constraint. 
     
@@ -200,7 +196,7 @@ class Ellipsoid(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_obj = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Ellipsoid"
 
@@ -211,7 +207,7 @@ class Gyroid(Manifold):
     R""" Triply periodic gyroid manifold.
 
     Args:
-        N (`list` [ `int` ] or `int`): number of unit cells in all 3 directions.
+        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Gyroid surface (default 0) 
@@ -244,7 +240,7 @@ class Gyroid(Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
         param_dict.update(
@@ -252,13 +248,13 @@ class Gyroid(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Gyroid"
 
         super()._attach()
 
-    def __preprocess_unitcell(self,value):
+    def _preprocess_unitcell(self,value):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
@@ -297,7 +293,7 @@ class Plane(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldPlane(self.shift);
+        self._cpp_obj = _md.ManifoldPlane(self.shift);
 
         self.name = "Plane"
 
@@ -308,7 +304,7 @@ class Primitive(Manifold):
     R""" Triply periodic primitive manifold.
 
     Args:
-        N (`list` [ `int` ] or `int`): number of unit cells in all 3 directions.
+        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Primitive surface (default 0) 
@@ -341,7 +337,7 @@ class Primitive(Manifold):
         super().__init__();
         # store metadata
         param_dict = ParameterDict(
-            N=OnlyIf(to_type_converter((int,)*3), preprocess=self.__preprocess_unitcell),
+            N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
         param_dict.update(
@@ -349,13 +345,13 @@ class Primitive(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
 
         self.name = "Primitive"
 
         super()._attach()
 
-    def __preprocess_unitcell(self,value):
+    def _preprocess_unitcell(self,value):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
@@ -370,7 +366,7 @@ class Sphere(Manifold):
 
     Args:
         r (`float`): raduis of the a-axis of the spherical constraint (in distance units).
-        P (`tuple`): center of the spherical constraint (default origin).
+        P (`tuple`[ `float`, `float`, `float`]): center of the spherical constraint (default origin).
 
     :py:class:`Sphere` specifies that a spherical manifold is defined as 
     a constraint. 
@@ -399,7 +395,7 @@ class Sphere(Manifold):
         # set defaults
 
     def _attach(self):
-        self._cpp_manifold = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         self.name = "Sphere"
 
