@@ -20,7 +20,6 @@ from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
 
-# To Do: Migrate all hoomdv2 codes still using nlist to NList
 
 class NList(_HOOMDBaseObject):
     r"""Base class neighbor list.
