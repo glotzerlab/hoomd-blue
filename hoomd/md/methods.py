@@ -48,6 +48,14 @@ class _MethodRATTLE(_Method):
         Users should use the subclasses and not instantiate `_MethodRATTLE` directly.
 
     """
+    def __init__(self, manifold_constraint, eta):
+        param_dict = ParameterDict(
+            manifold_constraint=OnlyType(Manifold, allow_none=True),
+            eta=float(eta)
+            )
+        param_dict.update(dict(manifold_constraint=manifold_constraint))
+        # set defaults
+        self._param_dict.update(param_dict)
 
 
 class NVT(_Method):
@@ -600,15 +608,14 @@ class NVE(_MethodRATTLE):
 
     def __init__(self, filter, limit=None, manifold_constraint=None, eta=0.000001):
 
+        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             limit=OnlyType(float, allow_none=True),
             zero_force=OnlyType(bool, allow_none=False),
-            manifold_constraint=OnlyType(Manifold, allow_none=True),
-            eta=float(eta)
         )
-        param_dict.update(dict(filter=filter, limit=limit, zero_force=False, manifold_constraint=manifold_constraint))
+        param_dict.update(dict(filter=filter, limit=limit, zero_force=False))
 
         # set defaults
         self._param_dict.update(param_dict)
@@ -801,6 +808,7 @@ class Langevin(_MethodRATTLE):
                  tally_reservoir_energy=False, manifold_constraint=None,
                  eta=0.000001):
 
+        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -808,10 +816,8 @@ class Langevin(_MethodRATTLE):
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
-            manifold_constraint=OnlyType(Manifold, allow_none=True),
-            eta=float(eta)
             )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter, manifold_constraint=manifold_constraint))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -839,6 +845,8 @@ class Langevin(_MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.kT, self.seed)
         else:
+
+            self._add_manifold()
             # initialize the reflected c++ class
             if not self.manifold_constraint._added:
                 self.manifold_constraint._add(sim)
@@ -1013,16 +1021,15 @@ class Brownian(_MethodRATTLE):
 
     def __init__(self, filter, kT, seed, manifold_constraint=None, eta=0.000001, alpha=None):
 
+        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
             seed=int(seed),
             alpha=OnlyType(float, allow_none=True),
-            manifold_constraint=OnlyType(Manifold, allow_none=True),
-            eta=float(eta)
             )
-        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter, manifold_constraint=manifold_constraint))
+        param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
         #set defaults
         self._param_dict.update(param_dict)

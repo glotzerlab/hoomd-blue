@@ -72,11 +72,11 @@ def test_brownian_rattle_attributes():
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter = all_, kT=constant, manifold = gyroid, seed=2, eta = 1e-5)
+    brownian_rattle = hoomd.md.methods.Brownian(filter = all_, kT=constant, manifold_constraint = gyroid, seed=2, eta = 1e-5)
 
     assert brownian_rattle.filter is all_
     assert brownian_rattle.kT is constant
-    assert brownian_rattle.manifold is gyroid
+    assert brownian_rattle.manifold_constraint is gyroid
     assert brownian_rattle.seed == 2
     assert brownian_rattle.alpha is None
     assert brownian_rattle.eta == 1e-5
@@ -90,8 +90,8 @@ def test_brownian_rattle_attributes():
     assert brownian_rattle.kT is ramp
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    brownian_rattle.manifold = sphere
-    assert brownian_rattle.manifold is sphere
+    brownian_rattle.manifold_constraint = sphere
+    assert brownian_rattle.manifold_constraint is sphere
 
     brownian_rattle.seed = 10
     assert brownian_rattle.seed == 10
@@ -109,7 +109,7 @@ def test_brownian_rattle_attributes_attached(simulation_factory,
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     plane = hoomd.md.manifold.Plane()
-    brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter = all_, kT=constant, manifold = plane, seed=2)
+    brownian_rattle = hoomd.md.methods.Brownian(filter = all_, kT=constant, manifold_constraint = plane, seed=2)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian_rattle])
@@ -117,7 +117,7 @@ def test_brownian_rattle_attributes_attached(simulation_factory,
 
     assert brownian_rattle.filter is all_
     assert brownian_rattle.kT is constant
-    assert brownian_rattle.manifold is plane
+    assert brownian_rattle.manifold_constraint is plane
     assert brownian_rattle.seed == 2
     assert brownian_rattle.alpha is None
     assert brownian_rattle.eta == 1e-6
@@ -136,9 +136,9 @@ def test_brownian_rattle_attributes_attached(simulation_factory,
     gyroid = hoomd.md.manifold.Gyroid(N=2)
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
-        brownian_rattle.manifold = gyroid
+        brownian_rattle.manifold_constraint = gyroid
 
-    assert brownian_rattle.manifold is plane
+    assert brownian_rattle.manifold_constraint is plane
 
     with pytest.raises(AttributeError):
         # seed cannot be set after scheduling
@@ -228,11 +228,11 @@ def test_langevin_rattle_attributes():
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter = all_, kT=constant, manifold = gyroid, seed=2, eta=1e-5)
+    langevin_rattle = hoomd.md.methods.Langevin(filter = all_, kT=constant, manifold_constraint = gyroid, seed=2, eta=1e-5)
 
     assert langevin_rattle.filter is all_
     assert langevin_rattle.kT is constant
-    assert langevin_rattle.manifold is gyroid
+    assert langevin_rattle.manifold_constraint is gyroid
     assert langevin_rattle.seed == 2
     assert langevin_rattle.eta == 1e-5
     assert langevin_rattle.alpha is None
@@ -247,8 +247,8 @@ def test_langevin_rattle_attributes():
     assert langevin_rattle.kT is ramp
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    langevin_rattle.manifold = sphere
-    assert langevin_rattle.manifold is sphere
+    langevin_rattle.manifold_constraint = sphere
+    assert langevin_rattle.manifold_constraint is sphere
 
     langevin_rattle.seed = 10
     assert langevin_rattle.seed == 10
@@ -269,7 +269,7 @@ def test_langevin_rattle_attributes_attached(simulation_factory,
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     plane = hoomd.md.manifold.Plane()
-    langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter = all_, kT=constant, manifold = plane, seed=2)
+    langevin_rattle = hoomd.md.methods.Langevin(filter = all_, kT=constant, manifold_constraint = plane, seed=2)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin_rattle])
@@ -277,7 +277,7 @@ def test_langevin_rattle_attributes_attached(simulation_factory,
 
     assert langevin_rattle.filter is all_
     assert langevin_rattle.kT is constant
-    assert langevin_rattle.manifold is plane
+    assert langevin_rattle.manifold_constraint is plane
     assert langevin_rattle.seed == 2
     assert langevin_rattle.eta == 1e-6
     assert langevin_rattle.alpha is None
@@ -297,7 +297,7 @@ def test_langevin_rattle_attributes_attached(simulation_factory,
     gyroid = hoomd.md.manifold.Gyroid(N=2)
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
-        langevin_rattle.manifold = gyroid
+        langevin_rattle.manifold_constraint = gyroid
 
     with pytest.raises(AttributeError):
         # seed cannot be set after scheduling
@@ -613,10 +613,10 @@ def test_nve_rattle_attributes():
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    nve_rattle = hoomd.md.methods.NVE_Rattle(filter = all_, manifold = gyroid, eta = 1e-5)
+    nve_rattle = hoomd.md.methods.NVE(filter = all_, manifold_constraint = gyroid, eta = 1e-5)
 
     assert nve_rattle.filter is all_
-    assert nve_rattle.manifold is gyroid
+    assert nve_rattle.manifold_constraint is gyroid
     assert nve_rattle.eta == 1e-5
 
     type_A = hoomd.filter.Type(['A'])
@@ -624,8 +624,8 @@ def test_nve_rattle_attributes():
     assert nve_rattle.filter is type_A
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    nve_rattle.manifold = sphere
-    assert nve_rattle.manifold is sphere
+    nve_rattle.manifold_constraint = sphere
+    assert nve_rattle.manifold_constraint is sphere
 
     nve_rattle.eta = 0.001
     assert nve_rattle.eta == 0.001
@@ -636,14 +636,14 @@ def test_nve_rattle_attributes_attached(simulation_factory,
     """Test attributes of the NVE RATTLE integrator after attaching."""
     all_ = hoomd.filter.All()
     plane = hoomd.md.manifold.Plane()
-    nve_rattle = hoomd.md.methods.NVE_Rattle(filter = all_, manifold = plane)
+    nve_rattle = hoomd.md.methods.NVE(filter = all_, manifold_constraint = plane)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve_rattle])
     sim.operations._schedule()
 
     assert nve_rattle.filter is all_
-    assert nve_rattle.manifold is plane
+    assert nve_rattle.manifold_constraint is plane
     assert nve_rattle.eta == 1e-6
 
     type_A = hoomd.filter.Type(['A'])
@@ -656,7 +656,7 @@ def test_nve_rattle_attributes_attached(simulation_factory,
     gyroid = hoomd.md.manifold.Gyroid(N=2)
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
-        nve_rattle.manifold = gyroid
+        nve_rattle.manifold_constraint = gyroid
 
     nve_rattle.eta = 0.001
     assert nve_rattle.eta == 0.001

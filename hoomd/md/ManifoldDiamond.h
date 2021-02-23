@@ -84,15 +84,19 @@ class ManifoldDiamond
             return make_scalar3(-Lx*(sx*cy*cz + cx*sy*sz),-Ly*(cx*sy*cz + sx*cy*sz),-Lz*(cx*cy*sz + sx*sy*cz));
         }
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE void adjust_to_box(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
         
             Lx = M_PI*Nx/box_length.x;
             Ly = M_PI*Ny/box_length.y;
             Lz = M_PI*Nz/box_length.z;
-        
-            return false;
+        }
+
+        DEVICE bool validate(const BoxDim& box)
+        {
+            adjust_to_box(box);
+            return false; //Diamond surface is always accepted
         }
 
         static unsigned int dimension()

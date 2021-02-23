@@ -77,15 +77,19 @@ class ManifoldPrimitive
             return make_scalar3(-Lx*fast::sin(Lx*point.x),-Ly*fast::sin(Ly*point.y), -Lz*fast::sin(Lz*point.z));
         }
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE void adjust_to_box(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
-            
+        
             Lx = 2*M_PI*Nx/box_length.x;
             Ly = 2*M_PI*Ny/box_length.y;
             Lz = 2*M_PI*Nz/box_length.z;
-            
-            return false;
+        }
+
+        DEVICE bool validate(const BoxDim& box)
+        {
+            adjust_to_box(box);
+            return false; //Primitive surface is always accepted
         }
 
         static unsigned int dimension()
