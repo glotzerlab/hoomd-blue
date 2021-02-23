@@ -151,6 +151,16 @@ class _HOOMDGetSetAttrBase:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
 
+    def __eq__(self, other):
+        if not isinstance(other, _HOOMDGetSetAttrBase):
+            return NotImplemented
+        return (self._param_dict == other._param_dict
+                and all(
+                    self._typeparam_dict.keys() == other._typeparam_dict.keys()
+                    and self._typeparam_dict[k] == other._typeparam_dict[k]
+                    for k in self._typeparam_dict)
+                )
+
 
 class _DependencyRelation:
     """Defines a dependency relationship between Python objects.
@@ -235,7 +245,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
                                '_dependents': _ReturnCopies([]),
                                '_dependencies': _ReturnCopies([])}
 
-    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+    _skip_for_equality = {
+        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
+        '_simulation'}
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
@@ -255,15 +267,18 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
                                      " initialization".format(attr))
 
     def __eq__(self, other):
-        other_keys = set(other.__dict__.keys())
+        other_keys = other.__dict__.keys()
         for key in self.__dict__.keys():
             if key in self._skip_for_equality:
                 continue
             else:
                 if key not in other_keys \
                         or self.__dict__[key] != other.__dict__[key]:
+                    print(
+                        f"self[{key}]={self.__dict__[key]}, "
+                        f"other[{key}]={other.__dict__[key]}")
                     return False
-        return True
+        return super().__eq__(other)
 
     def _detach(self):
         if self._attached:
