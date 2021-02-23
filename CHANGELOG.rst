@@ -4,6 +4,14 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.5 (Not released yet)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``jit.patch.UserPatch``.
+- ``jit.patch.UserUnionPatch``.
+
 v3.0.0-beta.4 (2021-02-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
