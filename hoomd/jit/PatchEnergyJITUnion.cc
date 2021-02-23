@@ -10,7 +10,7 @@
 //Builds OBB tree based on geometric properties of the constituent particles
 void PatchEnergyJITUnion::buildOBBTree()
     {
-    // assert(positions.size() == diameters.size());
+
     for (unsigned int ti = 0; ti < m_updated_types.size(); ti++)
         {
 
