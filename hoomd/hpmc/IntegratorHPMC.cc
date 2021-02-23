@@ -332,7 +332,6 @@ void export_IntegratorHPMC(py::module& m)
         .def_property_readonly("seed", &IntegratorHPMC::getSeed)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability", &IntegratorHPMC::getTranslationMoveProbability, &IntegratorHPMC::setTranslationMoveProbability)
-        .def_property("translation_move_probability", &IntegratorHPMC::getTranslationMoveProbability, &IntegratorHPMC::setTranslationMoveProbability)
         ;
 
     py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
