@@ -52,6 +52,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         virtual ~TwoStepRATTLEBD()
         {
         m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
+        m_pdata->getMaxParticleNumberChangeSignal().template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::reallocate>(this);
         }
 
         //! Performs the second step of the integration
@@ -72,6 +73,12 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         return Manifold::dimension() * intersect_size;
         }
 
+        //! Get the array of computed forces
+        GlobalArray<Scalar3>& getBrownianArray()
+            {
+            return m_f_brownian;
+            }
+
         /// Sets eta
         void setEta(Scalar eta){ m_eta = eta; };
 
@@ -79,6 +86,9 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         Scalar getEta(){ return m_eta; };
 
     protected:
+
+        void reallocate();
+
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         bool m_noiseless_t;
         bool m_noiseless_r;
@@ -128,16 +138,30 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     GPUArray<Scalar3> tmp_f_brownian(group_size, m_exec_conf);
 
     m_f_brownian.swap(tmp_f_brownian);
-
-    ArrayHandle<Scalar3> h_f_brownian(m_f_brownian, access_location::host);
-
-    for (unsigned int i = 0; i < group_size; i++)
-        {
-        h_f_brownian.data[i].x = 0;
-        h_f_brownian.data[i].y = 0;
-        h_f_brownian.data[i].z = 0;
-        }
+    
+    {
+        ArrayHandle<Scalar3> h_f_brownian(m_f_brownian, access_location::host, access_mode::overwrite);
+        memset(h_f_brownian.data, 0, sizeof(Scalar3)*m_f_brownian.getNumElements());
     }
+
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+     m_pdata->getMaxParticleNumberChangeSignal().template connect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::reallocate>(this);
+    }
+
+/*! \post m_f_brownian is resized to the current maximum particle number
+ */
+template< class Manifold>
+void TwoStepRATTLEBD<Manifold>::reallocate()
+    {
+    m_f_brownian.resize(m_pdata->getMaxN());
+        {
+        ArrayHandle<Scalar3> h_f_brownian(m_f_brownian, access_location::host, access_mode::overwrite);
+        memset(h_f_brownian.data, 0, sizeof(Scalar3)*m_f_brownian.getNumElements());
+        }
+
+    }
+
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1

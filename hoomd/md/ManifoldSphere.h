@@ -51,7 +51,7 @@ class ManifoldSphere
             \param _R radius
         */
         DEVICE ManifoldSphere(const Scalar _R, const Scalar3 _P)
-            : Px(_P.x), Py(_P.y), Pz(_P.z), R(_R*_R)
+            : Px(_P.x), Py(_P.y), Pz(_P.z), R_sq(_R*_R)
             {
             }
 
@@ -63,7 +63,7 @@ class ManifoldSphere
 
         DEVICE Scalar implicit_function(const Scalar3& point)
         {
-            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R;
+            return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R_sq;
         }
 
         //! Evaluate deriviative of implicit function
@@ -82,7 +82,7 @@ class ManifoldSphere
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
-            Scalar sqR = fast::sqrt(R);
+            Scalar sqR = fast::sqrt(R_sq);
             if (Px + sqR > hi.x || Px - sqR < lo.x ||
                 Py + sqR > hi.y || Py - sqR < lo.y ||
                 Pz + sqR > hi.z || Pz - sqR < lo.z)
@@ -104,7 +104,7 @@ class ManifoldSphere
         Scalar Px;
         Scalar Py;
         Scalar Pz;
-        Scalar R;
+        Scalar R_sq;
     };
 
 //! Exports the Sphere manifold class to python
