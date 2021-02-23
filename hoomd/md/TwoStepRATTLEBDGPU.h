@@ -57,7 +57,6 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
 
     protected:
         unsigned int m_block_size;               //!< block size
-        //GPUArray<unsigned int>  m_groupTags; //! Stores list converting group index to global tag
     };
 
 /*! \param timestep Current time step
@@ -78,18 +77,6 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
         this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLEBDGPU while CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepRATTLEBDGPU");
         }
-
-    //unsigned int group_size = this->m_group->getNumMembersGlobal();
-    //GPUArray<unsigned int> tmp_groupTags(group_size, this->m_exec_conf);
-    //ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
-
-    //for (unsigned int i = 0; i < group_size; i++)
-    //    {
-    //    unsigned int tag = this->m_group->getMemberTag(i);
-    //    groupTags.data[i] = tag;
-    //    }
-
-    //m_groupTags.swap(tmp_groupTags);
 
     m_block_size = 256;
     }

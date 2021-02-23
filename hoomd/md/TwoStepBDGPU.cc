@@ -31,18 +31,6 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TwoStepBDGPU");
         }
 
-    //unsigned int group_size = m_group->getNumMembersGlobal();
-    //GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);
-    //ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
-
-    //for (unsigned int i = 0; i < group_size; i++)
-    //    {
-    //    unsigned int tag = m_group->getMemberTag(i);
-    //    groupTags.data[i] = tag;
-    //    }
-
-    //m_groupTags.swap(tmp_groupTags);
-
     m_block_size = 256;
     }
 
