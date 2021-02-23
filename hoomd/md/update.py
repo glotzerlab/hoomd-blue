@@ -259,12 +259,14 @@ class mueller_plathe_flow(_updater):
         assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
 
         params = ParameterDict(
+            filter=hoomd.filter.ParticleFilter,
             flow_target=hooomd.variant.Variant,
             slab_direction=_md.MuellerPlatheFlow.Direction,
             flow_direction=_md.MuellerPlatheFlow.Direction,
             n_slabs=int(n_slabs),
             max_slab=int(max_slab),
             min_slab=int(min_slab))
+        params["filter"] = filter
         params['flow_target'] = flow_target
         params['slab_direction'] = slab_direction
         params['flow_direction'] = flow_direction
@@ -273,12 +275,29 @@ class mueller_plathe_flow(_updater):
         # This updater has to be applied every timestep
         super().__init__(hoomd.trigger.Periodic(1))
 
-
-        # create the c++ mirror class
+    def _attach(self):
+        group = self._simulation.state._get_group(self.filter)
+        sys_def = self._simulation.state._cpp_sys_def
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+            self._cpp_obj = _md.MuellerPlatheFlow(sys_def,
+                                                  group,
+                                                  self.flow_target,
+                                                  self.slab_direction,
+                                                  self.flow_direction,
+                                                  self.n_slabs,
+                                                  self.min_slab,
+                                                  self.max_slab)
         else:
-            self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+            self._cpp_obj = _md.MuellerPlatheFlowGPU(sys_def,
+                                                     group,
+                                                     self.flow_target,
+                                                     self.slab_direction,
+                                                     self.flow_direction,
+                                                     self.n_slabs,
+                                                     self.min_slab,
+                                                     self.max_slab)
+        super()._attach()
+
 
     def get_n_slabs(self):
         R""" Get the number of slabs."""
