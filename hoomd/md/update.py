@@ -249,7 +249,7 @@ class mueller_plathe_flow(_updater):
     """
     def __init__(self, filter, flow_target, slab_direction, flow_direction ,n_slabs, max_slab=-1, min_slab=-1):
 
-        assert (n_slabs > 0 ),"Invalid negative number of slabs."
+        assert (n_slabs > 0), "Invalid negative number of slabs."
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
@@ -265,7 +265,8 @@ class mueller_plathe_flow(_updater):
             flow_direction=_md.MuellerPlatheFlow.Direction,
             n_slabs=int(n_slabs),
             max_slab=int(max_slab),
-            min_slab=int(min_slab))
+            min_slab=int(min_slab),
+            flow_epsilon=float)
         params["filter"] = filter
         params['flow_target'] = flow_target
         params['slab_direction'] = slab_direction
@@ -298,44 +299,29 @@ class mueller_plathe_flow(_updater):
                                                      self.max_slab)
         super()._attach()
 
-
-    def get_n_slabs(self):
-        R""" Get the number of slabs."""
-        return self.cpp_updater.getNSlabs()
-
-    def get_min_slab(self):
-        R""" Get the slab id of min velocity search."""
-        return self.cpp_updater.getMinSlab()
-
-    def get_max_slab(self):
-        R""" Get the slab id of max velocity search."""
-        return self.cpp_updater.getMaxSlab()
-
-    def get_flow_epsilon(self):
-        R""" Get the tolerance between target flow and actual achieved flow."""
-        return self.cpp_updater.getFlowEpsilon()
-
-    def set_flow_epsilon(self,epsilon):
-        R""" Set the tolerance between target flow and actual achieved flow.
-
-           Args:
-           epsilon (float): New tolerance for the deviation of actual and achieved flow.
-
-        """
-        return self.cpp_updater.setFlowEpsilon(float(epsilon))
-
-    def get_summed_exchanged_momentum(self):
+    @property
+    def summed_exchanged_momentum(self):
         R"""Returned the summed up exchanged velocity of the full simulation."""
-        return self.cpp_updater.getSummedExchangedMomentum()
+        if self._attached:
+            return self._cpp_obj.summed_exchanged_momentum
+        else:
+            return None
 
-
+    @property
     def has_min_slab(self):
         R"""Returns, whether this MPI instance is part of the min slab."""
-        return self.cpp_updater.hasMinSlab()
+        if self._attached:
+            return self._cpp_obj.has_min_slab
+        else:
+            return None
 
+    @property
     def has_max_slab(self):
         R"""Returns, whether this MPI instance is part of the max slab."""
-        return self.cpp_updater.hasMaxSlab()
+        if self._attached:
+            return self._cpp_obj.has_max_slab
+        else:
+            return None
 
     X = _md.MuellerPlatheFlow.Direction.X
     R""" Direction Enum X for this class"""
