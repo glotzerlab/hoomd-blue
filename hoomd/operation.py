@@ -9,10 +9,9 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 
-from collections.abc import Mapping
 from copy import copy, deepcopy
 
-from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
+from hoomd.util import is_iterable, dict_map, dict_filter
 from hoomd.trigger import Trigger
 from hoomd.variant import Variant, Constant
 from hoomd.filter import ParticleFilter
