@@ -126,16 +126,12 @@ class _ValidatedDefaultDict:
             yield from self._validate_and_split_key(key)
 
     def __eq__(self, other):
-        if self.default != other.default:
-            return False
-        keys = set(self.keys())
-        if keys.union(other.keys()) != keys or \
-                keys.difference(other.keys()) != set():
-            return False
-        for key in self.keys():
-            if not self[key] == other[key]:
-                return False
-        return True
+        if not isinstance(other, _ValidatedDefaultDict):
+            return NotImplemented
+        return (self.default == other.default
+                and set(self.keys()) == set(other.keys())
+                and all(self[key] == other[key] for key in self.keys())
+                )
 
     @property
     def default(self):
