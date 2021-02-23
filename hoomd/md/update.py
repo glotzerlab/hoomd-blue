@@ -247,27 +247,31 @@ class mueller_plathe_flow(_updater):
         update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
 
     """
-    def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
-        period=1 # This updater has to be applied every timestep
+    def __init__(self, filter, flow_target, slab_direction, flow_direction ,n_slabs, max_slab=-1, min_slab=-1):
+
         assert (n_slabs > 0 ),"Invalid negative number of slabs."
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
             max_slab = n_slabs/2
-
-        #Cast input to int to avoid mismatch of types in calling the constructor
-        n_slabs = int(n_slabs)
-        min_slab = int(min_slab)
-        max_slab = int(max_slab)
-
-        assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
-        assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."
+        assert (max_slab > -1 and max_slab < n_slabs), "Invalid max_slab in [0,"+str(n_slabs)+")."
+        assert (min_slab > -1 and min_slab < n_slabs), "Invalid min_slab in [0,"+str(n_slabs)+")."
         assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
 
-        # initialize the base class
-        _updater.__init__(self);
+        params = ParameterDict(
+            flow_target=hooomd.variant.Variant,
+            slab_direction=_md.MuellerPlatheFlow.Direction,
+            flow_direction=_md.MuellerPlatheFlow.Direction,
+            n_slabs=int(n_slabs),
+            max_slab=int(max_slab),
+            min_slab=int(min_slab))
+        params['flow_target'] = flow_target
+        params['slab_direction'] = slab_direction
+        params['flow_direction'] = flow_direction
+        self._param_dict.update(params)
 
-        self._flow_target = hoomd.variant._setup_variant_input(flow_target);
+        # This updater has to be applied every timestep
+        super().__init__(hoomd.trigger.Periodic(1))
 
 
         # create the c++ mirror class
@@ -275,8 +279,6 @@ class mueller_plathe_flow(_updater):
             self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
         else:
             self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
-
-        self.setupUpdater(period);
 
     def get_n_slabs(self):
         R""" Get the number of slabs."""
