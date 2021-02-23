@@ -70,7 +70,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
         {
         h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::overwrite));
         h_cell_energy.reset(new ArrayHandle<double3>(m_thermo->getCellEnergies(), access_location::host, access_mode::read));
-        T_set = m_T->getValue(timestep);
+        T_set = (*m_T)(timestep);
         }
 
     for (unsigned int k=0; k < ci.getD(); ++k)
@@ -110,7 +110,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                         // (don't use the kinetic energy of this cell, since this
                         // is total not relative to COM)
                         const double cur_ke = alpha * cell_energy.y;
-                        factor = fast::sqrt(rand_ke/cur_ke);
+                        factor = (cur_ke > 0.) ? fast::sqrt(rand_ke/cur_ke) : 1.;
                         }
                     h_factors->data[idx] = factor;
                     }

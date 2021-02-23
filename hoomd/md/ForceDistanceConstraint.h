@@ -10,7 +10,7 @@
     \brief Declares a class to implement pairwise distance constraint
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -42,11 +42,11 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         //! Destructor
         virtual ~ForceDistanceConstraint();
 
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved()
-            {
-            return m_cdata->getNGlobal();
-            }
+        /** Return the number of DOF removed by this constraint
+
+            @param query The group over which to compute the removed degrees of freedom
+        */
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
         //! Set the relative tolerance for constraint warnings
         void setRelativeTolerance(Scalar rel_tol)

@@ -31,15 +31,15 @@ foreach(src ${_dem_cpu_sources})
   list(APPEND _dem_sources templateInstances/${src})
 endforeach()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     foreach(src ${_dem_cu_sources_raw})
       list(APPEND _dem_cu_sources templateInstances/${src})
     endforeach()
-endif(ENABLE_CUDA)
+endif(ENABLE_HIP)
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_dem_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_dem SHARED ${_dem_sources} ${_cuda_sources} ${_dem_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
@@ -62,17 +62,6 @@ install(TARGETS _dem
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/dem/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files   __init__.py
             pair.py
             params.py
@@ -83,11 +72,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/dem
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_dem ALL DEPENDS ${files})
+copy_files_to_build("${files}" "dem" "*.py")
 
 # install headers in installation target
 install(FILES ${_dem_headers}
@@ -95,5 +80,5 @@ install(FILES ${_dem_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
 endif()

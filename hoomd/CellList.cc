@@ -80,10 +80,6 @@ uint3 CellList::computeDimensions()
 
     Scalar3 L = box.getNearestPlaneDistance();
 
-    dim.x = roundDown((unsigned int)((L.x) / (m_nominal_width)), m_multiple);
-    dim.y = roundDown((unsigned int)((L.y) / (m_nominal_width)), m_multiple);
-    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z) / (m_nominal_width)), m_multiple) : 1;
-
     // size the ghost layer width
     m_ghost_width = make_scalar3(0.0, 0.0, 0.0);
 #ifdef ENABLE_MPI
@@ -104,24 +100,9 @@ uint3 CellList::computeDimensions()
         }
 #endif
 
-    // expand for ghost width if communicating ghosts
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        const Scalar3 cell_size = make_scalar3(L.x / Scalar(dim.x), L.y / Scalar(dim.y), L.z / Scalar(dim.z));
-
-        // add cells up to the next integer to cover the whole ghost width on both sides
-        if (!box.getPeriodic().x)
-            dim.x += 2*static_cast<int>(ceil(m_ghost_width.x/cell_size.x));
-
-        if (!box.getPeriodic().y)
-            dim.y += 2*static_cast<int>(ceil(m_ghost_width.y/cell_size.y));
-
-        if (m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-            dim.z += 2*static_cast<int>(ceil(m_ghost_width.z/cell_size.z));
-        }
-#endif
-
+    dim.x = roundDown((unsigned int)((L.x + 2.0*m_ghost_width.x) / (m_nominal_width)), m_multiple);
+    dim.y = roundDown((unsigned int)((L.y + 2.0*m_ghost_width.y) / (m_nominal_width)), m_multiple);
+    dim.z = (m_sysdef->getNDimensions() == 3) ? roundDown((unsigned int)((L.z + 2.0*m_ghost_width.z) / (m_nominal_width)), m_multiple) : 1;
 
     // In extremely small boxes, the calculated dimensions could go to zero, but need at least one cell in each dimension
     // for particles to be in a cell and to pass the checkCondition tests.
@@ -219,10 +200,10 @@ double CellList::benchmark(unsigned int num_iters)
     // warm up run
     computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -232,9 +213,9 @@ double CellList::benchmark(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         computeCellList();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaDeviceSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -305,9 +286,9 @@ void CellList::initializeMemory()
         {
         // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
         uint3 n_unique_neighbors = m_dim;
-        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : (unsigned int) n_unique_neighbors.z;
 
         unsigned int n_adj;
         if (m_sysdef->getNDimensions() == 2)
@@ -581,7 +562,7 @@ void CellList::computeCellList()
             }
         else
             {
-            conditions.x = max(conditions.x, offset+1);
+            conditions.x = max((unsigned int)conditions.x, offset+1);
             }
 
         // increment the cell occupancy counter
@@ -617,7 +598,8 @@ bool CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-        m_exec_conf->msg->error() << "Particle with unique tag " << h_tag.data[n] << " has NaN for its position." << endl;
+        m_exec_conf->msg->errorAllRanks() << "Particle with unique tag " << h_tag.data[n]
+                                          << " has NaN for its position." << endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -628,18 +610,19 @@ bool CellList::checkConditions()
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-        m_exec_conf->msg->error() <<"Particle with unique tag " << h_tag.data[n] << " is no longer in the simulation box."
-                                  << endl << endl;
-
-        m_exec_conf->msg->error() << "Cartesian coordinates: " << std::endl;
-        m_exec_conf->msg->error() << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl;
-        m_exec_conf->msg->error() << "Fractional coordinates: " << std::endl;
         Scalar3 f = m_pdata->getBox().makeFraction(make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z));
-        m_exec_conf->msg->error() << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl;
         Scalar3 lo = m_pdata->getBox().getLo();
         Scalar3 hi = m_pdata->getBox().getHi();
-        m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
+
+        m_exec_conf->msg->errorAllRanks()
+           << "Particle with unique tag " << h_tag.data[n]
+           << " is no longer in the simulation box." << std::endl << std::endl
+           << "Cartesian coordinates: " << std::endl
+           << "x: " << h_pos.data[n].x << " y: " << h_pos.data[n].y << " z: " << h_pos.data[n].z << std::endl
+           << "Fractional coordinates: " << std::endl
+           << "f.x: " << f.x << " f.y: " << f.y << " f.z: " << f.z << std::endl
+           << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
+           << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         throw runtime_error("Error computing cell list");
         }
 
@@ -658,44 +641,6 @@ uint3 CellList::readConditions()
     ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::read);
     return *h_conditions.data;
     }
-
-/*! Generic statistics that apply to any cell list, Derived classes should
-    print any pertinent information they see fit to.
- */
-void CellList::printStats()
-    {
-    // return early if the notice level is less than 1
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    m_exec_conf->msg->notice(1) << "-- Cell list stats:" << endl;
-    m_exec_conf->msg->notice(1) << "Dimension: " << m_dim.x << ", " << m_dim.y << ", " << m_dim.z << "" << endl;
-
-    // access the number of cell members to generate stats
-    ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::read);
-
-    // handle the rare case where printStats is called before the cell list is initialized
-    if (h_cell_size.data != NULL)
-        {
-        // build some simple statistics of the number of neighbors
-        unsigned int n_min = h_cell_size.data[0];
-        unsigned int n_max = h_cell_size.data[0];
-
-        for (unsigned int i = 0; i < m_cell_indexer.getNumElements(); i++)
-            {
-            unsigned int n = (unsigned int)h_cell_size.data[i];
-            if (n < n_min)
-                n_min = n;
-            if (n > n_max)
-                n_max = n;
-            }
-
-        // divide to get the average
-        Scalar n_avg = Scalar(m_pdata->getN() + m_pdata->getNGhosts()) / Scalar(m_cell_indexer.getNumElements());
-        m_exec_conf->msg->notice(1) << "n_min    : " << n_min << " / n_max: " << n_max << " / n_avg: " << n_avg << endl;
-        }
-    }
-
 
 void export_CellList(py::module& m)
     {

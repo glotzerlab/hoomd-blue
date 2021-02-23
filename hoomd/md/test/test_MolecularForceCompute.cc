@@ -169,8 +169,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
             if (*it != NO_MOLECULE) unique_tags.insert(*it);
             }
 
-        mfc_cpu.setNMolecules(unique_tags.size());
-        mfc_gpu.setNMolecules(unique_tags.size());
+        mfc_cpu.setNMolecules((unsigned int)unique_tags.size());
+        mfc_gpu.setNMolecules((unsigned int)unique_tags.size());
 
         mfc_cpu.setMoleculeTags(molecule_tags);
         mfc_gpu.setMoleculeTags(molecule_tags);
@@ -211,7 +211,7 @@ UP_TEST( MolecularForceCompute_basic )
     basic_molecule_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( MolecularForceCompute_basic_GPU)
     {

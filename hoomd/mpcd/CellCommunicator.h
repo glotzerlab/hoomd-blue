@@ -13,13 +13,13 @@
 #ifndef MPCD_CELL_COMMUNICATOR_H_
 #define MPCD_CELL_COMMUNICATOR_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CellCommunicator.cuh"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "CommunicatorUtilities.h"
 #include "CellList.h"
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT CellCommunicator
          */
         void setAutotunerParams(bool enable, unsigned int period)
             {
-            #ifdef ENABLE_CUDA
+            #ifdef ENABLE_HIP
             if (m_tuner_pack)
                 {
                 m_tuner_pack->setEnabled(enable);
@@ -110,7 +110,7 @@ class PYBIND11_EXPORT CellCommunicator
                 m_tuner_unpack->setEnabled(enable);
                 m_tuner_unpack->setPeriod(period);
                 }
-            #endif // ENABLE_CUDA
+            #endif // ENABLE_HIP
             }
 
     private:
@@ -159,7 +159,7 @@ class PYBIND11_EXPORT CellCommunicator
         template<typename T, class PackOpT>
         void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         std::unique_ptr<Autotuner> m_tuner_pack;    //!< Tuner for pack kernel
         std::unique_ptr<Autotuner> m_tuner_unpack;  //!< Tuner for unpack kernel
 
@@ -170,7 +170,7 @@ class PYBIND11_EXPORT CellCommunicator
         //! Unpacks the property buffer on the GPU
         template<typename T, class PackOpT>
         void unpackBufferGPU(const GPUArray<T>& props, const PackOpT op);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
     };
 
 } // end namespace mpcd
@@ -211,13 +211,13 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
     m_send_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
     m_recv_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         packBufferGPU(props, op);
         }
     else
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
         {
         packBuffer(props, op);
         }
@@ -251,8 +251,8 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
             const unsigned int neigh = m_neighbors[idx];
             const unsigned int offset = m_begin[idx];
             const size_t num_bytes = sizeof(typename PackOpT::element) * m_num_send[idx];
-            MPI_Isend(send_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(send_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         }
     }
@@ -275,20 +275,20 @@ void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op
     if (!m_communicating) return;
 
     // finish all MPI requests
-    MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
     #ifdef ENABLE_MPI_CUDA
     // MPI calls can execute in multiple streams, so force a synchronization before we move on
     if (m_exec_conf->isCUDAEnabled()) cudaDeviceSynchronize();
     #endif // ENABLE_MPI_CUDA
 
     // unpack the buffer
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         unpackBufferGPU(props, op);
         }
     else
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
         {
         unpackBuffer(props, op);
         }
@@ -366,7 +366,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, const PackOp
         }
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /*!
  * \param props Property buffer to pack
  * \param op Packing operator to apply to the send buffer
@@ -393,7 +393,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
                                 d_props.data,
                                 d_send_idx.data,
                                 op,
-                                m_send_idx.getNumElements(),
+                                (unsigned int)m_send_idx.getNumElements(),
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_pack->end();
@@ -437,7 +437,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_unpack->end();
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // MPCD_CELL_COMMUNICATOR_H_
 

@@ -15,7 +15,7 @@
     \brief Declares the FIRE energy minimizer class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -91,16 +91,6 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         /*! \param steps is the minimum number of steps (attempts) that will be made
         */
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
-
-        //! Get needed pdata flags
-        /*! FIREEnergyMinimizer needs the potential energy, so its flag is set
-        */
-        virtual PDataFlags getRequestedPDataFlags()
-            {
-            PDataFlags flags = IntegratorTwoStep::getRequestedPDataFlags();
-            flags[pdata_flag::potential_energy] = 1;
-            return flags;
-            }
 
     protected:
         //! Function to create the underlying integrator

@@ -16,7 +16,7 @@
 */
 
 //! Kernel driver for gpu_berendsen_step_one_kernel
-cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
+hipError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    Scalar4 *d_vel,
                                    const Scalar3 *d_accel,
                                    int3 *d_image,
@@ -28,7 +28,7 @@ cudaError_t gpu_berendsen_step_one(Scalar4 *d_pos,
                                    Scalar deltaT);
 
 //! Kernel driver for gpu_berendsen_step_two_kernel
-cudaError_t gpu_berendsen_step_two(Scalar4 *d_vel,
+hipError_t gpu_berendsen_step_two(Scalar4 *d_vel,
                                    Scalar3 *d_accel,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,

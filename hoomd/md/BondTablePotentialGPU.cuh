@@ -17,9 +17,9 @@
 #define __BONDTABLEPOTENTIALGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
+hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                      Scalar* d_virial,
-                                     const unsigned int virial_pitch,
+                                     const size_t virial_pitch,
                                      const unsigned int N,
                                      const Scalar4 *d_pos,
                                      const BoxDim &box,

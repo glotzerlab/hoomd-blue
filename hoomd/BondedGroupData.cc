@@ -8,14 +8,13 @@
     \brief Defines implementation of BondedGroupData
  */
 
-
 #include "BondedGroupData.h"
 #include "ParticleData.h"
 #include "Index1D.h"
 
 #include <pybind11/numpy.h>
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
 #endif
@@ -65,25 +64,12 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         // offer a default type mapping
         for (unsigned int i = 0; i < n_group_types; i++)
             {
-            char suffix[2];
-            suffix[0] = 'A' + i;
-            suffix[1] = '\0';
-
-            std::string type_name = std::string(name) + std::string(suffix);
-            m_type_mapping.push_back(type_name);
+            m_type_mapping.push_back(getDefaultTypeName(i));
             }
         }
 
     // initialize data structures
     initialize();
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*! \param exec_conf Execution configuration
@@ -101,14 +87,6 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     // connect to particle sort signal
     m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
 
     // initialize from snapshot
     initializeFromSnapshot(snapshot);
@@ -203,7 +181,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
         }
     #endif
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     // allocate condition variable
     GPUArray<unsigned int> condition(1, m_exec_conf);
     m_condition.swap(condition);
@@ -723,7 +701,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::maybe_rebuild_t
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable()
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         rebuildGPUTableGPU();
     else
@@ -841,7 +819,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         }
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {
@@ -871,12 +849,11 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 
             // allocate scratch buffers
             CachedAllocator& alloc = m_exec_conf->getCachedAllocator();
-            unsigned int tmp_size = m_groups.size()*group_size;
+            size_t tmp_size = m_groups.size()*group_size;
             unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
             ScopedAllocation<unsigned int> d_scratch_g(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_scratch_idx(alloc, tmp_size);
             ScopedAllocation<unsigned int> d_offsets(alloc, tmp_size);
-            ScopedAllocation<unsigned int> d_seg_offsets(alloc, nptl);
 
             // fill group table on GPU
             gpu_update_group_table<group_size, members_t>(
@@ -896,9 +873,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
                 d_scratch_g.data,
                 d_scratch_idx.data,
                 d_offsets.data,
-                d_seg_offsets.data,
                 has_type_mapping,
-                m_mgpu_context);
+                m_exec_conf->getCachedAllocator());
             }
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
 
@@ -1113,7 +1089,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
 
         MPI_Status stat;
         MPI_Request req;
-        unsigned int num = send_groups.size();
+        unsigned int num = (unsigned int)send_groups.size();
 
         MPI_Isend(&num, 1, MPI_UNSIGNED, new_rank, 0, m_exec_conf->getMPICommunicator(), &req);
         MPI_Wait(&req, &stat);
@@ -1193,7 +1169,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
             if (! is_local)
                 {
                 // append to end of group data
-                unsigned int n = m_groups.size();
+                unsigned int n = (unsigned int)m_groups.size();
                 m_group_tag.push_back(tag);
                 m_groups.push_back(members);
                 m_group_typeval.push_back(typeval);
@@ -1240,6 +1216,7 @@ template<class T, typename Group>
         .def("addBondedGroup", &T::addBondedGroup)
         .def("removeBondedGroup", &T::removeBondedGroup)
         .def("setProfiler", &T::setProfiler)
+        .def("getTypes", &T::getTypesPy)
         ;
 
     if (T::typemap_val)
@@ -1251,8 +1228,7 @@ template<class T, typename Group>
             .def_property_readonly("typeid", &Snapshot::getTypeNP)
             .def_property_readonly("group", &Snapshot::getBondedTagsNP)
             .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
-            .def("resize", &Snapshot::resize)
-            .def_readonly("N", &Snapshot::size)
+            .def_property("N", &Snapshot::getSize, &Snapshot::resize)
             ;
         }
     else
@@ -1263,8 +1239,7 @@ template<class T, typename Group>
             .def(py::init<unsigned int>())
             .def_property_readonly("value", &Snapshot::getValueNP)
             .def_property_readonly("group", &Snapshot::getBondedTagsNP)
-            .def("resize", &Snapshot::resize)
-            .def_readonly("N", &Snapshot::size)
+            .def_property("N", &Snapshot::getSize, &Snapshot::resize)
             ;
         }
    }

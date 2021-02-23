@@ -17,9 +17,9 @@
 #define __TABLEPOTENTIALGPU_CUH__
 
 //! Kernel driver that computes table forces on the GPU for TablePotentialGPU
-cudaError_t gpu_compute_table_forces(Scalar4* d_force,
+hipError_t gpu_compute_table_forces(Scalar4* d_force,
                                      Scalar* d_virial,
-                                     const unsigned int virial_pitch,
+                                     const size_t virial_pitch,
                                      const unsigned int N,
                                      const unsigned int n_ghost,
                                      const Scalar4 *d_pos,
@@ -29,7 +29,7 @@ cudaError_t gpu_compute_table_forces(Scalar4* d_force,
                                      const unsigned int *d_head_list,
                                      const Scalar2 *d_tables,
                                      const Scalar4 *d_params,
-                                     const unsigned int size_nlist,
+                                     const size_t size_nlist,
                                      const unsigned int ntypes,
                                      const unsigned int table_width,
                                      const unsigned int block_size,

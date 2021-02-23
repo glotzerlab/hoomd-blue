@@ -56,7 +56,7 @@ set(_mpcd_headers
     VirtualParticleFiller.h
     )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(APPEND _mpcd_sources
     ATCollisionMethodGPU.cc
     CellThermoComputeGPU.cc
@@ -108,9 +108,9 @@ set(_mpcd_cu_sources
     SRDCollisionMethodGPU.cu
     )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     set(_cuda_sources ${_mpcd_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${LINK_OBJ} ${_cuda_sources} ${_mpcd_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
@@ -119,10 +119,10 @@ add_library(HOOMD::_mpcd ALIAS _mpcd)
 if (APPLE)
 set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path/../md;@loader_path")
 else()
-set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN/../md;$ORIGIN")
+set_target_properties(_mpcd PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN/../md;\$ORIGIN")
 endif()
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     # Separable compilation is needed to support ExternalField.cu polymorphism.
     # This likely breaks plugin support though. :-(
     set_property(TARGET _mpcd PROPERTY CUDA_SEPARABLE_COMPILATION ON)
@@ -130,9 +130,9 @@ endif()
 
 # link the library to its dependencies
 target_link_libraries(_mpcd PUBLIC _md)
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     target_link_libraries(_mpcd PUBLIC CUDA::cudadevrt)
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 fix_cudart_rpath(_mpcd)
 
@@ -143,17 +143,6 @@ install(TARGETS _mpcd EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/mpcd/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files
     __init__.py
     collide.py
@@ -169,11 +158,7 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/mpcd
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_mpcd ALL DEPENDS ${files})
+copy_files_to_build("${files}" "mpcd" "*.py")
 
 # install headers in installation target
 install(FILES ${_mpcd_headers}
@@ -181,6 +166,9 @@ install(FILES ${_mpcd_headers}
        )
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
 endif()
 add_subdirectory(test)
+if (BUILD_VALIDATION)
+    # add_subdirectory(validation)
+endif (BUILD_VALIDATION)

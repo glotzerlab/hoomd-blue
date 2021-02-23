@@ -11,7 +11,7 @@
     \brief Declares the NeighborListBinned class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -37,17 +37,30 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
         //! Destructor
         virtual ~NeighborListBinned();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            NeighborList::notifyRCutMatrixChange();
+            }
 
-        //! Set the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Make the neighborlist deterministic
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
+        /// Get the deterministic flag
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
 
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
+
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size;
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

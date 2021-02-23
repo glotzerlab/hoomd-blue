@@ -31,7 +31,8 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(std::shared_ptr
     GPUArray<Scalar4> params(m_dihedral_data->getNTypes(),m_exec_conf);
     m_params.swap(params);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "harmonic_dihedral", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "harmonic_dihedral", this->m_exec_conf));
     }
 
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
@@ -42,17 +43,18 @@ HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     \param K Stiffness parameter for the force computation
     \param sign the sign of the cosine term
         \param multiplicity the multiplicity of the cosine term
+    \param phi_0 the phase offset
 
     Sets parameters for the potential of a particular dihedral type and updates the
     parameters on the GPU.
 */
-void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity)
+void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
-    HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity);
+    HarmonicDihedralForceCompute::setParams(type, K, sign, multiplicity, phi_0);
 
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::readwrite);
     // update the local copy of the memory
-    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(0.0));
+    h_params.data[type] = make_scalar4(Scalar(K), Scalar(sign), Scalar(multiplicity), Scalar(phi_0));
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -93,7 +95,8 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
                                          d_n_dihedrals.data,
                                          d_params.data,
                                          m_dihedral_data->getNTypes(),
-                                         this->m_tuner->getParam());
+                                         this->m_tuner->getParam(),
+                                         this->m_exec_conf->dev_prop.warpSize);
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     this->m_tuner->end();

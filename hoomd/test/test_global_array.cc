@@ -12,7 +12,7 @@
 #include "hoomd/GlobalArray.h"
 #include "hoomd/GPUVector.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "test_global_array.cuh"
 #endif
 
@@ -89,7 +89,7 @@ UP_TEST( GlobalArray_basic_tests )
 
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for testing device to/from host transfers
 UP_TEST( GlobalArray_transfer_tests )
     {
@@ -104,8 +104,8 @@ UP_TEST( GlobalArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // copy it to the host and verify
@@ -126,8 +126,8 @@ UP_TEST( GlobalArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // via the read access mode
@@ -145,8 +145,8 @@ UP_TEST( GlobalArray_transfer_tests )
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        cudaError_t err_sync = cudaGetLastError();
-        exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__);
+        hipError_t err_sync = hipGetLastError();
+        exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
     // and via the readwrite access mode
@@ -246,7 +246,7 @@ UP_TEST( GlobalArray_resize_tests )
    unsigned int width=3;
    unsigned int height=2;
    GlobalArray<unsigned int> c(width, height,exec_conf);
-   unsigned int pitch = c.getPitch();
+   size_t pitch = c.getPitch();
        {
        // write some data to it
        ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::overwrite);

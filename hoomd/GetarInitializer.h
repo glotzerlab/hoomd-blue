@@ -1,8 +1,8 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __GETARINITIALIZER_H_
-#define __GETARINITIALIZER_H_
+#ifndef __GETAR_INITIALIZER_H_
+#define __GETAR_INITIALIZER_H_
 
 #include "SnapshotSystemData.h"
 #include "hoomd/extern/libgetar/src/GTAR.hpp"
@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -94,7 +94,7 @@ namespace getardump{
             unsigned int m_timestep;
         };
 
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_GetarInitializer(pybind11::module& m);
 #endif
 

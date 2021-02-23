@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 #include "HOOMDMath.h"
 
 #ifndef __VECTOR_MATH_H__
@@ -14,7 +13,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #undef DEVICE
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __host__ __device__
 #else
 #define DEVICE
@@ -53,7 +52,7 @@ struct vec3
     /*! \param a Scalar3 to copy
         This is a convenience function for easy initialization of vec3s from hoomd memory data structures
     */
-    DEVICE explicit vec3(const Scalar3& a) : x(a.x), y(a.y), z(a.z)
+    DEVICE explicit vec3(const Scalar3& a) : x(Real(a.x)), y(Real(a.y)), z(Real(a.z))
         {
         }
 
@@ -67,7 +66,7 @@ struct vec3
         }
 
     //! Implicit cast from vec3<double> to the current Real
-    DEVICE vec3(const vec3<double>& a) : x(a.x), y(a.y), z(a.z)
+    DEVICE vec3(const vec3<double>& a) : x(Real(a.x)), y(Real(a.y)), z(Real(a.z))
         {
         }
 
@@ -407,7 +406,7 @@ struct vec2
         }
 
     //! Implicit cast from vec2<double> to the current Real
-    DEVICE vec2(const vec2<double>& a) : x(a.x), y(a.y)
+    DEVICE vec2(const vec2<double>& a) : x(Real(a.x)), y(Real(a.y))
         {
         }
 
@@ -742,17 +741,17 @@ struct quat
         \note For some unfathomable reason, hoomd stores a quaternion as (x, (y,z,w)). Be aware of this when using the
               data elsewhere.
     */
-    DEVICE explicit quat(const Scalar4& a) : s(a.x), v(vec3<Real>(a.y, a.z, a.w))
+    DEVICE explicit quat(const Scalar4& a) : s((Real)a.x), v(vec3<Real>((Real)a.y, (Real)a.z, (Real)a.w))
         {
         }
 
     //! Implicit cast from quat<double> to the current Real
-    DEVICE quat(const quat<double>& a) : s(a.s), v(a.v)
+    DEVICE quat(const quat<double>& a) : s(Real(a.s)), v(a.v)
         {
         }
 
     //! Implicit cast from quat<float> to the current Real
-    DEVICE quat(const quat<float>& a) : s(a.s), v(a.v)
+    DEVICE quat(const quat<float>& a) : s(Real(a.s)), v(a.v)
         {
         }
 
@@ -773,7 +772,7 @@ struct quat
     */
     DEVICE static quat fromAxisAngle(const vec3<Real>& axis, const Real& theta)
         {
-        quat<Real> q(fast::cos(theta/2.0), (Real)fast::sin(theta/2.0) * axis);
+        quat<Real> q(fast::cos(theta/Real(2.0)), fast::sin(theta/Real(2.0)) * axis);
         return q;
         }
 
@@ -944,29 +943,29 @@ DEVICE inline quat<Real> conj(const quat<Real>& a)
 template < class Real >
 DEVICE inline quat<Real>::quat(const rotmat3<Real>& r)
     {
-    Scalar tr = r.row0.x+r.row1.y+r.row2.z;
+    Real tr = r.row0.x+r.row1.y+r.row2.z;
 
     if (tr > Real(0.0))
         {
-        Real S = sqrt(tr+Real(1.0))*Real(2.0);
+        Real S = slow::sqrt(tr+Real(1.0))*Real(2.0);
         s = Real(0.25)*S;
         v = vec3<Real>((r.row2.y-r.row1.z)/S,(r.row0.z-r.row2.x)/S,(r.row1.x-r.row0.y)/S);
         }
     else if ( (r.row0.x > r.row1.y) && (r.row0.x > r.row2.z))
         {
-        Real S = sqrt(Real(1.0)+r.row0.x-r.row1.y-r.row2.z)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+r.row0.x-r.row1.y-r.row2.z)*Real(2.0);
         s = (r.row2.y-r.row1.z)/S;
         v = vec3<Real>(Real(0.25)*S, (r.row0.y+r.row1.x)/S, (r.row0.z+r.row2.x)/S);
         }
     else if (r.row1.y > r.row2.z)
         {
-        Real S = sqrt(Real(1.0)+r.row1.y - r.row0.x - r.row2.z)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+r.row1.y - r.row0.x - r.row2.z)*Real(2.0);
         s = (r.row0.z-r.row2.x)/S;
         v = vec3<Real>((r.row0.y+r.row1.x)/S,Real(0.25)*S,(r.row1.z+r.row2.y)/S);
         }
     else
         {
-        Real S = sqrt(Real(1.0)+ r.row2.z - r.row0.x - r.row1.y)*Real(2.0);
+        Real S = slow::sqrt(Real(1.0)+ r.row2.z - r.row0.x - r.row1.y)*Real(2.0);
         s = (r.row1.x-r.row0.y)/S;
         v = vec3<Real>((r.row0.z+r.row2.x)/S,(r.row1.z+r.row2.y)/S,Real(0.25)*S);
         }

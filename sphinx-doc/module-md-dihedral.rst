@@ -3,17 +3,21 @@ md.dihedral
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.dihedral
 
 .. autosummary::
     :nosignatures:
 
-    md.dihedral.harmonic
-    md.dihedral.opls
-    md.dihedral.table
+    Dihedral
+    Harmonic
+    OPLS
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.dihedral
     :synopsis: Dihedral potentials.
-    :members:
+    :members: Dihedral,
+              Harmonic,
+              OPLS
+    :no-inherited-members:
+    :show-inheritance:

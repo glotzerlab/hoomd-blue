@@ -13,10 +13,6 @@
 #ifndef __COMMUNICATOR_H__
 #define __COMMUNICATOR_H__
 
-#define NCORNER 8
-#define NEDGE 12
-#define NFACE 6
-
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"
@@ -27,7 +23,7 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -209,6 +205,12 @@ class PYBIND11_EXPORT Communicator
         Nano::Signal<CommFlags (unsigned int timestep)>& getCommFlagsRequestSignal()
             {
             return m_requested_flags;
+            }
+
+        /// Get the domain decomposition
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
+            {
+            return m_decomposition;
             }
 
 
@@ -522,6 +524,8 @@ class PYBIND11_EXPORT Communicator
         unsigned int m_ghosts_added;             //!< Number of ghosts added
         bool m_has_ghost_particles;              //!< True if we have a current copy of ghost particles
 
+        MPI_Datatype m_mpi_pdata_element;        //!< A datatype for the (non-packed) pdata_element struct
+
         //! Update the ghost width array
         void updateGhostWidth();
 
@@ -606,8 +610,24 @@ class PYBIND11_EXPORT Communicator
                 (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-                throw std::runtime_error("Error during communication");
+                std::ostringstream msg;
+                msg << "Communication error - " << std::endl;
+                msg << "Simulation box too small for domain decomposition." << std::endl;
+                msg << "r_ghost_max: " << r_ghost_max << std::endl;
+                if (di.getW() > 1)
+                    {
+                    msg << "d.x/2: " << L.x/Scalar(2.0) << std::endl;
+                    }
+                if (di.getH() > 1)
+                    {
+                    msg << "d.y/2: " << L.y/Scalar(2.0) << std::endl;
+                    }
+                if (di.getD() > 1)
+                    {
+                    msg << "d.z/2: " << L.z/Scalar(2.0) << std::endl;
+                    }
+
+                throw std::runtime_error(msg.str());
                 }
             }
 

@@ -18,7 +18,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -30,7 +30,7 @@ namespace hpmc
 
 //! Translation move
 /*! \param v Vector to translate (in/out)
-    \param rng RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param d Maximum move distance
     \param dim Dimension
 
@@ -57,14 +57,14 @@ DEVICE inline void move_translate(vec3<Scalar>& v, RNG& rng, Scalar d, unsigned 
 
 //! Rotation move
 /*! \param orientation Quaternion to rotate (in/out)
-    \param rng RNG to utilize in the move
+    \param rng random123 RNG to utilize in the move
     \param a Rotation magnitude
     \param dim Dimension
 
     When \a dim == 2, a random rotation about (0,0,1) is generated. When \a dim == 3 a random 3D rotation is generated.
 */
-template <class RNG>
-DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned int dim)
+template <unsigned int dim, class RNG>
+DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a)
     {
     if (dim==2)
         {
@@ -154,7 +154,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng, unsigned int ndim
     }
 
 /* Generate a uniformly distributed random position in a sphere
- * \param rng RNG
+ * \param rng random123 RNG to use to generate the position
  * \param pos_sphere Center of insertion sphere
  * \param R radius of insertion sphere
  */

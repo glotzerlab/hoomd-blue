@@ -12,9 +12,9 @@
 #define MPCD_COMMUNICATOR_GPU_H_
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -113,6 +113,6 @@ void export_CommunicatorGPU(pybind11::module& m);
 
 } // end namespace mpcd
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 #endif // MPCD_COMMUNICATOR_GPU_H_

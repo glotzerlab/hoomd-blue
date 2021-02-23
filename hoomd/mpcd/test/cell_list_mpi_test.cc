@@ -4,9 +4,9 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/CellList.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/CellListGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/mpcd/Communicator.h"
 
@@ -1363,9 +1363,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, false, true, false);
@@ -1374,9 +1372,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, false, true);
@@ -1385,9 +1381,7 @@ UP_TEST( mpcd_cell_list_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellList>(exec_conf, true, true, true);
         }
@@ -1405,16 +1399,14 @@ UP_TEST( mpcd_cell_list_edge_test )
     celllist_edge_test<mpcd::CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! dimension test case for MPCD CellListGPU class
 UP_TEST( mpcd_cell_list_gpu_dimensions )
     {
     // mpi in 1d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(2);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, false, true, false);
@@ -1423,9 +1415,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 2d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(4);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, false);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, false, true);
@@ -1434,9 +1424,7 @@ UP_TEST( mpcd_cell_list_gpu_dimensions )
     // mpi in 3d
         {
         std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
-                                                                                     std::vector<int>(),
-                                                                                     false,
-                                                                                     false));
+                                                                                     std::vector<int>()));
         exec_conf->getMPIConfig()->splitPartitions(8);
         celllist_dimension_test<mpcd::CellListGPU>(exec_conf, true, true, true);
         }
@@ -1453,4 +1441,4 @@ UP_TEST( mpcd_cell_list_gpu_edge_test )
     {
     celllist_edge_test<mpcd::CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

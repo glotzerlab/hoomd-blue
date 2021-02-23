@@ -26,7 +26,7 @@ using namespace std;
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group at full time step
     \param tau NPT temperature period
-    \param tauP NPT pressure period
+    \param tauS NPT pressure period
     \param T Temperature set point
     \param S Pressure or Stress set point. Pressure if one value, Stress if a list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy]
     \param couple Coupling mode
@@ -37,14 +37,14 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ComputeThermo> thermo_group,
                        std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
-                       Scalar tauP,
+                       Scalar tauS,
                        std::shared_ptr<Variant> T,
-                       pybind11::list S,
-                       couplingMode couple,
-                       unsigned int flags,
+                       const std::vector<std::shared_ptr<Variant>>& S,
+                       const std::string& couple,
+                       const std::vector<bool>& flags,
                        const bool nph)
 
-    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauP, T, S, couple, flags,nph)
+    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauS, T, S, couple, flags,nph)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -54,7 +54,7 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
-    cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
+    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
     m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_one", this->m_exec_conf));
     m_tuner_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_two", this->m_exec_conf));
     m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_wrap", this->m_exec_conf));
@@ -85,7 +85,7 @@ void TwoStepNPTMTKGPU::integrateStepOne(unsigned int timestep)
         m_prof->push("NPT step 1");
 
     // update degrees of freedom for MTK term
-    m_ndof = m_thermo_group->getNDOF();
+    m_ndof = m_group->getTranslationalDOF();
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
     advanceBarostat(timestep);
@@ -383,9 +383,9 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                        Scalar,
                        Scalar,
                        std::shared_ptr<Variant>,
-                       pybind11::list,
-                       TwoStepNPTMTKGPU::couplingMode,
-                       unsigned int,
+                       const std::vector<std::shared_ptr<Variant>>&,
+                       const std::string&,
+                       const std::vector<bool>&,
                        const bool>());
 
     }

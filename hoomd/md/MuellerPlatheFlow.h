@@ -31,7 +31,7 @@ struct flow_enum
     };
 
 //Above this line shared constructs can be declared.
-#ifndef NVCC
+#ifndef __HIPCC__
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
@@ -176,5 +176,5 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
 
-#endif//NVCC
+#endif// __HIPCC__
 #endif//__MUELLER_PLATHE_FLOW_H__

@@ -21,7 +21,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
@@ -51,9 +51,9 @@ void export_polyhedron(py::module& m)
     export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
-    #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");
-    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumeGPUPolyhedron");
+    #ifdef ENABLE_HIP
+    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedronGPU");
+    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedronGPU");
     #endif
     }
 

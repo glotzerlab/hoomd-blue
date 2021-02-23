@@ -16,7 +16,7 @@
 #include "SlitGeometry.h"
 #include "SlitPoreGeometry.h"
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 
 namespace mpcd
@@ -38,5 +38,5 @@ void export_SlitPoreGeometry(pybind11::module& m);
 } // end namespace detail
 } // end namespace mpcd
 
-#endif // NVCC
+#endif // __HIPCC__
 #endif // MPCD_STREAMING_GEOMETRY_H_

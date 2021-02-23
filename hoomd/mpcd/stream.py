@@ -53,7 +53,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
-class _streaming_method(hoomd.meta._metadata):
+class _streaming_method():
     """ Base streaming method
 
     Args:
@@ -79,9 +79,6 @@ class _streaming_method(hoomd.meta._metadata):
             hoomd.context.current.device.cpp_msg.error('mpcd.stream: only one streaming method can be created.\n')
             raise RuntimeError('Multiple initialization of streaming method')
 
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','enabled']
-
         self.period = period
         self.enabled = True
         self.force = None
@@ -100,7 +97,7 @@ class _streaming_method(hoomd.meta._metadata):
 
         Enabling the streaming method adds it to the current MPCD system definition.
         Only one streaming method can be attached to the system at any time.
-        If another method is already set, :py:meth:`disable()` must be called
+        If another method is already set, ``disable`` must be called
         first before switching. Streaming will occur when the timestep is the next
         multiple of *period*.
 
@@ -217,7 +214,6 @@ class _streaming_method(hoomd.meta._metadata):
         else:
             hoomd.context.current.device.cpp_msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
-            return None
 
 class bulk(_streaming_method):
     """ Bulk fluid streaming geometry.
@@ -295,7 +291,6 @@ class slit(_streaming_method):
 
         _streaming_method.__init__(self, period)
 
-        self.metadata_fields += ['H','V','boundary']
         self.H = H
         self.V = V
         self.boundary = boundary
@@ -444,7 +439,6 @@ class slit_pore(_streaming_method):
     def __init__(self, H, L, boundary="no_slip", period=1):
         _streaming_method.__init__(self, period)
 
-        self.metadata_fields += ['H','L','boundary']
         self.H = H
         self.L = L
         self.boundary = boundary

@@ -8,8 +8,8 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
-
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
 
@@ -25,8 +25,9 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<DomainDecomposition> decomposition)
-    : LoadBalancer(sysdef, decomposition)
+                                 std::shared_ptr<DomainDecomposition> decomposition,
+                                 std::shared_ptr<Trigger> trigger)
+    : LoadBalancer(sysdef, decomposition, trigger)
     {
     // allocate data connected to the maximum number of particles
     m_pdata->getMaxParticleNumberChangeSignal().connect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
@@ -83,7 +84,7 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         // copy just the subset of particles that are off rank on the device into host memory
         // this can save substantially on the memcpy if there are many particles on a rank
         off_rank.resize(n_off_rank);
-        cudaMemcpy(&off_rank[0], d_off_ranks.data, sizeof(unsigned int)*n_off_rank, cudaMemcpyDeviceToHost);
+        hipMemcpy(&off_rank[0], d_off_ranks.data, sizeof(unsigned int)*n_off_rank, hipMemcpyDeviceToHost);
         }
 
     // perform the counting on the host
@@ -96,9 +97,11 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
 void export_LoadBalancerGPU(py::module& m)
     {
     py::class_<LoadBalancerGPU, LoadBalancer, std::shared_ptr<LoadBalancerGPU> >(m,"LoadBalancerGPU")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+         std::shared_ptr<DomainDecomposition>,
+         std::shared_ptr<Trigger> >())
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

@@ -21,6 +21,7 @@ set(_hpmc_sources   module.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
+                    UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
                     )
 
@@ -34,12 +35,14 @@ set(_hpmc_headers
     ExternalFieldLattice.h
     ExternalFieldWall.h
     GSDHPMCSchema.h
+    GPUHelpers.cuh
     GPUTree.h
     HPMCCounters.h
     HPMCMiscFunctions.h
     HPMCPrecisionSetup.h
     IntegratorHPMC.h
     IntegratorHPMCMonoGPU.cuh
+    IntegratorHPMCMonoGPUJIT.inc
     IntegratorHPMCMonoGPU.h
     IntegratorHPMCMono.h
     MAP3D.h
@@ -53,7 +56,6 @@ set(_hpmc_headers
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
     ShapePolyhedron.h
-    ShapeProxy.h
     ShapeSimplePolygon.h
     ShapeSphere.h
     ShapeSpheropolygon.h
@@ -64,15 +66,11 @@ set(_hpmc_headers
     UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
+    UpdaterQuickCompress.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
     )
-
-# if (ENABLE_CUDA)
-# list(APPEND _hpmc_sources
-#                            )
-# endif()
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_sphere.cu
@@ -90,9 +88,9 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_convex_spheropolyhedron.cu
                      )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 set(_cuda_sources ${_hpmc_cu_sources})
-endif (ENABLE_CUDA)
+endif (ENABLE_HIP)
 
 pybind11_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
@@ -101,7 +99,7 @@ add_library(HOOMD::_hpmc ALIAS _hpmc)
 if (APPLE)
 set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_hpmc PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies
@@ -116,20 +114,8 @@ install(TARGETS _hpmc EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/hpmc/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files   analyze.py
             compute.py
-            data.py
             __init__.py
             integrate.py
             update.py
@@ -141,22 +127,21 @@ install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_hpmc ALL DEPENDS ${files})
+copy_files_to_build("${files}" "hpmc" "*.py")
 
 # install headers in installation target
 install(FILES ${_hpmc_headers}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/hpmc
        )
 
+add_subdirectory(pytest)
+add_subdirectory(tune)
+
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

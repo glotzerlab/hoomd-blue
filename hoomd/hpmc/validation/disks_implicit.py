@@ -22,7 +22,6 @@ params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 context.current.device.cpp_msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
-import random
 p = int(option.get_user()[0])
 (seed, phi_c, eta_p_r) = params[p % len(params)]
 

@@ -147,7 +147,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list to use
         radius (float): Rounding radius :math:`r` to apply to the shape vertices
 
-    The effect is as if a :py:class:`hoomd.md.pair.lj` interaction
+    The effect is as if a ``hoomd.md.pair.lj`` interaction
     with :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r`
     were applied between the contact points of each pair of particles.
 
@@ -262,7 +262,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     The SWCA potential enables simulation of particles with
     heterogeneous rounding radii. The effect is as if a
-    :py:class:`hoomd.md.pair.slj` interaction with
+    :py:class:`hoomd.md.pair.SLJ` interaction with
     :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r` were
     applied between the contact points of each pair of particles.
 
@@ -299,7 +299,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.dimensions = hoomd.context.current.system_definition.getNDimensions();
 
         # Error out in MPI simulations
-        if (hoomd._hoomd.is_MPI_available()):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
                 raise RuntimeError("Error setting up pair potential.");

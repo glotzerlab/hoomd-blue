@@ -4,11 +4,12 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/Sorter.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/SorterGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -73,7 +74,7 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // add an embedded group
     std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
     mpcd_sys->getCellList()->setEmbeddedGroup(group);
 
@@ -338,7 +339,7 @@ UP_TEST( mpcd_sorter_virtual_test )
     {
     sorter_virtual_test<mpcd::Sorter>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( mpcd_sorter_test_gpu )
     {
     sorter_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -347,4 +348,4 @@ UP_TEST( mpcd_sorter_virtual_test_gpu )
     {
     sorter_virtual_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

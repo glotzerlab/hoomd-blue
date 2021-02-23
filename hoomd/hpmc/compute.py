@@ -9,10 +9,10 @@ from __future__ import print_function
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.compute import _compute
+from hoomd.operation import Compute
 import hoomd
 
-class free_volume(_compute):
+class free_volume(Compute):
     R""" Compute the free volume available to a test particle by stochastic integration.
 
     Args:
@@ -28,7 +28,7 @@ class free_volume(_compute):
     to use for the integration.
 
     Once initialized, the compute provides a log quantity
-    called **hpmc_free_volume**, that can be logged via :py:class:`hoomd.analyze.log`.
+    called **hpmc_free_volume**, that can be logged via ``hoomd.analyze.log``.
     If a suffix is specified, the log quantities name will be
     **hpmc_free_volume_suffix**.
 
@@ -110,7 +110,7 @@ class free_volume(_compute):
                 hoomd.context.current.device.cpp_msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");
 
-        if suffix is not '':
+        if suffix != '':
             suffix = '_' + suffix
 
         self.cpp_compute = cls(hoomd.context.current.system_definition,

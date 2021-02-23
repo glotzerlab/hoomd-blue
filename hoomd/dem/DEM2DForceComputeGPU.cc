@@ -12,10 +12,10 @@
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "DEM2DForceComputeGPU.h"
-#include "cuda_runtime.h"
+#include "hip/hip_runtime.h"
 
 #include <stdexcept>
 
@@ -50,7 +50,9 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
         throw std::runtime_error("Error initializing DEM2DForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_2d", this->m_exec_conf));
+    unsigned warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned max_threads = this->m_exec_conf->dev_prop.maxThreadsPerBlock;
+    m_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "dem_2d", this->m_exec_conf));
     }
 
 /*! Destructor. */
@@ -145,15 +147,15 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::computeForces(unsigned
         d_num_shape_vertices.data,
         d_diam.data,
         d_velocity.data,
-        numVertices(),
+        (unsigned int)numVertices(),
         box,
         d_n_neigh.data,
         d_nlist.data,
         d_head_list.data,
         this->m_evaluator,
         this->m_r_cut * this->m_r_cut,
-        this->m_shapes.size(),
-        particlesPerBlock, this->maxVertices());
+        (unsigned int)this->m_shapes.size(),
+        (unsigned int)particlesPerBlock, (unsigned int)this->maxVertices());
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
@@ -187,7 +189,7 @@ void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::createGeometry()
 
     for(size_t i(0), k(0); i < this->m_shapes.size(); ++i)
         {
-        h_num_shape_vertices.data[i] = this->m_shapes[i].size();
+        h_num_shape_vertices.data[i] = (unsigned int)this->m_shapes[i].size();
         for(size_t j(0); j < this->m_shapes[i].size(); ++j, ++k)
             {
             h_vertices.data[k].x = this->m_shapes[i][j].x;

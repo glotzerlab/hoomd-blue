@@ -10,7 +10,6 @@
 #include <math.h>
 #include "hoomd/ClockSource.h"
 #include "hoomd/Profiler.h"
-#include "hoomd/Variant.h"
 
 
 #include "upp11_config.h"
@@ -145,99 +144,4 @@ UP_TEST(Profiler_test)
     prof2.pop(100, 100);
     std::cout << prof2;
 
-    }
-
-//! perform some simple checks on the variant types
-UP_TEST(Variant_test)
-    {
-    Variant v;
-    UP_ASSERT_EQUAL(v.getValue(0), 0.0);
-    UP_ASSERT_EQUAL(v.getValue(100000), 0.0);
-    v.setOffset(1000);
-    UP_ASSERT_EQUAL(v.getValue(0), 0.0);
-    UP_ASSERT_EQUAL(v.getValue(100000), 0.0);
-    }
-
-//! perform some simple checks on the variant types
-UP_TEST(VariantConst_test)
-    {
-    double val = 10.5;
-    VariantConst v(val);
-    UP_ASSERT_EQUAL(v.getValue(0), val);
-    UP_ASSERT_EQUAL(v.getValue(100000), val);
-    v.setOffset(1000);
-    UP_ASSERT_EQUAL(v.getValue(0), val);
-    UP_ASSERT_EQUAL(v.getValue(100000), val);
-    }
-
-//! perform some simple checks on the variant types
-UP_TEST(VariantLinear_test1)
-    {
-    double val = 10.5;
-    VariantLinear v;
-    v.setPoint(500, val);
-    UP_ASSERT_EQUAL(v.getValue(0), val);
-    UP_ASSERT_EQUAL(v.getValue(500), val);
-    UP_ASSERT_EQUAL(v.getValue(100000), val);
-    v.setOffset(1000);
-    UP_ASSERT_EQUAL(v.getValue(0), val);
-    UP_ASSERT_EQUAL(v.getValue(500), val);
-    UP_ASSERT_EQUAL(v.getValue(100000), val);
-    }
-
-//! perform some simple checks on the variant types
-UP_TEST(VariantLinear_test2)
-    {
-    VariantLinear v;
-    v.setPoint(500, 10.0);
-    v.setPoint(1000, 20.0);
-
-    CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    CHECK_CLOSE(v.getValue(1500), 20.0, tol);
-    v.setOffset(1000);
-    CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    CHECK_CLOSE(v.getValue(2500), 20.0, tol);
-    }
-
-//! perform some simple checks on the variant types
-UP_TEST(VariantLinear_test3)
-    {
-    VariantLinear v;
-    v.setPoint(500, 10.0);
-    v.setPoint(1000, 20.0);
-    v.setPoint(2000, 50.0);
-
-    CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    CHECK_CLOSE(v.getValue(1500), 35.0, tol);
-    CHECK_CLOSE(v.getValue(2000), 50.0, tol);
-    CHECK_CLOSE(v.getValue(2500), 50.0, tol);
-    v.setOffset(1000);
-    CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    CHECK_CLOSE(v.getValue(3500), 50.0, tol);
-
-    // mix up the order to make sure it works no matter what
-    CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     }

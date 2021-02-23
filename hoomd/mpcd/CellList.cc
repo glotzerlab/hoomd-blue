@@ -146,9 +146,9 @@ void mpcd::CellList::updateGlobalBox()
 
     // box must be evenly divisible by cell size
     const Scalar3 L = global_box.getL();
-    m_global_cell_dim = make_uint3(round(L.x/m_cell_size),
-                                   round(L.y/m_cell_size),
-                                   round(L.z/m_cell_size));
+    m_global_cell_dim = make_uint3((unsigned int)round(L.x/m_cell_size),
+                                   (unsigned int)round(L.y/m_cell_size),
+                                   (unsigned int)round(L.z/m_cell_size));
     if (m_sysdef->getNDimensions() == 2)
         {
         if (m_global_cell_dim.z > 1)
@@ -202,21 +202,21 @@ void mpcd::CellList::computeDimensions()
 
         // setup lo bin
         const Scalar3 delta_lo = box.getLo() - global_lo;
-        int3 my_lo_bin = make_int3(std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
-        int3 lo_neigh_bin = make_int3(std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
+        int3 my_lo_bin = make_int3((int)std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
+        int3 lo_neigh_bin = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
 
         // setup hi bin
         const Scalar3 delta_hi = box.getHi() - global_lo;
-        int3 my_hi_bin = make_int3(std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
-        int3 hi_neigh_bin = make_int3(std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
+        int3 my_hi_bin = make_int3((int)std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
+        int3 hi_neigh_bin = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
 
         // initially size the grid assuming one rank in each direction, and then resize based on communication
         m_cell_dim = m_global_cell_dim;
@@ -555,9 +555,9 @@ void mpcd::CellList::buildCellList()
 
         // bin particle assuming orthorhombic box (already validated)
         const Scalar3 delta = (pos_i - m_grid_shift) - global_lo;
-        int3 global_bin = make_int3(std::floor(delta.x / m_cell_size),
-                                    std::floor(delta.y / m_cell_size),
-                                    std::floor(delta.z / m_cell_size));
+        int3 global_bin = make_int3((int)std::floor(delta.x / m_cell_size),
+                                    (int)std::floor(delta.y / m_cell_size),
+                                    (int)std::floor(delta.z / m_cell_size));
 
         // wrap cell back through the boundaries (grid shifting may send +/- 1 outside of range)
         // this is done using periodic from the "local" box, since this will be periodic
@@ -729,13 +729,13 @@ bool mpcd::CellList::checkConditions()
         {
         unsigned int n = conditions.y - 1;
         if (n < m_mpcd_pdata->getN())
-            m_exec_conf->msg->error() << "MPCD particle " << n << " has position NaN" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "MPCD particle " << n << " has position NaN" << std::endl;
         else if (n < m_mpcd_pdata->getNVirtual())
-            m_exec_conf->msg->error() << "MPCD virtual particle " << n << " has position NaN" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "MPCD virtual particle " << n << " has position NaN" << std::endl;
         else
             {
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            m_exec_conf->msg->error() << "Embedded particle " << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())] << " has position NaN" << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "Embedded particle " << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())] << " has position NaN" << std::endl;
             }
         throw std::runtime_error("Error computing cell list");
         }
@@ -748,31 +748,31 @@ bool mpcd::CellList::checkConditions()
             ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
             pos_empty_i = h_pos.data[n];
             if (n < m_mpcd_pdata->getN())
-                m_exec_conf->msg->error() << "MPCD particle is no longer in the simulation box"<<std::endl;
+                m_exec_conf->msg->errorAllRanks() << "MPCD particle is no longer in the simulation box"<<std::endl;
             else
-                m_exec_conf->msg->error() << "MPCD virtual particle is no longer in the simulation box"<<std::endl;
+                m_exec_conf->msg->errorAllRanks() << "MPCD virtual particle is no longer in the simulation box"<<std::endl;
             }
         else
             {
             ArrayHandle<Scalar4> h_pos_embed(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
             pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - (m_mpcd_pdata->getN()+m_mpcd_pdata->getNVirtual())]];
-            m_exec_conf->msg->error() << "Embedded particle is no longer in the simulation box"<<std::endl;
+            m_exec_conf->msg->errorAllRanks() << "Embedded particle is no longer in the simulation box"<<std::endl;
             }
 
         Scalar3 pos = make_scalar3(pos_empty_i.x, pos_empty_i.y, pos_empty_i.z);
-        m_exec_conf->msg->error() << "Cartesian coordinates: "<<std::endl;
-        m_exec_conf->msg->error() << "x: "<<pos.x<<" y: "<<pos.y<<" z: "<<pos.z<<std::endl;
-        m_exec_conf->msg->error() << "Grid shift: " << std::endl;
-        m_exec_conf->msg->error() << "x: "<<m_grid_shift.x<<" y: "<<m_grid_shift.y<<" z: "<<m_grid_shift.z<<std::endl;
+        m_exec_conf->msg->errorAllRanks() << "Cartesian coordinates: "<<std::endl
+                                          << "x: "<<pos.x<<" y: "<<pos.y<<" z: "<<pos.z<<std::endl
+                                          << "Grid shift: " << std::endl
+                                          << "x: "<<m_grid_shift.x<<" y: "<<m_grid_shift.y<<" z: "<<m_grid_shift.z<<std::endl;
 
         const BoxDim& cover_box = getCoverageBox();
         Scalar3 lo = cover_box.getLo();
         Scalar3 hi = cover_box.getHi();
         uchar3 periodic = cover_box.getPeriodic();
-        m_exec_conf->msg->error() << "Covered box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
-        m_exec_conf->msg->error() << "            hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
-        m_exec_conf->msg->error() << "      periodic: (" << ((periodic.x) ? "1" : "0") << " " << ((periodic.y) ? "1" : "0") << " " << ((periodic.z) ? "1" : "0") << ")" << std::endl;
+        m_exec_conf->msg->errorAllRanks() << "Covered box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl
+                                          << "            hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl
+                                          << "      periodic: (" << ((periodic.x) ? "1" : "0") << " " << ((periodic.y) ? "1" : "0") << " " << ((periodic.z) ? "1" : "0") << ")" << std::endl;
         throw std::runtime_error("Error computing cell list");
         }
 

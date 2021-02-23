@@ -12,7 +12,7 @@ namespace hpmc
 namespace detail
 {
 //! HPMC kernels for ShapeSimplePolygon
-template cudaError_t gpu_hpmc_free_volume<ShapeSimplePolygon>(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeSimplePolygon>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeSimplePolygon::param_type *d_params);
 }
 

@@ -15,7 +15,7 @@
 
 #include "HPMCCounters.h"   // do we need this to keep track of the statistics?
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 

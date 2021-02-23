@@ -13,7 +13,7 @@ namespace hpmc
 namespace detail
 {
 //! HPMC kernels for ShapeUnion<ShapeSpheropolyhedron>
-template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSpheropolyhedron> >(const hpmc_free_volume_args_t &args,
                                                   const typename ShapeUnion<ShapeSpheropolyhedron> ::param_type *d_params);
 }
 

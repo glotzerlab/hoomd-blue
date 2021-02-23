@@ -13,7 +13,7 @@ namespace hpmc
 namespace detail
 {
 //! HPMC kernels for ShapeUnion<ShapeFacetedEllipsoid>
-template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeUnion<ShapeFacetedEllipsoid> >(const hpmc_free_volume_args_t &args,
                                                   const typename ShapeUnion<ShapeFacetedEllipsoid> ::param_type *d_params);
 }
 

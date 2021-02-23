@@ -47,7 +47,7 @@ void mpcd::SlitGeometryFillerGPU::drawParticles(unsigned int timestep)
                                    m_N_hi,
                                    m_first_tag,
                                    first_idx,
-                                   m_T->getValue(timestep),
+                                   (*m_T)(timestep),
                                    timestep,
                                    m_seed,
                                    m_tuner->getParam());

@@ -14,6 +14,12 @@ the force field does not cause the system to net accelerate (i.e., it must maint
 required to maintain temperature control in the driven system (see
 :py:mod:`.mpcd.collide`).
 
+.. note::
+
+    The external force **must** be attached to a streaming method
+    (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
+    On its own, the force object will not affect the system.
+
 """
 
 import hoomd
@@ -21,7 +27,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
-class _force(hoomd.meta._metadata):
+class _force():
     r""" Base external force field.
 
     This base class does some basic initialization tests, and then constructs the
@@ -41,9 +47,7 @@ class _force(hoomd.meta._metadata):
             hoomd.context.current.device.cpp_msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
             raise RuntimeError('MPCD system not initialized')
 
-        hoomd.meta._metadata.__init__(self)
         self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_exec_conf)
-        self.metadata_fields = []
 
 class block(_force):
     r""" Block force.
@@ -85,6 +89,12 @@ class block(_force):
         # default blocks to full box
         force.block(F=0.5)
 
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
+        On its own, the force object will not affect the system.
+
     .. versionadded:: 2.6
 
     """
@@ -111,7 +121,6 @@ class block(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','H','w']
         self._F = F
         self._H = H
         self._w = w
@@ -154,6 +163,12 @@ class constant(_force):
         g = np.array([0.,0.,-1.])
         force.constant(g)
 
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
+        On its own, the force object will not affect the system.
+
     .. versionadded:: 2.6
 
     """
@@ -169,7 +184,6 @@ class constant(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F']
         self._F = F
 
         # initialize c++
@@ -209,6 +223,12 @@ class sine(_force):
     problem, as it is too difficult to validate all values of *k* for all
     streaming geometries.
 
+    .. note::
+
+        The external force **must** be attached to a streaming method
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
+        On its own, the force object will not affect the system.
+
     .. versionadded:: 2.6
 
     """
@@ -216,7 +236,6 @@ class sine(_force):
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','k']
         self._F = F
         self._k = k
 

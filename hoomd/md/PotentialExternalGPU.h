@@ -13,7 +13,7 @@
     \brief Declares a class for computing an external potential field on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -60,7 +60,8 @@ PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefi
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
-    this->m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    this->m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
     }
 
 /*! Computes the specified constraint forces

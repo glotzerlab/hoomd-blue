@@ -12,7 +12,7 @@ namespace hpmc
 namespace detail
 {
 //! HPMC kernels for ShapeSpheropolyhedron
-template cudaError_t gpu_hpmc_free_volume<ShapeSpheropolyhedron >(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeSpheropolyhedron >(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeSpheropolyhedron ::param_type *d_params);
 }
 

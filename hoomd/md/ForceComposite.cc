@@ -146,7 +146,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             body_updated = true;
 
-            h_body_len.data[body_typeid] = type.size();
+            h_body_len.data[body_typeid] = (unsigned int)type.size();
             body_len_changed = true;
             }
         else
@@ -177,7 +177,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_pos.resize(m_pdata->getNTypes(), type.size());
             m_body_orientation.resize(m_pdata->getNTypes(), type.size());
 
-            m_body_idx = Index2D(m_body_types.getPitch(), m_body_types.getHeight());
+            m_body_idx = Index2D((unsigned int)m_body_types.getPitch(),
+                                 (unsigned int)m_body_types.getHeight());
 
             // set memory hints
             lazyInitMem();
@@ -269,10 +270,10 @@ void ForceComposite::slotNumTypesChange()
     //! initial allocation if necessary
     lazyInitMem();
 
-    unsigned int old_ntypes = m_body_len.getNumElements();
+    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
-    unsigned int height = m_body_pos.getHeight();
+    size_t height = m_body_pos.getHeight();
 
     // resize per-type arrays (2D)
     m_body_types.resize(new_ntypes, height);
@@ -282,7 +283,7 @@ void ForceComposite::slotNumTypesChange()
     m_body_charge.resize(new_ntypes);
     m_body_diameter.resize(new_ntypes);
 
-    m_body_idx = Index2D(m_body_pos.getPitch(), height);
+    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
 
     m_body_len.resize(new_ntypes);
 
@@ -738,7 +739,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
-    if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])
+    if (pdata_flags[pdata_flag::pressure_tensor])
         {
         flags[comm_flag::net_virial] = 1;
         }
@@ -793,11 +794,11 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
-    unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
+    size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
-    if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
+    if (flags[pdata_flag::pressure_tensor])
         {
         compute_virial = true;
         }
@@ -854,8 +855,8 @@ void ForceComposite::computeForces(unsigned int timestep)
                 // if the central particle is local, the molecule should be complete
                 if (len != h_body_len.data[type] + 1)
                     {
-                    m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                        << std::endl << std::endl;
+                    m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
+                                                      << central_tag << " incomplete" << std::endl << std::endl;
                     throw std::runtime_error("Error computing composite particle forces.\n");
                     }
 
@@ -969,8 +970,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
 
         if (central_idx == NOT_LOCAL)
             {
-            m_exec_conf->msg->error() << "constrain.rigid(): Missing central particle tag " << central_tag << "!"
-                << std::endl << std::endl;
+            m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Missing central particle tag " << central_tag
+                                              << "!" << std::endl << std::endl;
             throw std::runtime_error("Error updating composite particles.\n");
             }
 
@@ -994,8 +995,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
             if (iptl < m_pdata->getN())
                 {
                 // if the molecule is incomplete and has local members, this is an error
-                m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                    << std::endl << std::endl;
+                m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
+                                                  << central_tag << " incomplete" << std::endl << std::endl;
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
 

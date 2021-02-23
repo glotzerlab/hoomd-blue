@@ -17,7 +17,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -26,7 +26,7 @@
 #include <iostream>
 #endif
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <vector>
 #endif
 
@@ -54,7 +54,7 @@ namespace hpmc
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts param_type;
+    typedef detail::PolyhedronVertices param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -90,32 +90,6 @@ struct ShapeSpheropolyhedron
         // not implemented
         return OverlapReal(0.0);
         }
-
-    #ifndef NVCC
-    std::string getShapeSpec() const
-        {
-        std::ostringstream shapedef;
-        unsigned int nverts = verts.N;
-        if (nverts == 1)
-            {
-            shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
-            }
-        else if (nverts == 2)
-            {
-            throw std::runtime_error("Shape definition not supported for 2-vertex spheropolyhedra");
-            }
-        else
-            {
-            shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-            for (unsigned int i = 0; i < nverts-1; i++)
-                {
-                shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
-                }
-            shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
-            }
-        return shapedef.str();
-        }
-    #endif
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
@@ -163,7 +137,7 @@ struct ShapeSpheropolyhedron
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
-    const detail::poly3d_verts& verts;     //!< Vertices
+    const detail::PolyhedronVertices& verts;     //!< Vertices
     };
 
 //! Convex polyhedron overlap test
@@ -189,11 +163,11 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/2.0,
+                          DaDb/OverlapReal(2.0),
                           err);
 
     /*
@@ -225,16 +199,44 @@ DEVICE inline bool test_overlap_intersection(const ShapeSpheropolyhedron& a,
     Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
     {
     return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
-        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+sweep_radius_a),
-        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+sweep_radius_b),
-        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+sweep_radius_c),
+        detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+        detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
+        detail::SupportFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+OverlapReal(sweep_radius_c)),
+        detail::ProjectionFuncConvexPolyhedron(a.verts,a.verts.sweep_radius+OverlapReal(sweep_radius_a)),
+        detail::ProjectionFuncConvexPolyhedron(b.verts,b.verts.sweep_radius+OverlapReal(sweep_radius_b)),
+        detail::ProjectionFuncConvexPolyhedron(c.verts,c.verts.sweep_radius+OverlapReal(sweep_radius_c)),
         vec3<OverlapReal>(ab_t),
         vec3<OverlapReal>(ac_t),
         err);
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = spoly.verts;
+    unsigned int nverts = verts.N;
+    if (nverts == 1)
+        {
+        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+        }
+    else if (nverts == 2)
+        {
+        throw std::runtime_error("Shape definition not supported for 2-vertex spheropolyhedra");
+        }
+    else
+        {
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+        for (unsigned int i = 0; i < nverts-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
+            }
+        shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
+        }
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

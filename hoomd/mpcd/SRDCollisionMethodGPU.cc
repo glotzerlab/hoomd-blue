@@ -42,7 +42,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
                                     m_seed,
-                                    m_T->getValue(timestep),
+                                    (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();

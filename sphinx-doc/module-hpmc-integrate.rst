@@ -3,29 +3,56 @@ hpmc.integrate
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.hpmc.integrate
 
 .. autosummary::
     :nosignatures:
 
-    hpmc.integrate.convex_polygon
-    hpmc.integrate.convex_polyhedron
-    hpmc.integrate.convex_spheropolygon
-    hpmc.integrate.convex_spheropolyhedron
-    hpmc.integrate.convex_spheropolyhedron_union
-    hpmc.integrate.ellipsoid
-    hpmc.integrate.faceted_sphere
-    hpmc.integrate.interaction_matrix
-    hpmc.integrate.mode_hpmc
-    hpmc.integrate.polyhedron
-    hpmc.integrate.simple_polygon
-    hpmc.integrate.sphere
-    hpmc.integrate.sphere_union
-    hpmc.integrate.sphinx
+    HPMCIntegrator
+    ConvexPolygon
+    ConvexPolyhedron
+    ConvexSpheropolygon
+    ConvexSpheropolyhedron
+    ConvexSpheropolyhedronUnion
+    Ellipsoid
+    FacetedEllipsoid
+    FacetedEllipsoidUnion
+    Polyhedron
+    SimplePolygon
+    Sphere
+    SphereUnion
+    Sphinx
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.integrate
     :synopsis: HPMC integrators.
-    :members:
-    :no-inherited-members:
+
+    .. autoclass:: HPMCIntegrator
+        :inherited-members:
+    .. autoclass:: ConvexPolygon
+        :show-inheritance:
+    .. autoclass:: ConvexPolyhedron
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolygon
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolyhedron
+        :show-inheritance:
+    .. autoclass:: ConvexSpheropolyhedronUnion
+        :show-inheritance:
+    .. autoclass:: Ellipsoid
+        :show-inheritance:
+    .. autoclass:: FacetedEllipsoid
+        :show-inheritance:
+    .. autoclass:: FacetedEllipsoidUnion
+        :show-inheritance:
+    .. autoclass:: Polyhedron
+        :show-inheritance:
+    .. autoclass:: SimplePolygon
+        :show-inheritance:
+    .. autoclass:: Sphere
+        :show-inheritance:
+    .. autoclass:: SphereUnion
+        :show-inheritance:
+    .. autoclass:: Sphinx
+        :show-inheritance:

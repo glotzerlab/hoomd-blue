@@ -16,7 +16,7 @@
   \brief Declares the DEM3DForceCompute class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

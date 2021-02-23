@@ -9,7 +9,7 @@ using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "MuellerPlatheFlowGPU.cuh"
 
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
@@ -30,7 +30,8 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
         throw std::runtime_error("Error initializing MuellerPlatheFlowGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "muellerplatheflow", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "muellerplatheflow", this->m_exec_conf));
     }
 
 MuellerPlatheFlowGPU::~MuellerPlatheFlowGPU(void)
@@ -98,4 +99,4 @@ void export_MuellerPlatheFlowGPU(py::module&m)
              const unsigned int, const unsigned int, const unsigned int >())
         ;
     }
-#endif //ENABLE_CUDA
+#endif //ENABLE_HIP

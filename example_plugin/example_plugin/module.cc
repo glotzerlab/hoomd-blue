@@ -12,7 +12,7 @@ PYBIND11_MODULE(_example_plugin, m)
     {
     export_ExampleUpdater(m);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     export_ExampleUpdaterGPU(m);
     #endif
     }

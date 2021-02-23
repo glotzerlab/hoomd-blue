@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -10,9 +11,9 @@
 #include "hoomd/TextureTools.h"
 #include "hoomd/GPUPartition.cuh"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 
 /*! \file AnisoPotentialPairGPU.cuh
     \brief Defines templated GPU kernel code for calculating the anisotropic ptl pair forces and torques
@@ -22,7 +23,12 @@
 #define __ANISO_POTENTIAL_PAIR_GPU_CUH__
 
 //! Maximum number of threads (width of a warp)
-const unsigned int gpu_aniso_pair_force_max_tpp = 32;
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
+const int gpu_aniso_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_aniso_pair_force_max_tpp = 64;
+#endif
 
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
@@ -31,13 +37,14 @@ struct a_pair_args_t
     a_pair_args_t(Scalar4 *_d_force,
               Scalar4 *_d_torque,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              size_t _virial_pitch,
               const unsigned int _N,
               const unsigned int _n_max,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
               const Scalar *_d_charge,
               const Scalar4 *_d_orientation,
+              const unsigned int *_d_tag,
               const BoxDim& _box,
               const unsigned int *_d_n_neigh,
               const unsigned int *_d_nlist,
@@ -49,7 +56,7 @@ struct a_pair_args_t
               const unsigned int _compute_virial,
               const unsigned int _threads_per_particle,
               const GPUPartition& _gpu_partition,
-              const cudaDeviceProp& _devprop,
+              const hipDeviceProp_t& _devprop,
               bool _update_shape_param
                   )
                 : d_force(_d_force),
@@ -62,6 +69,7 @@ struct a_pair_args_t
                   d_diameter(_d_diameter),
                   d_charge(_d_charge),
                   d_orientation(_d_orientation),
+                  d_tag(_d_tag),
                   box(_box),
                   d_n_neigh(_d_n_neigh),
                   d_nlist(_d_nlist),
@@ -81,13 +89,14 @@ struct a_pair_args_t
     Scalar4 *d_force;                //!< Force to write out
     Scalar4 *d_torque;               //!< Torque to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions
     const Scalar *d_diameter;       //!< particle diameters
     const Scalar *d_charge;         //!< particle charges
-    const Scalar4 *d_orientation;    //!< particle orientation to compute forces over
+    const Scalar4 *d_orientation;   //!< particle orientation to compute forces over
+    const unsigned int *d_tag;      //!< particle tags to compute forces over
     const BoxDim& box;              //!< Simulation box in GPU format
     const unsigned int *d_n_neigh;  //!< Device array listing the number of neighbors on each particle
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
@@ -99,11 +108,11 @@ struct a_pair_args_t
     const unsigned int compute_virial;  //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads to launch per particle
     const GPUPartition& gpu_partition;      //!< The load balancing partition of particles between GPUs
-    const cudaDeviceProp& devprop;    //!< CUDA device properties
+    const hipDeviceProp_t& devprop;    //!< CUDA device properties
     bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -118,6 +127,7 @@ struct a_pair_args_t
     \param d_diameter particle diameters
     \param d_charge particle charges
     \param d_orientation Quaternion data on the GPU to calculate forces on
+    \param d_tag Tag data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -147,17 +157,19 @@ template< class evaluator, unsigned int shift_mode, unsigned int compute_virial,
 __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                                                      Scalar4 *d_torque,
                                                      Scalar *d_virial,
-                                                     const unsigned int virial_pitch,
+                                                     const size_t virial_pitch,
                                                      const unsigned int N,
                                                      const Scalar4 *d_pos,
                                                      const Scalar *d_diameter,
                                                      const Scalar *d_charge,
                                                      const Scalar4 *d_orientation,
+                                                     const unsigned int *d_tag,
                                                      const BoxDim box,
                                                      const unsigned int *d_n_neigh,
                                                      const unsigned int *d_nlist,
                                                      const unsigned int *d_head_list,
                                                      const typename evaluator::param_type *d_params,
+                                                     const typename evaluator::shape_type *d_shape_params,
                                                      const Scalar *d_rcutsq,
                                                      const unsigned int ntypes,
                                                      const unsigned int offset,
@@ -167,10 +179,11 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
+    typename evaluator::shape_type *s_shape_params = (typename evaluator::shape_type *)(&s_rcutsq[num_typ_parameters]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -189,14 +202,26 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
             ((int *)s_params)[cur_offset + threadIdx.x] = ((int *)d_params)[cur_offset + threadIdx.x];
             }
         }
+
+    unsigned int shape_param_size = sizeof(typename evaluator::shape_type)*ntypes / sizeof(int);
+    for (unsigned int cur_offset = 0; cur_offset < shape_param_size; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < shape_param_size)
+            {
+            ((int *)s_shape_params)[cur_offset + threadIdx.x] = ((int *)d_shape_params)[cur_offset + threadIdx.x];
+            }
+        }
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_rcutsq + num_typ_parameters);
+    char *s_extra = (char *)(s_shape_params + ntypes);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_pair = 0; cur_pair < typpair_idx.getNumElements(); ++cur_pair)
         s_params[cur_pair].load_shared(s_extra, available_bytes);
+
+    for (unsigned int cur_type = 0; cur_type < ntypes; ++cur_type)
+        s_shape_params[cur_type].load_shared(s_extra, available_bytes);
 
     // start by identifying which particle we are to handle
     unsigned int idx;
@@ -302,6 +327,11 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
                     eval.setDiameter(di, dj);
                 if (evaluator::needsCharge())
                     eval.setCharge(qi, qj);
+                if (evaluator::needsShape())
+                    eval.setShape(&(s_shape_params[__scalar_as_int(postypei.w)]),
+                                  &(s_shape_params[__scalar_as_int(postypej.w)]));
+                if (evaluator::needsTags())
+                    eval.setTags(__ldg(d_tag + idx), __ldg(d_tag + cur_j));
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
@@ -392,11 +422,13 @@ struct AnisoPairForceComputeKernel
      * \param pair_args Other arguments to pass onto the kernel
      * \param range Range of particle indices this GPU operates on
      * \param params Parameters for the potential, stored per type pair
+     * \param shape_params Parameters for the potential, stored per type pair
      */
 
     static void launch(const a_pair_args_t& pair_args,
         std::pair<unsigned int, unsigned int> range,
-        const typename evaluator::param_type *params)
+        const typename evaluator::param_type *params,
+        const typename evaluator::shape_type *shape_params)
         {
         unsigned int N = range.second - range.first;
         unsigned int offset = range.first;
@@ -406,14 +438,16 @@ struct AnisoPairForceComputeKernel
             unsigned int block_size = pair_args.block_size;
 
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements();
+            unsigned int shared_bytes = (unsigned int)((2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements() +
+                                        sizeof(typename evaluator::shape_type) * pair_args.ntypes);
 
             static unsigned int max_block_size = UINT_MAX;
-            cudaFuncAttributes attr;
+            hipFuncAttributes attr;
             if (max_block_size == UINT_MAX)
                 {
-                cudaFuncGetAttributes(&attr, gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>);
+                hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(
+                    &gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>));
                 int max_threads = attr.maxThreadsPerBlock;
                 // number of threads has to be multiple of warp size
                 max_block_size = max_threads - max_threads % gpu_aniso_pair_force_max_tpp;
@@ -421,14 +455,14 @@ struct AnisoPairForceComputeKernel
 
             static unsigned int base_shared_bytes = UINT_MAX;
             bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
-            base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+            base_shared_bytes = (unsigned int)(shared_bytes + attr.sharedSizeBytes);
 
-            unsigned int max_extra_bytes = pair_args.devprop.sharedMemPerBlock - base_shared_bytes;
+            unsigned int max_extra_bytes = (unsigned int)(pair_args.devprop.sharedMemPerBlock - base_shared_bytes);
             static unsigned int extra_bytes = UINT_MAX;
             if (extra_bytes == UINT_MAX || pair_args.update_shape_param || shared_bytes_changed)
                 {
                 // required for memory coherency
-                cudaDeviceSynchronize();
+                hipDeviceSynchronize();
 
                 // determine dynamically requested shared memory
                 char *ptr = (char *)nullptr;
@@ -436,6 +470,10 @@ struct AnisoPairForceComputeKernel
                 for (unsigned int i = 0; i < typpair_idx.getNumElements(); ++i)
                     {
                     params[i].load_shared(ptr, available_bytes);
+                    }
+                for (unsigned int i = 0; i < pair_args.ntypes; ++i)
+                    {
+                    shape_params[i].load_shared(ptr, available_bytes);
                     }
                 extra_bytes = max_extra_bytes - available_bytes;
                 }
@@ -445,8 +483,7 @@ struct AnisoPairForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(N / (block_size/tpp) + 1, 1, 1);
 
-            gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>
-              <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
+            hipLaunchKernelGGL((gpu_compute_pair_aniso_forces_kernel<evaluator, shift_mode, compute_virial, tpp>), dim3(grid), dim3(block_size), shared_bytes, 0, pair_args.d_force,
                                                    pair_args.d_torque,
                                                    pair_args.d_virial,
                                                    pair_args.virial_pitch,
@@ -455,11 +492,13 @@ struct AnisoPairForceComputeKernel
                                                    pair_args.d_diameter,
                                                    pair_args.d_charge,
                                                    pair_args.d_orientation,
+                                                   pair_args.d_tag,
                                                    pair_args.box,
                                                    pair_args.d_n_neigh,
                                                    pair_args.d_nlist,
                                                    pair_args.d_head_list,
                                                    params,
+                                                   shape_params,
                                                    pair_args.d_rcutsq,
                                                    pair_args.ntypes,
                                                    offset,
@@ -467,7 +506,7 @@ struct AnisoPairForceComputeKernel
             }
         else
             {
-            AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp/2>::launch(pair_args, range, params);
+            AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, tpp/2>::launch(pair_args, range, params, shape_params);
             }
         }
     };
@@ -476,7 +515,7 @@ struct AnisoPairForceComputeKernel
 template<class evaluator, unsigned int shift_mode, unsigned int compute_virial>
 struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     {
-    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params)
+    static void launch(const a_pair_args_t& pair_args, std::pair<unsigned int, unsigned int> range, const typename evaluator::param_type *d_params, const typename evaluator::shape_type *shape_params)
         {
         // do nothing
         }
@@ -490,8 +529,9 @@ struct AnisoPairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     This is just a driver function for gpu_compute_pair_aniso_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
-                                          const typename evaluator::param_type *d_params)
+hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
+                                          const typename evaluator::param_type *d_params,
+                                          const typename evaluator::shape_type *d_shape_params)
     {
     assert(d_params);
     assert(pair_args.d_rcutsq);
@@ -509,16 +549,16 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 {
                 case 0:
                     {
-                    AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                    AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params, d_shape_params);
                     break;
                     }
                 case 1:
                     {
-                    AnisoPairForceComputeKernel<evaluator, 1, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                    AnisoPairForceComputeKernel<evaluator, 1, 1, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params, d_shape_params);
                     break;
                     }
                 default:
-                    return cudaErrorUnknown;
+                    return hipErrorUnknown;
                 }
             }
         else
@@ -527,20 +567,20 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                 {
                 case 0:
                     {
-                    AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                    AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params, d_shape_params);
                     break;
                     }
                 case 1:
                     {
-                    AnisoPairForceComputeKernel<evaluator, 1, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params);
+                    AnisoPairForceComputeKernel<evaluator, 1, 0, gpu_aniso_pair_force_max_tpp>::launch(pair_args, range, d_params, d_shape_params);
                     break;
                     }
                 default:
-                    return cudaErrorUnknown;
+                    return hipErrorUnknown;
                 }
             }
         }
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

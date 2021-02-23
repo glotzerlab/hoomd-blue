@@ -28,7 +28,7 @@ using namespace std;
     \post Memory is allocated, and forces are zeroed.
 */
 HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
+    : ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL), m_phi_0(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicDihedralForceCompute" << endl;
 
@@ -46,6 +46,7 @@ HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(std::shared_ptr<Syste
     m_K = new Scalar[m_dihedral_data->getNTypes()];
     m_sign = new Scalar[m_dihedral_data->getNTypes()];
     m_multi = new Scalar[m_dihedral_data->getNTypes()];
+    m_phi_0 = new Scalar[m_dihedral_data->getNTypes()];
 
     }
 
@@ -56,9 +57,11 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
     delete[] m_K;
     delete[] m_sign;
     delete[] m_multi;
+    delete[] m_phi_0;
     m_K = NULL;
     m_sign = NULL;
     m_multi = NULL;
+    m_phi_0 = NULL;
     }
 
 /*! \param type Type of the dihedral to set parameters for
@@ -68,7 +71,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 
     Sets parameters for the potential of a particular dihedral type
 */
-void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity)
+void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
@@ -78,14 +81,38 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         }
 
     m_K[type] = K;
-    m_sign[type] = (Scalar)sign;
-    m_multi[type] = (Scalar)multiplicity;
+    m_sign[type] = sign;
+    m_multi[type] = multiplicity;
+    m_phi_0[type] = phi_0;
 
     // check for some silly errors a user could make
     if (K <= 0)
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified K <= 0" << endl;
     if (sign != 1 && sign != -1)
         m_exec_conf->msg->warning() << "dihedral.harmonic: a non unitary sign was specified" << endl;
+    if (phi_0 < 0 || phi_0 >= 2*M_PI)
+        m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 outside [0, 2pi)" << endl;
+    }
+
+
+void HarmonicDihedralForceCompute::setParamsPython(std::string type,
+                                                   pybind11::dict params)
+    {
+    // make sure the type is valid
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_harmonic_params _params(params);
+    setParams(typ, _params.k, _params.d, _params.n, _params.phi_0);
+    }
+
+pybind11::dict HarmonicDihedralForceCompute::getParams(std::string type)
+    {
+    auto typ = m_dihedral_data->getTypeByName(type);
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["d"] = m_sign[typ];
+    params["n"] = m_multi[typ];
+    params["phi0"] = m_phi_0[typ];
+    return params;
     }
 
 /*! DihedralForceCompute provides
@@ -140,7 +167,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -235,7 +262,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         int multi = (int)m_multi[dihedral_type];
         Scalar p = Scalar(1.0);
         Scalar dfab = Scalar(0.0);
-        Scalar ddfab;
+        Scalar ddfab = Scalar(0.0);
 
         for (int j = 0; j < multi; j++)
             {
@@ -246,10 +273,17 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
+// Adding charmm dihedral functionality, sin_shift not always 0,
+// cos_shift not always 1
 /////////////////////////
 
         Scalar sign = m_sign[dihedral_type];
+        Scalar phi_0 = m_phi_0[dihedral_type];
+        Scalar sin_phi_0 = fast::sin(phi_0);
+        Scalar cos_phi_0 = fast::cos(phi_0);
+        p = p*cos_phi_0 + dfab*sin_phi_0;
         p = p*sign;
+        dfab = dfab*cos_phi_0 - ddfab*sin_phi_0;
         dfab = dfab*sign;
         dfab *= (Scalar)-multi;
         p += Scalar(1.0);
@@ -354,6 +388,7 @@ void export_HarmonicDihedralForceCompute(py::module& m)
     {
     py::class_<HarmonicDihedralForceCompute, ForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &HarmonicDihedralForceCompute::setParams)
+    .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
+    .def("getParams", &HarmonicDihedralForceCompute::getParams)
     ;
     }

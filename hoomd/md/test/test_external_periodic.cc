@@ -66,7 +66,7 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator, std::s
     {
     GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_1.data[0].x, -0.180137, tol);
@@ -125,7 +125,7 @@ void periodic_force_comparison_test(periodicforce_creator periodic_creator1, per
     // verify that the forces are identical (within roundoff errors)
     GlobalArray<Scalar4>& force_array_5 =  fc1->getForceArray();
     GlobalArray<Scalar>& virial_array_5 =  fc1->getVirialArray();
-    unsigned int pitch = virial_array_5.getPitch();
+    size_t pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     GlobalArray<Scalar4>& force_array_6 =  fc2->getForceArray();
@@ -173,7 +173,7 @@ std::shared_ptr<PotentialExternalPeriodic> base_class_periodic_creator(std::shar
     return std::shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -191,7 +191,7 @@ UP_TEST( PotentialExternalPeriodic_particle )
     periodic_force_particle_test(periodic_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( PotentialExternalLamellaGPU_particle )
     {

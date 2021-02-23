@@ -4,33 +4,24 @@ set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
     test_constraint_sphere
-    test_dipole_force
     test_enforce2d_updater
     test_external_periodic
     test_fenebond_force
     test_fire_energy_minimizer
-    test_force_shifted_lj
-    test_gaussian_force
-    test_gayberne_force
     test_cosinesq_angle_force
     test_harmonic_angle_force
     test_harmonic_bond_force
     test_harmonic_dihedral_force
     test_harmonic_improper_force
-    test_lj_force
-    test_mie_force
-    test_morse_force
     test_MolecularForceCompute
     test_neighborlist
     test_opls_dihedral_force
     test_pppm_force
-    test_slj_force
     test_table_angle_force
     test_table_dihedral_force
     test_table_potential
     test_temp_rescale_updater
     test_walldata
-    test_yukawa_force
     test_zero_momentum_updater
     )
 
@@ -51,14 +42,13 @@ if(ENABLE_MPI)
 
     # define every test together with the number of processors
 
-    # test_communication tends to hang on CI platforms, I do not know why
-    # ADD_TO_MPI_TESTS(test_communication 8)
-    # ADD_TO_MPI_TESTS(test_communicator_grid 8)
+    ADD_TO_MPI_TESTS(test_communication 8)
+    ADD_TO_MPI_TESTS(test_communicator_grid 8)
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
-    if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         set(_cuda_sources ${CUR_TEST}.cu)
     else()
         set(_cuda_sources "")
@@ -70,6 +60,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     add_dependencies(test_all ${CUR_TEST})
 
     target_link_libraries(${CUR_TEST} _md ${PYTHON_LIBRARIES})
+
     fix_cudart_rpath(${CUR_TEST})
 
 endforeach (CUR_TEST)

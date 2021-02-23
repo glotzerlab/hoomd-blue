@@ -12,12 +12,13 @@
 #include <fstream>
 
 #include "hoomd/md/PPPMForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/PPPMForceComputeGPU.h"
 #endif
 
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
+#include "hoomd/filter/ParticleFilterTags.h"
 
 #include <math.h>
 
@@ -55,7 +56,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
     pdata_2->setFlags(~PDataFlags(0));
 
     std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
@@ -88,7 +89,7 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
 
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
-    unsigned int pitch = fc_2->getVirialArray().getPitch();
+    size_t pitch = fc_2->getVirialArray().getPitch();
 
     MY_CHECK_CLOSE(h_force.data[0].x, 0.151335f, tol_small);
     MY_CHECK_CLOSE(h_force.data[0].y, 0.172246f, tol_small);
@@ -132,7 +133,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
     pdata_2->setFlags(~PDataFlags(0));
 
     std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_2, 0, 1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
     {
@@ -163,7 +164,7 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
 
     ArrayHandle<Scalar4> h_force(fc_2->getForceArray(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_virial(fc_2->getVirialArray(), access_location::host, access_mode::read);
-    unsigned int pitch = fc_2->getVirialArray().getPitch();
+    size_t pitch = fc_2->getVirialArray().getPitch();
 
     Scalar rough_tol = 0.02;
     Scalar rough_tol_2 = 10.0;
@@ -207,7 +208,7 @@ std::shared_ptr<PPPMForceCompute> base_class_pppm_creator(std::shared_ptr<System
     return std::shared_ptr<PPPMForceCompute>(new PPPMForceCompute(sysdef, nlist, group));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PPPMForceComputeGPU creator for unit tests
 std::shared_ptr<PPPMForceCompute> gpu_pppm_creator(std::shared_ptr<SystemDefinition> sysdef,
                                               std::shared_ptr<NeighborList> nlist,
@@ -234,7 +235,7 @@ UP_TEST( PPPMForceCompute_triclinic )
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( PPPMForceComputeGPU_basic )
     {

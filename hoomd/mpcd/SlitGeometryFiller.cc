@@ -59,13 +59,13 @@ void mpcd::SlitGeometryFiller::computeNumFill()
     if (box.getHi().z >= H)
         {
         m_z_max = cell_size * std::ceil((H-global_lo)/cell_size) + global_lo + max_shift;
-        m_N_hi = std::round((m_z_max - H) * A * m_density);
+        m_N_hi = (unsigned int)std::round((m_z_max - H) * A * m_density);
         }
 
     if (box.getLo().z <= -H)
         {
         m_z_min = cell_size * std::floor((-H-global_lo)/cell_size) + global_lo - max_shift;
-        m_N_lo = std::round((-H-m_z_min) * A * m_density);
+        m_N_lo = (unsigned int)std::round((-H-m_z_min) * A * m_density);
         }
 
     // total number of fill particles
@@ -85,7 +85,7 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
-    const Scalar vel_factor = fast::sqrt(m_T->getValue(timestep) / m_mpcd_pdata->getMass());
+    const Scalar vel_factor = fast::sqrt((*m_T)(timestep) / m_mpcd_pdata->getMass());
 
     // index to start filling from
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
@@ -93,7 +93,7 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
         {
         const unsigned int tag = m_first_tag + i;
         hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, m_seed, tag, timestep);
-        signed char sign = (i >= m_N_lo) - (i < m_N_lo);
+        signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
             lo.z = m_z_min; hi.z = -m_geom->getH();

@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -39,7 +39,7 @@ namespace hpmc
 struct ShapeSimplePolygon
     {
     //! Define the parameter type
-    typedef detail::poly2d_verts param_type;
+    typedef detail::PolygonVertices param_type;
 
     //! Initialize a polygon
     DEVICE ShapeSimplePolygon(const quat<Scalar>& _orientation, const param_type& _params)
@@ -67,7 +67,7 @@ struct ShapeSimplePolygon
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -105,7 +105,7 @@ struct ShapeSimplePolygon
 
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
-    const detail::poly2d_verts& verts;     //!< Vertices
+    const detail::PolygonVertices& verts;     //!< Vertices
     };
 
 namespace detail
@@ -120,7 +120,7 @@ namespace detail
 
     \ingroup overlap
 */
-DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const poly2d_verts& verts)
+DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& verts)
     {
     // code for concave test from: http://alienryderflex.com/polygon/
     unsigned int nvert = verts.N;
@@ -148,7 +148,7 @@ DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const poly2d_verts& ver
 //! Test if 3 points are in ccw order
 DEVICE inline unsigned int tri_orientation(const vec2<OverlapReal>& a, const vec2<OverlapReal>& b, const vec2<OverlapReal>& c)
     {
-    const OverlapReal precision_tol = 1e-6;
+    const OverlapReal precision_tol = OverlapReal(1e-6);
     OverlapReal v = ((c.y - a.y)*(b.x - a.x) - (b.y - a.y)*(c.x - a.x));
 
     if (fabs(v) < precision_tol)
@@ -232,8 +232,8 @@ DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a, const vec2<Over
 
     \ingroup overlap
 */
-DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
-                                               const poly2d_verts& b,
+DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
+                                               const PolygonVertices& b,
                                                const vec2<OverlapReal>& dr,
                                                const quat<OverlapReal>& qa,
                                                const quat<OverlapReal>& qb)
@@ -311,7 +311,7 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                                        Scalar sweep_radius_b)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     return detail::test_simple_polygon_overlap(a.verts,
                                                b.verts,
@@ -319,6 +319,22 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                quat<OverlapReal>(a.orientation),
                                                quat<OverlapReal>(b.orientation));
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

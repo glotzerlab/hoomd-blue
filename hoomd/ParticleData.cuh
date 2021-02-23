@@ -4,20 +4,19 @@
 
 // Maintainer: joaander
 
-#ifndef _PARTICLEDATA_CUH_
-#define _PARTICLEDATA_CUH_
+#pragma once
 
-#include <cuda_runtime.h>
+#ifdef ENABLE_HIP
 #include "BoxDim.h"
 #include "GPUPartition.cuh"
 
-#include "hoomd/extern/util/mgpucontext.h"
+#include "hoomd/CachedAllocator.h"
 
 /*! \file ParticleData.cuh
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 //! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
 
@@ -28,7 +27,7 @@ const unsigned int MIN_FLOPPY = 0x80000000;
 const unsigned int NOT_LOCAL = 0xffffffff;
 #endif
 
-#ifdef NVCC
+#ifdef __HIPCC__
 //! Compact particle data storage
 struct pdata_element
     {
@@ -89,7 +88,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
                     unsigned int *d_comm_flags_out,
                     unsigned int max_n_out,
                     unsigned int *d_tmp,
-                    mgpu::ContextPtr mgpu_context,
+                    CachedAllocator& alloc,
                     GPUPartition& gpu_partition);
 
 //! Update particle data with new particles

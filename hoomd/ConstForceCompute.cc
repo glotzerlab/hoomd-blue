@@ -4,7 +4,6 @@
 
 // Maintainer: joaander
 
-
 #include "ConstForceCompute.h"
 
 namespace py = pybind11;

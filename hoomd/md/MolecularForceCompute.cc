@@ -9,7 +9,7 @@
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/Autotuner.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "MolecularForceCompute.cuh"
 #endif
 
@@ -38,12 +38,13 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
     TAG_ALLOCATION(m_molecule_order);
     TAG_ALLOCATION(m_molecule_idx);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         // initialize autotuner
         std::vector<unsigned int> valid_params;
-        for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+        for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
             valid_params.push_back(block_size);
 
         m_tuner_fill.reset(new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));
@@ -57,7 +58,7 @@ MolecularForceCompute::~MolecularForceCompute()
     m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 void MolecularForceCompute::initMoleculesGPU()
     {
     if (m_prof) m_prof->push(m_exec_conf,"init molecules");
@@ -165,6 +166,7 @@ void MolecularForceCompute::initMoleculesGPU()
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_local_molecules);
 
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -211,6 +213,7 @@ void MolecularForceCompute::initMoleculesGPU()
 
         CHECK_CUDA_ERROR();
         }
+    #endif
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -223,7 +226,7 @@ void MolecularForceCompute::initMolecules()
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         initMoleculesGPU();
@@ -287,7 +290,7 @@ void MolecularForceCompute::initMolecules()
         local_molecules_sorted[lowest_idx].insert(tag);
         }
 
-    n_local_molecules = local_molecules_sorted.size();
+    n_local_molecules = (unsigned int)local_molecules_sorted.size();
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules" << std::endl;
 
@@ -305,7 +308,7 @@ void MolecularForceCompute::initMolecules()
     unsigned int i = 0;
     for (auto it = local_molecules_sorted.begin(); it != local_molecules_sorted.end(); ++it)
         {
-        h_molecule_length.data[i++] = it->second.size();
+        h_molecule_length.data[i++] = (unsigned int)it->second.size();
         }
 
     // find maximum length

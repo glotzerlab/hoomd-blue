@@ -14,7 +14,6 @@ except ImportError:
 
 import hoomd
 import sys
-import colorsys as cs
 import re
 
 #replace range with xrange for python3 compatibility
@@ -52,17 +51,6 @@ def quatRot(q, v):
     vnew = np.empty((3,), dtype=v.dtype)
     vnew = v + 2*np.cross(r, np.cross(r,v) + w*v)
     return vnew
-
-# Construct a box matrix from a hoomd data.boxdim object
-# (requires numpy)
-# \param box hoomd boxdim object
-# \returns numpy matrix that transforms lattice coordinates to Cartesian coordinates
-def matFromBox(box):
-    Lx, Ly, Lz = box.Lx, box.Ly, box.Lz
-    xy = box.xy
-    xz = box.xz
-    yz = box.yz
-    return np.matrix([[Lx, xy*Ly, xz*Lz], [0, Ly, yz*Lz], [0, 0, Lz]])
 
 # Given a set of lattice vectors, rotate to produce an upper triangular right-handed box
 # as a hoomd boxdim object and a rotation quaternion that brings particles in the original coordinate system to the new one.
@@ -578,7 +566,7 @@ class tune(object):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.5)
         for i in range(10):
             run(1e4)
@@ -621,7 +609,7 @@ class tune(object):
     * maximum (:py:class:`float`): maximum value the tuner may set for the tunable parameter
 
     The default ``tunable_map`` defines the :py:obj:`callable` for 'set' to call
-    :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params` with ``tunable={type: newval}``
+    ``hoomd.hpmc.integrate.mode_hpmc.set_params`` with ``tunable={type: newval}``
     instead of ``tunable=newval`` if the ``type`` argument is given when creating
     the ``tune`` object.
 
@@ -752,7 +740,7 @@ class tune_npt(tune):
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
-        mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
+        mc.set_params(d=0.01, a=0.01, translation_move_probability=0.5)
         updater = hpmc.update.boxmc(mc, betaP=10)
         updater.length(0.1, weight=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)

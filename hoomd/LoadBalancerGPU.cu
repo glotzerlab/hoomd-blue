@@ -9,10 +9,15 @@
 */
 
 #ifdef ENABLE_MPI
+#include <hip/hip_runtime.h>
 
 #include "LoadBalancerGPU.cuh"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 //! Mark the particles that are off rank
 /*!
@@ -100,14 +105,15 @@ void gpu_load_balance_mark_rank(unsigned int *d_ranks,
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void *)gpu_load_balance_mark_rank_kernel);
+        hipFuncAttributes attr;
+        hipFuncGetAttributes(&attr, (const void *)gpu_load_balance_mark_rank_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = N/run_block_size + 1;
 
-    gpu_load_balance_mark_rank_kernel<<<n_blocks, run_block_size>>>(d_ranks, d_pos, d_cart_ranks, rank_pos, box, di, N);
+    hipLaunchKernelGGL(gpu_load_balance_mark_rank_kernel, dim3(n_blocks), dim3(run_block_size), 0, 0,
+        d_ranks, d_pos, d_cart_ranks, rank_pos, box, di, N);
     }
 
 //! Functor for selecting ranks not equal to the current rank
@@ -148,7 +154,7 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
     if (N == 0) return 0;
 
     unsigned int* last = thrust::copy_if(thrust::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
-    return (last-d_off_rank);
+    return (unsigned int)(last-d_off_rank);
     }
 
 #endif // ENABLE_MPI

@@ -19,7 +19,7 @@
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
 // HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -201,6 +201,12 @@ struct Index2DUpperTriangular
         HOSTDEVICE inline unsigned int getNumElements() const
             {
             return m_w*(m_w+1) / 2;
+            }
+
+        /// Get the width
+        HOSTDEVICE inline unsigned int getW()
+            {
+            return m_w;
             }
 
     private:

@@ -3,20 +3,19 @@
 
 #pragma once
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include "managed_allocator.h"
 
 #include <algorithm>
 #include <utility>
-#endif
-
-#ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif
-
 #include <memory>
+#endif
 
-#ifdef NVCC
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -35,7 +34,7 @@ class ManagedArray
               allocation_ptr(nullptr), allocation_bytes(0)
             { }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
             : data(nullptr), ptr(nullptr), N(_N), managed(_managed), align(_align),
               allocation_ptr(nullptr), allocation_bytes(0)
@@ -49,7 +48,7 @@ class ManagedArray
 
         DEVICE ~ManagedArray()
             {
-            #ifndef NVCC
+            #ifndef __HIPCC__
             deallocate();
             #endif
             }
@@ -63,7 +62,29 @@ class ManagedArray
             : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
               allocation_ptr(nullptr), allocation_bytes(0)
             {
-            #ifndef NVCC
+            #ifndef __HIPCC__
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            #else
+            ptr = other.ptr;
+            data = other.data;
+            #endif
+            }
+
+        //! Move constructor (copies data, no side effects)
+        /*! \warn the move constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
+        DEVICE ManagedArray(const ManagedArray<T>&& other)
+            : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
+              allocation_ptr(nullptr), allocation_bytes(0)
+            {
+            #ifndef __HIPCC__
             if (N > 0)
                 {
                 allocate();
@@ -78,12 +99,12 @@ class ManagedArray
 
         //! Assignment operator
         /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
-                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
                   needs to be ensured
          */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
-            #ifndef NVCC
+            #ifndef __HIPCC__
             deallocate();
             #endif
 
@@ -91,7 +112,37 @@ class ManagedArray
             managed = other.managed;
             align = other.align;
 
-            #ifndef NVCC
+            #ifndef __HIPCC__
+            if (N > 0)
+                {
+                allocate();
+
+                std::copy(other.ptr, other.ptr+N, ptr);
+                }
+            #else
+            ptr = other.ptr;
+            data = other.data;
+            #endif
+
+            return *this;
+            }
+
+        //! Move assignment operator, copies data (no side effects)
+        /*! \warn the move assignment constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to errors, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
+        DEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
+            {
+            #ifndef __HIPCC__
+            deallocate();
+            #endif
+
+            N = other.N;
+            managed = other.managed;
+            align = other.align;
+
+            #ifndef __HIPCC__
             if (N > 0)
                 {
                 allocate();
@@ -130,13 +181,13 @@ class ManagedArray
             return data;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
             if (managed && ptr)
                 {
-                #if (CUDART_VERSION >= 8000)
+                #if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
                 cudaMemAdvise(ptr, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
                 #endif
                 }
@@ -146,15 +197,18 @@ class ManagedArray
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
             \param available_bytes Size of remaining shared memory allocation
+
+            Note: shared memory spaces are relatively small, computing sizes with 32-bit
+            numbers is sufficient.
          */
         HOSTDEVICE void* allocate_shared(char *& s_ptr, unsigned int &available_bytes) const
             {
             // size in ints (round up)
-            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            size_t size_int = (sizeof(T)*N)/sizeof(int);
             if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
             // align ptr to size of data type
-            unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
+            size_t max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
             char *ptr_align = (char *)(((unsigned long int)s_ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
@@ -162,7 +216,7 @@ class ManagedArray
 
             // increment pointer
             s_ptr = ptr_align + size_int*sizeof(int);
-            available_bytes -= size_int*sizeof(int)+max_align_bytes;
+            available_bytes -= (unsigned int)(size_int*sizeof(int)+max_align_bytes);
 
             return (void *)ptr_align;
             }
@@ -181,7 +235,7 @@ class ManagedArray
             if (! ptr_align)
                 return false;
 
-            #ifdef __CUDA_ARCH__
+            #ifdef __HIP_DEVICE_COMPILE__
             // only in GPU code
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
@@ -220,7 +274,7 @@ class ManagedArray
             }
 
     protected:
-        #ifndef NVCC
+        #ifndef __HIPCC__
         void allocate()
             {
             ptr = managed_allocator<T>::allocate_construct_aligned(N, managed, align, allocation_bytes, allocation_ptr);
@@ -245,3 +299,6 @@ class ManagedArray
         void *allocation_ptr;    //!< Pointer to un-aligned start of allocation
         size_t allocation_bytes; //!< Total size of allocation, including aligned part
     };
+
+#undef DEVICE
+#undef HOSTDEVICE

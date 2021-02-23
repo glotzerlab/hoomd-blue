@@ -13,7 +13,7 @@
     \brief Declaration of the Berendsen thermostat on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

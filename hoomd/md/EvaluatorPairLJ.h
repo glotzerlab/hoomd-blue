@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_LJ_H__
 #define __PAIR_EVALUATOR_LJ_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -21,11 +21,12 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
 #endif
+
 
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
@@ -71,7 +72,7 @@
     A pair potential evaluator class is also used on the GPU. So all of its members must be declared with the
     DEVICE keyword before them to mark them __device__ when compiling in nvcc and blank otherwise. If any other code
     needs to diverge between the host and device (i.e., to use a special math function like __powf on the device), it
-    can similarly be put inside an ifdef NVCC block.
+    can similarly be put inside an ifdef __HIPCC__ block.
 
     <b>LJ specifics</b>
 
@@ -97,7 +98,53 @@ class EvaluatorPairLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar lj1;
+            Scalar lj2;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : lj1(0), lj2(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                auto sigma(v["sigma"].cast<Scalar>());
+                auto epsilon(v["epsilon"].cast<Scalar>());
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+                }
+
+            // this constructor facilitates unit testing
+            param_type(Scalar sigma, Scalar epsilon, Scalar alpha=1.0)
+                {
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * alpha * pow(sigma, 6.0);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                auto sigma6 = lj1 / lj2;
+                v["sigma"] = pow(sigma6, 1. / 6.);
+                v["epsilon"] = lj2 / (sigma6 * 4);
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -105,7 +152,7 @@ class EvaluatorPairLJ
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 
@@ -128,11 +175,13 @@ class EvaluatorPairLJ
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
-            \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
-            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
-                  in PotentialPair.
+            \param energy_shift If true, the potential must be shifted so that
+            V(r) is continuous at the cutoff
+            \note There is no need to check if rsq < rcutsq in this method.
+            Cutoff tests are performed in PotentialPair.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cutoff
+            \return True if they are evaluated or false if they are not because
+            we are beyond the cutoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
@@ -157,7 +206,7 @@ class EvaluatorPairLJ
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.

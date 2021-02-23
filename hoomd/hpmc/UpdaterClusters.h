@@ -19,7 +19,11 @@
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_vector.h>
+#include <tbb/parallel_for.h>
+#include <tbb/task.h>
 #include <atomic>
 #endif
 
@@ -319,10 +323,22 @@ class UpdaterClusters : public Updater
         */
         virtual void update(unsigned int timestep);
 
+        //! Get the seed
+        unsigned int getSeed()
+            {
+            return m_seed;
+            }
+
         //! Set the move ratio
         void setMoveRatio(Scalar move_ratio)
             {
             m_move_ratio = move_ratio;
+            }
+
+        //! Get the move ratio
+        Scalar getMoveRatio()
+            {
+            return m_move_ratio;
             }
 
         //! Set the swap to geometric move ratio
@@ -331,12 +347,23 @@ class UpdaterClusters : public Updater
             m_swap_move_ratio = move_ratio;
             }
 
+        //! Get the swap move ratio
+        Scalar getSwapMoveRatio()
+            {
+            return m_swap_move_ratio;
+            }
+
         //! Set the cluster flip probability
         void setFlipProbability(Scalar flip_probability)
             {
             m_flip_probability = flip_probability;
             }
 
+        //! Get the flip probability
+        Scalar getFlipProbability()
+            {
+            return m_flip_probability;
+            }
 
         //! Set an AB type pair to be used with type swap moves
         /*! \param type_A first type
@@ -350,40 +377,65 @@ class UpdaterClusters : public Updater
             m_ab_types[1] = type_B;
             }
 
+        //! Set the pair type to be used with type swap moves (by name)
+        void setSwapTypePairStr(pybind11::list l)
+            {
+            size_t l_size = pybind11::len(l);
+            if (l_size == 0)
+                {
+                m_ab_types.clear();
+                }
+            else if (l_size == 2)
+                {
+                std::string type_A = l[0].cast<std::string>();
+                std::string type_B = l[1].cast<std::string>();
+
+                unsigned int id_A = m_pdata->getTypeByName(type_A);
+                unsigned int id_B = m_pdata->getTypeByName(type_B);
+                setSwapTypePair(id_A, id_B);
+                }
+            else
+                {
+                throw std::runtime_error("swap_types must be a list of length 0 or 2");
+                }
+            }
+
+        //! Get the swap pair types as a python list
+        pybind11::list getSwapTypePairStr()
+            {
+            pybind11::list result;
+            if (m_ab_types.size() == 0)
+                {
+                return result;
+                }
+            else if (m_ab_types.size() == 2)
+                {
+                result.append(m_pdata->getNameByType(m_ab_types[0]));
+                result.append(m_pdata->getNameByType(m_ab_types[1]));
+                return result;
+                }
+            else
+                {
+                throw std::runtime_error("invalid m_ab_types");
+                }
+            }
+
         //! Set the difference in chemical potential mu_B - mu_A
         void setDeltaMu(Scalar delta_mu)
             {
             m_delta_mu = delta_mu;
             }
 
+        //! Get the the difference in chemical potential mu_B - mu_A
+        Scalar getDeltaMu()
+            {
+            return m_delta_mu;
+            }
+
         //! Reset statistics counters
         virtual void resetStats()
             {
             m_count_run_start = m_count_total;
-            }
-
-        //! Print statistics about the cluster move updates
-        /* We only print the statistics about accepted and rejected moves.
-         */
-        void printStats()
-            {
-            hpmc_clusters_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC cluster move stats:" << std::endl;
-            if (counters.pivot_accept_count + counters.pivot_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average pivot acceptance:      " << counters.getPivotAcceptance() << std::endl;
-                }
-            if (counters.reflection_accept_count + counters.reflection_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average reflection acceptance: " << counters.getReflectionAcceptance() << std::endl;
-                }
-            if (counters.swap_accept_count + counters.swap_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average swap acceptance:       " << counters.getSwapAcceptance() << std::endl;
-                }
-            m_exec_conf->msg->notice(2) <<     "Total particles in clusters:   " << counters.getNParticlesInClusters() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Total particles moved:         " << counters.getNParticlesMoved() << std::endl;
-            m_exec_conf->msg->notice(2) <<     "Average cluster size:          " << counters.getAverageClusterSize() << std::endl;
             }
 
             /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -544,7 +596,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     auto image_list = m_mc->updateImageList();
 
     // minimum AABB extent
-    Scalar min_core_diameter = m_mc->getMinCoreDiameter();
+    OverlapReal min_core_diameter = OverlapReal(m_mc->getMinCoreDiameter());
 
     Index2D overlap_idx = m_mc->getOverlapIndexer();
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
@@ -600,10 +652,10 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
@@ -662,14 +714,14 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij, typ_i,
+                                    U += patch->energy(vec3<float>(r_ij), typ_i,
                                                         quat<float>(orientation_i),
-                                                        d_i,
-                                                        charge_i,
+                                                        float(d_i),
+                                                        float(charge_i),
                                                         typ_j,
                                                         quat<float>(m_orientation_backup[j]),
-                                                        m_diameter_backup[j],
-                                                        m_charge_backup[j]);
+                                                        float(m_diameter_backup[j]),
+                                                        float(m_charge_backup[j]));
 
                                     // update map
                                     m_energy_old_old[p] = U;
@@ -724,7 +776,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
         // All image boxes (including the primary)
-        const unsigned int n_images = image_list.size();
+        const unsigned int n_images = (unsigned int)image_list.size();
 
         // check against old
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -813,7 +865,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             {
             // subtract minimum AABB extent from search radius
             Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
-            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // compute V(r'-r)
@@ -868,14 +920,14 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                             U = it_energy->second;
                                         }
 
-                                    U += patch->energy(r_ij, typ_i,
+                                    U += patch->energy(vec3<float>(r_ij), typ_i,
                                                             quat<float>(shape_i.orientation),
-                                                            h_diameter.data[i],
-                                                            h_charge.data[i],
+                                                            float(h_diameter.data[i]),
+                                                            float(h_charge.data[i]),
                                                             typ_j,
                                                             quat<float>(m_orientation_backup[j]),
-                                                            m_diameter_backup[j],
-                                                            m_charge_backup[j]);
+                                                            float(m_diameter_backup[j]),
+                                                            float(m_charge_backup[j]));
 
                                     // update map
                                     m_energy_new_old[p] = U;
@@ -931,11 +983,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             if (patch)
                 extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
 
-            OverlapReal R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
+            Scalar R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/2.0);
             detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
-            const unsigned int n_images = image_list.size();
+            const unsigned int n_images = (unsigned int)image_list.size();
 
             // check against new AABB tree
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1052,7 +1104,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
                 detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
 
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
 
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -1153,7 +1205,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
                 // All image boxes (including the primary)
-                const unsigned int n_images = image_list.size();
+                const unsigned int n_images = (unsigned int)image_list.size();
 
                 // check overlap of depletant-excluded volumes
                 detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
@@ -1255,7 +1307,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                     detail::AABB aabb_i(pos_i_new, Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
 
                     // All image boxes (including the primary)
-                    const unsigned int n_images = image_list.size();
+                    const unsigned int n_images = (unsigned int)image_list.size();
 
                     // check against new AABB tree
                     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -2094,7 +2146,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // in MPI and GPU simulations the integrator takes care of the grid shift
     bool grid_shift = true;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         grid_shift = false;
     #endif
@@ -2109,7 +2161,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
 
         // nominal width may be larger than nearest plane distance, correct
-        Scalar max_shift = std::min(npd.x, std::min(npd.y,npd.z));
+        Scalar max_shift = std::min((Scalar )npd.x, std::min((Scalar)npd.y,(Scalar) npd.z));
         max_shift = std::min(max_shift, nominal_width);
 
         // perform the grid shift to compensate for the uncrossable boundaries
@@ -2155,22 +2207,45 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
                          std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
-        .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
-        .def("setFlipProbability", &UpdaterClusters<Shape>::setFlipProbability)
-        .def("setSwapMoveRatio", &UpdaterClusters<Shape>::setSwapMoveRatio)
-        .def("setSwapTypePair", &UpdaterClusters<Shape>::setSwapTypePair)
-        .def("setDeltaMu", &UpdaterClusters<Shape>::setDeltaMu)
-    ;
+        .def_property("move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
+        .def_property("flip_probability", &UpdaterClusters<Shape>::getFlipProbability, &UpdaterClusters<Shape>::setFlipProbability)
+        .def_property("swap_move_ratio", &UpdaterClusters<Shape>::getSwapMoveRatio, &UpdaterClusters<Shape>::setSwapMoveRatio)
+        .def_property("swap_type_pair", &UpdaterClusters<Shape>::getSwapTypePairStr, &UpdaterClusters<Shape>::setSwapTypePairStr)
+        .def_property("delta_mu", &UpdaterClusters<Shape>::getDeltaMu, &UpdaterClusters<Shape>::setDeltaMu)
+        .def_property_readonly("seed", &UpdaterClusters<Shape>::getSeed)
+        ;
     }
 
 inline void export_hpmc_clusters_counters(pybind11::module &m)
     {
     pybind11::class_< hpmc_clusters_counters_t >(m, "hpmc_clusters_counters_t")
-        .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
-        .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
-        .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
-        .def("getNParticlesMoved", &hpmc_clusters_counters_t::getNParticlesMoved)
-        .def("getNParticlesInClusters", &hpmc_clusters_counters_t::getNParticlesInClusters);
+        .def_property_readonly("pivot", [](const hpmc_clusters_counters_t &a)
+                                              {
+                                              pybind11::list result;
+                                              result.append(a.pivot_accept_count);
+                                              result.append(a.pivot_reject_count);
+                                              return result;
+                                              }
+                              )
+        .def_property_readonly("reflection", [](const hpmc_clusters_counters_t &a)
+                                                   {
+                                                   pybind11::list result;
+                                                   result.append(a.reflection_accept_count);
+                                                   result.append(a.reflection_reject_count);
+                                                   return result;
+                                                   }
+                              )
+        .def_property_readonly("swap", [](const hpmc_clusters_counters_t &a)
+                                            {
+                                            pybind11::list result;
+                                            result.append(a.swap_accept_count);
+                                            result.append(a.swap_reject_count);
+                                            return result;
+                                            }
+                              )
+        .def_readonly("clusters", &hpmc_clusters_counters_t::n_clusters)
+        .def_readonly("particles", &hpmc_clusters_counters_t::n_particles_in_clusters)
+        ;
     }
 
 } // end namespace hpmc

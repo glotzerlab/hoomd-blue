@@ -4,6 +4,8 @@
 
 // Maintainer: joaander
 
+
+#include <hip/hip_runtime.h>
 #include "Integrator.cuh"
 
 #include <assert.h>
@@ -14,7 +16,7 @@
 
 //! helper to add a given force/virial pointer pair
 template< unsigned int compute_virial >
-__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const unsigned int virial_pitch, Scalar4* d_t, int idx)
+__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const size_t virial_pitch, Scalar4* d_t, int idx)
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
         {
@@ -57,7 +59,7 @@ __device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4&
 template< unsigned int compute_virial >
 __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
                                                     Scalar *d_net_virial,
-                                                    const unsigned int net_virial_pitch,
+                                                    const size_t net_virial_pitch,
                                                     Scalar4 *d_net_torque,
                                                     const gpu_force_list force_list,
                                                     unsigned int nwork,
@@ -116,9 +118,9 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
         }
     }
 
-cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
+hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
-                                         const unsigned int net_virial_pitch,
+                                         size_t net_virial_pitch,
                                          Scalar4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,
@@ -142,7 +144,7 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
 
         if (compute_virial)
             {
-            gpu_integrator_sum_net_force_kernel<1><<< nwork/block_size+1, block_size >>>(d_net_force,
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>), dim3(nwork/block_size+1), dim3(block_size), 0, 0, d_net_force,
                                                                                               d_net_virial,
                                                                                               net_virial_pitch,
                                                                                               d_net_torque,
@@ -153,7 +155,7 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
             }
         else
             {
-            gpu_integrator_sum_net_force_kernel<0><<< nwork/block_size+1, block_size >>>(d_net_force,
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>), dim3(nwork/block_size+1), dim3(block_size), 0, 0, d_net_force,
                                                                                               d_net_virial,
                                                                                               net_virial_pitch,
                                                                                               d_net_torque,
@@ -164,5 +166,5 @@ cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
             }
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

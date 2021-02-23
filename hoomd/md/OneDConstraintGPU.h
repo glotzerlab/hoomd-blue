@@ -11,7 +11,7 @@
     \brief Declares a class for computing sphere constraint forces on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 

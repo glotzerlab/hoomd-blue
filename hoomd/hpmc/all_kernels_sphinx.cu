@@ -13,9 +13,9 @@ namespace hpmc
 namespace detail
 {
 //! HPMC kernels for ShapeSphinx
-template cudaError_t gpu_hpmc_free_volume<ShapeSphinx>(const hpmc_free_volume_args_t &args,
+template hipError_t gpu_hpmc_free_volume<ShapeSphinx>(const hpmc_free_volume_args_t &args,
                                                        const typename ShapeSphinx::param_type *d_params);
-template cudaError_t gpu_hpmc_update<ShapeSphinx>(const hpmc_args_t& args,
+template hipError_t gpu_hpmc_update<ShapeSphinx>(const hpmc_args_t& args,
                                                   const typename ShapeSphinx::param_type *d_params);
 }
 

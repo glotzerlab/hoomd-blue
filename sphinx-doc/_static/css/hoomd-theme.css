@@ -1,0 +1,52 @@
+/* Sidebar header (and topbar for mobile) */
+.wy-side-nav-search, .wy-nav-top {
+  background: #333333;
+}
+
+/* Sidebar navigation */
+.wy-nav-side {
+  background: #4a4a4a;
+}
+
+/* Sidebar section headers */
+.wy-menu-vertical p.caption {
+  color: #72b4ff;
+}
+
+.wy-menu-vertical a {
+  color: #ffffff;
+}
+
+.wy-menu-vertical a:hover {
+  background-color: #333333;
+}
+
+.wy-nav-content {
+    background: #fff;
+}
+
+/* format inline code */
+.rst-content tt.literal, .rst-content tt.literal, .rst-content code.literal {
+    color: #282828;
+    background-color: #f8f8f8;
+    border: none;
+    font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace;
+    font-size: 85%;
+}
+
+/* format code blocks */
+.rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border: none;
+}
+
+.highlight {
+    background: #f8f8f8;
+}
+
+.rst-content pre.literal-block, .rst-content div[class^='highlight'] pre, .rst-content .linenodiv pre {
+    color: #282828;
+    border: none;
+    font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace;
+    font-size: 85%;
+    line-height: 1.3;
+}

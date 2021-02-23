@@ -16,12 +16,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
 #include <string>
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace mpcd
 {
@@ -77,8 +77,8 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
             /* First check that the particle ended up inside the pore or walls.
              * sign.x is +1 if outside pore in +x, -1 if outside pore in -x, and 0 otherwise.
              * sign.y is +1 if outside walls in +z, -1 if outside walls in -z, and 0 otherwise. */
-            const char2 sign = make_char2((pos.x >= m_L) - (pos.x <= -m_L),
-                                          (pos.z >  m_H) - (pos.z <  -m_H));
+            const char2 sign = make_char2((char)((pos.x >= m_L) - (pos.x <= -m_L)),
+                                          (char)((pos.z >  m_H) - (pos.z <  -m_H)));
             // exit early if collision didn't happen
             if (sign.x != 0 || sign.y == 0)
                 {
@@ -215,13 +215,13 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
             return m_bc;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the unique name of this geometry
         static std::string getName()
             {
             return std::string("SlitPore");
             }
-        #endif // NVCC
+        #endif // __HIPCC__
 
     private:
         const Scalar m_H;       //!< Half of the channel width

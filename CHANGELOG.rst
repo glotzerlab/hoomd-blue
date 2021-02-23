@@ -4,30 +4,138 @@ Change Log
 v3.x
 ----
 
-v3.0.0 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-- Implicit depletants are now supported by any **hpmc** integrator through ``mc.set_fugacity('type', fugacity)``.
-- Enable implicit depletants for two-dimensional shapes in **hpmc**.
+- ``hoomd.variant.Variant`` objects are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
 
 *Changed*
 
-- *CMake* <=3.9, *cereal*, *eigen*, and *pybind11* are required to compile HOOMD.
+- Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- Support pybind11 2.6.0
+- Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
+
+*Changed*
+
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
+- Building from source requires a C++14 compatible compiler.
+- Improved documentation.
+- ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
+  origin of (0, 0, 0).
+- Document loggable quantities in property docstrings.
+- Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
+
+*Fixed*
+
+- ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
+  Jupyter interrupts the kernel.
+- Logging the state of specific objects with nested attributes.
+- Broken relative RPATHs.
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
+
+v3.0.0-beta.1 (2020-10-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Overview*
+
+v3 has a completely new Python API. See the tutorials, migration guide and new
+API documentation learn about it. The API documentation serves as the complete
+list of all features currently implemented in v3.0.0-beta.1. Not all features in
+v2 have been ported in v3.0.0-beta.1. Future beta releases will add additional
+functionality.
+
+*Added*
+
+- Zero-copy data access through numpy (CPU) and cupy (GPU).
+- User-defined operations in Python.
+- User-defined triggers determine what time steps operations execute on.
+- New logging subsystem supports array quantities and binary log files.
+- Implicit depletants are now supported by any **hpmc** integrator through
+  ``mc.set_fugacity('type', fugacity)``.
+- Enable implicit depletants for two-dimensional shapes in **hpmc**.
+- ``jit.patch.user()`` and ``jit.patch.user_union()`` now support GPUs via
+  NVRTC.
+- Add harmonically mapped averaging.
+- Add Visual Studio Code workspace
+
+*Changed*
+
+- The ``run`` method has minimal overhead
+- All loggable quantities are directly accessible as object properties.
+- Operation parameters are always synchronized.
+- Operations can be instantiated without a device or MPI communicator.
+- Writers write output for ``step+1`` at the bottom of the ``run`` loop.
+- HOOMD writes minimal output to stdout/stderr by default.
+- *CMake* >=3.9, *cereal*, *eigen*, and *pybind11* are required to compile
+  HOOMD.
 - Plugins must be updated to build against v3.
-- By default, HOOMD installs to the ``site-packages`` directory associated with the ``python`` executable given, which may be inside a virtual environment.
+- By default, HOOMD installs to the ``site-packages`` directory associated with
+  the ``python`` executable given, which may be inside a virtual environment.
 - Refactored CMake code.
 - ``git submodule update`` no longer runs when during CMake configuration.
 - Use ``random123`` library for implicit depletants in **hpmc**.
+- HOOMD requires a GPU that supports concurrent managed memory access (Pascal
+  or newer).
 
-*Deprecated*
+*Bug fixes*
+
+- Improved accuracy of DLVO potential on the GPU.
+- Improved performance of HPMC simulations on the CPU in non-cubic boxes.
 
 *Removed*
 
-- Type swap moves in ``hpmc.update.muvt()`` are no longer supported (``transfer_ratio`` option to ``muvt.set_params()``)
-- The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available (use ``set_fugacity``).
-- ``static`` parameter in :py:class:`dump.gsd <hoomd.dump.gsd>`.
+- HOOMD-blue no longer parses command line options.
+- Type swap moves in ``hpmc.update.muvt()`` are no longer supported
+  (``transfer_ratio`` option to ``muvt.set_params()``)
+- The option ``implicit=True`` to ``hpmc.integrate.*`` is no longer available
+  (use ``set_fugacity``).
+- ``static`` parameter in ``dump.gsd``
 - ``util.quiet_status`` and ``util.unquiet_status``.
 - ``deprecated.analyze.msd``.
 - ``deprecated.dump.xml``.
@@ -44,15 +152,135 @@ v3.0.0 (not yet released)
 - **hpmc** ``depletant_mode`` parameter.
 - **hpmc** ``ntrial`` parameter.
 - **hpmc** ``implicit`` boolean parameter.
-- ``group`` parameter to :py:class:`md.integrate.mode_minimize_fire <hoomd.md.integrate.mode_minimize_fire>`
+- ``group`` parameter to ``md.integrate.mode_minimize_fire``
 - ``cgcmm.angle.cgcmm``
 - ``cgcmm.pair.cgcmm``
 - ``COPY_HEADERS`` *CMake* option.
-
-*Fixed*
+- Many other python modules have been removed or re-implemented with new names.
+  See the migration guide and new API documentation for a complete list.
 
 v2.x
 ----
+
+v2.9.3 (2020-08-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a compile error with CUDA 11
+
+v2.9.2 (2020-06-26)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a bug where repeatedly using objects with ``period=None`` would use
+  significant amounts of memory.
+* Support CUDA 11.
+* Reccomend citing the 2020 Computational Materials Science paper
+  10.1016/j.commatsci.2019.109363.
+
+v2.9.1 (2020-05-28)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fixed a minor bug where the variable period timestep would be off by one when
+  the timestep got sufficiently large.
+* Updated collections API to hide ``DeprecationWarning``.
+* Fix scaling of cutoff in Gay-Berne potential to scale the current maximum
+  distance based on the orientations of the particles, ensuring ellipsoidal
+  energy isocontours.
+* Misc documentation fixes.
+
+
+v2.9.0 (2020-02-03)
+^^^^^^^^^^^^^^^^^^^
+
+*New features*
+
+* General
+
+  * Read and write GSD 2.0 files.
+
+    * HOOMD >=2.9 can read and write GSD files created by HOOMD <= 2.8 or GSD
+      1.x. HOOMD <= 2.8 cannot read GSD files created by HOOMD >=2.9 or GSD >=
+      2.0.
+    * OVITO >=3.0.0-dev652 reads GSD 2.0 files.
+    * A future release of the ``gsd-vmd`` plugin will read GSD 2.0 files.
+
+* HPMC
+
+  * User-settable parameters in ``jit.patch``.
+  * 2D system support in muVT updater.
+  * Fix bug in HPMC where overlaps were not checked after adding new particle
+    types.
+
+* MD
+
+  * The performance of ``nlist.tree`` has been drastically improved for a
+    variety of systems.
+
+v2.8.2 (2019-12-20)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix randomization of barostat and thermostat velocities with
+  ``randomize_velocities()`` for non-unit temperatures.
+* Improve MPCD documentation.
+* Fix uninitialized memory in some locations which could have led to
+  unreproducible results with HPMC in MPI, in particular with
+  ``ALWAYS_USE_MANAGED_MEMORY=ON``.
+* Fix calculation of cell widths in HPMC (GPU) and ``nlist.cell()`` with MPI.
+* Fix potential memory-management issue in MPI for migrating MPCD particles and
+  cell energy.
+* Fix bug where exclusions were sometimes ignored when ``charge.pppm()`` is
+  the only potential using the neighbor list.
+* Fix bug where exclusions were not accounted for properly in the
+  ``pppm_energy`` log quantity.
+* Fix a bug where MD simulations with MPI start off without a ghost layer,
+  leading to crashes or dangerous builds shortly after ``run()``.
+* ``hpmc.update.remove_drift`` now communicates particle positions after
+  updating them.
+
+v2.8.1 (2019-11-26)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Fix a rare divide-by-zero in the ``collide.srd`` thermostat.
+* Improve performance of first frame written by ``dump.gsd``.
+* Support Python 3.8.
+* Fix an error triggering migration of embedded particles for MPCD with MPI +
+  GPU configurations.
+
+v2.8.0 (2019-10-30)
+^^^^^^^^^^^^^^^^^^^
+
+*New Features*
+
+- MD:
+
+  - ``hoomd.md.dihedral.harmonic`` now accepts phase offsets, ``phi_0``, for CHARMM-style periodic dihedrals.
+  - Enable per-type shape information for anisotropic pair potentials that complements the existing pair parameters struct.
+
+- HPMC:
+
+  - Enable the use of an array with adjustable parameters within the user defined pair potential.
+  - Add muVT updater for 2D systems.
+
+
+*Bug fixes*
+
+- Fix missing header in external plugin builds.
+- Enable ``couple='none'`` option to ``md.integrate.npt()`` when randomly initializing velocities.
+- Documentation improvements.
+- Skip gsd shape unit test when required modules are not compiled.
+- Fix default particle properties when new particles are added to the system (e.g., via the muVT updater).
+- Fix ``charge.pppm()`` execution on multiple GPUs.
+- Enable ``with SimulationContext() as c``.
+- Fix a bug for ``mpcd.collide.at`` with embedded particles, which may have given incorrect results or simulation crashes.
 
 v2.7.0 (2019-10-01)
 ^^^^^^^^^^^^^^^^^^^
@@ -223,13 +451,8 @@ v2.4.2 (2018-12-20)
    returned from ``ParticleData`` and other classes (replace by
    ``GlobalArray``)
 
-<<<<<<< HEAD
-v2.4.1 (2018/11/27)
-^^^^^^^^^^^^^^^^^^^
-=======
 v2.4.1 (2018-11-27)
 ^^^^^^^^^^^^^^^^^^^
->>>>>>> master
 
 *Bug fixes*
 
@@ -239,13 +462,8 @@ v2.4.1 (2018-11-27)
    conditions
 -  Support llvm 7.0
 
-<<<<<<< HEAD
-v2.4.0 (2018/11/07)
-^^^^^^^^^^^^^^^^^^^
-=======
 v2.4.0 (2018-11-07)
 ^^^^^^^^^^^^^^^^^^^
->>>>>>> master
 
 *New features*
 
@@ -495,7 +713,7 @@ v2.2.4 (2018-03-05)
 
 -  Fix a rare error in ``md.nlist.tree`` when particles are very close
    to each other.
--  Fix deadlock when ``init.read_getar`` is given different file names
+-  Fix deadlock when ```init.read_getar``` is given different file names
    on different ranks.
 -  Sample from the correct uniform distribution of depletants in a
    sphere cap with ``depletant_mode='overlap_regions'`` on the CPU
@@ -716,7 +934,7 @@ v2.1.8 (2017-07-19)
 
 *Bug fixes*
 
--  ``init.read_getar`` now correctly restores static quantities when
+-  ```init.read_getar``` now correctly restores static quantities when
    given a particular frame.
 -  Fix bug where many short calls to ``run()`` caused incorrect results
    when using ``md.integrate.langevin``.

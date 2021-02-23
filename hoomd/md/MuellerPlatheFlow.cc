@@ -77,13 +77,13 @@ void MuellerPlatheFlow::update(unsigned int timestep)
 
     // Determine switch direction for this update call
     // Switch outside while loop, to prevent oscillations around the target.
-    bool bigger_swap_needed = m_flow_target->getValue(timestep) > this->summed_exchanged_momentum()/area;
+    bool bigger_swap_needed = (*m_flow_target)(timestep) > this->summed_exchanged_momentum()/area;
     bigger_swap_needed &=  this->get_min_slab() > this->get_max_slab();
-    bool smaller_swap_needed = m_flow_target->getValue(timestep) < this->summed_exchanged_momentum()/area;
+    bool smaller_swap_needed = (*m_flow_target)(timestep) < this->summed_exchanged_momentum()/area;
     smaller_swap_needed &=  this->get_min_slab() < this->get_max_slab();
 
     if( ( bigger_swap_needed || smaller_swap_needed )
-        &&  ( fabs( m_flow_target->getValue(timestep) - this->summed_exchanged_momentum()/area )
+        &&  ( fabs( (*m_flow_target)(timestep) - this->summed_exchanged_momentum()/area )
               > this->get_flow_epsilon() ) )
         {
         this->swap_min_max_slab();
@@ -93,7 +93,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
 
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
-    while( fabs( m_flow_target->getValue(timestep) -
+    while( fabs( (*m_flow_target)(timestep) -
                  this->summed_exchanged_momentum()/area ) > this->get_flow_epsilon()
            && counter < max_iteration)
         {
@@ -131,7 +131,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
       {
         stringstream s;
         s<<" After "<<counter<<" MuellerPlatheFlow could not achieve the target: "
-         <<m_flow_target->getValue(timestep)<<" only "
+         << (*m_flow_target)(timestep)<<" only "
          <<this->summed_exchanged_momentum()/area<<" could be achieved."<<endl;
         m_exec_conf->msg->warning()<<s.str();
       }
@@ -261,11 +261,11 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             unsigned int index=0; //Init to shut up compiler warning
             switch(m_slab_direction)
                 {
-                case flow_enum::X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
+                case flow_enum::X: index = (unsigned int)(( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
                     break;
-                case flow_enum::Y: index = ( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs();
+                case flow_enum::Y: index = (unsigned int)(( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs());
                     break;
-                case flow_enum::Z: index = ( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs();
+                case flow_enum::Z: index = (unsigned int)(( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs());
                     break;
                 }
             index %= this->get_N_slabs(); //border cases. wrap periodic box
@@ -413,11 +413,15 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MP
             {
             if( ms->rank == 0)
                 {
-                  recv(*vel,tmp.i,ms->comm);
+                  recv(vel->x,tmp.i,ms->comm);
+                  recv(vel->y,tmp.i,ms->comm);
+                  recv(vel->z,tmp.i,ms->comm);
                 }
             if( ms->rank == tmp.i)
                 {
-                  send(*vel, 0 , ms->comm);
+                  send(vel->x, 0 , ms->comm);
+                  send(vel->y, 0 , ms->comm);
+                  send(vel->z, 0 , ms->comm);
                 }
             }
         //ms->rank == 0 has the definite answer
@@ -425,7 +429,9 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MP
     //Broadcast the result to every rank.
     //This way, each rank can check, whether
     //it needs to update and can determine the exchanged momentum.
-    bcast( *vel, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->x, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->y, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
+    bcast( vel->z, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
     }
 
 void MuellerPlatheFlow::mpi_exchange_velocity(void)

@@ -11,7 +11,7 @@
 
 #include "hoomd/md/HarmonicAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/HarmonicAngleForceComputeGPU.h"
 #endif
 
@@ -55,7 +55,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
@@ -80,7 +80,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, -0.061684, tol);
@@ -126,7 +126,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_3.getPitch();
+    size_t pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
@@ -171,7 +171,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     // check that the forces are correctly computed
     GlobalArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GlobalArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
-    unsigned int pitch = virial_array_4.getPitch();
+    size_t pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
 
@@ -269,7 +269,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
     GlobalArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
-    unsigned int pitch = virial_array_5.getPitch();
+    size_t pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
 
@@ -346,7 +346,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     {
     GlobalArray<Scalar4>& force_array_7 =  fc1->getForceArray();
     GlobalArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
-    unsigned int pitch = virial_array_7.getPitch();
+    size_t pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
     GlobalArray<Scalar4>& force_array_8 =  fc2->getForceArray();
@@ -394,7 +394,7 @@ std::shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(std::shared_ptr
     return std::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! AngleForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -412,7 +412,7 @@ UP_TEST( HarmonicAngleForceCompute_basic )
     angle_force_basic_tests(af_creator, exec_conf);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for angle forces on the GPU
 UP_TEST( HarmonicAngleForceComputeGPU_basic )
     {

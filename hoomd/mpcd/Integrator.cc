@@ -123,7 +123,7 @@ void mpcd::Integrator::update(unsigned int timestep)
         }
 
     // compute the net force on the MD particles
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep+1);
     else

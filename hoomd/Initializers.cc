@@ -3,8 +3,6 @@
 
 // Maintainer: joaander
 
-
-
 #include "Initializers.h"
 #include "SnapshotSystemData.h"
 

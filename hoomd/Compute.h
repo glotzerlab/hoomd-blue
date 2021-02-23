@@ -19,7 +19,7 @@
     \brief Declares a base class for all computes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -74,16 +74,9 @@ class PYBIND11_EXPORT Compute
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
 
-        //! Print some basic stats to stdout
-        /*! Derived classes can optionally implement this function. A System will
-            call all of the Compute's printStats functions at the end of a run
-            so the user can see useful information
-        */
-        virtual void printStats(){}
-
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
-            counters printed by printStats. System will reset the stats before any run() so that stats printed
+        /*! If derived classes provide statistics for the last run, they should resetStats() to
+            clear any counters. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats(){}
@@ -163,6 +156,9 @@ class PYBIND11_EXPORT Compute
          */
         void forceCompute(unsigned int timestep);
 
+        /// Python will notify C++ objects when they are detached from Simulation
+        virtual void notifyDetach() { };
+
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
@@ -217,7 +213,7 @@ class PYBIND11_EXPORT Compute
     };
 
 //! Exports the Compute class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_Compute(pybind11::module& m);
 #endif
 

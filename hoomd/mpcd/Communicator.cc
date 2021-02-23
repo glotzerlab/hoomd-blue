@@ -62,6 +62,23 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     // attach decomposition check to the box change signal
     m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
 
+    // create new data type for the pdata_element
+    const int nitems = 4;
+    int blocklengths[nitems] = {4,4,1,1};
+    MPI_Datatype types[nitems] = {MPI_HOOMD_SCALAR, MPI_HOOMD_SCALAR, MPI_UNSIGNED, MPI_UNSIGNED};
+    MPI_Aint offsets[nitems];
+    offsets[0] = offsetof(mpcd::detail::pdata_element, pos);
+    offsets[1] = offsetof(mpcd::detail::pdata_element, vel);
+    offsets[2] = offsetof(mpcd::detail::pdata_element, tag);
+    offsets[3] = offsetof(mpcd::detail::pdata_element, comm_flag);
+    // this needs to be made via the resize method to get its upper bound correctly
+    MPI_Datatype tmp;
+    MPI_Type_create_struct(nitems, blocklengths, offsets, types, &tmp);
+    MPI_Type_commit(&tmp);
+    MPI_Type_create_resized(tmp, 0, sizeof(mpcd::detail::pdata_element), &m_pdata_element);
+    MPI_Type_commit(&m_pdata_element);
+    MPI_Type_free(&tmp);
+
     initializeNeighborArrays();
     }
 
@@ -69,6 +86,7 @@ mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
     m_mpcd_sys->getCellList()->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+    MPI_Type_free(&m_pdata_element);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -151,7 +169,7 @@ void mpcd::Communicator::initializeNeighborArrays()
         neigh_map.insert(std::make_pair(h_neighbors.data[i], m));
         }
 
-    m_n_unique_neigh = neigh_map.size();
+    m_n_unique_neigh = (unsigned int)neigh_map.size();
 
     m_unique_neigh_map.clear();
     n = 0;
@@ -279,7 +297,7 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             // first, partition off particles that may be sent in either direction
             mpcd::detail::MigratePartitionOp part_op(stage_mask);
             auto bound = std::partition(h_sendbuf.data, h_sendbuf.data + m_sendbuf.size(), part_op);
-            n_keep = &(*bound)-h_sendbuf.data;
+            n_keep = (unsigned int)(&(*bound)-h_sendbuf.data);
 
             // then, partition the sent particles into the left and right ranks so that particles getting sent right come first
             if (left_neigh != right_neigh)
@@ -287,12 +305,12 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
                 // partition the remaining particles left and right
                 mpcd::detail::MigratePartitionOp sort_op(left_mask);
                 bound = std::partition(h_sendbuf.data + n_keep, h_sendbuf.data + m_sendbuf.size(), sort_op);
-                n_send_right = &(*bound) - (h_sendbuf.data + n_keep);
-                n_send_left = m_sendbuf.size() - n_keep - n_send_right;
+                n_send_right = (unsigned int)(&(*bound) - (h_sendbuf.data + n_keep));
+                n_send_left = (unsigned int)(m_sendbuf.size() - n_keep - n_send_right);
                 }
             else
                 {
-                n_send_right = m_sendbuf.size() - n_keep;
+                n_send_right = (unsigned int)(m_sendbuf.size() - n_keep);
                 n_send_left = 0;
                 }
             }
@@ -328,19 +346,19 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             int nreq = 0;
             if (n_send_right != 0)
                 {
-                MPI_Isend(h_sendbuf.data + n_keep, n_send_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Isend(h_sendbuf.data + n_keep, n_send_right, m_pdata_element, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_send_left != 0)
                 {
-                MPI_Isend(h_sendbuf.data + n_keep + n_send_right, n_send_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Isend(h_sendbuf.data + n_keep + n_send_right, n_send_left, m_pdata_element, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_recv_right != 0)
                 {
-                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right, m_pdata_element, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_recv_left != 0)
                 {
-                MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right, n_recv_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right, n_recv_left, m_pdata_element, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
             if (m_prof) m_prof->pop(0, (n_send_left+n_send_right+n_recv_left+n_recv_right)*sizeof(mpcd::detail::pdata_element));
@@ -353,10 +371,10 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
             mpcd::detail::MigratePartitionOp part_op(~stage_mask);
             auto bound = std::partition(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), part_op);
-            n_recv = &(*bound) - h_recvbuf.data;
+            n_recv = (unsigned int)(&(*bound) - h_recvbuf.data);
 
             // move particles to resend over to the send buffer and unset the bits from this stage
-            const unsigned int n_resend = m_recvbuf.size() - n_recv;
+            const unsigned int n_resend = (unsigned int)(m_recvbuf.size() - n_recv);
             m_sendbuf.resize(n_keep + n_resend);
             ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
             std::copy(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), h_sendbuf.data + n_keep);

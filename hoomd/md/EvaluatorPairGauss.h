@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_GAUSS_H__
 #define __PAIR_EVALUATOR_GAUSS_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -19,11 +19,12 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
 #endif
+
 
 //! Class for evaluating the Gaussian pair potential
 /*! <b>General Overview</b>
@@ -47,7 +48,50 @@ class EvaluatorPairGauss
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar epsilon;
+            Scalar sigma;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : epsilon(0), sigma(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                sigma = v["sigma"].cast<Scalar>();
+                epsilon = v["epsilon"].cast<Scalar>();
+                }
+
+            // used to facilitate unit testing
+            param_type(Scalar eps, Scalar sig)
+                {
+                sigma = sig;
+                epsilon = eps;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["sigma"] = sigma;
+                v["epsilon"] = epsilon;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +99,7 @@ class EvaluatorPairGauss
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairGauss(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), sigma(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.epsilon), sigma(_params.sigma)
             {
             }
 
@@ -106,7 +150,7 @@ class EvaluatorPairGauss
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
         /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
             via analyze.log.

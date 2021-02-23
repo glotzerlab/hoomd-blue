@@ -7,6 +7,7 @@
 /*! \file ParticleData.cc
     \brief Contains all code for ParticleData, and SnapshotParticleData.
  */
+
 #include "ParticleData.h"
 #include "Profiler.h"
 
@@ -14,12 +15,13 @@
 #include "HOOMDMPI.h"
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CachedAllocator.h"
 #include "GPUPartition.cuh"
 #endif
 
 #include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 
 #include <iostream>
 #include <cassert>
@@ -31,6 +33,21 @@
 using namespace std;
 
 namespace py = pybind11;
+
+std::string getDefaultTypeName(unsigned int id)
+    {
+    const char default_name[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    unsigned n = (unsigned int)(sizeof(default_name) / sizeof(char) - 1);
+    std::string result(1, default_name[id % n]);
+
+    while (id >= n)
+        {
+        id = id / n - 1;
+        result = std::string(1, default_name[id % n]) + result;
+        }
+
+    return result;
+    }
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -81,10 +98,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // setup the type mappings
     for (unsigned int i = 0; i < n_types; i++)
         {
-        char name[2];
-        name[0] = 'A' + i;
-        name[1] = '\0';
-        snap.type_mapping.push_back(string(name));
+        snap.type_mapping.push_back(getDefaultTypeName(i));
         }
 
     #ifdef ENABLE_MPI
@@ -95,7 +109,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // initialize box dimensions on all processors
     setGlobalBox(global_box);
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
@@ -122,14 +136,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*! Loads particle data from the snapshot into the internal arrays.
@@ -170,7 +176,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         throw runtime_error("Error initializing ParticleData");
         }
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
@@ -197,14 +203,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 
@@ -260,7 +258,7 @@ const BoxDim & ParticleData::getGlobalBox() const
 */
 void ParticleData::notifyParticleSort()
     {
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         // need to update GPUPartition if particle number changes
@@ -423,7 +421,7 @@ void ParticleData::allocate(unsigned int N)
     m_comm_flags.swap(comm_flags);
     TAG_ALLOCATION(m_comm_flags);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -541,8 +539,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
         memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
         }
 
-
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -579,7 +576,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
     // we have changed the global particle number, notify subscribers
     m_global_particle_num_signal.emit();
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -599,7 +596,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
 void ParticleData::resize(unsigned int new_nparticles)
     {
     // update the partition information, so it is available to subscribers of various signals early
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         m_gpu_partition.setN(new_nparticles);
     #endif
@@ -680,7 +677,7 @@ void ParticleData::reallocate(unsigned int max_n)
 
     m_comm_flags.resize(max_n);
 
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -730,7 +727,7 @@ void ParticleData::reallocate(unsigned int max_n)
             memset(h_net_virial_alt.data, 0, sizeof(Scalar)*m_net_virial_alt.getNumElements());
             }
 
-        #ifdef ENABLE_CUDA
+        #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
         if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
             {
             auto gpu_map = m_exec_conf->getGPUIds();
@@ -913,7 +910,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             // loop over particles in snapshot, place them into domains
             for (typename std::vector< vec3<Real> >::const_iterator it=snapshot.pos.begin(); it != snapshot.pos.end(); it++)
                 {
-                unsigned int snap_idx = it - snapshot.pos.begin();
+                unsigned int snap_idx = (unsigned int)(it - snapshot.pos.begin());
 
                 // if requested, do not initialize constituent particles of bodies
                 if (ignore_bodies && snapshot.body[snap_idx] < MIN_FLOPPY)
@@ -924,9 +921,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
                 Scalar3 f = m_global_box.makeFraction(pos);
-                int i= f.x * ((Scalar)di.getW());
-                int j= f.y * ((Scalar)di.getH());
-                int k= f.z * ((Scalar)di.getD());
+                int i= int(f.x * ((Scalar)di.getW()));
+                int j= int(f.y * ((Scalar)di.getH()));
+                int k= int(f.z * ((Scalar)di.getD()));
 
                 // wrap particles that are exactly on a boundary
                 // we only need to wrap in the negative direction, since
@@ -1050,7 +1047,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::overwrite);
 
             // we have to reset all previous rtags, to remove 'leftover' ghosts
-            unsigned int max_tag = m_rtag.size();
+            unsigned int max_tag = (unsigned int)m_rtag.size();
             for (unsigned int tag = 0; tag < max_tag; tag++)
                 h_rtag.data[tag] = NOT_LOCAL;
             }
@@ -1360,9 +1357,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
                 snapshot.vel[snap_id] = vec3<Real>(vel_proc[rank][idx]);
                 snapshot.accel[snap_id] = vec3<Real>(accel_proc[rank][idx]);
                 snapshot.type[snap_id] = type_proc[rank][idx];
-                snapshot.mass[snap_id] = mass_proc[rank][idx];
-                snapshot.charge[snap_id] = charge_proc[rank][idx];
-                snapshot.diameter[snap_id] = diameter_proc[rank][idx];
+                snapshot.mass[snap_id] = Real(mass_proc[rank][idx]);
+                snapshot.charge[snap_id] = Real(charge_proc[rank][idx]);
+                snapshot.diameter[snap_id] = Real(diameter_proc[rank][idx]);
                 snapshot.image[snap_id] = image_proc[rank][idx];
                 snapshot.body[snap_id] = body_proc[rank][idx];
                 snapshot.orientation[snap_id] = quat<Real>(orientation_proc[rank][idx]);
@@ -1402,9 +1399,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
             snapshot.vel[snap_id] = vec3<Real>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));
             snapshot.accel[snap_id] = vec3<Real>(h_accel.data[idx]);
             snapshot.type[snap_id] = __scalar_as_int(h_pos.data[idx].w);
-            snapshot.mass[snap_id] = h_vel.data[idx].w;
-            snapshot.charge[snap_id] = h_charge.data[idx];
-            snapshot.diameter[snap_id] = h_diameter.data[idx];
+            snapshot.mass[snap_id] = Real(h_vel.data[idx].w);
+            snapshot.charge[snap_id] = Real(h_charge.data[idx]);
+            snapshot.diameter[snap_id] = Real(h_diameter.data[idx]);
             snapshot.image[snap_id] = h_image.data[idx];
             snapshot.image[snap_id].x -= m_o_image.x;
             snapshot.image[snap_id].y -= m_o_image.y;
@@ -1522,8 +1519,12 @@ Scalar3 ParticleData::getPosition(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(img, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(img.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1548,7 +1549,9 @@ Scalar3 ParticleData::getVelocity(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1571,7 +1574,9 @@ Scalar3 ParticleData::getAcceleration(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast(result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1598,8 +1603,12 @@ int3 ParticleData::getImage(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
-        bcast(pos, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((int &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) pos.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1746,7 +1755,10 @@ Scalar4 ParticleData::getOrientation(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1769,7 +1781,10 @@ Scalar4 ParticleData::getAngularMomentum(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1792,7 +1807,9 @@ Scalar3 ParticleData::getMomentsOfInertia(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1815,7 +1832,10 @@ Scalar4 ParticleData::getPNetForce(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -1839,7 +1859,10 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     if (m_decomposition)
         {
         unsigned int owner_rank = getOwnerRank(tag);
-        bcast(result, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.x, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.y, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.z, owner_rank, m_exec_conf->getMPICommunicator());
+        bcast((Scalar &) result.w, owner_rank, m_exec_conf->getMPICommunicator());
         found = true;
         }
 #endif
@@ -2268,6 +2291,8 @@ unsigned int ParticleData::addParticle(unsigned int type)
         ArrayHandle<Scalar> h_charge(getCharges(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_diameter(getDiameters(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(getImages(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_body(getBodies(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
@@ -2280,8 +2305,10 @@ unsigned int ParticleData::addParticle(unsigned int type)
         h_vel.data[idx] = make_scalar4(0,0,0,1.0);
         h_accel.data[idx] = make_scalar3(0,0,0);
         h_charge.data[idx] = 0.0;
-        h_diameter.data[idx] = 0.0;
+        h_diameter.data[idx] = 1.0;
         h_image.data[idx] = make_int3(0,0,0);
+        h_angmom.data[idx] = make_scalar4(0,0,0,0);
+        h_inertia.data[idx] = make_scalar3(0,0,0);
         h_body.data[idx] = NO_BODY;
         h_orientation.data[idx] = make_scalar4(1.0,0.0,0.0,0.0);
         h_tag.data[idx] = tag;
@@ -2439,8 +2466,15 @@ void export_BoxDim(py::module& m)
     .def(py::init<Scalar3>())
     .def(py::init<Scalar3, Scalar3, uchar3>())
     .def(py::init<Scalar, Scalar, Scalar, Scalar>())
-    .def("getPeriodic", &BoxDim::getPeriodic)
-    .def("setPeriodic", &BoxDim::setPeriodic)
+    .def(py::self == py::self)
+    .def(py::self != py::self)
+    .def("getPeriodic", [](const BoxDim &box)
+                            {
+                            auto periodic = box.getPeriodic();
+                            return make_uint3(periodic.x,
+                                              periodic.y,
+                                              periodic.z);
+                            })
     .def("getL", &BoxDim::getL)
     .def("setL", &BoxDim::setL)
     .def("getLo", &BoxDim::getLo)
@@ -2534,6 +2568,7 @@ void export_ParticleData(py::module& m)
     .def("setOrientation", &ParticleData::setOrientation)
     .def("setAngularMomentum", &ParticleData::setAngularMomentum)
     .def("setMomentsOfInertia", &ParticleData::setMomentsOfInertia)
+    .def("setPressureFlag", &ParticleData::setPressureFlag)
     .def("getMaximumTag", &ParticleData::getMaximumTag)
     .def("addParticle", &ParticleData::addParticle)
     .def("removeParticle", &ParticleData::removeParticle)
@@ -2543,6 +2578,7 @@ void export_ParticleData(py::module& m)
     .def("getDomainDecomposition", &ParticleData::getDomainDecomposition)
 #endif
     .def("addType", &ParticleData::addType)
+    .def("getTypes", &ParticleData::getTypesPy)
     ;
     }
 
@@ -2696,7 +2732,7 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
 
         unsigned int n =0;
         unsigned int m = 0;
-        unsigned int net_virial_pitch = m_net_virial.getPitch();
+        unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
             unsigned int tag = h_tag.data[i];
@@ -2792,7 +2828,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
     {
     if (m_prof) m_prof->push("unpack");
 
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
 
     unsigned int old_nparticles = getN();
     unsigned int new_nparticles = m_nparticles + num_add_ptls;
@@ -2819,7 +2855,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
 
-        unsigned int net_virial_pitch = m_net_virial.getPitch();
+        unsigned int net_virial_pitch = (unsigned int)m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
         for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
@@ -2862,7 +2898,7 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
     notifyParticleSort();
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Pack particle data into a buffer (GPU version)
 /*! \note This method may only be used during communication or when
  *        no ghost particles are present, because ghost particle values
@@ -2873,17 +2909,17 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
     if (m_prof) m_prof->push(m_exec_conf, "pack");
 
     // this is the maximum number of elements we can possibly write to out
-    unsigned int max_n_out = out.getNumElements();
+    unsigned int max_n_out = (unsigned int)out.getNumElements();
     if (comm_flags.getNumElements() < max_n_out)
-        max_n_out = comm_flags.getNumElements();
+        max_n_out = (unsigned int)comm_flags.getNumElements();
 
     // allocate array if necessary
     if (! max_n_out)
         {
         out.resize(1);
         comm_flags.resize(1);
-        max_n_out = out.getNumElements();
-        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
+        max_n_out = (unsigned int)out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = (unsigned int)comm_flags.getNumElements();
         }
 
     // number of particles that are to be written out
@@ -2955,7 +2991,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
                            d_net_force.data,
                            d_net_torque.data,
                            d_net_virial.data,
-                           getNetVirial().getPitch(),
+                           (unsigned int)getNetVirial().getPitch(),
                            d_tag.data,
                            d_rtag.data,
                            d_pos_alt.data,
@@ -2977,7 +3013,7 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
                            d_comm_flags_out.data,
                            max_n_out,
                            d_tmp.data,
-                           m_mgpu_context,
+                           m_exec_conf->getCachedAllocatorManaged(),
                            m_gpu_partition);
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -2993,8 +3029,8 @@ void ParticleData::removeParticlesGPU(GlobalVector<pdata_element>& out, GlobalVe
         // was the array large enough?
         if (n_out <= max_n_out) done = true;
 
-        max_n_out = out.getNumElements();
-        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
+        max_n_out = (unsigned int)out.getNumElements();
+        if (comm_flags.getNumElements() < max_n_out) max_n_out = (unsigned int)comm_flags.getNumElements();
         }
 
     // update particle number (no need to shrink arrays)
@@ -3028,7 +3064,7 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
 
     unsigned int old_nparticles = getN();
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
 
     // amortized resizing of particle data
@@ -3073,7 +3109,7 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
             d_net_force.data,
             d_net_torque.data,
             d_net_virial.data,
-            getNetVirial().getPitch(),
+            (unsigned int)getNetVirial().getPitch(),
             d_tag.data,
             d_rtag.data,
             d_in.data,
@@ -3089,12 +3125,12 @@ void ParticleData::addParticlesGPU(const GlobalVector<pdata_element>& in)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI
 
 void ParticleData::setGPUAdvice()
     {
-    #ifdef ENABLE_CUDA
+    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled())
         {
         // only call CUDA API when necessary
@@ -3209,7 +3245,7 @@ unsigned int ParticleData::addType(const std::string& type_name)
     m_num_types_signal.emit();
 
     // return id of newly added type
-    return m_type_mapping.size() - 1;
+    return (unsigned int)(m_type_mapping.size() - 1);
     }
 
 template <class Real>
@@ -3404,7 +3440,7 @@ py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     // mark as dirty when accessing internal data
     self_cpp->is_accel_set = false;
 
-    return pybind11::array(self_cpp->body.size(), &self_cpp->body[0], self);
+    return pybind11::array(self_cpp->body.size(), (int*)&self_cpp->body[0], self);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
@@ -3527,9 +3563,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
-    .def_readonly("N", &SnapshotParticleData<float>::size)
-    .def("resize", &SnapshotParticleData<float>::resize)
-    .def("insert", &SnapshotParticleData<float>::insert)
+    .def_property("N", &SnapshotParticleData<float>::getSize, &SnapshotParticleData<float>::resize)
     .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
@@ -3548,9 +3582,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
     .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
-    .def_readonly("N", &SnapshotParticleData<double>::size)
-    .def("resize", &SnapshotParticleData<double>::resize)
-    .def("insert", &SnapshotParticleData<double>::insert)
+    .def_property("N", &SnapshotParticleData<double>::getSize, &SnapshotParticleData<double>::resize)
     .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
    }

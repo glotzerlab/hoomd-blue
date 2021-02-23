@@ -4,9 +4,9 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/SlitPoreGeometryFiller.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/SlitPoreGeometryFillerGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -40,7 +40,7 @@ void slit_pore_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // create slit channel with half width 5 and half length 8
     auto slit = std::make_shared<const mpcd::detail::SlitPoreGeometry>(5.0, 8.0, mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConst>(1.0);
+    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.0);
     std::shared_ptr<mpcd::SlitPoreGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, 42, slit);
 
     /*
@@ -87,9 +87,9 @@ UP_TEST( slit_pore_fill_mpi )
     {
     slit_pore_fill_mpi_test<mpcd::SlitPoreGeometryFiller>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( slit_pore_fill_mpi_gpu )
     {
     slit_pore_fill_mpi_test<mpcd::SlitPoreGeometryFillerGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

@@ -8,8 +8,6 @@
     \brief Defines the CallbackAnalyzer class
 */
 
-
-
 #include "CallbackAnalyzer.h"
 
 #ifdef ENABLE_MPI

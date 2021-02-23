@@ -7,7 +7,7 @@
 from hoomd import _hoomd
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
-from hoomd.compute import _compute
+from hoomd.operation import Compute
 import hoomd
 
 ## \internal
@@ -20,7 +20,7 @@ import hoomd
 # to the System they will not be enforced unless they are added to the integrator.
 # Only one external field can be held by the integrator so if multiple fields are
 # required use the external_field_composite class to manage them.
-class _external(_compute):
+class _external(Compute):
     ## \internal
     # \brief Initialize an empty external.
     #
@@ -326,7 +326,7 @@ class wall(_external):
     * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
     * Convex spheropolyhedron particles: sphere walls
 
-    Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
+    Once initialized, the compute provides the following log quantities that can be logged via ``hoomd.analyze.log``:
 
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
       if the user has initially provided it through :py:meth:`set_volume`. It will subsequently change when
@@ -800,15 +800,17 @@ class wall(_external):
 
         self.cpp_compute.SetCurrBox(Lx, Ly, Lz, xy, xz, yz);
 
-class frenkel_ladd_energy(_compute):
+class frenkel_ladd_energy(Compute):
     R""" Compute the Frenkel-Ladd Energy of a crystal.
 
     Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         ln_gamma (float): log of the translational spring constant
         q_factor (float): scale factor between the translational spring constant and rotational spring constant
         r0 (list): reference lattice positions
         q0 (list): reference lattice orientations
         drift_period (int): period call the remove drift updater
+        symmetry (list): list of equivalent quaternions for the shape.
 
     :py:class:`frenkel_ladd_energy` interacts with :py:class:`.lattice_field`
     and :py:class:`hoomd.hpmc.update.remove_drift`.

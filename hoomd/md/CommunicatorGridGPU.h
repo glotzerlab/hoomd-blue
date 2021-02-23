@@ -8,7 +8,7 @@
 #ifndef __COMMUNICATOR_GRID_GPU_H__
 #define __COMMUNICATOR_GRID_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "CommunicatorGrid.h"
 
 #ifdef ENABLE_MPI

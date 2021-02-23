@@ -15,7 +15,7 @@
     \brief Declares a class for computing harmonic dihedrals
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -23,6 +23,33 @@
 
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
+
+struct dihedral_harmonic_params
+    {
+    Scalar k;
+    Scalar d;
+    Scalar n;
+    Scalar phi_0;
+
+    #ifndef __HIPCC__
+    dihedral_harmonic_params(): k(0.), d(0.), n(0.), phi_0(0.){}
+
+    dihedral_harmonic_params(pybind11::dict v)
+        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()),
+          n(v["n"].cast<Scalar>()), phi_0(v["phi0"].cast<Scalar>()){}
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["k"] = k;
+        v["d"] = d;
+        v["n"] = n;
+        v["phi0"] = phi_0;
+        return v;
+        }
+    #endif
+    }
+    __attribute__((aligned(32)));
 
 //! Computes harmonic dihedral forces on each particle
 /*! Harmonic dihedral forces are computed on every particle in the simulation.
@@ -40,7 +67,12 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual ~HarmonicDihedralForceCompute();
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
+        virtual void setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
+
+        virtual void setParamsPython(std::string type, pybind11::dict params);
+
+        /// Get the parameters for a particular type
+        pybind11::dict getParams(std::string type);
 
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -65,6 +97,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         Scalar *m_K;     //!< K parameter for multiple dihedral tyes
         Scalar *m_sign;  //!< sign parameter for multiple dihedral types
         Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
+        Scalar *m_phi_0; //!< phi_0 parameter for multiple dihedral types
 
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 

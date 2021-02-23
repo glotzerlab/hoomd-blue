@@ -115,7 +115,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 
             // determine volume (# of particles) for filling
             const Scalar volume = (clampbox.y-clampbox.x)*Ly*(clampbox.w-clampbox.z);
-            const unsigned int N_box = std::round(volume * m_density);
+            const unsigned int N_box = (unsigned int)std::round(volume * m_density);
 
             // only add box if it isn't empty
             if (N_box != 0)
@@ -145,7 +145,7 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::readwrite);
-    const Scalar vel_factor = fast::sqrt(m_T->getValue(timestep) / m_mpcd_pdata->getMass());
+    const Scalar vel_factor = fast::sqrt((*m_T)(timestep) / m_mpcd_pdata->getMass());
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 lo = box.getLo();

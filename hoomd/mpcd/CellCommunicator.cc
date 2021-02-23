@@ -34,13 +34,13 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
       m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack_" + std::to_string(m_id), m_exec_conf));
         m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack_" + std::to_string(m_id), m_exec_conf));
         }
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
 
     m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
     }
@@ -231,8 +231,8 @@ void mpcd::CellCommunicator::initialize()
             auto upper = send_map.upper_bound(*it);
 
             m_neighbors[idx] = *it;
-            m_begin[idx] = std::distance(send_map.begin(), lower);
-            m_num_send[idx] = std::distance(lower, upper);
+            m_begin[idx] = (unsigned int)std::distance(send_map.begin(), lower);
+            m_num_send[idx] = (unsigned int)std::distance(lower, upper);
             ++idx;
             }
         }
@@ -249,7 +249,7 @@ void mpcd::CellCommunicator::initialize()
             MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
             MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
-        MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+        MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
 
     // transform all of the global cell indexes back into local cell indexes
@@ -271,7 +271,7 @@ void mpcd::CellCommunicator::initialize()
             unique_cells.insert(cell);
             cell_map.insert(std::make_pair(cell, idx));
             }
-        m_num_cells = unique_cells.size();
+        m_num_cells = (unsigned int)unique_cells.size();
 
         /*
          * Allocate auxiliary memory for receiving cell reordering

@@ -12,11 +12,11 @@
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "DEM3DForceComputeGPU.h"
 #include "DEM3DForceGPU.cuh"
-#include "cuda_runtime.h"
+#include "hip/hip_runtime.h"
 
 #include <stdexcept>
 
@@ -47,20 +47,9 @@ DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(std::shared_p
         throw std::runtime_error("Error initializing DEM3DForceComputeGPU");
         }
 
-#if SINGLE_PRECISION
-    int cudaVersion(0);
-    cudaRuntimeGetVersion(&cudaVersion);
-    if (this->m_exec_conf->dev_prop.major == 5 &&
-        this->m_exec_conf->dev_prop.minor == 2 &&
-        cudaVersion <= 7050)
-        {
-        this->m_exec_conf->msg->warning() << "3D DEM in single precision is "
-            "known to exhibit a compiler bug with cuda < 8.0 on "
-            "SM 5.2 cards! Undefined behavior may result." << endl;
-        }
-#endif
-
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "dem_3d", this->m_exec_conf));
+    unsigned warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned max_threads = this->m_exec_conf->dev_prop.maxThreadsPerBlock;
+    m_tuner.reset(new Autotuner(warp_size, max_threads, warp_size, 5, 100000, "dem_3d", this->m_exec_conf));
     }
 
 /*! Destructor. */
@@ -194,12 +183,12 @@ void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int ti
         this->m_pdata->getN(), this->m_pdata->getNGhosts(), d_pos.data, d_quat.data,
         d_nextFace.data, d_firstFaceVert.data, d_nextFaceVert.data,
         d_realVertIndex.data, d_verts.data, d_diam.data, d_velocity.data,
-        this->maxGPUThreads(), this->maxVertices(),
-        this->numFaces(), this->numDegenerateVerts(),
-        this->numVertices(), this->numEdges(),
+        (unsigned int)this->maxGPUThreads(), (unsigned int)this->maxVertices(),
+        (unsigned int)this->numFaces(), (unsigned int)this->numDegenerateVerts(),
+        (unsigned int)this->numVertices(), (unsigned int)this->numEdges(),
         this->m_pdata->getNTypes(), box, d_n_neigh.data, d_nlist.data,
         d_head_list.data, this->m_evaluator, this->m_r_cut * this->m_r_cut,
-        particlesPerBlock, d_firstTypeVert.data, d_numTypeVerts.data,
+        (unsigned int)particlesPerBlock, d_firstTypeVert.data, d_numTypeVerts.data,
         d_firstTypeEdge.data, d_numTypeEdges.data, d_numTypeFaces.data,
         d_vertexConnectivity.data, d_edges.data);
 
