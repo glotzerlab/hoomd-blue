@@ -73,6 +73,13 @@ class Constant(_hoomd.VariantConstant, Variant):
         Variant.__init__(self)
         _hoomd.VariantConstant.__init__(self, value)
 
+    def __eq__(self, other):
+        if not isinstance(other, Variant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return other.value == self.value
+
 
 class Ramp(_hoomd.VariantRamp, Variant):
     """A linear ramp.
@@ -98,6 +105,15 @@ class Ramp(_hoomd.VariantRamp, Variant):
     def __init__(self, A, B, t_start, t_ramp):
         Variant.__init__(self)
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
+
+    def __eq__(self, other):
+        if not isinstance(other, Variant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        attrs = ('A', 'B', 't_start', 't_ramp')
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in attrs)
 
 
 class Cycle(_hoomd.VariantCycle, Variant):
@@ -134,6 +150,15 @@ class Cycle(_hoomd.VariantCycle, Variant):
         Variant.__init__(self)
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
 
+    def __eq__(self, other):
+        if not isinstance(other, Variant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        attrs = ('A', 'B', 't_start', 't_A', 't_AB', 't_B', 't_BA')
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in attrs)
+
 
 class Power(_hoomd.VariantPower, Variant):
     """A approach from initial to final value of x ^ (power).
@@ -166,3 +191,12 @@ class Power(_hoomd.VariantPower, Variant):
     def __init__(self, A, B, power, t_start, t_ramp):
         Variant.__init__(self)
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
+
+    def __eq__(self, other):
+        if not isinstance(other, Variant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        attrs = ('A', 'B', 't_start', 't_ramp', 'power')
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in attrs)
