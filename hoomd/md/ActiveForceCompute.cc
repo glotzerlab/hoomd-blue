@@ -109,10 +109,20 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
 
     Scalar f_activeMag = slow::sqrt(f_activeVec.x*f_activeVec.x+f_activeVec.y*f_activeVec.y+f_activeVec.z*f_activeVec.z);
 
-    f_activeVec.x /= f_activeMag;
-    f_activeVec.y /= f_activeMag;
-    f_activeVec.z /= f_activeMag;
-    f_activeVec.w = f_activeMag;
+    if(f_activeMag >0)
+        {
+        f_activeVec.x /= f_activeMag;
+        f_activeVec.y /= f_activeMag;
+        f_activeVec.z /= f_activeMag;
+        f_activeVec.w = f_activeMag;
+        }
+    else
+        {
+        f_activeVec.x = 0;
+        f_activeVec.y = 0;
+        f_activeVec.z = 0;
+        f_activeVec.w = 0;
+        }
 
     ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
     h_f_activeVec.data[typ] = f_activeVec;
