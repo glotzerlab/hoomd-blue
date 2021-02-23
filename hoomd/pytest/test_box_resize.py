@@ -2,6 +2,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 import hoomd
+from hoomd.conftest import operation_pickling_check
 
 
 @pytest.fixture(scope="function")
@@ -223,3 +224,9 @@ def test_update_filters(device, get_snapshot, sys, filters):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
     hoomd.update.BoxResize.update(sim.state, sys2[0], filter=filter_scale)
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  box_resize):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    operation_pickling_check(box_resize, sim)

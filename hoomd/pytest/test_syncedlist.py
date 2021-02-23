@@ -1,7 +1,8 @@
 from pytest import fixture, raises
+from hoomd.conftest import pickling_check
 from hoomd.pytest.dummy import DummyOperation, DummySimulation
 from hoomd.operation import Operation
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data.syncedlist import SyncedList, _PartialIsInstance
 
 
 @fixture
@@ -37,7 +38,7 @@ def test_init(op_list):
 
 @fixture
 def slist_empty():
-    return SyncedList(lambda x: isinstance(x, Operation))
+    return SyncedList(_PartialIsInstance(Operation))
 
 
 @fixture
@@ -70,7 +71,7 @@ class OpInt(int):
 
 @fixture
 def islist(slist_empty):
-    return SyncedList(lambda x: isinstance(x, int),
+    return SyncedList(_PartialIsInstance(int),
                       iterable=[OpInt(i) for i in [1, 2, 3]])
 
 
@@ -280,3 +281,7 @@ def test_remove(islist):
     assert not oplist[0]._attached
     assert oplist[0] not in islist
     assert oplist[0] not in sync_list
+
+
+def test_pickling(slist):
+    pickling_check(slist)

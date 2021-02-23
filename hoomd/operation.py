@@ -274,9 +274,6 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
             else:
                 if key not in other_keys \
                         or self.__dict__[key] != other.__dict__[key]:
-                    print(
-                        f"self[{key}]={self.__dict__[key]}, "
-                        f"other[{key}]={other.__dict__[key]}")
                     return False
         return super().__eq__(other)
 

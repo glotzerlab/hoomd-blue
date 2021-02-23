@@ -1,3 +1,4 @@
+from hoomd.conftest import pickling_check
 from hoomd.data.parameterdicts import (
     TypeParameterDict, AttachedTypeParameterDict)
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
@@ -5,10 +6,14 @@ from hoomd.data.typeconverter import TypeConversionError, RequiredArg
 from pytest import fixture, raises
 
 
+def identity(x):
+    return x
+
+
 @fixture(scope='function')
 def typedict_singleton_keys():
     return TypeParameterDict(**dict(foo=1,
-                                    bar=lambda x: x,
+                                    bar=identity,
                                     baz='hello'),
                              len_keys=1
                              )
@@ -44,7 +49,7 @@ def test_typeparamdict_key_validation_single(typedict_singleton_keys,
 @fixture(scope='function')
 def typedict_pair_keys():
     return TypeParameterDict(**dict(foo=1,
-                                    bar=lambda x: x,
+                                    bar=identity,
                                     baz='hello'),
                              len_keys=2
                              )
@@ -255,3 +260,8 @@ def test_attach_dettach(attached_param_dict):
     assert tp['A'] == attached_param_dict['A']
     assert tp['B'] == attached_param_dict['B']
     assert type(tp) == TypeParameterDict
+
+
+def test_pickling(typedict_pair_keys, attached_param_dict):
+    pickling_check(typedict_pair_keys)
+    pickling_check(attached_param_dict)

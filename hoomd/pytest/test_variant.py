@@ -3,9 +3,11 @@
 # License.
 
 from inspect import isclass
+import itertools
 import pickle
 
 import numpy as np
+from hoomd.conftest import pickling_check
 import hoomd
 import hoomd.variant
 import pytest
@@ -172,17 +174,6 @@ def test_evaulation(variant, evaluator, kwargs):
         assert np.isclose(eval_func(i), variant(i))
 
 
-@pytest.mark.parametrize(
-    'variant, attrs',
-    ((variant, list(kwarg.keys())) for variant, kwarg in zip(
-        variants(), _single_kwargs)),
-    ids=_test_id)
-def test_pickling(variant, attrs):
-    pkled_variant = pickle.loads(pickle.dumps(variant))
-    for attr in attrs:
-        assert getattr(pkled_variant, attr) == getattr(variant, attr)
-
-
 class CustomVariant(hoomd.variant.Variant):
     def __init__(self):
         hoomd.variant.Variant.__init__(self)
@@ -196,6 +187,18 @@ class CustomVariant(hoomd.variant.Variant):
 
     def _max(self):
         return 1.0
+
+    def __eq__(self, other):
+        return isinstance(other, type(self))
+
+
+@pytest.mark.parametrize(
+    'variant',
+    (variant for variant in itertools.chain(variants(), (CustomVariant(),))),
+    ids=_test_id)
+def test_pickling(variant):
+    # This also tests equality of objects with the same attributes
+    pickling_check(variant)
 
 
 def test_custom():
@@ -213,6 +216,6 @@ def test_custom():
     assert hoomd._hoomd._test_variant_max(c) == 1.0
 
     pkled_variant = pickle.loads(pickle.dumps(c))
-    assert pkled_variant._a == 1
     for i in range(0, 10000, 100):
-        assert hoomd._hoomd._test_variant_call(pkled_variant, i) == float(i)**(1 / 2)
+        assert (hoomd._hoomd._test_variant_call(pkled_variant, i)
+                == float(i)**(1 / 2))
