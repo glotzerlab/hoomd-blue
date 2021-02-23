@@ -748,3 +748,10 @@ class Logger(SafeNamespaceDict):
             return [quantity]
         else:
             return quantity
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return (self.categories == other.categories
+                and self.only_default == other.only_default
+                and self._dict == other._dict)
