@@ -41,8 +41,7 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
 
 _radii = [(0.25, 0.05),
           (0.4, 0.05),
-          (0.7, 0.17),
-          (0.25, 1.5)]
+          (0.7, 0.17)]
 
 @pytest.mark.parametrize("radius1, radius2", _radii)
 def test_validation_systems(simulation_factory,
