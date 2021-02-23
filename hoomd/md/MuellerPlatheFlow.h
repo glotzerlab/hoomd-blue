@@ -80,6 +80,9 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         unsigned int get_N_slabs(void)const{return m_N_slabs;}
         unsigned int get_min_slab(void)const{return m_min_slab;}
         unsigned int get_max_slab(void)const{return m_max_slab;}
+        std::shared_ptr<Variant> get_flow_target(void)const{return m_max_slab;}
+        enum flow_enum::Direction get_slab_direction(void)const{return m_slab_direction;}
+        enum flow_enum::Direction get_flow_direction(void)const{return m_flow_direction;}
 
         void set_min_slab(const unsigned int slab_id);
         void set_max_slab(const unsigned int slab_id);
