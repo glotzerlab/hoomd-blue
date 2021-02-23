@@ -23,7 +23,7 @@ void PatchEnergyJITUnion::buildOBBTree()
             {
             // use a spherical OBB of radius 0.5*d
             auto pos = m_position[type][i];
-            float diameter = 0.5f*m_diameter[type][i];
+            float diameter = m_diameter[type][i];
 
             // use a spherical OBB of radius 0.5*d
             obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
