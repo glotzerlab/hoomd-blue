@@ -53,8 +53,8 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
                                   int3 *d_image,
                                   const BoxDim box,
                                   const Scalar *d_diameter,
-                                  const unsigned int *d_rtag,
-                                  const unsigned int *d_groupTags,
+                                  const unsigned int *d_tag,
+                                  const unsigned int *d_group_members,
                                   const unsigned int nwork,
                                   const Scalar4 *d_net_force,
                                   const Scalar3 *d_f_brownian,
@@ -109,8 +109,8 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
         const unsigned int group_idx = local_idx + offset;
 
         // determine the particle to work on
-        unsigned int tag = d_groupTags[group_idx];
-        unsigned int idx = d_rtag[tag];
+        unsigned int idx = d_group_members[group_idx];
+        unsigned int tag = d_tag[idx];
 
         Scalar4 postype = d_pos[idx];
         Scalar4 net_force = d_net_force[idx];
@@ -248,8 +248,8 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                   int3 *d_image,
                                   const BoxDim& box,
                                   const Scalar *d_diameter,
-                                  const unsigned int *d_rtag,
-                                  const unsigned int *d_groupTags,
+                                  const unsigned int *d_tag,
+                                  const unsigned int *d_group_members,
                                   const unsigned int group_size,
                                   const Scalar4 *d_net_force,
                                   const Scalar3 *d_f_brownian,
@@ -284,8 +284,8 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4 *d_pos,
                                      d_image,
                                      box,
                                      d_diameter,
-                                     d_rtag,
-                                     d_groupTags,
+                                     d_tag,
+                                     d_group_members,
                                      nwork,
                                      d_net_force,
                                      d_f_brownian,

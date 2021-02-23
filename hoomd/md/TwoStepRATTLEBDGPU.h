@@ -116,8 +116,8 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_f_brownian(this->m_f_brownian, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // for rotational noise
     ArrayHandle<Scalar3> d_gamma_r(this->m_gamma_r, access_location::device, access_mode::read);
@@ -161,8 +161,8 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
                           d_image.data,
                           box,
                           d_diameter.data,
-                          d_rtag.data,
-                          d_groupTags.data,
+                          d_tag.data,
+                          d_index_array.data,
                           group_size,
                           d_net_force.data,
                           d_f_brownian.data,
@@ -209,8 +209,8 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_rtag(this->m_pdata->getRTags(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     size_t net_virial_pitch = net_virial.getPitch();
 
@@ -248,8 +248,8 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
                           d_f_brownian.data,
                           d_net_virial.data,
                           d_diameter.data,
-                          d_rtag.data,
-                          d_groupTags.data,
+                          d_tag.data,
+                          d_index_array.data,
                           group_size,
                           args,
                           this->m_manifold,
