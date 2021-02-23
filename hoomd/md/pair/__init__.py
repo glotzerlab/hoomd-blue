@@ -22,5 +22,6 @@ from .pair import (
     Buckingham,
     LJ1208,
     Fourier,
-    OPP
+    OPP,
+    TWF
 )

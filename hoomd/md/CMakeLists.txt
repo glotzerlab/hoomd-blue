@@ -100,6 +100,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
+                EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
@@ -228,6 +229,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
                       OPPDriverPotentialPairGPU.cu
+                      TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
@@ -313,6 +315,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+          many_body.py
           methods.py
           nlist.py
           update.py

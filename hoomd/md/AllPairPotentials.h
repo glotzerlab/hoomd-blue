@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,6 +27,7 @@
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairOPP.h"
+#include "EvaluatorPairTWF.h"
 
 #ifdef ENABLE_HIP
 #include "PotentialPairGPU.h"
@@ -83,6 +84,9 @@ typedef PotentialPair<EvaluatorPairDLVO> PotentialPairDLVO;
 typedef PotentialPair<EvaluatorPairFourier> PotentialPairFourier;
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
+/// Pair potential force compute for Ten wolde and Frenkels globular protein
+/// model
+typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
@@ -126,6 +130,12 @@ typedef PotentialPairGPU<EvaluatorPairFourier, gpu_compute_fourier_forces> Poten
 //! Pair potential force compute for oscillating pair potential
 typedef PotentialPairGPU<EvaluatorPairOPP,
                          gpu_compute_opp_forces> PotentialPairOPPGPU;
+
+/// Pair potential force compute for Ten wolde and Frenkels globular protein
+/// model
+typedef PotentialPairGPU<EvaluatorPairTWF,
+                         gpu_compute_twf_forces> PotentialPairTWFGPU;
+
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

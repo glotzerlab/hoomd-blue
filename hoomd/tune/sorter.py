@@ -1,7 +1,7 @@
 """Define the ParticleSorter class."""
 
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyType
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Tuner
 from hoomd.trigger import Trigger
 from hoomd import _hoomd
@@ -42,7 +42,7 @@ class ParticleSorter(Tuner):
     def __init__(self, trigger=200, grid=None):
         self._param_dict = ParameterDict(
             trigger=Trigger,
-            grid=OnlyType(
+            grid=OnlyTypes(
                 int,
                 postprocess=lambda x: int(ParticleSorter._to_power_of_two(x)),
                 preprocess=ParticleSorter._natural_number,

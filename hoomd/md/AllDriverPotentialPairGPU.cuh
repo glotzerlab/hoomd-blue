@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -32,6 +32,7 @@
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairOPP.h"
+#include "EvaluatorPairTWF.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -133,4 +134,8 @@ hipError_t __attribute__((visibility("default")))
 gpu_compute_opp_forces(const pair_args_t & pair_args,
                        const EvaluatorPairOPP::param_type *d_params);
 
+//! Compute oscillating pair potential forces on the GPU with EvaluatorPairOPP
+hipError_t __attribute__((visibility("default")))
+gpu_compute_twf_forces(const pair_args_t & pair_args,
+                       const EvaluatorPairTWF::param_type *d_params);
 #endif

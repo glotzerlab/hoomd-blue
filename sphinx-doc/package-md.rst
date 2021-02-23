@@ -18,6 +18,7 @@ md
     module-md-compute
     module-md-dihedral
     module-md-force
+    module-md-many_body
     module-md-methods
     module-md-nlist
     module-md-pair

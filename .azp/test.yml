@@ -13,7 +13,7 @@ schedules:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2020.11
+  image_root: glotzerlab/ci:2021.01
 
   # default build parameters, will override as needed with job matrix values
   enable_gpu: off
