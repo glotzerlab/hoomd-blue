@@ -42,11 +42,23 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        //! Get the temperature
+        virtual std::shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
         //! Update the tau value
         //! \param tau New time constant to set
         virtual void setTau(Scalar tau)
             {
             m_tau = tau;
+            }
+
+        //! Get the tau value
+        virtual Scalar getTau()
+            {
+            return m_tau;
             }
 
         //! Performs the first step of the integration

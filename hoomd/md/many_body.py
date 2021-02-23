@@ -1,12 +1,12 @@
 import hoomd
 from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.data.typeconverter import OnlyType, positive_real
+from hoomd.data.typeconverter import OnlyTypes, positive_real
 from hoomd.data.typeparam import TypeParameter
 from hoomd.md import _md
 from hoomd.md.force import Force
 from hoomd.md.nlist import NList
 
-validate_nlist = OnlyType(NList)
+validate_nlist = OnlyTypes(NList)
 
 
 class Triplet(Force):

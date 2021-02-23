@@ -6,6 +6,8 @@ import numpy as np
 
 import hoomd
 from hoomd import md
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 import pytest
 import itertools
 from copy import deepcopy
@@ -300,6 +302,11 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(opp_invalid_dicts,
                                                     hoomd.md.pair.OPP,
                                                     {}))
+    twf_valid_dict = {'sigma': 1.0, 'epsilon': 1.0, 'alpha': 15}
+    twf_invalid_dicts = _make_invalid_param_dict(twf_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(twf_invalid_dicts,
+                                                    hoomd.md.pair.TWF,
+                                                    {}))
     tersoff_valid_dict = {
             'cutoff_thickness': 1.0,
             'magnitudes': (5.0, 2.0),
@@ -569,6 +576,14 @@ def _valid_params(particle_types=['A', 'B']):
     valid_params_list.append(paramtuple(hoomd.md.pair.OPP,
                                         dict(zip(combos,
                                                  opp_valid_param_dicts)),
+                                        {}))
+    twf_arg_dict = {'sigma': [0.1, 0.2, 0.5],
+                    'epsilon': [0.1, 0.5, 2.0],
+                    'alpha': [15.0, 12.0, 8.0]}
+    twf_valid_param_dicts = _make_valid_param_dicts(twf_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.TWF,
+                                        dict(zip(combos,
+                                                 twf_valid_param_dicts)),
                                         {}))
     return valid_params_list
 
@@ -850,6 +865,16 @@ def _forces_and_energies():
                           'energies'])
 
     path = Path(__file__).parent / "forces_and_energies.json"
+
+    def json_with_inf(val):
+        if isinstance(val, str):
+            if val.lower() == "infinity":
+                return np.inf
+            elif val.lower() == "neg_infinity":
+                return -np.inf
+        else:
+            return val
+
     with path.open() as f:
         F_and_E = json.load(f)
         param_list = []
@@ -857,11 +882,14 @@ def _forces_and_energies():
             if pot[0].isalpha():
                 kT_dict = {'DPD': {'kT': 2}, 'DPDLJ': {'kT': 1}}.get(pot, {})
                 for i in range(3):
-                    param_list.append(FEtuple(getattr(md.pair, pot),
-                                              F_and_E[pot]["params"][i],
-                                              kT_dict,
-                                              F_and_E[pot]["forces"][i],
-                                              F_and_E[pot]["energies"][i]))
+                    param_list.append(FEtuple(
+                        getattr(md.pair, pot),
+                        F_and_E[pot]["params"][i],
+                        kT_dict,
+                        [json_with_inf(v) for v in F_and_E[pot]["forces"][i]],
+                        [json_with_inf(v) for v in F_and_E[pot]["energies"][i]]
+                        )
+                    )
     return param_list
 
 
@@ -872,13 +900,18 @@ def isclose(value, reference, rtol=5e-6):
         val = np.asarray(reference, np.float64)
         min_value = np.min(np.abs(reference))
         atol = 1e-6 if min_value == 0 else min_value / 1e4
-        return np.allclose(val, ref, rtol=rtol, atol=atol)
+        return np.allclose(val, ref, rtol=rtol, atol=atol, equal_nan=True)
     else:
         atol = 1e-6 if reference == 0 else 0
         return math.isclose(
             value, reference, rel_tol=rtol, abs_tol=atol)
 
 
+# We ignore this warning raise by NumPy so we can test the use of infinity in
+# some pair potentials currently TWF. This is used when the force from the JSON
+# file needs to be multipled by r to compare with the computed force of the
+# simulation.
+@pytest.mark.filterwarnings("ignore:invalid value encountered in multiply")
 @pytest.mark.parametrize(
     "forces_and_energies",
     _forces_and_energies(),
@@ -914,3 +947,34 @@ def test_force_energy_accuracy(simulation_factory,
             assert isclose(sum(sim_energies), forces_and_energies.energies[i])
             assert isclose(sim_forces[0], forces_and_energies.forces[i] * r)
             assert isclose(sim_forces[0], -forces_and_energies.forces[i] * r)
+
+
+# Test logging
+@pytest.mark.parametrize(
+    'cls, expected_namespace, expected_loggables',
+    zip((md.pair.Pair, md.pair.aniso.AnisotropicPair, md.many_body.Triplet),
+        (('md', 'pair'), ('md', 'pair', 'aniso'), ('md', 'many_body')),
+        itertools.repeat({
+            'energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'energies': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'forces': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'torques': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+            'virials': {
+                'category': LoggerCategories.particle,
+                'default': True
+            },
+        })))
+def test_logging(cls, expected_namespace, expected_loggables):
+    logging_check(cls, expected_namespace, expected_loggables)
