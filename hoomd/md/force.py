@@ -382,12 +382,12 @@ class Active(Force):
         active_force = TypeParameter(
             "active_force",
             type_kind="particle_types",
-            param_dict=TypeParameterDict((1., 0., 0.), len_keys=1),
+            param_dict=TypeParameterDict((1.0, 0.0, 0.0), len_keys=1),
         )
         active_torque = TypeParameter(
             "active_torque",
             type_kind="particle_types",
-            param_dict=TypeParameterDict((0., 0., 0.), len_keys=1),
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
         )
 
         self._extend_typeparam([active_force, active_torque])
