@@ -16,11 +16,9 @@ valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
          transfer_types=['A'],
          max_volume_rescale=0.2,
-         volume_move_probability=0.5,
-         seed=1),
+         volume_move_probability=0.5),
     dict(trigger=hoomd.trigger.After(100),
-         transfer_types=['A','B'],
-         seed=4),
+         transfer_types=['A','B']),
 ]
 
 valid_attrs = [
@@ -87,7 +85,6 @@ def test_valid_construction_and_attach(device, simulation_factory,
 def test_valid_setattr(device, attr, value):
     """Test that MuVT can get and set attributes."""
     muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(10),
-                                  seed=1,
                                   transfer_types=['A'])
 
     setattr(muvt, attr, value)
@@ -117,8 +114,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     mc.shape["B"] = args
 
     muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(10),
-                                  transfer_types=['A'],
-                                  seed=1)
+                                  transfer_types=['A'])
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(two_particle_snapshot_factory(particle_types=['A', 'B'],
                                                            dimensions=dim, d=2, L=50))
@@ -137,13 +133,12 @@ def test_insertion_removal(device, simulation_factory,
     sim = simulation_factory(lattice_snapshot_factory(particle_types=['A', 'B'],
                                                       dimensions=3, a=4, n=7, r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     muvt = hoomd.hpmc.update.MuVT(trigger=hoomd.trigger.Periodic(5),
-                                  seed=12,
                                   transfer_types=['B'])
     sim.operations.updaters.append(muvt)
 

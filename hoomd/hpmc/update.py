@@ -298,7 +298,6 @@ class MuVT(Updater):
     R""" Insert and remove particles in the muVT ensemble.
 
     Args:
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
         trigger (int): Number of timesteps between grand canonical insertions
         transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
@@ -316,7 +315,6 @@ class MuVT(Updater):
         to update.muvt(), where the number of partitions can be a multiple of ngibbs.
 
     Attributes:
-        seed (int): Random number seed.
         trigger (int): Select the timesteps on which to perform cluster moves.
         transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
         max_volume_rescale (float): Maximum step size in ln(V) (applies to Gibbs ensemble)
@@ -328,7 +326,7 @@ class MuVT(Updater):
         TODO: link to example notebooks
 
     """
-    def __init__(self, seed, transfer_types, ngibbs=1, max_volume_rescale=0.1,
+    def __init__(self, transfer_types, ngibbs=1, max_volume_rescale=0.1,
         volume_move_probability=0.5, trigger=1):
         super().__init__(trigger)
 
@@ -359,7 +357,6 @@ class MuVT(Updater):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
-                                int(self.seed),
                                 self.ngibbs)
         super()._attach()
 
@@ -500,7 +497,6 @@ class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        seed (int): Random number seed.
         pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
@@ -538,7 +534,7 @@ class Clusters(Updater):
             moves.
     """
 
-    def __init__(self, seed, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
+    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
 
         param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
