@@ -207,3 +207,6 @@ class SyncedList(MutableSequence):
         state['_simulation'] = None
         state.pop('_synced_list', None)
         return state
+
+    def __eq__(self, other):
+        return all(a == b for a, b in zip(self, other))
