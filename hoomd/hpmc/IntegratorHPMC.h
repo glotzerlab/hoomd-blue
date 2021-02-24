@@ -149,6 +149,11 @@ class PatchEnergy
         typedef detail::hpmc_patch_args_t gpu_args_t;
         #endif
 
+        virtual Scalar getRelevantRCut()
+            {
+            return 0;
+            }
+
         //! Returns the cut-off radius
         virtual Scalar getRCut()
             {

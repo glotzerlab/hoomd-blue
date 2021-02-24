@@ -39,6 +39,11 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
                        const unsigned int array_size);
 
+       virtual Scalar getRelevantRCut()
+           {
+           return m_r_cut;
+           }
+
         //! Get the maximum r_ij radius beyond which energies are always 0
         virtual Scalar getRCut()
             {

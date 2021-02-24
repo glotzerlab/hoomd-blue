@@ -957,7 +957,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                             d_excell_idx.data,
                             d_excell_size.data,
                             m_excell_list_indexer,
-                            this->m_patch->getRCut(),
+                            this->m_patch->getRelevantRCut(),
                             d_additive_cutoff.data,
                             d_nlist_patch_old.data,
                             d_nneigh_patch_old.data,

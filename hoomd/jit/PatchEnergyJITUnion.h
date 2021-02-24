@@ -221,6 +221,11 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             return m_leaf_capacity;
             }
 
+        virtual Scalar getRelevantRCut()
+            {
+            return m_rcut_union;
+            }
+
         //! Get the cut-off for constituent particles
         virtual Scalar getRCutUnion()
             {
