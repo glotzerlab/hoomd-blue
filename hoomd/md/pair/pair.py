@@ -1748,11 +1748,14 @@ class Fourier(Pair):
         fourier.params[('A', 'A')] = dict(a=[a2,a3,a4], b=[b2,b3,b4])
     """
     _cpp_class_name = "PotentialPairFourier"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-            TypeParameterDict(a=list, b=list,
-            _defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(a=(float, float, float),
+                              b=(float, float, float),
+                              len_keys=2))
         self._add_typeparam(params)
 
 
