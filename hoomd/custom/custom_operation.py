@@ -54,13 +54,13 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
     def __getattr__(self, attr):
         """Allows pass through to grab attributes/methods of the wrapped object.
         """
+        if attr == '_action':
+            raise AttributeError(
+                "{} object has no attribute _action".format(type(self)))
         try:
             return super().__getattr__(attr)
         except AttributeError:
             try:
-                if not hasattr(self, '_action'):
-                    raise RuntimeError(
-                        "{} object has no attribute _action".format(type(self)))
                 return getattr(self._action, attr)
             except AttributeError:
                 raise AttributeError(
