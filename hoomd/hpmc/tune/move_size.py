@@ -95,27 +95,6 @@ class _InternalMoveSize(_InternalAction):
 
     def __init__(self, moves, target, solver, types=None,
                  max_translation_move=None, max_rotation_move=None):
-        def target_postprocess(target):
-            def check_fraction(value):
-                if 0 <= value <= 1:
-                    return value
-                raise ValueError(
-                    "Value {} should be between 0 and 1.".format(value))
-
-            self._update_tunables_attr('target', check_fraction(target))
-            self._tuned = 0
-            return target
-
-        def update_moves(value):
-            self._update_tunables(new_moves=value)
-            self._tuned = 0
-            return value
-
-        def update_types(value):
-            self._update_tunables(new_types=value)
-            self._tuned = 0
-            return value
-
         # A flag for knowing when to update the maximum move sizes
         self._update_move_sizes = False
 
@@ -131,22 +110,22 @@ class _InternalMoveSize(_InternalAction):
         self._is_attached = False
 
         # set up maximum trial move sizes
-        def flag_move_size_update(value):
-            self._update_move_sizes = True
-            return value
-
         t_moves = TypeParameter(
             'max_translation_move', 'particle_type',
             TypeParameterDict(
                 OnlyTypes(
-                    float, postprocess=flag_move_size_update, allow_none=True),
+                    float,
+                    postprocess=self._flag_move_size_update,
+                    allow_none=True),
                 len_keys=1)
             )
         r_moves = TypeParameter(
             'max_rotation_move', 'particle_type',
             TypeParameterDict(
                 OnlyTypes(
-                    float, postprocess=flag_move_size_update, allow_none=True),
+                    float,
+                    postprocess=self._flag_move_size_update,
+                    allow_none=True),
                 len_keys=1)
             )
         self._typeparam_dict = {'max_translation_move': t_moves,
@@ -157,11 +136,11 @@ class _InternalMoveSize(_InternalAction):
         # attributes. However, these are simply forwarding a change along.
         param_dict = ParameterDict(
             moves=OnlyIf(to_type_converter([OnlyFrom(['a', 'd'])]),
-                         postprocess=update_moves),
+                         postprocess=self._update_moves),
             types=OnlyIf(to_type_converter([str]),
-                         postprocess=update_types,
+                         postprocess=self._update_types,
                          allow_none=True),
-            target=OnlyTypes(float, postprocess=target_postprocess),
+            target=OnlyTypes(float, postprocess=self._target_postprocess),
             solver=SolverStep
             )
 
@@ -258,6 +237,30 @@ class _InternalMoveSize(_InternalAction):
     def _update_tunables_attr(self, attr, value):
         for tunable in self._tunables:
             setattr(tunable, attr, value)
+
+    def _target_postprocess(self, target):
+        if not (0 <= target <= 1):
+            return target
+            raise ValueError(
+                "target {} should be between 0 and 1.".format(target))
+
+        self._update_tunables_attr('target', target)
+        self._tuned = 0
+        return target
+
+    def _update_moves(self, value):
+        self._update_tunables(new_moves=value)
+        self._tuned = 0
+        return value
+
+    def _update_types(self, value):
+        self._update_tunables(new_types=value)
+        self._tuned = 0
+        return value
+
+    def _flag_move_size_update(self, value):
+        self._update_move_sizes = True
+        return value
 
 
 class MoveSize(_InternalCustomTuner):
