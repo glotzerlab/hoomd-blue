@@ -33,7 +33,7 @@ def expected_values():
 @pytest.mark.serial
 def test_header_generation(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     for i in range(10):
         table_writer.write()
@@ -58,7 +58,7 @@ def test_header_generation(device, logger):
 @pytest.mark.serial
 def test_values(device, logger, expected_values):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     for i in range(10):
         table_writer.write()
@@ -87,7 +87,7 @@ def test_values(device, logger, expected_values):
 @skip_mpi
 def test_mpi_write_only(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     table_writer.write()
 
@@ -102,7 +102,7 @@ def test_mpi_write_only(device, logger):
 def test_header_attributes(device, logger):
     output = StringIO("")
     table_writer = hoomd.write.Table(
-        0, logger, output, header_sep='-', max_header_len=13)
+        1, logger, output, header_sep='-', max_header_len=13)
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -115,7 +115,7 @@ def test_header_attributes(device, logger):
 def test_delimiter(device, logger):
     output = StringIO("")
     table_writer = hoomd.write.Table(
-        0, logger, output, delimiter=',')
+        1, logger, output, delimiter=',')
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -125,7 +125,7 @@ def test_delimiter(device, logger):
 @pytest.mark.serial
 def test_max_precision(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
                                      max_precision=5)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -134,7 +134,7 @@ def test_max_precision(device, logger):
     smaller_lines = output.getvalue().split('\n')
 
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
                                      max_precision=15)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -154,7 +154,7 @@ def test_only_string_and_scalar_quantities(device):
     logger = hoomd.logging.Logger()
     output = StringIO("")
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(0, logger, output)
+        _ = hoomd.write.Table(1, logger, output)
     logger = hoomd.logging.Logger(categories=['sequence'])
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(0, logger, output)
+        _ = hoomd.write.Table(1, logger, output)
