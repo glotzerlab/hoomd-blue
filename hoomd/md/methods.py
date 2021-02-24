@@ -49,13 +49,37 @@ class _MethodRATTLE(_Method):
 
     """
     def __init__(self, manifold_constraint, eta):
+        self._manifold_constraint = OnlyType(Manifold, allow_none=True)(manifold_constraint)
         param_dict = ParameterDict(
-            manifold_constraint=OnlyType(Manifold, allow_none=True),
+            #manifold_constraint=OnlyType(Manifold, allow_none=True),
             eta=float(eta)
             )
-        param_dict.update(dict(manifold_constraint=manifold_constraint))
+        #param_dict.update(dict(manifold_constraint=manifold_constraint))
         # set defaults
         self._param_dict.update(param_dict)
+
+
+    def _attach_constraint(self,sim):
+        if not self._manifold_constraint._added:
+            self._manifold_constraint._add(sim)
+        else:
+            if sim != self._manifold_constraint._simulation:
+                raise RuntimeError("{} object's manifold_constraint is used in a "
+                                    "different simulation.".format(type(self)))
+        if not self._manifold_constraint._attached:
+            self._manifold_constraint._attach()
+
+    @property
+    def manifold_constraint(self):
+        return self._manifold_constraint
+
+    @manifold_constraint.setter
+    def manifold_constraint(self, value):
+        if self._attached:
+            raise AttributeError("manifold cannot be set after scheduling.")
+        else:
+            self._manifold_constraint = OnlyType(Manifold, allow_none=True)(value)
+
 
 
 class NVT(_Method):
@@ -622,6 +646,7 @@ class NVE(_MethodRATTLE):
 
     def _attach(self):
 
+        sim = self._simulation
         if self.manifold_constraint is None:
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
@@ -631,15 +656,16 @@ class NVE(_MethodRATTLE):
                 self._cpp_obj = _md.TwoStepNVEGPU(sim.state._cpp_sys_def,
                                  sim.state._get_group(self.filter))
         else:
-            sim = self._simulation
-            if not self.manifold_constraint._added:
-                self.manifold_constraint._add(sim)
-            else:
-                if sim != self.manifold_constraint._simulation:
-                    raise RuntimeError("{} object's manifold_constraint is used in a "
-                                       "different simulation.".format(type(self)))
-            if not self.manifold_constraint._attached:
-                self.manifold_constraint._attach()
+            self._attach_constraint(sim)
+
+            #if not self.manifold_constraint._added:
+            #    self.manifold_constraint._add(sim)
+            #else:
+            #    if sim != self.manifold_constraint._simulation:
+            #        raise RuntimeError("{} object's manifold_constraint is used in a "
+            #                           "different simulation.".format(type(self)))
+            #if not self.manifold_constraint._attached:
+            #    self.manifold_constraint._attach()
 
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
@@ -845,17 +871,17 @@ class Langevin(_MethodRATTLE):
                                  sim.state._get_group(self.filter),
                                  self.kT, self.seed)
         else:
+            self._attach_constraint(sim)
 
-            self._add_manifold()
             # initialize the reflected c++ class
-            if not self.manifold_constraint._added:
-                self.manifold_constraint._add(sim)
-            else:
-                if sim != self.manifold_constraint._simulation:
-                    raise RuntimeError("{} object's manifold_constraint is used in a "
-                                       "different simulation.".format(type(self)))
-            if not self.manifold_constraint._attached:
-                self.manifold_constraint._attach()
+            #if not self.manifold_constraint._added:
+            #    self.manifold_constraint._add(sim)
+            #else:
+            #    if sim != self.manifold_constraint._simulation:
+            #        raise RuntimeError("{} object's manifold_constraint is used in a "
+            #                           "different simulation.".format(type(self)))
+            #if not self.manifold_constraint._attached:
+            #    self.manifold_constraint._attach()
 
             if isinstance(sim.device, hoomd.device.CPU):
                 my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.name)
@@ -1057,15 +1083,17 @@ class Brownian(_MethodRATTLE):
                                                  sim.state._get_group(self.filter),
                                                  self.kT, self.seed)
         else:
+            self._attach_constraint(sim)
+
             # initialize the reflected c++ class
-            if not self.manifold_constraint._added:
-                self.manifold_constraint._add(sim)
-            else:
-                if sim != self.manifold_constraint._simulation:
-                    raise RuntimeError("{} object's manifold is used in a "
-                                       "different simulation.".format(type(self)))
-            if not self.manifold_constraint._attached:
-                self.manifold_constraint._attach()
+            #if not self.manifold_constraint._added:
+            #    self.manifold_constraint._add(sim)
+            #else:
+            #    if sim != self.manifold_constraint._simulation:
+            #        raise RuntimeError("{} object's manifold is used in a "
+            #                           "different simulation.".format(type(self)))
+            #if not self.manifold_constraint._attached:
+            #    self.manifold_constraint._attach()
 
             if isinstance(sim.device, hoomd.device.CPU):
                 my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.name)

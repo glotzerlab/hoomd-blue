@@ -73,17 +73,14 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         return Manifold::dimension() * intersect_size;
         }
 
-        //! Get the array of computed forces
-        GlobalArray<Scalar3>& getBrownianArray()
-            {
-            return m_f_brownian;
-            }
-
         /// Sets eta
         void setEta(Scalar eta){ m_eta = eta; };
 
-        /// Gets alpha
+        /// Gets eta
         Scalar getEta(){ return m_eta; };
+
+        /// Gets manifold
+        Manifold getManifold(){ return m_manifold; };
 
     protected:
 
@@ -484,10 +481,11 @@ void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
     py::class_<TwoStepRATTLEBD<Manifold>, TwoStepLangevinBase, std::shared_ptr<TwoStepRATTLEBD<Manifold> > >(m, name.c_str())
     .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-			                Manifold,
+			    Manifold,
                             std::shared_ptr<Variant>,
                             unsigned int,
-			                Scalar>())
+			    Scalar>())
+    .def_property_readonly("manifold_constraint", &TwoStepRATTLEBD<Manifold>::getManifold)
     .def_property("eta", &TwoStepRATTLEBD<Manifold>::getEta,
                             &TwoStepRATTLEBD<Manifold>::setEta)
         ;

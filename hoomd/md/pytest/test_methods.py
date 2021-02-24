@@ -15,6 +15,7 @@ def test_brownian_attributes():
     assert brownian.kT is constant
     assert brownian.seed == 2
     assert brownian.alpha is None
+    assert brownian.manifold_constraint is None
 
     type_A = hoomd.filter.Type(['A'])
     brownian.filter = type_A
@@ -46,6 +47,7 @@ def test_brownian_attributes_attached(simulation_factory,
     assert brownian.kT is constant
     assert brownian.seed == 2
     assert brownian.alpha is None
+    assert brownian.manifold_constraint is None
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
@@ -164,6 +166,7 @@ def test_langevin_attributes():
     assert langevin.seed == 2
     assert langevin.alpha is None
     assert (not langevin.tally_reservoir_energy)
+    assert langevin.manifold_constraint is None
 
     type_A = hoomd.filter.Type(['A'])
     langevin.filter = type_A
@@ -199,6 +202,7 @@ def test_langevin_attributes_attached(simulation_factory,
     assert langevin.seed == 2
     assert langevin.alpha is None
     assert (not langevin.tally_reservoir_energy)
+    assert langevin.manifold_constraint is None
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
@@ -248,7 +252,7 @@ def test_langevin_rattle_attributes():
 
     sphere = hoomd.md.manifold.Sphere(r=10)
     langevin_rattle.manifold_constraint = sphere
-    assert langevin_rattle.manifold_constraint is sphere
+    assert langevin_rattle.manifold_constraint == sphere
 
     langevin_rattle.seed = 10
     assert langevin_rattle.seed == 10
@@ -277,7 +281,7 @@ def test_langevin_rattle_attributes_attached(simulation_factory,
 
     assert langevin_rattle.filter is all_
     assert langevin_rattle.kT is constant
-    assert langevin_rattle.manifold_constraint is plane
+    assert langevin_rattle.manifold_constraint == plane
     assert langevin_rattle.seed == 2
     assert langevin_rattle.eta == 1e-6
     assert langevin_rattle.alpha is None

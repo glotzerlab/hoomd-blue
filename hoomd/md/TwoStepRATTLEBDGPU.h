@@ -104,7 +104,6 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // for rotational noise
     ArrayHandle<Scalar3> d_gamma_r(this->m_gamma_r, access_location::device, access_mode::read);
@@ -197,7 +196,6 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     size_t net_virial_pitch = net_virial.getPitch();
 
