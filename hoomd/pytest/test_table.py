@@ -2,6 +2,7 @@ from io import StringIO
 from math import isclose
 import pytest
 
+from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
@@ -14,12 +15,23 @@ except ImportError:
 skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 
+class Identity:
+    def __init__(self, x):
+        self.x = x
+
+    def __call__(self):
+        return self.x
+
+    def __eq__(self, other):
+        return self.x == other.x
+
+
 @pytest.fixture
 def logger():
     logger = hoomd.logging.Logger(categories=['scalar'])
-    logger[('dummy', 'loggable', 'int')] = (lambda: 42000000, 'scalar')
-    logger[('dummy', 'loggable', 'float')] = (lambda: 3.1415, 'scalar')
-    logger[('dummy', 'loggable', 'string')] = (lambda: "foobarbaz", 'string')
+    logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
+    logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
+    logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
     return logger
 
 
@@ -158,3 +170,9 @@ def test_only_string_and_scalar_quantities(device):
     logger = hoomd.logging.Logger(categories=['sequence'])
     with pytest.raises(ValueError):
         _ = hoomd.write.Table(1, logger, output)
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    table = hoomd.write.Table(1, logger)
+    operation_pickling_check(table, sim)

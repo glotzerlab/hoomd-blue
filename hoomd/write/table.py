@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import copy
 from numbers import Integral
 from math import log10
 from sys import stdout
@@ -36,6 +37,12 @@ class _OutputWriter(metaclass=ABCMeta):
             return all(hasattr(C, method) for method in cls.__abstractmethods__)
         else:
             return NotImplemented
+
+
+def _writable(fh):
+    if not fh.writable():
+        raise ValueError("file-like object must be writable.")
+    return fh
 
 
 class _Formatter:
@@ -154,11 +161,6 @@ class _TableInternal(_InternalAction):
                  max_precision=10,
                  max_header_len=None):
 
-        def writable(fh):
-            if not fh.writable():
-                raise ValueError("file-like object must be writable.")
-            return fh
-
         param_dict = ParameterDict(header_sep=str,
                                    delimiter=str,
                                    min_column_width=int,
@@ -167,7 +169,7 @@ class _TableInternal(_InternalAction):
                                    pretty=bool,
                                    max_precision=int,
                                    output=OnlyTypes(_OutputWriter,
-                                                   postprocess=writable),
+                                                    postprocess=_writable),
                                    logger=Logger)
 
         param_dict.update(
@@ -274,6 +276,30 @@ class _TableInternal(_InternalAction):
             # isn't merely stored in Python ready to be written later.
             self._write_row(output_dict)
             self.output.flush()
+
+    def __getstate__(self):
+        state = copy.copy(self.__dict__)
+        state.pop('_comm', None)
+        # This is to handle when the output specified is just stdout. By default
+        # file objects like this are not picklable, so we need to handle it
+        # differently. We let `None` represent stdout in the state dictionary.
+        if self.output == stdout:
+            param_dict = ParameterDict()
+            param_dict.update(state['_param_dict'])
+            state['_param_dict'] = param_dict
+            del state['_param_dict']['output']
+            state['_param_dict']['output'] = None
+            return state
+        else:
+            return super().__getstate__()
+
+    def __setstate__(self, state):
+        if state['_param_dict']['output'] is None:
+            del state['_param_dict']['output']
+            state['_param_dict']['output'] = stdout
+            state['_param_dict']._type_converter['output'] = OnlyTypes(
+                _OutputWriter, postprocess=_writable),
+        self.__dict__ = state
 
 
 class Table(_InternalCustomWriter):
