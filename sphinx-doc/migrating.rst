@@ -111,6 +111,7 @@ Components
   - ``NeighborList`` has a ``addRCutMatrix`` method clients must use to specify
     the maximum cutoff radii per type pair.
   - ``timestep`` is now of type ``uint64_t``.
+  - ``Saru`` has been removed. Use ``RandomGenerator``.
   - ``RandomGenerator`` is now constructed with a ``Seed`` and ``Counter``
     object that support 64-bit timesteps.
   - ``m_seed`` is no longer present in individual operation objects. Use the
@@ -119,3 +120,5 @@ Components
   - ``ParticleGroup`` instances are now constructed from immutable, reusable,
     and user-customizable ``ParticleFilter`` instances.
   - All GPU code is now written with HIP to support NVIDIA and AMD GPUs.
+  - ``ActiveForceCompute`` always uses particle orientation in combination with
+    per-type active forces and torques.
