@@ -6,6 +6,7 @@
 R""" Utilities.
 """
 
+import io
 from numpy import ndarray
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
@@ -37,7 +38,9 @@ def is_iterable(obj):
 
 def bad_iterable_type(obj):
     '''Returns True if str or dict.'''
-    return isinstance(obj, str) or isinstance(obj, dict)
+    return isinstance(
+        obj,
+        (str, dict, io.TextIOBase, io.BufferedIOBase, io.RawIOBase, io.IOBase))
 
 
 def dict_map(dict_, func):
