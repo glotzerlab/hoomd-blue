@@ -198,32 +198,25 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
         assert_equivalent_snapshots(snap, sim.state.snapshot)
 
 @skip_gsd
-def test_state_from_snapshot(simulation_factory, get_snapshot,
-                        device, state_args, tmp_path):
+def test_state_from_gsd_snapshot(simulation_factory, get_snapshot,
+                                 device, state_args, tmp_path):
     snap_params, nsteps = state_args
 
-    d = tmp_path / "sub"
-    d.mkdir()
-    filename = d / "temporary_test_file.gsd"
-    with gsd.hoomd.open(name=filename, mode='wb+') as file:
-        sim = simulation_factory(get_snapshot(n=snap_params[0],
-                                              particle_types=snap_params[1]))
-        snap = sim.state.snapshot
+    sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                          particle_types=snap_params[1]))
+    snap = sim.state.snapshot
+    snap = make_gsd_snapshot(snap)
+    gsd_snapshot_list = [snap]
+    box = sim.state.box
+    for _ in range(1, nsteps):
+        particle_type = np.random.choice(snap_params[1])
+        snap = update_positions(sim.state.snapshot)
+        set_types(snap, random_inds(snap_params[0]),
+                  snap_params[1], particle_type)
         snap = make_gsd_snapshot(snap)
-        snapshot_dict = {}
-        snapshot_dict[0] = snap
-        file.append(snap)
-        box = sim.state.box
-        for step in range(1, nsteps):
-            particle_type = np.random.choice(snap_params[1])
-            snap = update_positions(sim.state.snapshot)
-            set_types(snap, random_inds(snap_params[0]),
-                      snap_params[1], particle_type)
-            snap = make_gsd_snapshot(snap)
-            file.append(snap)
-            snapshot_dict[step] = snap
+        gsd_snapshot_list.append(snap)
 
-    for step, snap in snapshot_dict.items():
+    for snap in gsd_snapshot_list:
         sim = hoomd.Simulation(device)
         sim.create_state_from_snapshot(snap)
         assert box == sim.state.box
