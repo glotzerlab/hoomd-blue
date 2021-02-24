@@ -104,16 +104,16 @@ Components
 
 * Numerous C++ class APIs have changed, been removed, or renamed. Review the
   header files to see new class signatures. These changes may require you to
-  update your compoent accordingly. Some of the more notable changes include:
+  update your component accordingly. Some of the more notable changes include:
 
   - ``Variant`` has been completely rewritten.
-  - ``Trigger`` replaces periodic and variable perioud scheduling.
+  - ``Trigger`` replaces periodic and variable period scheduling.
   - ``NeighborList`` has a ``addRCutMatrix`` method clients must use to specify
     the maximum cutoff radii per type pair.
   - ``timestep`` is now of type ``uint64_t``.
   - ``RandomGenerator`` is now constructed with a ``Seed`` and ``Counter``
     object that support 64-bit timesteps.
-  - ``m_seed`` is no longer present in indididual operation objects. Use the
+  - ``m_seed`` is no longer present in individual operation objects. Use the
     global seed provided by ``SystemDefinition``.
   - The HPMC integrators have been heavily refactored.
   - ``ParticleGroup`` instances are now constructed from immutable, reusable,
