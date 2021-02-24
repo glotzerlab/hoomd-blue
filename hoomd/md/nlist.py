@@ -90,6 +90,7 @@ class NList(_HOOMDBaseObject):
     """
 
     _remove_for_pickling = _HOOMDBaseObject._remove_for_pickling + ('_cpp_cell',)
+    _skip_for_equality = _HOOMDBaseObject._skip_for_equality | {'_cpp_cell',}
 
     def __init__(self, buffer, exclusions, rebuild_check_delay,
                  diameter_shift, check_dist, max_diameter):
