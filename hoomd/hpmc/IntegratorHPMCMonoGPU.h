@@ -263,6 +263,9 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         std::vector<hipStream_t> m_narrow_phase_streams;             //!< Stream for narrow phase kernel, per device
         std::vector<std::vector<hipStream_t> > m_depletant_streams;  //!< Stream for every particle type, and device
+
+
+        // the phase1 and phase2 kernels are for ntrial > 0
         std::vector<std::vector<hipStream_t> > m_depletant_streams_phase1;  //!< Streams for phase1 kernel
         std::vector<std::vector<hipStream_t> > m_depletant_streams_phase2;  //!< Streams for phase2 kernel
         std::vector<std::vector<hipEvent_t> > m_sync;                //!< Synchronization event for every stream and device
