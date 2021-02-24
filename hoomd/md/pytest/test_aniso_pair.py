@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 import hoomd
+from hoomd.conftest import pickling_check
 from hoomd import md
 from hoomd.data.typeconverter import TypeConversionError
 
@@ -374,3 +375,18 @@ def test_aniso_force_computes(make_two_particle_simulation,
             assert isclose(sim_forces[0], aniso_forces_and_energies.forces[i])
             assert isclose(-sim_forces[1], aniso_forces_and_energies.forces[i])
             assert isclose(sim_torques, aniso_forces_and_energies.torques[i])
+
+
+@pytest.mark.parametrize('pair_potential_spec', _valid_params())
+def test_pickling(make_two_particle_simulation, pair_potential_spec):
+    pair_potential = pair_potential_spec.cls(
+            nlist=md.nlist.Cell(), r_cut=2.5)
+    for key, value in pair_potential_spec.type_parameters.items():
+        setattr(pair_potential, key, value)
+        assert _equivalent_data_structures(value, getattr(pair_potential, key))
+
+    sim = make_two_particle_simulation(
+        types=['A', 'B'], dimensions=3, d=0.5, force=pair_potential)
+    pickling_check(pair_potential)
+    sim.run(0)
+    pickling_check(pair_potential)
