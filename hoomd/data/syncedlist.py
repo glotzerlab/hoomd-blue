@@ -1,3 +1,4 @@
+from collections.abc import MutableSequence
 import inspect
 from copy import copy
 
@@ -22,7 +23,7 @@ def identity(obj):
     return obj
 
 
-class SyncedList:
+class SyncedList(MutableSequence):
     """Provides syncing and validation for a python and cpp list.
 
     Used to ensure once synced that standard list operations effect both
@@ -192,13 +193,6 @@ class SyncedList:
             del self._simulation
             del self._synced_list
 
-    def append(self, value):
-        """Append value to list, handling list syncing."""
-        value = self._validate_or_error(value)
-        if self._synced:
-            self._synced_list.append(self._to_synced_list_conversion(value))
-        self._list.append(value)
-
     def insert(self, pos, value):
         """Insert value to list at pos, handling list syncing."""
         value = self._validate_or_error(value)
@@ -207,27 +201,6 @@ class SyncedList:
                                      self._to_synced_list_conversion(value)
                                      )
         self._list.insert(pos, value)
-
-    def extend(self, value_list):
-        """Add all elements of value_list to list handling list syncing."""
-        for value in value_list:
-            self.append(value)
-
-    def clear(self):
-        """Remove all items from list."""
-        for index in range(len(self)):
-            del self[0]
-
-    def remove(self, value):
-        """Remove all instances of value in list. Uses identity checking."""
-        removal_list = []
-        for index in range(len(self)):
-            if self[index] is value:
-                removal_list.append(index - len(removal_list))
-        if len(removal_list) == 0:
-            raise ValueError(f"{value} is not in list.")
-        for index in removal_list:
-            del self[index]
 
     def __getstate__(self):
         state = copy(self.__dict__)
