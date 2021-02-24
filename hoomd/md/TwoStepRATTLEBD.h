@@ -79,9 +79,6 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         /// Gets eta
         Scalar getEta(){ return m_eta; };
 
-        /// Gets manifold
-        Manifold getManifold(){ return m_manifold; };
-
     protected:
 
         void reallocate();
@@ -485,7 +482,6 @@ void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
                             std::shared_ptr<Variant>,
                             unsigned int,
 			    Scalar>())
-    .def_property_readonly("manifold_constraint", &TwoStepRATTLEBD<Manifold>::getManifold)
     .def_property("eta", &TwoStepRATTLEBD<Manifold>::getEta,
                             &TwoStepRATTLEBD<Manifold>::setEta)
         ;
