@@ -725,8 +725,6 @@ class QuickCompress(Updater):
     Args:
         trigger (Trigger): Update the box dimensions on triggered time steps.
 
-        seed (int): Random number seed.
-
         target_box (Box): Dimensions of the target box.
 
         max_overlaps_per_particle (float): The maximum number of overlaps to
@@ -774,8 +772,6 @@ class QuickCompress(Updater):
 
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
-
-        seed (int): Random number seed.
 
         target_box (Box): Dimensions of the target box.
 
