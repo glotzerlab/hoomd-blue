@@ -387,7 +387,7 @@ class SLJ(Pair):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(epsilon=float, sigma=float,
-                                                 alpha=1.0, len_keys=2)
+                                                 len_keys=2)
                                )
         self._add_typeparam(params)
 
@@ -1049,7 +1049,7 @@ class DPDLJ(Pair):
         \\begin{eqnarray*}
         V_{\\mathrm{LJ}}(r) = & 4 \\varepsilon \\left[ \\left(
             \\frac{\\sigma}{r} \\right)^{12} -
-            \\alpha \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]
+             \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]
             & r < r_{\\mathrm{cut}} \\\\
                             = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1087,9 +1087,6 @@ class DPDLJ(Pair):
           * ``sigma`` (`float`, **required**) - :math:`\\sigma`
             (in distance units)
 
-          * ``alpha`` (`float`, **optional**, defaults to 1.0) -
-            :math:`\\alpha` (unitless)
-
           * ``gamma`` (`float`, **required**) - :math:`\\gamma` (in units of
             force/velocity)
 
@@ -1108,7 +1105,7 @@ class DPDLJ(Pair):
 
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types', TypeParameterDict(
-            epsilon=float, sigma=float, alpha=1.0, gamma=float,
+            epsilon=float, sigma=float, gamma=float,
             len_keys=2))
         self._add_typeparam(params)
 
@@ -1154,7 +1151,7 @@ class ForceShiftedLJ(Pair):
 
         \\begin{eqnarray*}
         V(r) = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r}
-          \\right)^{12} - \\alpha \\left( \\frac{\\sigma}{r} \\right)^{6}
+          \\right)^{12} - \\left( \\frac{\\sigma}{r} \\right)^{6}
           \\right] + \\Delta V(r) & r < r_{\\mathrm{cut}}\\\\
              = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1180,9 +1177,6 @@ class ForceShiftedLJ(Pair):
 
           * ``sigma`` (`float`, **required**) - :math:`\\sigma`
             (in distance units)
-
-          * ``alpha`` (`float`, **optional**, defaults to 1.0) - :math:`\\alpha`
-            (unitless)
 
     Example::
 
@@ -1659,7 +1653,7 @@ class LJ1208(Pair):
         \\begin{eqnarray*}
         V_{\\mathrm{LJ}}(r)
           = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{12} -
-          \\alpha \\left( \\frac{\\sigma}{r} \\right)^{8} \\right]
+          \\left( \\frac{\\sigma}{r} \\right)^{8} \\right]
           & r < r_{\\mathrm{cut}} \\\\
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
