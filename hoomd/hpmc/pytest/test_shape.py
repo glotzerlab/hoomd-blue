@@ -1,4 +1,5 @@
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -628,3 +629,22 @@ def test_overlaps_sphinx(device, simulation_factory,
         s.particles.position[1] = (0.76, 0, 0)
     sim.state.snapshot = s
     assert mc.overlaps == 0
+
+
+def test_pickling(valid_args, simulation_factory,
+                  two_particle_snapshot_factory):
+    integrator = valid_args[0]
+    args = valid_args[1]
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator(23456)
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator(23456)
+    mc.shape["A"] = args
+    sim = simulation_factory(two_particle_snapshot_factory())
+    operation_pickling_check(mc, sim)

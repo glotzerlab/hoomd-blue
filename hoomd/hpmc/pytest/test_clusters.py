@@ -5,6 +5,7 @@
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
@@ -224,3 +225,19 @@ def test_pivot_moves(delta_mu, simulation_factory,
         assert acc > 0
 
     assert cl.reflection_moves[0]/np.sum(cl.reflection_moves) > 0
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    """Test that Clusters always accept pivot moves."""
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc.shape['A'] = dict(diameter=1.1)
+    mc.shape['B'] = dict(diameter=1.3)
+    sim.operations.integrator = mc
+
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
+                                    swap_type_pair=[],
+                                    move_ratio=0.5,
+                                    delta_mu=-2.0,
+                                    seed=12)
+    operation_pickling_check(cl, sim)
