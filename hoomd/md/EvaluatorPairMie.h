@@ -58,6 +58,8 @@ class EvaluatorPairMie
             Scalar m2;
             Scalar m3;
             Scalar m4;
+	    Scalar mie_n;
+	    Scalar mie_m;
 
             #ifdef ENABLE_HIP
             // set CUDA memory hints
@@ -65,7 +67,7 @@ class EvaluatorPairMie
             #endif
 
             #ifndef __HIPCC__
-            param_type() : m1(0), m2(0), m3(0), m4(0) {}
+            param_type() : m1(0), m2(0), m3(0), m4(0), mie_n(0), mie_m(0) {}
 
             param_type(pybind11::dict v)
                 {
@@ -75,9 +77,11 @@ class EvaluatorPairMie
                 Scalar epsilon = v["epsilon"].cast<Scalar>();
                 Scalar sigma = v["sigma"].cast<Scalar>();
 
-                Scalar outFront = (m3/(m3-m4)) * pow(m3/m4, m4/(m3-m4));
-                m1 = outFront * epsilon * pow(sigma, m3);
-                m2 = outFront * epsilon * pow(sigma, m4);
+                Scalar outFront = (m3 / (m3 - m4)) * fast::exp2(m4 / (m3 - m4) * fast::log2(m3 / m4));
+                m1 = outFront * epsilon * fast::exp2(m3 * fast::log2(sigma));
+                m2 = outFront * epsilon * fast::exp2(m4 * fast::log2(sigma));
+		mie_n = fast::log2(m3) / Scalar(2.0);
+		mie_m = fast::log2(m4) / Scalar(2.0);
                 }
 
             pybind11::dict asDict()
@@ -86,12 +90,16 @@ class EvaluatorPairMie
                 v["n"] = m3;
                 v["m"] = m4;
 
-                Scalar sigma = pow(m1 / m2, 1 / (m3 - m4));
-                Scalar epsilon = m1 / pow(sigma, m3) * (m3 - m4) / m3 * pow(m3 / m4, m4 / (m4 - m3));
-
+                Scalar sigma = fast::exp2((1 / (m3 - m4)) * fast::log2(m1 / m2));
+                Scalar epsilon = m1 / fast::exp2(m3 * fast::log2(sigma)) * (m3 - m4) / m3 * fast::exp2(m4 / (m4 - m3) * fast::log2(m3 / m4));
+		
+		Scalar n = fast::exp2(Scalar(2.0) * mie_n);
+		Scalar m = fast::exp2(Scalar(2.0) * mie_m);
+		
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
-
+		v["n"] = n;
+		v["m"] = m;
                 return v;
                 }
             #endif
@@ -141,16 +149,16 @@ class EvaluatorPairMie
             if (rsq < rcutsq && mie1 != 0)
                 {
                 Scalar r2inv = Scalar(1.0)/rsq;
-                Scalar rninv = pow(r2inv,mie3/Scalar(2.0));
-                Scalar rminv = pow(r2inv,mie4/Scalar(2.0));
+                Scalar rninv = fast::exp2(mie3/Scalar(2.0) * fast::log2(r2inv));
+                Scalar rminv = fast::exp2(mie4/Scalar(2.0) * fast::log2(r2inv));
                 force_divr= r2inv * (mie3 * mie1 * rninv - mie4 * mie2 * rminv);
 
                 pair_eng = mie1 * rninv - mie2 * rminv;
 
                 if (energy_shift)
                     {
-                    Scalar rcutninv = Scalar(1.0)/pow(rcutsq,mie3/Scalar(2.0));
-                    Scalar rcutminv = Scalar(1.0)/pow(rcutsq,mie4/Scalar(2.0));
+                    Scalar rcutninv = Scalar(1.0)/fast::exp2(mie3/Scalar(2.0) * fast::log2(rcutsq));
+                    Scalar rcutminv = Scalar(1.0)/fast::exp2(mie3/Scalar(2.0) * fast::log2(rcutsq));
                     pair_eng -= mie1 * rcutninv - mie2* rcutminv;
                     }
                 return true;
