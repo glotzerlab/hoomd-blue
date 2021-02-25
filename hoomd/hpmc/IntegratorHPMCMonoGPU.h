@@ -785,8 +785,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
         GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
 
-        // TODO: Jens - verify if this is correct. These values are used below outside the
-        // #ifdef ENABLE_MPI
         int particle_comm_size=1;
         int particle_comm_rank=0;
 
