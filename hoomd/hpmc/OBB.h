@@ -30,6 +30,8 @@
 #include <random>
 #endif
 
+#define DEFAULT_MASK 0xffffffffu
+
 /*! \file OBB.h
     \brief Basic OBB routines
 */
@@ -78,7 +80,7 @@ struct OBB
     unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() : mask(0xffffffffu), is_sphere(0) {}
+    DEVICE OBB() : mask(DEFAULT_MASK), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -90,7 +92,7 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
-        mask = 0xffffffffu;
+        mask = DEFAULT_MASK;
         is_sphere = 1;
         }
 
@@ -98,7 +100,7 @@ struct OBB
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
-        mask = 0xffffffffu;
+        mask = DEFAULT_MASK;
         is_sphere = 0;
         }
 
@@ -1093,4 +1095,5 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
 }; // end namespace hpmc
 
 #undef DEVICE
+#undef DEFAULT_MASK
 #endif //__OBB_H__
