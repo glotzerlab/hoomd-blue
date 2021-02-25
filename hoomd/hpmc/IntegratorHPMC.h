@@ -451,10 +451,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         //! Returns the patch energy interaction
         std::shared_ptr<PatchEnergy> getPatchInteraction()
             {
-            if (!m_patch->getLogOnly())
-                return m_patch;
-            else
-                return std::shared_ptr<PatchEnergy>();
+            return m_patch;
             }
 
         //! Compute the energy due to patch interactions

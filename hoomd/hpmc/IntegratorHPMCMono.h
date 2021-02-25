@@ -315,7 +315,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             // many things depend internally on the orientation field (for ghosts) being initialized, therefore always request it
             flags[comm_flag::orientation] = 1;
 
-            if (m_patch && !m_patch->getLogOnly())
+            if (m_patch)
                 {
                 flags[comm_flag::diameter] = 1;
                 flags[comm_flag::charge] = 1;
@@ -912,7 +912,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             bool overlap=false;
             OverlapReal r_cut_patch = 0;
 
-            if (m_patch && !m_patch->getLogOnly())
+            if (m_patch)
                 {
                 r_cut_patch = OverlapReal(m_patch->getRelevantRCut() + 0.5*m_patch->getAdditiveCutoff(typ_i));
                 }
@@ -989,7 +989,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch && !m_patch->getLogOnly() && dot(r_ij,r_ij) <= rcut*rcut) // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (m_patch && dot(r_ij,r_ij) <= rcut*rcut) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
@@ -1020,7 +1020,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 } // end loop over images
 
             // calculate old patch energy only if m_patch not NULL and no overlaps
-            if (m_patch && !m_patch->getLogOnly() && !overlap)
+            if (m_patch && !overlap)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
