@@ -150,8 +150,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            // number of times the overlap kernels are excuted per nselect
-
+            // number of times the overlap kernels are executed per nselect
             // The *actual* number of launches per iteration depends
             // on the longest event chain in the system. We don't know what the
             // average will be, so put in a constant number
