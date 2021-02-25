@@ -346,7 +346,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 }
 
             //! Update the OBB tree if necessary
-            if (m_patch && m_patch->getBuildOBB())
+            if (m_patch)
                 {
                 m_patch->buildOBBTree();
                 }
