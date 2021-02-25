@@ -30,7 +30,6 @@ class PatchCompute(Compute):
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
         array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
-        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
 
     Atrributes:
         r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
@@ -38,17 +37,15 @@ class PatchCompute(Compute):
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str`): The Clang executable to compile the provided code.
         array_size (`int`): Size of array with adjustable elements. (added in version 2.8)
-        log_only (`bool`): Enable patch interaction for logging purposes only.
         energy (`float`): Total interaction energy of the system in the current state.
         alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
                                           defined by the user (added in version 2.8).
     """
 
-    def __init__(self, r_cut, array_size=1, log_only=False,
-                 clang_exec='clang', code=None, llvm_ir_file=None):
+    def __init__(self, r_cut, array_size=1,clang_exec='clang',
+                 code=None, llvm_ir_file=None):
         param_dict = ParameterDict(r_cut = float(r_cut),
-                                   array_size = int(array_size),
-                                   log_only = log_only)
+                                   array_size = int(array_size))
         self._param_dict.update(param_dict)
         # these only exist on python
         self._code = code
@@ -228,7 +225,6 @@ class UserPatch(PatchCompute):
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
         array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
-        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
 
     Note:
         If both `code` and `llvm_ir_fname` are provided, the former takes precedence. The latter will be used
@@ -340,10 +336,10 @@ class UserPatch(PatchCompute):
     .. versionadded:: 2.3
     '''
 
-    def __init__(self, r_cut, array_size=1, log_only=False,
-                 clang_exec='clang', code=None, llvm_ir_file=None):
-        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
-                         clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
+    def __init__(self, r_cut, array_size=1, clang_exec='clang',
+                 code=None, llvm_ir_file=None):
+        super().__init__(r_cut=r_cut, array_size=array_size, clang_exec=clang_exec,
+                         code=code, llvm_ir_file=llvm_ir_file)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -393,7 +389,6 @@ class UserUnionPatch(PatchCompute):
         clang_exec (`str`, **default:** `clang`): The Clang executable to compile the provided code.
         array_size_union (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
         array_size (`int`, **default:** 1): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
-        log_only (`bool`, **default:** `False`): Enable patch interaction for logging purposes only.
 
     Note:
         If both `code_union` and `llvm_ir_fname_union` are provided, the former takes precedence. The latter will be used
@@ -464,11 +459,11 @@ class UserUnionPatch(PatchCompute):
     '''
     def __init__(self, r_cut_union, array_size_union=1, clang_exec='clang',
                  code_union=None, llvm_ir_file_union=None, r_cut=0, array_size=1,
-                 log_only=False, code='return 0;', llvm_ir_file=None ):
+                code='return 0;', llvm_ir_file=None ):
 
         # initialize base class
-        super().__init__(r_cut=r_cut, array_size=array_size, log_only=log_only,
-                         code=code, llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
+        super().__init__(r_cut=r_cut, array_size=array_size,code=code,
+                         llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
 
         # add union specific params
         param_dict = ParameterDict(r_cut_union = float(r_cut_union),

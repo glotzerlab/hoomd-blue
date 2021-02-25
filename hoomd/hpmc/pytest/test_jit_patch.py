@@ -13,13 +13,11 @@ import numpy as np
 valid_constructor_args = [
     dict(r_cut = 3,
          array_size=2,
-         log_only=True,
          code='return -1;',
          llvm_ir_file="code.ll",
          clang_exec='/usr/bin/clang'),
     dict(r_cut = 2,
          array_size=4,
-         log_only=False,
          code='return -1;'),
 ]
 
@@ -29,7 +27,6 @@ valid_constructor_args_union = [
          r_cut = 3,
          array_size = 2,
          array_size_union = 2,
-         log_only=True,
          code ='return -3;',
          code_union='return -1;',
          llvm_ir_file_union="code_union.ll",
@@ -37,7 +34,6 @@ valid_constructor_args_union = [
          clang_exec='/usr/bin/clang'),
     dict(r_cut_union = 3,
          array_size_union = 2,
-         log_only=True,
          code_union='return -1;',
          llvm_ir_file_union="code_union.ll"),
 ]
@@ -47,8 +43,7 @@ valid_constructor_args_union = [
 valid_attrs = [('r_cut', 1.4),
                ('code', 'return -1;'),
                ('llvm_ir_file', 'code.ll'),
-               ('clang_exec', 'clang'),
-               ('log_only', True)
+               ('clang_exec', 'clang')
 ]
 
 
@@ -61,8 +56,7 @@ valid_attrs_union = valid_attrs + [ ('r_cut_union', 3.6),
 
 
 # setable attributes after attach for UserPatch objects
-valid_attrs_after_attach = [ ('r_cut', 1.3),
-                             ('log_only', True)
+valid_attrs_after_attach = [ ('r_cut', 1.3)
 ]
 
 
