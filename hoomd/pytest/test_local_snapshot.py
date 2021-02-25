@@ -74,6 +74,29 @@ _particle_data = dict(
 )
 
 
+_particle_local_data = dict(
+    net_force=dict(
+        np_type=np.floating,
+        value=np.linspace(0.5, 4.5, Np * 3).reshape((Np, 3)),
+        new_value=np.linspace(6, 12, Np * 3).reshape((Np, 3)),
+        shape=(Np, 3)),
+    net_torque=dict(
+        np_type=np.floating,
+        value=np.linspace(-0.5, 2.5, Np * 4).reshape((Np, 4)),
+        new_value=np.linspace(12.75, 25, Np * 4).reshape((Np, 4)),
+        shape=(Np, 4)),
+    net_virial=dict(
+        np_type=np.floating,
+        value=np.linspace(-1.5, 6.5, Np * 6).reshape((Np, 6)),
+        new_value=np.linspace(9.75, 13.12, Np * 6).reshape((Np, 6)),
+        shape=(Np, 6)),
+    net_energy=dict(
+        np_type=np.floating,
+        value=np.linspace(0.5, 3.5, Np),
+        new_value=np.linspace(0, 4.2, Np),
+        shape=(Np,)),
+)
+
 Nb = 2
 _bond_data = dict(
     _N=Nb,
@@ -206,24 +229,6 @@ def base_snapshot(device):
     return snapshot
 
 
-@pytest.fixture(scope='session')
-def gpu_simulation_factory(device_gpu):
-    """Creates the simulation from the base_snapshot."""
-
-    def make_simulation(snapshot):
-        sim = hoomd.Simulation(device_gpu)
-
-        # reduce sorter grid to avoid Hilbert curve overhead in unit tests
-        for tuner in sim.operations.tuners:
-            if isinstance(tuner, hoomd.tune.ParticleSorter):
-                tuner.grid = 8
-
-        sim.create_state_from_snapshot(snapshot)
-        return sim
-
-    return make_simulation
-
-
 @pytest.fixture(
     params=['particles', 'bonds', 'angles',
             'dihedrals', 'impropers', 'constraints', 'pairs'])
@@ -244,14 +249,13 @@ def global_property(request):
 @pytest.fixture(
     scope='function',
     params=[(name, prop_name, prop_dict)
-            for name, section_dict in
-            [('particles', _particle_data), ('bonds', _bond_data),
-             ('angles', _angle_data), ('dihedrals', _dihedral_data),
-             ('impropers', _improper_data), ('constraints', _constraint_data),
-             ('pairs', _pair_data)]
+            for name, section_dict in [
+                ('particles', {**_particle_data, **_particle_local_data}),
+                ('bonds', _bond_data), ('angles', _angle_data),
+                ('dihedrals', _dihedral_data), ('impropers', _improper_data),
+                ('constraints', _constraint_data), ('pairs', _pair_data)]
             for prop_name, prop_dict in section_dict.items()
-            if not prop_name.startswith('_')
-            ],
+            if not prop_name.startswith('_')],
     ids=lambda x: x[0] + '-' + x[1])
 def section_name_dict(request):
     """Parameterization of expected values for local_snapshot properties.
@@ -497,8 +501,13 @@ class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
                     tuner.grid = 8
 
             sim.create_state_from_snapshot(base_snapshot)
+            with sim.state.cpu_local_snapshot as snap:
+                particle_data = getattr(snap, 'particles')
+                for attr, inner_dict in _particle_local_data.items():
+                    getattr(particle_data, attr)[:] = inner_dict['value']
             return sim
         return factory
+
 
 @pytest.mark.gpu
 class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
@@ -519,6 +528,10 @@ class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
                     tuner.grid = 8
 
             sim.create_state_from_snapshot(base_snapshot)
+            with sim.state.cpu_local_snapshot as snap:
+                particle_data = getattr(snap, 'particles')
+                for attr, inner_dict in _particle_local_data.items():
+                    getattr(particle_data, attr)[:] = inner_dict['value']
             return sim
 
         return factory
