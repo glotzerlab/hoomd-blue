@@ -772,23 +772,21 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         bool have_auxilliary_variables = false;
         bool have_depletants = false;
         unsigned int ntrial_tot = 0;
-
-        #ifdef ENABLE_MPI
-        int ntrial_comm_size;
-        int ntrial_comm_rank;
-        if (m_ntrial_comm)
-            {
-            MPI_Comm_size((*m_ntrial_comm)(), &ntrial_comm_size);
-            MPI_Comm_rank((*m_ntrial_comm)(), &ntrial_comm_rank);
-            }
-        #endif
-
         GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
 
         int particle_comm_size=1;
         int particle_comm_rank=0;
 
         #ifdef ENABLE_MPI
+        int ntrial_comm_size;
+        int ntrial_comm_rank;
+
+        if (m_ntrial_comm)
+            {
+            MPI_Comm_size((*m_ntrial_comm)(), &ntrial_comm_size);
+            MPI_Comm_rank((*m_ntrial_comm)(), &ntrial_comm_rank);
+            }
+
         if (m_particle_comm)
             {
             // split local particle data further if a communicator is supplied
