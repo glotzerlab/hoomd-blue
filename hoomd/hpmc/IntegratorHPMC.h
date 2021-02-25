@@ -141,7 +141,7 @@ struct hpmc_patch_args_t
 class PatchEnergy
     {
     public:
-        PatchEnergy() { }
+        PatchEnergy() : m_build_obb(false) { }
         virtual ~PatchEnergy() { }
 
         #ifdef ENABLE_HIP
@@ -217,7 +217,8 @@ class PatchEnergy
             }
 
     protected:
-        bool m_build_obb = false; //! Flag to update the OBB tree for union of particles
+
+        bool m_build_obb; //! Flag to update the OBB tree for union of particles
 
     };
 
