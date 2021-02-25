@@ -101,3 +101,24 @@ Components
   - Replace all ``target_link_libraries`` and ``set_target_properties`` with
     ``target_link_libraries(_${COMPONENT_NAME} PUBLIC HOOMD::_hoomd)`` (can link
     ``HOOMD::_md``, ``HOOMD::_hpmc``, etc. if necessary).
+
+* Numerous C++ class APIs have changed, been removed, or renamed. Review the
+  header files to see new class signatures. These changes may require you to
+  update your component accordingly. Some of the more notable changes include:
+
+  - ``Variant`` has been completely rewritten.
+  - ``Trigger`` replaces periodic and variable period scheduling.
+  - ``NeighborList`` has a ``addRCutMatrix`` method clients must use to specify
+    the maximum cutoff radii per type pair.
+  - ``timestep`` is now of type ``uint64_t``.
+  - ``Saru`` has been removed. Use ``RandomGenerator``.
+  - ``RandomGenerator`` is now constructed with a ``Seed`` and ``Counter``
+    object that support 64-bit timesteps.
+  - ``m_seed`` is no longer present in individual operation objects. Use the
+    global seed provided by ``SystemDefinition``.
+  - The HPMC integrators have been heavily refactored.
+  - ``ParticleGroup`` instances are now constructed from immutable, reusable,
+    and user-customizable ``ParticleFilter`` instances.
+  - All GPU code is now written with HIP to support NVIDIA and AMD GPUs.
+  - ``ActiveForceCompute`` always uses particle orientation in combination with
+    per-type active forces and torques.
