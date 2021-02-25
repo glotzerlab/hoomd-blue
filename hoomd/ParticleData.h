@@ -1418,7 +1418,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     m_net_force_handle,
                     &ParticleData::getNetForce,
                     flag,
-                    4
+                    3
                 );
                 }
 
@@ -1441,6 +1441,17 @@ class PYBIND11_EXPORT LocalParticleData :
                     6,
                     0,
                     std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)})
+                );
+                }
+
+            Output getNetEnergy(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_net_force_handle,
+                    &ParticleData::getNetForce,
+                    flag,
+                    0,
+                    3 * sizeof(Scalar)
                 );
                 }
 
@@ -1519,6 +1530,7 @@ void export_LocalParticleData(pybind11::module& m, std::string name)
     .def("getNetForce", &LocalParticleData<Output>::getNetForce)
     .def("getNetVirial", &LocalParticleData<Output>::getNetVirial)
     .def("getNetTorque", &LocalParticleData<Output>::getNetTorque)
+    .def("getNetEnergy", &LocalParticleData<Output>::getNetEnergy)
     .def("enter", &LocalParticleData<Output>::enter)
     .def("exit", &LocalParticleData<Output>::exit)
     ;
