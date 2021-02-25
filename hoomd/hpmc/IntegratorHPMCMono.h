@@ -589,7 +589,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
 
     m_depletant_idx = Index2D(this->m_pdata->getNTypes());
     m_fugacity.resize(m_depletant_idx.getNumElements(), 0.0);
-    m_ntrial.resize(m_depletant_idx.getNumElements(), 0);
+    m_ntrial.resize(m_depletant_idx.getNumElements(), 1);
     TAG_ALLOCATION(m_fugacity);
     TAG_ALLOCATION(m_ntrial);
 
