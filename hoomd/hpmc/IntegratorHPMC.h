@@ -216,12 +216,6 @@ class PatchEnergy
             {
             }
 
-        //! Return a flag to trigger the OBB update
-        virtual bool getBuildOBB()
-            {
-            return m_build_obb;
-            }
-
     protected:
         bool m_build_obb = false; //! Flag to update the OBB tree for union of particles
 
