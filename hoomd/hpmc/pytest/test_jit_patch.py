@@ -88,6 +88,7 @@ positions_orientations_result = [([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
 ]
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_user_patch(constructor_args):
     """Test that UserPatch can be constructed with valid arguments."""
@@ -98,6 +99,7 @@ def test_valid_construction_user_patch(constructor_args):
         assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args_union)
 def test_valid_construction_user_union_patch(constructor_args):
     """Test that UserUnionPatch can be constructed with valid arguments."""
@@ -108,6 +110,7 @@ def test_valid_construction_user_union_patch(constructor_args):
         assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach_user_patch(simulation_factory,
                                        two_particle_snapshot_factory,
@@ -131,6 +134,7 @@ def test_valid_construction_and_attach_user_patch(simulation_factory,
         assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args_union)
 def test_valid_construction_and_attach_user_union_patch(simulation_factory,
                                        two_particle_snapshot_factory,
@@ -160,6 +164,7 @@ def test_valid_construction_and_attach_user_union_patch(simulation_factory,
         assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_user_patch(attr, value):
     """Test that UserPatch can get and set attributes before attached."""
@@ -169,6 +174,7 @@ def test_valid_setattr_user_patch(attr, value):
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_union)
 def test_valid_setattr_user_union_patch(attr, value):
     """Test that UserUnionPatch can get and set attributes before attached."""
@@ -179,6 +185,7 @@ def test_valid_setattr_user_union_patch(attr, value):
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach)
 def test_valid_setattr_attached_user_patch(attr, value,
                                            simulation_factory,
@@ -202,6 +209,7 @@ def test_valid_setattr_attached_user_patch(attr, value,
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_after_attach_union)
 def test_valid_setattr_attached_user_union_patch(attr, value,
                                                  simulation_factory,
@@ -231,6 +239,7 @@ def test_valid_setattr_attached_user_union_patch(attr, value,
     assert getattr(patch, attr) == value
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,val",  attr_error)
 def test_raise_attr_error_user_patch(attr, val,
                                      simulation_factory,
@@ -255,6 +264,7 @@ def test_raise_attr_error_user_patch(attr, val,
         setattr(patch, attr, val)
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("attr,val",  attr_error)
 def test_raise_attr_error_user_union_patch(attr, val,
                                            simulation_factory,
@@ -289,6 +299,7 @@ def test_raise_attr_error_user_union_patch(attr, val,
             setattr(patch, attr + '_union', val)
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("positions,orientations,result",
                           positions_orientations_result)
 def test_user_patch(positions,orientations,result,
@@ -337,6 +348,7 @@ def test_user_patch(positions,orientations,result,
     assert np.isclose(patch.energy, result)
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize("cls", [jit.patch.UserPatch, jit.patch.UserUnionPatch])
 def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     """Test that: i) changes to the alpha_iso array reflect on the energy
@@ -410,6 +422,7 @@ def test_alpha_iso(cls, simulation_factory,two_particle_snapshot_factory):
     assert np.isclose(patch.energy, 0.0)
 
 
+@pytest.mark.serial
 def test_user_union_patch(simulation_factory,two_particle_snapshot_factory):
     """Test that alpha_iso and alpha_union are accessed proberly by
        UserUnionPatch and that it computes the correct energy for
