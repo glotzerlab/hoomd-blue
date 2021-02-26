@@ -609,6 +609,7 @@ class NPH(_Method):
             raise RuntimeError("Call Simulation.run(0) before"
                                "thermalize_thermostat_and_barostat_dof")
 
+        self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
