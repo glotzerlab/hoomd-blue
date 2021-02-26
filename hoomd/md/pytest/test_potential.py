@@ -907,6 +907,11 @@ def isclose(value, reference, rtol=5e-6):
             value, reference, rel_tol=rtol, abs_tol=atol)
 
 
+# We ignore this warning raise by NumPy so we can test the use of infinity in
+# some pair potentials currently TWF. This is used when the force from the JSON
+# file needs to be multipled by r to compare with the computed force of the
+# simulation.
+@pytest.mark.filterwarnings("ignore:invalid value encountered in multiply")
 @pytest.mark.parametrize(
     "forces_and_energies",
     _forces_and_energies(),
