@@ -326,10 +326,8 @@ __global__ void hpmc_insert_depletants(const Scalar4 *d_trial_postype,
 
         // process the queue, group by group
         if (master && group == 0)
-            s_adding_depletants = 0;
-
-        if (master && group == 0)
             {
+            s_adding_depletants = 0;
             // reset the queue for neighbor checks
             s_queue_size = 0;
             s_still_searching = 1;

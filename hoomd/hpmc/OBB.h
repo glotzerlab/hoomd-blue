@@ -30,6 +30,8 @@
 #include <random>
 #endif
 
+#define DEFAULT_MASK 0xffffffffu
+
 /*! \file OBB.h
     \brief Basic OBB routines
 */
@@ -57,6 +59,21 @@ namespace detail
     @{
 */
 
+/// Update the bounds of an ABB
+DEVICE inline void update_bounds(OverlapReal &l, OverlapReal &u, OverlapReal e, OverlapReal f)
+    {
+    if (e < f)
+        {
+        l += e;
+        u += f;
+        }
+    else
+        {
+        l += f;
+        u += e;
+        }
+    }
+
 //! Axis aligned bounding box
 /*! An OBB represents a bounding volume defined by an axis-aligned bounding box. It is stored as plain old data
     with a lower and upper bound. This is to make the most common operation of OBB overlap testing fast.
@@ -78,7 +95,7 @@ struct OBB
     unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() : mask(0xffffffffu), is_sphere(0) {}
+    DEVICE OBB() : mask(DEFAULT_MASK), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -90,7 +107,7 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
-        mask = 0xffffffffu;
+        mask = DEFAULT_MASK;
         is_sphere = 1;
         }
 
@@ -98,7 +115,7 @@ struct OBB
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
-        mask = 0xffffffffu;
+        mask = DEFAULT_MASK;
         is_sphere = 0;
         }
 
@@ -165,123 +182,17 @@ struct OBB
         vec3<OverlapReal> lower_b = center;
         vec3<OverlapReal> upper_b = center;
 
-        OverlapReal e, f;
-        e = M.row0.x*lower_a.x;
-        f = M.row0.x*upper_a.x;
-        if (e < f)
-            {
-            lower_b.x += e;
-            upper_b.x += f;
-            }
-        else
-            {
-            lower_b.x += f;
-            upper_b.x += e;
-            }
+        update_bounds(lower_b.x, upper_b.x, M.row0.x*lower_a.x, M.row0.x*upper_a.x);
+        update_bounds(lower_b.x, upper_b.x, M.row0.y*lower_a.y, M.row0.y*upper_a.y);
+        update_bounds(lower_b.x, upper_b.x, M.row0.z*lower_a.z, M.row0.z*upper_a.z);
 
-        e = M.row0.y*lower_a.y;
-        f = M.row0.y*upper_a.y;
-        if (e < f)
-            {
-            lower_b.x += e;
-            upper_b.x += f;
-            }
-        else
-            {
-            lower_b.x += f;
-            upper_b.x += e;
-            }
+        update_bounds(lower_b.y, upper_b.y, M.row1.x*lower_a.x, M.row1.x*upper_a.x);
+        update_bounds(lower_b.y, upper_b.y, M.row1.y*lower_a.y, M.row1.y*upper_a.y);
+        update_bounds(lower_b.y, upper_b.y, M.row1.z*lower_a.z, M.row1.z*upper_a.z);
 
-        e = M.row0.z*lower_a.z;
-        f = M.row0.z*upper_a.z;
-        if (e < f)
-            {
-            lower_b.x += e;
-            upper_b.x += f;
-            }
-        else
-            {
-            lower_b.x += f;
-            upper_b.x += e;
-            }
-
-        e = M.row1.x*lower_a.x;
-        f = M.row1.x*upper_a.x;
-        if (e < f)
-            {
-            lower_b.y += e;
-            upper_b.y += f;
-            }
-        else
-            {
-            lower_b.y += f;
-            upper_b.y += e;
-            }
-
-        e = M.row1.y*lower_a.y;
-        f = M.row1.y*upper_a.y;
-        if (e < f)
-            {
-            lower_b.y += e;
-            upper_b.y += f;
-            }
-        else
-            {
-            lower_b.y += f;
-            upper_b.y += e;
-            }
-
-        e = M.row1.z*lower_a.z;
-        f = M.row1.z*upper_a.z;
-        if (e < f)
-            {
-            lower_b.y += e;
-            upper_b.y += f;
-            }
-        else
-            {
-            lower_b.y += f;
-            upper_b.y += e;
-            }
-
-        e = M.row2.x*lower_a.x;
-        f = M.row2.x*upper_a.x;
-        if (e < f)
-            {
-            lower_b.z += e;
-            upper_b.z += f;
-            }
-        else
-            {
-            lower_b.z += f;
-            upper_b.z += e;
-            }
-
-        e = M.row2.y*lower_a.y;
-        f = M.row2.y*upper_a.y;
-        if (e < f)
-            {
-            lower_b.z += e;
-            upper_b.z += f;
-            }
-        else
-            {
-            lower_b.z += f;
-            upper_b.z += e;
-            }
-
-        e = M.row2.z*lower_a.z;
-        f = M.row2.z*upper_a.z;
-        if (e < f)
-            {
-            lower_b.z += e;
-            upper_b.z += f;
-            }
-        else
-            {
-            lower_b.z += f;
-            upper_b.z += e;
-            }
+        update_bounds(lower_b.z, upper_b.z, M.row2.x*lower_a.x, M.row2.x*upper_a.x);
+        update_bounds(lower_b.z, upper_b.z, M.row2.y*lower_a.y, M.row2.y*upper_a.y);
+        update_bounds(lower_b.z, upper_b.z, M.row2.z*lower_a.z, M.row2.z*upper_a.z);
 
         return detail::AABB(lower_b, upper_b);
         }
@@ -1093,4 +1004,5 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
 }; // end namespace hpmc
 
 #undef DEVICE
+#undef DEFAULT_MASK
 #endif //__OBB_H__

@@ -149,8 +149,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            // number of times the overlap kernels are excuted per nselect
-
+            // number of times the overlap kernels are executed per nselect
             // The *actual* number of launches per iteration depends
             // on the longest event chain in the system. We don't know what the
             // average will be, so put in a constant number
@@ -262,6 +261,9 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         std::vector<hipStream_t> m_narrow_phase_streams;             //!< Stream for narrow phase kernel, per device
         std::vector<std::vector<hipStream_t> > m_depletant_streams;  //!< Stream for every particle type, and device
+
+
+        // the phase1 and phase2 kernels are for ntrial > 0
         std::vector<std::vector<hipStream_t> > m_depletant_streams_phase1;  //!< Streams for phase1 kernel
         std::vector<std::vector<hipStream_t> > m_depletant_streams_phase2;  //!< Streams for phase2 kernel
         std::vector<std::vector<hipEvent_t> > m_sync;                //!< Synchronization event for every stream and device
@@ -769,25 +771,21 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
         bool have_auxilliary_variables = false;
         bool have_depletants = false;
         unsigned int ntrial_tot = 0;
+        GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
+
+        int particle_comm_size=1;
+        int particle_comm_rank=0;
 
         #ifdef ENABLE_MPI
         int ntrial_comm_size;
         int ntrial_comm_rank;
+
         if (m_ntrial_comm)
             {
             MPI_Comm_size((*m_ntrial_comm)(), &ntrial_comm_size);
             MPI_Comm_rank((*m_ntrial_comm)(), &ntrial_comm_rank);
             }
-        #endif
 
-        GPUPartition gpu_partition_rank = this->m_pdata->getGPUPartition();
-
-        // TODO: Jens - verify if this is correct. These values are used below outside the
-        // #ifdef ENABLE_MPI
-        int particle_comm_size=1;
-        int particle_comm_rank=0;
-
-        #ifdef ENABLE_MPI
         if (m_particle_comm)
             {
             // split local particle data further if a communicator is supplied

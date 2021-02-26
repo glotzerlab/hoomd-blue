@@ -587,7 +587,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
 
     m_depletant_idx = Index2D(this->m_pdata->getNTypes());
     m_fugacity.resize(m_depletant_idx.getNumElements(), 0.0);
-    m_ntrial.resize(m_depletant_idx.getNumElements(), 0);
+    m_ntrial.resize(m_depletant_idx.getNumElements(), 1);
     TAG_ALLOCATION(m_fugacity);
     TAG_ALLOCATION(m_ntrial);
 
@@ -728,10 +728,10 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, uint6
     for (unsigned int typ=0; typ<m_pdata->getNTypes();typ++)
         {
         std::ostringstream tmp_str0;
-        tmp_str0<<"hpmc_ntrial_"<<m_pdata->getNameByType(typ);
-        if (quantity==tmp_str0.str())
+        tmp_str0 << "hpmc_ntrial_" << m_pdata->getNameByType(typ);
+        if (quantity == tmp_str0.str())
             {
-            return m_ntrial[m_depletant_idx(typ,typ)];
+            return m_ntrial[m_depletant_idx(typ, typ)];
             }
         }
 
@@ -771,12 +771,12 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, uint6
         return sqrt(var);
         }
 
-    for (unsigned int typ=0; typ<m_pdata->getNTypes();typ++)
+    for (unsigned int typ=0; typ < m_pdata->getNTypes(); typ++)
         {
         const std::vector<hpmc_implicit_counters_t>& result = getImplicitCounters(2);
         std::ostringstream tmp_str0;
-        tmp_str0<<"hpmc_insert_std_"<<m_pdata->getNameByType(typ);
-        if (quantity==tmp_str0.str())
+        tmp_str0 << "hpmc_insert_std_" << m_pdata->getNameByType(typ);
+        if (quantity == tmp_str0.str())
             {
             double var = double(result[m_depletant_idx(typ,typ)].insert_accept_count)-
                 double(result[m_depletant_idx(typ,typ)].insert_accept_count_sq)/double(result[m_depletant_idx(typ,typ)].insert_count);
