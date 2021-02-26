@@ -60,7 +60,7 @@ namespace detail
 */
 
 /// Update the bounds of an ABB
-DEVICE inline update_bounds(OverlapReal &l, OverlapReal &u, OverlapReal e, OverlapReal f)
+DEVICE inline void update_bounds(OverlapReal &l, OverlapReal &u, OverlapReal e, OverlapReal f)
     {
     if (e < f)
         {
@@ -182,17 +182,17 @@ struct OBB
         vec3<OverlapReal> lower_b = center;
         vec3<OverlapReal> upper_b = center;
 
-        update_bounds(lower_b.x, upper_b.x, M_row0.x*lower_a.x, M.row0.x*upper_a.x);
-        update_bounds(lower_b.x, upper_b.x, M_row0.y*lower_a.y, M.row0.y*upper_a.y);
-        update_bounds(lower_b.x, upper_b.x, M_row0.z*lower_a.z, M.row0.z*upper_a.z);
+        update_bounds(lower_b.x, upper_b.x, M.row0.x*lower_a.x, M.row0.x*upper_a.x);
+        update_bounds(lower_b.x, upper_b.x, M.row0.y*lower_a.y, M.row0.y*upper_a.y);
+        update_bounds(lower_b.x, upper_b.x, M.row0.z*lower_a.z, M.row0.z*upper_a.z);
 
-        update_bounds(lower_b.y, upper_b.y, M_row1.x*lower_a.x, M.row1.x*upper_a.x);
-        update_bounds(lower_b.y, upper_b.y, M_row1.y*lower_a.y, M.row1.y*upper_a.y);
-        update_bounds(lower_b.y, upper_b.y, M_row1.z*lower_a.z, M.row1.z*upper_a.z);
+        update_bounds(lower_b.y, upper_b.y, M.row1.x*lower_a.x, M.row1.x*upper_a.x);
+        update_bounds(lower_b.y, upper_b.y, M.row1.y*lower_a.y, M.row1.y*upper_a.y);
+        update_bounds(lower_b.y, upper_b.y, M.row1.z*lower_a.z, M.row1.z*upper_a.z);
 
-        update_bounds(lower_b.z, upper_b.z, M_row2.x*lower_a.x, M.row2.x*upper_a.x);
-        update_bounds(lower_b.z, upper_b.z, M_row2.y*lower_a.y, M.row2.y*upper_a.y);
-        update_bounds(lower_b.z, upper_b.z, M_row2.z*lower_a.z, M.row2.z*upper_a.z);
+        update_bounds(lower_b.z, upper_b.z, M.row2.x*lower_a.x, M.row2.x*upper_a.x);
+        update_bounds(lower_b.z, upper_b.z, M.row2.y*lower_a.y, M.row2.y*upper_a.y);
+        update_bounds(lower_b.z, upper_b.z, M.row2.z*lower_a.z, M.row2.z*upper_a.z);
 
         return detail::AABB(lower_b, upper_b);
         }
