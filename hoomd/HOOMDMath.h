@@ -492,7 +492,7 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     #endif
     }
 
-//! Compute the pow of x,y with double precison via exp2(log2) refactoring
+//! Compute the pow of x,y with single precison via exp2(log2) refactoring
 inline HOSTDEVICE float pow(float x, float y)
     {
     #ifdef __HIP_DEVICE_COMPILE__
