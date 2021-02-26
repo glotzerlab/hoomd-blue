@@ -69,90 +69,93 @@ def test_brownian_attributes_attached(simulation_factory,
     brownian.alpha = 0.125
     assert brownian.alpha == 0.125
 
-def test_brownian_rattle_attributes():
-    """Test attributes of the Brownian RATTLE integrator before attaching."""
+@pytest.mark.parametrize("integrator", [hoomd.md.methods.Brownian, hoomd.md.methods.Langevin])
+def test_rattle_attributes(integrator):
+    """Test attributes of the LangevinBase RATTLE integrator before attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    brownian_rattle = hoomd.md.methods.Brownian(filter = all_, kT=constant, manifold_constraint = gyroid, seed=2, eta = 1e-5)
+    rattle = integrator(filter = all_, kT=constant, manifold_constraint = gyroid, seed=2, eta = 1e-5)
 
-    assert brownian_rattle.filter is all_
-    assert brownian_rattle.kT is constant
-    assert brownian_rattle.manifold_constraint is gyroid
-    assert brownian_rattle.seed == 2
-    assert brownian_rattle.alpha is None
-    assert brownian_rattle.eta == 1e-5
+    assert rattle.filter is all_
+    assert rattle.kT is constant
+    assert rattle.manifold_constraint is gyroid
+    assert rattle.seed == 2
+    assert rattle.alpha is None
+    assert rattle.eta == 1e-5
 
     type_A = hoomd.filter.Type(['A'])
-    brownian_rattle.filter = type_A
-    assert brownian_rattle.filter is type_A
+    rattle.filter = type_A
+    assert rattle.filter is type_A
 
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    brownian_rattle.kT = ramp
-    assert brownian_rattle.kT is ramp
+    rattle.kT = ramp
+    assert rattle.kT is ramp
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    brownian_rattle.manifold_constraint = sphere
-    assert brownian_rattle.manifold_constraint is sphere
+    rattle.manifold_constraint = sphere
+    assert rattle.manifold_constraint is sphere
 
-    brownian_rattle.seed = 10
-    assert brownian_rattle.seed == 10
+    rattle.seed = 10
+    assert rattle.seed == 10
 
-    brownian_rattle.eta = 0.001
-    assert brownian_rattle.eta == 0.001
+    rattle.eta = 0.001
+    assert rattle.eta == 0.001
 
-    brownian_rattle.alpha = 0.125
-    assert brownian_rattle.alpha == 0.125
+    rattle.alpha = 0.125
+    assert rattle.alpha == 0.125
 
 
-def test_brownian_rattle_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
-    """Test attributes of the Brownian RATTLE integrator after attaching."""
+@pytest.mark.parametrize("integrator", [hoomd.md.methods.Brownian, hoomd.md.methods.Langevin])
+def test_rattle_attributes_attached(simulation_factory,
+                                      two_particle_snapshot_factory,
+                                      integrator):
+    """Test attributes of the LanfgevinBase RATTLE integrator after attaching."""
     all_ = hoomd.filter.All()
     constant = hoomd.variant.Constant(2.0)
     plane = hoomd.md.manifold.Plane()
-    brownian_rattle = hoomd.md.methods.Brownian(filter = all_, kT=constant, manifold_constraint = plane, seed=2)
+    rattle = integrator(filter = all_, kT=constant, manifold_constraint = plane, seed=2)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian_rattle])
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[rattle])
     sim.run(0)
 
-    assert brownian_rattle.filter is all_
-    assert brownian_rattle.kT is constant
-    assert brownian_rattle.manifold_constraint is plane
-    assert brownian_rattle.seed == 2
-    assert brownian_rattle.alpha is None
-    assert brownian_rattle.eta == 1e-6
+    assert rattle.filter is all_
+    assert rattle.kT is constant
+    assert rattle.manifold_constraint is plane
+    assert rattle.seed == 2
+    assert rattle.alpha is None
+    assert rattle.eta == 1e-6
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
-        brownian_rattle.filter = type_A
+        rattle.filter = type_A
 
-    assert brownian_rattle.filter is all_
+    assert rattle.filter is all_
 
     ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    brownian_rattle.kT = ramp
-    assert brownian_rattle.kT is ramp
+    rattle.kT = ramp
+    assert rattle.kT is ramp
 
     gyroid = hoomd.md.manifold.Gyroid(N=2)
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
-        brownian_rattle.manifold_constraint = gyroid
+        rattle.manifold_constraint = gyroid
 
-    assert brownian_rattle.manifold_constraint is plane
+    assert rattle.manifold_constraint is plane
 
     with pytest.raises(AttributeError):
         # seed cannot be set after scheduling
-        brownian_rattle.seed = 10
+        rattle.seed = 10
 
-    assert brownian_rattle.seed == 2
+    assert rattle.seed == 2
 
-    brownian_rattle.eta = 0.001
-    assert brownian_rattle.eta == 0.001
+    rattle.eta = 0.001
+    assert rattle.eta == 0.001
 
-    brownian_rattle.alpha = 0.125
-    assert brownian_rattle.alpha == 0.125
+    rattle.alpha = 0.125
+    assert rattle.alpha == 0.125
 
 
 def test_langevin_attributes():
