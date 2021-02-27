@@ -205,6 +205,7 @@ class constraint_ellipsoid(_updater):
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
+
 class MuellerPlatheFlow(Updater):
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
@@ -223,31 +224,66 @@ class MuellerPlatheFlow(Updater):
     the "max" and "min" slap might be swapped.
 
     Args:
-        group (``hoomd.group``): Group for which the update will be set
-        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
-        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs..
-        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow..
-        n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
-        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
-        min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
+        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+            apply this updater.
+
+        flow_target (`hoomd.variant.Variant`): Integrated target flow. The unit
+            is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
+            The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
+
+        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs.
+
+        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow.
+
+        n_slabs (int): Number of slabs. You want as many as possible for small
+            disturbed volume, where the unphysical swapping is done. But each
+            slab has to contain a sufficient number of particle.
+
+        max_slab (int): Id < n_slabs where the max velocity component is search
+            for. If set < 0 the value is set to its default n_slabs/2.
+
+        min_slab (int): Id < n_slabs where the min velocity component is search
+            for. If set < 0 the value is set to its default 0.
 
     .. attention::
         * This updater has to be always applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
     .. note:
-        If you set this updater with unrealistic values, it algorithm might not terminate,
+        If you set this updater with unrealistic values, the algorithm might not terminate,
         because your desired flow target can not be achieved.
 
     .. versionadded:: v2.1
 
     Examples::
 
-        #const integrated flow with 0.1 slope for max 1e8 timesteps
-        const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
-        #velocity gradient in z direction and shear flow in x direction.
-        update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
+        # const integrated flow with 0.1 slope for max 1e8 timesteps
+        ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
+        # velocity gradient in z direction and shear flow in x direction.
+        slab_direction = hoomd.md.update.MullerPlatheFlow.Z
+        flow_direction = hoomd.md.update.MullerPlatheFlow.X
+        mpf = hoomd.md.update.MuellerPlatheFlow(hoomd.filter.All(), ramp, slab_direction, flow_direction, 20)
 
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
+            apply this updater.
+
+        flow_target (hoomd.variant.Variant): Integrated target flow in the
+            natural units of the simulation.
+
+        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the
+            slabs.
+
+        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow.
+
+        n_slabs (int): Number of slabs.
+
+        max_slab (int): Id < n_slabs where the max velocity component is
+            searched for.
+
+        min_slab (int): Id < n_slabs where the min velocity component is
+            searched for.
     """
     def __init__(self, filter, flow_target, slab_direction, flow_direction ,n_slabs, max_slab=-1, min_slab=-1):
 
