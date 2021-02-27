@@ -21,9 +21,10 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      const flow_enum::Direction flow_direction,
                                      const unsigned int N_slabs,
                                      const unsigned int min_slab,
-                                     const unsigned int max_slab)
+                                     const unsigned int max_slab,
+                                     Scalar flow_epsilon)
     :Updater(sysdef), m_group(group),m_slab_direction(slab_direction),m_flow_direction(flow_direction)
-    ,m_flow_target(flow_target),m_flow_epsilon(1e-2)
+    ,m_flow_target(flow_target),m_flow_epsilon(flow_epsilon)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
     ,m_needs_orthorhombic_check(true)
@@ -453,7 +454,7 @@ void export_MuellerPlatheFlow(py::module& m)
         flow (m,"MuellerPlatheFlow");
     flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
              std::shared_ptr<Variant>, const flow_enum::Direction, const flow_enum::Direction,
-             const unsigned int, const unsigned int, const unsigned int >() )
+             const unsigned int, const unsigned int, const unsigned int, Scalar >() )
         .def_property_readonly("n_slabs",&MuellerPlatheFlow::get_N_slabs)
         .def_property_readonly("min_slab",&MuellerPlatheFlow::get_min_slab)
         .def_property_readonly("max_slab",&MuellerPlatheFlow::get_max_slab)

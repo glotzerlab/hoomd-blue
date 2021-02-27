@@ -13,6 +13,8 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd;
 from hoomd.update import _updater
+from hoomd.operations import Updater
+from hoomd.data.parameterdicts import ParameterDict
 import sys;
 
 class rescale_temp(_updater):
@@ -203,7 +205,7 @@ class constraint_ellipsoid(_updater):
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
-class mueller_plathe_flow(_updater):
+class MuellerPlatheFlow(Updater):
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
 
@@ -253,20 +255,20 @@ class mueller_plathe_flow(_updater):
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
-            max_slab = n_slabs/2
+            max_slab = n_slabs / 2
         assert (max_slab > -1 and max_slab < n_slabs), "Invalid max_slab in [0,"+str(n_slabs)+")."
         assert (min_slab > -1 and min_slab < n_slabs), "Invalid min_slab in [0,"+str(n_slabs)+")."
-        assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
+        assert (min_slab != max_slab), "Invalid min/max slabs. Both have the same value."
 
         params = ParameterDict(
             filter=hoomd.filter.ParticleFilter,
-            flow_target=hooomd.variant.Variant,
+            flow_target=hoomd.variant.Variant,
             slab_direction=_md.MuellerPlatheFlow.Direction,
             flow_direction=_md.MuellerPlatheFlow.Direction,
             n_slabs=int(n_slabs),
             max_slab=int(max_slab),
             min_slab=int(min_slab),
-            flow_epsilon=float)
+            flow_epsilon=float(1e-2))
         params["filter"] = filter
         params['flow_target'] = flow_target
         params['slab_direction'] = slab_direction
@@ -279,7 +281,7 @@ class mueller_plathe_flow(_updater):
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
         sys_def = self._simulation.state._cpp_sys_def
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
+        if isinstance(self._simulation.device, hoomd.device.CPU):
             self._cpp_obj = _md.MuellerPlatheFlow(sys_def,
                                                   group,
                                                   self.flow_target,
@@ -287,7 +289,8 @@ class mueller_plathe_flow(_updater):
                                                   self.flow_direction,
                                                   self.n_slabs,
                                                   self.min_slab,
-                                                  self.max_slab)
+                                                  self.max_slab,
+                                                  self.flow_epsilon)
         else:
             self._cpp_obj = _md.MuellerPlatheFlowGPU(sys_def,
                                                      group,
@@ -296,7 +299,8 @@ class mueller_plathe_flow(_updater):
                                                      self.flow_direction,
                                                      self.n_slabs,
                                                      self.min_slab,
-                                                     self.max_slab)
+                                                     self.max_slab,
+                                                     self.flow_epsilon)
         super()._attach()
 
     @property
