@@ -630,7 +630,6 @@ class NVE(_MethodRATTLE):
 
     def __init__(self, filter, limit=None, manifold_constraint=None, eta=0.000001):
 
-        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -641,6 +640,8 @@ class NVE(_MethodRATTLE):
 
         # set defaults
         self._param_dict.update(param_dict)
+
+        super().__init__(manifold_constraint,eta)
 
     def _attach(self):
 
@@ -823,7 +824,6 @@ class Langevin(_MethodRATTLE):
                  tally_reservoir_energy=False, manifold_constraint=None,
                  eta=0.000001):
 
-        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -846,6 +846,8 @@ class Langevin(_MethodRATTLE):
                                 )
 
         self._extend_typeparam([gamma,gamma_r])
+
+        super().__init__(manifold_constraint,eta)
 
     def _attach(self):
 
@@ -1026,7 +1028,6 @@ class Brownian(_MethodRATTLE):
 
     def __init__(self, filter, kT, seed, manifold_constraint=None, eta=0.000001, alpha=None):
 
-        super().__init__(manifold_constraint,eta)
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
@@ -1048,6 +1049,7 @@ class Brownian(_MethodRATTLE):
                                 )
         self._extend_typeparam([gamma,gamma_r])
 
+        super().__init__(manifold_constraint,eta)
 
     def _attach(self):
 
