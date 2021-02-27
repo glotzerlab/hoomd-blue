@@ -1,6 +1,5 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
-          test_jit_patch.py
           test_clusters.py
           test_boxmc.py
           test_shape.py
@@ -11,6 +10,10 @@ set(files __init__.py
           conftest.py
           test_write_debug_data_hpmc.py
     )
+
+if (BUILD_JIT)
+    list(APPEND files test_jit_patch.py)
+endif()
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc/pytest
