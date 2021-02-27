@@ -197,6 +197,31 @@ def test_state_from_gsd(simulation_factory, get_snapshot,
         assert box == sim.state.box
         assert_equivalent_snapshots(snap, sim.state.snapshot)
 
+@skip_gsd
+def test_state_from_gsd_snapshot(simulation_factory, get_snapshot,
+                                 device, state_args, tmp_path):
+    snap_params, nsteps = state_args
+
+    sim = simulation_factory(get_snapshot(n=snap_params[0],
+                                          particle_types=snap_params[1]))
+    snap = sim.state.snapshot
+    snap = make_gsd_snapshot(snap)
+    gsd_snapshot_list = [snap]
+    box = sim.state.box
+    for _ in range(1, nsteps):
+        particle_type = np.random.choice(snap_params[1])
+        snap = update_positions(sim.state.snapshot)
+        set_types(snap, random_inds(snap_params[0]),
+                  snap_params[1], particle_type)
+        snap = make_gsd_snapshot(snap)
+        gsd_snapshot_list.append(snap)
+
+    for snap in gsd_snapshot_list:
+        sim = hoomd.Simulation(device)
+        sim.create_state_from_snapshot(snap)
+        assert box == sim.state.box
+        assert_equivalent_snapshots(snap, sim.state.snapshot)
+
 
 def test_writer_order(simulation_factory, two_particle_snapshot_factory):
     """Ensure that writers run at the end of the loop step."""

@@ -4,6 +4,28 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.5 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``filter`` parameter to ``update.BoxResize`` - A ``ParticleFilter`` that identifies the particles
+  to scale with the box.
+
+*Changed*
+
+- [breaking]  Removed the parameter ``scale_particles`` in ``update.BoxResize``
+- [internal] Modified signature of `data.typeconverter.OnlyTypes`
+- Remove use of deprecated numpy APIs.
+- Added more details to the migration guide.
+
+*Fixed*
+
+- Install ``ParticleFilter`` header files for external plugins.
+- ``md.force.Active`` keeps floating point values set for `active_force` and `active_torque`.
+- `create_state_from_snapshot` accepts `gsd.hoomd.Snapshot` objects without error.
+- HOOMD compiles on Apple silicon macOS systems.
+
 v3.0.0-beta.4 (2021-02-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

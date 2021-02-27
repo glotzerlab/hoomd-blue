@@ -530,7 +530,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return __logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 
@@ -693,7 +693,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 
