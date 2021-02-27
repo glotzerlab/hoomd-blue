@@ -14,12 +14,9 @@ def test_before_attaching():
 
 def test_after_attaching(simulation_factory,
                          two_particle_snapshot_factory):
-    brownian = hoomd.md.methods.Brownian(filter=hoomd.filter.All(),
-                                         kT=hoomd.variant.Constant(2.0),
-                                         seed=2)
-
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
+    nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
 
     trigger = hoomd.trigger.Periodic(100)
     zm = hoomd.md.update.ZeroMomentum(trigger)
