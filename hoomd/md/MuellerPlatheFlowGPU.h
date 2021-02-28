@@ -46,7 +46,8 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
                              const flow_enum::Direction flow_direction,
                              const unsigned int N_slabs,
                              const unsigned int min_slab,
-                             const unsigned int max_slab);
+                             const unsigned int max_slab,
+                             Scalar flow_epsilon);
 
         //! Destructor
         virtual ~MuellerPlatheFlowGPU(void);

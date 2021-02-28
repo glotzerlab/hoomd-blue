@@ -19,7 +19,8 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
                                            const flow_enum::Direction flow_direction,
                                            const unsigned int N_slabs,
                                            const unsigned int min_slab,
-                                           const unsigned int max_slab)
+                                           const unsigned int max_slab,
+                                           Scalar flow_epsilon)
 :MuellerPlatheFlow(sysdef,group,flow_target,slab_direction,flow_direction,
                    N_slabs,min_slab,max_slab)
     {
@@ -96,7 +97,7 @@ void export_MuellerPlatheFlowGPU(py::module&m)
     py::class_< MuellerPlatheFlowGPU, MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
              std::shared_ptr<Variant>, const flow_enum::Direction,const flow_enum::Direction,
-             const unsigned int, const unsigned int, const unsigned int >())
+             const unsigned int, const unsigned int, const unsigned int, Scalar >())
         ;
     }
 #endif //ENABLE_HIP
