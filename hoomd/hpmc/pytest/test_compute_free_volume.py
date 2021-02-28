@@ -62,4 +62,4 @@ def test_validation_systems(simulation_factory,
     free_volume_compute = hoomd.hpmc.compute.FreeVolume(mc, 23456, test_type='B', nsample=10000)
     sim.operations.add(free_volume_compute)
     sim.run(0)
-    np.testing.assert_allclose(free_volume, free_volume_compute.free_volume, rtol=4e-2)
+    np.testing.assert_allclose(free_volume, free_volume_compute.free_volume, rtol=5e-2)
