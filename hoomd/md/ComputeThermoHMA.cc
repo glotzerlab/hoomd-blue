@@ -58,7 +58,7 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     TAG_ALLOCATION(m_lattice_site);
     ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::overwrite);
 #ifdef ENABLE_MPI
-    snapshot.bcast(0, m_exec_conf->getMPICommunicator());
+    snapshot.bcast(0, m_exec_conf->getMPICommunicator()); // causes seg fault in MPI
 #endif
 
     // for each particle in the data
