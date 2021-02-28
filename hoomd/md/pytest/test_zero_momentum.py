@@ -46,14 +46,18 @@ def test_momentum_is_zero(simulation_factory,
     zm = hoomd.md.update.ZeroMomentum(hoomd.trigger.Periodic(1))
     sim.operations.add(zm)
     sim.run(0)
-    masses = sim.state.snapshot.particles.mass
-    velocities = sim.state.snapshot.particles.velocity
-    p = [sum([m * v[i] for m, v in zip(masses, velocities)]) for i in range(3)]
-    assert p == [2, 0, 0]
+    snap = sim.state.snapshot
+    if snap.exists:
+        masses = snap.particles.mass
+        velocities = snap.particles.velocity
+        p = [sum([m * v[i] for m, v in zip(masses, velocities)]) for i in range(3)]
+        assert p == [2, 0, 0]
 
     sim.run(1)
-    masses = sim.state.snapshot.particles.mass
-    velocities = sim.state.snapshot.particles.velocity
-    for i in range(3):
-        pi = sum([m * v[i] for m, v in zip(masses, velocities)])
-        assert pi == 0
+    snap = sim.state.snapshot
+    if snap.exists:
+        masses = snap.particles.mass
+        velocities = snap.particles.velocity
+        for i in range(3):
+            pi = sum([m * v[i] for m, v in zip(masses, velocities)])
+            assert pi == 0
