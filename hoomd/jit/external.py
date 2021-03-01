@@ -1,20 +1,12 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-from hoomd import _hoomd
 from hoomd.jit import _jit
-from hoomd.hpmc import field
+from hoomd.jit.patch import _JITCompute
 from hoomd.hpmc import integrate
 import hoomd
 
-import tempfile
-import shutil
-import subprocess
-import os
-
-import numpy as np
-
-class user(field._external):
+class UserExternal(_JITCompute):
     R''' Define an external field imposed on all particles in the system.
 
     Args:
@@ -86,121 +78,87 @@ class user(field._external):
 
     .. versionadded:: 2.5
     '''
-    def __init__(self, mc, code=None, llvm_ir_file=None, clang_exec=None):
-        super(user, self).__init__()
-
-        # raise an error if this run is on the GPU
-        cls = None;
-        if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            hoomd.context.current.device.cpp_msg.error("JIT forces are not supported on the GPU\n");
-            raise RuntimeError("Error initializing force energy");
-        else:
-            if isinstance(mc, integrate.sphere):
-                cls = _jit.ExternalFieldJITSphere;
-            elif isinstance(mc, integrate.convex_polygon):
-                cls = _jit.ExternalFieldJITConvexPolygon;
-            elif isinstance(mc, integrate.simple_polygon):
-                cls = _jit.ExternalFieldJITSimplePolygon;
-            elif isinstance(mc, integrate.convex_polyhedron):
-                cls = _jit.ExternalFieldJITConvexPolyhedron;
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = _jit.ExternalFieldJITSpheropolyhedron;
-            elif isinstance(mc, integrate.ellipsoid):
-                cls = _jit.ExternalFieldJITEllipsoid;
-            elif isinstance(mc, integrate.convex_spheropolygon):
-                cls =_jit.ExternalFieldJITSpheropolygon;
-            elif isinstance(mc, integrate.faceted_ellipsoid):
-                cls =_jit.ExternalFieldJITFacetedEllipsoid;
-            elif isinstance(mc, integrate.polyhedron):
-                cls =_jit.ExternalFieldJITPolyhedron;
-            elif isinstance(mc, integrate.sphinx):
-                cls =_jit.ExternalFieldJITSphinx;
-            elif isinstance(mc, integrate.sphere_union):
-                cls = _jit.ExternalFieldJITSphereUnion;
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-                cls = _jit.ExternalFieldJITConvexPolyhedronUnion;
-            else:
-                hoomd.context.current.device.cpp_msg.error("jit.field.user: Unsupported integrator.\n");
-                raise RuntimeError("Error initializing compute.position_lattice_field");
-
-        # Find a clang executable if none is provided
-        if clang_exec is not None:
-            clang = clang_exec;
-        else:
-            clang = 'clang'
-
-        if code is not None:
-            llvm_ir = self.compile_user(code, clang)
-        else:
-            # IR is a text file
-            with open(llvm_ir_file,'r') as f:
-                llvm_ir = f.read()
-
-        self.compute_name = "external_field_jit"
-        self.cpp_compute = cls(hoomd.context.current.system_definition,
-            hoomd.context.current.device.cpp_exec_conf, llvm_ir);
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
-
-        self.mc = mc
-        self.enabled = True
-        self.log = False
-
-    def compile_user(self, code, clang_exec, fn=None):
-        R'''Helper function to compile the provided code into an executable
-
-        Args:
-            code (str): C++ code to compile
-            clang_exec (str): The Clang executable to use
-            fn (str): If provided, the code will be written to a file.
+    def __init__(self, clang_exec='clang', code=None, llvm_ir_file=None):
+        super().__init__(clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
 
 
-        .. versionadded:: 2.3
-        '''
+    def _wrap_cpu_code(self, code):
         cpp_function = """
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/VectorMath.h"
-#include "hoomd/BoxDim.h"
+                        #include "hoomd/HOOMDMath.h"
+                        #include "hoomd/VectorMath.h"
+                        #include "hoomd/BoxDim.h"
 
-extern "C"
-{
+                        extern "C"
+                        {
 
-float eval(const BoxDim& box,
-unsigned int type_i,
-const vec3<Scalar> r_i,
-const quat<Scalar>& q_i,
-Scalar diameter,
-Scalar charge
-)
-    {
-"""
+                        float eval(const BoxDim& box,
+                        unsigned int type_i,
+                        const vec3<Scalar> r_i,
+                        const quat<Scalar>& q_i,
+                        Scalar diameter,
+                        Scalar charge
+                        )
+                            {
+                        """
         cpp_function += code
         cpp_function += """
-    }
-}
-"""
+                            }
+                        }
+                        """
+        return cpp_function
 
-        include_path = os.path.dirname(hoomd.__file__) + '/include';
-        include_patsource = hoomd._hoomd.__hoomd_source_dir__;
 
-        if clang_exec is not None:
-            clang = clang_exec;
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if (isinstance(self._simulation.device, hoomd.device.GPU)):
+            raise RuntimeError("JIT forces are not supported on the GPU.")
+
+        integrator_pairs = [
+                (integrate.Sphere,
+                    _jit.ExternalFieldJITSphere),
+                (integrate.ConvexPolygon,
+                    _jit.ExternalFieldJITConvexPolygon),
+                (integrate.SimplePolygon,
+                    _jit.ExternalFieldJITSimplePolygon),
+                (integrate.ConvexPolyhedron,
+                    _jit.ExternalFieldJITConvexPolyhedron),
+                (integrate.ConvexSpheropolyhedron,
+                    _jit.ExternalFieldJITSpheropolyhedron),
+                (integrate.Ellipsoid,
+                    _jit.ExternalFieldJITEllipsoid),
+                (integrate.ConvexSpheropolygon,
+                    _jit.ExternalFieldJITSpheropolygon),
+                (integrate.FacetedEllipsoid,
+                    _jit.ExternalFieldJITFacetedEllipsoid),
+                (integrate.Polyhedron,
+                    _jit.ExternalFieldJITPolyhedron),
+                (integrate.Sphinx,
+                    _jit.ExternalFieldJITSphinx)
+                ]
+
+        cpp_cls = None
+        for python_integrator, cpp_compute in integrator_pairs:
+            if isinstance(integrator, python_integrator):
+                cpp_cls = cpp_compute
+        if cpp_cls is None:
+            raise RuntimeError("Unsupported integrator.\n")
+
+        # compile code if provided
+        if self._code is not None:
+            cpp_function = self._wrap_cpu_code(self._code)
+            llvm_ir = self._compile_user(cpp_function, self._clang_exec)
+        # fall back to LLVM IR file in case code is not provided
+        elif self._llvm_ir_file is not None:
+            # IR is a text file
+            with open(self._llvm_ir_file,'r') as f:
+                llvm_ir = f.read()
         else:
-            clang = 'clang';
+            raise RuntimeError("Must provide code or LLVM IR file.")
 
-        if fn is not None:
-            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
-        else:
-            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_patsource, '-S', '-emit-llvm','-x','c++', '-o','-','-']
-        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-
-        # pass C++ function to stdin
-        output = p.communicate(cpp_function.encode('utf-8'))
-        llvm_ir = output[0].decode()
-
-        if p.returncode != 0:
-            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
-            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
-            raise RuntimeError("Error initializing force.");
-
-        return llvm_ir
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                self._simulation.device._cpp_exec_conf,
+                                llvm_ir)
+        super()._attach()
