@@ -15,58 +15,65 @@ import os
 
 import numpy as np
 
-class PatchCompute(Compute):
-    """Base class for HOOMD patch interaction computes. Provides helper
-       methods to compile the user code in both CPU and GPU devices.
-
-    Note:
-        This class should not be instantiated by users. The class can be used
-        for `isinstance` or `issubclass` checks. The attributes documented here
-        are available to all patch computes.
-
-    Args:
-        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between particles.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
-        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
-
-    Atrributes:
-        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between particles.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str`): The Clang executable to compile the provided code.
-        array_size (`int`): Size of array with adjustable elements. (added in version 2.8)
-        energy (`float`): Total interaction energy of the system in the current state.
-        alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
-                                          defined by the user (added in version 2.8).
-    """
-
-    def __init__(self, r_cut, array_size=1,clang_exec='clang',
-                 code=None, llvm_ir_file=None):
-        param_dict = ParameterDict(r_cut = float(r_cut),
-                                   array_size = int(array_size))
-        self._param_dict.update(param_dict)
+class _JITCompute(Compute):
+    """"""
+    def __init__(self, clang_exec='clang', code=None, llvm_ir_file=None):
+        super().__init__()
         # these only exist on python
         self._code = code
         self._llvm_ir_file = llvm_ir_file
         self._clang_exec = clang_exec
-        self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
         super()._attach()
 
-    @log
-    def energy(self):
-        """float: Total interaction energy of the system in the current state.
-                  Returns `None` when the patch object and integrator are not attached.
+    def _setup_gpu_code_path(self):
+        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_source = hoomd.version.source_dir
+        include_path_cuda = _jit.__cuda_include_path__
+        self._options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+        self._cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
+
+        # select maximum supported compute capability out of those we compile for
+        self._compute_archs = _jit.__cuda_compute_archs__;
+        compute_archs_vec = _hoomd.std_vector_uint()
+        compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
+        compute_major, compute_minor = compute_capability.split('.')
+        self._max_arch = 0
+        for a in self._compute_archs.split('_'):
+            if int(a) < int(compute_major)*10+int(compute_major):
+                self._max_arch = int(a)
+
+    def _compile_user(self, cpp_function, clang_exec, fn=None):
+        R"""Helper function to compile the provided code into an executable
+
+        Args:
+            cpp_function (`str`): C++ code to compile
+            clang_exec (`str`): The Clang executable to use
+            fn (`str`, **optional**): If provided, the code will be written to a file.
+
+        .. versionadded:: 2.3
         """
-        integrator = self._simulation.operations.integrator
-        if self._attached and integrator._attached:
-            timestep = self._simulation.timestep
-            return integrator._cpp_obj.computePatchEnergy(timestep)
+        include_path = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_source = hoomd.version.source_dir
+
+        if fn is not None:
+            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
         else:
-            return None
+            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+
+        # pass C++ function to stdin
+        output = p.communicate(cpp_function.encode('utf-8'))
+        llvm_ir = output[0].decode()
+
+        if p.returncode != 0:
+            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
+            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
+            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
+            raise RuntimeError("Error initializing patch energy");
+
+        return llvm_ir
 
     @property
     def code(self):
@@ -105,33 +112,58 @@ class PatchCompute(Compute):
         else:
             self._clang_exec = clang
 
-    def _setup_gpu_code_path(self):
-        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
-        include_path_source = hoomd.version.source_dir
-        include_path_cuda = _jit.__cuda_include_path__
-        self._options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
-        self._cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
+class _PatchCompute(_JITCompute):
+    """Base class for HOOMD patch interaction computes. Provides helper
+       methods to compile the user code in both CPU and GPU devices.
 
-        # select maximum supported compute capability out of those we compile for
-        self._compute_archs = _jit.__cuda_compute_archs__;
-        compute_archs_vec = _hoomd.std_vector_uint()
-        compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
-        compute_major, compute_minor = compute_capability.split('.')
-        self._max_arch = 0
-        for a in self._compute_archs.split('_'):
-            if int(a) < int(compute_major)*10+int(compute_major):
-                self._max_arch = int(a)
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks. The attributes documented here
+        are available to all patch computes.
 
-    def _compile_user(self, code, clang_exec, fn=None):
-        R"""Helper function to compile the provided code into an executable
+    Args:
+        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between particles.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
+        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
 
-        Args:
-            code (`str`): C++ code to compile
-            clang_exec (`str`): The Clang executable to use
-            fn (`str`, **optional**): If provided, the code will be written to a file.
+    Atrributes:
+        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between particles.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str`): The Clang executable to compile the provided code.
+        array_size (`int`): Size of array with adjustable elements. (added in version 2.8)
+        energy (`float`): Total interaction energy of the system in the current state.
+        alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
+                                          defined by the user (added in version 2.8).
+    """
 
-        .. versionadded:: 2.3
+    def __init__(self, r_cut, array_size=1, clang_exec='clang',
+                 code=None, llvm_ir_file=None):
+        super().__init__(clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
+        param_dict = ParameterDict(r_cut = float(r_cut),
+                                   array_size = int(array_size))
+        self._param_dict.update(param_dict)
+        # these only exist on python
+        self.alpha_iso = np.zeros(array_size)
+
+    def _attach(self):
+        super()._attach()
+
+    @log
+    def energy(self):
+        """float: Total interaction energy of the system in the current state.
+                  Returns `None` when the patch object and integrator are not attached.
         """
+        integrator = self._simulation.operations.integrator
+        if self._attached and integrator._attached:
+            timestep = self._simulation.timestep
+            return integrator._cpp_obj.computePatchEnergy(timestep)
+        else:
+            return None
+
+    def _wrap_cpu_code(self, code):
         cpp_function =  """
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
@@ -159,27 +191,7 @@ class PatchCompute(Compute):
                             }
                         }
                         """
-
-        include_path = os.path.dirname(hoomd.__file__) + '/include';
-        include_path_source = hoomd.version.source_dir
-
-        if fn is not None:
-            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
-        else:
-            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
-        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-
-        # pass C++ function to stdin
-        output = p.communicate(cpp_function.encode('utf-8'))
-        llvm_ir = output[0].decode()
-
-        if p.returncode != 0:
-            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
-            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
-            raise RuntimeError("Error initializing patch energy");
-
-        return llvm_ir
+        return cpp_function
 
     def _wrap_gpu_code(self, code):
         R"""Helper function to compile the provided code into a device function
@@ -216,7 +228,7 @@ class PatchCompute(Compute):
         # Compile on C++ side
         return cpp_function
 
-class UserPatch(PatchCompute):
+class UserPatch(_PatchCompute):
     r'''Define an arbitrary patch energy.
 
     Args:
@@ -351,7 +363,8 @@ class UserPatch(PatchCompute):
 
         # compile code if provided
         if self._code is not None:
-            llvm_ir = self._compile_user(self._code, self._clang_exec)
+            cpp_function = self._wrap_cpu_code(self._code)
+            llvm_ir = self._compile_user(cpp_function, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file is not None:
             # IR is a text file
@@ -376,7 +389,7 @@ class UserPatch(PatchCompute):
         integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
-class UserUnionPatch(PatchCompute):
+class UserUnionPatch(_PatchCompute):
     R''' Define an arbitrary patch energy on a union of particles
 
     Args:
@@ -516,7 +529,8 @@ class UserUnionPatch(PatchCompute):
 
         # compile code if provided
         if self._code_union is not None:
-            llvm_ir_union = self._compile_user(self._code_union, self._clang_exec)
+            cpp_function_union = self._wrap_cpu_code(self._code_union)
+            llvm_ir_union = self._compile_user(cpp_function_union, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file
@@ -526,14 +540,16 @@ class UserUnionPatch(PatchCompute):
             raise RuntimeError("Must provide code or LLVM IR file.")
 
         if self._code is not None:
-            llvm_ir = self._compile_user(self._code, self._clang_exec)
+            cpp_function = self._wrap_cpu_code(self._code)
+            llvm_ir = self._compile_user(cpp_function, self._clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
         else:
             # provide a dummy function
-            llvm_ir = self._compile_user('return 0.0;', self._clang_exec)
+            cpp_dummy = self._wrap_cpu_code('return 0.0;')
+            llvm_ir = self._compile_user(cpp_dummy, self._clang_exec)
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
