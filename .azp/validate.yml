@@ -90,30 +90,12 @@ stages:
           container_image: gcc7_py37
           enable_tbb: on
 
-        gcc6_py37_mpi:
-          container_image: gcc6_py37
-          enable_mpi: on
-
-        gcc5_py37:
-          container_image: gcc5_py37
-
-        gcc48_py37_mpi_tbb:
-          container_image: gcc48_py37
-          enable_mpi: on
-          enable_tbb: on
-
         clang6_py37_mpi_tbb:
           container_image: clang6_py37
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '6.0'
-
-        clang5_py37_tbb_llvm5:
-          container_image: clang5_py37
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '5.0'
 
         gcc7_py36:
           container_image: gcc7_py36
@@ -180,13 +162,6 @@ stages:
         cuda10_py37_mpi:
           container_image: cuda10_gcc7_py37
           enable_mpi: on
-
-        cuda9_py37_mpi:
-          container_image: cuda9_gcc7_py37
-          enable_mpi: on
-
-        cuda9_py37:
-          container_image: cuda9_gcc7_py37
 
     pool:
       name: 'GPU'
