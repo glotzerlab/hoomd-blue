@@ -22,7 +22,7 @@ MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sys
                                            const unsigned int max_slab,
                                            Scalar flow_epsilon)
 :MuellerPlatheFlow(sysdef,group,flow_target,slab_direction,flow_direction,
-                   N_slabs,min_slab,max_slab)
+                   N_slabs,min_slab,max_slab, flow_epsilon)
     {
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlowGPU " << endl;
     if (!m_exec_conf->isCUDAEnabled())
