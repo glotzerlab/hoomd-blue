@@ -1,7 +1,4 @@
 steps:
-- checkout: self
-  submodules: true
-
 - task: CMake@1
   inputs:
     cmakeArgs: >-

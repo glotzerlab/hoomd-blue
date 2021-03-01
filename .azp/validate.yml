@@ -126,6 +126,8 @@ stages:
       options: -u 0
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -146,10 +148,14 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    - checkout: self
+      submodules: true
+    - bash: sudo chown -R $USER $CONDA
+      displayName: Take ownership of conda installation
+    - script: $CONDA/bin/conda env create --quiet --prefix=$(Pipeline.Workspace)/conda --file .azp/environment.yml
+      displayName: Create conda environment
+    - bash: echo "##vso[task.prependpath]$(Pipeline.Workspace)/conda/bin"
       displayName: Add conda to PATH
-    - script: sudo conda install --yes --quiet -c conda-forge cereal cmake eigen ninja openmpi python pybind11 tbb tbb-devel pytest numpy gsd
-      displayName: Conda install prereqs
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -194,6 +200,8 @@ stages:
       clean: all
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -250,6 +258,8 @@ stages:
       options: -u 0
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_validation_tests.yml
 
@@ -285,5 +295,7 @@ stages:
       clean: all
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_validation_tests.yml

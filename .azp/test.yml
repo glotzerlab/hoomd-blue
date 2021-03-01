@@ -55,6 +55,8 @@ jobs:
     options: -u 0
 
   steps:
+  - checkout: self
+    submodules: true
   - template: templates/build.yml
   - template: templates/run_tests.yml
 
@@ -84,6 +86,8 @@ jobs:
     clean: all
 
   steps:
+  - checkout: self
+    submodules: true
   - template: templates/build.yml
   - template: templates/run_tests.yml
 
