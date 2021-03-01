@@ -12,7 +12,5 @@ void export_ManifoldGyroid(pybind11::module& m)
     {
     pybind11::class_< ManifoldGyroid, std::shared_ptr<ManifoldGyroid> >(m, "ManifoldGyroid")
     .def(pybind11::init<int, int, int, Scalar >())
-    .def("implicit_function", &ManifoldGyroid::implicit_function)
-    .def("derivative", &ManifoldGyroid::derivative)
     ;
     }

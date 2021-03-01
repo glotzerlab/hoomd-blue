@@ -12,7 +12,5 @@ void export_ManifoldSphere(pybind11::module& m)
     {
     pybind11::class_< ManifoldSphere, std::shared_ptr<ManifoldSphere> >(m, "ManifoldSphere")
     .def(pybind11::init<Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldSphere::implicit_function)
-    .def("derivative", &ManifoldSphere::derivative)
     ;
     }

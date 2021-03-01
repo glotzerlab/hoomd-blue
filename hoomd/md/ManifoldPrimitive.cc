@@ -11,8 +11,6 @@ void export_ManifoldPrimitive(pybind11::module& m)
     {
     pybind11::class_< ManifoldPrimitive, std::shared_ptr<ManifoldPrimitive> >(m, "ManifoldPrimitive")
     .def(pybind11::init<int, int, int, Scalar >())
-    .def("implicit_function", &ManifoldPrimitive::implicit_function)
-    .def("derivative", &ManifoldPrimitive::derivative)
     ;
     }
 

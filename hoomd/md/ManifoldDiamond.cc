@@ -12,8 +12,6 @@ void export_ManifoldDiamond(pybind11::module& m)
     {
     pybind11::class_< ManifoldDiamond, std::shared_ptr<ManifoldDiamond> >(m, "ManifoldDiamond")
     .def(pybind11::init<int, int, int, Scalar >())
-    .def("implicit_function", &ManifoldDiamond::implicit_function)
-    .def("derivative", &ManifoldDiamond::derivative)
     ;
     }
 

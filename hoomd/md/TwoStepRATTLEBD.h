@@ -55,7 +55,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         m_pdata->getMaxParticleNumberChangeSignal().template disconnect<TwoStepRATTLEBD<Manifold>, &TwoStepRATTLEBD<Manifold>::reallocate>(this);
         }
 
-        //! Performs the second step of the integration
+        //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
 
         //! Performs the second step of the integration
@@ -126,6 +126,8 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     if( manifold_error){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
+
+    
 
     unsigned int group_size = m_group->getNumMembers();
 

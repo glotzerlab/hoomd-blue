@@ -40,20 +40,6 @@ class Manifold(_HOOMDBaseObject):
 
         self.name = None
 
-    def implicit_function(self, point):
-        """Compute the implicit function evaluated at a point in space.
-
-        Args:
-            point (tuple): The point applied to the implicit function."""
-        return self._cpp_obj.implicit_function(_hoomd.make_scalar3(point[0], point[1], point[2]))
-
-    def derivative(self, point):
-        """Compute the deriviative of the implicit function evaluated at a point in space.
-
-        Args:
-            point (tuple): The point applied to the implicit function."""
-        return self._cpp_obj.derivative(_hoomd.make_scalar3(point[0], point[1], point[2]))
-
 
 class Cylinder(Manifold):
     R""" Cylinder manifold.

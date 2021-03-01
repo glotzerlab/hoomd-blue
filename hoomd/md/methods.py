@@ -37,8 +37,10 @@ class _MethodRATTLE(_Method):
     system should be in a safe state to continue with unconstrained integration.
 
     Warning:
-        The particles have to be initialised close to the implicit surface of
-        the manifold.
+        The particles should be initialised close to the implicit surface of
+        the manifold. Even though the particles are mapped to the set surface
+        automatically, the mapping can lead to small inter-particle distances and, 
+        hence, large forces between particles!
 
     For the MTK equations of motion, see:
 

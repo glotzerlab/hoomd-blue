@@ -12,8 +12,6 @@ void export_ManifoldEllipsoid(pybind11::module& m)
     {
     pybind11::class_< ManifoldEllipsoid, std::shared_ptr<ManifoldEllipsoid> >(m, "ManifoldEllipsoid")
     .def(pybind11::init<Scalar, Scalar, Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldEllipsoid::implicit_function)
-    .def("derivative", &ManifoldEllipsoid::derivative)
     ;
     }
 

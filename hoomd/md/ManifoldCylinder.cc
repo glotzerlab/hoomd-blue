@@ -13,7 +13,5 @@ void export_ManifoldCylinder(pybind11::module& m)
     {
     pybind11::class_< ManifoldCylinder, std::shared_ptr<ManifoldCylinder> >(m, "ManifoldCylinder")
     .def(pybind11::init<Scalar, Scalar3 >())
-    .def("implicit_function", &ManifoldCylinder::implicit_function)
-    .def("derivative", &ManifoldCylinder::derivative)
     ;
     }
