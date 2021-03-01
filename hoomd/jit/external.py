@@ -162,3 +162,12 @@ class UserExternal(_JITCompute):
                                 self._simulation.device._cpp_exec_conf,
                                 llvm_ir)
         super()._attach()
+
+    @property
+    def energy(self):
+        integrator = self._simulation.operations.integrator
+        if self._attached:
+            timestep = self._simulation.timestep
+            return self._cpp_obj.computeEnergy(timestep)
+        else:
+            return None

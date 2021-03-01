@@ -68,6 +68,29 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             return m_eval(box, type, r_i, q_i, diameter, charge);
             }
 
+        //! Computes the total field energy of the system at the current state
+        virtual double computeEnergy(unsigned int timestep)
+            {
+            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
+
+            const BoxDim& box = this->m_pdata->getGlobalBox();
+
+            double total_energy = 0.0;
+            for(size_t i = 0; i < this->m_pdata->getN(); i++)
+                {
+                // read in the current position and orientation
+                Scalar4 postype_i = h_postype.data[i];
+                unsigned int typ_i = __scalar_as_int(postype_i.w);
+                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+                total_energy += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
+                }
+            return total_energy;
+            }
+
         virtual double calculateDeltaE(const Scalar4 * const position_old_arg,
                                        const Scalar4 * const orientation_old_arg,
                                        const BoxDim * const box_old_arg
@@ -148,25 +171,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             {
             if ( quantity == "external_field_jit" )
                 {
-                ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
-
-                const BoxDim& box = this->m_pdata->getGlobalBox();
-
-                double dE = 0.0;
-                for(size_t i = 0; i < this->m_pdata->getN(); i++)
-                    {
-                    // read in the current position and orientation
-                    Scalar4 postype_i = h_postype.data[i];
-                    unsigned int typ_i = __scalar_as_int(postype_i.w);
-                    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-                    dE += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
-                    }
-
-                return dE;
+                return computeEnergy(timestep);
                 }
             else
                 {
@@ -191,6 +196,6 @@ void export_ExternalFieldJIT(pybind11::module &m, std::string name)
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string& >())
-            .def("energy", &ExternalFieldJIT<Shape>::energy);
+            .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_
