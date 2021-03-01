@@ -416,11 +416,16 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
 
 	       } while (maxNorm(residual,resid)*mass > m_eta && iteration < maxiteration );
 
+	if(iteration == maxiteration)
+	{
+        m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	}
 
            // then, update the velocity
-           h_vel.data[j].x += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].x - mu*inv_mass*normal.x);
-           h_vel.data[j].y += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].y - mu*inv_mass*normal.y);
-           h_vel.data[j].z += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].z - mu*inv_mass*normal.z);
+        h_vel.data[j].x += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].x - mu*inv_mass*normal.x);
+        h_vel.data[j].y += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].y - mu*inv_mass*normal.y);
+        h_vel.data[j].z += Scalar(1.0/2.0)*m_deltaT*(h_accel.data[j].z - mu*inv_mass*normal.z);
 
 
         // limit the movement of the particles
@@ -527,28 +532,34 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(unsigned int timestep)
 
 	unsigned int iteration = 0;
 	do
-	    {
+	{
 	    iteration++;
-        half_vel.x = h_vel.data[j].x + deltaT_half*(h_accel.data[j].x-inv_mass*lambda*normal.x);
-        half_vel.y = h_vel.data[j].y + deltaT_half*(h_accel.data[j].y-inv_mass*lambda*normal.y);
-        half_vel.z = h_vel.data[j].z + deltaT_half*(h_accel.data[j].z-inv_mass*lambda*normal.z);
+            half_vel.x = h_vel.data[j].x + deltaT_half*(h_accel.data[j].x-inv_mass*lambda*normal.x);
+            half_vel.y = h_vel.data[j].y + deltaT_half*(h_accel.data[j].y-inv_mass*lambda*normal.y);
+            half_vel.z = h_vel.data[j].z + deltaT_half*(h_accel.data[j].z-inv_mass*lambda*normal.z);
 
 	    residual.x = h_pos.data[j].x - next_pos.x + m_deltaT*half_vel.x;
 	    residual.y = h_pos.data[j].y - next_pos.y + m_deltaT*half_vel.y;
 	    residual.z = h_pos.data[j].z - next_pos.z + m_deltaT*half_vel.z;
 	    resid = m_manifold.implicit_function(next_pos);
 
-        Scalar3 next_normal =  m_manifold.derivative(next_pos);
+            Scalar3 next_normal =  m_manifold.derivative(next_pos);
 	    Scalar nndotr = dot(next_normal,residual);
 	    Scalar nndotn = dot(next_normal,normal);
 	    Scalar beta = (resid + nndotr)/nndotn;
 
-        next_pos.x = next_pos.x - beta*normal.x + residual.x;
-        next_pos.y = next_pos.y - beta*normal.y + residual.y;
-        next_pos.z = next_pos.z - beta*normal.z + residual.z;
+            next_pos.x = next_pos.x - beta*normal.x + residual.x;
+            next_pos.y = next_pos.y - beta*normal.y + residual.y;
+            next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	    lambda = lambda - beta*inv_alpha;
 
-	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	} while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	 
+	if(iteration == maxiteration)
+	{
+        m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	}
 
 	h_net_force.data[j].x -= lambda*normal.x;
 	h_net_force.data[j].y -= lambda*normal.y;

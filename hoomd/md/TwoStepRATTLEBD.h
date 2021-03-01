@@ -387,78 +387,85 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
         Scalar rx, ry, rz, coeff;
 
         if(currentTemp > 0)
-	        {
-	    	// compute the random force
-	    	UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
-	    	rx = uniform(rng);
-	    	ry = uniform(rng);
-	    	rz = uniform(rng);
+	    {
+		// compute the random force
+		UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+		rx = uniform(rng);
+		ry = uniform(rng);
+		rz = uniform(rng);
 
-	    	Scalar3 proj = normal;
-	    	Scalar proj_norm = 1.0/slow::sqrt(proj.x*proj.x+proj.y*proj.y+proj.z*proj.z);
-	    	proj.x *= proj_norm;
-	    	proj.y *= proj_norm;
-	    	proj.z *= proj_norm;
+		Scalar3 proj = normal;
+		Scalar proj_norm = 1.0/slow::sqrt(proj.x*proj.x+proj.y*proj.y+proj.z*proj.z);
+		proj.x *= proj_norm;
+		proj.y *= proj_norm;
+		proj.z *= proj_norm;
 
-	    	Scalar proj_r = rx*proj.x + ry*proj.y + rz*proj.z;
+		Scalar proj_r = rx*proj.x + ry*proj.y + rz*proj.z;
 
-	    	rx = rx - proj_r*proj.x;
-	    	ry = ry - proj_r*proj.y;
-	    	rz = rz - proj_r*proj.z;
+		rx = rx - proj_r*proj.x;
+		ry = ry - proj_r*proj.y;
+		rz = rz - proj_r*proj.z;
 
-	    	// compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
-	    	// it is not the dimensionality of the system
-	    	coeff = fast::sqrt(Scalar(6.0)*currentTemp/deltaT_gamma);
-	    	if (m_noiseless_t)
-	    	    coeff = Scalar(0.0);
- 	        }
-	    else
-	        {
-        	rx = 0;
-           	ry = 0;
-           	rz = 0;
-          	coeff = 0;
-	        }
+		// compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
+		// it is not the dimensionality of the system
+		coeff = fast::sqrt(Scalar(6.0)*currentTemp/deltaT_gamma);
+		if (m_noiseless_t)
+		    coeff = Scalar(0.0);
+ 	    }
+	else
+	    {
+            rx = 0;
+            ry = 0;
+            rz = 0;
+            coeff = 0;
+	    }
 
         Scalar Fr_x = rx*coeff;
         Scalar Fr_y = ry*coeff;
         Scalar Fr_z = rz*coeff;
 
-            // update position
-	    Scalar mu = 0.0;
+        // update position
+	Scalar mu = 0.0;
 
-	    Scalar inv_alpha = -deltaT_gamma;
-	    inv_alpha = Scalar(1.0)/inv_alpha;
+	Scalar inv_alpha = -deltaT_gamma;
+	inv_alpha = Scalar(1.0)/inv_alpha;
 
 
-	    Scalar3 residual;
-	    Scalar resid;
-	    unsigned int iteration = 0;
+	Scalar3 residual;
+	Scalar resid;
+	unsigned int iteration = 0;
 
-	    do
-	    {
-	        iteration++;
-	        residual.x = h_pos.data[j].x - next_pos.x + (h_net_force.data[j].x + Fr_x - mu*normal.x) * deltaT_gamma;
-	        residual.y = h_pos.data[j].y - next_pos.y + (h_net_force.data[j].y + Fr_y - mu*normal.y) * deltaT_gamma;
-	        residual.z = h_pos.data[j].z - next_pos.z + (h_net_force.data[j].z + Fr_z - mu*normal.z) * deltaT_gamma;
-	        resid = m_manifold.implicit_function(next_pos);
+	do
+	{
+	    iteration++;
+	    residual.x = h_pos.data[j].x - next_pos.x + (h_net_force.data[j].x + Fr_x - mu*normal.x) * deltaT_gamma;
+	    residual.y = h_pos.data[j].y - next_pos.y + (h_net_force.data[j].y + Fr_y - mu*normal.y) * deltaT_gamma;
+	    residual.z = h_pos.data[j].z - next_pos.z + (h_net_force.data[j].z + Fr_z - mu*normal.z) * deltaT_gamma;
+	    resid = m_manifold.implicit_function(next_pos);
 
-            Scalar3 next_normal = m_manifold.derivative(next_pos);
+        Scalar3 next_normal = m_manifold.derivative(next_pos);
 
-	        Scalar nndotr = dot(next_normal,residual);
-	        Scalar nndotn = dot(next_normal,normal);
-	        Scalar beta = (resid + nndotr)/nndotn;
+	    Scalar nndotr = dot(next_normal,residual);
+	    Scalar nndotn = dot(next_normal,normal);
+	    Scalar beta = (resid + nndotr)/nndotn;
 
-            next_pos.x = next_pos.x - beta*normal.x + residual.x;
-            next_pos.y = next_pos.y - beta*normal.y + residual.y;
-            next_pos.z = next_pos.z - beta*normal.z + residual.z;
-	        mu = mu - beta*inv_alpha;
+        next_pos.x = next_pos.x - beta*normal.x + residual.x;
+        next_pos.y = next_pos.y - beta*normal.y + residual.y;
+        next_pos.z = next_pos.z - beta*normal.z + residual.z;
+	    mu = mu - beta*inv_alpha;
 
-	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	} while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
 
-	    h_net_force.data[j].x -= mu*normal.x;
-	    h_net_force.data[j].y -= mu*normal.y;
-	    h_net_force.data[j].z -= mu*normal.z;
+	if(iteration == maxiteration)
+	{
+        m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+
+	}
+
+	h_net_force.data[j].x -= mu*normal.x;
+	h_net_force.data[j].y -= mu*normal.y;
+	h_net_force.data[j].z -= mu*normal.z;
 
         h_net_virial.data[0*net_virial_pitch+j] -= mu*normal.x*h_pos.data[j].x;
         h_net_virial.data[1*net_virial_pitch+j] -= 0.5*mu*(normal.y*h_pos.data[j].x + normal.x*h_pos.data[j].y);
@@ -467,9 +474,9 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
         h_net_virial.data[4*net_virial_pitch+j] -= 0.5*mu*(normal.y*h_pos.data[j].z + normal.z*h_pos.data[j].y);
         h_net_virial.data[5*net_virial_pitch+j] -= mu*normal.z*h_pos.data[j].z;
 
-	    h_f_brownian.data[group_idx].x = Fr_x;
-	    h_f_brownian.data[group_idx].y = Fr_y;
-	    h_f_brownian.data[group_idx].z = Fr_z;
+	h_f_brownian.data[group_idx].x = Fr_x;
+	h_f_brownian.data[group_idx].y = Fr_y;
+	h_f_brownian.data[group_idx].z = Fr_z;
 
         }
     }
