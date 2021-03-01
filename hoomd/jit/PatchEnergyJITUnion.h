@@ -48,6 +48,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_diameter.resize(ntypes);
             m_charge.resize(ntypes);
             m_tree.resize(ntypes);
+
+            m_managed_memory = false;
             }
 
         //! Destructor
@@ -310,6 +312,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::vector< std::vector<float> > m_charge;               // The charges of the constituent particles
         std::vector< std::vector<unsigned int> > m_type;          // The type identifiers of the constituent particles
         unsigned int m_leaf_capacity;                             // The number of particles in a leaf of the internal tree data structure
+        bool m_managed_memory;                                    // Flag to managed memory on the GPU (only used for OBB construction)
 
         //! Compute the energy of two overlapping leaf nodes
         float compute_leaf_leaf_energy(vec3<float> dr,

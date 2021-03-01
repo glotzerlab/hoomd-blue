@@ -44,7 +44,7 @@ void PatchEnergyJITUnion::buildOBBTree()
             hpmc::detail::OBBTree tree;
             tree.buildTree(obbs, N, m_leaf_capacity, false);
             delete [] obbs;
-            m_tree[type] = hpmc::detail::GPUTree(tree,false);
+            m_tree[type] = hpmc::detail::GPUTree(tree, m_managed_memory);
             }
 
         m_updated_types.clear();
