@@ -114,7 +114,9 @@ def test_raise_attr_error_user_external(device, attr, val,
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 def test_electric_field(device, orientations, charge, result,
                         simulation_factory, two_particle_snapshot_factory):
-    """Test that UserExternal computes the correct field energies."""
+    """Test that UserExternal computes the correct energies for static
+       point-like electric dipoles inmersed in an uniform electric field.
+    """
 
     # pontential energy of a point dipole in an electric field in the z direction
     #    - use charge as a proxy for dipole moment
@@ -139,3 +141,41 @@ def test_electric_field(device, orientations, charge, result,
     sim.run(0)
 
     assert np.isclose(ext.energy, result)
+
+
+@pytest.mark.serial
+def test_gravity(device, simulation_factory, lattice_snapshot_factory):
+    """ This test simulates a sedimentation experiment by using an elongated
+        box in the z-dimension and adding an effective gravitational
+        potential with a wall. Note that it is technically probabilistic in
+        nature, but we use enough particles and a strong enough gravitational
+        potential that the probability of particles rising in the simulation is
+        vanishingly small.
+    """
+
+    sim = simulation_factory(lattice_snapshot_factory(a=1.1, n=5))
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1, seed=1)
+    mc.shape['A'] = dict(diameter=1)
+
+    # expand box and add gravity field
+    old_box = sim.state.box
+    sim.state.box = hoomd.Box(Lx=1.5*old_box.Lx,
+                              Ly=1.5*old_box.Ly,
+                              Lz=20*old_box.Lz)
+    ext = jit.external.UserExternal(code="return 1000*(r_i.z + box.getL().z/2);")
+
+    snap = sim.state.snapshot
+    if snap.exists:
+        old_avg_z = np.mean(snap.particles.position[:, 2])
+
+    sim.operations.integrator = mc
+    sim.operations += ext
+
+    sim.run(0)
+    old_energy = ext.energy
+    sim.run(1e3)
+
+    snap = sim.state.snapshot
+    if snap.exists:
+        assert np.mean(snap.particles.position[:, 2]) < old_avg_z
+        assert ext.energy < old_energy
