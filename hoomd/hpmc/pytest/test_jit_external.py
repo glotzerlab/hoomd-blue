@@ -32,13 +32,14 @@ attr_error =  [('code', 'return -1.0;'),
 
 
 # (orientation of p1, orientation of p2, charge of both particles, expected result)
-electric_field_params = [([(1, 0, 0, 0), (0, np.sqrt(2)/2, np.sqrt(2)/2, 0)], 1, 0),
-                         ([(1, 0, 0, 0),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, -1),
-                         ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, 0),
-                         ([(0, np.sqrt(2)/2, 0, np.sqrt(2)/2),(0, np.sqrt(2)/2,0, np.sqrt(2)/2)], 1, -2),
-                         ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], 1,  2),
-                         ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -1,  -2),
-                         ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -3,  -6),
+electric_field_params = [
+        ([(1, 0, 0, 0), (0, np.sqrt(2)/2, np.sqrt(2)/2, 0)], 1, 0),
+        ([(1, 0, 0, 0),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, -1),
+        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, 0),
+        ([(0, np.sqrt(2)/2, 0, np.sqrt(2)/2),(0, np.sqrt(2)/2,0, np.sqrt(2)/2)], 1, -2),
+        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], 1,  2),
+        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -1,  -2),
+        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -3,  -6),
 ]
 
 
