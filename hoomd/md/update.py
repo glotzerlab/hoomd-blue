@@ -245,7 +245,7 @@ class MuellerPlatheFlow(Updater):
         min_slab (int): Id < n_slabs where the min velocity component is search
             for. If set < 0 the value is set to its default 0.
 
-    .. attention::
+    Attention:
         * This updater has to be always applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
