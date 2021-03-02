@@ -9,16 +9,16 @@ pr:
 # repository.
 trigger: none
 
-# Instead, trigger nightly builds on active branches.
+# Instead, trigger periodic builds on active branches.
 schedules:
-- cron: "0 2 * * *"
-  displayName: Nightly build
+- cron: "0 2-20/6 * * *"
+  displayName: Periodic build
   branches:
     include:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2021.01
+  image_root: glotzerlab/ci:2021.03
 
   # Default build parameters, will override as needed with job matrix values. Variables are
   # automatically set as environment variables (with names converted to all caps). These variables
@@ -46,7 +46,6 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
-      maxParallel: 5
       matrix:
         clang10_py38_mpi_tbb:
           container_image: clang10_py38
@@ -164,13 +163,11 @@ stages:
           always_use_managed_memory: on
           enable_mpi: on
 
-        cuda10_py37_mpi:
+        cuda10_py37:
           container_image: cuda10_gcc7_py37
-          enable_mpi: on
 
     pool:
       name: 'GPU'
-      demands: short_jobs
 
     container:
         image: $(image_root)-$(container_image)

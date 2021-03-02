@@ -10,7 +10,7 @@ pr:
   - master
 
 variables:
-  image_root: glotzerlab/ci:2021.01
+  image_root: glotzerlab/ci:2021.03
   name: hoomd
 
 jobs:
