@@ -17,10 +17,10 @@ steps:
       -DCMAKE_INSTALL_PREFIX=$(Pipeline.Workspace)/install
     workingDirectory: $(Build.BinariesDirectory)
 
-- script: make -j 4
+- script: make -j $(($(getconf _NPROCESSORS_ONLN) + 2))
   displayName: Compile
   workingDirectory: $(Build.BinariesDirectory)
 
-- script: make install -j 4
+- script: make install -j $(($(getconf _NPROCESSORS_ONLN) + 2))
   displayName: Install
   workingDirectory: $(Build.BinariesDirectory)
