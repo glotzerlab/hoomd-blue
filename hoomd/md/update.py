@@ -228,7 +228,7 @@ class MuellerPlatheFlow(Updater):
             apply this updater.
 
         flow_target (`hoomd.variant.Variant`): Integrated target flow. The unit
-            is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
+            is in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
             The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
 
         slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs.
