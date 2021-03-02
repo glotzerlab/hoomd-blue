@@ -97,7 +97,8 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
+                                hoomd::Counter(ptag));
             Scalar rand_x = NormalDistribution<Scalar>(sigma_r.x)(rng);
             Scalar rand_y = NormalDistribution<Scalar>(sigma_r.y)(rng);
             Scalar rand_z = NormalDistribution<Scalar>(sigma_r.z)(rng);

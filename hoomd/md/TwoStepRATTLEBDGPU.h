@@ -41,19 +41,18 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     unsigned int seed,
                      Scalar eta);
 
         virtual ~TwoStepRATTLEBDGPU() {};
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep){};
+        virtual void integrateStepTwo(uint64_t timestep){};
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void includeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(uint64_t timestep);
 
     protected:
         unsigned int m_block_size;               //!< block size
@@ -63,14 +62,13 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
 
-template<class Manifold> 
+template<class Manifold>
 TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     unsigned int seed,
                      Scalar eta)
-    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, seed, eta)
+    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, eta)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -83,7 +81,7 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
 
 
 template<class Manifold>
-void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (this->m_prof)
@@ -112,7 +110,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_inertia(this->m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
 
-    
+
     rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = this->m_gamma.getNumElements();
@@ -121,7 +119,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     args.T = (*this->m_T)(timestep);
     args.eta = this->m_eta;
     args.timestep = timestep;
-    args.seed = this->m_seed;
+    args.seed = this->m_sysdef->getSeed();
 
 
     bool aniso = this->m_aniso;
@@ -139,7 +137,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-   
+
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
@@ -179,7 +177,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(unsigned int timestep)
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
 template<class Manifold>
-void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
 
     // access all the needed data
@@ -199,7 +197,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
 
     size_t net_virial_pitch = net_virial.getPitch();
 
-    
+
     rattle_bd_step_one_args args;
     args.d_gamma = d_gamma.data;
     args.n_types = this->m_gamma.getNumElements();
@@ -208,7 +206,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
     args.T = (*this->m_T)(timestep);
     args.eta = this->m_eta;
     args.timestep = timestep;
-    args.seed = this->m_seed;
+    args.seed = this->m_sysdef->getSeed();
 
 
     if (this->m_exec_conf->allConcurrentManagedAccess())
@@ -223,7 +221,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
             CHECK_CUDA_ERROR();
         }
 
-   
+
     this->m_exec_conf->beginMultiGPU();
 
     // perform the update on the GPU
@@ -263,7 +261,6 @@ void export_TwoStepRATTLEBDGPU(py::module& m, const std::string& name)
                                std::shared_ptr<ParticleGroup>,
                                Manifold,
                                std::shared_ptr<Variant>,
-                               unsigned int,
 			       Scalar>())
         ;
     }

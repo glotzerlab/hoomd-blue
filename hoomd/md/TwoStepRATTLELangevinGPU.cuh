@@ -31,9 +31,9 @@ struct rattle_langevin_step_two_args
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
-    Scalar eta;                 
-    unsigned int timestep;    //!< Current timestep
-    unsigned int seed;        //!< User chosen random number seed
+    Scalar eta;
+    uint64_t timestep;    //!< Current timestep
+    uint16_t seed;        //!< User chosen random number seed
     Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
     Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
@@ -127,8 +127,8 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  size_t n_types,
                                  bool use_alpha,
                                  Scalar alpha,
-                                 unsigned int timestep,
-                                 unsigned int seed,
+                                 uint64_t timestep,
+                                 uint16_t seed,
                                  Scalar T,
                                  Scalar eta,
                                  bool noiseless_t,
@@ -191,13 +191,14 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         Scalar3 pos = make_scalar3(d_pos[idx].x,d_pos[idx].y,d_pos[idx].z);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
 
         Scalar3 normal = manifold.derivative(pos);
 	Scalar ndotn = dot(normal,normal);
 
         Scalar randomx, randomy, randomz, coeff;
-   
+
 	if ( T > 0 ){
         	UniformDistribution<Scalar> uniform(-1, 1);
 
@@ -214,7 +215,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
 		Scalar proj_x = normal.x/fast::sqrt(ndotn);
 		Scalar proj_y = normal.y/fast::sqrt(ndotn);
 		Scalar proj_z = normal.z/fast::sqrt(ndotn);
-		
+
 		Scalar proj_r = randomx*proj_x + randomy*proj_y + randomz*proj_z;
 		randomx = randomx - proj_r*proj_x;
 		randomy = randomy - proj_r*proj_y;
@@ -244,7 +245,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)
 
-        Scalar3 next_vel; 
+        Scalar3 next_vel;
         next_vel.x = vel.x + Scalar(1.0/2.0)*deltaT*accel.x;
         next_vel.y = vel.y + Scalar(1.0/2.0)*deltaT*accel.y;
         next_vel.z = vel.z + Scalar(1.0/2.0)*deltaT*accel.z;
@@ -257,7 +258,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         Scalar3 residual;
         Scalar resid;
         Scalar3 vel_dot;
-   
+
         unsigned int iteration = 0;
         do
             {
@@ -284,7 +285,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
 
 	    //} while (maxNormGPU(residual,resid)*mass > eta && iteration < maxiteration );
 	    } while (resid*mass > eta && iteration < maxiteration );
-	
+
 
         vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * minv * normal.x) * deltaT;
         vel.y += (Scalar(1.0)/Scalar(2.0)) * (accel.y - mu * minv * normal.y) * deltaT;

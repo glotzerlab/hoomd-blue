@@ -67,8 +67,8 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const size_t n_types,
                                   const bool use_alpha,
                                   const Scalar alpha,
-                                  const unsigned int timestep,
-                                  const unsigned int seed,
+                                  const uint64_t timestep,
+                                  const uint16_t seed,
                                   const Scalar T,
                                   const bool aniso,
                                   const Scalar deltaT,
@@ -134,9 +134,10 @@ void gpu_rattle_brownian_step_one_kernel(Scalar4 *d_pos,
 
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep, 1);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(tag, 1));
 
-        
+
         Scalar dx = (net_force.x + brownian_force.x) * deltaT_gamma;
         Scalar dy = (net_force.y + brownian_force.y) * deltaT_gamma;
         Scalar dz = (net_force.z + brownian_force.z) * deltaT_gamma;

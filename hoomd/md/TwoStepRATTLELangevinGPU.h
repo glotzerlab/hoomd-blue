@@ -39,7 +39,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                            std::shared_ptr<ParticleGroup> group,
                      	   Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
                            Scalar eta);
 
 
@@ -89,9 +88,8 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(std::shared_ptr<Sys
                    std::shared_ptr<ParticleGroup> group,
              	   Manifold manifold,
                    std::shared_ptr<Variant> T,
-                   unsigned int seed,
                    Scalar eta)
-: TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, seed, eta)
+: TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, eta)
 {
 if (!this->m_exec_conf->isCUDAEnabled())
     {
@@ -224,7 +222,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         args.T = (*this->m_T)(timestep);
         args.eta = this->m_eta;
         args.timestep = timestep;
-        args.seed = this->m_seed;
+        args.seed = this->m_sysdef->getSeed();
         args.d_sum_bdenergy = d_sumBD.data;
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
@@ -349,7 +347,6 @@ void export_TwoStepRATTLELangevinGPU(py::module& m, const std::string& name)
                                std::shared_ptr<ParticleGroup>,
                                Manifold,
                                std::shared_ptr<Variant>,
-                               unsigned int,
                                Scalar
                                >())
         ;

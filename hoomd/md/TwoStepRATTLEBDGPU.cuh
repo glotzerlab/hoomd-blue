@@ -39,9 +39,9 @@ struct rattle_bd_step_one_args
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
-    Scalar eta;                 
-    unsigned int timestep;    //!< Current timestep
-    unsigned int seed;        //!< User chosen random number seed
+    Scalar eta;
+    uint64_t timestep;    //!< Current timestep
+    uint16_t seed;            //!< User chosen random number seed
     };
 
 
@@ -102,8 +102,8 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                                   const size_t n_types,
                                   const bool use_alpha,
                                   const Scalar alpha,
-                                  const unsigned int timestep,
-                                  const unsigned int seed,
+                                  const uint64_t timestep,
+                                  const uint16_t seed,
                                   const Scalar T,
                                   const Scalar eta,
                                   Manifold manifold,
@@ -112,9 +112,9 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                                   const bool d_noiseless_t,
                                   const unsigned int offset)
     {
-    HIP_DYNAMIC_SHARED( char, s_data)
+    HIP_DYNAMIC_SHARED( char, s_data2)
 
-    Scalar3 *s_gammas_r = (Scalar3 *)s_data;
+    Scalar3 *s_gammas_r = (Scalar3 *)s_data2;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
 
     if (!use_alpha)
@@ -168,9 +168,10 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, tag, timestep, 2);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(tag, 2));
 
-        
+
 	Scalar3 next_pos;
 	next_pos.x = postype.x;
 	next_pos.y = postype.y;
@@ -216,7 +217,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 	    	rx = rx - proj_r*proj.x;
 	    	ry = ry - proj_r*proj.y;
 	    	rz = rz - proj_r*proj.z;
-	    
+
                     // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
                     // it is not the dimensionality of the system
                     coeff = fast::sqrt(Scalar(6.0)*T/deltaT_gamma);
@@ -263,18 +264,18 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 	            Scalar nndotn = dot(next_normal,normal);
 	            Scalar beta = (resid + nndotr)/nndotn;
 
-                    next_pos.x = next_pos.x - beta*normal.x + residual.x;   
-                    next_pos.y = next_pos.y - beta*normal.y + residual.y;   
+                    next_pos.x = next_pos.x - beta*normal.x + residual.x;
+                    next_pos.y = next_pos.y - beta*normal.y + residual.y;
                     next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	            mu = mu - beta*inv_alpha;
-	         
+
 	            resid = fabs(resid);
                     Scalar vec_norm = sqrt(dot(residual,residual));
                     if ( vec_norm > resid) resid =  vec_norm;
 
 	        //} while (maxNormGPU(residual,resid) > eta && iteration < maxiteration );
 	        } while (resid > eta && iteration < maxiteration );
-    
+
             net_force.x -= mu*normal.x;
             net_force.y -= mu*normal.y;
             net_force.z -= mu*normal.z;
