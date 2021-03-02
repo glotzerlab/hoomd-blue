@@ -301,10 +301,10 @@ class MuellerPlatheFlow(Updater):
             max_slab=int(max_slab),
             min_slab=int(min_slab),
             flow_epsilon=float(1e-2))
-        params["filter"] = filter
-        params['flow_target'] = flow_target
-        params['slab_direction'] = slab_direction
-        params['flow_direction'] = flow_direction
+        params.update(dict(filter=filter,
+                           flow_target=flow_target,
+                           slab_direction=slab_direction,
+                           flow_direction=flow_direction))
         self._param_dict.update(params)
 
         # This updater has to be applied every timestep
