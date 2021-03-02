@@ -166,10 +166,6 @@ class HPMCIntegrator(BaseIntegrator):
 
         super()._attach()
 
-    # Set the external field
-    def set_external(self, ext):
-        self._cpp_obj.setExternalField(ext.cpp_compute)
-
     # TODO need to validate somewhere that quaternions are normalized
 
     @property
