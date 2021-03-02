@@ -54,6 +54,38 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     assert isinstance(mpf.has_max_slab, bool)
     assert isinstance(mpf.has_min_slab, bool)
     assert mpf.summed_exchanged_momentum == 0
+
+    with pytest.raises(AttributeError):
+        # filter cannot be set after scheduling
+        mpf.filter = hoomd.filter.Type(['A'])
+    with pytest.raises(AttributeError):
+        # flow_target cannot be set after scheduling
+        mpf.flow_target = hoomd.variant.Ramp(0.0, 0.1e7, 0, int(1e7))
+    with pytest.raises(AttributeError):
+        # slab_direction cannot be set after scheduling
+        mpf.slab_direction = flow_direction
+    with pytest.raises(AttributeError):
+        # flow_direction cannot be set after scheduling
+        mpf.flow_direction = slab_direction
+    with pytest.raises(AttributeError):
+        # n_slabs cannot be set after scheduling
+        mpf.n_slabs = 15
+    with pytest.raises(AttributeError):
+        # min_slab cannot be set after scheduling
+        mpf.min_slab = 2
+    with pytest.raises(AttributeError):
+        # max_slab cannot be set after scheduling
+        mpf.max_slab = 10
+    with pytest.raises(AttributeError):
+        # has_max_slab cannot be set
+        mpf.has_max_slab = False
+    with pytest.raises(AttributeError):
+        # has_min_slab cannot be set
+        mpf.has_max_slab = False
+    with pytest.raises(AttributeError):
+        # summed_exchanged_momentum cannot be set
+        mpf.summed_exchanged_momentum = 1.5
+
     sim.run(1)
     flow_epsilon = mpf.flow_epsilon
     flow_epsilon *= 2
