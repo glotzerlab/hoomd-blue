@@ -6,6 +6,7 @@ from hoomd.jit.patch import JITCompute
 from hoomd.hpmc import integrate
 import hoomd
 
+
 class UserExternal(JITCompute):
     r'''Define an arbitrary external field imposed on all particles in the system.
 
