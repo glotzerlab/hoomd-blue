@@ -16,11 +16,10 @@ from hoomd.logging import log
 import hoomd
 
 class FreeVolume(Compute):
-    R""" Compute the free volume available to a test particle by stochastic integration.
+    """Compute the free volume available to a test particle by stochastic integration.
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate.HPMCIntegrator`): MC integrator.
-        seed (int): Random seed for MC integration.
         type (str): Type of particle to use for integration
         nsample (int): Number of samples to use in MC integration
 
@@ -34,24 +33,22 @@ class FreeVolume(Compute):
 
     Examples::
 
-        mc = hoomd.hpmc.integrate.Sphere(seed=415236)
+        mc = hoomd.hpmc.integrate.Sphere()
         mc.shape["A"] = {'diameter': 1.0}
         mc.shape["B"] = {'diameter': 0.2}
         mc.depletant_fugacity["B"] = 1.5
-        fv = hoomd.hpmc.compute.FreeVolume(mc=mc, seed=123, test_type='B', nsample=1000)
+        fv = hoomd.hpmc.compute.FreeVolume(mc=mc, test_type='B', nsample=1000)
 
     """
-    def __init__(self, mc, seed, test_type=None, nsample=None):
+    def __init__(self, mc, test_type=None, nsample=None):
         # store metadata
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
-            seed=int,
             test_particle_type=OnlyTypes((str, int)),
             num_samples=int
         )
         param_dict.update(
             dict(mc=mc,
-                 seed=seed,
                  test_particle_type=test_type,
                  num_samples=nsample))
         # set defaults
@@ -105,7 +102,6 @@ class FreeVolume(Compute):
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 self.mc._cpp_obj,
                                 _hoomd.CellList(self._simulation.state._cpp_sys_def),
-                                self.seed,
                                 "")
 
         super()._attach()
