@@ -33,7 +33,7 @@ class PYBIND11_EXPORT Enforce2DUpdaterGPU : public Enforce2DUpdater
         Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     };
 

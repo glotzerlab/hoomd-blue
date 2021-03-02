@@ -90,7 +90,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             }
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             if (quantity == "hpmc_wall_acceptance_ratio")
                 {
@@ -126,13 +126,26 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             else { return m_count_total_tot; }
             }
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             // Choose whether or not to update the external field
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterExternalFieldWall, timestep, m_sysdef->getSeed()),
+                                       hoomd::Counter(m_instance));
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
             unsigned int move_probability = (unsigned int)(m_move_probability * 65536);
             // Attempt and evaluate a move
@@ -182,6 +195,8 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::vector<SphereWall> m_CurrSpheres;                    //!< Copy of current sphere walls
         std::vector<CylinderWall> m_CurrCylinders;                //!< Copy of current cylinder walls
         std::vector<PlaneWall> m_CurrPlanes;                      //!< Copy of current plane walls
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
     };
 
 template< class Shape >
@@ -192,6 +207,9 @@ void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)
+    .def_property("instance",
+                  &UpdaterExternalFieldWall<Shape>::getInstance,
+                  &UpdaterExternalFieldWall<Shape>::setInstance)
     ;
     }
 } // namespace

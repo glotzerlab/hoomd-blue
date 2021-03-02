@@ -19,15 +19,12 @@ namespace py = pybind11;
     \brief Contains code for the ActiveForceCompute class
 */
 
-/*! \param seed required user-specified seed number for random number generator.
-    for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles
-    \param rotation_diff rotational diffusion constant for all particles.
+/*! \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid. Have to replace it with manifolds when implemented
 */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
-                                        int seed,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
@@ -36,18 +33,6 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
         : ForceCompute(sysdef), m_group(group),
             m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
-
-    // In case of MPI run, every rank should be initialized with the same seed.
-    // For simplicity we broadcast the seed of rank 0 to all ranks.
-
-    m_seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
-
-    #ifdef ENABLE_MPI
-    if( this->m_pdata->getDomainDecomposition() )
-        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
-    #endif
-
-
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
 
@@ -109,10 +94,20 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
 
     Scalar f_activeMag = slow::sqrt(f_activeVec.x*f_activeVec.x+f_activeVec.y*f_activeVec.y+f_activeVec.z*f_activeVec.z);
 
-    f_activeVec.x /= f_activeMag;
-    f_activeVec.y /= f_activeMag;
-    f_activeVec.z /= f_activeMag;
-    f_activeVec.w = f_activeMag;
+    if(f_activeMag >0)
+        {
+        f_activeVec.x /= f_activeMag;
+        f_activeVec.y /= f_activeMag;
+        f_activeVec.z /= f_activeMag;
+        f_activeVec.w = f_activeMag;
+        }
+    else
+        {
+        f_activeVec.x = 0;
+        f_activeVec.y = 0;
+        f_activeVec.z = 0;
+        f_activeVec.w = 0;
+        }
 
     ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
     h_f_activeVec.data[typ] = f_activeVec;
@@ -232,7 +227,7 @@ void ActiveForceCompute::setForces()
  * relative to the force vector is preserved
     \param timestep Current timestep
 */
-void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
+void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
@@ -250,7 +245,10 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
         unsigned int ptag = h_tag.data[idx];
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, m_seed, ptag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
+                                               timestep,
+                                               m_sysdef->getSeed()),
+                                   hoomd::Counter(ptag));
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
@@ -382,7 +380,7 @@ void ActiveForceCompute::setConstraint()
 /*! This function applies constraints, rotational diffusion, and sets forces for all active particles
     \param timestep Current timestep
 */
-void ActiveForceCompute::computeForces(unsigned int timestep)
+void ActiveForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "ActiveForceCompute");
 
@@ -416,7 +414,7 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, Scalar,
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar,
                     Scalar3, Scalar, Scalar, Scalar >())
     .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)

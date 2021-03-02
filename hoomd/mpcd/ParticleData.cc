@@ -888,7 +888,7 @@ void mpcd::ParticleData::addVirtualParticles(unsigned int N)
  */
 void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
                                          unsigned int mask,
-                                         unsigned int timestep)
+                                         uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -966,7 +966,7 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
  */
 void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
                                       unsigned int mask,
-                                      unsigned int timestep)
+                                      uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -1022,7 +1022,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
  */
 void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
                                             unsigned int mask,
-                                            unsigned int timestep)
+                                            uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -1120,7 +1120,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
  */
 void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
                                          unsigned int mask,
-                                         unsigned int timestep)
+                                         uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {

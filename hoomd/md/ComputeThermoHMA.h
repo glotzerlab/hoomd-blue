@@ -53,7 +53,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         virtual ~ComputeThermoHMA();
 
         //! Compute the temperature
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Returns the potential energy last computed by compute()
         /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
@@ -107,7 +107,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Control the enable_logging flag
         /*! Set this flag to false to prevent this compute from providing logged quantities.

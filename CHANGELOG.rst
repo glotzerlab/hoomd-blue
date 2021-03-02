@@ -4,6 +4,47 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.5 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``filter`` parameter to ``update.BoxResize`` - A ``ParticleFilter`` that identifies the particles
+  to scale with the box.
+- `Simulation.seed` - one place to set random number seeds for all operations.
+
+*Changed*
+
+- [breaking]  Removed the parameter ``scale_particles`` in ``update.BoxResize``
+- [internal] Modified signature of `data.typeconverter.OnlyTypes`
+- Remove use of deprecated numpy APIs.
+- Added more details to the migration guide.
+- Support timestep values in the range [0,2**64-1].
+- [breaking] Removed *seed* argument from ``State.thermalize_particle_momenta``
+- [breaking] Removed *seed* argument from ``md.methods.NVT.thermalize_thermostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.NPT.thermalize_thermostat_and_barostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.NPH.thermalize_barostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.Langevin``
+- [breaking] Removed *seed* argument from ``md.methods.Brownian``
+- [breaking] Removed *seed* argument from ``md.force.Active``
+- [breaking] Removed *seed* argument from ``md.pair.DPD``
+- [breaking] Removed *seed* argument from ``md.pair.DPDLJ``
+- [breaking] Removed *seed* argument from all HPMC integrators.
+- [breaking] Removed *seed* argument from ``hpmc.update.Clusters``
+- [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
+- [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
+
+*Fixed*
+
+- Install ``ParticleFilter`` header files for external plugins.
+- ``md.force.Active`` keeps floating point values set for `active_force` and `active_torque`.
+- `create_state_from_snapshot` accepts `gsd.hoomd.Snapshot` objects without error.
+- HOOMD compiles on Apple silicon macOS systems.
+
+*Removed*
+
+- Testing for CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
+
 v3.0.0-beta.4 (2021-02-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

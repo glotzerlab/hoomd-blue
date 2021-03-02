@@ -100,7 +100,7 @@ class PotentialTersoff : public ForceCompute
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         virtual void notifyDetach()
             {
@@ -113,7 +113,7 @@ class PotentialTersoff : public ForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
@@ -131,7 +131,7 @@ class PotentialTersoff : public ForceCompute
         std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -355,7 +355,7 @@ std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantiti
     \param timestep Current timestep of the simulation
 */
 template< class evaluator >
-Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -376,7 +376,7 @@ Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, u
     \param timestep specifies the current time step of the simulation
 */
 template< class evaluator >
-void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
+void PotentialTersoff< evaluator >::computeForces(uint64_t timestep)
     {
     // *****  check if we need the structure of the Tersoff or the RevCross potential for evaluation
     if (evaluator::flag_for_RevCross )
@@ -1019,7 +1019,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
