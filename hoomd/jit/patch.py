@@ -9,14 +9,24 @@ from hoomd.operation import Compute
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
-
 import subprocess
 import os
-
 import numpy as np
 
-class _JITCompute(Compute):
-    """"""
+
+class JITCompute(Compute):
+    """Base class for all HOOMD JIT compute objects (fields and patch interactions).
+       Provides helper methods to compile the user code in both CPU and GPU devices.
+
+    Note:
+       Users should not invoke `JITCompute` directly. It is a base command
+       that provides common features to all standard JIT objects.
+
+    Args:
+        code (`str`): C++ code defining the custom energetic interaction.
+        llvm_ir_fname (`str`): File name of the llvm IR file to load.
+        clang_exec (`str`, **default** `clang`): The Clang executable to use.
+    """
     def __init__(self, clang_exec='clang', code=None, llvm_ir_file=None):
         super().__init__()
         # these only exist on python
@@ -28,6 +38,8 @@ class _JITCompute(Compute):
         super()._attach()
 
     def _setup_gpu_code_path(self):
+        """Helper function to set CUDA libraries for GPU execution.
+        """
         include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
         include_path_source = hoomd.version.source_dir
         include_path_cuda = _jit.__cuda_include_path__
@@ -45,14 +57,12 @@ class _JITCompute(Compute):
                 self._max_arch = int(a)
 
     def _compile_user(self, cpp_function, clang_exec, fn=None):
-        R"""Helper function to compile the provided code into an executable
+        r"""Helper function to compile the provided code into an executable
 
         Args:
             cpp_function (`str`): C++ code to compile
             clang_exec (`str`): The Clang executable to use
             fn (`str`, **optional**): If provided, the code will be written to a file.
-
-        .. versionadded:: 2.3
         """
         include_path = os.path.dirname(hoomd.__file__) + '/include';
         include_path_source = hoomd.version.source_dir
@@ -77,7 +87,7 @@ class _JITCompute(Compute):
 
     @property
     def code(self):
-        """str: The C++ code defining the custom pair interaction.
+        """str: The C++ code defining the custom energetic interaction.
         """
         return self._code
 
@@ -112,31 +122,79 @@ class _JITCompute(Compute):
         else:
             self._clang_exec = clang
 
-class _PatchCompute(_JITCompute):
-    """Base class for HOOMD patch interaction computes. Provides helper
-       methods to compile the user code in both CPU and GPU devices.
+
+class PatchCompute(JITCompute):
+    """Base class for all HOOMD JIT patch interaction between pairs of particles.
 
     Note:
-        This class should not be instantiated by users. The class can be used
+        Users should not invoke `PatchCompute` directly. The class can be used
         for `isinstance` or `issubclass` checks. The attributes documented here
         are available to all patch computes.
 
-    Args:
-        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between particles.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
-        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
+        Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
+        Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
+        the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
+
+        Classes derived from :py:class:`PatchCompute` take C++ code, JIT compiles it at run time and executes the code natively
+        in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
+        interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`PatchCompute` provides a mechanism,
+        through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
+        to recompile the patch energy code. These arrays are **read-only** during function evaluation.
+
+        .. rubric:: C++ code
+
+        Classes derived from :py:class:`PatchCompute` will compile the code provided by the user and call it to evaluate
+        patch energies. Compilation assumes that a recent ``clang`` installation is on your PATH. This is convenient
+        when the energy evaluation is simple or needs to be modified in python. More complex code (i.e. code that
+        requires auxiliary functions or initialization of static data arrays) should be compiled outside of HOOMD
+        and provided via the *llvm_ir_file* input (see below).
+
+        The text provided in *code* is the body of a function with the following signature:
+
+        .. code::
+
+        float eval(const vec3<float>& r_ij,
+                   unsigned int type_i,
+                   const quat<float>& q_i,
+                   float d_i,
+                   float charge_i,
+                   unsigned int type_j,
+                   const quat<float>& q_j,
+                   float d_j,
+                   float charge_j)
+
+        * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
+        * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
+        * *type_i* is the integer type of particle *i*
+        * *q_i* is the quaternion orientation of particle *i*
+        * *d_i* is the diameter of particle *i*
+        * *charge_i* is the charge of particle *i*
+        * *type_j* is the integer type of particle *j*
+        * *q_j* is the quaternion orientation of particle *j*
+        * *d_j* is the diameter of particle *j*
+        * *charge_j* is the charge of particle *j*
+        * Your code *must* return a value.
+        * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
+        the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
+        interaction that you implement.
+
+        .. rubric:: LLVM IR code
+
+        You can compile outside of HOOMD and provide a direct link
+        to the LLVM IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval function with the signature mentioned above.
+
+        Compile the file with clang: ``clang -O3 --std=c++14 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
+        the LLVM IR in ``code.ll``.
 
     Atrributes:
         r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
         code (`str`): C++ code defining the custom pair interactions between particles.
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str`): The Clang executable to compile the provided code.
-        array_size (`int`): Size of array with adjustable elements. (added in version 2.8)
+        array_size (`int`): Size of array with adjustable elements.
         energy (`float`): Total interaction energy of the system in the current state.
         alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
-                                          defined by the user (added in version 2.8).
+                                          defined by the user.
     """
 
     def __init__(self, r_cut, array_size=1, clang_exec='clang',
@@ -149,6 +207,7 @@ class _PatchCompute(_JITCompute):
         self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
+        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
     @log
@@ -164,6 +223,12 @@ class _PatchCompute(_JITCompute):
             return None
 
     def _wrap_cpu_code(self, code):
+        r"""Helper function to wrap the provided code into a function
+            with the expected signature.
+
+        Args:
+            code (`str`): Body of the C++ function
+        """
         cpp_function =  """
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
@@ -194,12 +259,11 @@ class _PatchCompute(_JITCompute):
         return cpp_function
 
     def _wrap_gpu_code(self, code):
-        R"""Helper function to compile the provided code into a device function
+        r"""Helper function to convert the provided code into a device function
+            with the expected signature.
 
         Args:
-            code (`str`): C++ code to compile
-
-        .. versionadded:: 3.0
+            code (`str`): Body of the C++ function
         """
         cpp_function =  """
                         #include "hoomd/HOOMDMath.h"
@@ -225,69 +289,22 @@ class _PatchCompute(_JITCompute):
         cpp_function += """
                             }
                         """
-        # Compile on C++ side
         return cpp_function
 
-class UserPatch(_PatchCompute):
-    r'''Define an arbitrary patch energy.
+
+class UserPatch(PatchCompute):
+    r'''Define an arbitrary patch energetic interaction between pairs of particles.
 
     Args:
         r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
         code (`str`): C++ code defining the custom pair interactions between particles.
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
-        array_size (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
+        array_size (`int`, **default:** 1): Size of array with adjustable elements.
 
     Note:
         If both `code` and `llvm_ir_fname` are provided, the former takes precedence. The latter will be used
         as a fallback in case the compilation of `code` fails.
-
-    Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
-    Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
-    the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
-
-    The :py:class:`UserPatch` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
-    in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
-    interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`UserPatch` provides a mechanism,
-    through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
-    to recompile the patch energy code. These arrays are **read-only** during function evaluation.
-
-    .. rubric:: C++ code
-
-    Supply C++ code to the *code* argument and :py:class:`UserPatch` will compile the code and call it to evaluate
-    patch energies. Compilation assumes that a recent ``clang`` installation is on your PATH. This is convenient
-    when the energy evaluation is simple or needs to be modified in python. More complex code (i.e. code that
-    requires auxiliary functions or initialization of static data arrays) should be compiled outside of HOOMD
-    and provided via the *llvm_ir_file* input (see below).
-
-    The text provided in *code* is the body of a function with the following signature:
-
-    .. code::
-
-        float eval(const vec3<float>& r_ij,
-                   unsigned int type_i,
-                   const quat<float>& q_i,
-                   float d_i,
-                   float charge_i,
-                   unsigned int type_j,
-                   const quat<float>& q_j,
-                   float d_j,
-                   float charge_j)
-
-    * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-    * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
-    * *type_i* is the integer type of particle *i*
-    * *q_i* is the quaternion orientation of particle *i*
-    * *d_i* is the diameter of particle *i*
-    * *charge_i* is the charge of particle *i*
-    * *type_j* is the integer type of particle *j*
-    * *q_j* is the quaternion orientation of particle *j*
-    * *d_j* is the diameter of particle *j*
-    * *charge_j* is the charge of particle *j*
-    * Your code *must* return a value.
-    * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
-      the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
-      interaction that you implement.
 
     Examples:
 
@@ -322,32 +339,7 @@ class UserPatch(_PatchCompute):
         sim.run(1000)
         patch.alpha_iso[1] = 2.0
         sim.run(1000)
-
-    .. rubric:: LLVM IR code
-
-    You can compile outside of HOOMD and provide a direct link
-    to the LLVM IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval function with this signature:
-
-    .. code::
-
-        float eval(const vec3<float>& r_ij,
-                   unsigned int type_i,
-                   const quat<float>& q_i,
-                   float d_i,
-                   float charge_i,
-                   unsigned int type_j,
-                   const quat<float>& q_j,
-                   float d_j,
-                   float charge_j)
-
-    ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-
-    Compile the file with clang: ``clang -O3 --std=c++14 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
-    the LLVM IR in ``code.ll``.
-
-    .. versionadded:: 2.3
     '''
-
     def __init__(self, r_cut, array_size=1, clang_exec='clang',
                  code=None, llvm_ir_file=None):
         super().__init__(r_cut=r_cut, array_size=array_size, clang_exec=clang_exec,
@@ -386,26 +378,31 @@ class UserPatch(_PatchCompute):
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
         self.alpha_iso = self._cpp_obj.alpha_iso
         # attach patch object to the integrator
-        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
-class UserUnionPatch(_PatchCompute):
-    R''' Define an arbitrary patch energy on a union of particles
+
+class UserUnionPatch(PatchCompute):
+    r'''Define an arbitrary patch energetic interaction between unions of particles.
 
     Args:
         r_cut_union (`float`): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        r_cut (`float`, **default** 0): Cut-off for isotropic interaction between centers of union particles
+        r_cut (`float`, **default** 0): Cut-off for isotropic interaction between centers of union particles.
         code_union (`str`): C++ code defining the custom pair interactions between constituent particles.
         code (`str`): C++ code for isotropic part.
         llvm_ir_fname_union (`str`): File name of the llvm IR file to load.
         llvm_ir_fname (`str`): File name of the llvm IR file to load for isotropic interaction.
         clang_exec (`str`, **default:** `clang`): The Clang executable to compile the provided code.
-        array_size_union (`int`, **default:** 1): Size of array with adjustable elements. (added in version 2.8)
-        array_size (`int`, **default:** 1): Size of array with adjustable elements for the isotropic part. (added in version 2.8)
+        array_size_union (`int`, **default:** 1): Size of array with adjustable elements.
+        array_size (`int`, **default:** 1): Size of array with adjustable elements for the isotropic part.
 
     Note:
         If both `code_union` and `llvm_ir_fname_union` are provided, the former takes precedence. The latter will be used
         as a fallback in case the compilation of `code_union` fails.
+
+    Note:
+        This class uses an internal OBB tree for fast interaction queries bewteeen constituents of interacting particles.
+        Depending on the number of constituent particles per type in the tree, different values of the particles per leaf
+        node may yield different optimal performance. The capacity of leaf nodes is configurable.
 
     Attributes:
         positions (`TypeParameter` [``particle type``, `list` [`tuple` [`float`, `float`, `float`]]])
@@ -420,7 +417,7 @@ class UserUnionPatch(_PatchCompute):
             The charges of the constituent particles.
         leaf_capacity (`int`, **default:** 4) : The number of particles in a leaf of the internal tree data structure
         alpha_union (``ndarray<float>``): Length array_size_union numpy array containing dynamically adjustable elements
-                                          defined by the user for unions of shapes (added in version 2.8)
+                                          defined by the user for unions of shapes.
 
     Example:
 
@@ -467,8 +464,6 @@ class UserUnionPatch(_PatchCompute):
         # [r_cut, epsilon]
         patch.alpha_iso[:] = [2.5, 1.3];
         patch.alpha_union[:] = [2.5, -1.7];
-
-    .. versionadded:: 2.3
     '''
     def __init__(self, r_cut_union, array_size_union=1, clang_exec='clang',
                  code_union=None, llvm_ir_file_union=None, r_cut=0, array_size=1,
@@ -571,7 +566,6 @@ class UserUnionPatch(_PatchCompute):
         self.alpha_iso = self._cpp_obj.alpha_iso
         self.alpha_union = self._cpp_obj.alpha_union
         # attach patch object to the integrator
-        integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
         super()._attach()
 
     @property
