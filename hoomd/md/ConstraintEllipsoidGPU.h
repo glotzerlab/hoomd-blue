@@ -37,7 +37,7 @@ class PYBIND11_EXPORT ConstraintEllipsoidGPU : public ConstraintEllipsoid
         unsigned int m_block_size;  //!< block size to execute on the GPU
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Exports the ConstraintEllipsoidGPU class to python

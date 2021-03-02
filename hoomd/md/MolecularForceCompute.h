@@ -56,7 +56,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags = CommFlags(0);
 

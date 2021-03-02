@@ -72,13 +72,13 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step
         */
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
                 CommFlags flags = CommFlags(0);
                 flags[comm_flag::tag] = 1;
@@ -96,7 +96,7 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
         std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TablePotential class to python

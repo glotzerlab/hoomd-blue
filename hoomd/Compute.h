@@ -69,7 +69,7 @@ class PYBIND11_EXPORT Compute
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(unsigned int timestep){}
+        virtual void compute(uint64_t timestep){}
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
@@ -116,7 +116,7 @@ class PYBIND11_EXPORT Compute
 
             See Logger for more information on what this is about.
         */
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             return Scalar(0.0);
             }
@@ -142,7 +142,7 @@ class PYBIND11_EXPORT Compute
 
             See LogMatrix for more information on what this is about.
         */
-        virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
+        virtual pybind11::array getLogMatrix(const std::string& quantity, uint64_t timestep)
             {
             unsigned char tmp[] = {0};
             return pybind11::array(0,tmp);
@@ -154,7 +154,7 @@ class PYBIND11_EXPORT Compute
          *  been calculated earlier in this timestep)
          * \param timestep current timestep
          */
-        void forceCompute(unsigned int timestep);
+        void forceCompute(uint64_t timestep);
 
         /// Python will notify C++ objects when they are detached from Simulation
         virtual void notifyDetach() { };
@@ -198,14 +198,14 @@ class PYBIND11_EXPORT Compute
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
         bool m_force_compute;           //!< true if calculation is enforced
-        unsigned int m_last_computed;   //!< Stores the last timestep compute was called
+        uint64_t m_last_computed;       //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
 
         //! Simple method for testing if the computation should be run or not
-        virtual bool shouldCompute(unsigned int timestep);
+        virtual bool shouldCompute(uint64_t timestep);
 
         //! Peek to see if computation should be run without updating internal state
-        virtual bool peekCompute(unsigned int timestep) const;
+        virtual bool peekCompute(uint64_t timestep) const;
 
     private:
         //! The python export needs to be a friend to export shouldCompute()

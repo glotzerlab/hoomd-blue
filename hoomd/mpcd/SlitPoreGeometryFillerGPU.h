@@ -31,7 +31,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
                                   Scalar density,
                                   unsigned int type,
                                   std::shared_ptr<::Variant> T,
-                                  unsigned int seed,
+                                  uint16_t seed,
                                   std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
         //! Set autotuner parameters
@@ -48,7 +48,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFillerGPU : public mpcd::SlitPoreGeometryF
 
     protected:
         //! Draw particles within the fill volume on the GPU
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
 
     private:
         std::unique_ptr<::Autotuner> m_tuner;   //!< Autotuner for drawing particles

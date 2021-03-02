@@ -9,7 +9,7 @@ PythonUpdater::PythonUpdater(std::shared_ptr<SystemDefinition> sysdef,
     setUpdater(updater);
     }
 
-void PythonUpdater::update(unsigned int timestep)
+void PythonUpdater::update(uint64_t timestep)
     {
     m_updater.attr("act")(timestep);
     }

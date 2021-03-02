@@ -54,7 +54,7 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
         std::unique_ptr<Autotuner> m_apply_tuner;       //!< Kernel tuner for applying sorted order
 
         //! Compute the sorting order at the current timestep on the GPU
-        virtual void computeOrder(unsigned int timestep);
+        virtual void computeOrder(uint64_t timestep);
 
         //! Apply the sorting order on the GPU
         virtual void applyOrder() const;

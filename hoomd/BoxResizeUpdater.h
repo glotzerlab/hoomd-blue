@@ -67,10 +67,10 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         std::shared_ptr<Variant> getVariant() {return m_variant;}
 
         /// Get the current box for the given timestep
-        BoxDim getCurrentBox(unsigned int timestep);
+        BoxDim getCurrentBox(uint64_t timestep);
 
         /// Update box interpolation based on provided timestep
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     private:
         pybind11::object m_py_box1;  ///< The python box assoc with min
