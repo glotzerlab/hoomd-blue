@@ -249,10 +249,6 @@ class MuellerPlatheFlow(Updater):
         * This updater has to be always applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
-    Note:
-        If you set this updater with unrealistic values, the algorithm might not terminate,
-        because your desired flow target can not be achieved.
-
     .. versionadded:: v2.1
 
     Examples::
