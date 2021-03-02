@@ -262,7 +262,7 @@ class MuellerPlatheFlow(Updater):
         # velocity gradient in z direction and shear flow in x direction.
         slab_direction = hoomd.md.update.MullerPlatheFlow.Z
         flow_direction = hoomd.md.update.MullerPlatheFlow.X
-        mpf = hoomd.md.update.MuellerPlatheFlow(hoomd.filter.All(), ramp, slab_direction, flow_direction, 20)
+        mpf = hoomd.md.update.MuellerPlatheFlow(filter = hoomd.filter.All(), flow_target = ramp, slab_direction  = slab_direction, flow_direction = flow_direction, n_slabs = 20)
 
 
     Attributes:
