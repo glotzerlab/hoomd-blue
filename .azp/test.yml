@@ -28,7 +28,6 @@ variables:
   ctest_start: 1
   ctest_stride: 1
   mpiexec_timeout: 3000
-  suite_name: $(Agent.JobName)
   cxxflags: "-Werror"
 
 jobs:

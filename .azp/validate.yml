@@ -28,7 +28,6 @@ variables:
   ctest_start: 1
   ctest_stride: 1
   mpiexec_timeout: 3000
-  suite_name: $(Agent.JobName)
 
 stages:
 - stage: build_test_cpu2
@@ -200,7 +199,6 @@ stages:
           enable_tbb: on
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU tbb2
 
         clang11_py39_mpi_tbb1:
           container_image: clang11_py39
@@ -209,21 +207,18 @@ stages:
           build_jit: on
           llvm_version: '9.0'
           omp_num_threads: '1'
-          suite_name: CPU tbb1
 
         clang11_py39_mpi:
           container_image: clang11_py39
           enable_mpi: on
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU no-tbb
 
         clang11_py39:
           container_image: clang11_py39
           enable_mpi: off
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU no-mpi
 
     pool:
       vmImage: 'ubuntu-latest'
@@ -253,10 +248,9 @@ stages:
 
     strategy:
       matrix:
-        cuda10_py37_cuda10_mpi:
-          container_image: cuda10_gcc7_py37
+        cuda11_py38_mpi:
+          container_image: cuda11_gcc9_py38
           enable_mpi: on
-          suite_name: GPU cuda10
 
     pool:
       name: 'GPU'
