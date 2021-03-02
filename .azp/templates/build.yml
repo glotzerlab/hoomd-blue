@@ -1,3 +1,5 @@
+# Build HOOMD and install to $(Build.BinariesDirectory)
+
 steps:
 - task: CMake@1
   inputs:

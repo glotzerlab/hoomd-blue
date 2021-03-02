@@ -1,13 +1,16 @@
-trigger: none
-
+# Trigger on PRs into stable branches.
 pr:
   - maint
   - master
 
+# Do not trigger on every push. This runs every commit twice for PRs with branches on the main
+# repository.
+trigger: none
+
+# Instead, trigger nightly builds on active branches.
 schedules:
 - cron: "0 2 * * *"
-  displayName: Daily 10PM build
-  # 2am UTC is 10PM eastern time
+  displayName: Nightly build
   branches:
     include:
     - "*"
@@ -15,7 +18,10 @@ schedules:
 variables:
   image_root: glotzerlab/ci:2021.01
 
-  # default build parameters, will override as needed with job matrix values
+  # Default build parameters, will override as needed with job matrix values. Variables are
+  # automatically set as environment variables (with names converted to all caps). These variables
+  # are used throughout the azure pipelines configuration (such as in build.yml) and implicitly by
+  # applications that respond to environment variables.
   enable_gpu: off
   enable_mpi: off
   enable_tbb: off
@@ -25,8 +31,6 @@ variables:
   llvm_version: '6.0'
   build_testing: on
   always_use_managed_memory: off
-  ctest_start: 1
-  ctest_stride: 1
   mpiexec_timeout: 3000
   cxxflags: "-Werror"
 
@@ -79,7 +83,7 @@ jobs:
 
   container:
       image: $(image_root)-$(container_image)
-      options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
+      options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
 
   workspace:
     clean: all
