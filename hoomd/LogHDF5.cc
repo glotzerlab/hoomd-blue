@@ -35,7 +35,7 @@ LogHDF5::~LogHDF5(void)
 
 /*! \param timestep Time step
  */
-void LogHDF5::analyze(unsigned int timestep)
+void LogHDF5::analyze(uint64_t timestep)
     {
     //Call the base class to cache all values.
     LogMatrix::analyze(timestep);

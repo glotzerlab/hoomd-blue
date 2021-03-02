@@ -292,7 +292,7 @@ std::vector<std::string> EAMForceCompute::getProvidedLogQuantities()
     return list;
     }
 
-Scalar EAMForceCompute::getLogValue(const std::string &quantity, unsigned int timestep)
+Scalar EAMForceCompute::getLogValue(const std::string &quantity, uint64_t timestep)
     {
     if (quantity == string("pair_eam_energy"))
         {
@@ -310,7 +310,7 @@ Scalar EAMForceCompute::getLogValue(const std::string &quantity, unsigned int ti
  compute method is called to ensure that it is up to date.
  \param timestep specifies the current time step of the simulation
  */
-void EAMForceCompute::computeForces(unsigned int timestep)
+void EAMForceCompute::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

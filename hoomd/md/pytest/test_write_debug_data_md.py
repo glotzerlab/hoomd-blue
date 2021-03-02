@@ -24,7 +24,7 @@ def test_write_debug_data(simulation_factory, lattice_snapshot_factory,
 
     md.forces = [lj, gauss]
     md.methods = [
-        hoomd.md.methods.NVT(kT=1.5, tau= 1.0, filter=hoomd.filter.All())
+        hoomd.md.methods.NVT(kT=1.5, tau=1.0, filter=hoomd.filter.All())
     ]
 
     sim.operations.integrator = md

@@ -57,7 +57,7 @@ Scalar ConstraintSphere::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintSphere::computeForces(unsigned int timestep)
+void ConstraintSphere::computeForces(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

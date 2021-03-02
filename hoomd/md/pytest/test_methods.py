@@ -17,11 +17,11 @@ def _integrator_base_params():
     integrator_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
 
-    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0), 'seed': 2 }
+    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0) }
     langevin_dict2 = {'alpha': None, 'tally_reservoir_energy': False }
-    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 
+    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
                       'alpha': None, 'tally_reservoir_energy': True }
-    langevin_dict4 = {'seed': 23}
+    langevin_dict4 = {}
 
     integrator_base_params_list.extend([paramtuple(langevin_dict1,
                                                     langevin_dict2,
@@ -29,11 +29,11 @@ def _integrator_base_params():
                                                     langevin_dict4,
                                                     hoomd.md.methods.Langevin)])
 
-    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0), 'seed': 2 }
+    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0) }
     brownian_dict2 = {'alpha': None }
-    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 
+    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
                       'alpha': 0.125}
-    brownian_dict4 = {'seed': 108}
+    brownian_dict4 = {}
 
     integrator_base_params_list.extend([paramtuple(brownian_dict1,
                                                     brownian_dict2,
@@ -55,13 +55,13 @@ def _integrator_base_params():
                   hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
                   hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
 
-    npt_dict1 = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s, 
+    npt_dict1 = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
             'tauS': 2.0, 'box_dof': (True,True,True,False,False,False), 'couple': 'xyz' }
-    npt_dict2 = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0), 
+    npt_dict2 = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
             'rotational_thermostat_dof': (0.0, 0.0), 'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0) }
-    npt_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s, 
-            'tauS': 10.0, 'box_dof': (True,False,False,False,True,False), 'couple': 'none', 
-            'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5), 
+    npt_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
+            'tauS': 10.0, 'box_dof': (True,False,False,False,True,False), 'couple': 'none',
+            'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5),
             'rotational_thermostat_dof': (0.5, 0.25), 'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)}
     npt_dict4 = { }
 
@@ -105,7 +105,7 @@ def test_attributes(integrator_base_params):
 
     all_ = hoomd.filter.All()
     integrator = integrator_base_params.integrator(**integrator_base_params.setup_params,filter=all_)
-    
+
     assert integrator.filter is all_
 
     for pair in integrator_base_params.setup_params:
@@ -152,7 +152,7 @@ def test_attributes_attached(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
     sim.run(0)
-    
+
     assert integrator.filter is all_
 
     for pair in integrator_base_params.setup_params:
@@ -200,11 +200,11 @@ def _rattle_base_params():
     integrator_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
 
-    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0), 'seed': 2 }
+    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0) }
     langevin_dict2 = {'alpha': None, 'eta': 1e-6, 'tally_reservoir_energy': False }
-    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 
+    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
             'alpha': None, 'eta': 1e-5, 'tally_reservoir_energy': True }
-    langevin_dict4 = {'seed': 23}
+    langevin_dict4 = {}
 
     integrator_base_params_list.extend([paramtuple(langevin_dict1,
                                                     langevin_dict2,
@@ -212,11 +212,11 @@ def _rattle_base_params():
                                                     langevin_dict4,
                                                     hoomd.md.methods.Langevin)])
 
-    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0), 'seed': 2 }
+    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0) }
     brownian_dict2 = {'alpha': None,  'eta': 1e-6}
-    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 
+    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
             'alpha': 0.125, 'eta': 1e-5}
-    brownian_dict4 = {'seed': 108}
+    brownian_dict4 = {}
 
     integrator_base_params_list.extend([paramtuple(brownian_dict1,
                                                     brownian_dict2,
@@ -247,7 +247,7 @@ def test_rattle_attributes(rattle_base_params):
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
     integrator = rattle_base_params.integrator(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
-    
+
     assert integrator.filter is all_
     assert integrator.manifold_constraint is gyroid
 
@@ -288,7 +288,7 @@ def test_rattle_attributes_attached(simulation_factory,
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
     sim.run(0)
-    
+
     assert integrator.filter is all_
     assert integrator.manifold_constraint is gyroid
 
@@ -326,6 +326,76 @@ def test_rattle_attributes_attached(simulation_factory,
 
 
 
+def test_nph_attributes_attached_3d(simulation_factory,
+                                    two_particle_snapshot_factory):
+    """Test attributes of the NPH integrator after attaching in 3D."""
+    all_ = hoomd.filter.All()
+    constant_s = [
+        hoomd.variant.Constant(1.0),
+        hoomd.variant.Constant(2.0),
+        hoomd.variant.Constant(3.0),
+        hoomd.variant.Constant(0.125),
+        hoomd.variant.Constant(.25),
+        hoomd.variant.Constant(.5)
+    ]
+    nph = hoomd.md.methods.NPH(filter=all_,
+                               S=constant_s,
+                               tauS=2.0,
+                               couple='xyz')
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
+    sim.run(0)
+
+    assert nph.filter == all_
+    assert len(nph.S) == 6
+    for i in range(6):
+        assert nph.S[i] is constant_s[i]
+    assert nph.tauS == 2.0
+    assert nph.couple == 'xyz'
+
+    type_A = hoomd.filter.Type(['A'])
+    with pytest.raises(AttributeError):
+        # filter cannot be set after scheduling
+        nph.filter = type_A
+
+    assert nph.filter == all_
+
+    nph.tauS = 10.0
+    assert nph.tauS == 10.0
+
+    nph.box_dof = (True, False, False, False, True, False)
+    assert tuple(nph.box_dof) == (True, False, False, False, True, False)
+
+    nph.couple = 'none'
+    assert nph.couple == 'none'
+
+    nph.rescale_all = True
+    assert nph.rescale_all
+
+    nph.gamma = 2.0
+    assert nph.gamma == 2.0
+
+    assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+
+    ramp_s = [
+        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
+    ]
+    nph.S = ramp_s
+    assert len(nph.S) == 6
+    for _ in range(5):
+        sim.run(1)
+        for i in range(6):
+            assert nph.S[i] is ramp_s[i]
+
+
 def test_npt_thermalize_thermostat_and_barostat_dof(
     simulation_factory, two_particle_snapshot_factory):
     """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
@@ -344,7 +414,7 @@ def test_npt_thermalize_thermostat_and_barostat_dof(
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
     sim.run(0)
 
-    npt.thermalize_thermostat_and_barostat_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof()
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -382,7 +452,7 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
                                                     aniso=True)
     sim.run(0)
 
-    npt.thermalize_thermostat_and_barostat_dof(100)
+    npt.thermalize_thermostat_and_barostat_dof()
     xi, eta = npt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -391,6 +461,26 @@ def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
     assert xi_rot != 0.0
     assert eta_rot == 0.0
     for v in npt.barostat_dof:
+        assert v != 0.0
+
+
+def test_nph_thermalize_barostat_dof(simulation_factory,
+                                     two_particle_snapshot_factory):
+    """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
+    all_ = hoomd.filter.All()
+    constant_s = [1, 2, 3, 0.125, 0.25, 0.5]
+    nph = hoomd.md.methods.NPH(filter=all_,
+                               S=constant_s,
+                               tauS=2.0,
+                               box_dof=[True, True, True, True, True, True],
+                               couple='xyz')
+
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
+    sim.run(0)
+
+    nph.thermalize_barostat_dof()
+    for v in nph.barostat_dof:
         assert v != 0.0
 
 
@@ -440,7 +530,7 @@ def test_nvt_thermalize_thermostat_dof(simulation_factory,
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
     sim.run(0)
 
-    nvt.thermalize_thermostat_dof(100)
+    nvt.thermalize_thermostat_dof()
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0
@@ -467,7 +557,7 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
                                                     aniso=True)
     sim.run(0)
 
-    nvt.thermalize_thermostat_dof(100)
+    nvt.thermalize_thermostat_dof()
     xi, eta = nvt.translational_thermostat_dof
     assert xi != 0.0
     assert eta == 0.0

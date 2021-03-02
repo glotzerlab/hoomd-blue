@@ -72,13 +72,13 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
             }
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void includeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(uint64_t timestep);
 
         //! Get the number of degrees of freedom granted to a given group
         virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
@@ -153,7 +153,7 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
           method.
 */
 template < class Manifold>
-void TwoStepRATTLENVE<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -337,7 +337,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(unsigned int timestep)
     \post particle velocities are moved forward to timestep+1
 */
 template < class Manifold>
-void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
+void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -483,7 +483,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template < class Manifold>
-void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
 
     unsigned int group_size = m_group->getNumMembers();
@@ -554,7 +554,7 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(unsigned int timestep)
 	    lambda = lambda - beta*inv_alpha;
 
 	} while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
-	 
+
 	if(iteration == maxiteration)
 	{
         m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl

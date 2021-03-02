@@ -457,7 +457,7 @@ pybind11::object ForceCompute::getVirialsPython()
         be done
 */
 
-void ForceCompute::compute(unsigned int timestep)
+void ForceCompute::compute(uint64_t timestep)
     {
     // recompute forces if the particles were sorted, this is a new timestep, or the particle data
     // flags do not match

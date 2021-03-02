@@ -45,7 +45,6 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
-                    unsigned int seed,
                     Scalar eta = 0.000001
                     );
 
@@ -56,13 +55,13 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         }
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void includeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(uint64_t timestep);
 
         //! Get the number of degrees of freedom granted to a given group
         virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
@@ -101,7 +100,6 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
     \param group The group of particles this integration method is to work on
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
     \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
     \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
@@ -113,10 +111,9 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
                            std::shared_ptr<ParticleGroup> group,
                            Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
                            Scalar eta
                            )
-  : TwoStepLangevinBase(sysdef, group, T, seed), m_manifold(manifold),
+  : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold),
     m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
@@ -127,14 +124,14 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
-    
+
 
     unsigned int group_size = m_group->getNumMembers();
 
     GPUArray<Scalar3> tmp_f_brownian(group_size, m_exec_conf);
 
     m_f_brownian.swap(tmp_f_brownian);
-    
+
     {
         ArrayHandle<Scalar3> h_f_brownian(m_f_brownian, access_location::host, access_mode::overwrite);
         memset(h_f_brownian.data, 0, sizeof(Scalar3)*m_f_brownian.getNumElements());
@@ -167,7 +164,7 @@ void TwoStepRATTLEBD<Manifold>::reallocate()
 */
 
 template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -197,6 +194,8 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
     // iterative: r(t+deltaT) = r(t+deltaT) - J^(-1)*residual
@@ -207,7 +206,8 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
         unsigned int j = h_rtag.data[ptag];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep, 1);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(ptag, 1));
 
         Scalar gamma;
         if (m_use_alpha)
@@ -298,14 +298,14 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
 */
 template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::integrateStepTwo(unsigned int timestep)
+void TwoStepRATTLEBD<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2 in Brownian dynamics.
     }
 
 
 template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
 
     unsigned int group_size = m_group->getNumMembers();
@@ -328,6 +328,8 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
 
     unsigned int maxiteration = 10;
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
     // iterative: r(t+deltaT) = r(t+deltaT) - J^(-1)*residual
@@ -338,7 +340,8 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(unsigned int timestep)
         unsigned int j = h_rtag.data[ptag];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep, 2);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(ptag, 2));
 
         Scalar gamma;
         if (m_use_alpha)
@@ -489,7 +492,6 @@ void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
                             std::shared_ptr<ParticleGroup>,
 			    Manifold,
                             std::shared_ptr<Variant>,
-                            unsigned int,
 			    Scalar>())
     .def_property("eta", &TwoStepRATTLEBD<Manifold>::getEta,
                             &TwoStepRATTLEBD<Manifold>::setEta)

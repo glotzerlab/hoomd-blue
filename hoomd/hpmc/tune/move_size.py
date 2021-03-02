@@ -2,7 +2,7 @@ from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyType, OnlyIf, to_type_converter)
+    OnlyFrom, OnlyTypes, OnlyIf, to_type_converter)
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
     _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)
@@ -138,14 +138,14 @@ class _InternalMoveSize(_InternalAction):
         t_moves = TypeParameter(
             'max_translation_move', 'particle_type',
             TypeParameterDict(
-                OnlyType(
+                OnlyTypes(
                     float, postprocess=flag_move_size_update, allow_none=True),
                 len_keys=1)
             )
         r_moves = TypeParameter(
             'max_rotation_move', 'particle_type',
             TypeParameterDict(
-                OnlyType(
+                OnlyTypes(
                     float, postprocess=flag_move_size_update, allow_none=True),
                 len_keys=1)
             )
@@ -161,7 +161,7 @@ class _InternalMoveSize(_InternalAction):
             types=OnlyIf(to_type_converter([str]),
                          postprocess=update_types,
                          allow_none=True),
-            target=OnlyType(float, postprocess=target_postprocess),
+            target=OnlyTypes(float, postprocess=target_postprocess),
             solver=SolverStep
             )
 

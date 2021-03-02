@@ -3,7 +3,7 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyType, OnlyFrom, positive_real
+from hoomd.data.typeconverter import OnlyTypes, OnlyFrom, positive_real
 
 
 class AnisotropicPair(Pair):
@@ -29,7 +29,7 @@ class AnisotropicPair(Pair):
     """
 
     def __init__(self, nlist, r_cut=None, mode="none"):
-        self._nlist = OnlyType(md.nlist.NList, strict=True)(nlist)
+        self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
                                  TypeParameterDict(positive_real, len_keys=2)
                                  )

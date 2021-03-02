@@ -45,7 +45,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     unsigned int seed,
                      Scalar eta = 0.000001);
         virtual ~TwoStepRATTLELangevin()
         {
@@ -79,7 +78,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         }
 
         //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
         {
         if (m_tally && quantity == m_log_name)
             {
@@ -91,13 +90,13 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         }
 
         //! Performs the second step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Includes the RATTLE forces to the virial/net force
-        virtual void includeRATTLEForce(unsigned int timestep);
+        virtual void includeRATTLEForce(uint64_t timestep);
 
         //! Get the number of degrees of freedom granted to a given group
         virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
@@ -129,7 +128,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
     \param group The group of particles this integration method is to work on
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
     \param use_alpha If true, gamma=alpha*diameter, otherwise use a per-type gamma via setGamma()
     \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
@@ -142,9 +140,8 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
                            std::shared_ptr<ParticleGroup> group,
                            Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           unsigned int seed,
                            Scalar eta)
-    : TwoStepLangevinBase(sysdef, group, T, seed), m_manifold(manifold), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
+    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
       m_tally(false), m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
@@ -166,7 +163,7 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
           method.
 */
 template<class Manifold>
-void TwoStepRATTLELangevin<Manifold>::integrateStepOne(unsigned int timestep)
+void TwoStepRATTLELangevin<Manifold>::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -329,7 +326,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepOne(unsigned int timestep)
     \post particle velocities are moved forward to timestep+1
 */
 template < class Manifold>
-void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
+void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -361,6 +358,8 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
 
     unsigned int maxiteration = 10;
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     // iterative: v(t+deltaT) = v(t+deltaT/2) - J^(-1)*residual
@@ -370,7 +369,8 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
 
         // first, calculate the BD forces on manifold
         // Generate two random numbers
@@ -586,7 +586,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(unsigned int timestep)
     }
 
 template < class Manifold>
-void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(unsigned int timestep)
+void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
 
     unsigned int group_size = m_group->getNumMembers();
@@ -689,7 +689,6 @@ void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
                             std::shared_ptr<ParticleGroup>,
 			                Manifold,
                             std::shared_ptr<Variant>,
-                            unsigned int,
 			                Scalar>())
         .def_property("tally_reservoir_energy", &TwoStepRATTLELangevin<Manifold>::getTallyReservoirEnergy,
                                                 &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)

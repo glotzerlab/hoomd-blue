@@ -20,14 +20,12 @@ using namespace std;
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
-    @param seed Random seed to use in generating random numbers
 */
 TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed
+                           std::shared_ptr<Variant> T
                            )
-  : TwoStepLangevinBase(sysdef, group, T, seed),
+  : TwoStepLangevinBase(sysdef, group, T),
     m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
@@ -44,7 +42,7 @@ TwoStepBD::~TwoStepBD()
     The integration method here is from the book "The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems", chapter 6.
 */
-void TwoStepBD::integrateStepOne(unsigned int timestep)
+void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -75,6 +73,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
     // v(t+deltaT) = random distribution consistent with T
@@ -84,7 +84,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, m_seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(ptag));
 
         // compute the random force
         UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
@@ -208,7 +209,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
 /*! @param timestep Current time step
 */
-void TwoStepBD::integrateStepTwo(unsigned int timestep)
+void TwoStepBD::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2 in Brownian dynamics.
     }
@@ -218,7 +219,6 @@ void export_TwoStepBD(py::module& m)
     py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<Variant>,
-                            unsigned int>())
+                            std::shared_ptr<Variant>>())
         ;
     }

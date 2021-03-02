@@ -18,9 +18,9 @@ Commands and features deprecated in v2.x will be removed in v3.0.
    * - ``static`` parameter in ``hoomd.dump.gsd``
      - ``dynamic`` parameter
    * - ``set_params`` and other ``set_*`` methods
-     - Properties (*under development*)
+     - Parameters and type parameters accessed by properties.
    * - ``context.initialize``
-     - New context API (*under development*)
+     - ``device.CPU`` / ``device.GPU``
    * - ``util.quiet_status`` and ``util.unquiet_status``
      - No longer needed.
 
@@ -77,6 +77,12 @@ Commands and features deprecated in v2.x will be removed in v3.0.
      - Replace with
    * - ``group`` parameter to ``integrate.mode_minimize_fire``
      - Pass group to integration method.
+   * - ``alpha`` parameter to ``pair.lj`` and related classes
+     - n/a
+   * - LJ 12-8 pair potential
+     - Mie potential
+   * - ``f_list`` and ``t_list`` parameters to ``md.force.active``
+     - Per-type ``active_force`` and ``active_torque``
 
 ``hoomd.cgcmm``:
 
