@@ -113,7 +113,7 @@ class Rigid(ConstraintForce):
     orientation quaternion defines the rotation from the body space into the
     simulation box. In body space, the center of mass of the body is at 0,0,0
     and the moment of inertia is diagonal. You specify the constituent particles
-    to :py:class:`Rigid` for each type of body in body coordinates. Then,
+    to `Rigid` for each type of body in body coordinates. Then,
     :py:class:`Rigid` takes control of those particles, and sets their position
     and orientation in the simulation box relative to the position and
     orientation of the central particle. :py:class:`Rigid` also transfers forces
@@ -209,7 +209,7 @@ class Rigid(ConstraintForce):
 
     Example::
 
-        rigid = constrain.rigid()
+        rigid = constrain.Rigid()
         rigid.set_param(
             'A',
             types = ['A_const', 'A_const'],
