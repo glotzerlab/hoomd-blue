@@ -167,7 +167,7 @@ class Rigid(ConstraintForce):
     Example::
 
         rigid = hoomd.group.rigid_center()
-        hoomd.md.integrate.langevin(group=rigid, kT=1.0, seed=42)
+        hoomd.md.integrate.langevin(group=rigid, kT=1.0)
 
 
     .. rubric:: Thermodynamic quantities of bodies

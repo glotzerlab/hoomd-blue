@@ -158,7 +158,7 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
         << " communication stage(s)." << std::endl;
     }
 
-void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
+void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     {
     if (m_prof) m_prof->push("migrate");
 

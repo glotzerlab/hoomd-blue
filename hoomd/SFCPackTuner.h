@@ -57,7 +57,7 @@ class PYBIND11_EXPORT SFCPackTuner : public Tuner
         virtual ~SFCPackTuner();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Set the grid dimension
         /*! \param grid New grid dimension to set

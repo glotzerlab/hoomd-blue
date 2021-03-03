@@ -10,7 +10,7 @@ PythonTuner::PythonTuner(std::shared_ptr<SystemDefinition> sysdef,
     setTuner(tuner);
     }
 
-void PythonTuner::update(unsigned int timestep)
+void PythonTuner::update(uint64_t timestep)
     {
     m_tuner.attr("act")(timestep);
     }

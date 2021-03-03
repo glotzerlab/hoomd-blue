@@ -63,7 +63,7 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
         bool m_update_cell_size;
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
     };
 
 //! Exports NeighborListBinned to python

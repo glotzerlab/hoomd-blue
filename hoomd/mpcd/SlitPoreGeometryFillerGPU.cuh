@@ -36,8 +36,8 @@ cudaError_t slit_pore_draw_particles(Scalar4 *d_pos,
                                      const unsigned int first_tag,
                                      const unsigned int first_idx,
                                      const Scalar kT,
-                                     const unsigned int timestep,
-                                     const unsigned int seed,
+                                     const uint64_t timestep,
+                                     const uint16_t seed,
                                      const unsigned int block_size);
 
 } // end namespace gpu

@@ -45,7 +45,7 @@ compute method is called to ensure that it is up to date.
 
 Calls gpu_compute_table_forces to do the leg work
 */
-void TablePotentialGPU::computeForces(unsigned int timestep)
+void TablePotentialGPU::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

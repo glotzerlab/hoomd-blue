@@ -26,8 +26,8 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
                                  const int3 origin,
                                  const uint3 global_dim,
                                  const Index3D global_ci,
-                                 const unsigned int timestep,
-                                 const unsigned int seed,
+                                 const uint64_t timestep,
+                                 const uint16_t seed,
                                  const Scalar T_set,
                                  const unsigned int n_dimensions,
                                  const unsigned int Ncell)
@@ -56,7 +56,8 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
     const unsigned int global_idx = global_ci(global_cell.x, global_cell.y, global_cell.z);
 
     // Initialize the PRNG using the cell index, timestep, and seed for the hash
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, seed, global_idx, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SRDCollisionMethod, timestep, seed),
+                               hoomd::Counter(global_idx));
 
     // draw rotation vector off the surface of the sphere
     double3 rotvec;
@@ -179,8 +180,8 @@ cudaError_t srd_draw_vectors(double3 *d_rotvec,
                              const int3 origin,
                              const uint3 global_dim,
                              const Index3D& global_ci,
-                             const unsigned int timestep,
-                             const unsigned int seed,
+                             const uint64_t timestep,
+                             const uint16_t seed,
                              const Scalar T_set,
                              const unsigned int n_dimensions,
                              const unsigned int block_size)
