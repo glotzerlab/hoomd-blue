@@ -345,7 +345,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                     unsigned int err_count;
                     if (s_check_overlaps[overlap_idx(typ_j, type)] && test_overlap(r_ij, shape_i, shape_j, err_count))
                         {
-                        atomicAdd(&s_overlap[group],1);
+                        s_overlap[group] = 1;
                         break;
                         }
                     }
