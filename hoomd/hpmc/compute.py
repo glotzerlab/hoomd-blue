@@ -41,14 +41,12 @@ class FreeVolume(Compute):
     def __init__(self, test_particle_type, num_samples):
         # store metadata
         param_dict = ParameterDict(
-            mc=integrate.HPMCIntegrator,
             test_particle_type=str,
             num_samples=int
         )
         param_dict.update(
-            dict(mc=mc,
-                 test_particle_type=test_type,
-                 num_samples=nsample))
+            dict(test_particle_type=test_particle_type,
+                 num_samples=num_samples))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -95,9 +93,10 @@ class FreeVolume(Compute):
             if cpp_cls is None:
                 raise RuntimeError("Unsupported integrator.\n")
 
+        cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self.mc._cpp_obj,
-                                _hoomd.CellList(self._simulation.state._cpp_sys_def),
+                                integrator,
+                                cl,
                                 "")
 
         super()._attach()
