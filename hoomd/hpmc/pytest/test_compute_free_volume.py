@@ -8,9 +8,9 @@ def test_before_attaching():
     mc.shape["A"] = {'diameter': 1.0}
     mc.shape["B"] = {'diameter': 0.2}
     mc.depletant_fugacity["B"] = 1.5
-    free_volume = hoomd.hpmc.compute.FreeVolume(mc, test_type='B', nsample=100)
+    free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
+                                                num_samples=100)
 
-    assert free_volume.mc == mc
     assert free_volume.test_particle_type == 'B'
     assert free_volume.num_samples == 100
     assert free_volume.free_volume is None
@@ -25,7 +25,8 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
-    free_volume = hoomd.hpmc.compute.FreeVolume(mc, test_type='B', nsample=100)
+    free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
+                                                num_samples=100)
 
     sim.operations.add(free_volume)
     assert len(sim.operations.computes) == 1
@@ -64,9 +65,8 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
     mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
-    free_volume_compute = hoomd.hpmc.compute.FreeVolume(mc,
-                                                        test_type='B',
-                                                        nsample=10000)
+    free_volume_compute = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
+                                                        num_samples=10000)
     sim.operations.add(free_volume_compute)
     sim.run(0)
     np.testing.assert_allclose(free_volume,
