@@ -62,47 +62,19 @@ class FreeVolume(Compute):
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")
 
-        integrator_pairs = None
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            integrator_pairs = [(integrate.Sphere, _hpmc.ComputeFreeVolumeSphere),
-                                (integrate.ConvexPolygon, _hpmc.ComputeFreeVolumeConvexPolygon),
-                                (integrate.SimplePolygon, _hpmc.ComputeFreeVolumeSimplePolygon),
-                                (integrate.ConvexPolyhedron, _hpmc.ComputeFreeVolumeConvexPolyhedron),
-                                (integrate.ConvexSpheropolyhedron, _hpmc.ComputeFreeVolumeSpheropolyhedron),
-                                (integrate.Polyhedron, _hpmc.ComputeFreeVolumePolyhedron),
-                                (integrate.Ellipsoid, _hpmc.ComputeFreeVolumeEllipsoid),
-                                (integrate.ConvexSpheropolygon, _hpmc.ComputeFreeVolumeSpheropolygon),
-                                (integrate.FacetedEllipsoid, _hpmc.ComputeFreeVolumeFacetedEllipsoid),
-                                (integrate.Sphinx, _hpmc.ComputeFreeVolumeSphinx),
-                                (integrate.SphereUnion, _hpmc.ComputeFreeVolumeSphereUnion),
-                                (integrate.ConvexSpheropolyhedronUnion, _hpmc.ComputeFreeVolumeConvexPolyhedronUnion),
-                                (integrate.FacetedEllipsoidUnion, _hpmc.ComputeFreeVolumeFacetedEllipsoidUnion)]
-        else:
-            integrator_pairs = [(integrate.Sphere, _hpmc.ComputeFreeVolumeSphereGPU),
-                                (integrate.ConvexPolygon, _hpmc.ComputeFreeVolumeConvexPolygonGPU),
-                                (integrate.SimplePolygon, _hpmc.ComputeFreeVolumeSimplePolygonGPU),
-                                (integrate.ConvexPolyhedron, _hpmc.ComputeFreeVolumeConvexPolyhedronGPU),
-                                (integrate.ConvexSpheropolyhedron, _hpmc.ComputeFreeVolumeSpheropolyhedronGPU),
-                                (integrate.Polyhedron, _hpmc.ComputeFreeVolumePolyhedronGPU),
-                                (integrate.Ellipsoid, _hpmc.ComputeFreeVolumeEllipsoidGPU),
-                                (integrate.ConvexSpheropolygon, _hpmc.ComputeFreeVolumeSpheropolygonGPU),
-                                (integrate.FacetedEllipsoid, _hpmc.ComputeFreeVolumeFacetedEllipsoidGPU),
-                                (integrate.SphereUnion, _hpmc.ComputeFreeVolumeSphereUnionGPU),
-                                (integrate.ConvexSpheropolyhedronUnion, _hpmc.ComputeFreeVolumeConvexPolyhedronUnionGPU),
-                                (integrate.FacetedEllipsoidUnion, _hpmc.ComputeFreeVolumeFacetedEllipsoidUnionGPU)]
-        if isinstance(integrator, integrate.Sphinx) and isinstance(self._simulation.device, hoomd.device.GPU):
-            cpp_cls = _hpmc.ComputeFreeVolumeSphinxGPU
-        else:
-            cpp_cls = None
-            for python_integrator, cpp_compute in integrator_pairs:
-                if isinstance(integrator, python_integrator):
-                    cpp_cls = cpp_compute
-            if cpp_cls is None:
-                raise RuntimeError("Unsupported integrator.\n")
+        # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
+        integrator_name = str(integrator).split()[0].split('.')[-1]
+        try:
+            if isinstance(self._simulation.device, hoomd.device.CPU):
+                cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name)
+            else:
+                cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name + 'GPU')
+        except AttributeError:
+            raise RuntimeError("Unsupported integrator.\n")
 
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator,
+                                integrator._cpp_obj,
                                 cl,
                                 "")
 
