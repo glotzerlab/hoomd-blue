@@ -38,7 +38,7 @@ class FreeVolume(Compute):
         fv = hoomd.hpmc.compute.FreeVolume(mc=mc, test_type='B', nsample=1000)
 
     """
-    def __init__(self, mc, test_type=None, nsample=None):
+    def __init__(self, test_particle_type, num_samples):
         # store metadata
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
