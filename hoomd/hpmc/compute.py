@@ -28,8 +28,6 @@ class FreeVolume(Compute):
     As parameters it requires the number of MC integration samples (*nsample*), and the type of particle (*test_type*)
     to use for the integration.
 
-    A :py:class`FreeVolume` object can be added to a logger for logging during a simulation,
-    see :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
 
