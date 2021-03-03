@@ -72,6 +72,15 @@ class ComputeFreeVolume : public Compute
             m_type = type;
             }
 
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            Compute::setCommunicator(comm);
+
+            // set the communicator on the internal cell list
+            m_cl->setCommunicator(comm);
+            }
+
         /* \returns a list of provided quantities
         */
         std::vector< std::string > getProvidedLogQuantities()
