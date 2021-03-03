@@ -59,17 +59,19 @@ class ComputeFreeVolume : public Compute
             }
 
         //! Get the type of depletant particle
-        unsigned int getTestParticleType()
+        std::string getTestParticleType()
             {
-            return m_type;
+            std::string type = m_sysdef->getParticleData()->getNameByType(m_type);
+            return type;
             }
 
         //! Set the type of depletant particle
         //! \param type particle type to set test particle to
-        void setTestParticleType(unsigned int type)
+        void setTestParticleType(std::string type)
             {
+            unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
             assert(type < m_pdata->getNTypes());
-            m_type = type;
+            m_type = type_int;
             }
 
 #ifdef ENABLE_MPI

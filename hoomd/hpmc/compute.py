@@ -44,7 +44,7 @@ class FreeVolume(Compute):
         # store metadata
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
-            test_particle_type=OnlyTypes(str),
+            test_particle_type=str,
             num_samples=int
         )
         param_dict.update(
@@ -55,8 +55,6 @@ class FreeVolume(Compute):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self.test_particle_type = self._simulation.state._cpp_sys_def.getParticleData().getTypeByName(self.test_particle_type)
-
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be an HPMC integrator.")

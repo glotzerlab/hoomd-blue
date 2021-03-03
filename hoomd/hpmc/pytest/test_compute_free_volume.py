@@ -31,7 +31,7 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     assert len(sim.operations.computes) == 1
     sim.run(0)
 
-    assert free_volume.test_particle_type == 1
+    assert free_volume.test_particle_type == 'B'
     assert free_volume.num_samples == 100
 
     sim.run(10)
