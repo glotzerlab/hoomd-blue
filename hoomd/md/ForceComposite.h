@@ -88,9 +88,9 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
                 pybind11::list pos_i = positions[i];
                 if (len(pos_i) != 3)
                     throw std::runtime_error("Each position must have 3 coordinates");
-                vec3<OverlapReal> pos = vec3<Scalar>(pybind11::cast<Scalar>(pos_i[0]),
-                                                          pybind11::cast<OverlapReal>(pos_i[1]),
-                                                          pybind11::cast<OverlapReal>(pos_i[2]));
+                vec3<Scalar> pos = vec3<Scalar>(pybind11::cast<Scalar>(pos_i[0]),
+                                                pybind11::cast<Scalar>(pos_i[1]),
+                                                pybind11::cast<Scalar>(pos_i[2]));
                 pos_vector.push_back(pos);
                 }   
 
@@ -116,7 +116,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             return v;
             }
 
-    protected
+    protected:
         bool m_bodies_changed;          //!< True if constituent particles have changed
         bool m_ptls_added_removed;      //!< True if particles have been added or removed
 
