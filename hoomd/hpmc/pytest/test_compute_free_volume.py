@@ -72,4 +72,4 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
     np.testing.assert_allclose(free_volume,
                                free_volume_compute.free_volume,
-                               rtol=1e-2)
+                               rtol=2e-2)
