@@ -53,13 +53,20 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // when the simulation is decomposed on multiple ranks
+    if (m_pdata->getDomainDecomposition())
+        {
+        // broadcast the snapshot so the particle positions are available on all ranks
+        snapshot.bcast(0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+
     GlobalArray< Scalar3 > lat(snapshot.size, m_exec_conf);
     m_lattice_site.swap(lat);
     TAG_ALLOCATION(m_lattice_site);
     ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::overwrite);
-#ifdef ENABLE_MPI
-    snapshot.bcast(0, m_exec_conf->getMPICommunicator()); // causes seg fault in MPI
-#endif
 
     // for each particle in the data
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
