@@ -98,9 +98,6 @@ class ComputeFreeVolume : public Compute
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
-        //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(uint64_t timestep);
-
         //! Analyze the current configuration
         virtual void compute(uint64_t timestep);
 
@@ -116,6 +113,9 @@ class ComputeFreeVolume : public Compute
         const std::string m_suffix;                              //!< Log suffix
 
         GPUArray<unsigned int> m_n_overlap_all;                  //!< Number of overlap volume particles in box
+
+        //! Return an estimate of the overlap volume
+        virtual void computeFreeVolume(uint64_t timestep);
     };
 
 
