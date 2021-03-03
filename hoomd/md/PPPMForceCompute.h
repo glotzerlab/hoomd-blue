@@ -178,8 +178,8 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         virtual void computeBodyCorrection();
 
     private:
-        kiss_fftnd_cfg m_kiss_fft;         //!< The FFT configuration
-        kiss_fftnd_cfg m_kiss_ifft;        //!< Inverse FFT configuration
+        kiss_fftnd_cfg m_kiss_fft=NULL;         //!< The FFT configuration
+        kiss_fftnd_cfg m_kiss_ifft=NULL;        //!< Inverse FFT configuration
 
         #ifdef ENABLE_MPI
         dfft_plan m_dfft_plan_forward;     //!< Distributed FFT for forward transform
