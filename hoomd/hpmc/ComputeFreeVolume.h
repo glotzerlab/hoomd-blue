@@ -72,6 +72,7 @@ class ComputeFreeVolume : public Compute
             m_type = type;
             }
 
+#ifdef ENABLE_MPI
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method
@@ -80,6 +81,7 @@ class ComputeFreeVolume : public Compute
             // set the communicator on the internal cell list
             m_cl->setCommunicator(comm);
             }
+#endif
 
         /* \returns a list of provided quantities
         */
