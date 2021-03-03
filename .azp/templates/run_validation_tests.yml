@@ -1,3 +1,5 @@
+# Run validation tests.
+
 steps:
 - script: >-
     PATH=/usr/lib/llvm-$(llvm_version)/bin:$PATH

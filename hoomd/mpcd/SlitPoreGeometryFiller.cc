@@ -18,9 +18,9 @@ mpcd::SlitPoreGeometryFiller::SlitPoreGeometryFiller(std::shared_ptr<mpcd::Syste
                                              Scalar density,
                                              unsigned int type,
                                              std::shared_ptr<::Variant> T,
-                                             unsigned int seed,
+                                             uint16_t seed,
                                              std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdata, density, type, T, seed),
+    : mpcd::VirtualParticleFiller(sysdata, density, type, T),
       m_num_boxes(0), m_boxes(MAX_BOXES, m_exec_conf), m_ranges(MAX_BOXES, m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SlitPoreGeometryFiller" << std::endl;
@@ -137,7 +137,7 @@ void mpcd::SlitPoreGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
+void mpcd::SlitPoreGeometryFiller::drawParticles(uint64_t timestep)
     {
     // quit early if not filling to ensure we don't access any memory that hasn't been set
     if (m_N_fill == 0) return;
@@ -158,12 +158,15 @@ void mpcd::SlitPoreGeometryFiller::drawParticles(unsigned int timestep)
     int boxid = -1;
     unsigned int boxlast = 0;
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // index to start filling from
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
     for (unsigned int i=0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitPoreGeometryFiller, m_seed, tag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitPoreGeometryFiller, timestep, seed),
+                                   hoomd::Counter(tag));
 
         // advanced past end of this box range, take the next
         if (i >= boxlast)

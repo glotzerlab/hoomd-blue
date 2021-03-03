@@ -25,7 +25,7 @@ def move_size_definition(move_definition_dict):
 def simulation(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(dimensions=2, r=1e-3, n=20)  # 400 particles
     sim = simulation_factory(snap)
-    integrator = hpmc.integrate.Sphere(seed=43, d=0.01)
+    integrator = hpmc.integrate.Sphere(d=0.01)
     integrator.shape['A'] = dict(diameter=0.9)
     sim.operations.integrator = integrator
     return sim

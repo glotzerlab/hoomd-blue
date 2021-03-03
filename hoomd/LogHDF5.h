@@ -36,7 +36,7 @@ class LogHDF5 : public LogMatrix
         virtual void setLoggedQuantities(const std::vector< std::string >& quantities);
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         //! Get numpy array containing all logged non-matrix quantities.
         pybind11::array getQuantitiesArray(void){return m_quantities_array;}

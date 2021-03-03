@@ -81,8 +81,8 @@ def test_rcut(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
 
     lj.r_cut[('A', 'A')] = 2.5
@@ -107,8 +107,8 @@ def test_mode(simulation_factory, two_particle_snapshot_factory, mode):
     sim = simulation_factory(snap)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.run(1)
 
@@ -124,8 +124,8 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=.5))
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     assert lj.r_on.to_dict() == {}
 
@@ -668,8 +668,8 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
 
     integrator = hoomd.md.Integrator(dt=0.005)
     integrator.forces.append(pot)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.operations._schedule()
     old_snap = sim.state.snapshot
@@ -706,8 +706,8 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
 
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -729,8 +729,8 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_shift)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.run(0)
 
@@ -750,8 +750,8 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     lj_xplor.r_on[('A', 'A')] = 0.5
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_xplor)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
 
     sim.operations.integrator = integrator
     sim.run(0)
@@ -827,8 +827,8 @@ def test_force_energy_relationship(simulation_factory,
     _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pot)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.run(0)
     for pair in valid_params.pair_potential_params:
@@ -919,6 +919,11 @@ def isclose(value, reference, rtol=5e-6):
 def test_force_energy_accuracy(simulation_factory,
                                two_particle_snapshot_factory,
                                forces_and_energies):
+    pot_name = forces_and_energies.pair_potential.__name__
+    if pot_name == "DPD" or pot_name == "DPDLJ":
+        pytest.skip("Cannot test force energy accuracy for " +
+                    pot_name + " pair force")
+
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
                                              nlist=md.nlist.Cell(),
                                              r_cut=2.5, mode='none')
@@ -928,8 +933,8 @@ def test_force_energy_accuracy(simulation_factory,
     sim = simulation_factory(snap)
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pot)
-    integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
+                                                        kT=1))
     sim.operations.integrator = integrator
     sim.run(0)
     particle_distances = [0.75, 1.5]

@@ -82,7 +82,7 @@ class DEM3DForceCompute : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Real getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Real getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Find the total number of vertices in the current set of shapes
         size_t numVertices() const;
@@ -113,7 +113,7 @@ class DEM3DForceCompute : public ForceCompute
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             // by default, only request positions
             CommFlags flags(0);
@@ -156,7 +156,7 @@ class DEM3DForceCompute : public ForceCompute
         void createGeometry();
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 #include "DEM3DForceCompute.cc"

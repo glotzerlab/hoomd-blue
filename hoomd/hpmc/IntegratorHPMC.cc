@@ -17,9 +17,8 @@ using namespace std;
 namespace hpmc
 {
 
-IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int seed)
-    : Integrator(sysdef, 0.005), m_seed(seed),  m_translation_move_probability(32768), m_nselect(4),
+IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
+    : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
       m_past_first_run(false)
       #ifdef ENABLE_MPI
@@ -28,12 +27,6 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
       #endif
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
-
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
 
     GlobalArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
@@ -136,7 +129,7 @@ std::vector< std::string > IntegratorHPMC::getProvidedLogQuantities()
     \param timestep Current time step of the simulation
     \return the requested log quantity.
 */
-Scalar IntegratorHPMC::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorHPMC::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_sweep")
         {
@@ -237,7 +230,7 @@ bool IntegratorHPMC::checkParticleOrientations()
 
     \returns false if resize results in overlaps
 */
-bool IntegratorHPMC::attemptBoxResize(unsigned int timestep, const BoxDim& new_box)
+bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     {
     unsigned int N = m_pdata->getN();
 
@@ -311,7 +304,7 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
 void export_IntegratorHPMC(py::module& m)
     {
     py::class_<IntegratorHPMC, Integrator, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC")
-        .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+        .def(py::init< std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
@@ -331,7 +324,6 @@ void export_IntegratorHPMC(py::module& m)
         #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
         #endif
-        .def_property_readonly("seed", &IntegratorHPMC::getSeed)
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
         .def_property("translation_move_probability", &IntegratorHPMC::getTranslationMoveProbability, &IntegratorHPMC::setTranslationMoveProbability)
         ;

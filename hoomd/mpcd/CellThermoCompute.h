@@ -40,7 +40,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         virtual ~CellThermoCompute();
 
         //! Compute the cell thermodynamic properties
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Get the cell indexer for the attached cell list
         const Index3D& getCellIndexer() const
@@ -134,14 +134,14 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
             }
 
         //! Get the signal to attach a callback function
-        Nano::Signal<void (unsigned int)>& getCallbackSignal()
+        Nano::Signal<void (uint64_t timestep)>& getCallbackSignal()
             {
             return m_callbacks;
             }
 
     protected:
         //! Compute the cell properties
-        void computeCellProperties(unsigned int timestep);
+        void computeCellProperties(uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Begin the calculation of outer cell properties
@@ -177,7 +177,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Updates the requested optional flags
         void updateFlags();
 
-        Nano::Signal<void (unsigned int)> m_callbacks;  //!< Signal for callback functions
+        Nano::Signal<void (uint64_t timestep)> m_callbacks;  //!< Signal for callback functions
 
     private:
         //! Allocate memory per cell

@@ -103,7 +103,7 @@ size_t DEM3DForceComputeGPU<Real, Real4, Potential>::maxGPUThreads() const
   Calls gpu_compute_dem3d_forces to do the dirty work.
 */
 template<typename Real, typename Real4, typename Potential>
-void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(unsigned int timestep)
+void DEM3DForceComputeGPU<Real, Real4, Potential>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
