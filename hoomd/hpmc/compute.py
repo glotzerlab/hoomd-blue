@@ -44,7 +44,7 @@ class FreeVolume(Compute):
         # store metadata
         param_dict = ParameterDict(
             mc=integrate.HPMCIntegrator,
-            test_particle_type=OnlyTypes((str, int)),
+            test_particle_type=OnlyTypes(str),
             num_samples=int
         )
         param_dict.update(
