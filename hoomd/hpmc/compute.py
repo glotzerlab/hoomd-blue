@@ -19,9 +19,8 @@ class FreeVolume(Compute):
     """Compute the free volume available to a test particle by stochastic integration.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate.HPMCIntegrator`): MC integrator.
-        type (str): Type of particle to use for integration
-        nsample (int): Number of samples to use in MC integration
+        test_particle_type (str): Type of particle to use when computing free volume
+        num_samples (int): Number of samples to use in MC integration
 
     :py:class`FreeVolume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
     It works together with an HPMC integrator, which defines the particle types used in the simulation.
@@ -35,7 +34,15 @@ class FreeVolume(Compute):
         mc.shape["A"] = {'diameter': 1.0}
         mc.shape["B"] = {'diameter': 0.2}
         mc.depletant_fugacity["B"] = 1.5
-        fv = hoomd.hpmc.compute.FreeVolume(mc=mc, test_type='B', nsample=1000)
+        fv = hoomd.hpmc.compute.FreeVolume(test_particle_type='B', num_samples=1000)
+
+
+    Attributes:
+        test_particle_type (str): Type of particle to use when
+            computing free volume
+
+        num_samples (int): Number of samples to use in MC
+            integration
 
     """
     def __init__(self, test_particle_type, num_samples):
