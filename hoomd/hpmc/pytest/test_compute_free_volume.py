@@ -25,7 +25,6 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
-    sim.operations._schedule()
     free_volume = hoomd.hpmc.compute.FreeVolume(mc, test_type='B', nsample=100)
 
     sim.operations.add(free_volume)
