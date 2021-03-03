@@ -353,9 +353,3 @@ class Rigid(ConstraintForce):
         """
         self._cpp_obj.validateRigidBodies(False)
 
-    ## \internal
-    # \brief updates force coefficients
-    def update_coeffs(self):
-        # validate copies of rigid bodies
-        self.create_bodies(False)
-
