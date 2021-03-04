@@ -248,7 +248,6 @@ class MuellerPlatheFlow(Updater):
         * This updater has to be always applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
-    .. versionadded:: v2.1
 
     Examples::
 
