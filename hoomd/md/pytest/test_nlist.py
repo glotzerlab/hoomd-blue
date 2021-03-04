@@ -81,6 +81,6 @@ def test_simple_simulation(nlist_params, simulation_factory, lattice_snapshot_fa
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
                                                         kT=1))
 
-    sim = simulation_factory(lattice_snapshot_factory())
+    sim = simulation_factory(lattice_snapshot_factory(n=10))
     sim.operations.integrator = integrator
     sim.run(2)
