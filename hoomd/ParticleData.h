@@ -1428,7 +1428,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     m_net_torque_handle,
                     &ParticleData::getNetTorqueArray,
                     flag,
-                    4
+                    3
                 );
                 }
 
