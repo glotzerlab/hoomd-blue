@@ -300,8 +300,8 @@ class ThermoHMA(Compute):
     requested. HMA computes properties more precisely (with less variance) for
     atomic crystals in NVT simulations.  The presence of diffusion (vacancy
     hopping, etc.) will prevent HMA from providing improvement.  HMA tracks
-    displacements from the lattice positions, which are saved when the
-    :py:class:`ThermoHMA` is instantiated. :py:class:`ThermoHMA` objects can be
+    displacements from the lattice positions, which are saved at the start
+    of the first call to `Simulation.run`. :py:class:`ThermoHMA` objects can be
     added to a logger for logging during a simulation, see
     :py:class:`hoomd.logging.Logger` for more details.
 
