@@ -83,7 +83,7 @@ class rescale_temp(_updater):
             self.kT = kT
 
 class ZeroMomentum(Updater):
-    R""" Zeroes system momentum.
+    """Zeroes system momentum.
 
     Args:
         trigger (hoomd.trigger.Trigger): Select the timesteps to zero momentum.
