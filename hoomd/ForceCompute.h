@@ -69,11 +69,11 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         /*! This method is called in MPI simulations BEFORE the particles are migrated
          * and can be used to overlap computation with communication
          */
-        virtual void preCompute(unsigned int timestep){}
+        virtual void preCompute(uint64_t timestep){}
         #endif
 
         //! Computes the forces
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Benchmark the force compute
         virtual double benchmark(unsigned int num_iters);
@@ -159,7 +159,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
 
         #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             // by default, only request positions
             CommFlags flags(0);
@@ -221,7 +221,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
         */
-        virtual void computeForces(unsigned int timestep){}
+        virtual void computeForces(uint64_t timestep){}
     };
 
 //! Exports the ForceCompute class to python

@@ -56,7 +56,7 @@ mpcd::CellList::~CellList()
     m_pdata->getBoxChangeSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
 
-void mpcd::CellList::compute(unsigned int timestep)
+void mpcd::CellList::compute(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
 
@@ -633,7 +633,7 @@ void mpcd::CellList::buildCellList()
  * \param order Mapping of sorted particle indexes onto old particle indexes
  * \param rorder Mapping of old particle indexes onto sorted particle indexes
  */
-void mpcd::CellList::sort(unsigned int timestep,
+void mpcd::CellList::sort(uint64_t timestep,
                           const GPUArray<unsigned int>& order,
                           const GPUArray<unsigned int>& rorder)
     {
@@ -672,7 +672,7 @@ void mpcd::CellList::sort(unsigned int timestep,
     }
 
 #ifdef ENABLE_MPI
-bool mpcd::CellList::needsEmbedMigrate(unsigned int timestep)
+bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
     {
     // no migrate needed if no embedded particles
     if (!m_embed_group) return false;

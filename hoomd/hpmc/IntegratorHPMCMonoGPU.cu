@@ -132,9 +132,10 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
                  unsigned int *d_condition,
-                 const unsigned int seed,
+                 const uint16_t seed,
+                 const unsigned int rank,
                  const unsigned int select,
-                 const unsigned int timestep)
+                 const uint64_t timestep)
     {
     unsigned offset = threadIdx.x;
     unsigned int group_size = blockDim.x;
@@ -280,7 +281,8 @@ __global__ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
         float delta_U = s_energy_new[group] - s_energy_old[group];
 
         // Metropolis-Hastings
-        hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoAccept, seed, i, select, timestep);
+        hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoAccept, timestep, seed),
+                                     hoomd::Counter(i, rank, select));
         bool accept = !s_reject[group] && (!patch || (hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-delta_U)));
 
         if ((accept && d_reject[i]) || (!accept && !d_reject[i]))
@@ -388,9 +390,10 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
                  const float *d_energy_new,
                  const unsigned int maxn_patch,
                  unsigned int *d_condition,
-                 const unsigned int seed,
+                 const uint16_t seed,
+                 const unsigned int rank,
                  const unsigned int select,
-                 const unsigned int timestep,
+                 const uint64_t timestep,
                  const unsigned int block_size,
                  const unsigned int tpp)
     {
@@ -446,6 +449,7 @@ void hpmc_accept(const unsigned int *d_update_order_by_ptl,
             maxn_patch,
             d_condition,
             seed,
+            rank,
             select,
             timestep);
         }

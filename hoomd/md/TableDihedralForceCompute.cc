@@ -109,7 +109,7 @@ std::vector< std::string > TableDihedralForceCompute::getProvidedLogQuantities()
     return list;
     }
 
-Scalar TableDihedralForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar TableDihedralForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -126,7 +126,7 @@ Scalar TableDihedralForceCompute::getLogValue(const std::string& quantity, unsig
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void TableDihedralForceCompute::computeForces(unsigned int timestep)
+void TableDihedralForceCompute::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute

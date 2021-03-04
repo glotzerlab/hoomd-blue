@@ -58,7 +58,7 @@ EAMForceComputeGPU::~EAMForceComputeGPU()
     {
     }
 
-void EAMForceComputeGPU::computeForces(unsigned int timestep)
+void EAMForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);

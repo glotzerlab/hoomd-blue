@@ -270,7 +270,7 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     assert all(np.sort(charge_filter(sim.state)) == np.sort(expected_tags))
 
     # Test that the filter works when used in a simulation
-    langevin = md.methods.Langevin(charge_filter, 1.0, seed=42)
+    langevin = md.methods.Langevin(charge_filter, 1.0)
     sim.operations += md.Integrator(0.005, methods=[langevin])
     sim.run(100)
     snap = sim.state.snapshot
