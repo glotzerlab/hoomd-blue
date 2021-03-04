@@ -314,7 +314,7 @@ class ThermoHMA(Compute):
 
         # store metadata
         param_dict = ParameterDict(
-            temperature=float(temperature),
+            kT=float(kT),
             harmonic_pressure=float(harmonic_pressure)
         )
         # set defaults
