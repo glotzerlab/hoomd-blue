@@ -70,7 +70,7 @@ class FreeVolume(Compute):
             else:
                 cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name + 'GPU')
         except AttributeError:
-            raise RuntimeError("Unsupported integrator.\n")
+            raise RuntimeError("Unsupported integrator.")
 
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
