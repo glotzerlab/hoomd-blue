@@ -39,7 +39,7 @@ __global__ void generate_num_depletants(const uint16_t seed,
 
     idx += work_offset;
 
-    hoomd::RandomGenerator rng_poisson(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, seed, timestep),
+    hoomd::RandomGenerator rng_poisson(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, timestep, seed),
                                        hoomd::Counter(idx, rank, depletant_idx(depletant_type_a,depletant_type_b), static_cast<uint16_t>(select)));
     unsigned int type_i = __scalar_as_int(d_postype[idx].w);
     d_n_depletants[idx] = hoomd::PoissonDistribution<Scalar>(
