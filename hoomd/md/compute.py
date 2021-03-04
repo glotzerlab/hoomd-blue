@@ -284,7 +284,7 @@ class ThermodynamicQuantities(_Thermo):
 
 
 class ThermoHMA(Compute):
-    R""" Compute HMA thermodynamic properties of a group of particles.
+    """Compute HMA thermodynamic properties of a group of particles.
 
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
