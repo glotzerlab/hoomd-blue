@@ -65,6 +65,8 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
                                                         num_samples=10000)
     sim.operations.add(free_volume_compute)
     sim.run(0)
+    # rtol is fairly high as the free volume available to a sized particle
+    # is less than the total available volume
     np.testing.assert_allclose(free_volume,
                                free_volume_compute.free_volume,
                                rtol=2e-2)
