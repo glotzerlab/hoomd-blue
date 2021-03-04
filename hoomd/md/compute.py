@@ -310,7 +310,7 @@ class ThermoHMA(Compute):
         hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), temperature=1.0)
     """
 
-    def __init__(self, filter, temperature, harmonic_pressure=0):
+    def __init__(self, filter, kT, harmonic_pressure=0):
 
         # store metadata
         param_dict = ParameterDict(
