@@ -56,7 +56,7 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Assign global molecule tags
@@ -84,19 +84,19 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         Scalar m_d_max;                    //!< Maximum constraint extension
 
         //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Populate the quantities in the constraint-force equation
-        virtual void fillMatrixVector(unsigned int timestep);
+        virtual void fillMatrixVector(uint64_t timestep);
 
         //! Check violation of constraints
-        virtual void checkConstraints(unsigned int timestep);
+        virtual void checkConstraints(uint64_t timestep);
 
         //! Solve the constraint matrix equation
-        virtual void solveConstraints(unsigned int timestep);
+        virtual void solveConstraints(uint64_t timestep);
 
         //! Solve the linear matrix-vector equation
-        virtual void computeConstraintForces(unsigned int timestep);
+        virtual void computeConstraintForces(uint64_t timestep);
 
         //! Method called when constraint order changes
         virtual void slotConstraintReorder()

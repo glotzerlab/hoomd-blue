@@ -1,9 +1,10 @@
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyType, box_preprocessing
+from hoomd.data.typeconverter import OnlyTypes, box_preprocessing
 from hoomd.variant import Variant, Constant
 from hoomd import _hoomd
+from hoomd.filter import ParticleFilter, All
 
 
 class BoxResize(Updater):
@@ -33,8 +34,8 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (bool): Whether to scale particles to the new box
-            dimensions when the box is resized.
+        filter (hoomd.filter.ParticleFilter): The subset of particle positions to
+            update.
 
     Attributes:
         box1 (hoomd.Box): The box associated with the minimum of the
@@ -44,30 +45,33 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        scale_particles (bool): Whether to scale particles to the new box
-            dimensions when the box is resized.
+        filter (hoomd.filter.ParticleFilter): The subset of particles to
+            update.
     """
     def __init__(self, box1, box2,
-                 variant, trigger, scale_particles=True):
+                 variant, trigger, filter=All()):
         params = ParameterDict(
-            box1=OnlyType(Box, preprocess=box_preprocessing),
-            box2=OnlyType(Box, preprocess=box_preprocessing),
+            box1=OnlyTypes(Box, preprocess=box_preprocessing),
+            box2=OnlyTypes(Box, preprocess=box_preprocessing),
             variant=Variant,
-            scale_particles=bool)
+            filter=ParticleFilter)
         params['box1'] = box1
         params['box2'] = box2
         params['variant'] = variant
         params['trigger'] = trigger
-        params['scale_particles'] = scale_particles
+        params['filter'] = filter
         self._param_dict.update(params)
         super().__init__(trigger)
 
     def _attach(self):
+        group = self._simulation.state._get_group(self.filter)
         self._cpp_obj = _hoomd.BoxResizeUpdater(
             self._simulation.state._cpp_sys_def,
             self.box1,
             self.box2,
-            self.variant)
+            self.variant,
+            group
+        )
         super()._attach()
 
     def get_box(self, timestep):
@@ -89,15 +93,19 @@ class BoxResize(Updater):
             return None
 
     @staticmethod
-    def update(state, box):
+    def update(state, box, filter=All()):
         """Immediately scale the particle in the system state to the given box.
 
         Args:
             state (State): System state to scale.
             box (Box): New box.
+            filter (hoomd.filter.ParticleFilter): The subset of particles to
+                update.
         """
+        group = state._get_group(filter)
         updater = _hoomd.BoxResizeUpdater(state._cpp_sys_def,
                                           state.box,
                                           box,
-                                          Constant(1))
+                                          Constant(1),
+                                          group)
         updater.update(state._simulation.timestep)

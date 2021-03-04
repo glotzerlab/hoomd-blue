@@ -65,7 +65,7 @@ class PYBIND11_EXPORT System
     {
     public:
         //! Constructor
-        System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
+        System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep);
 
         // -------------- Integrator methods
 
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT System
             @param write_at_start Set to true to evaluate writers before the
                 loop
         */
-        void run(unsigned int nsteps, bool write_at_start=false);
+        void run(uint64_t nsteps, bool write_at_start=false);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
@@ -114,7 +114,7 @@ class PYBIND11_EXPORT System
             }
 
         //! Get the current time step
-        unsigned int getCurrentTimeStep()
+        uint64_t getCurrentTimeStep()
             {
             return m_cur_tstep;
             }
@@ -192,9 +192,9 @@ class PYBIND11_EXPORT System
 #ifdef ENABLE_MPI
         std::shared_ptr<Communicator> m_comm;         //!< Communicator to use
 #endif
-        unsigned int m_start_tstep;     //!< Initial time step of the current run
-        unsigned int m_end_tstep;       //!< Final time step of the current run
-        unsigned int m_cur_tstep;       //!< Current time step
+        uint64_t m_start_tstep;     //!< Initial time step of the current run
+        uint64_t m_end_tstep;       //!< Final time step of the current run
+        uint64_t m_cur_tstep;       //!< Current time step
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
 
@@ -211,7 +211,7 @@ class PYBIND11_EXPORT System
         void resetStats();
 
         //! Get the flags needed for a particular step
-        PDataFlags determineFlags(unsigned int tstep);
+        PDataFlags determineFlags(uint64_t tstep);
 
         /// Record the initial time of the last run
         int64_t m_initial_time=0;

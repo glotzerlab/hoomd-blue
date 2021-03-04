@@ -76,7 +76,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
         unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
@@ -115,7 +115,7 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std:
 
 template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -174,7 +174,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_nlist->getNListArray().getPitch(),
                              this->m_pdata->getNTypes(),
                              block_size,
-                             this->m_seed,
+                             this->m_sysdef->getSeed(),
                              timestep,
                              this->m_deltaT,
                              (*this->m_T)(timestep),

@@ -116,7 +116,7 @@ uint3 CellList::computeDimensions()
     return dim;
     }
 
-void CellList::compute(unsigned int timestep)
+void CellList::compute(uint64_t timestep)
     {
     bool force = false;
 
