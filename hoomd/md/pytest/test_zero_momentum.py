@@ -60,4 +60,4 @@ def test_momentum_is_zero(simulation_factory,
         velocities = snap.particles.velocity
         for i in range(3):
             pi = sum([m * v[i] for m, v in zip(masses, velocities)])
-            assert pi == 0
+        np.testing.assert_allclose(p, 0, atol=1e-5)
