@@ -1,8 +1,8 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-""" Compute properties of hard particle configurations.
-"""
+"""Compute properties of hard particle configurations."""
 
 from __future__ import print_function
 
@@ -11,38 +11,57 @@ from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyTypes
 from hoomd.logging import log
 import hoomd
 
+
 class FreeVolume(Compute):
-    """Compute the free volume available to a test particle by stochastic integration.
+    r"""Compute the free volume available to a test particle.
 
     Args:
-        test_particle_type (str): Type of particle to use when computing free volume
-        num_samples (int): Number of samples to use in MC integration
+        test_particle_type (str): Test particle type.
+        num_samples (int): Number of samples to evaluate.
 
-    :py:class`FreeVolume` computes the free volume of a particle assembly using stochastic integration with a test particle type.
-    It works together with an HPMC integrator, which defines the particle types used in the simulation.
-    As parameters it requires the number of MC integration samples (*nsample*), and the type of particle (*test_type*)
-    to use for the integration.
+    `FreeVolume` computes the free volume in the simulation state available to a
+    given test particle using Monte Carlo integration. It must be used in
+    combination with an HPMC integrator, which defines the particle shape
+    parameters.
 
+    `FreeVolume` generates `num_samples` uniform random test particle placements
+    (position and orientation) inside the box and counts the number of times
+    these test placements overlap with the particles in the simulation state.
+    It then computes the free volume with:
+
+    .. math::
+        V_\mathrm{free} = \left( \frac{n_\mathrm{samples} - n_\mathrm{overlaps}}
+                               {n_\mathrm{samples}} \right) V_\mathrm{box}
+
+    where :math:`V_\mathrm{free}` is the estimated free volume `free_volume`,
+    :math:`n_\mathrm{samples}` is the number of samples `num_samples`,
+    :math:`n_\mathrm{overlaps}` is the number of overlapping test placements,
+    and :math:`V_\mathrm{box}` is the volume of the simulation box.
+
+    Note:
+
+        The test particle type must exist in the simulation state and its shape
+        parameters must be set in the simulation's HPMC integrator. Particles
+        with this type may be present in the simulation state.
+
+    Note:
+
+        `FreeVolume` respects the ``interaction_matrix`` set in the HPMC
+        integrator.
 
     Examples::
 
-        mc = hoomd.hpmc.integrate.Sphere()
-        mc.shape["A"] = {'diameter': 1.0}
-        mc.shape["B"] = {'diameter': 0.2}
-        mc.depletant_fugacity["B"] = 1.5
-        fv = hoomd.hpmc.compute.FreeVolume(test_particle_type='B', num_samples=1000)
+        fv = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
+                                           num_samples=1000)
 
 
     Attributes:
-        test_particle_type (str): Type of particle to use when
-            computing free volume
+        test_particle_type (str): Test particle type.
 
-        num_samples (int): Number of samples to use in MC
-            integration
+        num_samples (int): Number of samples to evaluate.
 
     """
     def __init__(self, test_particle_type, num_samples):
@@ -68,7 +87,8 @@ class FreeVolume(Compute):
             if isinstance(self._simulation.device, hoomd.device.CPU):
                 cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name)
             else:
-                cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name + 'GPU')
+                cpp_cls = getattr(_hpmc,
+                                  'ComputeFreeVolume' + integrator_name + 'GPU')
         except AttributeError:
             raise RuntimeError("Unsupported integrator.")
 
@@ -82,8 +102,7 @@ class FreeVolume(Compute):
 
     @log
     def free_volume(self):
-        """free volume available to a particle assembly
-        """
+        """Free volume available to the test particle."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.free_volume
