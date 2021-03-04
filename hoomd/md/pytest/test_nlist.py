@@ -79,8 +79,7 @@ def test_simple_simulation(nlist_params, simulation_factory, lattice_snapshot_fa
     integrator = hoomd.md.Integrator(0.005)
     integrator.forces.append(lj)
     integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(),
-                                                        kT=1,
-                                                        seed=1))
+                                                        kT=1))
 
     sim = simulation_factory(lattice_snapshot_factory())
     sim.operations.integrator = integrator
