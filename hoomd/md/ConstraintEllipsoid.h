@@ -39,7 +39,7 @@ class PYBIND11_EXPORT ConstraintEllipsoid : public Updater
         virtual ~ConstraintEllipsoid();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied

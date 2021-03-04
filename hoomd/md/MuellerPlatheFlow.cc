@@ -62,7 +62,7 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
         .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
     }
 
-void MuellerPlatheFlow::update(unsigned int timestep)
+void MuellerPlatheFlow::update(uint64_t timestep)
     {
     if( m_needs_orthorhombic_check)
         this->verify_orthorhombic_box();
@@ -148,7 +148,7 @@ std::vector< std::string > MuellerPlatheFlow::getProvidedLogQuantities()
     return ret;
     }
 
-Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if( quantity == "summed_exchanged_momentum")
         {

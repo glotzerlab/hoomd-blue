@@ -104,7 +104,7 @@ namespace getardump{
         restore(sysdef, modes);
         }
 
-    unsigned int GetarInitializer::getTimestep() const
+    uint64_t GetarInitializer::getTimestep() const
         {
         return m_timestep;
         }
@@ -521,7 +521,7 @@ namespace getardump{
                 }
             }
 
-        m_timestep = max(m_timestep, (unsigned int) atoi(selectedFrame.c_str()));
+        m_timestep = max(m_timestep, static_cast<uint64_t>(atoi(selectedFrame.c_str())));
 
         for(set<Record>::const_iterator iter(records.begin());
             iter != records.end(); ++iter)

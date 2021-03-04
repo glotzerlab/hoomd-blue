@@ -61,8 +61,7 @@ class UpdateOrder
         /*! \param seed Random number seed
             \param N number of integers to shuffle
         */
-        UpdateOrder(unsigned int seed, unsigned int N=0)
-            : m_seed(seed)
+        UpdateOrder(unsigned int N=0)
             {
             resize(N);
             }
@@ -84,9 +83,10 @@ class UpdateOrder
             \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
             timestep.
         */
-        void shuffle(unsigned int timestep, unsigned int select = 0)
+        void shuffle(uint64_t timestep, uint16_t seed, unsigned int rank = 0, unsigned int select = 0)
             {
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShuffle, m_seed, timestep, select);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, timestep, seed),
+                                       hoomd::Counter(rank, select));
 
             // reverse the order with 1/2 probability
             if (hoomd::UniformIntDistribution(1)(rng))
@@ -108,8 +108,8 @@ class UpdateOrder
             {
             return m_update_order[i];
             }
+
     private:
-        unsigned int m_seed;                       //!< Random number seed
         std::vector<unsigned int> m_update_order; //!< Update order
     };
 
@@ -132,8 +132,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
-                      unsigned int seed);
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~IntegratorHPMCMono()
             {
@@ -146,7 +145,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void resetStats();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         /*
          * Depletant related options
@@ -207,7 +206,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         std::vector<hpmc_implicit_counters_t> getImplicitCounters(unsigned int mode=0);
 
         //! Method to scale the box
-        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
         /*
          * Common HPMC API
@@ -246,7 +245,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Get the particle parameters
         virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
@@ -294,7 +293,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             bool use_images, bool exclude_self);
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int)
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
@@ -303,7 +302,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(unsigned int)
+        virtual CommFlags getCommFlags(uint64_t timestep)
             {
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
@@ -328,7 +327,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         #endif
 
         //! Prepare for the run
-        virtual void prepRun(unsigned int timestep)
+        virtual void prepRun(uint64_t timestep)
             {
             // base class method
             IntegratorHPMC::prepRun(timestep);
@@ -378,7 +377,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(unsigned int timestep);
+        virtual float computePatchEnergy(uint64_t timestep);
 
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
@@ -508,10 +507,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
-                                                   unsigned int seed)
-            : IntegratorHPMC(sysdef, seed),
-              m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef)
+            : IntegratorHPMC(sysdef),
+              m_update_order(m_pdata->getN()),
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
@@ -625,7 +623,7 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
     }
 
 template<class Shape>
-Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_patch_energy")
         {
@@ -751,7 +749,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
+void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(10) << "HPMCMono update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
@@ -774,7 +772,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getN());
-    m_update_order.shuffle(timestep);
+    m_update_order.shuffle(timestep, m_sysdef->getSeed(), m_exec_conf->getRank());
 
     // update the AABB Tree
     buildAABBTree();
@@ -795,21 +793,20 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
     // Combine the three seeds to generate RNG for poisson distribution
     #ifndef ENABLE_TBB
-    hoomd::RandomGenerator rng_depletants(this->m_seed,
-        timestep,
-        this->m_exec_conf->getRank(),
-        hoomd::RNGIdentifier::HPMCDepletants);
+    hoomd::RandomGenerator rng_depletants(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                      timestep,
+                                                      this->m_sysdef->getSeed()),
+                                          hoomd::Counter(this->m_exec_conf->getRank()));
     #else
     // create one RNG per thread
     tbb::enumerable_thread_specific< hoomd::RandomGenerator > rng_depletants_parallel([=]
         {
-        std::vector<unsigned int> seed_seq(5);
         std::hash<std::thread::id> hash;
-        return hoomd::RandomGenerator(this->m_seed,
-            timestep,
-            this->m_exec_conf->getRank(),
-            (uint32_t)(hash(std::this_thread::get_id())),
-            hoomd::RNGIdentifier::HPMCDepletants);
+        return hoomd::RandomGenerator(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants,
+                                                  timestep,
+                                                  this->m_sysdef->getSeed()),
+                                      hoomd::Counter(this->m_exec_conf->getRank(),
+                                                     static_cast<uint32_t>(hash(std::this_thread::get_id()))));
         });
     #endif
 
@@ -819,6 +816,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         m_external->compute(timestep);
         }
+
+    uint16_t seed = m_sysdef->getSeed();
 
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
@@ -856,7 +855,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, m_seed, i, m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+                                         hoomd::Counter(i, m_exec_conf->getRank(), i_nselect));
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng_i);
@@ -1164,7 +1164,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShift, timestep, this->m_sysdef->getSeed()),
+                                   hoomd::Counter());
         Scalar3 shift = make_scalar3(0,0,0);
         hoomd::UniformDistribution<Scalar> uniform(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
         shift.x = uniform(rng);
@@ -1325,7 +1326,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(bool early_exit)
     }
 
 template<class Shape>
-float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
+float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     {
     // sum up in double precision
     double energy = 0.0;
@@ -3204,7 +3205,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     }
 
 template<class Shape>
-bool IntegratorHPMCMono<Shape>::attemptBoxResize(unsigned int timestep, const BoxDim& new_box)
+bool IntegratorHPMCMono<Shape>::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     {
     // call parent class method
     bool result = IntegratorHPMC::attemptBoxResize(timestep, new_box);
@@ -3228,7 +3229,7 @@ bool IntegratorHPMCMono<Shape>::attemptBoxResize(unsigned int timestep, const Bo
 template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< IntegratorHPMCMono<Shape>, IntegratorHPMC, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str())
-          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setInteractionMatrix", &IntegratorHPMCMono<Shape>::setInteractionMatrix)
           .def("getInteractionMatrix", &IntegratorHPMCMono<Shape>::getInteractionMatrixPy)

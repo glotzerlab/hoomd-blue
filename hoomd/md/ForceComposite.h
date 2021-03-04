@@ -62,11 +62,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
-        virtual void updateCompositeParticles(unsigned int timestep);
+        virtual void updateCompositeParticles(uint64_t timestep);
 
         //! Validate or create copies of rigid body constituent particles
         /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
@@ -148,7 +148,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         #endif
 
         //! Compute the forces and torques on the central particle
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Helper method to calculate the body diameter
         Scalar getBodyDiameter(unsigned int body_type);

@@ -44,7 +44,7 @@ def make_langevin_integrator(force):
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(force)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+                                                  kT=1))
     return integrator
 
 
@@ -311,7 +311,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(pair_potential)
     integrator.methods.append(md.methods.Langevin(hoomd.filter.All(),
-                                                  kT=1, seed=1))
+                                                  kT=1))
     sim.operations.integrator = integrator
     for nsteps in [3, 5, 10]:
         old_snap = sim.state.snapshot

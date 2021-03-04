@@ -851,7 +851,6 @@ class DPD(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
           thermostat (in energy units).
-        seed (int): seed for the PRNG in the DPD thermostat.
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
 
@@ -892,17 +891,6 @@ class DPD(Pair):
     particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\\theta_{ij}` is a
     uniformly distributed random number in the range [-1, 1].
 
-    `DPD` generates random numbers by hashing together the particle tags in the
-    pair, the user seed, and the current time step index.
-
-    Attention:
-        Change the seed if you reset the simulation time step to 0. If you keep
-        the same seed, the simulation will continue with the same sequence of
-        random numbers used previously and may cause unphysical correlations.
-
-        For MPI runs: all ranks other than 0 ignore the seed input and use the
-        value of rank 0.
-
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
     describes the DPD implementation details in HOOMD-blue. Cite it if you
     utilize the DPD functionality in your work.
@@ -934,24 +922,33 @@ class DPD(Pair):
     Example::
 
         nl = nlist.Cell()
-        dpd = pair.DPD(nlist=nl, kT=1.0, seed=0, r_cut=1.0)
+        dpd = pair.DPD(nlist=nl, kT=1.0, r_cut=1.0)
         dpd.params[('A', 'A')] = dict(A=25.0, gamma=4.5)
         dpd.params[('A', 'B')] = dict(A=40.0, gamma=4.5)
         dpd.params[('B', 'B')] = dict(A=25.0, gamma=4.5)
         dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
-    def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
+    def __init__(self, nlist, kT, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant, seed=int)
+        d = ParameterDict(kT=hoomd.variant.Variant)
         self._param_dict.update(d)
 
         self.kT = kT
-        self.seed = seed
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        DPD uses RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
 
 
 class DPDConservative(Pair):
@@ -1016,7 +1013,6 @@ class DPDLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
             thermostat (in energy units).
-        seed (int): seed for the PRNG in the DPD thermostat.
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
 
@@ -1100,13 +1096,13 @@ class DPDLJ(Pair):
     Example::
 
         nl = nlist.Cell()
-        dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, seed=0, r_cut=2.5)
+        dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, r_cut=2.5)
         dpdlj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
         dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=3.0, sigma=1.0, gamma=1.2)
         dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
-    def __init__(self, nlist, kT, seed=3, r_cut=None, r_on=0., mode='none'):
+    def __init__(self, nlist, kT, r_cut=None, r_on=0., mode='none'):
         if mode == 'xplor':
             raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 
@@ -1116,14 +1112,22 @@ class DPDLJ(Pair):
             len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant, seed=int,
+        d = ParameterDict(kT=hoomd.variant.Variant,
                           mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(d)
 
         self.kT = kT
-        self.seed = seed
         self.mode = mode
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        DPDLJ uses RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
 
 class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
