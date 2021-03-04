@@ -4,10 +4,6 @@ import numpy as np
 
 
 def test_before_attaching():
-    mc = hoomd.hpmc.integrate.Sphere()
-    mc.shape["A"] = {'diameter': 1.0}
-    mc.shape["B"] = {'diameter': 0.2}
-    mc.depletant_fugacity["B"] = 1.5
     free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
                                                 num_samples=100)
 
