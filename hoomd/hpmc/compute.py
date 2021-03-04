@@ -63,7 +63,7 @@ class FreeVolume(Compute):
             raise RuntimeError("The integrator must be an HPMC integrator.")
 
         # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
-        integrator_name = str(integrator).split()[0].split('.')[-1]
+        integrator_name = integrator.__class__.__name__
         try:
             if isinstance(self._simulation.device, hoomd.device.CPU):
                 cpp_cls = getattr(_hpmc, 'ComputeFreeVolume' + integrator_name)
