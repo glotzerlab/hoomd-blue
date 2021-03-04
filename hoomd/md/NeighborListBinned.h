@@ -56,6 +56,16 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
             return m_cl->getSortCellList();
             }
 
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell list
+            m_cl->setCommunicator(comm);
+            }
+
+
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
 
