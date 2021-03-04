@@ -83,7 +83,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
         unsigned int m_param;                       //!< Kernel tuning parameter
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
     };
 
@@ -123,7 +123,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<System
 
 template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
-void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 

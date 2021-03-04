@@ -56,7 +56,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralF
         GPUArray<Scalar4> m_params;           //!< Parameters stored on the GPU (k,sign,m)
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Export the DihedralForceComputeGPU class to python

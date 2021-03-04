@@ -264,17 +264,15 @@ class UpdaterClusters : public Updater
         //! Constructor
         /*! \param sysdef System definition
             \param mc HPMC integrator
-            \param seed PRNG seed
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                        std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                        unsigned int seed);
+                        std::shared_ptr<IntegratorHPMCMono<Shape> > mc);
 
         //! Destructor
         virtual ~UpdaterClusters();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             hpmc_clusters_counters_t counters = getCounters(2);
 
@@ -321,13 +319,7 @@ class UpdaterClusters : public Updater
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep);
-
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
+        virtual void update(uint64_t timestep);
 
         //! Set the move ratio
         void setMoveRatio(Scalar move_ratio)
@@ -469,13 +461,25 @@ class UpdaterClusters : public Updater
                 return result;
                 }
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
 
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
-        unsigned int m_seed;                        //!< RNG seed
         Scalar m_move_ratio;                        //!< Pivot/Reflection move ratio
         Scalar m_swap_move_ratio;                   //!< Type swap / geometric move ratio
         Scalar m_flip_probability;                  //!< Cluster flip probability
+
+        unsigned int m_instance=0;                  //!< Unique ID for RNG seeding
 
         #ifdef ENABLE_TBB
         std::vector<tbb::concurrent_vector<unsigned int> > m_clusters; //!< Cluster components
@@ -541,7 +545,7 @@ class UpdaterClusters : public Updater
             \param line True if this is a line reflection
             \param map Map to lookup new tag from old tag
         */
-        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+        virtual void findInteractions(uint64_t timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
             bool line, const std::map<unsigned int, unsigned int>& map);
 
         //! Helper function to get interaction range
@@ -565,9 +569,8 @@ class UpdaterClusters : public Updater
 
 template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                 unsigned int seed)
-        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5), m_swap_move_ratio(0.5),
+                                 std::shared_ptr<IntegratorHPMCMono<Shape> > mc)
+        : Updater(sysdef), m_mc(mc), m_move_ratio(0.5), m_swap_move_ratio(0.5),
             m_flip_probability(0.5), m_n_particles_old(0), m_delta_mu(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
@@ -583,7 +586,7 @@ UpdaterClusters<Shape>::~UpdaterClusters()
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
     bool line, const std::map<unsigned int, unsigned int>& map)
     {
     if (m_prof)
@@ -1390,7 +1393,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     \param timestep Current time step of the simulation
 */
 template< class Shape >
-void UpdaterClusters<Shape>::update(unsigned int timestep)
+void UpdaterClusters<Shape>::update(uint64_t timestep)
     {
     m_exec_conf->msg->notice(10) << timestep << " UpdaterClusters" << std::endl;
 
@@ -1435,7 +1438,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
     // generate the move, select a pivot
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterClusters, timestep, this->m_seed);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClusters, timestep, m_sysdef->getSeed()),
+                               hoomd::Counter(m_instance));
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
@@ -1619,6 +1623,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     findInteractions(timestep, pivot, q, swap, line, map);
 
     if (m_prof) m_prof->push(m_exec_conf,"Move");
+
+    uint16_t seed = m_sysdef->getSeed();
 
     // collect interactions on rank 0
     #ifndef ENABLE_TBB
@@ -2005,7 +2011,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int j = it->first.second;
 
                     // create a RNG specific to this particle pair
-                    hoomd::RandomGenerator rng_ij(hoomd::RNGIdentifier::UpdaterClustersPairwise, this->m_seed, timestep, std::min(i,j), std::max(i,j));
+                    hoomd::RandomGenerator rng_ij(hoomd::Seed(hoomd::RNGIdentifier::UpdaterClustersPairwise, timestep, seed),
+                                                  hoomd::Counter(std::min(i,j), std::max(i,j)));
 
                     float pij = 1.0f-exp(-delU);
                     if (hoomd::detail::generate_canonical<float>(rng_ij) <= pij) // GCA
@@ -2204,15 +2211,14 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
     {
     pybind11::class_< UpdaterClusters<Shape>, Updater, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
-                         std::shared_ptr< IntegratorHPMCMono<Shape> >,
-                         unsigned int >())
+                         std::shared_ptr< IntegratorHPMCMono<Shape> > >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def_property("move_ratio", &UpdaterClusters<Shape>::getMoveRatio, &UpdaterClusters<Shape>::setMoveRatio)
         .def_property("flip_probability", &UpdaterClusters<Shape>::getFlipProbability, &UpdaterClusters<Shape>::setFlipProbability)
         .def_property("swap_move_ratio", &UpdaterClusters<Shape>::getSwapMoveRatio, &UpdaterClusters<Shape>::setSwapMoveRatio)
         .def_property("swap_type_pair", &UpdaterClusters<Shape>::getSwapTypePairStr, &UpdaterClusters<Shape>::setSwapTypePairStr)
         .def_property("delta_mu", &UpdaterClusters<Shape>::getDeltaMu, &UpdaterClusters<Shape>::setDeltaMu)
-        .def_property_readonly("seed", &UpdaterClusters<Shape>::getSeed)
+        .def_property("instance", &UpdaterClusters<Shape>::getInstance, &UpdaterClusters<Shape>::setInstance)
         ;
     }
 

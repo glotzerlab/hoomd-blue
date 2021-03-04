@@ -50,7 +50,7 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
 
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
         //! Notification of a box size change
