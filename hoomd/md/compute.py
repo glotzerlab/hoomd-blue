@@ -332,7 +332,7 @@ class ThermoHMA(Compute):
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
                                       group,
-                                      self.temperature,
+                                      self.kT,
                                       self.harmonic_pressure,
                                       "")
         super()._attach()
