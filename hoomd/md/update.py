@@ -208,7 +208,6 @@ class constraint_ellipsoid(_updater):
 
 class MuellerPlatheFlow(Updater):
     """Müller-Plathe method to establish shear flow.
-    to an algorithm published by Mueller Plathe.:
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
      An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999."
