@@ -31,14 +31,13 @@ class UpdaterMuVT : public Updater
         //! Constructor
         UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-            unsigned int seed,
             unsigned int npartition);
         virtual ~UpdaterMuVT();
 
         //! The entry method for this updater
         /*! \param timestep Current simulation step
          */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Set the fugacity of a particle type
         /*! \param type The type id for which to set the fugacity
@@ -151,7 +150,6 @@ class UpdaterMuVT : public Updater
     protected:
         std::vector<std::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
-        unsigned int m_seed;                                  //!< RNG seed
         unsigned int m_npartition;                            //!< The number of partitions to use for Gibbs ensemble
         bool m_gibbs;                                         //!< True if we simulate a Gibbs ensemble
 
@@ -184,7 +182,7 @@ class UpdaterMuVT : public Updater
          * \param lnboltzmann Log of Boltzmann weight of insertion attempt (return value)
          * \returns True if boltzmann weight is non-zero
          */
-        virtual bool tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation,
+        virtual bool tryInsertParticle(uint64_t timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation,
             Scalar &lnboltzmann);
 
         /*! Try removing a particle
@@ -193,7 +191,7 @@ class UpdaterMuVT : public Updater
             \param lnboltzmann Log of Boltzmann weight of removal attempt (return value)
             \returns True if boltzmann weight is non-zero
          */
-        virtual bool tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann);
+        virtual bool tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar &lnboltzmann);
 
         /*! Rescale box to new dimensions and scale particles
          * \param timestep current timestep
@@ -203,7 +201,7 @@ class UpdaterMuVT : public Updater
          * \param lnboltzmann (return value) exponent of Boltzmann factor (-delta_E)
          * \returns true if no overlaps
          */
-        virtual bool boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+        virtual bool boxResizeAndScale(uint64_t timestep, const BoxDim old_box, const BoxDim new_box,
             unsigned int &extra_ndof, Scalar &lnboltzmann);
 
         //! Method to be called when number of types changes
@@ -236,7 +234,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns True if Boltzmann factor is non-zero
          */
-        bool moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert, Scalar delta, unsigned int tag,
+        bool moveDepletantsIntoOldPosition(uint64_t timestep, unsigned int n_insert, Scalar delta, unsigned int tag,
             unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape, unsigned int type_d);
 
         /*! Insert depletants such that they overlap with a fictitious particle at a specified position
@@ -251,7 +249,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns True if Boltzmann factor is non-zero
          */
-        bool moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation,
+        bool moveDepletantsIntoNewPosition(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation,
             unsigned int type, unsigned int n_trial, Scalar &lnboltzmann,
             unsigned int type_d);
 
@@ -266,7 +264,7 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns Number of overlapping depletants
          */
-        unsigned int countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert, Scalar delta,
+        unsigned int countDepletantOverlapsInNewPosition(uint64_t timestep, unsigned int n_insert, Scalar delta,
             vec3<Scalar>pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free,
             unsigned int type_d);
 
@@ -278,11 +276,11 @@ class UpdaterMuVT : public Updater
          * \param type_d Depletant type
          * \returns Number of overlapping depletants
          */
-        unsigned int countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar>pos,
+        unsigned int countDepletantOverlaps(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar>pos,
             unsigned int type_d);
 
         //! Get the random number of depletants
-        virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local, unsigned int type_d);
+        virtual unsigned int getNumDepletants(uint64_t timestep, Scalar V, bool local, unsigned int type_d);
 
     private:
         //! Handle MaxParticleNumberChange signal
@@ -304,18 +302,11 @@ class UpdaterMuVT : public Updater
 template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
-    unsigned int seed,
     unsigned int npartition)
-    : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
+    : Updater(sysdef), m_mc(mc), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0),
       m_n_trial(1)
     {
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
-
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
@@ -471,7 +462,7 @@ void UpdaterMuVT<Shape>::slotNumTypesChange()
 
 //! Get a poisson-distributed number of depletants
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::getNumDepletants(unsigned int timestep,  Scalar V, bool local, unsigned int type_d)
+unsigned int UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep,  Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
     Scalar lambda = this->m_mc->getDepletantFugacity(type_d,type_d)*V;
@@ -482,11 +473,8 @@ unsigned int UpdaterMuVT<Shape>::getNumDepletants(unsigned int timestep,  Scalar
         hoomd::PoissonDistribution<Scalar> poisson(lambda);
 
         // RNG for poisson distribution
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTPoisson, this->m_seed, timestep, local ? this->m_exec_conf->getRank() : 0
-            #ifdef ENABLE_MPI
-            , this->m_exec_conf->getPartition()
-            #endif
-            );
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTPoisson, timestep, this->m_sysdef->getSeed()),
+                                   hoomd::Counter(local ? this->m_exec_conf->getRank() : 0, this->m_exec_conf->getPartition()));
 
         n = poisson(rng);
         }
@@ -496,7 +484,7 @@ unsigned int UpdaterMuVT<Shape>::getNumDepletants(unsigned int timestep,  Scalar
 /*! Set new box and scale positions
 */
 template<class Shape>
-bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_box, const BoxDim new_box,
     unsigned int &extra_ndof, Scalar& lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -604,11 +592,8 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
             unsigned int err_count = 0;
 
             // draw a random vector in the box
-            #ifdef ENABLE_MPI
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, this->m_seed, this->m_exec_conf->getRank(), this->m_exec_conf->getPartition(), timestep);
-            #else
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, this->m_seed, timestep);
-            #endif
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants4, timestep, this->m_sysdef->getSeed()),
+                                       hoomd::Counter(this->m_exec_conf->getRank(), this->m_exec_conf->getPartition()));
 
             uint3 dim = make_uint3(1,1,1);
             uint3 grid_pos = make_uint3(0,0,0);
@@ -819,7 +804,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     }
 
 template<class Shape>
-void UpdaterMuVT<Shape>::update(unsigned int timestep)
+void UpdaterMuVT<Shape>::update(uint64_t timestep)
     {
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
@@ -829,17 +814,10 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "UpdaterMuVT update: " << timestep << std::endl;
 
     // initialize random number generator
-    #ifdef ENABLE_MPI
-    unsigned int group = 0;
-    if (m_gibbs)
-        {
-        group = (m_exec_conf->getPartition()/m_npartition);
-        }
-    #else
-    unsigned int group = 0;
-    #endif
+    unsigned int group = (m_exec_conf->getPartition()/m_npartition);
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVT, this->m_seed, timestep, group);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVT, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(group));
 
     bool active = true;
     unsigned int mod = 0;
@@ -1102,7 +1080,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
             unsigned int tag = UINT_MAX;
 
             // in Gibbs ensemble, we should not use correlated random numbers with box 1
-            hoomd::RandomGenerator rng_local(hoomd::RNGIdentifier::UpdaterMuVTBox1, this->m_seed, timestep, group);
+            hoomd::RandomGenerator rng_local(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTBox1, timestep, this->m_sysdef->getSeed()),
+                                             hoomd::Counter(group));
 
             // choose a random particle type out of those being transferred
             assert(m_transfer_types.size() > 0);
@@ -1423,7 +1402,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
+bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
 
@@ -1658,7 +1637,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos,
+bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep, unsigned int type, vec3<Scalar> pos,
     quat<Scalar> orientation, Scalar &lnboltzmann)
     {
     // do we have to compute energetic contribution?
@@ -1974,7 +1953,7 @@ hpmc_muvt_counters_t UpdaterMuVT<Shape>::getCounters(unsigned int mode)
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
+bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int n_trial, Scalar &lnboltzmann,
     unsigned int type_d)
     {
@@ -1994,11 +1973,8 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_seed, this->m_exec_conf->getPartition());
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants2, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2148,7 +2124,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, un
     }
 
 template<class Shape>
-bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
+bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape, unsigned int type_d)
     {
     lnboltzmann = Scalar(0.0);
@@ -2163,11 +2139,8 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
     bool is_local = this->m_pdata->isParticleLocal(tag);
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_seed, this->m_exec_conf->getPartition());
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants3, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2339,7 +2312,7 @@ bool UpdaterMuVT<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, un
     }
 
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
+unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(uint64_t timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free, unsigned int type_d)
     {
     // number of depletants successfully inserted
@@ -2357,11 +2330,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants5, timestep, this->m_seed, this->m_exec_conf->getPartition());
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants5, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants5, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2498,7 +2468,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlapsInNewPosition(unsigned in
     }
 
 template<class Shape>
-unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, unsigned int type_d)
+unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos, unsigned int type_d)
     {
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;
@@ -2515,11 +2485,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, u
     #endif
 
     // initialize another rng
-    #ifdef ENABLE_MPI
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed, this->m_exec_conf->getPartition() );
-    #else
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed);
-    #endif
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2644,7 +2611,7 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(unsigned int timestep, u
 template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterMuVT<Shape>, Updater, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("getFugacity", &UpdaterMuVT<Shape>::getFugacity)
           .def_property("max_volume_rescale", &UpdaterMuVT<Shape>::getMaxVolumeRescale, &UpdaterMuVT<Shape>::setMaxVolumeRescale)

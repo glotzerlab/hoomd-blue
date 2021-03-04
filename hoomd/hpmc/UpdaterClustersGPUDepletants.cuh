@@ -63,7 +63,7 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
                                      const unsigned int seed,
                                      const unsigned int *d_check_overlaps,
                                      const Index2D overlap_idx,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      const typename Shape::param_type *d_params,
@@ -221,8 +221,8 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
         while (s_depletant_queue_size < max_depletant_queue_size && i_dep < n_depletants)
             {
             // one RNG per depletant
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletantsClusters, seed+i, i_dep,
-                depletant_idx(depletant_type,depletant_type), timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
+                                       hoomd::Counter(i, i_dep, depletant_idx(depletant_type,depletant_type)));
 
             n_inserted++;
             overlap_checks += 2;
@@ -287,8 +287,8 @@ __global__ void clusters_insert_depletants(const Scalar4 *d_postype,
             // regenerate depletant using seed from queue, this costs a few flops but is probably
             // better than storing one Scalar4 and a Scalar3 per thread in shared mem
             unsigned int i_dep_queue = s_queue_didx[group];
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletantsClusters, seed+i, i_dep_queue,
-                depletant_idx(depletant_type,depletant_type), timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsClusters, timestep, seed),
+                                       hoomd::Counter(i, i_dep_queue, depletant_idx(depletant_type,depletant_type)));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

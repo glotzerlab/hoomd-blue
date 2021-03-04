@@ -24,7 +24,7 @@ ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef)
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void ExampleUpdater::update(unsigned int timestep)
+void ExampleUpdater::update(uint64_t timestep)
     {
     if (m_prof) m_prof->push("ExampleUpdater");
 
@@ -68,7 +68,7 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void ExampleUpdaterGPU::update(unsigned int timestep)
+void ExampleUpdaterGPU::update(uint64_t timestep)
     {
     if (m_prof) m_prof->push("ExampleUpdater");
 

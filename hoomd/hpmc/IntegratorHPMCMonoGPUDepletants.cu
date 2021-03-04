@@ -19,9 +19,10 @@ namespace kernel
 {
 
 //! Generate number of depletants per particle
-__global__ void generate_num_depletants(const unsigned int seed,
-                                        const unsigned int timestep,
+__global__ void generate_num_depletants(const uint16_t seed,
+                                        const uint64_t timestep,
                                         const unsigned int select,
+                                        const unsigned int rank,
                                         const unsigned int depletant_type_a,
                                         const unsigned int depletant_type_b,
                                         const Index2D depletant_idx,
@@ -38,8 +39,8 @@ __global__ void generate_num_depletants(const unsigned int seed,
 
     idx += work_offset;
 
-    hoomd::RandomGenerator rng_poisson(hoomd::RNGIdentifier::HPMCDepletantNum, idx, seed, timestep,
-        select*depletant_idx.getNumElements() + depletant_idx(depletant_type_a,depletant_type_b));
+    hoomd::RandomGenerator rng_poisson(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, timestep, seed),
+                                       hoomd::Counter(idx, rank, depletant_idx(depletant_type_a,depletant_type_b), static_cast<uint16_t>(select)));
     unsigned int type_i = __scalar_as_int(d_postype[idx].w);
     d_n_depletants[idx] = hoomd::PoissonDistribution<Scalar>(
         d_lambda[type_i*depletant_idx.getNumElements()+depletant_idx(depletant_type_a,depletant_type_b)])(rng_poisson);
@@ -75,8 +76,8 @@ __global__ void generate_num_depletants_ntrial(const Scalar4 *d_vel,
 
     // draw a Poisson variate according to the seed stored in the auxillary variable (vel.x)
     unsigned int seed_i = new_config ? __scalar_as_int(d_trial_vel[i].x) : __scalar_as_int(d_vel[i].x);
-    hoomd::RandomGenerator rng_num(hoomd::RNGIdentifier::HPMCDepletantNum,
-        depletant_idx(depletant_type_a, depletant_type_b), seed_i, i_trial);
+    hoomd::RandomGenerator rng_num(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantNum, 0, 0),
+                                   hoomd::Counter(depletant_idx(depletant_type_a, depletant_type_b), seed_i, i_trial));
 
     unsigned int type_i = __scalar_as_int(d_postype[i].w);
     Scalar lambda = d_lambda[type_i*depletant_idx.getNumElements()+depletant_idx(depletant_type_a,depletant_type_b)];
@@ -106,9 +107,10 @@ __global__ void hpmc_reduce_counters(const unsigned int ngpu,
 
 //! Kernel to perform the Metroplis-Hastings step for depletants
 __global__ void hpmc_depletants_accept(
-    const unsigned int seed,
-    const unsigned int timestep,
+    const uint16_t seed,
+    const uint64_t timestep,
     const unsigned int select,
+    const unsigned int rank,
     const int  *d_deltaF_int,
     const Index2D depletant_idx,
     const unsigned int deltaF_pitch,
@@ -142,8 +144,8 @@ __global__ void hpmc_depletants_accept(
             deltaF_i += log(1+1/(Scalar)ntrial)*dF_int_i;
             }
 
-    hoomd::RandomGenerator rng_accept(hoomd::RNGIdentifier::HPMCDepletantsAccept,
-        i, seed, timestep, select);
+    hoomd::RandomGenerator rng_accept(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletantsAccept, timestep, seed),
+                                      hoomd::Counter(i, rank, select));
 
     Scalar u = hoomd::UniformDistribution<Scalar>()(rng_accept);
     bool accept = u <= exp(deltaF_i);
@@ -155,9 +157,10 @@ __global__ void hpmc_depletants_accept(
 
 } // end namespace kernel
 
-void generate_num_depletants(const unsigned int seed,
-                             const unsigned int timestep,
+void generate_num_depletants(const uint16_t seed,
+                             const uint64_t timestep,
                              const unsigned int select,
+                             const unsigned int rank,
                              const unsigned int depletant_type_a,
                              const unsigned int depletant_type_b,
                              const Index2D depletant_idx,
@@ -188,6 +191,7 @@ void generate_num_depletants(const unsigned int seed,
             seed,
             timestep,
             select,
+            rank,
             depletant_type_a,
             depletant_type_b,
             depletant_idx,
@@ -336,9 +340,10 @@ void reduce_counters(const unsigned int ngpu,
     }
 
 void hpmc_depletants_accept(
-    const unsigned int seed,
-    const unsigned int timestep,
+    const uint16_t seed,
+    const uint64_t timestep,
     const unsigned int select,
+    const unsigned int rank,
     const int *d_deltaF_int,
     const Index2D depletant_idx,
     const unsigned int deltaF_pitch,
@@ -373,6 +378,7 @@ void hpmc_depletants_accept(
             seed,
             timestep,
             select,
+            rank,
             d_deltaF_int,
             depletant_idx,
             deltaF_pitch,

@@ -12,7 +12,7 @@ def check_dict(shape_dict, args):
 
     Arguments: shape_dict and args - dictionaries to test
 
-    Ex: mc = hoomd.hpmc.integrate.Sphere(23456)
+    Ex: mc = hoomd.hpmc.integrate.Sphere()
         mc.shape["A"] = {"diameter": 1}
         check_dict(mc.shape["A"], {"diameter": 1})
 
@@ -53,12 +53,12 @@ def test_valid_shape_params(valid_args):
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     check_dict(mc.shape["A"], args)
 
@@ -68,7 +68,7 @@ def test_invalid_shape_params(invalid_args):
     if isinstance(integrator, tuple):
         integrator = integrator[1]
     args = invalid_args[1]
-    mc = integrator(23456)
+    mc = integrator()
     with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
         mc.shape["A"] = args
 
@@ -80,12 +80,12 @@ def test_shape_attached(simulation_factory, two_particle_snapshot_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     sim = simulation_factory(two_particle_snapshot_factory())
     assert sim.operations.integrator is None
@@ -102,7 +102,7 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
         dims = 2
     else:
         dims = 3
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape['A'] = args
 
     sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
@@ -153,7 +153,7 @@ def test_overlaps_sphere(device, sphere_overlap_args, simulation_factory,
     integrator_args = sphere_overlap_args[0]
     integrator = sphere_overlap_args[1]
 
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = integrator_args
     diameter = 1
 
@@ -186,7 +186,7 @@ def test_overlaps_ellipsoid(device, simulation_factory,
     a = 1 / 4
     b = 1 / 2
     c = 1
-    mc = hoomd.hpmc.integrate.Ellipsoid(23456)
+    mc = hoomd.hpmc.integrate.Ellipsoid()
     mc.shape["A"] = {'a': a, 'b': b, 'c': c}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
@@ -250,7 +250,7 @@ def test_overlaps_polygons(device, polygon_overlap_args, simulation_factory,
                            two_particle_snapshot_factory):
     integrator_args = polygon_overlap_args[0]
     integrator = polygon_overlap_args[1]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape['A'] = integrator_args
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
@@ -328,7 +328,7 @@ def test_overlaps_polyhedra(device, polyhedron_overlap_args, simulation_factory,
     integrator_args = polyhedron_overlap_args[0]
     integrator = polyhedron_overlap_args[1]
 
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape['A'] = integrator_args
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
     sim.operations.add(mc)
@@ -383,7 +383,7 @@ def spheropolygon_overlap_args(request):
 def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
                                 simulation_factory,
                                 two_particle_snapshot_factory):
-    mc = hoomd.hpmc.integrate.ConvexSpheropolygon(23456)
+    mc = hoomd.hpmc.integrate.ConvexSpheropolygon()
     mc.shape['A'] = spheropolygon_overlap_args
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2, d=2))
@@ -441,7 +441,7 @@ def spheropolyhedron_overlap_args(request):
 def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
                                    simulation_factory,
                                    two_particle_snapshot_factory):
-    mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron(23456)
+    mc = hoomd.hpmc.integrate.ConvexSpheropolyhedron()
     mc.shape['A'] = spheropolyhedron_overlap_args
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
@@ -511,7 +511,7 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
         'shapes': [inner_args, inner_args],
         'positions': [(0, 0, 0), (0, 0, 1)]
     }
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape['A'] = union_args
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))
@@ -555,7 +555,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
     a = 1 / 2
     b = 1 / 2
     c = 1
-    mc = hoomd.hpmc.integrate.FacetedEllipsoid(23456)
+    mc = hoomd.hpmc.integrate.FacetedEllipsoid()
     mc.shape['A'] = {
         "normals": [(0, 0, 1)],
         "a": 0.5,
@@ -607,7 +607,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
 def test_overlaps_sphinx(device, simulation_factory,
                          two_particle_snapshot_factory):
 
-    mc = hoomd.hpmc.integrate.Sphinx(23456)
+    mc = hoomd.hpmc.integrate.Sphinx()
     mc.shape["A"] = {'diameters': [1, -1], 'centers': [(0, 0, 0), (0.75, 0, 0)]}
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=2))

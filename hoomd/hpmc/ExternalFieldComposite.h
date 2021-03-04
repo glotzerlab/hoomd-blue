@@ -29,7 +29,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         ~ExternalFieldMonoComposite() {}
 
-        Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
+        Scalar calculateBoltzmannWeight(uint64_t timestep) { return 0.0; }
 
         double calculateDeltaE(const Scalar4 * const  position_old,
                                         const Scalar4 * const  orientation_old,
@@ -52,7 +52,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         void addExternal(std::shared_ptr< ExternalFieldMono<Shape> > ext) { m_externals.push_back(ext); }
 
-        void reset(unsigned int timestep)
+        void reset(uint64_t timestep)
         {
             for(size_t i = 0; i < m_externals.size(); i++)
             {

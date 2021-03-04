@@ -200,7 +200,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
         }
 
-        Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
+        Scalar calculateBoltzmannWeight(uint64_t timestep) { return 0.0; }
 
         double calculateDeltaE(const Scalar4 * const position_old_arg,
                                         const Scalar4 * const orientation_old_arg,
@@ -246,7 +246,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return dE;
             }
 
-        void compute(unsigned int timestep)
+        void compute(uint64_t timestep)
             {
             if(!this->shouldCompute(timestep))
                 {
@@ -404,7 +404,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             }
 
         //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             compute(timestep);
 
@@ -461,26 +461,26 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return m_latticeOrientations.getReferenceArray();
             }
 
-        void reset( unsigned int ) // TODO: remove the timestep
+        virtual void reset(uint64_t timestep ) // TODO: remove the timestep
             {
             m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
             m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
             m_num_samples = 0;
             }
 
-        Scalar getEnergy(unsigned int timestep)
+        Scalar getEnergy(uint64_t timestep)
         {
             compute(timestep);
             return m_Energy;
         }
-        Scalar getAvgEnergy(unsigned int timestep)
+        Scalar getAvgEnergy(uint64_t timestep)
         {
             compute(timestep);
             if( !m_num_samples )
                 return 0.0;
             return m_EnergySum/double(m_num_samples);
         }
-        Scalar getSigma(unsigned int timestep)
+        Scalar getSigma(uint64_t timestep)
         {
             compute(timestep);
             if( !m_num_samples )

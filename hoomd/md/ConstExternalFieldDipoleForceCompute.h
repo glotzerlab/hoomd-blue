@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ConstExternalFieldDipoleForceCompute : public ForceCompute
 
     protected:
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
     private:
     Scalar4 field;  //!< Electric field

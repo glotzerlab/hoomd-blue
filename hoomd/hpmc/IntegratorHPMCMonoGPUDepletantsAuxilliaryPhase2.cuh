@@ -58,10 +58,10 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
                                      const Index3D ci,
                                      const unsigned int N_local,
                                      const unsigned int num_types,
-                                     const unsigned int seed,
+                                     const uint16_t seed,
                                      const unsigned int *d_check_overlaps,
                                      const Index2D overlap_idx,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      const unsigned int select,
@@ -262,8 +262,11 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
             if (i_dep < n_depletants_i && i_trial < ntrial)
                 {
                 // one RNG per depletant and trial insertion
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants, cur_seed_i,
-                    i_dep, i_trial, depletant_idx(depletant_type_a,depletant_type_b));
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
+                                           hoomd::Counter(cur_seed_i,
+                                                          i_dep,
+                                                          i_trial,
+                                                          depletant_idx(depletant_type_a,depletant_type_b)));
 
                 // filter depletants overlapping with particle i
                 vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));
@@ -350,9 +353,11 @@ __global__ void hpmc_insert_depletants_phase2(const Scalar4 *d_trial_postype,
             unsigned int i_dep_queue = s_queue_didx[group];
             unsigned int i_trial_queue = s_queue_itrial[group];
 
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCDepletants,
-                cur_seed_i, i_dep_queue, i_trial_queue,
-                depletant_idx(depletant_type_a,depletant_type_b));
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCDepletants, 0, 0),
+                                       hoomd::Counter(cur_seed_i,
+                                                      i_dep_queue,
+                                                      i_trial_queue,
+                                                      depletant_idx(depletant_type_a,depletant_type_b)));
 
             // depletant position and orientation
             vec3<Scalar> pos_test = vec3<Scalar>(generatePositionInOBB(rng, obb_i, dim));

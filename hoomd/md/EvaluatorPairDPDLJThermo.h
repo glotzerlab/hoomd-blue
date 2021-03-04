@@ -128,7 +128,7 @@ class EvaluatorPairDPDLJThermo
             }
 
         //! Set i and j, (particle indices, or should it be tags), and the timestep
-        DEVICE void set_seed_ij_timestep(unsigned int seed, unsigned int i, unsigned int j, unsigned int timestep)
+        DEVICE void set_seed_ij_timestep(uint16_t seed, unsigned int i, unsigned int j, uint64_t timestep)
             {
             m_seed = seed;
             m_i = i;
@@ -242,7 +242,8 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_timestep, m_seed),
+                                           hoomd::Counter(m_oi, m_oj));
 
 
                 // Generate a single random number
@@ -298,10 +299,10 @@ class EvaluatorPairDPDLJThermo
         Scalar lj1;     //!< lj1 parameter extracted from the params passed to the constructor
         Scalar lj2;     //!< lj2 parameter extracted from the params passed to the constructor
         Scalar gamma;   //!< gamma parameter for potential extracted from params by constructor
-        unsigned int m_seed; //!< User set seed for thermostat PRNG
+        uint16_t m_seed; //!< User set seed for thermostat PRNG
         unsigned int m_i;   //!< index of first particle (should it be tag?).  For use in PRNG
         unsigned int m_j;   //!< index of second particle (should it be tag?). For use in PRNG
-        unsigned int m_timestep; //!< timestep for use in PRNG
+        uint64_t m_timestep; //!< timestep for use in PRNG
         Scalar m_T;         //!< Temperature for Themostat
         Scalar m_dot;       //!< Velocity difference dotted with displacement vector
         Scalar m_deltaT;   //!<  timestep size stored from constructor

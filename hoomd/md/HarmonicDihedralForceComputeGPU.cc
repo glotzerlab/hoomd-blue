@@ -64,7 +64,7 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 
     Calls gpu_compute_harmonic_dihedral_forces to do the dirty work.
 */
-void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
+void HarmonicDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(m_exec_conf, "Harmonic Dihedral");

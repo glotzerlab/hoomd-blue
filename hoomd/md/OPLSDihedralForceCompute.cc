@@ -113,7 +113,7 @@ std::vector< std::string > OPLSDihedralForceCompute::getProvidedLogQuantities()
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar OPLSDihedralForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar OPLSDihedralForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("dihedral_opls_energy"))
         {
@@ -130,7 +130,7 @@ Scalar OPLSDihedralForceCompute::getLogValue(const std::string& quantity, unsign
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
+void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("OPLS Dihedral");
 

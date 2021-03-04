@@ -49,9 +49,9 @@ struct hpmc_patch_args_t
                 const uint3& _cell_dim,
                 const Scalar3& _ghost_width,
                 const unsigned int _N,
-                const unsigned int _seed,
-                const unsigned int _timestep,
-                const unsigned int _select,
+                const uint16_t _seed,
+                const unsigned int _rank,
+                const uint64_t _timestep,
                 const unsigned int _num_types,
                 const BoxDim& _box,
                 const unsigned int *_d_excell_idx,
@@ -76,8 +76,8 @@ struct hpmc_patch_args_t
                   ghost_width(_ghost_width),
                   N(_N),
                   seed(_seed),
+                  rank(_rank),
                   timestep(_timestep),
-                  select(_select),
                   num_types(_num_types),
                   box(_box),
                   d_excell_idx(_d_excell_idx),
@@ -103,9 +103,9 @@ struct hpmc_patch_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const Scalar3& ghost_width;       //!< Width of the ghost layer
     const unsigned int N;             //!< Number of particles
-    const unsigned int seed;          //!< RNG seed
-    const unsigned int timestep;      //!< Current timestep 
-    const unsigned int select;        //!< loop iteration nselect
+    const uint16_t seed;              //!< RNG seed
+    const unsigned int rank;          //!< MPI Rank
+    const uint64_t timestep;          //!< Current timestep
     const unsigned int num_types;     //!< Number of particle types
     const BoxDim& box;                //!< Current simulation box
     const unsigned int *d_excell_idx;       //!< Expanded cell list
@@ -209,13 +209,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
-        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int seed);
+        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~IntegratorHPMC();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
             m_count_step_start = h_counters.data[0];
@@ -384,7 +383,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Check the particle data for non-normalized orientations
         virtual bool checkParticleOrientations();
@@ -416,7 +415,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             }
         //! Method to scale the box
-        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -439,14 +438,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(unsigned int timestep)
+        virtual float computePatchEnergy(uint64_t timestep)
             {
             // base class method returns 0
             return 0.0;
             }
 
         //! Prepare for the run
-        virtual void prepRun(unsigned int timestep)
+        virtual void prepRun(uint64_t timestep)
             {
             m_past_first_run = true;
             }
@@ -463,12 +462,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         void disablePatchEnergyLogOnly(bool log)
             {
             m_patch_log = log;
-            }
-
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
             }
 
         #ifdef ENABLE_MPI
@@ -499,7 +492,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         #endif
 
     protected:
-        unsigned int m_seed;                        //!< Random number seed
         unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
         unsigned int m_nselect;                     //!< Number of particles to select for trial moves
 
@@ -530,14 +522,14 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int)
+        virtual Scalar getGhostLayerWidth(unsigned int type)
             {
             return Scalar(0.0);
             }
 
         #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(unsigned int)
+        virtual CommFlags getCommFlags(uint64_t timestep)
             {
             return CommFlags(0);
             }

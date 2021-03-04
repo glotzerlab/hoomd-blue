@@ -62,9 +62,10 @@ struct hpmc_implicit_args_t
 template< class Shape >
 void hpmc_insert_depletants(const hpmc_args_t& args, const hpmc_implicit_args_t& implicit_args, const typename Shape::param_type *params);
 
-void generate_num_depletants(const unsigned int seed,
-                             const unsigned int timestep,
+void generate_num_depletants(const uint16_t seed,
+                             const uint64_t timestep,
                              const unsigned int select,
+                             const unsigned int rank,
                              const unsigned int depletant_type_a,
                              const unsigned int depletant_type_b,
                              const Index2D depletant_idx,

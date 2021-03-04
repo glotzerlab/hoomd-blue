@@ -12,7 +12,7 @@ def test_write_debug_data(simulation_factory, lattice_snapshot_factory,
     """Test write_debug_data for MD simulations."""
     sim = simulation_factory(lattice_snapshot_factory())
 
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(seed=2)
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
     mc.shape['A'] = dict(vertices=[
         (-0.5, 0, 0),
         (0.5, 0, 0),

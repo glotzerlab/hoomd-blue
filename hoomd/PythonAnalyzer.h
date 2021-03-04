@@ -8,7 +8,7 @@ class PYBIND11_EXPORT PythonAnalyzer : public Analyzer
         PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
                        pybind11::object analyzer);
 
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         PDataFlags getRequestedPDataFlags();
 

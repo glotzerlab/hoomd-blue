@@ -35,7 +35,6 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
                            Scalar density,
                            unsigned int type,
                            std::shared_ptr<::Variant> T,
-                           unsigned int seed,
                            std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
         virtual ~SlitGeometryFiller();
@@ -56,7 +55,7 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
         virtual void computeNumFill();
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
     };
 
 namespace detail

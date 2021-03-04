@@ -2404,7 +2404,7 @@ void CommunicatorGPU::exchangeGhosts()
     }
 
 //! Perform ghosts update
-void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
+void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
     {
     m_exec_conf->msg->notice(7) << "CommunicatorGPU: ghost update" << std::endl;
 
@@ -2699,7 +2699,7 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
  *
  * \param timestep The time step
  */
-void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
+void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
     {
     if (m_comm_pending)
         {
@@ -2771,7 +2771,7 @@ void CommunicatorGPU::finishUpdateGhosts(unsigned int timestep)
     }
 
 //! Perform ghosts update
-void CommunicatorGPU::updateNetForce(unsigned int timestep)
+void CommunicatorGPU::updateNetForce(uint64_t timestep)
     {
     CommFlags flags = getFlags();
     if (! flags[comm_flag::net_force] && !flags[comm_flag::net_torque] && !flags[comm_flag::net_virial])
