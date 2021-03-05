@@ -237,17 +237,12 @@ class Stencil(NList):
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cl_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListStencil
         else:
-            cl_cls = _hoomd.CellListGPU
             nlist_cls = _md.NeighborListGPUStencil
-        self._cpp_cell = cl_cls(self._simulation.state._cpp_sys_def)
-        self._cpp_stencil = _hoomd.CellListStencil(self._simulation.state._cpp_sys_def,
-                                                   self._cpp_cell)
         # TODO remove 0.0 r_cut from constructor
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
-                                  self.buffer, self._cpp_cell, self._cpp_stencil)
+                                  self.buffer)
         super()._attach()
 
     def _detach(self):
