@@ -56,6 +56,16 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_cl->setNominalWidth(cell_width);
             }
 
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
+
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
+
         Scalar getCellWidth()
             {
             return m_cl->getNominalWidth();

@@ -326,5 +326,7 @@ void export_NeighborListStencil(py::module& m)
     py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def_property("cell_width", &NeighborListStencil::getCellWidth,
-                      &NeighborListStencil::setCellWidth);
+                      &NeighborListStencil::setCellWidth)
+        .def_property("deterministic", &NeighborListStencil::getDeterministic,
+                &NeighborListStencil::setDeterministic);
     }
