@@ -158,19 +158,15 @@ class Cell(NList):
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
-            cell_cls = _hoomd.CellList
             nlist_cls = _md.NeighborListBinned
         else:
-            cell_cls = _hoomd.CellListGPU
             nlist_cls = _md.NeighborListGPUBinned
-        self._cpp_cell = cell_cls(self._simulation.state._cpp_sys_def)
         # TODO remove 0.0 (r_cut) from constructor
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
-                                  self.buffer, self._cpp_cell)
+                                  self.buffer)
         super()._attach()
 
     def _detach(self):
-        del self._cpp_cell
         super()._detach()
 
 

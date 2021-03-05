@@ -34,8 +34,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         //! Constructs the compute
         NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                               Scalar r_cut,
-                              Scalar r_buff,
-                              std::shared_ptr<CellList> cl = std::shared_ptr<CellList>());
+                              Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListGPUBinned();
