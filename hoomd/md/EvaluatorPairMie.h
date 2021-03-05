@@ -98,8 +98,6 @@ class EvaluatorPairMie
 		
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
-                v["n"] = n;
-                v["m"] = m;
                 return v;
                 }
             #endif
