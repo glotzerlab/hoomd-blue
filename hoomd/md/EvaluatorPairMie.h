@@ -155,8 +155,8 @@ class EvaluatorPairMie
 
                 if (energy_shift)
                     {
-                    Scalar rcutninv = Scalar(1.0)/fast::pow(rcutsq,mie3/Scalar(2.0));
-                    Scalar rcutminv = Scalar(1.0)/fast::pow(rcutsq,mie4/Scalar(2.0));
+                    Scalar rcutninv = fast::pow(rcutsq,-mie3/Scalar(2.0));
+                    Scalar rcutminv = fast::pow(rcutsq,-mie4/Scalar(2.0));
                     pair_eng -= mie1 * rcutninv - mie2* rcutminv;
                     }
                 return true;
