@@ -58,8 +58,6 @@ class EvaluatorPairMie
             Scalar m2;
             Scalar m3;
             Scalar m4;
-            Scalar mie_log2_n;
-            Scalar mie_log2_m;
 
             #ifdef ENABLE_HIP
             // set CUDA memory hints
@@ -80,8 +78,6 @@ class EvaluatorPairMie
                 Scalar outFront = (m3/(m3-m4)) * fast::pow(m3/m4, m4/(m3-m4));
                 m1 = outFront * epsilon * fast::pow(sigma, m3);
                 m2 = outFront * epsilon * fast::pow(sigma, m4);
-                mie_log2_n = fast::log2(m3) / Scalar(2.0);
-                mie_log2_m = fast::log2(m4) / Scalar(2.0);
                 }
 
             pybind11::dict asDict()
@@ -92,9 +88,6 @@ class EvaluatorPairMie
 
                 Scalar sigma = fast::pow(m1 / m2, 1 / (m3 - m4));
                 Scalar epsilon = m1 / fast::pow(sigma, m3) * (m3 - m4) / m3 * fast::pow(m3 / m4, m4 / (m4 - m3));
-		
-                Scalar n = fast::exp2(Scalar(2.0) * mie_log2_n);
-                Scalar m = fast::exp2(Scalar(2.0) * mie_log2_m);
 		
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
@@ -157,7 +150,7 @@ class EvaluatorPairMie
                     {
                     Scalar rcutninv = fast::pow(rcutsq,-mie3/Scalar(2.0));
                     Scalar rcutminv = fast::pow(rcutsq,-mie4/Scalar(2.0));
-                    pair_eng -= mie1 * rcutninv - mie2* rcutminv;
+                    pair_eng -= mie1 * rcutninv - mie2 * rcutminv;
                     }
                 return true;
                 }

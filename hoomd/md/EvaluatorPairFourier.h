@@ -160,11 +160,14 @@ class EvaluatorPairFourier
                 Scalar r12inv = r3inv * r3inv * r3inv * r3inv;
                 Scalar a1 = 0;
                 Scalar b1 = 0;
-                for (int i=2; i<5; i++)
+                
+		for (int i=2; i<5; i++)
                     {
-                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * params.a[i-2];
-                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * params.b[i-2];
+                    Scalar pow_neg1_i = (i & 1) ? -1.0 : 1.0;
+                    a1 = a1 + pow_neg1_i * params.a[i-2];
+                    b1 = b1 + i * pow_neg1_i * params.b[i-2];
                     }
+
                 Scalar theta = x;
                 Scalar s;
                 Scalar c;
