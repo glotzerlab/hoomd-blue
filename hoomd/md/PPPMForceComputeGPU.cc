@@ -55,11 +55,11 @@ void PPPMForceComputeGPU::initializeFFT()
     // free plans if they have already been initialized
     if (m_local_fft && m_cufft_initialized)
         {
-        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev >= 0; --idev)
-            {
-            cudaSetDevice(m_exec_conf->getGPUIds()[idev]);
-            CHECK_CUFFT_ERROR(cufftDestroy(m_cufft_plan[idev]));
-            }
+        #ifdef __HIP_PLATFORM_HCC__
+        CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
+        #else
+        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
+        #endif
         }
     #ifdef ENABLE_MPI
     else if (m_cuda_dfft_initialized)
