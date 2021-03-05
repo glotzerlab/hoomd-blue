@@ -361,7 +361,7 @@ def property_check(request):
     return request.param
 
 
-class _TestLocalSnapshots:
+class TestLocalSnapshots:
     """Base class for CPU and GPU based localsnapshot tests."""
     @staticmethod
     def check_box(local_snapshot, global_box, ranks):
@@ -374,9 +374,9 @@ class _TestLocalSnapshots:
         # we run on a single rank.
         assert (local_snapshot.local_box == global_box) == (ranks == 1)
 
-    def test_box(self, simulation_factory, base_snapshot):
-        sim = simulation_factory()
-        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+    def test_box(self, base_simulation, base_snapshot):
+        sim = base_simulation()
+        for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 self.check_box(data, sim.state.box, sim.device.communicator.num_ranks)
 
@@ -404,15 +404,15 @@ class _TestLocalSnapshots:
 
     @skip_mpi4py
     @pytest.mark.cupy_optional
-    def test_tags_shape(self, simulation_factory,
+    def test_tags_shape(self, base_simulation,
                         base_snapshot, snapshot_section):
         """Checks that tags are the appropriate size from local snapshots.
 
         tags are used for checking other shapes so this is necessary to validate
         those tests.
         """
-        sim = simulation_factory()
-        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+        sim = base_simulation()
+        for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 self.check_tag_shape(
                     base_snapshot, data, snapshot_section, sim.device.communicator.num_ranks)
@@ -431,10 +431,10 @@ class _TestLocalSnapshots:
 
     @skip_mpi4py
     @pytest.mark.cupy_optional
-    def test_cpu_global_properties(self, simulation_factory,
+    def test_cpu_global_properties(self, base_simulation,
                                    base_snapshot, global_property):
         section_name, prop_name, prop_dict = global_property
-        sim = simulation_factory()
+        sim = base_simulation()
         snapshot = sim.state.snapshot
 
         mpi_comm = MPI.COMM_WORLD
@@ -449,7 +449,7 @@ class _TestLocalSnapshots:
                 getattr(getattr(data, section_name), prop_name), prop_dict, N)
 
     @pytest.mark.cupy_optional
-    def test_arrays_properties(self, simulation_factory,
+    def test_arrays_properties(self, base_simulation,
                                section_name_dict, affix, property_check):
         """This test makes extensive use of parameterizing in pytest.
 
@@ -461,8 +461,8 @@ class _TestLocalSnapshots:
         property_name = get_property_name_from_affix(property_name, affix)
         tag_name = get_property_name_from_affix('tag', affix)
 
-        sim = simulation_factory()
-        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+        sim = base_simulation()
+        for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 # gets the particle, bond, etc data
                 snapshot_section = getattr(data, name)
@@ -470,68 +470,37 @@ class _TestLocalSnapshots:
                 tags = getattr(snapshot_section, tag_name)
                 property_check(hoomd_buffer, property_dict, tags)
 
-    def test_run_failure(self, simulation_factory):
-        sim = simulation_factory()
-        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+    def test_run_failure(self, base_simulation):
+        sim = base_simulation()
+        for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 with pytest.raises(RuntimeError):
                     sim.run(1)
 
-    def test_setting_snapshot_failure(self, simulation_factory, base_snapshot):
-        sim = simulation_factory()
-        for lcl_snapshot_attr in self._lcl_snapshot_attrs:
+    def test_setting_snapshot_failure(self, base_simulation, base_snapshot):
+        sim = base_simulation()
+        for lcl_snapshot_attr in self.get_snapshot_attr(sim):
             with getattr(sim.state, lcl_snapshot_attr) as data:
                 with pytest.raises(RuntimeError):
                     sim.state.snapshot = base_snapshot
 
-
-@pytest.mark.cpu
-class TestLocalSnapshotCPUDevice(_TestLocalSnapshots):
-    _lcl_snapshot_attrs = ['cpu_local_snapshot']
-
     @pytest.fixture
-    def simulation_factory(self, device, base_snapshot):
+    def base_simulation(self, simulation_factory, base_snapshot):
         """Creates the simulation from the base_snapshot."""
         def factory():
-            sim = hoomd.Simulation(device)
-
-            # reduce sorter grid to avoid Hilbert curve overhead in unit tests
-            for tuner in sim.operations.tuners:
-                if isinstance(tuner, hoomd.tune.ParticleSorter):
-                    tuner.grid = 8
-
-            sim.create_state_from_snapshot(base_snapshot)
+            sim = simulation_factory(base_snapshot)
             with sim.state.cpu_local_snapshot as snap:
                 particle_data = getattr(snap, 'particles')
+                tags = snap.particles.tag
                 for attr, inner_dict in _particle_local_data.items():
-                    getattr(particle_data, attr)[:] = inner_dict['value']
+                    arr_values = np.array(inner_dict['value'])[tags]
+                    getattr(particle_data, attr)[:] = arr_values
             return sim
         return factory
 
-
-@pytest.mark.gpu
-class TestLocalSnapshotGPUDevice(_TestLocalSnapshots):
-    _lcl_snapshot_attrs = ['cpu_local_snapshot', 'gpu_local_snapshot']
-
-    #TODO: see if this could work with the global simulation_factory to avoid
-    # code duplication
-
-    @pytest.fixture
-    def simulation_factory(self, device, base_snapshot):
-        """Creates the simulation from the base_snapshot."""
-        def factory():
-            sim = hoomd.Simulation(device)
-
-            # reduce sorter grid to avoid Hilbert curve overhead in unit tests
-            for tuner in sim.operations.tuners:
-                if isinstance(tuner, hoomd.tune.ParticleSorter):
-                    tuner.grid = 8
-
-            sim.create_state_from_snapshot(base_snapshot)
-            with sim.state.cpu_local_snapshot as snap:
-                particle_data = getattr(snap, 'particles')
-                for attr, inner_dict in _particle_local_data.items():
-                    getattr(particle_data, attr)[:] = inner_dict['value']
-            return sim
-
-        return factory
+    def get_snapshot_attr(self, sim):
+        if isinstance(sim.device, hoomd.device.CPU):
+            yield 'cpu_local_snapshot'
+        else:
+            yield 'cpu_local_snapshot'
+            yield 'gpu_local_snapshot'
