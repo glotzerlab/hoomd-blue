@@ -492,20 +492,20 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     #endif
     }
 
-//! Compute the pow of x,y with single precison via exp2(log2) refactoring
+//! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE float pow(float x, float y)
     {
     #ifdef __HIP_DEVICE_COMPILE__
-    return __exp2f(y * __log2f(x));
+    return __expf(y * __logf(x));
     #else
-    return ::exp2f(y * log2f(x));
+    return ::expf(y * logf(x));
     #endif
     }
 
-//! Compute the pow of x,y with double precision via exp2(log2) refactoring
+//! Compute the pow of x,y with double precision via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE double pow(double x, double y)
     {
-    return ::exp2(y * log2(x));
+    return ::exp(y * log(x));
     }
 
 //! Compute the exp of x
@@ -524,22 +524,6 @@ inline HOSTDEVICE double exp(double x)
     return ::exp(x);
     }
 
-//! Compute the base-2 exponent (exp2) of x
-inline HOSTDEVICE float exp2(float x)
-    {
-    #ifdef __HIP_DEVICE_COMPILE__
-    return __exp2f(x);
-    #else
-    return ::exp2f(x);
-    #endif
-    }
-
-//! Compute the base-2 exponent (exp2) of x
-inline HOSTDEVICE double exp2(double x)
-    {
-    return ::exp2(x);
-    }
-
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
@@ -554,22 +538,6 @@ inline HOSTDEVICE float log(float x)
 inline HOSTDEVICE double log(double x)
     {
     return ::log(x);
-    }
-
-//! Compute the log base-2 (log2) of x
-inline HOSTDEVICE float log2(float x)
-    {
-    #ifdef __HIP_DEVICE_COMPILE__
-    return __log2f(x);
-    #else
-    return ::log2f(x);
-    #endif
-    }
-
-//! Compute the log base-2 (log2) of x
-inline HOSTDEVICE double log2(double x)
-    {
-    return ::log2(x);
     }
 
 //! Compute the sqrt of x
