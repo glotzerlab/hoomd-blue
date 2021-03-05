@@ -26,31 +26,19 @@ namespace py = pybind11;
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
 NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                                         Scalar r_cut,
-                                         Scalar r_buff,
-                                         std::shared_ptr<CellList> cl,
-                                         std::shared_ptr<CellListStencil> cls)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
-      m_needs_restencil(true)
+                                         Scalar r_cut, Scalar r_buff)
+    : NeighborList(sysdef, r_cut, r_buff),
+    m_cl(std::make_shared<CellList>(sysdef)),
+    m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
+    m_override_cell_width(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
-
-    // create a default cell list if one was not specified
-    if (!m_cl)
-        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
-
-    // construct the cell list stencil generator for the current cell list
-    if (!m_cls)
-        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
 
-    // cell sizes need update by default
-    m_update_cell_size = true;
-    m_needs_restencil = true;
     }
 
 NeighborListStencil::~NeighborListStencil()
@@ -324,7 +312,7 @@ void NeighborListStencil::buildNlist(uint64_t timestep)
 void export_NeighborListStencil(py::module& m)
     {
     py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar)
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar>())
         .def_property("cell_width", &NeighborListStencil::getCellWidth,
                       &NeighborListStencil::setCellWidth)
         .def_property("deterministic", &NeighborListStencil::getDeterministic,

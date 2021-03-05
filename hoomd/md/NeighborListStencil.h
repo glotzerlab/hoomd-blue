@@ -32,10 +32,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     public:
         //! Constructs the compute
         NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                            Scalar r_cut,
-                            Scalar r_buff,
-                            std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
-                            std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
+                Scalar r_cut, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListStencil();
@@ -86,11 +83,11 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
         virtual void buildNlist(uint64_t timestep);
 
     private:
-        std::shared_ptr<CellList> m_cl;           //!< The cell list
-        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
-        bool m_override_cell_width;                 //!< Flag to override the cell width
+        std::shared_ptr<CellList> m_cl;          //!< The cell list
+        std::shared_ptr<CellListStencil> m_cls;  //!< The cell list stencil
+        bool m_override_cell_width = false;      //!< Flag to override the cell width
 
-        bool m_needs_restencil;                             //!< Flag for updating the stencil
+        bool m_needs_restencil = true;  //!< Flag for updating the stencil
 
         /// Track when the cell size needs to be updated
         bool m_update_cell_size = true;

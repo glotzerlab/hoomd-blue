@@ -246,8 +246,6 @@ class Stencil(NList):
         super()._attach()
 
     def _detach(self):
-        del self._cpp_stencil
-        del self._cpp_cell
         super()._detach()
 
 

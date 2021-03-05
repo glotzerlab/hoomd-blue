@@ -35,9 +35,7 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
         //! Constructs the compute
         NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar r_cut,
-                               Scalar r_buff,
-                               std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
-                               std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
+                               Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListGPUStencil();
@@ -89,11 +87,11 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
-        bool m_override_cell_width;                 //!< Flag to override the cell width
+        bool m_override_cell_width = false;       //!< Flag to override the cell width
 
         //! Update the stencil radius
         void updateRStencil();
-        bool m_needs_restencil;                             //!< Flag for updating the stencil
+        bool m_needs_restencil = true;  //!< Flag for updating the stencil
 
         //! Sort the particles by type
         void sortTypes();
