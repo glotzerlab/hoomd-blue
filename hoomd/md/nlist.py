@@ -140,7 +140,6 @@ class Cell(NList):
     Examples::
 
         cell = nlist.Cell()
-        lj = md.pair.LJ(nlist=cell, r_cut=1.1)
 
     Attributes:
         deterministic (bool): When `True`, sort neighbors to help provide
@@ -176,7 +175,7 @@ class Cell(NList):
 
 
 class Stencil(NList):
-    R""" Cell list based neighbor list using stencils.
+    """Cell list based neighbor list using stencils.
 
     Args:
         cell_width (float): The underlying stencil bin width for the cell list.
@@ -194,8 +193,7 @@ class Stencil(NList):
     `Stencil` creates a cell list based neighbor list object to which pair
     potentials can be attached for computing non-bonded pairwise interactions.
     Cell listing allows for O(N) construction of the neighbor list. Particles
-    are first spatially sorted into cells based on the largest pairwise cutoff
-    radius attached to this instance of the neighbor list.
+    are first spatially sorted into cells with the given width `cell_width`.
 
     `M.P. Howard et al. 2016 <http://dx.doi.org/10.1016/j.cpc.2016.02.003>`_
     describes this neighbor list implementation in HOOMD-blue. Cite it if you
@@ -219,8 +217,6 @@ class Stencil(NList):
     Examples::
 
         nl_s = nlist.Stencil(cell_width=1.5)
-        nl_s.cell_width = 0.75
-        pair = hoomd.md.pair.LJ(nl_s)
 
     Attributes:
         cell_width (float): The underlying stencil bin width for the cell list.
@@ -273,7 +269,7 @@ class Tree(NList):
         check_dist (bool): Flag to enable / disable distance checking.
         max_diameter (float): The maximum diameter a particle will achieve.
 
-    `Tree` creates a neighbor list using bounding volume hierarchy (BVH) tree
+    `Tree` creates a neighbor list using a bounding volume hierarchy (BVH) tree
     traversal. A BVH tree of axis-aligned bounding boxes is constructed per
     particle type, and each particle queries each tree to determine its
     neighbors. This method of searching leads to significantly improved
@@ -293,7 +289,6 @@ class Tree(NList):
     Examples::
 
         nl_t = nlist.Tree(check_dist=False)
-        pair = hoomd.md.pair.LJ(nl_t)
     """
     def __init__(self, buffer=0.4, exclusions=('bond',), rebuild_check_delay=1,
                  diameter_shift=False, check_dist=True, max_diameter=1.0):
