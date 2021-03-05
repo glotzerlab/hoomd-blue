@@ -14,6 +14,7 @@
 
 /*! \file EvaluatorPairFourier.h
     \brief Defines the pair evaluator class for potential in form of Fourier series
+    
     \details .....
 */
 
@@ -27,19 +28,27 @@
 
 //! Class for evaluating the Fourier pair potential
 /*! <b>General Overview</b>
+
     See EvaluatorPairLJ.
+    
     <b>Fourier specifics</b>
+    
     EvaluatorPairFourier evaluates the function:
     \f[ V_{\mathrm{Fourier}}(r) = \frac{1}{r^{12}}
     + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}})
     + b_n sin(\frac{n \pi r}{r_{cut}})] \f]
+    
     where:
     \f[ a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}}) \f]
+    
     \f[ b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}}) \f]
+    
     is calculated to enforce close to zero value at r_cut
+    
     The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a param_type struct.
     - \a a is placed in params.a,
     - \a b is placed in params.b.
+    
 */
 class EvaluatorPairFourier
     {
@@ -131,6 +140,7 @@ class EvaluatorPairFourier
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
+                  
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr,
