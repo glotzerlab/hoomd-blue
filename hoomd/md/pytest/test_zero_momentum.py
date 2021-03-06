@@ -51,7 +51,7 @@ def test_momentum_is_zero(simulation_factory,
         masses = snap.particles.mass
         velocities = snap.particles.velocity
         p = [sum([m * v[i] for m, v in zip(masses, velocities)]) for i in range(3)]
-        numpy.testing.assert_allclose(p, [2, 0, 0], atol=1e-5)
+        np.testing.assert_allclose(p, [2, 0, 0], atol=1e-5)
 
     sim.run(1)
     snap = sim.state.snapshot
@@ -60,4 +60,4 @@ def test_momentum_is_zero(simulation_factory,
         velocities = snap.particles.velocity
         for i in range(3):
             pi = sum([m * v[i] for m, v in zip(masses, velocities)])
-        np.testing.assert_allclose(p, 0, atol=1e-5)
+            np.testing.assert_allclose(pi, 0, atol=1e-5)
