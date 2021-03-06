@@ -17,13 +17,13 @@ const Scalar INVALID_VEL = FLT_MAX; //should be ok, even for double.
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<Variant> flow_target,
-                                     const flow_enum::Direction slab_direction,
-                                     const flow_enum::Direction flow_direction,
+                                     std::string slab_direction_str,
+                                     std::string flow_direction_str,
                                      const unsigned int N_slabs,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab,
                                      Scalar flow_epsilon)
-    :Updater(sysdef), m_group(group),m_slab_direction(slab_direction),m_flow_direction(flow_direction)
+    :Updater(sysdef), m_group(group)
     ,m_flow_target(flow_target),m_flow_epsilon(flow_epsilon)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
@@ -31,7 +31,10 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
     {
     assert(m_flow_target);
 
-    if( slab_direction == flow_direction)
+    m_flow_direction = this->getDirectionFromString(flow_direction_str);
+    m_slab_direction = this->getDirectionFromString(slab_direction_str);
+
+    if( slab_direction_str == flow_direction_str)
         {
         m_exec_conf->msg->warning() << " MuellerPlatheFlow setup with "
             "slab and flow direction to be equal. This is no shear flow. "
@@ -453,7 +456,7 @@ void export_MuellerPlatheFlow(py::module& m)
     py::class_< MuellerPlatheFlow, Updater, std::shared_ptr<MuellerPlatheFlow> >
         flow (m,"MuellerPlatheFlow");
     flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
-             std::shared_ptr<Variant>, const flow_enum::Direction, const flow_enum::Direction,
+             std::shared_ptr<Variant>, std::string, std::string,
              const unsigned int, const unsigned int, const unsigned int, Scalar >() )
         .def_property_readonly("n_slabs",&MuellerPlatheFlow::get_N_slabs)
         .def_property_readonly("min_slab",&MuellerPlatheFlow::get_min_slab)
@@ -471,9 +474,4 @@ void export_MuellerPlatheFlow(py::module& m)
         // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
         // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         ;
-    py::enum_<flow_enum::Direction>(flow,"Direction")
-        .value("X",flow_enum::Direction::X)
-        .value("Y",flow_enum::Direction::Y)
-        .value("Z",flow_enum::Direction::Z)
-        .export_values();
     }
