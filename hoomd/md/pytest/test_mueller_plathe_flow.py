@@ -4,10 +4,7 @@ import numpy
 from itertools import permutations
 
 
-_directions = permutations([hoomd.md.update.MuellerPlatheFlow.X,
-                            hoomd.md.update.MuellerPlatheFlow.Y,
-                            hoomd.md.update.MuellerPlatheFlow.Z],
-                           2)
+_directions = permutations(['X', 'Y', 'Z'], 2)
 
 @pytest.mark.parametrize("slab_direction, flow_direction", _directions)
 def test_before_attaching(slab_direction, flow_direction):
