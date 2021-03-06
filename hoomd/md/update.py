@@ -230,13 +230,17 @@ class MuellerPlatheFlow(Updater):
             is in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
             The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
 
-        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs.
+        slab_direction (str): Direction perpendicular to the slabs. Can be "X",
+            "Y", or "Z"
 
-        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow.
+        flow_direction (str): Direction of the flow. Can be "X",
+            "Y", or "Z"
 
-        n_slabs (int): Number of slabs. You want as many as possible for small
-            disturbed volume, where the unphysical swapping is done. But each
-            slab has to contain a sufficient number of particle.
+        n_slabs (int): Number of slabs used to divide the simulation box along
+            the shear gradient. Using too few slabs will lead to a larger volume
+            being disturbed by the momentum exchange, while using too many slabs
+            may mean that there are not enough particles to exchange the target
+            momentum.
 
         max_slab (int): Id < n_slabs where the max velocity component is search
             for. If set < 0 the value is set to its default n_slabs/2.
@@ -266,10 +270,10 @@ class MuellerPlatheFlow(Updater):
         flow_target (hoomd.variant.Variant): Integrated target flow in the
             natural units of the simulation.
 
-        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the
+        slab_direction (str): Direction perpendicular to the
             slabs.
 
-        flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow.
+        flow_direction (str): Direction of the flow.
 
         n_slabs (int): Number of slabs.
 
