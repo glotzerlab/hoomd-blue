@@ -301,13 +301,31 @@ class ThermoHMA(Compute):
     atomic crystals in NVT simulations.  The presence of diffusion (vacancy
     hopping, etc.) will prevent HMA from providing improvement.  HMA tracks
     displacements from the lattice positions, which are saved at the start
-    of the first call to `Simulation.run`. :py:class:`ThermoHMA` objects can be
-    added to a logger for logging during a simulation, see
-    :py:class:`hoomd.logging.Logger` for more details.
+    of the first call to `Simulation.run`.
+
+Very fast averaging of thermal properties of crystals by molecular simulation
+Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke
+Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
+
+    Note:
+        :py:class:`ThermoHMA` is an implementation of the methods section of
+        Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke. (2015).
+        "Very fast averaging of thermal properties of crystals by molecular
+        simulation". Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
 
     Examples::
 
-        hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), temperature=1.0)
+        hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), kT=1.0)
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles compute
+            thermodynamic properties for.
+
+        kT (hoomd.variant.Variant): Temperature of the integrator methods
+            applied to the particle group.
+
+        harmonic_pressure (float): Harmonic contribution to the pressure.
     """
 
     def __init__(self, filter, kT, harmonic_pressure=0):
