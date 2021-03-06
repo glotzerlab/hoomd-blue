@@ -293,8 +293,8 @@ class MuellerPlatheFlow(Updater):
         params = ParameterDict(
             filter=hoomd.filter.ParticleFilter,
             flow_target=hoomd.variant.Variant,
-            slab_direction=_md.MuellerPlatheFlow.Direction,
-            flow_direction=_md.MuellerPlatheFlow.Direction,
+            slab_direction=str,
+            flow_direction=str,
             n_slabs=int(n_slabs),
             max_slab=int(max_slab),
             min_slab=int(min_slab),
@@ -356,12 +356,3 @@ class MuellerPlatheFlow(Updater):
             return self._cpp_obj.has_max_slab
         else:
             return None
-
-    X = _md.MuellerPlatheFlow.Direction.X
-    R""" Direction Enum X for this class"""
-
-    Y = _md.MuellerPlatheFlow.Direction.Y
-    R""" Direction Enum Y for this class"""
-
-    Z = _md.MuellerPlatheFlow.Direction.Z
-    R""" Direction Enum Z for this class"""
