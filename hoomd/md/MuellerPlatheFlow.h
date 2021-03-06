@@ -57,8 +57,8 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
                           std::shared_ptr<Variant> flow_target,
-                          const flow_enum::Direction slab_direction,
-                          const flow_enum::Direction flow_direction,
+                          std::string slab_direction_str,
+                          std::string flow_direction_str,
                           const unsigned int N_slabs,
                           const unsigned int min_slab,
                           const unsigned int max_slab,
@@ -82,8 +82,22 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         unsigned int get_min_slab(void)const{return m_min_slab;}
         unsigned int get_max_slab(void)const{return m_max_slab;}
         std::shared_ptr<Variant> get_flow_target(void)const{return m_flow_target;}
-        enum flow_enum::Direction get_slab_direction(void)const{return m_slab_direction;}
-        enum flow_enum::Direction get_flow_direction(void)const{return m_flow_direction;}
+        std::string get_slab_direction(void)const{return getStringFromDirection(m_slab_direction);}
+        std::string get_flow_direction(void)const{return getStringFromDirection(m_flow_direction);}
+
+        std::string getStringFromDirection(const enum flow_enum::Direction direction)
+            const {
+            if (direction == flow_enum::Direction::X) {return "X";}
+            else if (direction == flow_enum::Direction::Y) {return "Y";}
+            else if (direction == flow_enum::Direction::Z) {return "Z";}
+            }
+
+        enum flow_enum::Direction getDirectionFromString(std::string direction_str)
+            const {
+            if (direction_str == "X") {return flow_enum::Direction::X;}
+            else if (direction_str == "Y") {return flow_enum::Direction::Y;}
+            else if (direction_str == "Z") {return flow_enum::Direction::Z;}
+            }
 
         void set_min_slab(const unsigned int slab_id);
         void set_max_slab(const unsigned int slab_id);
