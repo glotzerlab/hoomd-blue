@@ -9,68 +9,11 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 
-from copy import copy, deepcopy
+from copy import copy
 
-from hoomd.util import is_iterable, dict_map, dict_filter
 from hoomd.trigger import Trigger
-from hoomd.variant import Variant, Constant
-from hoomd.filter import ParticleFilter
-from hoomd.logging import Loggable, log
-from hoomd.data.typeconverter import RequiredArg
-from hoomd.util import NamespaceDict
-from hoomd._hoomd import GSDStateReader
+from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-
-
-def _convert_values_to_log_form(value):
-    """Function for making state loggable quantity conform to spec.
-
-    Since the state dictionary is composed of properties for a given class
-    instance that does not have flags associated with it, we need to add the
-    flags when querying for the state. This does makes state logger type flag
-    generation dynamic meaning that we must be careful that we won't wrongly
-    detect different flags for the same attribute. In general this shouldn't
-    be a concern, though.
-    """
-    if value is RequiredArg:
-        return RequiredArg
-    elif isinstance(value, Variant):
-        if isinstance(value, Constant):
-            return (value.value, 'scalar')
-        else:
-            return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
-        return (value, 'object')
-    elif isinstance(value, Operation):
-        return (value, 'object')
-    elif isinstance(value, str):
-        return (value, 'string')
-    elif (is_iterable(value)
-            and len(value) != 0
-            and all([isinstance(v, str) for v in value])):
-        return (value, 'strings')
-    elif not is_iterable(value):
-        return (value, 'scalar')
-    else:
-        return (value, 'sequence')
-
-
-def _handle_gsd_arrays(arr):
-    if arr.size == 1:
-        return arr[0]
-    if arr.ndim == 1:
-        if arr.size < 3:
-            return tuple(arr.flatten())
-    else:
-        return arr
-
-
-class _ReturnCopies:
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __call__(self):
-        return deepcopy(self.obj)
 
 
 class _HOOMDGetSetAttrBase:
@@ -96,7 +39,8 @@ class _HOOMDGetSetAttrBase:
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
-            value = self._reserved_default_attrs[attr]()
+            default = self._reserved_default_attrs[attr]
+            value = default() if callable(default) else default
             object.__setattr__(self, attr, value)
             return value
         elif attr in self._param_dict.keys():
@@ -241,9 +185,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
     detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
-                               '_cpp_obj': _ReturnCopies(None),
-                               '_dependents': _ReturnCopies([]),
-                               '_dependencies': _ReturnCopies([])}
+                               '_cpp_obj': None,
+                               '_dependents': list,
+                               '_dependencies': list}
 
     _skip_for_equality = {
         '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
