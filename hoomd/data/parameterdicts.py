@@ -310,11 +310,11 @@ class ParameterDict(MutableMapping):
     def __len__(self):
         return len(self._dict)
 
-    def update(self, dict_):
-        if isinstance(dict_, ParameterDict):
-            for key, value in dict_.items():
-                self._type_converter[key] = dict_._type_converter[key]
+    def update(self, other):
+        if isinstance(other, ParameterDict):
+            for key, value in other.items():
+                self._type_converter[key] = other._type_converter[key]
                 self._dict[key] = value
         else:
-            for key, value in dict_.items():
+            for key, value in other.items():
                 self[key] = value
