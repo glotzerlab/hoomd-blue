@@ -45,7 +45,7 @@ class FreeVolume(Compute):
 
         The test particle type must exist in the simulation state and its shape
         parameters must be set in the simulation's HPMC integrator. Particles
-        with this type may be present in the simulation state.
+        with this type may or may not be present in the simulation state.
 
     Note:
 
