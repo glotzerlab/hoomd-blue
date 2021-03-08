@@ -6,7 +6,7 @@ def test_before_attaching():
     filt = hoomd.filter.All()
     thermoHMA = hoomd.md.compute.ThermoHMA(filt, 1.0)
     assert thermoHMA._filter == filt
-    assert thermoHMA.temperature == 1.0
+    assert thermoHMA.kT == 1.0
     assert thermoHMA.harmonic_pressure == 0.0
     assert thermoHMA.potential_energy is None
     assert thermoHMA.pressure is None
