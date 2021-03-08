@@ -69,7 +69,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             }
 
         //! Computes the total field energy of the system at the current state
-        virtual double computeEnergy(unsigned int timestep)
+        virtual double computeEnergy(uint64_t timestep)
             {
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
