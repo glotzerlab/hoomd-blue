@@ -41,6 +41,9 @@ struct ShapeSimplePolygon
     //! Define the parameter type
     typedef detail::PolygonVertices param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a polygon
     DEVICE ShapeSimplePolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
@@ -298,7 +301,6 @@ DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
     \param a Shape a
     \param b Shape b
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true if the two shapes overlap
     \ingroup shape
 */
@@ -306,9 +308,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeSimplePolygon& a,
                                                                        const ShapeSimplePolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
     vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
