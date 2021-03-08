@@ -254,7 +254,7 @@ def test_attached_value_setting(attached_param_dict):
 
 
 def test_attach_dettach(attached_param_dict):
-    tp = attached_param_dict.to_dettached()
+    tp = attached_param_dict.to_detached()
     assert tp.default == attached_param_dict.default
     assert tp._type_converter == attached_param_dict._type_converter
     assert tp['A'] == attached_param_dict['A']

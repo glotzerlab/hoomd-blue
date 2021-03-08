@@ -46,7 +46,7 @@ class TypeParameter:
         return self
 
     def _detach(self):
-        self.param_dict = self.param_dict.to_dettached()
+        self.param_dict = self.param_dict.to_detached()
         return self
 
     def to_dict(self):
@@ -61,7 +61,7 @@ class TypeParameter:
                  'param_dict': self.param_dict
                  }
         if isinstance(self.param_dict, AttachedTypeParameterDict):
-            state['param_dict'] = self.param_dict.to_dettached()
+            state['param_dict'] = self.param_dict.to_detached()
         return state
 
     def __setstate__(self, state):

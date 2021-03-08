@@ -211,7 +211,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         for key in self.keys():
             self[key] = type_param_dict[key]
 
-    def to_dettached(self):
+    def to_detached(self):
         if isinstance(self.default, dict):
             type_param_dict = TypeParameterDict(**self.default,
                                                 len_keys=self._len_keys)

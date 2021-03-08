@@ -307,7 +307,7 @@ class Operations(Collection):
         return self._computes
 
     def __getstate__(self):
-        # ensure that top level changes to self.__dict__ are not propegated
+        # ensure that top level changes to self.__dict__ are not propagated
         state = copy(self.__dict__)
         state['_simulation'] = None
         state['_scheduled'] = False
