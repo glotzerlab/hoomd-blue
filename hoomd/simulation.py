@@ -241,8 +241,14 @@ class Simulation(metaclass=Loggable):
                 self._operations._simulation = None
                 operations._simulation = self
                 self._operations = operations
-                # This must currently be done after setting _operations so that
-                # self.state.update_group_dof runs without erroring
+                # This _schedule method must be called  after setting
+                # _operations so that self.state.update_group_dof runs without
+                # errors. This is called by the integrator when it attaches and
+                # requires that the state have access to the current integrator,
+                # so if we do not add the correct operations object to the
+                # simulation first, the new integrator will call
+                # `state.update_group_dof` but the state will still point to the
+                # old integrator causing an error.
                 operations._schedule()
 
     @log

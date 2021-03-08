@@ -4,6 +4,11 @@ from copy import copy
 
 
 class _PartialIsInstance:
+    """Allows partial function application of isinstance over classes.
+
+    This is a solution to avoid lambdas to enable pickling. We cannot use
+    functools.partial since we need to partially apply the second argument.
+    """
     def __init__(self, classes):
         self.classes = classes
 
@@ -12,6 +17,11 @@ class _PartialIsInstance:
 
 
 class _PartialGetAttr:
+    """Allows partial function application of isinstance over attributes.
+
+    This is a solution to avoid lambdas to enable pickling. We cannot use
+    functools.partial since we need to partially apply the second argument.
+    """
     def __init__(self, attr):
         self.attr = attr
 
