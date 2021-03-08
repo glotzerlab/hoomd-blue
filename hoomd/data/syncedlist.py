@@ -53,15 +53,19 @@ class SyncedList(MutableSequence):
         iterable (iterable, optional): An iterable whose members are valid
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
+        callable_class (bool): If a class is passed as validation and this is
+        `True` (defaults to `False`), then the class will be treated as a
+        callable and not used for isinstance checking.
     """
 
     def __init__(self, validation,
                  to_synced_list=None,
-                 iterable=None):
+                 iterable=None,
+                 callable_class=False):
         if to_synced_list is None:
             to_synced_list = identity
 
-        if inspect.isclass(validation):
+        if inspect.isclass(validation) and not callable_class:
             self._validate = _PartialIsInstance(validation)
         else:
             self._validate = validation
@@ -219,4 +223,7 @@ class SyncedList(MutableSequence):
         return state
 
     def __eq__(self, other):
-        return all(a == b for a, b in zip(self, other))
+        return (
+            len(self) == len(other)
+            and all(a == b for a, b in zip(self, other)
+        )
