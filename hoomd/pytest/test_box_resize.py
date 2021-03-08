@@ -140,12 +140,11 @@ def test_variant(box_resize, variant):
         assert variant(timestep) == box_resize.variant(timestep)
 
 
-def test_get_box(device, get_snapshot, sys, box_resize):
+def test_get_box(simulation_factory, get_snapshot, sys, box_resize):
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
 
-    sim = hoomd.Simulation(device)
-    sim.create_state_from_snapshot(get_snapshot())
+    sim = simulation_factory(get_snapshot())
 
     sim.operations.updaters.append(box_resize)
     sim.run(0)
@@ -154,10 +153,9 @@ def test_get_box(device, get_snapshot, sys, box_resize):
     assert box_resize.get_box(_t_start + _t_ramp) == sys2[0]
 
 
-def test_update(device, get_snapshot, sys):
+def test_update(simulation_factory, get_snapshot, sys):
     sys1, _, sys2 = sys
-    sim = hoomd.Simulation(device)
-    sim.create_state_from_snapshot(get_snapshot())
+    sim = simulation_factory(get_snapshot())
     hoomd.update.BoxResize.update(sim.state, sys2[0])
 
     assert sim.state.box == sys2[0]
@@ -179,7 +177,8 @@ def filters(request):
     return request.param
 
 
-def test_position_scale(device, get_snapshot, sys, variant, trigger, filters):
+def test_position_scale(device, get_snapshot, sys, variant, trigger, filters,
+                        simulation_factory):
     filter_scale, filter_noscale = filters
     sys1, make_sys_halfway, sys2 = sys
     sys_halfway = make_sys_halfway(_power)
@@ -190,8 +189,7 @@ def test_position_scale(device, get_snapshot, sys, variant, trigger, filters):
                                         trigger=trigger,
                                         filter=filter_scale)
 
-    sim = hoomd.Simulation(device)
-    sim.create_state_from_snapshot(get_snapshot())
+    sim = simulation_factory(get_snapshot())
     sim.operations.updaters.append(box_resize)
 
     # Run up to halfway point

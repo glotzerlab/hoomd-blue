@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
           test_clusters.py
+          test_muvt.py
           test_boxmc.py
           test_shape.py
           test_move_size_tuner.py
@@ -9,6 +10,7 @@ set(files __init__.py
           test_small_box_3d.py
           conftest.py
           test_write_debug_data_hpmc.py
+          depletants_sphere.py
     )
 
 if (BUILD_JIT)

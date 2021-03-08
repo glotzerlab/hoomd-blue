@@ -67,7 +67,7 @@ NeighborListGPUTree::~NeighborListGPUTree()
  * built for each particle type using buildTree(), and these LBVHs are traversed in
  * traverseTree().
  */
-void NeighborListGPUTree::buildNlist(unsigned int timestep)
+void NeighborListGPUTree::buildNlist(uint64_t timestep)
     {
     if (!m_pdata->getN()) return;
 

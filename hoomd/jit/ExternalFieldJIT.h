@@ -167,7 +167,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             }
 
         //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             if ( quantity == "external_field_jit" )
                 {

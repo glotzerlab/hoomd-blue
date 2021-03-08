@@ -53,7 +53,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    RandomGenerator rng(11, 21, 33);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // setup a simple initial state
     Scalar tiny = 1e-3;

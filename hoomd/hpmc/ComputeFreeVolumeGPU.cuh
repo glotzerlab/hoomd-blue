@@ -49,10 +49,10 @@ struct hpmc_free_volume_args_t
                 const uint3& _cell_dim,
                 const unsigned int _N,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
                 const unsigned int _rank,
                 unsigned int _select,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
                 const unsigned int _block_size,
@@ -111,10 +111,10 @@ struct hpmc_free_volume_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;          //!< RNG seed
     const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
     unsigned int block_size;          //!< Block size to execute
@@ -197,10 +197,10 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const uint3 cell_dim,
                                      const unsigned int N,
                                      const unsigned int num_types,
-                                     const unsigned int seed,
+                                     const uint16_t seed,
                                      const unsigned int rank,
                                      const unsigned int select,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      unsigned int *d_n_overlap_all,
@@ -281,7 +281,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ComputeFreeVolume, timestep, seed),
+                               hoomd::Counter(rank, i));
 
     unsigned int my_cell;
 
@@ -415,10 +416,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
     unsigned int shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
         + args.overlap_idx.getNumElements()*sizeof(unsigned int));
 
-    // required for memory coherency
-    hipDeviceSynchronize();
-
-    unsigned int max_extra_bytes = (unsigned int)(args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes);
+    unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes);
 
     // determine dynamically requested shared memory
     char *ptr = (char *)nullptr;
@@ -457,9 +455,6 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
                                                      args.overlap_idx,
                                                      d_params,
                                                      max_extra_bytes);
-
-    // return control of managed memory
-    hipDeviceSynchronize();
 
     return hipSuccess;
     }

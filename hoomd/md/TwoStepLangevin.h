@@ -24,12 +24,10 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
             @param sysdef SystemDefinition this method will act on. Must not be NULL.
             @param group The group of particles this integration method is to work on
             @param T Temperature set point as a function of time
-            @param seed Random seed to use in generating random numbers
         */
         TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr<ParticleGroup> group,
-                     std::shared_ptr<Variant> T,
-                     unsigned int seed);
+                     std::shared_ptr<Variant> T);
         virtual ~TwoStepLangevin();
 
         /** Turn on or off Tally
@@ -56,13 +54,13 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         /// Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
 
         /// Performs the second step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         /// Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
         /// The energy of the reservoir the system is coupled to.

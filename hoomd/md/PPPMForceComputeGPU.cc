@@ -52,6 +52,23 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 
 void PPPMForceComputeGPU::initializeFFT()
     {
+    // free plans if they have already been initialized
+    if (m_local_fft && m_cufft_initialized)
+        {
+        #ifdef __HIP_PLATFORM_HCC__
+        CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
+        #else
+        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
+        #endif
+        }
+    #ifdef ENABLE_MPI
+    else if (m_cuda_dfft_initialized)
+        {
+        dfft_destroy_plan(m_dfft_plan_forward);
+        dfft_destroy_plan(m_dfft_plan_inverse);
+        }
+    #endif
+
     #ifdef ENABLE_MPI
     m_local_fft = !m_pdata->getDomainDecomposition();
 

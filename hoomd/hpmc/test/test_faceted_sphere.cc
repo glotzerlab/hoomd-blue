@@ -436,7 +436,8 @@ UP_TEST( random_support_test )
 
     p.initializeVertices();
 
-    hoomd::RandomGenerator rng;
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     detail::SupportFuncFacetedEllipsoid support(p,0.0);
     for (unsigned int i = 0; i < 10000; ++i)
@@ -477,7 +478,8 @@ UP_TEST( random_support_test_2 )
 
     p.initializeVertices();
 
-    hoomd::RandomGenerator rng;
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     detail::SupportFuncFacetedEllipsoid support(p,0.0);
     for (unsigned int i = 0; i < 10000; ++i)

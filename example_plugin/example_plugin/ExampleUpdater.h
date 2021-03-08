@@ -40,7 +40,7 @@ class ExampleUpdater : public Updater
         ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ExampleUpdater class to python
@@ -61,7 +61,7 @@ class ExampleUpdaterGPU : public ExampleUpdater
         ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ExampleUpdaterGPU class to python

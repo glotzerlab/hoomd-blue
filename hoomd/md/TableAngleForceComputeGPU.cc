@@ -45,7 +45,7 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
+void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
 
     // start the profile

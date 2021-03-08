@@ -537,7 +537,7 @@ class MigrateSelectOp
                 m_comm->getMigrateRequestSignal().disconnect<MigrateSelectOp, &MigrateSelectOp::operator()>(this);
             }
 
-        bool operator()(unsigned int timestep) const
+        bool operator()(uint64_t timestep) const
             {
             return !(timestep % 2);
             }
