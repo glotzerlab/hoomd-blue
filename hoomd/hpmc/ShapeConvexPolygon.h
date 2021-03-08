@@ -344,6 +344,9 @@ struct ShapeConvexPolygon
     /// Define the parameter type
     typedef detail::PolygonVertices param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
@@ -574,9 +577,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
     vec2<OverlapReal> dr(OverlapReal(r_ab.x),OverlapReal(r_ab.y));
     #ifdef __HIPCC__
