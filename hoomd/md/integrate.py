@@ -8,7 +8,6 @@
 # features
 
 import itertools
-from functools import partial
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
