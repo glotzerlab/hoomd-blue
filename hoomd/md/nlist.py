@@ -166,9 +166,6 @@ class Cell(NList):
                                   self.buffer)
         super()._attach()
 
-    def _detach(self):
-        super()._detach()
-
 
 class Stencil(NList):
     """Cell list based neighbor list using stencils.
@@ -240,9 +237,6 @@ class Stencil(NList):
         self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
                                   self.buffer)
         super()._attach()
-
-    def _detach(self):
-        super()._detach()
 
 
 class Tree(NList):
