@@ -47,11 +47,6 @@ def test_momentum_is_zero(simulation_factory,
     sim.operations.add(zm)
     sim.run(0)
     snap = sim.state.snapshot
-    if snap.exists:
-        masses = snap.particles.mass
-        velocities = snap.particles.velocity
-        p = [sum([m * v[i] for m, v in zip(masses, velocities)]) for i in range(3)]
-        np.testing.assert_allclose(p, [2, 0, 0], atol=1e-5)
 
     sim.run(1)
     snap = sim.state.snapshot
