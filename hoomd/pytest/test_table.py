@@ -166,10 +166,10 @@ def test_only_string_and_scalar_quantities(device):
     logger = hoomd.logging.Logger()
     output = StringIO("")
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(1, logger, output)
+        hoomd.write.Table(1, logger, output)
     logger = hoomd.logging.Logger(categories=['sequence'])
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(1, logger, output)
+        hoomd.write.Table(1, logger, output)
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
