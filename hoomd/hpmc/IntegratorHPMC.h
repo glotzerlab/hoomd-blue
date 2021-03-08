@@ -468,12 +468,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch = patch;
             }
 
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
-
         #ifdef ENABLE_MPI
         //! Set the MPI communicator
         /*! \param comm the communicator
