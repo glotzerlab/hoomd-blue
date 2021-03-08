@@ -240,7 +240,6 @@ class _InternalMoveSize(_InternalAction):
 
     def _target_postprocess(self, target):
         if not (0 <= target <= 1):
-            return target
             raise ValueError(
                 "target {} should be between 0 and 1.".format(target))
 
