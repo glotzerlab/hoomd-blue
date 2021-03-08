@@ -600,14 +600,15 @@ template<>
 inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     {
     std::ostringstream shapedef;
-    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    const auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
     if (verts.N != 0)
         {
-        for (unsigned int i = 0; i < poly.verts.N-1; i++)
+        for (unsigned int i = 0; i < verts.N-1; i++)
             {
-            shapedef << "[" << poly.verts.x[i] << ", " << poly.verts.y[i] << "], ";
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
             }
-        shapedef << "[" << poly.verts.x[poly.verts.N-1] << ", " << poly.verts.y[poly.verts.N-1] << "]]}";
+        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
         }
     else
         {

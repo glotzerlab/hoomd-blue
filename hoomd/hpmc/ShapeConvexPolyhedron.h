@@ -856,7 +856,7 @@ template<>
 inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     {
     std::ostringstream shapedef;
-    auto& verts = poly.verts;
+    const auto& verts = poly.verts;
     shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
     if (verts.N != 0)
         {
