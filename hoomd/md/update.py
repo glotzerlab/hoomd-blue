@@ -98,11 +98,9 @@ class ZeroMomentum(Updater):
     """
     def __init__(self, trigger):
         # initialize base class
-        super().__init__(trigger);
+        super().__init__(trigger)
 
     def _attach(self):
-        if not self._simulation.operations.integrator._attached:
-            raise RuntimeError("Integrator is not attached yet.")
         # create the c++ mirror class
         self._cpp_obj = _md.ZeroMomentumUpdater(self._simulation.state._cpp_sys_def)
         super()._attach()
