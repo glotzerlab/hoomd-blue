@@ -167,6 +167,9 @@ struct ShapeSphinx
     /// Define the parameter type
     typedef detail::SphinxParams param_type;
 
+    /// Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE inline ShapeSphinx(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), convex(true), spheres(_params)
@@ -294,9 +297,7 @@ struct ShapeSphinx
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
-                                                          const ShapeSphinx& q, unsigned int& err,
-                                                          Scalar sweep_radius_a,
-                                                          Scalar sweep_radius_b)
+                                                          const ShapeSphinx& q, unsigned int& err)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of q

@@ -33,6 +33,8 @@ v3.0.0-beta.5 (not yet released)
 - [breaking] Removed *seed* argument from ``hpmc.update.Clusters``
 - [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
 - [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
+- Use latest version of getar library.
+- Documentation improvements.
 
 *Fixed*
 
@@ -40,6 +42,7 @@ v3.0.0-beta.5 (not yet released)
 - ``md.force.Active`` keeps floating point values set for `active_force` and `active_torque`.
 - `create_state_from_snapshot` accepts `gsd.hoomd.Snapshot` objects without error.
 - HOOMD compiles on Apple silicon macOS systems.
+- Memory leak in PPPM force compute.
 
 *Removed*
 

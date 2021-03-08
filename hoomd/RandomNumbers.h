@@ -22,10 +22,10 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <hoomd/extern/random123/include/Random123/philox.h>
+#include <type_traits>
 #pragma GCC diagnostic pop
 
 namespace r123 {
-// from random123/examples/uniform.hpp
 using std::make_signed;
 using std::make_unsigned;
 
@@ -321,7 +321,7 @@ class UniformDistribution
         /*! \param _a Left end point of the interval
             \param _b Right end point of the interval
         */
-        DEVICE explicit UniformDistribution(Real _a=Real(0,0), Real _b=Real(1.0))
+        DEVICE explicit UniformDistribution(Real _a=Real(0.0), Real _b=Real(1.0))
             : a(_a), width(_b - _a)
             {
             }

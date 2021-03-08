@@ -13,6 +13,7 @@ from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
+import math
 
 
 class HPMCIntegrator(BaseIntegrator):
@@ -83,8 +84,21 @@ class HPMCIntegrator(BaseIntegrator):
             Maximum size of displacement trial moves
             (distance units).
 
-        fugacity (`TypeParameter` [``particle type``, `float`]):
+        depletant_fugacity (`TypeParameter` [\
+                            `tuple` [``particle type``, ``particle type``],\
+                            `float`]):
             Depletant fugacity (in units of 1/volume) (**default:** ``0``)
+
+            Allows setting the fugacity per particle type, e.g. `('A','A')`
+            refers to a depletant of type **A**. The option to set a type pair
+            is temporary and will be removed in the release version.
+
+        depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
+            Multiplicative factor for the number of times a depletant is inserted.
+            This factor is accounted for in the acceptance criterion so that detailed
+            balance is unchanged. Higher values of ntrial (than one) can be used
+            to reduce the variance of the free energy estimate and
+            improve the acceptance rate of the Markov chain.
 
         interaction_matrix (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
@@ -127,16 +141,23 @@ class HPMCIntegrator(BaseIntegrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=1))
+                                               0., len_keys=2)
+                                           )
+
+        typeparam_ntrial = TypeParameter('depletant_ntrial',
+                                           type_kind='particle_types',
+                                           param_dict=TypeParameterDict(
+                                               1, len_keys=2)
+                                           )
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
                                                type_kind='particle_types',
                                                param_dict=TypeParameterDict(
                                                    True, len_keys=2))
 
-        self._extend_typeparam([
-            typeparam_d, typeparam_a, typeparam_fugacity, typeparam_inter_matrix
-        ])
+        self._extend_typeparam([typeparam_d, typeparam_a,
+                                typeparam_fugacity, typeparam_ntrial,
+                                typeparam_inter_matrix])
 
     def _add(self, simulation):
         """Add the operation to a simulation.
