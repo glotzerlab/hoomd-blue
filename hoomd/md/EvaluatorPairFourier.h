@@ -165,8 +165,6 @@ class EvaluatorPairFourier
                     Scalar pow_neg1_i = (i & 1) ? -1.0 : 1.0;
                     a1 = a1 + pow_neg1_i * params.a[i-2];
                     b1 = b1 + i * pow_neg1_i * params.b[i-2];
-                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * params.a[i-2];
-                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * params.b[i-2];
                     }
                 Scalar theta = x;
                 Scalar s;
