@@ -56,7 +56,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         """
         if attr == '_action':
             raise AttributeError(
-                "{} object has no attribute _action".format(type(self)))
+                f"{type(self).__name__} object has no attribute _action")
         try:
             return super().__getattr__(attr)
         except AttributeError:
