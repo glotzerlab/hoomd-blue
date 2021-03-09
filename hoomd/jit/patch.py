@@ -366,13 +366,14 @@ class UserPatch(PatchCompute):
             raise RuntimeError("Must provide code or LLVM IR file.")
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
+        cpp_sys_def = self._simulation.state._cpp_sys_def
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
             self._setup_gpu_code_path()
             gpu_code = self._wrap_gpu_code(self._code)
-            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_exec_conf, llvm_ir, self.r_cut, self.array_size,
+            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut, self.array_size,
                 gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options, self._cuda_devrt_library_path, self._max_arch);
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_exec_conf, llvm_ir, self.r_cut, self.array_size)
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut, self.array_size)
         # Set the C++ mirror array with the cached values
         # and override the python array
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]

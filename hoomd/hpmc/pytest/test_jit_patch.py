@@ -118,7 +118,7 @@ def test_valid_construction_and_attach_user_patch(device, simulation_factory,
     """Test that UserPatch can be attached with valid arguments."""
     # create objects
     patch = jit.patch.UserPatch(**constructor_args)
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     # create simulation & attach objects
@@ -148,7 +148,7 @@ def test_valid_construction_and_attach_user_union_patch(device, simulation_facto
     patch.typeids['A'] = [0, 0]
     patch.charges['A'] = [0, 0]
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     # create simulation & attach objects
@@ -193,7 +193,7 @@ def test_valid_setattr_attached_user_patch(device, attr, value,
     """Test that UserPatch can get and set attributes after attached."""
 
     patch = jit.patch.UserPatch(r_cut=2, code='return -1;')
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     # create simulation & attach objects
@@ -223,7 +223,7 @@ def test_valid_setattr_attached_user_union_patch(device, attr, value,
     patch.typeids['A'] = [0, 0]
     patch.charges['A'] = [0, 0]
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     # create simulation & attach objects
@@ -252,7 +252,7 @@ def test_raise_attr_error_user_patch(device, attr, val,
                                 code='return 0;',
                                 llvm_ir_file='code.ll')
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -282,7 +282,7 @@ def test_raise_attr_error_user_union_patch(device, attr, val,
     patch.typeids['A'] = [0, 0]
     patch.charges['A'] = [0, 0]
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
     # create simulation & attach objects
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -329,11 +329,11 @@ def test_user_patch(device, positions,orientations,result,
                             return 0.0f;
                     """
 
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(d=2, L=100))
 
     r_cut = sim.state.box.Lx/2.
     patch = jit.patch.UserPatch(r_cut=r_cut, code=dipole_dipole.format(r_cut))
-    mc = hoomd.hpmc.integrate.Sphere(d=0.05, seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     sim.operations.integrator = mc
@@ -388,7 +388,7 @@ def test_alpha_iso(device, cls, simulation_factory,two_particle_snapshot_factory
         patch.diameters['A'] = [0]
         patch.typeids['A'] = [0]
         patch.charges['A'] = [0]
-    mc = hoomd.hpmc.integrate.Sphere(d=0, seed=1)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape['A'] = dict(diameter=0)
 
     sim.operations.integrator = mc
@@ -441,7 +441,7 @@ def test_user_union_patch(device, simulation_factory,two_particle_snapshot_facto
     patch.typeids['A'] = [0, 0]
     patch.charges['A'] = [0, 0]
 
-    mc = hoomd.hpmc.integrate.Sphere(seed=2, d=0, a=0)
+    mc = hoomd.hpmc.integrate.Sphere()
     mc.shape["A"] = dict(diameter=0)
 
     # attach objects

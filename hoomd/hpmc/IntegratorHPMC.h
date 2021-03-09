@@ -136,10 +136,10 @@ struct hpmc_patch_args_t
     \ingroup hpmc_integrators
 */
 
-class PatchEnergy
+class PatchEnergy : public Compute
     {
     public:
-        PatchEnergy() : m_build_obb(false) { }
+        PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef),  m_build_obb(false) { }
         virtual ~PatchEnergy() { }
 
         #ifdef ENABLE_HIP

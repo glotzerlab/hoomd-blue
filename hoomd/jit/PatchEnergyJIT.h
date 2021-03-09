@@ -36,7 +36,9 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
         //! Constructor
-        PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
+        PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ExecutionConfiguration> exec_conf,
+                       const std::string& llvm_ir, Scalar r_cut,
                        const unsigned int array_size);
 
        virtual Scalar getRelevantRCut()

@@ -18,7 +18,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             const unsigned int array_size_iso,
             const std::string& llvm_ir_union, Scalar r_cut_union,
             const unsigned int array_size_union)
-            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso), m_sysdef(sysdef),
+            : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso), m_sysdef(sysdef),
             m_rcut_union(r_cut_union),
             m_alpha_union(array_size_union, 0.0f, managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
             m_alpha_size_union(array_size_union)
