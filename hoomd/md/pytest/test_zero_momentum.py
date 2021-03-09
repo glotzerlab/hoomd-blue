@@ -45,8 +45,6 @@ def test_momentum_is_zero(simulation_factory,
 
     zm = hoomd.md.update.ZeroMomentum(hoomd.trigger.Periodic(1))
     sim.operations.add(zm)
-    sim.run(0)
-    snap = sim.state.snapshot
 
     sim.run(1)
     snap = sim.state.snapshot
