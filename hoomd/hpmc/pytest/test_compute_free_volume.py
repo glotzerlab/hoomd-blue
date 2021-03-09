@@ -18,7 +18,6 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape["A"] = {'diameter': 1.0}
     mc.shape["B"] = {'diameter': 0.2}
-    mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
     free_volume = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
@@ -58,7 +57,6 @@ def test_validation_systems(simulation_factory, two_particle_snapshot_factory,
     mc = hoomd.hpmc.integrate.Sphere()
     mc.shape["A"] = {'diameter': radius1 * 2}
     mc.shape["B"] = {'diameter': radius2 * 2}
-    mc.depletant_fugacity["B"] = 1.5
     sim.operations.add(mc)
 
     free_volume_compute = hoomd.hpmc.compute.FreeVolume(test_particle_type='B',
