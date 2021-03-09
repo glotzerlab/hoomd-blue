@@ -43,6 +43,7 @@ electric_field_params = [
 ]
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_user_external(device, constructor_args):
@@ -54,6 +55,7 @@ def test_valid_construction_user_external(device, constructor_args):
         assert getattr(ext, attr) == value
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach_user_external(device, simulation_factory,
@@ -78,6 +80,7 @@ def test_valid_construction_and_attach_user_external(device, simulation_factory,
         assert getattr(ext, attr) == value
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_user_external(device, attr, value):
@@ -88,6 +91,7 @@ def test_valid_setattr_user_external(device, attr, value):
     assert getattr(ext, attr) == value
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,val",  attr_error)
 def test_raise_attr_error_user_external(device, attr, val,
@@ -111,6 +115,7 @@ def test_raise_attr_error_user_external(device, attr, val,
         setattr(ext, attr, val)
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("orientations,charge, result", electric_field_params)
 def test_electric_field(device, orientations, charge, result,
@@ -144,6 +149,7 @@ def test_electric_field(device, orientations, charge, result,
     assert np.isclose(ext.energy, result)
 
 
+@pytest.mark.cpu
 @pytest.mark.serial
 def test_gravity(device, simulation_factory, lattice_snapshot_factory):
     """ This test simulates a sedimentation experiment by using an elongated
