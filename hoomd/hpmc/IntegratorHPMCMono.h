@@ -884,6 +884,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     {
+    Integrator::update(timestep);
     m_exec_conf->msg->notice(10) << "HPMCMono update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
 

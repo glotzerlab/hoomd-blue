@@ -851,6 +851,7 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 */
 void Integrator::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     }
 
 /** prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full

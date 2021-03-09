@@ -66,7 +66,16 @@ class PYBIND11_EXPORT Analyzer
         /*! Derived classes will implement this method to calculate their results
             \param timestep Current time step of the simulation
             */
-        virtual void analyze(uint64_t timestep){}
+        virtual void analyze(uint64_t timestep)
+            {
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition() && !m_comm)
+                {
+                throw std::runtime_error(
+                    "Bug: m_comm not set for a system with a domain decomposition.");
+                }
+            #endif
+            }
 
         //! Sets the profiler for the analyzer to use
         void setProfiler(std::shared_ptr<Profiler> prof);

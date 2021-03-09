@@ -51,6 +51,7 @@ CellListStencil::~CellListStencil()
 
 void CellListStencil::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // guard against unnecessary calls
     if (!shouldCompute(timestep)) return;
 

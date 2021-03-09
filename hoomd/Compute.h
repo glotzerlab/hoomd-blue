@@ -63,13 +63,22 @@ class PYBIND11_EXPORT Compute
     public:
         //! Constructs the compute and associates it with the ParticleData
         Compute(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Compute() {};
+        virtual ~Compute() {}
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(uint64_t timestep){}
+        virtual void compute(uint64_t timestep)
+            {
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition() && !m_comm)
+                {
+                throw std::runtime_error(
+                    "Bug: m_comm not set for a system with a domain decomposition.");
+                }
+            #endif
+            }
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
