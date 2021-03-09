@@ -154,7 +154,7 @@ class UserExternal(JITCompute):
                                 llvm_ir)
         super()._attach()
 
-    @property
+    @log
     def energy(self):
         """float: Total field energy of the system in the current state.
                   Returns `None` when the patch object and integrator are not attached.
