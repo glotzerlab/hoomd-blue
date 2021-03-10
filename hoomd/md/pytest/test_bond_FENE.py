@@ -2,23 +2,20 @@ import hoomd
 import pytest
 import numpy as np
 
+_k = [30.0, 25.0, 20.0]
+_r0 = [1.6, 1.7, 1.8]
+_epsilon = [0.9, 1.0, 1.1]
+_sigma = [1.1, 1.0, 0.9]
+
 
 def get_bond_params():
-    k = [30.0, 25.0, 20.0]
-    r0 = [1.6, 1.7, 1.8]
-    epsilon = [0.9, 1.0, 1.1]
-    sigma = [1.1, 1.0, 0.9]
-    return zip(k, r0, epsilon, sigma)
+    return zip(_k, _r0, _epsilon, _sigma)
 
 
 def get_bond_params_and_forces_and_energies():
-    k = [30.0, 25.0, 20.0]
-    r0 = [1.6, 1.7, 1.8]
-    epsilon = [0.9, 1.0, 1.1]
-    sigma = [1.1, 1.0, 0.9]
     forces = [282.296, 146.288, 88.8238]
     energies = [70.5638, 49.2476, 35.3135]
-    return zip(k, r0, epsilon, sigma, forces, energies)
+    return zip(_k, _r0, _epsilon, _sigma, forces, energies)
 
 
 @pytest.mark.parametrize("bond_params_tuple", get_bond_params())
