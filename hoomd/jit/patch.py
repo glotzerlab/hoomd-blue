@@ -140,12 +140,14 @@ class user(object):
         else:
             clang = 'clang'
 
-        if code is not None:
+        if code is not None and llvm_ir_file is None:
             llvm_ir = self.compile_user(array_size, 1, code, clang)
-        else:
+        elif llvm_ir_file is not None:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
+        else:
+            raise ValueError("llvm_ir_file and code cannot both be None.")
 
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';

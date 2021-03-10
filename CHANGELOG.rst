@@ -11,12 +11,15 @@ v3.0.0-beta.5 (not yet released)
 
 - ``filter`` parameter to ``update.BoxResize`` - A ``ParticleFilter`` that identifies the particles
   to scale with the box.
-- `Simulation.seed` - one place to set random number seeds for all operations.
+- ``Simulation.seed`` - one place to set random number seeds for all operations.
+- ``net_force``, ``net_torque``, and ``net_energy`` per-particle arrays in local snapshots.
+- Support ``hpmc.update.Clusters`` on the GPU.
+- ``hpmc.update.MuVT`` - Gibbs ensemble simulations with HPMC.
 
 *Changed*
 
 - [breaking]  Removed the parameter ``scale_particles`` in ``update.BoxResize``
-- [internal] Modified signature of `data.typeconverter.OnlyTypes`
+- [internal] Modified signature of ``data.typeconverter.OnlyTypes``
 - Remove use of deprecated numpy APIs.
 - Added more details to the migration guide.
 - Support timestep values in the range [0,2**64-1].
@@ -33,17 +36,30 @@ v3.0.0-beta.5 (not yet released)
 - [breaking] Removed *seed* argument from ``hpmc.update.Clusters``
 - [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
 - [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
+- Use latest version of getar library.
+- Documentation improvements.
+- Improve performance of ``md.pair.Mie``.
+- [breaking] ``hpmc.update.Clusters`` re-implemented with a rejection free, but not ergodic,
+  algorithm for anisotropic particles. The new algorithm does not run in parallel over MPI ranks.
+- [breaking] HPMC depletion algorithm rewritten.
+- [breaking, temporary] HPMC depletant fugacity is now set for type pairs. This change will be
+  reverted in a future release.
+
+
 
 *Fixed*
 
 - Install ``ParticleFilter`` header files for external plugins.
-- ``md.force.Active`` keeps floating point values set for `active_force` and `active_torque`.
-- `create_state_from_snapshot` accepts `gsd.hoomd.Snapshot` objects without error.
+- ``md.force.Active`` keeps floating point values set for ``active_force`` and ``active_torque``.
+- ``create_state_from_snapshot`` accepts ``gsd.hoomd.Snapshot`` objects without error.
 - HOOMD compiles on Apple silicon macOS systems.
+- Memory leak in PPPM force compute.
+- Segmentation fault that occurred when dumping GSD shapes for spheropolygons and spheropolyhedra
+  with 0 vertices.
 
 *Removed*
 
-- Testing for CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
+- Testing with CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
 
 v3.0.0-beta.4 (2021-02-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

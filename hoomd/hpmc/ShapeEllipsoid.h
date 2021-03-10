@@ -93,6 +93,9 @@ struct ShapeEllipsoid
     /// Define the parameter type
     typedef EllipsoidParams param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), axes(_params)
@@ -434,9 +437,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err,
-                                                               Scalar sweep_radius_a,
-                                                               Scalar sweep_radius_b)
+                                                               unsigned int& err)
     {
 
     // matrix representations of the two ellipsoids
