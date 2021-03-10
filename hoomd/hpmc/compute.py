@@ -73,7 +73,6 @@ class FreeVolume(Compute):
         param_dict.update(
             dict(test_particle_type=test_particle_type,
                  num_samples=num_samples))
-        # set defaults
         self._param_dict.update(param_dict)
 
     def _attach(self):
