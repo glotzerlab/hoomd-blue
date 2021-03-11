@@ -56,11 +56,11 @@ def _method_base_params():
                   hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
 
     npt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
-            'tauS': 2.0, 'box_dof': (True,True,True,False,False,False), 'couple': 'xyz' }
+            'tauS': 2.0, 'box_dof': [True,True,True,False,False,False], 'couple': 'xyz' }
     npt_extra_params = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
             'rotational_thermostat_dof': (0.0, 0.0), 'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0) }
     npt_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
-            'tauS': 10.0, 'box_dof': (True,False,False,False,True,False), 'couple': 'none',
+            'tauS': 10.0, 'box_dof': [True,False,False,False,True,False], 'couple': 'none',
             'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5),
             'rotational_thermostat_dof': (0.5, 0.25), 'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)}
     npt_rejected_params = { }
@@ -108,39 +108,39 @@ def test_attributes(method_base_params):
 
     assert integrator.filter is all_
 
-    for pair in method_base_params.setup_params:
-        attr = method_base_params.setup_params[pair]
+    for parameter in method_base_params.setup_params:
+        attr = method_base_params.setup_params[parameter]
         if isinstance(attr,list):
-            list_attr = integrator._getattr_param(pair)
+            list_attr = getattr(integrator,parameter)
             assert len(list_attr) == 6
             for i in range(6):
                 assert list_attr[i] == attr[i]
         else:
-            assert integrator._getattr_param(pair) == attr
+            assert getattr(integrator,parameter) == attr
 
-    for pair in method_base_params.extra_params:
-        attr = method_base_params.extra_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in method_base_params.extra_params:
+        attr = method_base_params.extra_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
     type_A = hoomd.filter.Type(['A'])
     integrator.filter = type_A
     assert integrator.filter is type_A
 
-    for pair in method_base_params.rejected_params:
-        attr = method_base_params.rejected_params[pair]
-        integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == attr
+    for parameter in method_base_params.rejected_params:
+        attr = method_base_params.rejected_params[parameter]
+        setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == attr
 
-    for pair in method_base_params.accepted_params:
-        attr = method_base_params.accepted_params[pair]
-        integrator._setattr_param(pair,attr)
+    for parameter in method_base_params.accepted_params:
+        attr = method_base_params.accepted_params[parameter]
+        setattr(integrator,parameter,attr)
         if isinstance(attr,list):
-            list_attr = integrator._getattr_param(pair)
+            list_attr = getattr(integrator,parameter)
             assert len(list_attr) == 6
             for i in range(6):
                 assert list_attr[i] == attr[i]
         else:
-            assert integrator._getattr_param(pair) == attr
+            assert getattr(integrator,parameter) == attr
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -155,19 +155,19 @@ def test_attributes_attached(simulation_factory,
 
     assert integrator.filter is all_
 
-    for pair in method_base_params.setup_params:
-        attr = method_base_params.setup_params[pair]
-        if isinstance(attr,list) or isinstance(attr, tuple):
-            list_attr = integrator._getattr_param(pair)
+    for parameter in method_base_params.setup_params:
+        attr = method_base_params.setup_params[parameter]
+        if isinstance(attr,list):
+            list_attr = getattr(integrator,parameter)
             assert len(list_attr) == 6
             for i in range(6):
                 assert list_attr[i] == attr[i]
         else:
-            assert integrator._getattr_param(pair) == attr
+            assert getattr(integrator,parameter) == attr
 
-    for pair in method_base_params.extra_params:
-        attr = method_base_params.extra_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in method_base_params.extra_params:
+        attr = method_base_params.extra_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
 
 
@@ -176,23 +176,23 @@ def test_attributes_attached(simulation_factory,
         # filter cannot be set after scheduling
         integrator.filter = type_A
 
-    for pair in method_base_params.rejected_params:
-        attr = method_base_params.rejected_params[pair]
+    for parameter in method_base_params.rejected_params:
+        attr = method_base_params.rejected_params[parameter]
         with pytest.raises(AttributeError):
             # cannot be set after scheduling
-            integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == integrator_base_params.setup_params[pair]
+            setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == integrator_base_params.setup_params[parameter]
 
 
-    for pair in method_base_params.accepted_params:
-        attr = method_base_params.accepted_params[pair]
-        integrator._setattr_param(pair,attr)
+    for parameter in method_base_params.accepted_params:
+        attr = method_base_params.accepted_params[parameter]
+        setattr(integrator,parameter,attr)
         if isinstance(attr, list) or isinstance(attr, tuple):
-            list_attr = integrator._getattr_param(pair)
+            list_attr = getattr(integrator,parameter)
             for i in range(len(attr)):
                 assert list_attr[i] == attr[i]
         else:
-            assert integrator._getattr_param(pair) == attr
+            assert getattr(integrator,parameter) == attr
 
 
 
@@ -251,13 +251,13 @@ def test_rattle_attributes(rattle_base_params):
     assert integrator.filter is all_
     assert integrator.manifold_constraint is gyroid
 
-    for pair in rattle_base_params.setup_params:
-        attr = rattle_base_params.setup_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.setup_params:
+        attr = rattle_base_params.setup_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
-    for pair in rattle_base_params.extra_params:
-        attr = rattle_base_params.extra_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.extra_params:
+        attr = rattle_base_params.extra_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
     type_A = hoomd.filter.Type(['A'])
     integrator.filter = type_A
@@ -267,15 +267,15 @@ def test_rattle_attributes(rattle_base_params):
     integrator.manifold_constraint = sphere
     assert integrator.manifold_constraint is sphere
 
-    for pair in rattle_base_params.rejected_params:
-        attr = rattle_base_params.rejected_params[pair]
-        integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.rejected_params:
+        attr = rattle_base_params.rejected_params[parameter]
+        setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == attr
 
-    for pair in rattle_base_params.accepted_params:
-        attr = rattle_base_params.accepted_params[pair]
-        integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.accepted_params:
+        attr = rattle_base_params.accepted_params[parameter]
+        setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == attr
 
 def test_rattle_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -292,13 +292,13 @@ def test_rattle_attributes_attached(simulation_factory,
     assert integrator.filter is all_
     assert integrator.manifold_constraint is gyroid
 
-    for pair in rattle_base_params.setup_params:
-        attr = rattle_base_params.setup_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.setup_params:
+        attr = rattle_base_params.setup_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
-    for pair in rattle_base_params.extra_params:
-        attr = rattle_base_params.extra_params[pair]
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.extra_params:
+        attr = rattle_base_params.extra_params[parameter]
+        assert getattr(integrator,parameter) == attr
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
@@ -311,18 +311,18 @@ def test_rattle_attributes_attached(simulation_factory,
         integrator.manifold_constraint = sphere
     assert integrator.manifold_constraint is gyroid
 
-    for pair in rattle_base_params.rejected_params:
-        attr = rattle_base_params.rejected_params[pair]
+    for parameter in rattle_base_params.rejected_params:
+        attr = rattle_base_params.rejected_params[parameter]
         with pytest.raises(AttributeError):
             # cannot be set after scheduling
-            integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == rattle_base_params.setup_params[pair]
+            setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == rattle_base_params.setup_params[parameter]
 
 
-    for pair in rattle_base_params.accepted_params:
-        attr = rattle_base_params.accepted_params[pair]
-        integrator._setattr_param(pair,attr)
-        assert integrator._getattr_param(pair) == attr
+    for parameter in rattle_base_params.accepted_params:
+        attr = rattle_base_params.accepted_params[parameter]
+        setattr(integrator,parameter,attr)
+        assert getattr(integrator,parameter) == attr
 
 
 
