@@ -10,35 +10,35 @@ paramtuple = namedtuple('paramtuple',
                          'extra_params',
                          'accepted_params',
                          'rejected_params',
-                         'integrator'])
+                         'method'])
 
 
-def _integrator_base_params():
-    integrator_base_params_list = []
+def _method_base_params():
+    method_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
 
-    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0) }
-    langevin_dict2 = {'alpha': None, 'tally_reservoir_energy': False }
-    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    langevin_extra_params = {'alpha': None, 'tally_reservoir_energy': False }
+    langevin_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
                       'alpha': None, 'tally_reservoir_energy': True }
-    langevin_dict4 = {}
+    langevin_rejected_params = {}
 
-    integrator_base_params_list.extend([paramtuple(langevin_dict1,
-                                                    langevin_dict2,
-                                                    langevin_dict3,
-                                                    langevin_dict4,
+    method_base_params_list.extend([paramtuple(langevin_setup_params,
+                                                    langevin_extra_params,
+                                                    langevin_accepted_params,
+                                                    langevin_rejected_params,
                                                     hoomd.md.methods.Langevin)])
 
-    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0) }
-    brownian_dict2 = {'alpha': None }
-    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    brownian_extra_params = {'alpha': None }
+    brownian_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
                       'alpha': 0.125}
-    brownian_dict4 = {}
+    brownian_rejected_params = {}
 
-    integrator_base_params_list.extend([paramtuple(brownian_dict1,
-                                                    brownian_dict2,
-                                                    brownian_dict3,
-                                                    brownian_dict4,
+    method_base_params_list.extend([paramtuple(brownian_setup_params,
+                                                    brownian_extra_params,
+                                                    brownian_accepted_params,
+                                                    brownian_rejected_params,
                                                     hoomd.md.methods.Brownian)])
 
     constant_s = [hoomd.variant.Constant(1.0),
@@ -55,61 +55,61 @@ def _integrator_base_params():
                   hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
                   hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
 
-    npt_dict1 = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
+    npt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
             'tauS': 2.0, 'box_dof': (True,True,True,False,False,False), 'couple': 'xyz' }
-    npt_dict2 = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
+    npt_extra_params = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
             'rotational_thermostat_dof': (0.0, 0.0), 'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0) }
-    npt_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
+    npt_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
             'tauS': 10.0, 'box_dof': (True,False,False,False,True,False), 'couple': 'none',
             'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5),
             'rotational_thermostat_dof': (0.5, 0.25), 'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)}
-    npt_dict4 = { }
+    npt_rejected_params = { }
 
-    integrator_base_params_list.extend([paramtuple(npt_dict1,
-                                                    npt_dict2,
-                                                    npt_dict3,
-                                                    npt_dict4,
+    method_base_params_list.extend([paramtuple(npt_setup_params,
+                                                    npt_extra_params,
+                                                    npt_accepted_params,
+                                                    npt_rejected_params,
                                                     hoomd.md.methods.NPT)])
 
-    nvt_dict1 = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0 }
-    nvt_dict2 = { }
-    nvt_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0,
+    nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0 }
+    nvt_extra_params = { }
+    nvt_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0,
             'translational_thermostat_dof': (0.125, 0.5), 'rotational_thermostat_dof': (0.5, 0.25)}
-    nvt_dict4 = { }
+    nvt_rejected_params = { }
 
-    integrator_base_params_list.extend([paramtuple(nvt_dict1,
-                                                    nvt_dict2,
-                                                    nvt_dict3,
-                                                    nvt_dict4,
+    method_base_params_list.extend([paramtuple(nvt_setup_params,
+                                                    nvt_extra_params,
+                                                    nvt_accepted_params,
+                                                    nvt_rejected_params,
                                                     hoomd.md.methods.NVT)])
 
-    nve_dict1 = { }
-    nve_dict2 = { }
-    nve_dict3 = { }
-    nve_dict4 = { }
+    nve_setup_params = { }
+    nve_extra_params = { }
+    nve_accepted_params = { }
+    nve_rejected_params = { }
 
-    integrator_base_params_list.extend([paramtuple(nve_dict1,
-                                                    nve_dict2,
-                                                    nve_dict3,
-                                                    nve_dict4,
+    method_base_params_list.extend([paramtuple(nve_setup_params,
+                                                    nve_extra_params,
+                                                    nve_accepted_params,
+                                                    nve_rejected_params,
                                                     hoomd.md.methods.NVE)])
 
-    return integrator_base_params_list
+    return method_base_params_list
 
 
-@pytest.fixture(scope="function", params=_integrator_base_params(), ids=(lambda x: x[4].__name__))
-def integrator_base_params(request):
+@pytest.fixture(scope="function", params=_method_base_params(), ids=(lambda x: x[4].__name__))
+def method_base_params(request):
     return deepcopy(request.param)
 
-def test_attributes(integrator_base_params):
+def test_attributes(method_base_params):
 
     all_ = hoomd.filter.All()
-    integrator = integrator_base_params.integrator(**integrator_base_params.setup_params,filter=all_)
+    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
     assert integrator.filter is all_
 
-    for pair in integrator_base_params.setup_params:
-        attr = integrator_base_params.setup_params[pair]
+    for pair in method_base_params.setup_params:
+        attr = method_base_params.setup_params[pair]
         if isinstance(attr,list):
             list_attr = integrator._getattr_param(pair)
             assert len(list_attr) == 6
@@ -118,21 +118,21 @@ def test_attributes(integrator_base_params):
         else:
             assert integrator._getattr_param(pair) == attr
 
-    for pair in integrator_base_params.extra_params:
-        attr = integrator_base_params.extra_params[pair]
+    for pair in method_base_params.extra_params:
+        attr = method_base_params.extra_params[pair]
         assert integrator._getattr_param(pair) == attr
 
     type_A = hoomd.filter.Type(['A'])
     integrator.filter = type_A
     assert integrator.filter is type_A
 
-    for pair in integrator_base_params.rejected_params:
-        attr = integrator_base_params.rejected_params[pair]
+    for pair in method_base_params.rejected_params:
+        attr = method_base_params.rejected_params[pair]
         integrator._setattr_param(pair,attr)
         assert integrator._getattr_param(pair) == attr
 
-    for pair in integrator_base_params.accepted_params:
-        attr = integrator_base_params.accepted_params[pair]
+    for pair in method_base_params.accepted_params:
+        attr = method_base_params.accepted_params[pair]
         integrator._setattr_param(pair,attr)
         if isinstance(attr,list):
             list_attr = integrator._getattr_param(pair)
@@ -144,10 +144,10 @@ def test_attributes(integrator_base_params):
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
-                                integrator_base_params):
+                                method_base_params):
 
     all_ = hoomd.filter.All()
-    integrator = integrator_base_params.integrator(**integrator_base_params.setup_params,filter=all_)
+    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
@@ -155,8 +155,8 @@ def test_attributes_attached(simulation_factory,
 
     assert integrator.filter is all_
 
-    for pair in integrator_base_params.setup_params:
-        attr = integrator_base_params.setup_params[pair]
+    for pair in method_base_params.setup_params:
+        attr = method_base_params.setup_params[pair]
         if isinstance(attr,list) or isinstance(attr, tuple):
             list_attr = integrator._getattr_param(pair)
             assert len(list_attr) == 6
@@ -165,8 +165,8 @@ def test_attributes_attached(simulation_factory,
         else:
             assert integrator._getattr_param(pair) == attr
 
-    for pair in integrator_base_params.extra_params:
-        attr = integrator_base_params.extra_params[pair]
+    for pair in method_base_params.extra_params:
+        attr = method_base_params.extra_params[pair]
         assert integrator._getattr_param(pair) == attr
 
 
@@ -176,16 +176,16 @@ def test_attributes_attached(simulation_factory,
         # filter cannot be set after scheduling
         integrator.filter = type_A
 
-    for pair in integrator_base_params.rejected_params:
-        attr = integrator_base_params.rejected_params[pair]
+    for pair in method_base_params.rejected_params:
+        attr = method_base_params.rejected_params[pair]
         with pytest.raises(AttributeError):
             # cannot be set after scheduling
             integrator._setattr_param(pair,attr)
         assert integrator._getattr_param(pair) == integrator_base_params.setup_params[pair]
 
 
-    for pair in integrator_base_params.accepted_params:
-        attr = integrator_base_params.accepted_params[pair]
+    for pair in method_base_params.accepted_params:
+        attr = method_base_params.accepted_params[pair]
         integrator._setattr_param(pair,attr)
         if isinstance(attr, list) or isinstance(attr, tuple):
             list_attr = integrator._getattr_param(pair)
@@ -197,45 +197,45 @@ def test_attributes_attached(simulation_factory,
 
 
 def _rattle_base_params():
-    integrator_base_params_list = []
+    method_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
 
-    langevin_dict1 = {'kT': hoomd.variant.Constant(2.0) }
-    langevin_dict2 = {'alpha': None, 'eta': 1e-6, 'tally_reservoir_energy': False }
-    langevin_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    langevin_extra_params = {'alpha': None, 'eta': 1e-6, 'tally_reservoir_energy': False }
+    langevin_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
             'alpha': None, 'eta': 1e-5, 'tally_reservoir_energy': True }
-    langevin_dict4 = {}
+    langevin_rejected_params = {}
 
-    integrator_base_params_list.extend([paramtuple(langevin_dict1,
-                                                    langevin_dict2,
-                                                    langevin_dict3,
-                                                    langevin_dict4,
+    method_base_params_list.extend([paramtuple(langevin_setup_params,
+                                                    langevin_extra_params,
+                                                    langevin_accepted_params,
+                                                    langevin_rejected_params,
                                                     hoomd.md.methods.Langevin)])
 
-    brownian_dict1 = {'kT': hoomd.variant.Constant(2.0) }
-    brownian_dict2 = {'alpha': None,  'eta': 1e-6}
-    brownian_dict3 = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    brownian_extra_params = {'alpha': None,  'eta': 1e-6}
+    brownian_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
             'alpha': 0.125, 'eta': 1e-5}
-    brownian_dict4 = {}
+    brownian_rejected_params = {}
 
-    integrator_base_params_list.extend([paramtuple(brownian_dict1,
-                                                    brownian_dict2,
-                                                    brownian_dict3,
-                                                    brownian_dict4,
+    method_base_params_list.extend([paramtuple(brownian_setup_params,
+                                                    brownian_extra_params,
+                                                    brownian_accepted_params,
+                                                    brownian_rejected_params,
                                                     hoomd.md.methods.Brownian)])
 
-    nve_dict1 = { }
-    nve_dict2 = { 'eta': 1e-6}
-    nve_dict3 = { 'eta': 1e-5}
-    nve_dict4 = { }
+    nve_setup_params = { }
+    nve_extra_params = { 'eta': 1e-6}
+    nve_accepted_params = { 'eta': 1e-5}
+    nve_rejected_params = { }
 
-    integrator_base_params_list.extend([paramtuple(nve_dict1,
-                                                    nve_dict2,
-                                                    nve_dict3,
-                                                    nve_dict4,
+    method_base_params_list.extend([paramtuple(nve_setup_params,
+                                                    nve_extra_params,
+                                                    nve_accepted_params,
+                                                    nve_rejected_params,
                                                     hoomd.md.methods.NVE)])
 
-    return integrator_base_params_list
+    return method_base_params_list
 
 
 @pytest.fixture(scope="function", params=_rattle_base_params(), ids=(lambda x: x[4].__name__))
@@ -246,7 +246,7 @@ def test_rattle_attributes(rattle_base_params):
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = rattle_base_params.integrator(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    integrator = rattle_base_params.method(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
 
     assert integrator.filter is all_
     assert integrator.manifold_constraint is gyroid
@@ -283,7 +283,7 @@ def test_rattle_attributes_attached(simulation_factory,
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = rattle_base_params.integrator(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    integrator = rattle_base_params.method(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
