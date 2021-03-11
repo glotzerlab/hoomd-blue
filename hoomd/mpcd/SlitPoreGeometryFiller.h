@@ -35,7 +35,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFille
                                Scalar density,
                                unsigned int type,
                                std::shared_ptr<::Variant> T,
-                               unsigned int seed,
+                               uint16_t seed,
                                std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom);
 
         virtual ~SlitPoreGeometryFiller();
@@ -58,7 +58,7 @@ class PYBIND11_EXPORT SlitPoreGeometryFiller : public mpcd::VirtualParticleFille
         virtual void computeNumFill();
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
 
     private:
         bool m_needs_recompute;

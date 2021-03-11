@@ -90,7 +90,7 @@ void LogPlainTXT::setDelimiter(const std::string& delimiter)
     Writes a single line of output to the log file with each specified quantity separated by
     the delimiter;
 */
-void LogPlainTXT::analyze(unsigned int timestep)
+void LogPlainTXT::analyze(uint64_t timestep)
     {
     // do nothing if we do not output to a file
     if (!m_file_output)

@@ -60,7 +60,7 @@ class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCo
         GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Export the AngleForceComputeGPU class to python

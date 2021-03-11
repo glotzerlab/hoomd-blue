@@ -102,7 +102,7 @@ TwoStepNPTMTK::~TwoStepNPTMTK()
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Martyna-Tobias-Klein barostat and thermostat
 */
-void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
+void TwoStepNPTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -396,7 +396,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNPTMTK::integrateStepTwo(unsigned int timestep)
+void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -517,7 +517,7 @@ std::vector< std::string > TwoStepNPTMTK::getProvidedLogQuantities()
     \param timestep Current time step of the simulation
     \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
-Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
     {
     if (quantity == m_log_names[0])
         {
@@ -720,7 +720,7 @@ std::vector<bool> TwoStepNPTMTK::getFlags()
     }
 
 //! Helper function to advance the barostat parameters
-void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
+void TwoStepNPTMTK::advanceBarostat(uint64_t timestep)
     {
     // compute thermodynamic properties at full time step
     m_thermo_full_step->compute(timestep);
@@ -834,7 +834,7 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     setIntegratorVariables(v);
     }
 
-void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
+void TwoStepNPTMTK::advanceThermostat(uint64_t timestep)
     {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& eta = v.variable[0];
@@ -981,14 +981,21 @@ TwoStepNPTMTK::couplingMode TwoStepNPTMTK::getRelevantCouplings()
     return couple;
     }
 
-void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(unsigned int seed, unsigned int timestep)
+void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
     {
     m_exec_conf->msg->notice(6) << "TwoStepNPTMTK randomizing thermostat and barostat DOF"
         << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNPTMTK, seed, timestep);
+    unsigned int instance_id = 0;
+    if (m_group->getNumMembersGlobal() > 0)
+        instance_id = m_group->getMemberTag(0);
+
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNPTMTK,
+                                           timestep,
+                                           m_sysdef->getSeed()),
+                               hoomd::Counter(instance_id));
 
     bool master = m_exec_conf->getRank() == 0;
 

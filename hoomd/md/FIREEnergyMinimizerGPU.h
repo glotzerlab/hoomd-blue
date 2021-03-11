@@ -36,7 +36,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
         virtual ~FIREEnergyMinimizerGPU() {}
 
         //! Iterates forward one step
-        virtual void update(unsigned int);
+        virtual void update(uint64_t timestep);
 
     protected:
         unsigned int m_nparticles;              //!< number of particles in the system

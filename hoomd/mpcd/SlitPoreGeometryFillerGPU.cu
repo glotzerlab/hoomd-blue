@@ -54,8 +54,8 @@ __global__ void slit_pore_draw_particles(Scalar4 *d_pos,
                                          const unsigned int first_tag,
                                          const unsigned int first_idx,
                                          const Scalar vel_factor,
-                                         const unsigned int timestep,
-                                         const unsigned int seed)
+                                         const uint64_t timestep,
+                                         const uint16_t seed)
     {
     // num_boxes should be 6, so this will all fit in shmem
     extern __shared__ char s_data[];
@@ -100,7 +100,8 @@ __global__ void slit_pore_draw_particles(Scalar4 *d_pos,
     d_tag[pidx] = tag;
 
     // initialize random number generator for positions and velocity
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitPoreGeometryFiller, seed, tag, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitPoreGeometryFiller, timestep, seed),
+                               hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
@@ -151,8 +152,8 @@ cudaError_t slit_pore_draw_particles(Scalar4 *d_pos,
                                      const unsigned int first_tag,
                                      const unsigned int first_idx,
                                      const Scalar kT,
-                                     const unsigned int timestep,
-                                     const unsigned int seed,
+                                     const uint64_t timestep,
+                                     const uint16_t seed,
                                      const unsigned int block_size)
     {
     if (N_tot == 0) return cudaSuccess;

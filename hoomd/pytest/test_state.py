@@ -119,9 +119,8 @@ def assert_snapshots_equal(s1, s2):
         numpy.testing.assert_allclose(s1.constraints.value, s2.constraints.value)
         numpy.testing.assert_equal(s1.constraints.group, s2.constraints.group)
 
-def test_create_from_snapshot(device, snap):
-    sim = Simulation(device)
-    sim.create_state_from_snapshot(snap)
+def test_create_from_snapshot(simulation_factory, snap):
+    sim = simulation_factory(snap)
 
     if snap.exists:
         assert sim.state.particle_types == snap.particles.types
@@ -134,16 +133,16 @@ def test_create_from_snapshot(device, snap):
         # assert
         # TODO: what other state properties should be accessible and valid here?
 
-def test_get_snapshot(device, snap):
-    sim = Simulation(device)
+def test_get_snapshot(simulation_factory, snap):
+    sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
     snap2 = sim.state.snapshot
     assert_snapshots_equal(snap, snap2)
 
 
-def test_modify_snapshot(device, snap):
-    sim = Simulation(device)
+def test_modify_snapshot(simulation_factory, snap):
+    sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
     if snap.exists:
@@ -166,8 +165,7 @@ def test_thermalize_particle_velocity(simulation_factory,
     snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5,
-                                          seed=1)
+                                          kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:
@@ -196,8 +194,7 @@ def test_thermalize_angular_momentum(simulation_factory,
 
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5,
-                                          seed=1)
+                                          kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:

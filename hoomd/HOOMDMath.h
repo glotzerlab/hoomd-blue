@@ -480,7 +480,7 @@ inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     #endif
     }
 
-//! Compute both of sin of x and cos of x with dobule precision
+//! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     {
     #if defined(__HIP_DEVICE_COMPILE__)
@@ -492,20 +492,20 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     #endif
     }
 
-//! Compute the pow of x,y
+//! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE float pow(float x, float y)
     {
     #ifdef __HIP_DEVICE_COMPILE__
-    return __powf(x, y);
+    return __expf(y * __logf(x));
     #else
-    return ::powf(x, y);
+    return ::expf(y * logf(x));
     #endif
     }
 
-//! Compute the sin of x
+//! Compute the pow of x,y with double precision via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE double pow(double x, double y)
     {
-    return ::pow(x, y);
+    return ::exp(y * log(x));
     }
 
 //! Compute the exp of x
@@ -530,7 +530,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return __logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 
@@ -693,7 +693,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 

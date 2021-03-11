@@ -89,13 +89,13 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Get needed pdata flags
         /*! in anisotropic mode, we need the rotational kinetic energy
@@ -122,7 +122,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             }
 
         /// Randomize the thermostat variables
-        void thermalizeThermostatDOF(unsigned int seed, unsigned int timestep);
+        void thermalizeThermostatDOF(uint64_t timestep);
 
         /// Get the translational thermostat degrees of freedom
         pybind11::tuple getTranslationalThermostatDOF();
@@ -149,7 +149,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */
-        void advanceThermostat(unsigned int timestep, bool broadcast=true);
+        void advanceThermostat(uint64_t timestep, bool broadcast=true);
     };
 
 //! Exports the TwoStepNVTMTK class to python

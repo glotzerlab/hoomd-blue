@@ -40,7 +40,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         ~ExternalCallback() { }
 
         //! Compute Boltzmann weight exp(-U) of current configuration
-        Scalar calculateBoltzmannWeight(unsigned int timestep)
+        Scalar calculateBoltzmannWeight(uint64_t timestep)
             {
             auto snap = takeSnapshot();
             double energy = getEnergy(snap);
@@ -80,7 +80,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             }
 
         // does nothing
-        void compute(unsigned int timestep) { }
+        void compute(uint64_t timestep) { }
 
         // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,

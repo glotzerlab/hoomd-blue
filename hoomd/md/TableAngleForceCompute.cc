@@ -119,7 +119,7 @@ std::vector< std::string > TableAngleForceCompute::getProvidedLogQuantities()
     return list;
     }
 
-Scalar TableAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar TableAngleForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -136,7 +136,7 @@ Scalar TableAngleForceCompute::getLogValue(const std::string& quantity, unsigned
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void TableAngleForceCompute::computeForces(unsigned int timestep)
+void TableAngleForceCompute::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute

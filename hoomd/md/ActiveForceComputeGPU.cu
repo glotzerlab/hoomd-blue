@@ -162,8 +162,8 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    const Scalar rz,
                                                    bool is2D,
                                                    const Scalar rotationConst,
-                                                   const unsigned int timestep,
-                                                   const int seed)
+                                                   const uint64_t timestep,
+                                                   const uint16_t seed)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
@@ -176,7 +176,10 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     quat<Scalar> quati( __ldg(d_orientation + idx));
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ActiveForceCompute, seed, ptag, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
+                                            timestep,
+                                            seed),
+                                hoomd::Counter(ptag));
 
     if (is2D) // 2D
         {
@@ -322,8 +325,8 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                        const Scalar rz,
                                                        bool is2D,
                                                        const Scalar rotationConst,
-                                                       const unsigned int timestep,
-                                                       const int seed,
+                                                       const uint64_t timestep,
+                                                       const uint16_t seed,
                                                        unsigned int block_size)
     {
     // setup the grid to run the kernel

@@ -109,10 +109,10 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
         GlobalArray<unsigned int> m_req_size_nlist;    //!< Flag to hold the required size of the neighborlist
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
         //! Perform the nlist distance check on the GPU
-        virtual bool distanceCheck(unsigned int timestep);
+        virtual bool distanceCheck(uint64_t timestep);
 
         //! GPU nlists set their last updated pos in the compute kernel, this call only resets the last box length
         virtual void setLastUpdatedPos()
