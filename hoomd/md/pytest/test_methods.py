@@ -110,13 +110,15 @@ def test_attributes(method_base_params):
 
     for parameter in method_base_params.setup_params:
         attr = method_base_params.setup_params[parameter]
+        get_attr = getattr(integrator,parameter)
         if isinstance(attr,list):
-            list_attr = getattr(integrator,parameter)
-            assert len(list_attr) == 6
-            for i in range(6):
-                assert list_attr[i] == attr[i]
+            list_length = len(get_attr)
+            if parameter == 'S':
+                assert list_length == 6
+            for i in range(list_length):
+                assert get_attr[i] == attr[i]
         else:
-            assert getattr(integrator,parameter) == attr
+            assert get_attr == attr
 
     for parameter in method_base_params.extra_params:
         attr = method_base_params.extra_params[parameter]
@@ -134,13 +136,15 @@ def test_attributes(method_base_params):
     for parameter in method_base_params.accepted_params:
         attr = method_base_params.accepted_params[parameter]
         setattr(integrator,parameter,attr)
+        get_attr = getattr(integrator,parameter)
         if isinstance(attr,list):
-            list_attr = getattr(integrator,parameter)
-            assert len(list_attr) == 6
-            for i in range(6):
-                assert list_attr[i] == attr[i]
+            list_length = len(get_attr)
+            if parameter == 'S':
+                assert list_length == 6
+            for i in range(list_length):
+                assert get_attr[i] == attr[i]
         else:
-            assert getattr(integrator,parameter) == attr
+            assert get_attr == attr
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -157,13 +161,15 @@ def test_attributes_attached(simulation_factory,
 
     for parameter in method_base_params.setup_params:
         attr = method_base_params.setup_params[parameter]
+        get_attr = getattr(integrator,parameter)
         if isinstance(attr,list):
-            list_attr = getattr(integrator,parameter)
-            assert len(list_attr) == 6
-            for i in range(6):
-                assert list_attr[i] == attr[i]
+            list_length = len(get_attr)
+            if parameter == 'S':
+                assert list_length == 6
+            for i in range(list_length):
+                assert get_attr[i] == attr[i]
         else:
-            assert getattr(integrator,parameter) == attr
+            assert get_attr == attr
 
     for parameter in method_base_params.extra_params:
         attr = method_base_params.extra_params[parameter]
@@ -187,12 +193,15 @@ def test_attributes_attached(simulation_factory,
     for parameter in method_base_params.accepted_params:
         attr = method_base_params.accepted_params[parameter]
         setattr(integrator,parameter,attr)
-        if isinstance(attr, list) or isinstance(attr, tuple):
-            list_attr = getattr(integrator,parameter)
-            for i in range(len(attr)):
-                assert list_attr[i] == attr[i]
+        get_attr = getattr(integrator,parameter)
+        if isinstance(attr,list):
+            list_length = len(get_attr)
+            if parameter == 'S':
+                assert list_length == 6
+            for i in range(list_length):
+                assert get_attr[i] == attr[i]
         else:
-            assert getattr(integrator,parameter) == attr
+            assert get_attr == attr
 
 
 
