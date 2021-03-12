@@ -205,133 +205,101 @@ def test_attributes_attached(simulation_factory,
 
 
 
-def _rattle_base_params():
-    method_base_params_list = []
-    # Start with valid parameters to get the keys and placeholder values
-
-    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0) }
-    langevin_extra_params = {'alpha': None, 'eta': 1e-6, 'tally_reservoir_energy': False }
-    langevin_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
-            'alpha': None, 'eta': 1e-5, 'tally_reservoir_energy': True }
-    langevin_rejected_params = {}
-
-    method_base_params_list.extend([paramtuple(langevin_setup_params,
-                                                    langevin_extra_params,
-                                                    langevin_accepted_params,
-                                                    langevin_rejected_params,
-                                                    hoomd.md.methods.Langevin)])
-
-    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0) }
-    brownian_extra_params = {'alpha': None,  'eta': 1e-6}
-    brownian_accepted_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
-            'alpha': 0.125, 'eta': 1e-5}
-    brownian_rejected_params = {}
-
-    method_base_params_list.extend([paramtuple(brownian_setup_params,
-                                                    brownian_extra_params,
-                                                    brownian_accepted_params,
-                                                    brownian_rejected_params,
-                                                    hoomd.md.methods.Brownian)])
-
-    nve_setup_params = { }
-    nve_extra_params = { 'eta': 1e-6}
-    nve_accepted_params = { 'eta': 1e-5}
-    nve_rejected_params = { }
-
-    method_base_params_list.extend([paramtuple(nve_setup_params,
-                                                    nve_extra_params,
-                                                    nve_accepted_params,
-                                                    nve_rejected_params,
-                                                    hoomd.md.methods.NVE)])
-
-    return method_base_params_list
-
-
-@pytest.fixture(scope="function", params=_rattle_base_params(), ids=(lambda x: x[4].__name__))
-def rattle_base_params(request):
-    return deepcopy(request.param)
-
-def test_rattle_attributes(rattle_base_params):
+def test_rattle_attributes(method_base_params):
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = rattle_base_params.method(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    try:
+        integrator = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    except TypeError:
+        pass
+    else:
+        assert integrator.filter is all_
+        assert integrator.manifold_constraint is gyroid
+        assert integrator.eta == 1e-6
 
-    assert integrator.filter is all_
-    assert integrator.manifold_constraint is gyroid
+        for parameter in method_base_params.setup_params:
+            attr = method_base_params.setup_params[parameter]
+            assert getattr(integrator,parameter) == attr
 
-    for parameter in rattle_base_params.setup_params:
-        attr = rattle_base_params.setup_params[parameter]
-        assert getattr(integrator,parameter) == attr
+        for parameter in method_base_params.extra_params:
+            attr = method_base_params.extra_params[parameter]
+            assert getattr(integrator,parameter) == attr
 
-    for parameter in rattle_base_params.extra_params:
-        attr = rattle_base_params.extra_params[parameter]
-        assert getattr(integrator,parameter) == attr
+        type_A = hoomd.filter.Type(['A'])
+        integrator.filter = type_A
+        assert integrator.filter is type_A
 
-    type_A = hoomd.filter.Type(['A'])
-    integrator.filter = type_A
-    assert integrator.filter is type_A
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        integrator.manifold_constraint = sphere
+        assert integrator.manifold_constraint is sphere
 
-    sphere = hoomd.md.manifold.Sphere(r=10)
-    integrator.manifold_constraint = sphere
-    assert integrator.manifold_constraint is sphere
+        integrator.eta = 1e-5
+        assert integrator.eta == 1e-5
 
-    for parameter in rattle_base_params.rejected_params:
-        attr = rattle_base_params.rejected_params[parameter]
-        setattr(integrator,parameter,attr)
-        assert getattr(integrator,parameter) == attr
+        for parameter in method_base_params.rejected_params:
+            attr = method_base_params.rejected_params[parameter]
+            setattr(integrator,parameter,attr)
+            assert getattr(integrator,parameter) == attr
 
-    for parameter in rattle_base_params.accepted_params:
-        attr = rattle_base_params.accepted_params[parameter]
-        setattr(integrator,parameter,attr)
-        assert getattr(integrator,parameter) == attr
+        for parameter in method_base_params.accepted_params:
+            attr = method_base_params.accepted_params[parameter]
+            setattr(integrator,parameter,attr)
+            assert getattr(integrator,parameter) == attr
 
 def test_rattle_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
-                                rattle_base_params):
+                                method_base_params):
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = rattle_base_params.method(**rattle_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    try:
+        integrator = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    except TypeError:
+        pass
+    else:
+        sim = simulation_factory(two_particle_snapshot_factory())
+        sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
+        sim.run(0)
 
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
-    sim.run(0)
+        assert integrator.filter is all_
+        assert integrator.manifold_constraint is gyroid
+        assert integrator.eta == 1e-6
 
-    assert integrator.filter is all_
-    assert integrator.manifold_constraint is gyroid
+        for parameter in method_base_params.setup_params:
+            attr = method_base_params.setup_params[parameter]
+            assert getattr(integrator,parameter) == attr
 
-    for parameter in rattle_base_params.setup_params:
-        attr = rattle_base_params.setup_params[parameter]
-        assert getattr(integrator,parameter) == attr
+        for parameter in method_base_params.extra_params:
+            attr = method_base_params.extra_params[parameter]
+            assert getattr(integrator,parameter) == attr
 
-    for parameter in rattle_base_params.extra_params:
-        attr = rattle_base_params.extra_params[parameter]
-        assert getattr(integrator,parameter) == attr
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        integrator.filter = type_A
-
-    sphere = hoomd.md.manifold.Sphere(r=10)
-    with pytest.raises(AttributeError):
-        # manifold cannot be set after scheduling
-        integrator.manifold_constraint = sphere
-    assert integrator.manifold_constraint is gyroid
-
-    for parameter in rattle_base_params.rejected_params:
-        attr = rattle_base_params.rejected_params[parameter]
+        type_A = hoomd.filter.Type(['A'])
         with pytest.raises(AttributeError):
-            # cannot be set after scheduling
+            # filter cannot be set after scheduling
+            integrator.filter = type_A
+
+        sphere = hoomd.md.manifold.Sphere(r=10)
+        with pytest.raises(AttributeError):
+            # manifold cannot be set after scheduling
+            integrator.manifold_constraint = sphere
+        assert integrator.manifold_constraint is gyroid
+        
+        integrator.eta = 1e-5
+        assert integrator.eta == 1e-5
+
+        for parameter in method_base_params.rejected_params:
+            attr = method_base_params.rejected_params[parameter]
+            with pytest.raises(AttributeError):
+                # cannot be set after scheduling
+                setattr(integrator,parameter,attr)
+            assert getattr(integrator,parameter) == method_base_params.setup_params[parameter]
+
+
+        for parameter in method_base_params.accepted_params:
+            attr = method_base_params.accepted_params[parameter]
             setattr(integrator,parameter,attr)
-        assert getattr(integrator,parameter) == rattle_base_params.setup_params[parameter]
-
-
-    for parameter in rattle_base_params.accepted_params:
-        attr = rattle_base_params.accepted_params[parameter]
-        setattr(integrator,parameter,attr)
-        assert getattr(integrator,parameter) == attr
+            assert getattr(integrator,parameter) == attr
 
 
 
