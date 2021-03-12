@@ -287,7 +287,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
         virial4 -= 0.5*mu*(normal.y*postype.z+normal.z*postype.y);
         virial5 -= mu*normal.z*postype.z;
 
-        d_f_brownian[tag] = brownian_force;
+        d_f_brownian[group_idx] = brownian_force;
 
         d_net_force[idx] = net_force;
         d_net_virial[0*net_virial_pitch+idx] = virial0;
