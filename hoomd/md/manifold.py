@@ -40,6 +40,10 @@ class Manifold(_HOOMDBaseObject):
 
         self.name = None
 
+    def _attach(self):
+        self._apply_param_dict()
+        self._apply_typeparam_dict(self._cpp_obj, self._simulation)
+
 
 class Cylinder(Manifold):
     R""" Cylinder manifold.
@@ -64,7 +68,7 @@ class Cylinder(Manifold):
         cylinder1 = manifold.Cylinder(r=10)
         cylinder2 = manifold.Cylinder(r=5,P=(1,1,1))
     """
-    def __init__(self,r, P=[0,0,0] ):
+    def __init__(self,r, P=(0,0,0) ):
         # initialize the base class
         super().__init__();
         param_dict = ParameterDict(
@@ -109,7 +113,7 @@ class Diamond(Manifold):
         F(x,y,z) = \cos{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} - \sin{\frac{2 \pi}{L_x} x}\cdot\sin{\frac{2 \pi}{L_y} y}\cdot\sin{\frac{2 \pi}{L_z} z}
 
     is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -166,7 +170,7 @@ class Ellipsoid(Manifold):
         ellipsoid1 = manifold.Ellipsoid(a=10,b=5,c=5)
         ellipsoid2 = manifold.Ellipsoid(a=5,b=10,c=10,P=(1,0.5,1))
     """
-    def __init__(self,a,b,c, P=[0,0,0] ):
+    def __init__(self,a,b,c, P=(0,0,0) ):
         # initialize the base class
         super().__init__();
         # store metadata
@@ -213,7 +217,7 @@ class Gyroid(Manifold):
         F(x,y,z) = \sin{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y} + \sin{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} + \sin{\frac{2 \pi}{L_z} z}\cdot\cos{\frac{2 \pi}{L_x} x}
     
     is the nodal approximation of the gyroid surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -310,7 +314,7 @@ class Primitive(Manifold):
         F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} + \cos{\frac{2 \pi}{L_y} y} + \cos{\frac{2 \pi}{L_z} z}
 
     is the nodal approximation of the primitive surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -367,7 +371,7 @@ class Sphere(Manifold):
         sphere1 = manifold.Sphere(r=10)
         sphere2 = manifold.Sphere(r=5,P=(1,0,1.5))
     """
-    def __init__(self,r, P=[0,0,0] ):
+    def __init__(self,r, P=(0,0,0) ):
         # initialize the base class
         super().__init__();
         param_dict = ParameterDict(

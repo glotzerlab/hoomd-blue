@@ -424,7 +424,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
 	if(iteration == maxiteration)
 	{
         m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
-	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	<< "It is recomended to change the initial configuration or lower the step size." << endl;
 	}
 
            // then, update the velocity
@@ -563,7 +563,7 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
 	if(iteration == maxiteration)
 	{
         m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
-	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	<< "It is recomended to change the initial configuration or lower the step size." << endl;
 	}
 
 	h_net_force.data[j].x -= lambda*normal.x;

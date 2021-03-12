@@ -475,7 +475,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
 	if(iteration == maxiteration)
 	{
         m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
-	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	<< "It is recomended to change the initial configuration or lower the step size." << endl;
 
 	}
 
@@ -666,7 +666,7 @@ void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(uint64_t timestep)
 	if(iteration == maxiteration)
 	{
         m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
-	<< "It is recomended to change the initial configuration or lower the timestep." << endl;
+	<< "It is recomended to change the initial configuration or lower the step size." << endl;
 
 	}
 
