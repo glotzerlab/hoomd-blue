@@ -78,7 +78,7 @@ class ManifoldSphere
         }
 
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE bool adjust_to_box(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
@@ -87,11 +87,11 @@ class ManifoldSphere
                 Py + sqR > hi.y || Py - sqR < lo.y ||
                 Pz + sqR > hi.z || Pz - sqR < lo.z)
                 {
-                return true;
+                return false; // Sphere does not fit inside box
                 }
                 else
-                {
-                return false;
+                { 
+                return true;
                 }
         }
 

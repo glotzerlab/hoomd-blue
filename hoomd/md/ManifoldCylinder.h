@@ -78,7 +78,7 @@ class ManifoldCylinder
             return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 0);
         }
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE bool adjust_to_box(const BoxDim& box)
         {
          Scalar3 lo = box.getLo();
          Scalar3 hi = box.getHi();
@@ -87,11 +87,11 @@ class ManifoldCylinder
              Py + sqR > hi.y || Py - sqR < lo.y ||
              Pz > hi.z || Pz < lo.z)
             {
-            return true;
+            return false; // Cylinder does not fit inside box
             }
             else
             { 
-            return false;
+            return true;
             }
         }
 

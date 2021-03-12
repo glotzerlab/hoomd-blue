@@ -121,6 +121,13 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
 
     // access all the needed data
     BoxDim box = this->m_pdata->getBox();
+
+    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
+
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);

@@ -82,7 +82,7 @@ class ManifoldEllipsoid
             return make_scalar3(2*inv_a2*(point.x - Px), 2*inv_b2*(point.y - Py), 2*inv_c2*(point.z - Pz));
         }
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE bool adjust_to_box(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
@@ -94,11 +94,11 @@ class ManifoldEllipsoid
                 Py + ib > hi.y || Py - ib < lo.y ||
                 Pz + ic > hi.z || Pz - ic < lo.z)
                 {
-                return true;
+                return false; // Ellipsoid does not fit inside box
                 }
                 else 
                 {
-                return false;
+                return true;
                 }
         }
 

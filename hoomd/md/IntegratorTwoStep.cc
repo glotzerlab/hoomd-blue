@@ -149,7 +149,7 @@ void IntegratorTwoStep::update(uint64_t timestep)
     for (auto& method : m_methods)
     {
         method->integrateStepTwo(timestep);
-        method->includeRATTLEForce(timestep);
+        method->includeRATTLEForce(timestep+1);
     }
 
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated

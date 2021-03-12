@@ -118,9 +118,9 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    bool manifold_error = m_manifold.validate(m_pdata->getBox());
+    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
 
-    if( manifold_error){
+    if( !manifold_adjusted){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -193,6 +193,12 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
     ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+
+    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
 
     uint16_t seed = m_sysdef->getSeed();
 

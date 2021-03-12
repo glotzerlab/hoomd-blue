@@ -87,8 +87,15 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "BD step 1");
 
-    // access all the needed data
     BoxDim box = this->m_pdata->getBox();
+    
+    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
+
+    // access all the needed data
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = this->m_group->getNumMembers();
     const unsigned int D = this->m_sysdef->getNDimensions();

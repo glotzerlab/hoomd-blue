@@ -84,19 +84,15 @@ class ManifoldGyroid
             return make_scalar3(Lx*(cx*cy - sz*sx),Ly*(cy*cz - sx*sy), Lz*(cz*cx - sy*sz));
         }
 
-        DEVICE void adjust_to_box(const BoxDim& box)
+        DEVICE bool adjust_to_box(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
-        
+
             Lx = 2*M_PI*Nx/box_length.x;
             Ly = 2*M_PI*Ny/box_length.y;
             Lz = 2*M_PI*Nz/box_length.z;
-        }
 
-        DEVICE bool validate(const BoxDim& box)
-        {
-            adjust_to_box(box);
-            return false; //Diamond surface is always accepted
+            return true; //Gyroid surface is adjusted to box and, therefore, is always accepted
         }
 
         static unsigned int dimension()

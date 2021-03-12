@@ -123,9 +123,9 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
 
-    bool manifold_error = m_manifold.validate(m_pdata->getBox());
+    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
 
-    if( manifold_error){
+    if( !manifold_adjusted){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -164,6 +164,14 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+    const BoxDim& box = m_pdata->getBox();
+
+    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-lambda*n_manifold(x(t))/m)
@@ -208,9 +216,6 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
         h_pos.data[j].z += dz;
 
         }
-
-    // particles may have been moved slightly outside the box by the above steps, wrap them back into place
-    const BoxDim& box = m_pdata->getBox();
 
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 

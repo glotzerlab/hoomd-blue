@@ -146,9 +146,9 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
-    bool manifold_error = m_manifold.validate(m_pdata->getBox());
+    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
 
-    if( manifold_error){
+    if( !manifold_adjusted){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -179,6 +179,12 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepOne(uint64_t timestep)
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+    
+    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-alpha*n_manifold(x(t))/m)

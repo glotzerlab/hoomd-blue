@@ -125,6 +125,13 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
     BoxDim box = this->m_pdata->getBox();
+
+    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+
+    if( !manifold_adjusted){
+        throw std::runtime_error("Parts of the manifold are outside the box");
+    }
+
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // perform the update on the GPU

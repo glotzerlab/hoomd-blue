@@ -71,17 +71,17 @@ class ManifoldPlane
             return make_scalar3(0,0,1);
         }
 
-        DEVICE bool validate(const BoxDim& box)
+        DEVICE bool adjust_to_box(const BoxDim& box)
         {
         Scalar3 lo = box.getLo();
         Scalar3 hi = box.getHi();
         if (shift > hi.z || shift < lo.z)
             {
-            return true;
+            return false; // Plane does not fit inside box
             }
             else
             {
-            return false;
+            return true;
             }
         }
 
