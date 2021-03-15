@@ -31,6 +31,7 @@
 
 #ifdef ENABLE_TBB
 #include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
 #endif
 
 #ifndef NVCC
