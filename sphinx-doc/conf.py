@@ -72,6 +72,7 @@ autodoc_mock_imports = ['hoomd._hoomd',
                         'hoomd.dem._dem',
                         'hoomd.minimize._minimize',
                         'hoomd.hpmc._hpmc',
+                        'hoomd.hpmc._jit',
                         ]
 
 # Add any paths that contain templates here, relative to this directory.
