@@ -4,7 +4,7 @@
 import hoomd
 from hoomd.hpmc import integrate
 from hoomd import _hoomd
-from hoomd.jit import _jit
+from hoomd.hpmc import _jit
 from hoomd.operation import Compute
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
@@ -123,11 +123,11 @@ class JITCompute(Compute):
             self._clang_exec = clang
 
 
-class PatchCompute(JITCompute):
+class CPPPotentialBase(JITCompute):
     """Base class for all HOOMD JIT patch interaction between pairs of particles.
 
     Note:
-        Users should not invoke `PatchCompute` directly. The class can be used
+        Users should not invoke `CPPPotentialBase` directly. The class can be used
         for `isinstance` or `issubclass` checks. The attributes documented here
         are available to all patch computes.
 
@@ -135,15 +135,15 @@ class PatchCompute(JITCompute):
         Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
         the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
 
-        Classes derived from :py:class:`PatchCompute` take C++ code, JIT compiles it at run time and executes the code natively
+        Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT compiles it at run time and executes the code natively
         in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
-        interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`PatchCompute` provides a mechanism,
+        interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a mechanism,
         through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
         to recompile the patch energy code. These arrays are **read-only** during function evaluation.
 
         .. rubric:: C++ code
 
-        Classes derived from :py:class:`PatchCompute` will compile the code provided by the user and call it to evaluate
+        Classes derived from :py:class:`CPPPotentialBase` will compile the code provided by the user and call it to evaluate
         patch energies. Compilation assumes that a recent ``clang`` installation is on your PATH. This is convenient
         when the energy evaluation is simple or needs to be modified in python. More complex code (i.e. code that
         requires auxiliary functions or initialization of static data arrays) should be compiled outside of HOOMD
@@ -292,7 +292,7 @@ class PatchCompute(JITCompute):
         return cpp_function
 
 
-class UserPatch(PatchCompute):
+class CPPPotential(CPPPotentialBase):
     r'''Define an arbitrary patch energetic interaction between pairs of particles.
 
     Args:
@@ -318,7 +318,7 @@ class UserPatch(PatchCompute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.UserPatch(r_cut=1.1, code=square_well)
+        patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
         sim.operations += patch
         sim.run(1000)
 
@@ -333,7 +333,7 @@ class UserPatch(PatchCompute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.UserPatch(r_cut=1.1, array_size=2, code=square_well)
+        patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, array_size=2, code=square_well)
         patch.alpha_iso[:] = [1.1, 1.5] # [rcut, epsilon]
         sim.operations += patch
         sim.run(1000)
@@ -382,7 +382,7 @@ class UserPatch(PatchCompute):
         super()._attach()
 
 
-class UserUnionPatch(PatchCompute):
+class CPPUnionPotential(CPPPotentialBase):
     r'''Define an arbitrary patch energetic interaction between unions of particles.
 
     Args:
@@ -430,7 +430,7 @@ class UserUnionPatch(PatchCompute):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.UserUnionPatch(r_cut_union=1.1, code_union=square_well)
+        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_union=1.1, code_union=square_well)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.diameters['A'] =[0,0]
         patch.typeids['A'] =[0,0]
@@ -457,7 +457,7 @@ class UserUnionPatch(PatchCompute):
                                     return 0.0f;
                          """
 
-        patch = hoomd.jit.patch.UserUnionPatch(r_cut_union=2.5, code_union=square_well, array_size_union=2, \
+        patch = hoomd.jit.patch.CPPUnionPotential(r_cut_union=2.5, code_union=square_well, array_size_union=2, \
                                                r_cut=5, code=soft_repulsion, array_size=2)
         patch.positions['A'] = [(0,0,-5.),(0,0,.5)]
         patch.typeids['A'] = [0,0]

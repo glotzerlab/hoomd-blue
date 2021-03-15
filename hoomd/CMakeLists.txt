@@ -396,10 +396,6 @@ if (NOT ENABLE_HIP OR HIP_PLATFORM STREQUAL "nvcc")
     endif()
 endif()
 
-if (BUILD_JIT)
-    add_subdirectory(jit)
-endif()
-
 foreach(entry ${PLUGINS})
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
         add_subdirectory(${entry})
