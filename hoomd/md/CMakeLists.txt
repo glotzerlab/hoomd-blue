@@ -284,7 +284,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu
                       TwoStepBDGPU.cu
-		      TwoStepRATTLEBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
 		      TwoStepRATTLELangevinGPU.cu

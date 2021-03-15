@@ -7,11 +7,33 @@
 
 #include "ManifoldGyroid.h"
 
+template hipError_t gpu_rattle_brownian_step_one<ManifoldGyroid>(Scalar4 *d_pos,
+                                  int3 *d_image,
+                                  Scalar4 *d_vel,
+                                  const BoxDim& box,
+                                  const Scalar *d_diameter,
+                                  const unsigned int *d_tag,
+                                  const unsigned int *d_group_members,
+                                  const unsigned int group_size,
+                                  const Scalar4 *d_net_force,
+                                  const Scalar3 *d_gamma_r,
+                                  Scalar4 *d_orientation,
+                                  Scalar4 *d_torque,
+                                  const Scalar3 *d_inertia,
+                                  Scalar4 *d_angmom,
+                                  const rattle_bd_step_one_args& rattle_bd_args,
+				  ManifoldGyroid manifold,
+                                  const bool aniso,
+                                  const Scalar deltaT,
+                                  const unsigned int D,
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r,
+                                  const GPUPartition& gpu_partition
+                                  );
+
 
 template hipError_t gpu_include_rattle_force_bd<ManifoldGyroid>(const Scalar4 *d_pos,
-                                  Scalar4 *d_vel,
                                   Scalar4 *d_net_force,
-                                  Scalar3 *d_f_brownian,
                                   Scalar *d_net_virial,
                                   const Scalar *d_diameter,
                                   const unsigned int *d_tag,

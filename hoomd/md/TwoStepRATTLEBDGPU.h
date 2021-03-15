@@ -103,9 +103,9 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
 
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar3> d_f_brownian(this->m_f_brownian, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
@@ -150,22 +150,24 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     // perform the update on the GPU
     gpu_rattle_brownian_step_one(d_pos.data,
                           d_image.data,
+                          d_vel.data,
                           box,
                           d_diameter.data,
                           d_tag.data,
                           d_index_array.data,
                           group_size,
                           d_net_force.data,
-                          d_f_brownian.data,
                           d_gamma_r.data,
                           d_orientation.data,
                           d_torque.data,
                           d_inertia.data,
                           d_angmom.data,
                           args,
+                          this->m_manifold,
                           aniso,
                           this->m_deltaT,
                           D,
+                          this->m_noiseless_t,
                           this->m_noiseless_r,
                           this->m_group->getGPUPartition());
 
@@ -181,7 +183,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
 
 
 /*! \param timestep Current time step
-    \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
+    \post Forces are pre-calculated for pressure and virial calculations
 */
 template<class Manifold>
 void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
@@ -194,9 +196,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     const GlobalArray<Scalar>&  net_virial = this->m_pdata->getNetVirial();
 
     ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_f_brownian(this->m_f_brownian, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_gamma(this->m_gamma, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(this->m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -233,9 +233,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
 
     // perform the update on the GPU
     gpu_include_rattle_force_bd<Manifold>(d_pos.data,
-                          d_vel.data,
                           d_net_force.data,
-                          d_f_brownian.data,
                           d_net_virial.data,
                           d_diameter.data,
                           d_tag.data,
