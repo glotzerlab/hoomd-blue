@@ -26,7 +26,7 @@
 #endif
 
 #ifdef ENABLE_TBB
-#define TBB_PREVIEW_GLOBAL_CONTROL
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
 #include <tbb/global_control.h>
 #endif
 
