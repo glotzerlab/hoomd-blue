@@ -15,6 +15,6 @@ hpmc.pair
 
 .. rubric:: Details
 
-.. automodule:: hoomd.hpmc.update
+.. automodule:: hoomd.hpmc.pair
     :synopsis: Pair Potentials for Monte Carlo.
     :members: JITCompute, CPPPotentialBase, CPPPotential, CPPUnionPotential
