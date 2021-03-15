@@ -39,7 +39,7 @@ valid_constructor_args_union = [
 ]
 
 
-# setable attributes before attach for UserPatch objects
+# setable attributes before attach for CPPPotential objects
 valid_attrs = [('r_cut', 1.4),
                ('code', 'return -1;'),
                ('llvm_ir_file', 'code.ll'),
@@ -47,7 +47,7 @@ valid_attrs = [('r_cut', 1.4),
 ]
 
 
-# setable attributes before attach for UserUnionPatch objects
+# setable attributes before attach for CPPUnionPotential objects
 valid_attrs_union = valid_attrs + [ ('r_cut_union', 3.6),
                                     ('code_union', 'return -2;'),
                                     ('llvm_ir_file_union', 'code_union.ll'),
@@ -55,12 +55,12 @@ valid_attrs_union = valid_attrs + [ ('r_cut_union', 3.6),
 ]
 
 
-# setable attributes after attach for UserPatch objects
+# setable attributes after attach for CPPPotential objects
 valid_attrs_after_attach = [ ('r_cut', 1.3)
 ]
 
 
-# setable attributes after attach for UserUnionPatch objects
+# setable attributes after attach for CPPUnionPotential objects
 valid_attrs_after_attach_union = valid_attrs_after_attach + [ ('r_cut_union', 2),
                                                               ('leaf_capacity',3)
 ]
@@ -91,7 +91,7 @@ positions_orientations_result = [([(0,0,0),(1,0,0)], [(1,0,0,0),(1,0,0,0)],-1),
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_cpp_potential(device, constructor_args):
-    """Test that UserPatch can be constructed with valid arguments."""
+    """Test that CPPPotential can be constructed with valid arguments."""
     patch = hoomd.hpmc.pair.CPPPotential(**constructor_args)
 
     # validate the params were set properly
@@ -102,7 +102,7 @@ def test_valid_construction_cpp_potential(device, constructor_args):
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args_union)
 def test_valid_construction_cpp_union_potential(device, constructor_args):
-    """Test that UserUnionPatch can be constructed with valid arguments."""
+    """Test that CPPUnionPotential can be constructed with valid arguments."""
     patch = hoomd.hpmc.pair.CPPUnionPotential(**constructor_args)
 
     # validate the params were set properly
@@ -115,7 +115,7 @@ def test_valid_construction_cpp_union_potential(device, constructor_args):
 def test_valid_construction_and_attach_cpp_potential(device, simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args):
-    """Test that UserPatch can be attached with valid arguments."""
+    """Test that CPPPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.CPPPotential(**constructor_args)
     mc = hoomd.hpmc.integrate.Sphere()
@@ -139,7 +139,7 @@ def test_valid_construction_and_attach_cpp_potential(device, simulation_factory,
 def test_valid_construction_and_attach_cpp_union_potential(device, simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args):
-    """Test that UserUnionPatch can be attached with valid arguments."""
+    """Test that CPPUnionPotential can be attached with valid arguments."""
     # create objects
     patch = hoomd.hpmc.pair.CPPUnionPotential(**constructor_args)
     patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
@@ -167,7 +167,7 @@ def test_valid_construction_and_attach_cpp_union_potential(device, simulation_fa
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_cpp_potential(device, attr, value):
-    """Test that UserPatch can get and set attributes before attached."""
+    """Test that CPPPotential can get and set attributes before attached."""
     patch = hoomd.hpmc.pair.CPPPotential(r_cut=2)
 
     setattr(patch, attr, value)
@@ -177,7 +177,7 @@ def test_valid_setattr_cpp_potential(device, attr, value):
 @pytest.mark.serial
 @pytest.mark.parametrize("attr,value", valid_attrs_union)
 def test_valid_setattr_cpp_union_potential(device, attr, value):
-    """Test that UserUnionPatch can get and set attributes before attached."""
+    """Test that CPPUnionPotential can get and set attributes before attached."""
 
     patch = hoomd.hpmc.pair.CPPUnionPotential(r_cut_union=2)
 
@@ -190,7 +190,7 @@ def test_valid_setattr_cpp_union_potential(device, attr, value):
 def test_valid_setattr_attached_cpp_potential(device, attr, value,
                                            simulation_factory,
                                            two_particle_snapshot_factory):
-    """Test that UserPatch can get and set attributes after attached."""
+    """Test that CPPPotential can get and set attributes after attached."""
 
     patch = hoomd.hpmc.pair.CPPPotential(r_cut=2, code='return -1;')
     mc = hoomd.hpmc.integrate.Sphere()
@@ -214,7 +214,7 @@ def test_valid_setattr_attached_cpp_potential(device, attr, value,
 def test_valid_setattr_attached_cpp_union_potential(device, attr, value,
                                                  simulation_factory,
                                                  two_particle_snapshot_factory):
-    """Test that UserUnionPatch can get and set attributes after attached."""
+    """Test that CPPUnionPotential can get and set attributes after attached."""
 
     patch = hoomd.hpmc.pair.CPPUnionPotential(r_cut_union=2, code_union='return 0;')
     patch.positions['A'] = [(0,0,0.5), (0,0,-0.5)]
@@ -244,7 +244,7 @@ def test_valid_setattr_attached_cpp_union_potential(device, attr, value,
 def test_raise_attr_error_cpp_potential(device, attr, val,
                                      simulation_factory,
                                      two_particle_snapshot_factory):
-    """Test that UserPatch raises AttributeError if we
+    """Test that CPPPotential raises AttributeError if we
        try to set certain attributes after attaching.
     """
 
@@ -304,7 +304,7 @@ def test_raise_attr_error_cpp_union_potential(device, attr, val,
                           positions_orientations_result)
 def test_cpp_potential(device, positions,orientations,result,
                     simulation_factory, two_particle_snapshot_factory):
-    """Test that UserPatch computes the correct."""
+    """Test that CPPPotential computes the correct."""
 
     # interaction between point dipoles
     dipole_dipole = """ float rsq = dot(r_ij, r_ij);
@@ -352,7 +352,7 @@ def test_cpp_potential(device, positions,orientations,result,
 @pytest.mark.parametrize("cls", [hoomd.hpmc.pair.CPPPotential, hoomd.hpmc.pair.CPPUnionPotential])
 def test_alpha_iso(device, cls, simulation_factory,two_particle_snapshot_factory):
     """Test that: i) changes to the alpha_iso array reflect on the energy
-       caltulation, ii) that it can be accessed from UserPatch and UserUnionPatch
+       caltulation, ii) that it can be accessed from CPPPotential and CPPUnionPotential
        objects and iii) that the energy computed from both classes agree.
     """
 
@@ -425,7 +425,7 @@ def test_alpha_iso(device, cls, simulation_factory,two_particle_snapshot_factory
 @pytest.mark.serial
 def test_cpp_union_potential(device, simulation_factory,two_particle_snapshot_factory):
     """Test that alpha_iso and alpha_union are accessed proberly by
-       UserUnionPatch and that it computes the correct energy for
+       CPPUnionPotential and that it computes the correct energy for
        unions of particles (dumbells).
     """
 
