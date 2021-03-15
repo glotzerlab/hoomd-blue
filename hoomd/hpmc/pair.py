@@ -15,12 +15,13 @@ import numpy as np
 
 
 class JITCompute(Compute):
-    """Base class for all HOOMD JIT compute objects (fields and patch interactions).
+    """Base class for all HOOMD JIT compute objects (fields and potential interactions).
        Provides helper methods to compile the user code in both CPU and GPU devices.
 
     Note:
        Users should not invoke `JITCompute` directly. It is a base command
-       that provides common features to all standard JIT objects.
+       that provides common features to all standard JIT objects. The attributes
+       documented here are available to all JIT objects.
 
     Args:
         code (`str`): C++ code defining the custom energetic interaction.
@@ -94,7 +95,7 @@ class JITCompute(Compute):
     @code.setter
     def code(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
+            raise AttributeError("This attribute can only be set when the object is not attached.")
         else:
             self._code = code
 
@@ -106,7 +107,7 @@ class JITCompute(Compute):
     @llvm_ir_file.setter
     def llvm_ir_file(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
+            raise AttributeError("This attribute can only be set when the object is not attached.")
         else:
             self._llvm_ir_file = llvm_ir
 
@@ -118,7 +119,7 @@ class JITCompute(Compute):
     @clang_exec.setter
     def clang_exec(self, clang):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
+            raise AttributeError("This attribute can only be set when the object is not attached.")
         else:
             self._clang_exec = clang
 
@@ -577,7 +578,7 @@ class CPPUnionPotential(CPPPotentialBase):
     @code_union.setter
     def code_union(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
+            raise AttributeError("This attribute can only be set when the object is not attached.")
         else:
             self._code_union = code
 
@@ -589,6 +590,6 @@ class CPPUnionPotential(CPPPotentialBase):
     @llvm_ir_file_union.setter
     def llvm_ir_file_union(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the patch object is not attached.")
+            raise AttributeError("This attribute can only be set when the object is not attached.")
         else:
             self._llvm_ir_file_union = llvm_ir
