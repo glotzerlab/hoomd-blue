@@ -74,10 +74,6 @@
 #include <fstream>
 using namespace std;
 
-#ifdef ENABLE_TBB
-#include "tbb/task_scheduler_init.h"
-#endif
-
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */

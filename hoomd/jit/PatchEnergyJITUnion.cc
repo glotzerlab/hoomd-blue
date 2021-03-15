@@ -3,7 +3,7 @@
 #include "hoomd/hpmc/OBBTree.h"
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 //! Set the per-type constituent particles
