@@ -4,6 +4,15 @@ Change Log
 v2.x
 ----
 
+v2.9.5 (2021-03-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support macos-arm64.
+* Support TBB 2021.
+* Fix memory leak in PPPM.
+
 v2.9.4 (2021-02-05)
 ^^^^^^^^^^^^^^^^^^^
 

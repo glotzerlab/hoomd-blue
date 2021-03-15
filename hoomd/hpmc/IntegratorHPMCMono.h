@@ -29,6 +29,11 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
+#ifdef ENABLE_TBB
+#include <tbb/parallel_reduce.h>
+#include <tbb/blocked_range.h>
+#endif
+
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif

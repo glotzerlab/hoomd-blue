@@ -9,7 +9,7 @@
 #include "UpdaterClusters.h"
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 #endif
 
 namespace hpmc
