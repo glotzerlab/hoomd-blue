@@ -26,6 +26,7 @@
 #endif
 
 #ifdef ENABLE_TBB
+#define TBB_PREVIEW_GLOBAL_CONTROL
 #include <tbb/global_control.h>
 #endif
 
@@ -367,7 +368,9 @@ private:
 
     std::unique_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
 
+    #ifdef ENABLE_TBB
     static std::unique_ptr<tbb::global_control> tbb_thread_control;
+    #endif
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time

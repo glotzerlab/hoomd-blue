@@ -28,6 +28,10 @@ using namespace std;
 #include "CachedAllocator.h"
 #endif
 
+#ifdef ENABLE_TBB
+std::unique_ptr<tbb::global_control> ExecutionConfiguration::tbb_thread_control;
+#endif
+
 /*! \file ExecutionConfiguration.cc
     \brief Defines ExecutionConfiguration and related classes
 */
