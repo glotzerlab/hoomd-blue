@@ -69,6 +69,8 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
+        #ifdef ENABLE_MPI
+
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method
@@ -78,6 +80,8 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_cl->setCommunicator(comm);
             m_cls->setCommunicator(comm);
             }
+
+        #endif
 
     protected:
         //! Builds the neighbor list
