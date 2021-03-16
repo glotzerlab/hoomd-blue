@@ -154,15 +154,6 @@ bool BuildInfo::getEnableTBB()
 #endif
     }
 
-bool BuildInfo::getEnableJIT()
-    {
-#ifdef ENABLE_JIT
-    return true;
-#else
-    return false;
-#endif
-    }
-
 bool BuildInfo::getEnableMPI()
     {
 #ifdef ENABLE_MPI

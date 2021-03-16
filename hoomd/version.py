@@ -31,9 +31,6 @@ Attributes:
 
     tbb_enabled (bool): ``True`` when this build supports TBB threads.
 
-    jit_enabled (bool): ``True`` when this build supports JIT runtime generated
-        code for custom energy definitions.
-
     version (str): HOOMD-blue package version, following semantic versioning.
 """
 from hoomd import _hoomd
@@ -57,7 +54,6 @@ gpu_api_version = _hoomd.BuildInfo.getGPUAPIVersion()
 gpu_platform = _hoomd.BuildInfo.getGPUPlatform()
 cxx_compiler = _hoomd.BuildInfo.getCXXCompiler()
 tbb_enabled = _hoomd.BuildInfo.getEnableTBB()
-jit_enabled = _hoomd.BuildInfo.getEnableJIT()
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 source_dir = _hoomd.BuildInfo.getSourceDir()
 install_dir = _hoomd.BuildInfo.getInstallDir()
