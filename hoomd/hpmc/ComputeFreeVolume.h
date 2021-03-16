@@ -70,7 +70,6 @@ class ComputeFreeVolume : public Compute
         void setTestParticleType(std::string type)
             {
             unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
-            assert(type < m_pdata->getNTypes());
             m_type = type_int;
             }
 
