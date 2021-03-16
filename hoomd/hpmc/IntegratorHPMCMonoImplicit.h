@@ -8,6 +8,7 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/Saru.h"
 
+#include <atomic>
 #include <random>
 #include <cfloat>
 
@@ -870,12 +871,12 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantCircumsphere(unsign
         }
 
     #ifdef ENABLE_TBB
-    tbb::atomic<unsigned int> n_overlap_checks = 0;
-    tbb::atomic<unsigned int> overlap_err_count = 0;
-    tbb::atomic<unsigned int> insert_count = 0;
-    tbb::atomic<unsigned int> reinsert_count = 0;
-    tbb::atomic<unsigned int> free_volume_count = 0;
-    tbb::atomic<unsigned int> overlap_count = 0;
+    std::atomic<unsigned int> n_overlap_checks = 0;
+    std::atomic<unsigned int> overlap_err_count = 0;
+    std::atomic<unsigned int> insert_count = 0;
+    std::atomic<unsigned int> reinsert_count = 0;
+    std::atomic<unsigned int> free_volume_count = 0;
+    std::atomic<unsigned int> overlap_count = 0;
     #else
     unsigned int n_overlap_checks = 0;
     unsigned int overlap_err_count = 0;
@@ -1314,9 +1315,9 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletantOverlap(unsigned in
     // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
 
     #ifdef ENABLE_TBB
-    tbb::atomic<unsigned int> n_overlap_checks = 0;
-    tbb::atomic<unsigned int> overlap_err_count = 0;
-    tbb::atomic<unsigned int> insert_count = 0;
+    std::atomic<unsigned int> n_overlap_checks = 0;
+    std::atomic<unsigned int> overlap_err_count = 0;
+    std::atomic<unsigned int> insert_count = 0;
     #else
     unsigned int n_overlap_checks = 0;
     unsigned int overlap_err_count = 0;
