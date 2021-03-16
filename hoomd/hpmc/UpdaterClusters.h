@@ -18,7 +18,7 @@
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
 
-#ifdef ENABLE_TBB
+#ifdef ENABLE_TBB_TASK
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_unordered_set.h>
@@ -32,7 +32,7 @@ namespace hpmc
 namespace detail
 {
 
-#ifdef ENABLE_TBB
+#ifdef ENABLE_TBB_TASK
 //! Wrapper around std::atomic_flag to allow use in a std::vector
 class my_atomic_flag
     {
@@ -86,31 +86,31 @@ class Graph
 
         inline void addEdge(unsigned int v, unsigned int w);
 
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         inline void connectedComponents(std::vector<tbb::concurrent_vector<unsigned int> >& cc);
         #else
         inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
         #endif
 
     private:
-        #ifndef ENABLE_TBB
+        #ifndef ENABLE_TBB_TASK
         std::multimap<unsigned int,unsigned int> adj;
         #else
         tbb::concurrent_unordered_multimap<unsigned int, unsigned int> adj;
         #endif
 
-        #ifndef ENABLE_TBB
+        #ifndef ENABLE_TBB_TASK
         std::vector<unsigned int> visited;
         #else
         std::vector<my_atomic_flag> visited;
         #endif
 
-        #ifndef ENABLE_TBB
+        #ifndef ENABLE_TBB_TASK
         // A function used by DFS
         inline void DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc);
         #endif
 
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         class DFSTask : public tbb::task
             {
             public:
@@ -161,18 +161,18 @@ class Graph
                 tbb::concurrent_vector<unsigned int>& cc;
                 const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& adj;
             };
-        #endif // ENABLE_TBB
+        #endif // ENABLE_TBB_TASK
 
     };
 
 // Gather connected components in an undirected graph
-#ifdef ENABLE_TBB
+#ifdef ENABLE_TBB_TASK
 void Graph::connectedComponents(std::vector<tbb::concurrent_vector<unsigned int> >& cc)
 #else
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
 #endif
     {
-    #ifdef ENABLE_TBB
+    #ifdef ENABLE_TBB_TASK
     for (unsigned int v = 0; v < visited.size(); ++v)
         {
         if (! visited[v].test_and_set())
@@ -199,7 +199,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
     #endif
     }
 
-#ifndef ENABLE_TBB
+#ifndef ENABLE_TBB_TASK
 void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc)
     {
     visited[v] = 1;
@@ -218,7 +218,7 @@ void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vec
 #endif
 Graph::Graph(unsigned int V)
     {
-    #ifndef ENABLE_TBB
+    #ifndef ENABLE_TBB_TASK
     visited.resize(V, 0);
     #else
     visited.resize(V);
@@ -227,7 +227,7 @@ Graph::Graph(unsigned int V)
 
 void Graph::resize(unsigned int V)
     {
-    #ifndef ENABLE_TBB
+    #ifndef ENABLE_TBB_TASK
     visited.resize(V, 0);
     #else
     visited.clear();
@@ -428,7 +428,7 @@ class UpdaterClusters : public Updater
         Scalar m_swap_move_ratio;                   //!< Type swap / geometric move ratio
         Scalar m_flip_probability;                  //!< Cluster flip probability
 
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         std::vector<tbb::concurrent_vector<unsigned int> > m_clusters; //!< Cluster components
         #else
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
@@ -446,7 +446,7 @@ class UpdaterClusters : public Updater
 
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
-        #ifndef ENABLE_TBB
+        #ifndef ENABLE_TBB_TASK
         std::vector<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
         std::vector<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
         std::vector<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
@@ -470,7 +470,7 @@ class UpdaterClusters : public Updater
         tbb::concurrent_unordered_set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         #endif
 
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         tbb::concurrent_vector<vec3<Scalar> > m_random_position;
         tbb::concurrent_vector<quat<Scalar> > m_random_orientation;
         #else
@@ -586,7 +586,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     if (patch)
         {
         // test old configuration against itself
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         tbb::parallel_for((unsigned int)0,m_n_particles_old, [&](unsigned int i)
         #else
         for (unsigned int i = 0; i < m_n_particles_old; ++i)
@@ -702,13 +702,13 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 } // end loop over images
 
             } // end loop over old configuration
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
             );
         #endif
         }
 
     // loop over new configuration
-    #ifdef ENABLE_TBB
+    #ifdef ENABLE_TBB_TASK
     tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
     #else
     for (unsigned int i = 0; i < nptl; ++i)
@@ -907,14 +907,14 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 } // end loop over images
             } // end if patch
         } // end loop over local particles
-    #ifdef ENABLE_TBB
+    #ifdef ENABLE_TBB_TASK
         );
     #endif
 
     if (line && !swap)
         {
         // check if particles are interacting in the new configuration
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
         tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
         #else
         for (unsigned int i = 0; i < nptl; ++i)
@@ -1012,7 +1012,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                     } // end loop over nodes
                 } // end loop over images
             } // end loop over local particles
-        #ifdef ENABLE_TBB
+        #ifdef ENABLE_TBB_TASK
             );
         #endif
         }
@@ -1255,7 +1255,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Move");
 
     // collect interactions on rank 0
-    #ifndef ENABLE_TBB
+    #ifndef ENABLE_TBB_TASK
     std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_overlap;
     std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
     std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
@@ -1352,7 +1352,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             else
             #endif
                 {
-                #ifdef ENABLE_TBB
+                #ifdef ENABLE_TBB_TASK
                 tbb::parallel_for(m_interact_new_new.range(), [&] (decltype(m_interact_new_new.range()) r)
                 #else
                 auto &r = m_interact_new_new;
@@ -1366,7 +1366,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                         m_G.addEdge(i,j);
                         }
                     }
-                #ifdef ENABLE_TBB
+                #ifdef ENABLE_TBB_TASK
                     );
                 #endif
                 }
@@ -1392,7 +1392,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         else
         #endif
             {
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::parallel_for(m_interact_new_old.range(), [&] (decltype(m_interact_new_old.range()) r)
             #else
             auto &r = m_interact_new_old;
@@ -1406,7 +1406,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     m_G.addEdge(i,j);
                     }
                 }
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
                 );
             #endif
             }
@@ -1432,7 +1432,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         else
         #endif
             {
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::parallel_for(m_overlap.range(), [&] (decltype(m_overlap.range()) r)
             #else
             auto &r = m_overlap;
@@ -1446,7 +1446,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     m_G.addEdge(i,j);
                     }
                 }
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
                 );
             #endif
             }
@@ -1473,7 +1473,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         else
         #endif
             {
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::parallel_for(m_interact_old_old.range(), [&] (decltype(m_interact_old_old.range()) r)
             #else
             auto &r = m_interact_old_old;
@@ -1487,7 +1487,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     m_G.addEdge(i,j);
                     }
                 }
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
                 );
             #endif
             }
@@ -1509,7 +1509,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         else
         #endif
             {
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::parallel_for(m_interact_new_old.range(), [&] (decltype(m_interact_new_old.range()) r)
             #else
             auto &r = m_interact_new_old;
@@ -1523,7 +1523,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     m_G.addEdge(i,j);
                     }
                 }
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
                 );
             #endif
             }
@@ -1531,7 +1531,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (m_mc->getPatchInteraction())
             {
             // sum up interaction energies
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, float> delta_U;
             #else
             std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
@@ -1626,7 +1626,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     }
                 }
 
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
             tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
             #else
             auto &r = delta_U;
@@ -1649,7 +1649,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                         }
                     }
                 }
-            #ifdef ENABLE_TBB
+            #ifdef ENABLE_TBB_TASK
                 );
             #endif
             } // end if (patch)
