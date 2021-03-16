@@ -1,4 +1,4 @@
-hpmc.pair
+hpmc.external
 --------------
 
 .. rubric:: Modules
@@ -6,4 +6,4 @@ hpmc.pair
 .. toctree::
    :maxdepth: 3
 
-   module-hpmc-pair-user
+   module-hpmc-external-user

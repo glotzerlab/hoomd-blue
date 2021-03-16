@@ -17,3 +17,4 @@ hpmc
     module-hpmc-tune
     module-hpmc-update
     module-hpmc-pair
+    module-hpmc-external

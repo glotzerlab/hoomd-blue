@@ -63,6 +63,9 @@ class BuildInfo
     /// Determine if ENABLE_TBB is set
     static bool getEnableTBB();
 
+    /// Determine if ENABLE_JIT is set
+    static bool getEnableJIT();
+
     /// Determine if ENABLE_MPI is set
     static bool getEnableMPI();
 
