@@ -189,6 +189,8 @@ install(FILES ${_hpmc_headers}
 
 add_subdirectory(pytest)
 add_subdirectory(tune)
+add_subdirectory(pair)
+add_subdirectory(external)
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)
@@ -293,18 +295,6 @@ if (BUILD_JIT)
     install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_llvm
             LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/${PACKAGE_NAME}
             )
-
-    ################ Python only modules
-    # copy python modules to the build directory to make it a working python package
-    set(files
-              pair.py
-        )
-
-    install(FILES ${files}
-            DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
-           )
-
-    copy_files_to_build("${files}" "${PACKAGE_NAME}" "*.py")
 
     # install headers in installation target
     install(FILES ${_${PACKAGE_NAME}_headers}

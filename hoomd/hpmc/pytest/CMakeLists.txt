@@ -15,7 +15,7 @@ set(files __init__.py
     )
 
 if (BUILD_JIT)
-    list(APPEND files test_jit_patch.py test_jit_external.py)
+    list(APPEND files test_pair_user.py test_external_user.py)
 endif()
 
 install(FILES ${files}
