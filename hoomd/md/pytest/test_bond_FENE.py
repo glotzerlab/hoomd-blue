@@ -95,15 +95,16 @@ def test_forces_and_energies(two_particle_snapshot_factory,
 
     sim_energies = sim.operations.integrator.forces[0].energies
     sim_forces = sim.operations.integrator.forces[0].forces
-    np.testing.assert_allclose(sum(sim_energies),
-                               energy,
-                               rtol=1e-2,
-                               atol=1e-5)
-    np.testing.assert_allclose(sim_forces[0],
-                               [force, 0.0, 0.0],
-                               rtol=1e-2,
-                               atol=1e-5)
-    np.testing.assert_allclose(sim_forces[1],
-                               [-1 * force, 0.0, 0.0],
-                               rtol=1e-2,
-                               atol=1e-5)
+    if sim.device.communicator.rank == 0:
+        np.testing.assert_allclose(sum(sim_energies),
+                                   energy,
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces[0],
+                                   [force, 0.0, 0.0],
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces[1],
+                                   [-1 * force, 0.0, 0.0],
+                                   rtol=1e-2,
+                                   atol=1e-5)
