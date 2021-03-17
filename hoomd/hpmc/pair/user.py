@@ -1,11 +1,12 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 import hoomd
 from hoomd.hpmc import integrate
 from hoomd import _hoomd
 from hoomd.hpmc import _jit
-from hoomd.operation import Compute
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
@@ -14,19 +15,21 @@ import os
 import numpy as np
 
 
-class JITCompute(Compute):
-    """Base class for all HOOMD JIT compute objects (fields and potential interactions).
-       Provides helper methods to compile the user code in both CPU and GPU devices.
+class JITCompute(_HOOMDBaseObject):
+    """Base class for all HOOMD JIT compute objects (fields and potential
+    interactions).  Provides helper methods to compile the user code in both CPU
+    and GPU devices.
 
     Note:
-        Users should not invoke `JITCompute` directly. The attributes documented here
-        are available to all JIT objects.
+        Users should not invoke `JITCompute` directly. The attributes documented
+        here are available to all JIT objects.
 
     Args:
         code (`str`): C++ code defining the custom energetic interaction.
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str`): The Clang executable to use.
     """
+
     def __init__(self, clang_exec, code, llvm_ir_file):
         super().__init__()
         # these only exist on python
@@ -40,20 +43,23 @@ class JITCompute(Compute):
     def _setup_gpu_code_path(self):
         """Helper function to set CUDA libraries for GPU execution.
         """
-        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include'
         include_path_source = hoomd.version.source_dir
         include_path_cuda = _jit.__cuda_include_path__
-        self._options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+        self._options = [
+            "-I" + include_path_hoomd, "-I" + include_path_source,
+            "-I" + include_path_cuda
+        ]
         self._cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
 
         # select maximum supported compute capability out of those we compile for
-        self._compute_archs = _jit.__cuda_compute_archs__;
+        self._compute_archs = _jit.__cuda_compute_archs__
         compute_archs_vec = _hoomd.std_vector_uint()
-        compute_capability = cpp_exec_conf.getComputeCapability(0) # GPU 0
+        compute_capability = cpp_exec_conf.getComputeCapability(0)  # GPU 0
         compute_major, compute_minor = compute_capability.split('.')
         self._max_arch = 0
         for a in self._compute_archs.split('_'):
-            if int(a) < int(compute_major)*10+int(compute_major):
+            if int(a) < int(compute_major) * 10 + int(compute_major):
                 self._max_arch = int(a)
 
     def _compile_user(self, cpp_function, clang_exec, fn=None):
@@ -64,24 +70,37 @@ class JITCompute(Compute):
             clang_exec (`str`): The Clang executable to use
             fn (`str`, **optional**): If provided, the code will be written to a file.
         """
-        include_path = os.path.dirname(hoomd.__file__) + '/include';
+        include_path = os.path.dirname(hoomd.__file__) + '/include'
         include_path_source = hoomd.version.source_dir
 
         if fn is not None:
-            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+            cmd = [
+                self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD',
+                '-I', include_path, '-I', include_path_source, '-S',
+                '-emit-llvm', '-x', 'c++', '-o', fn, '-'
+            ]
         else:
-            cmd = [self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
-        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            cmd = [
+                self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD',
+                '-I', include_path, '-I', include_path_source, '-S',
+                '-emit-llvm', '-x', 'c++', '-o', '-', '-'
+            ]
+        p = subprocess.Popen(cmd,
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
 
         # pass C++ function to stdin
         output = p.communicate(cpp_function.encode('utf-8'))
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            self._simulation.device._cpp_msg.error("Error compiling provided code\n");
-            self._simulation.device._cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            self._simulation.device._cpp_msg.error(output[1].decode()+"\n");
-            raise RuntimeError("Error initializing patch energy");
+            self._simulation.device._cpp_msg.error(
+                "Error compiling provided code\n")
+            self._simulation.device._cpp_msg.error("Command " + ' '.join(cmd)
+                                                   + "\n")
+            self._simulation.device._cpp_msg.error(output[1].decode() + "\n")
+            raise RuntimeError("Error initializing patch energy")
 
         return llvm_ir
 
@@ -94,7 +113,9 @@ class JITCompute(Compute):
     @code.setter
     def code(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the object is not attached.")
+            raise AttributeError(
+                "This attribute can only be set when the object is not attached."
+            )
         else:
             self._code = code
 
@@ -106,7 +127,9 @@ class JITCompute(Compute):
     @llvm_ir_file.setter
     def llvm_ir_file(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the object is not attached.")
+            raise AttributeError(
+                "This attribute can only be set when the object is not attached."
+            )
         else:
             self._llvm_ir_file = llvm_ir
 
@@ -118,7 +141,9 @@ class JITCompute(Compute):
     @clang_exec.setter
     def clang_exec(self, clang):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the object is not attached.")
+            raise AttributeError(
+                "This attribute can only be set when the object is not attached."
+            )
         else:
             self._clang_exec = clang
 
@@ -197,17 +222,24 @@ class CPPPotentialBase(JITCompute):
                                           defined by the user.
     """
 
-    def __init__(self, r_cut, array_size=1, clang_exec='clang',
-                 code=None, llvm_ir_file=None):
-        super().__init__(clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
-        param_dict = ParameterDict(r_cut = float(r_cut),
-                                   array_size = int(array_size))
+    def __init__(self,
+                 r_cut,
+                 array_size=1,
+                 clang_exec='clang',
+                 code=None,
+                 llvm_ir_file=None):
+        super().__init__(clang_exec=clang_exec,
+                         code=code,
+                         llvm_ir_file=llvm_ir_file)
+        param_dict = ParameterDict(r_cut=float(r_cut),
+                                   array_size=int(array_size))
         self._param_dict.update(param_dict)
         # these only exist on python
         self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
-        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(self._cpp_obj)
+        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(
+            self._cpp_obj)
         super()._attach()
 
     @log
@@ -229,7 +261,7 @@ class CPPPotentialBase(JITCompute):
         Args:
             code (`str`): Body of the C++ function
         """
-        cpp_function =  """
+        cpp_function = """
                         #include <stdio.h>
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
@@ -265,7 +297,7 @@ class CPPPotentialBase(JITCompute):
         Args:
             code (`str`): Body of the C++ function
         """
-        cpp_function =  """
+        cpp_function = """
                         #include "hoomd/HOOMDMath.h"
                         #include "hoomd/VectorMath.h"
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
@@ -340,10 +372,18 @@ class CPPPotential(CPPPotentialBase):
         patch.alpha_iso[1] = 2.0
         sim.run(1000)
     '''
-    def __init__(self, r_cut, array_size=1, clang_exec='clang',
-                 code=None, llvm_ir_file=None):
-        super().__init__(r_cut=r_cut, array_size=array_size, clang_exec=clang_exec,
-                         code=code, llvm_ir_file=llvm_ir_file)
+
+    def __init__(self,
+                 r_cut,
+                 array_size=1,
+                 clang_exec='clang',
+                 code=None,
+                 llvm_ir_file=None):
+        super().__init__(r_cut=r_cut,
+                         array_size=array_size,
+                         clang_exec=clang_exec,
+                         code=code,
+                         llvm_ir_file=llvm_ir_file)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -360,7 +400,7 @@ class CPPPotential(CPPPotentialBase):
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file is not None:
             # IR is a text file
-            with open(self._llvm_ir_file,'r') as f:
+            with open(self._llvm_ir_file, 'r') as f:
                 llvm_ir = f.read()
         else:
             raise RuntimeError("Must provide code or LLVM IR file.")
@@ -370,10 +410,15 @@ class CPPPotential(CPPPotentialBase):
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
             self._setup_gpu_code_path()
             gpu_code = self._wrap_gpu_code(self._code)
-            self._cpp_obj = _jit.PatchEnergyJITGPU(cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut, self.array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options, self._cuda_devrt_library_path, self._max_arch);
+            self._cpp_obj = _jit.PatchEnergyJITGPU(
+                cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut,
+                self.array_size, gpu_code,
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options,
+                self._cuda_devrt_library_path, self._max_arch)
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut, self.array_size)
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def, cpp_exec_conf,
+                                                llvm_ir, self.r_cut,
+                                                self.array_size)
         # Set the C++ mirror array with the cached values
         # and override the python array
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
@@ -466,49 +511,61 @@ class CPPUnionPotential(CPPPotentialBase):
         patch.alpha_iso[:] = [2.5, 1.3];
         patch.alpha_union[:] = [2.5, -1.7];
     '''
-    def __init__(self, r_cut_union, array_size_union=1, clang_exec='clang',
-                 code_union=None, llvm_ir_file_union=None, r_cut=0, array_size=1,
-                code='return 0;', llvm_ir_file=None ):
+
+    def __init__(self,
+                 r_cut_union,
+                 array_size_union=1,
+                 clang_exec='clang',
+                 code_union=None,
+                 llvm_ir_file_union=None,
+                 r_cut=0,
+                 array_size=1,
+                 code='return 0;',
+                 llvm_ir_file=None):
 
         # initialize base class
-        super().__init__(r_cut=r_cut, array_size=array_size,code=code,
-                         llvm_ir_file=llvm_ir_file, clang_exec=clang_exec)
+        super().__init__(r_cut=r_cut,
+                         array_size=array_size,
+                         code=code,
+                         llvm_ir_file=llvm_ir_file,
+                         clang_exec=clang_exec)
 
         # add union specific params
-        param_dict = ParameterDict(r_cut_union = float(r_cut_union),
-                                   array_size_union = int(array_size_union),
-                                   leaf_capacity = int(4))
+        param_dict = ParameterDict(r_cut_union=float(r_cut_union),
+                                   array_size_union=int(array_size_union),
+                                   leaf_capacity=int(4))
         self._param_dict.update(param_dict)
 
         # add union specific per-type parameters
         typeparam_positions = TypeParameter('positions',
                                             type_kind='particle_types',
-                                            param_dict=TypeParameterDict([tuple],
-                                            len_keys=1))
+                                            param_dict=TypeParameterDict(
+                                                [tuple], len_keys=1))
 
         typeparam_orientations = TypeParameter('orientations',
                                                type_kind='particle_types',
-                                               param_dict=TypeParameterDict([tuple],
-                                               len_keys=1))
+                                               param_dict=TypeParameterDict(
+                                                   [tuple], len_keys=1))
 
         typeparam_diameters = TypeParameter('diameters',
                                             type_kind='particle_types',
-                                            param_dict=TypeParameterDict([float],
-                                            len_keys=1))
+                                            param_dict=TypeParameterDict(
+                                                [float], len_keys=1))
 
         typeparam_charges = TypeParameter('charges',
                                           type_kind='particle_types',
-                                          param_dict=TypeParameterDict([float],
-                                          len_keys=1))
+                                          param_dict=TypeParameterDict(
+                                              [float], len_keys=1))
 
         typeparam_typeids = TypeParameter('typeids',
                                           type_kind='particle_types',
-                                          param_dict=TypeParameterDict([int],
-                                          len_keys=1))
+                                          param_dict=TypeParameterDict(
+                                              [int], len_keys=1))
 
-        self._extend_typeparam([typeparam_positions, typeparam_orientations,
-                                typeparam_diameters, typeparam_charges,
-                                typeparam_typeids])
+        self._extend_typeparam([
+            typeparam_positions, typeparam_orientations, typeparam_diameters,
+            typeparam_charges, typeparam_typeids
+        ])
 
         # these only exist on python
         self._code_union = code_union
@@ -526,11 +583,12 @@ class CPPUnionPotential(CPPPotentialBase):
         # compile code if provided
         if self._code_union is not None:
             cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = self._compile_user(cpp_function_union, self._clang_exec)
+            llvm_ir_union = self._compile_user(cpp_function_union,
+                                               self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file
-            with open(self._llvm_ir_file_union,'r') as f:
+            with open(self._llvm_ir_file_union, 'r') as f:
                 llvm_ir_union = f.read()
         else:
             raise RuntimeError("Must provide code or LLVM IR file.")
@@ -540,7 +598,7 @@ class CPPUnionPotential(CPPPotentialBase):
             llvm_ir = self._compile_user(cpp_function, self._clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
-            with open(self._llvm_ir_file,'r') as f:
+            with open(self._llvm_ir_file, 'r') as f:
                 llvm_ir = f.read()
         else:
             # provide a dummy function
@@ -553,12 +611,17 @@ class CPPUnionPotential(CPPPotentialBase):
             # use union evaluator
             self._options += ["-DUNION_EVAL"]
             gpu_code = self._wrap_gpu_code(self._code)
-            self._cpp_obj = _jit.PatchEnergyJITUnionGPU(self._simulation.state._cpp_sys_def, cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options, self._cuda_devrt_library_path, self._max_arch);
+            self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
+                self._simulation.state._cpp_sys_def, cpp_exec_conf, llvm_ir,
+                self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,
+                self.array_size_union, gpu_code,
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options,
+                self._cuda_devrt_library_path, self._max_arch)
         else:
-            self._cpp_obj = _jit.PatchEnergyJITUnion(self._simulation.state._cpp_sys_def, cpp_exec_conf,
-                llvm_ir, self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,  self.array_size_union)
+            self._cpp_obj = _jit.PatchEnergyJITUnion(
+                self._simulation.state._cpp_sys_def, cpp_exec_conf, llvm_ir,
+                self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,
+                self.array_size_union)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
@@ -577,7 +640,9 @@ class CPPUnionPotential(CPPPotentialBase):
     @code_union.setter
     def code_union(self, code):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the object is not attached.")
+            raise AttributeError(
+                "This attribute can only be set when the object is not attached."
+            )
         else:
             self._code_union = code
 
@@ -589,6 +654,8 @@ class CPPUnionPotential(CPPPotentialBase):
     @llvm_ir_file_union.setter
     def llvm_ir_file_union(self, llvm_ir):
         if self._attached:
-            raise AttributeError("This attribute can only be set when the object is not attached.")
+            raise AttributeError(
+                "This attribute can only be set when the object is not attached."
+            )
         else:
             self._llvm_ir_file_union = llvm_ir

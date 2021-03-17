@@ -66,8 +66,11 @@ class CPPExternalField(JITCompute):
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
     '''
+
     def __init__(self, clang_exec='clang', code=None, llvm_ir_file=None):
-        super().__init__(clang_exec=clang_exec, code=code, llvm_ir_file=llvm_ir_file)
+        super().__init__(clang_exec=clang_exec,
+                         code=code,
+                         llvm_ir_file=llvm_ir_file)
 
     def _wrap_cpu_code(self, code):
         r"""Helper function to wrap the provided code into a function
@@ -109,27 +112,18 @@ class CPPExternalField(JITCompute):
             raise RuntimeError("JIT forces are not supported on the GPU.")
 
         integrator_pairs = [
-                (integrate.Sphere,
-                    _jit.ExternalFieldJITSphere),
-                (integrate.ConvexPolygon,
-                    _jit.ExternalFieldJITConvexPolygon),
-                (integrate.SimplePolygon,
-                    _jit.ExternalFieldJITSimplePolygon),
-                (integrate.ConvexPolyhedron,
-                    _jit.ExternalFieldJITConvexPolyhedron),
-                (integrate.ConvexSpheropolyhedron,
-                    _jit.ExternalFieldJITSpheropolyhedron),
-                (integrate.Ellipsoid,
-                    _jit.ExternalFieldJITEllipsoid),
-                (integrate.ConvexSpheropolygon,
-                    _jit.ExternalFieldJITSpheropolygon),
-                (integrate.FacetedEllipsoid,
-                    _jit.ExternalFieldJITFacetedEllipsoid),
-                (integrate.Polyhedron,
-                    _jit.ExternalFieldJITPolyhedron),
-                (integrate.Sphinx,
-                    _jit.ExternalFieldJITSphinx)
-                ]
+            (integrate.Sphere, _jit.ExternalFieldJITSphere),
+            (integrate.ConvexPolygon, _jit.ExternalFieldJITConvexPolygon),
+            (integrate.SimplePolygon, _jit.ExternalFieldJITSimplePolygon),
+            (integrate.ConvexPolyhedron, _jit.ExternalFieldJITConvexPolyhedron),
+            (integrate.ConvexSpheropolyhedron,
+             _jit.ExternalFieldJITSpheropolyhedron),
+            (integrate.Ellipsoid, _jit.ExternalFieldJITEllipsoid),
+            (integrate.ConvexSpheropolygon, _jit.ExternalFieldJITSpheropolygon),
+            (integrate.FacetedEllipsoid, _jit.ExternalFieldJITFacetedEllipsoid),
+            (integrate.Polyhedron, _jit.ExternalFieldJITPolyhedron),
+            (integrate.Sphinx, _jit.ExternalFieldJITSphinx)
+        ]
 
         cpp_cls = None
         for python_integrator, cpp_compute in integrator_pairs:
@@ -145,14 +139,13 @@ class CPPExternalField(JITCompute):
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file is not None:
             # IR is a text file
-            with open(self._llvm_ir_file,'r') as f:
+            with open(self._llvm_ir_file, 'r') as f:
                 llvm_ir = f.read()
         else:
             raise RuntimeError("Must provide code or LLVM IR file.")
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                self._simulation.device._cpp_exec_conf,
-                                llvm_ir)
+                                self._simulation.device._cpp_exec_conf, llvm_ir)
         super()._attach()
 
     @log
