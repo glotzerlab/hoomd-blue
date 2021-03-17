@@ -173,6 +173,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
 #endif
     {
     #ifdef ENABLE_TBB_TASK
+    m_exec_conf->getTaskArena()->execute([&]{
     for (unsigned int v = 0; v < visited.size(); ++v)
         {
         if (! visited[v].test_and_set())
@@ -183,6 +184,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
             cc.push_back(component);
             }
         }
+    }); // end task arena execute()
     #else
     std::fill(visited.begin(), visited.end(), 0);
 
@@ -488,6 +490,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     img_i = box.getImage(pos_i_transf);
 
     #ifdef ENABLE_TBB_TASK
+    m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for(tbb::blocked_range<unsigned int>(0, this->m_pdata->getNTypes()),
         [=, &shape_i](const tbb::blocked_range<unsigned int>& x) {
     for (unsigned int type_a = x.begin(); type_a != x.end(); ++type_a)
@@ -1051,6 +1054,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
         } // end loop over type_a
     #ifdef ENABLE_TBB_TASK
         });
+    }); // end task arena execute()
     #endif
     }
 
@@ -1196,6 +1200,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         {
         // test old configuration against itself
         #ifdef ENABLE_TBB_TASK
+        m_exec_conf->getTaskArena()->execute([&]{
         tbb::parallel_for((unsigned int)0,this->m_pdata->getN(), [&](unsigned int i)
         #else
         for (unsigned int i = 0; i < this->m_pdata->getN(); ++i)
@@ -1289,11 +1294,13 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
             } // end loop over old configuration
         #ifdef ENABLE_TBB_TASK
             );
+        }); // end task arena execute()
         #endif
         }
 
     // loop over new configuration
     #ifdef ENABLE_TBB_TASK
+    m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
     #else
     for (unsigned int i = 0; i < nptl; ++i)
@@ -1452,6 +1459,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         } // end loop over local particles
     #ifdef ENABLE_TBB_TASK
         );
+    }); // end task arena execute()
     #endif
 
     /*
@@ -1477,6 +1485,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
 
     // test old configuration against itself
     #ifdef ENABLE_TBB_TASK
+    m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for((unsigned int)0,this->m_pdata->getN(), [&](unsigned int i) {
     #else
     for (unsigned int i = 0; i < this->m_pdata->getN(); ++i)
@@ -1495,6 +1504,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         }
     #ifdef ENABLE_TBB_TASK
         });
+    }); // end task arena execute()
     #endif
 
     if (this->m_prof)
@@ -1649,6 +1659,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         m_prof->push("overlap");
 
     #ifdef ENABLE_TBB_TASK
+    m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for(m_overlap.range(), [&] (decltype(m_overlap.range()) r)
     #else
     auto &r = m_overlap;
@@ -1666,6 +1677,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         }
     #ifdef ENABLE_TBB_TASK
         );
+    }); // end task arena execute()
     #endif
 
     if (m_prof)
@@ -1716,6 +1728,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             }
 
         #ifdef ENABLE_TBB_TASK
+        m_exec_conf->getTaskArena()->execute([&]{
         tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
         #else
         auto &r = delta_U;
@@ -1741,6 +1754,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             }
         #ifdef ENABLE_TBB_TASK
             );
+        }); // end task arena execute()
         #endif
         } // end if (patch)
 

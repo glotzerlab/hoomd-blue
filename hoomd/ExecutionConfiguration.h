@@ -264,7 +264,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
         m_num_threads = num_threads;
         }
 
-    std::shared_ptr<tbb::task_arena> getTaskArena()
+    std::shared_ptr<tbb::task_arena> getTaskArena() const
         {
         return m_task_arena;
         }

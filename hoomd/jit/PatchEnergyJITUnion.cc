@@ -158,6 +158,10 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
 
     float energy = 0.0;
 
+    #ifdef ENABLE_TBB
+    m_exec_conf->getTaskArena()->execute([&]{
+    #endif
+
     // evaluate isotropic part if necessary
     if (m_r_cut >= 0.0)
         energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
@@ -232,6 +236,10 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
         }, [](float x, float y)->float { return x+y; } );
         #endif
         }
+
+    #ifdef ENABLE_TBB
+    }); // end task arena execute()
+    #endif
 
     return energy;
     }
