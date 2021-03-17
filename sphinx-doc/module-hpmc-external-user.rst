@@ -1,5 +1,5 @@
 hpmc.external.user
---------------
+------------------
 
 .. rubric:: Overview
 

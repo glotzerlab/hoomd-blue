@@ -1,5 +1,5 @@
 hpmc.external
---------------
+-------------
 
 .. rubric:: Modules
 

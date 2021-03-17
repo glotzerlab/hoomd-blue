@@ -19,16 +19,15 @@ class JITCompute(Compute):
        Provides helper methods to compile the user code in both CPU and GPU devices.
 
     Note:
-       Users should not invoke `JITCompute` directly. It is a base command
-       that provides common features to all standard JIT objects. The attributes
-       documented here are available to all JIT objects.
+        Users should not invoke `JITCompute` directly. The attributes documented here
+        are available to all JIT objects.
 
     Args:
         code (`str`): C++ code defining the custom energetic interaction.
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str`, **default** `clang`): The Clang executable to use.
+        clang_exec (`str`): The Clang executable to use.
     """
-    def __init__(self, clang_exec='clang', code=None, llvm_ir_file=None):
+    def __init__(self, clang_exec, code, llvm_ir_file):
         super().__init__()
         # these only exist on python
         self._code = code
