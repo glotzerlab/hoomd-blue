@@ -149,32 +149,41 @@ class JITCompute(_HOOMDBaseObject):
 
 
 class CPPPotentialBase(JITCompute):
-    """Base class for all HOOMD JIT patch interaction between pairs of particles.
+    """Base class for all HOOMD JIT interaction between pairs of particles.
 
     Note:
-        Users should not invoke `CPPPotentialBase` directly. The class can be used
-        for `isinstance` or `issubclass` checks. The attributes documented here
-        are available to all patch computes.
+        Users should not invoke `CPPPotentialBase` directly. The class can be
+        used for `isinstance` or `issubclass` checks. The attributes documented
+        here are available to all patch computes.
 
-        Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
-        Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
-        the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
+        Patch energies define energetic interactions between pairs of shapes in
+        :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
+        distance of *r_cut* are potentially interacting and the energy of
+        interaction is a function the type and orientation of the particles and
+        the vector pointing from the *i* particle to the *j* particle center.
 
-        Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT compiles it at run time and executes the code natively
-        in the MC loop with full performance. It enables researchers to quickly and easily implement custom energetic
-        interactions without the need to modify and recompile HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a mechanism,
-        through the `alpha_iso` attribute (numpy array), to adjust user defined potential parameters without the need
-        to recompile the patch energy code. These arrays are **read-only** during function evaluation.
+        Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT
+        compiles it at run time and executes the code natively in the MC loop
+        with full performance. It enables researchers to quickly and easily
+        implement custom energetic interactions without the need to modify and
+        recompile HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a
+        mechanism, through the `alpha_iso` attribute (numpy array), to adjust
+        user defined potential parameters without the need to recompile the
+        patch energy code. These arrays are **read-only** during function
+        evaluation.
 
         .. rubric:: C++ code
 
-        Classes derived from :py:class:`CPPPotentialBase` will compile the code provided by the user and call it to evaluate
-        patch energies. Compilation assumes that a recent ``clang`` installation is on your PATH. This is convenient
-        when the energy evaluation is simple or needs to be modified in python. More complex code (i.e. code that
-        requires auxiliary functions or initialization of static data arrays) should be compiled outside of HOOMD
-        and provided via the *llvm_ir_file* input (see below).
+        Classes derived from :py:class:`CPPPotentialBase` will compile the code
+        provided by the user and call it to evaluate patch energies. Compilation
+        assumes that a recent ``clang`` installation is on your PATH. This is
+        convenient when the energy evaluation is simple or needs to be modified
+        in python. More complex code (i.e. code that requires auxiliary
+        functions or initialization of static data arrays) should be compiled
+        outside of HOOMD and provided via the *llvm_ir_file* input (see below).
 
-        The text provided in *code* is the body of a function with the following signature:
+        The text provided in *code* is the body of a function with the following
+        signature:
 
         .. code::
 
@@ -199,27 +208,32 @@ class CPPPotentialBase(JITCompute):
         * *d_j* is the diameter of particle *j*
         * *charge_j* is the charge of particle *j*
         * Your code *must* return a value.
-        * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
-        the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
-        interaction that you implement.
+        * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This
+        *r_cut* is applied between the centers of the two particles: compute it
+        accordingly based on the maximum range of the anisotropic interaction
+        that you implement.
 
         .. rubric:: LLVM IR code
 
-        You can compile outside of HOOMD and provide a direct link
-        to the LLVM IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval function with the signature mentioned above.
+        You can compile outside of HOOMD and provide a direct link to the LLVM
+        IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval
+        function with the signature mentioned above.
 
-        Compile the file with clang: ``clang -O3 --std=c++14 -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
-        the LLVM IR in ``code.ll``.
+        Compile the file with clang: ``clang -O3 --std=c++14
+        -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc``
+        to produce the LLVM IR in ``code.ll``.
 
     Atrributes:
-        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between particles.
+        r_cut (`float`): Particle center to center distance cutoff beyond which
+        all pair interactions are assumed 0.
+        code (`str`): C++ code defining the custom pair interactions between
+        particles.
         llvm_ir_fname (`str`): File name of the llvm IR file to load.
         clang_exec (`str`): The Clang executable to compile the provided code.
         array_size (`int`): Size of array with adjustable elements.
         energy (`float`): Total interaction energy of the system in the current state.
-        alpha_iso (``ndarray<float>``): Length `array_size` numpy array containing dynamically adjustable elements
-                                          defined by the user.
+        alpha_iso (``ndarray<float>``): Length `array_size` numpy array
+        containing dynamically adjustable elements defined by the user.
     """
 
     def __init__(self,
@@ -335,8 +349,9 @@ class CPPPotential(CPPPotentialBase):
         array_size (`int`, **default:** 1): Size of array with adjustable elements.
 
     Note:
-        If both `code` and `llvm_ir_fname` are provided, the former takes precedence. The latter will be used
-        as a fallback in case the compilation of `code` fails.
+        If both `code` and `llvm_ir_fname` are provided, the former takes
+        precedence. The latter will be used as a fallback in case the
+        compilation of `code` fails.
 
     Examples:
 
