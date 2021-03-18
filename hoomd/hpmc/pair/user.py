@@ -15,6 +15,37 @@ import os
 import numpy as np
 
 
+def to_llvm_ir(code, clang_exec):
+    r"""Helper function to compile the provided code into an executable
+
+    Args:
+        code (`str`): C++ code to compile
+        clang_exec (`str`): The Clang executable to use
+        fn (`str`, **optional**): If provided, the code will be written to a
+        file.
+    """
+    hoomd_include_path = os.path.dirname(hoomd.__file__) + '/include'
+
+    cmd = [
+        clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I',
+        hoomd_include_path, '-I', hoomd.version.source_dir, '-S', '-emit-llvm',
+        '-x', 'c++', '-o', '-', '-'
+    ]
+    p = subprocess.Popen(cmd,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+
+    # pass C++ function to stdin
+    output = p.communicate(code.encode('utf-8'))
+    llvm_ir = output[0].decode()
+
+    if p.returncode != 0:
+        raise RuntimeError(f"Error initializing potential: {output[1]}")
+
+    return llvm_ir
+
+
 class JITCompute(_HOOMDBaseObject):
     """Base class for all HOOMD JIT compute objects (fields and potential
     interactions).  Provides helper methods to compile the user code in both CPU
@@ -61,48 +92,6 @@ class JITCompute(_HOOMDBaseObject):
         for a in self._compute_archs.split('_'):
             if int(a) < int(compute_major) * 10 + int(compute_major):
                 self._max_arch = int(a)
-
-    def _compile_user(self, cpp_function, clang_exec, fn=None):
-        r"""Helper function to compile the provided code into an executable
-
-        Args:
-            cpp_function (`str`): C++ code to compile
-            clang_exec (`str`): The Clang executable to use
-            fn (`str`, **optional**): If provided, the code will be written to a file.
-        """
-        include_path = os.path.dirname(hoomd.__file__) + '/include'
-        include_path_source = hoomd.version.source_dir
-
-        if fn is not None:
-            cmd = [
-                self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD',
-                '-I', include_path, '-I', include_path_source, '-S',
-                '-emit-llvm', '-x', 'c++', '-o', fn, '-'
-            ]
-        else:
-            cmd = [
-                self._clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD',
-                '-I', include_path, '-I', include_path_source, '-S',
-                '-emit-llvm', '-x', 'c++', '-o', '-', '-'
-            ]
-        p = subprocess.Popen(cmd,
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-
-        # pass C++ function to stdin
-        output = p.communicate(cpp_function.encode('utf-8'))
-        llvm_ir = output[0].decode()
-
-        if p.returncode != 0:
-            self._simulation.device._cpp_msg.error(
-                "Error compiling provided code\n")
-            self._simulation.device._cpp_msg.error("Command " + ' '.join(cmd)
-                                                   + "\n")
-            self._simulation.device._cpp_msg.error(output[1].decode() + "\n")
-            raise RuntimeError("Error initializing patch energy")
-
-        return llvm_ir
 
     @property
     def code(self):
@@ -411,7 +400,7 @@ class CPPPotential(CPPPotentialBase):
         # compile code if provided
         if self._code is not None:
             cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = self._compile_user(cpp_function, self._clang_exec)
+            llvm_ir = to_llvm_ir(cpp_function, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file is not None:
             # IR is a text file
@@ -598,8 +587,7 @@ class CPPUnionPotential(CPPPotentialBase):
         # compile code if provided
         if self._code_union is not None:
             cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = self._compile_user(cpp_function_union,
-                                               self._clang_exec)
+            llvm_ir_union = to_llvm_ir(cpp_function_union, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file
@@ -610,7 +598,7 @@ class CPPUnionPotential(CPPPotentialBase):
 
         if self._code is not None:
             cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = self._compile_user(cpp_function, self._clang_exec)
+            llvm_ir = to_llvm_ir(cpp_function, self._clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file, 'r') as f:
@@ -618,7 +606,7 @@ class CPPUnionPotential(CPPPotentialBase):
         else:
             # provide a dummy function
             cpp_dummy = self._wrap_cpu_code('return 0.0;')
-            llvm_ir = self._compile_user(cpp_dummy, self._clang_exec)
+            llvm_ir = to_llvm_ir(cpp_dummy, self._clang_exec)
 
         cpp_exec_conf = self._simulation.device._cpp_exec_conf
         if (isinstance(self._simulation.device, hoomd.device.GPU)):
