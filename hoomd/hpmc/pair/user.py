@@ -4,7 +4,6 @@
 
 import hoomd
 from hoomd.hpmc import integrate
-from hoomd import _hoomd
 from hoomd.hpmc import _jit
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
@@ -46,98 +45,32 @@ def to_llvm_ir(code, clang_exec):
     return llvm_ir
 
 
-class JITCompute(_HOOMDBaseObject):
-    """Base class for all HOOMD JIT compute objects (fields and potential
-    interactions).  Provides helper methods to compile the user code in both CPU
-    and GPU devices.
+def get_gpu_compilation_settings(gpu):
+    """Helper function to set CUDA libraries for GPU execution. """
+    includes = [
+        "-I" + os.path.dirname(hoomd.__file__) + '/include',
+        "-I" + hoomd.version.source_dir,
+        "-I" + _jit.__cuda_include_path__
+    ]
+    cuda_devrt_lib_path = _jit.__cuda_devrt_library_path__
 
-    Note:
-        Users should not invoke `JITCompute` directly. The attributes documented
-        here are available to all JIT objects.
-
-    Args:
-        code (`str`): C++ code defining the custom energetic interaction.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str`): The Clang executable to use.
-    """
-
-    def __init__(self, clang_exec, code, llvm_ir_file):
-        super().__init__()
-        # these only exist on python
-        self._code = code
-        self._llvm_ir_file = llvm_ir_file
-        self._clang_exec = clang_exec
-
-    def _attach(self):
-        super()._attach()
-
-    def _setup_gpu_code_path(self):
-        """Helper function to set CUDA libraries for GPU execution.
-        """
-        include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include'
-        include_path_source = hoomd.version.source_dir
-        include_path_cuda = _jit.__cuda_include_path__
-        self._options = [
-            "-I" + include_path_hoomd, "-I" + include_path_source,
-            "-I" + include_path_cuda
-        ]
-        self._cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
-
-        # select maximum supported compute capability out of those we compile for
-        self._compute_archs = _jit.__cuda_compute_archs__
-        compute_archs_vec = _hoomd.std_vector_uint()
-        compute_capability = cpp_exec_conf.getComputeCapability(0)  # GPU 0
-        compute_major, compute_minor = compute_capability.split('.')
-        self._max_arch = 0
-        for a in self._compute_archs.split('_'):
-            if int(a) < int(compute_major) * 10 + int(compute_major):
-                self._max_arch = int(a)
-
-    @property
-    def code(self):
-        """str: The C++ code defining the custom energetic interaction.
-        """
-        return self._code
-
-    @code.setter
-    def code(self, code):
-        if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
-        else:
-            self._code = code
-
-    @property
-    def llvm_ir_file(self):
-        """str: File name of the llvm IR file to load."""
-        return self._llvm_ir_file
-
-    @llvm_ir_file.setter
-    def llvm_ir_file(self, llvm_ir):
-        if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
-        else:
-            self._llvm_ir_file = llvm_ir
-
-    @property
-    def clang_exec(self):
-        """str: The Clang executable to compile the provided code."""
-        return self._clang_exec
-
-    @clang_exec.setter
-    def clang_exec(self, clang):
-        if self._attached:
-            raise AttributeError(
-                "This attribute can only be set when the object is not attached."
-            )
-        else:
-            self._clang_exec = clang
+    # select maximum supported compute capability out of those we compile for
+    compute_archs = _jit.__cuda_compute_archs__
+    compute_capability = gpu._cpp_exec_conf.getComputeCapability(0)  # GPU 0
+    compute_major, compute_minor = compute_capability.split('.')
+    max_arch = 0
+    for a in compute_archs.split('_'):
+        if int(a) < int(compute_major) * 10 + int(compute_major):
+            max_arch = max(max_arch, int(a))
+    return {
+        "includes": includes,
+        "cuda_devrt_lib_path": cuda_devrt_lib_path,
+        "compute_archs": compute_archs,
+        "max_arch": max_arch
+        }
 
 
-class CPPPotentialBase(JITCompute):
+class CPPPotentialBase(_HOOMDBaseObject):
     """Base class for all HOOMD JIT interaction between pairs of particles.
 
     Note:
@@ -409,20 +342,22 @@ class CPPPotential(CPPPotentialBase):
         else:
             raise RuntimeError("Must provide code or LLVM IR file.")
 
-        cpp_exec_conf = self._simulation.device._cpp_exec_conf
+        device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        if (isinstance(self._simulation.device, hoomd.device.GPU)):
-            self._setup_gpu_code_path()
+        if isinstance(device, hoomd.device.GPU):
+            gpu_settings = get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, cpp_exec_conf, llvm_ir, self.r_cut,
+                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
                 self.array_size, gpu_code,
-                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options,
-                self._cuda_devrt_library_path, self._max_arch)
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
+                gpu_settings["includes"],
+                gpu_settings["cuda_devrt_lib_path"],
+                gpu_settings["max_arch"])
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def, cpp_exec_conf,
-                                                llvm_ir, self.r_cut,
-                                                self.array_size)
+            self._cpp_obj = _jit.PatchEnergyJIT(
+                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
+                self.array_size)
         # Set the C++ mirror array with the cached values
         # and override the python array
         self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
@@ -608,23 +543,23 @@ class CPPUnionPotential(CPPPotentialBase):
             cpp_dummy = self._wrap_cpu_code('return 0.0;')
             llvm_ir = to_llvm_ir(cpp_dummy, self._clang_exec)
 
-        cpp_exec_conf = self._simulation.device._cpp_exec_conf
-        if (isinstance(self._simulation.device, hoomd.device.GPU)):
-            self._setup_gpu_code_path()
+        device = self._simulation.device
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            gpu_settings = get_gpu_compilation_settings(device)
             # use union evaluator
-            self._options += ["-DUNION_EVAL"]
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
-                self._simulation.state._cpp_sys_def, cpp_exec_conf, llvm_ir,
-                self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,
-                self.array_size_union, gpu_code,
-                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", self._options,
-                self._cuda_devrt_library_path, self._max_arch)
+                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
+                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
+                self.r_cut_union, self.array_size_union, gpu_code,
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
+                gpu_settings["includes"] + ["-DUNION_EVAL"],
+                gpu_settings["cuda_devrt_lib_path"], gpu_settings["max_arch"])
         else:
             self._cpp_obj = _jit.PatchEnergyJITUnion(
-                self._simulation.state._cpp_sys_def, cpp_exec_conf, llvm_ir,
-                self.r_cut, self.array_size, llvm_ir_union, self.r_cut_union,
-                self.array_size_union)
+                self._simulation.state._cpp_sys_def, device._cpp_exec_conf,
+                llvm_ir, self.r_cut, self.array_size, llvm_ir_union,
+                self.r_cut_union, self.array_size_union)
 
         # Set the C++ mirror array with the cached values
         # and override the python array
