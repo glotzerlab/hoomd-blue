@@ -1477,7 +1477,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
                     this->m_exec_conf->endMultiGPU();
                     }
 
-                if (this->m_patch && !this->m_patch_log)
+                if (this->m_patch)
                     {
                     // access data for proposed moves
                     ArrayHandle<Scalar4> d_trial_postype(m_trial_postype, access_location::device, access_mode::read);
