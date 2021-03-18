@@ -102,7 +102,6 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             args.d_reject_out,
             args.seed,
             args.timestep,
-            args.select,
             args.num_types,
             args.box,
             args.ghost_width,
