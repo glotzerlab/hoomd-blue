@@ -1,7 +1,7 @@
 #ifdef ENABLE_HIP
 #include "PatchEnergyJITUnionGPU.h"
 
-#include "hoomd/jit/EvaluatorUnionGPU.cuh"
+#include "hoomd/hpmc/EvaluatorUnionGPU.cuh"
 #include <pybind11/stl.h>
 
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
