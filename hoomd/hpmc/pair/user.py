@@ -366,8 +366,12 @@ class CPPPotential(CPPPotentialBase):
         super()._attach()
 
 
-class CPPUnionPotential(CPPPotentialBase):
-    r'''Define an arbitrary patch energetic interaction between unions of particles.
+class _CPPUnionPotential(CPPPotentialBase):
+    r'''Define an arbitrary energetic interaction between unions of particles.
+
+
+    Warning:
+        This class does not currenlty work. Please do not attempt to use this.
 
     Args:
         r_cut_union (`float`): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
