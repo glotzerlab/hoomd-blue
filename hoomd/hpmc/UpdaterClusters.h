@@ -24,6 +24,11 @@
 #include <tbb/parallel_for.h>
 #include <tbb/task.h>
 #include <atomic>
+
+#if TBB_VERSION_MAJOR < 2021
+#define ENABLE_TBB_TASK
+#endif
+
 #endif
 
 namespace hpmc
@@ -78,7 +83,9 @@ class my_atomic_flag
 class Graph
     {
     public:
-        Graph() {}      //!< Default constructor
+        Graph(std::shared_ptr<tbb::task_arena> task_arena) : m_task_arena(task_arena)
+            {
+            }
 
         inline Graph(unsigned int V);   // Constructor
 
@@ -104,6 +111,9 @@ class Graph
         #else
         std::vector<my_atomic_flag> visited;
         #endif
+
+        /// The TBB task arena
+        std::shared_ptr<tbb::task_arena> m_task_arena;
 
         #ifndef ENABLE_TBB_TASK
         // A function used by DFS
@@ -173,7 +183,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
 #endif
     {
     #ifdef ENABLE_TBB_TASK
-    m_exec_conf->getTaskArena()->execute([&]{
+    this->m_task_arena->execute([&]{
     for (unsigned int v = 0; v < visited.size(); ++v)
         {
         if (! visited[v].test_and_set())
@@ -421,7 +431,7 @@ template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc)
         : Updater(sysdef), m_mc(mc), m_move_ratio(0.5),
-            m_flip_probability(0.5)
+            m_flip_probability(0.5), m_G(sysdef->getParticleData()->getExecConf()->getTaskArena())
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
 
@@ -490,7 +500,7 @@ inline void UpdaterClusters<Shape>::checkDepletantOverlap(unsigned int i, vec3<S
     img_i = box.getImage(pos_i_transf);
 
     #ifdef ENABLE_TBB_TASK
-    m_exec_conf->getTaskArena()->execute([&]{
+    this->m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for(tbb::blocked_range<unsigned int>(0, this->m_pdata->getNTypes()),
         [=, &shape_i](const tbb::blocked_range<unsigned int>& x) {
     for (unsigned int type_a = x.begin(); type_a != x.end(); ++type_a)
@@ -1200,7 +1210,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
         {
         // test old configuration against itself
         #ifdef ENABLE_TBB_TASK
-        m_exec_conf->getTaskArena()->execute([&]{
+        this->m_exec_conf->getTaskArena()->execute([&]{
         tbb::parallel_for((unsigned int)0,this->m_pdata->getN(), [&](unsigned int i)
         #else
         for (unsigned int i = 0; i < this->m_pdata->getN(); ++i)
@@ -1300,7 +1310,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
 
     // loop over new configuration
     #ifdef ENABLE_TBB_TASK
-    m_exec_conf->getTaskArena()->execute([&]{
+    this->m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
     #else
     for (unsigned int i = 0; i < nptl; ++i)
@@ -1485,7 +1495,7 @@ void UpdaterClusters<Shape>::findInteractions(uint64_t timestep, const quat<Scal
 
     // test old configuration against itself
     #ifdef ENABLE_TBB_TASK
-    m_exec_conf->getTaskArena()->execute([&]{
+    this->m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for((unsigned int)0,this->m_pdata->getN(), [&](unsigned int i) {
     #else
     for (unsigned int i = 0; i < this->m_pdata->getN(); ++i)
@@ -1659,7 +1669,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
         m_prof->push("overlap");
 
     #ifdef ENABLE_TBB_TASK
-    m_exec_conf->getTaskArena()->execute([&]{
+    this->m_exec_conf->getTaskArena()->execute([&]{
     tbb::parallel_for(m_overlap.range(), [&] (decltype(m_overlap.range()) r)
     #else
     auto &r = m_overlap;
@@ -1728,7 +1738,7 @@ void UpdaterClusters<Shape>::update(uint64_t timestep)
             }
 
         #ifdef ENABLE_TBB_TASK
-        m_exec_conf->getTaskArena()->execute([&]{
+        this->m_exec_conf->getTaskArena()->execute([&]{
         tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
         #else
         auto &r = delta_U;
