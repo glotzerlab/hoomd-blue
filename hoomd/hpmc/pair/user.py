@@ -5,7 +5,7 @@
 import hoomd
 from hoomd.hpmc import integrate
 from hoomd.hpmc import _jit
-from hoomd.operation import _HOOMDBaseObject
+from hoomd.operation import Compute
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
@@ -70,7 +70,7 @@ def get_gpu_compilation_settings(gpu):
         }
 
 
-class CPPPotentialBase(_HOOMDBaseObject):
+class CPPPotentialBase(Compute):
     """Base class for all HOOMD JIT interaction between pairs of particles.
 
     Note:
@@ -78,100 +78,79 @@ class CPPPotentialBase(_HOOMDBaseObject):
         used for `isinstance` or `issubclass` checks. The attributes documented
         here are available to all patch computes.
 
-        Patch energies define energetic interactions between pairs of shapes in
-        :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
-        distance of *r_cut* are potentially interacting and the energy of
-        interaction is a function the type and orientation of the particles and
-        the vector pointing from the *i* particle to the *j* particle center.
+    Pair potential energies define energetic interactions between pairs of
+    shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.  Shapes within a cutoff
+    distance of *r_cut* are potentially interacting and the energy of
+    interaction is a function the type and orientation of the particles and the
+    vector pointing from the *i* particle to the *j* particle center.
 
-        Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT
-        compiles it at run time and executes the code natively in the MC loop
-        with full performance. It enables researchers to quickly and easily
-        implement custom energetic interactions without the need to modify and
-        recompile HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a
-        mechanism, through the `alpha_iso` attribute (numpy array), to adjust
-        user defined potential parameters without the need to recompile the
-        patch energy code. These arrays are **read-only** during function
-        evaluation.
+    Classes derived from :py:class:`CPPPotentialBase` take C++ code, JIT
+    compiles it at run time and executes the code natively in the MC loop with
+    full performance. It enables researchers to quickly and easily implement
+    custom energetic interactions without the need to modify and recompile
+    HOOMD. Additionally, :py:class:`CPPPotentialBase` provides a mechanism,
+    through the `param_array` attribute (numpy array), to adjust user defined
+    potential parameters without the need to recompile the patch energy code.
+    These arrays are **read-only** during function evaluation.
 
-        .. rubric:: C++ code
+    .. rubric:: C++ code
 
-        Classes derived from :py:class:`CPPPotentialBase` will compile the code
-        provided by the user and call it to evaluate patch energies. Compilation
-        assumes that a recent ``clang`` installation is on your PATH. This is
-        convenient when the energy evaluation is simple or needs to be modified
-        in python. More complex code (i.e. code that requires auxiliary
-        functions or initialization of static data arrays) should be compiled
-        outside of HOOMD and provided via the *llvm_ir_file* input (see below).
+    Classes derived from :py:class:`CPPPotentialBase` will compile the code
+    provided by the user and call it to evaluate patch energies. Compilation
+    assumes that a recent ``clang`` installation is on your PATH.  The text
+    provided in *code* is the body of a function with the following signature:
 
-        The text provided in *code* is the body of a function with the following
-        signature:
+    .. code::
 
-        .. code::
+    float eval(const vec3<float>& r_ij,
+                unsigned int type_i,
+                const quat<float>& q_i,
+                float d_i,
+                float charge_i,
+                unsigned int type_j,
+                const quat<float>& q_j,
+                float d_j,
+                float charge_j)
 
-        float eval(const vec3<float>& r_ij,
-                   unsigned int type_i,
-                   const quat<float>& q_i,
-                   float d_i,
-                   float charge_i,
-                   unsigned int type_j,
-                   const quat<float>& q_j,
-                   float d_j,
-                   float charge_j)
+    * ``r_ij`` is a vector pointing from the center of particle *i* to the
+        center of particle *j*.
+    * ``type_i`` is the integer type of particle *i*
+    * ``q_i`` is the quaternion orientation of particle *i*
+    * ``d_i`` is the diameter of particle *i*
+    * ``charge_i`` is the charge of particle *i*
+    * ``type_j`` is the integer type of particle *j*
+    * ``q_j`` is the quaternion orientation of particle *j*
+    * ``d_j`` is the diameter of particle *j*
+    * ``charge_j`` is the charge of particle *j*
+    * Your code *must* return a value.
 
-        * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-        * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
-        * *type_i* is the integer type of particle *i*
-        * *q_i* is the quaternion orientation of particle *i*
-        * *d_i* is the diameter of particle *i*
-        * *charge_i* is the charge of particle *i*
-        * *type_j* is the integer type of particle *j*
-        * *q_j* is the quaternion orientation of particle *j*
-        * *d_j* is the diameter of particle *j*
-        * *charge_j* is the charge of particle *j*
-        * Your code *must* return a value.
-        * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This
-        *r_cut* is applied between the centers of the two particles: compute it
-        accordingly based on the maximum range of the anisotropic interaction
-        that you implement.
-
-        .. rubric:: LLVM IR code
-
-        You can compile outside of HOOMD and provide a direct link to the LLVM
-        IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval
-        function with the signature mentioned above.
-
-        Compile the file with clang: ``clang -O3 --std=c++14
-        -DHOOMD_LLVMJIT_BUILD -I /path/to/hoomd/include -S -emit-llvm code.cc``
-        to produce the LLVM IR in ``code.ll``.
+    ``vec3`` and ``quat`` are defined in HOOMDMath.h.  When :math:`|r_ij|` is
+    greater than ``r_cut``, the energy *must* be 0. This ``r_cut`` is applied
+    between the centers of the two particles: compute it accordingly based on
+    the maximum range of the anisotropic interaction that you implement.
 
     Atrributes:
-        r_cut (`float`): Particle center to center distance cutoff beyond which
-        all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between
-        particles.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str`): The Clang executable to compile the provided code.
-        array_size (`int`): Size of array with adjustable elements.
-        energy (`float`): Total interaction energy of the system in the current state.
-        alpha_iso (``ndarray<float>``): Length `array_size` numpy array
-        containing dynamically adjustable elements defined by the user.
+        r_cut (float): Particle center to center distance cutoff beyond which
+            all pair interactions are assumed 0.
+        param_array ((N,) `numpy.ndarray` of float): Numpy array containing
+            dynamically adjustable elements defined by the user. Cannot change
+            size after calling `Simulation.run`. The elements are still mutable
+            however.
     """
 
-    def __init__(self,
-                 r_cut,
-                 array_size=1,
-                 clang_exec='clang',
-                 code=None,
-                 llvm_ir_file=None):
-        super().__init__(clang_exec=clang_exec,
-                         code=code,
-                         llvm_ir_file=llvm_ir_file)
-        param_dict = ParameterDict(r_cut=float(r_cut),
-                                   array_size=int(array_size))
+    def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
+        self._cpu_llvm_ir = to_llvm_ir(self._wrap_cpu_code(code), clang_exec)
+        self._code = code
+        param_dict = ParameterDict(
+            r_cut=r_cut,
+            param_array=hoomd.data.typeconverter.Array(dtype=np.float32, ndim=1)
+        )
+        param_dict['r_cut'] = r_cut
+        if param_array is None:
+            param_dict['param_array'] = np.array([])
+        else:
+            param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
-        # these only exist on python
-        self.alpha_iso = np.zeros(array_size)
 
     def _attach(self):
         self._simulation.operations.integrator._cpp_obj.setPatchEnergy(
@@ -203,7 +182,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         #include "hoomd/VectorMath.h"
 
                         // these are allocated by the library
-                        float *alpha_iso;
+                        float *param_array;
                         float *alpha_union;
 
                         extern "C"
@@ -239,7 +218,7 @@ class CPPPotentialBase(_HOOMDBaseObject):
                         #include "hoomd/hpmc/IntegratorHPMCMonoGPUJIT.inc"
 
                         // these are allocated by the library
-                        __device__ float *alpha_iso;
+                        __device__ float *param_array;
                         __device__ float *alpha_union;
 
                         __device__ inline float eval(const vec3<float>& r_ij,
@@ -261,66 +240,36 @@ class CPPPotentialBase(_HOOMDBaseObject):
 
 
 class CPPPotential(CPPPotentialBase):
-    r'''Define an arbitrary patch energetic interaction between pairs of particles.
+    r'''Define an energetic interaction between pairs of particles.
 
     Args:
-        r_cut (`float`): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
-        code (`str`): C++ code defining the custom pair interactions between particles.
-        llvm_ir_fname (`str`): File name of the llvm IR file to load.
-        clang_exec (`str` **default:** `clang`): The Clang executable to compile the provided code.
-        array_size (`int`, **default:** 1): Size of array with adjustable elements.
-
-    Note:
-        If both `code` and `llvm_ir_fname` are provided, the former takes
-        precedence. The latter will be used as a fallback in case the
-        compilation of `code` fails.
+        r_cut (float): Particle center to center distance cutoff beyond which
+            all pair interactions are assumed 0.
+        code (str): C++ code defining the function body for pair interactions
+            between particles.
+        clang_exec (str, optional): The Clang executable to compile
+            the provided code, defaults to ``'clang'``.
 
     Examples:
 
-    Static potential parameters
+        .. code-block:: python
 
-    .. code-block:: python
-
-        square_well = """float rsq = dot(r_ij, r_ij);
-                            if (rsq < 1.21f)
-                                return -1.0f;
-                            else
-                                return 0.0f;
-                      """
-        patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
-        sim.operations += patch
-        sim.run(1000)
-
-    Dynamic potential parameters
-
-    .. code-block:: python
-
-        square_well = """float rsq = dot(r_ij, r_ij);
-                         float r_cut = alpha_iso[0];
-                            if (rsq < r_cut*r_cut)
-                                return alpha_iso[1];
-                            else
-                                return 0.0f;
-                      """
-        patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, array_size=2, code=square_well)
-        patch.alpha_iso[:] = [1.1, 1.5] # [rcut, epsilon]
-        sim.operations += patch
-        sim.run(1000)
-        patch.alpha_iso[1] = 2.0
-        sim.run(1000)
+            square_well = """float rsq = dot(r_ij, r_ij);
+                                if (rsq < 1.21f)
+                                    return -1.0f;
+                                else
+                                    return 0.0f;
+                        """
+            patch = hoomd.jit.patch.CPPPotential(r_cut=1.1, code=square_well)
+            sim.operations += patch
+            sim.run(1000)
     '''
 
-    def __init__(self,
-                 r_cut,
-                 array_size=1,
-                 clang_exec='clang',
-                 code=None,
-                 llvm_ir_file=None):
+    def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
         super().__init__(r_cut=r_cut,
-                         array_size=array_size,
-                         clang_exec=clang_exec,
                          code=code,
-                         llvm_ir_file=llvm_ir_file)
+                         clang_exec=clang_exec,
+                         param_array=param_array)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -330,38 +279,22 @@ class CPPPotential(CPPPotentialBase):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        # compile code if provided
-        if self._code is not None:
-            cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = to_llvm_ir(cpp_function, self._clang_exec)
-        # fall back to LLVM IR file in case code is not provided
-        elif self._llvm_ir_file is not None:
-            # IR is a text file
-            with open(self._llvm_ir_file, 'r') as f:
-                llvm_ir = f.read()
-        else:
-            raise RuntimeError("Must provide code or LLVM IR file.")
-
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
         if isinstance(device, hoomd.device.GPU):
             gpu_settings = get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
-                self.array_size, gpu_code,
+                cpp_sys_def, device._cpp_exec_conf, self._cpu_llvm_ir,
+                self.r_cut, self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
                 gpu_settings["includes"],
                 gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:
             self._cpp_obj = _jit.PatchEnergyJIT(
-                cpp_sys_def, device._cpp_exec_conf, llvm_ir, self.r_cut,
-                self.array_size)
-        # Set the C++ mirror array with the cached values
-        # and override the python array
-        self._cpp_obj.alpha_iso[:] = self.alpha_iso[:]
-        self.alpha_iso = self._cpp_obj.alpha_iso
+                cpp_sys_def, device._cpp_exec_conf, self._cpu_llvm_ir,
+                self.r_cut, self.param_array)
         # attach patch object to the integrator
         super()._attach()
 
@@ -438,9 +371,9 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         # soft repulsion between centers of unions
         soft_repulsion = """float rsq = dot(r_ij, r_ij);
-                                  float r_cut = alpha_iso[0];
+                                  float r_cut = param_array[0];
                                   if (rsq < r_cut*r_cut)
-                                    return alpha_iso[1];
+                                    return param_array[1];
                                   else
                                     return 0.0f;
                          """
@@ -451,7 +384,7 @@ class _CPPUnionPotential(CPPPotentialBase):
         patch.typeids['A'] = [0,0]
         patch.diameters['A'] = [0,0]
         # [r_cut, epsilon]
-        patch.alpha_iso[:] = [2.5, 1.3];
+        patch.param_array[:] = [2.5, 1.3];
         patch.alpha_union[:] = [2.5, -1.7];
     '''
 

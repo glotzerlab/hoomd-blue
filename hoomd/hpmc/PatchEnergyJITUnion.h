@@ -15,10 +15,10 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
          */
         PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf,
             const std::string& llvm_ir_iso, Scalar r_cut_iso,
-            const unsigned int array_size_iso,
+            pybind11::array_t<float> param_array,
             const std::string& llvm_ir_union, Scalar r_cut_union,
             const unsigned int array_size_union)
-            : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso), m_sysdef(sysdef),
+            : PatchEnergyJIT(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array), m_sysdef(sysdef),
             m_rcut_union(r_cut_union),
             m_alpha_union(array_size_union, 0.0f, managed_allocator<float>(m_exec_conf->isCUDAEnabled())),
             m_alpha_size_union(array_size_union)

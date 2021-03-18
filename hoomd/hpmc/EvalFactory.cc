@@ -78,7 +78,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-    auto alpha = m_jit->findSymbol("alpha_iso");
+    auto alpha = m_jit->findSymbol("param_array");
 
     if (!alpha)
         {

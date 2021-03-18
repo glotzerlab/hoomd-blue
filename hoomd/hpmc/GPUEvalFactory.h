@@ -40,7 +40,8 @@
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
     parameters and launch the kernel into a stream.
 
-    Additionally, it allows access to pointers alpha_iso and alpha_union defined at global scope.
+    Additionally, it allows access to pointers param_array and alpha_union
+    defined at global scope.
  */
 class GPUEvalFactory
     {
@@ -163,7 +164,7 @@ class GPUEvalFactory
                         {
                         CUdeviceptr ptr = m_program[idev].kernel(m_kernel_name)
                             .instantiate(e,l)
-                            .get_global_ptr("alpha_iso");
+                            .get_global_ptr("param_array");
 
                         // copy the array pointer to the device
                         char *error;

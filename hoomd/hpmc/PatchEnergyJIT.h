@@ -9,6 +9,10 @@
 
 #include "EvalFactory.h"
 
+#ifndef __HIPCC__
+#include <pybind11/numpy.h>
+#endif
+
 
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy barriers for users to add
@@ -39,7 +43,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ExecutionConfiguration> exec_conf,
                        const std::string& llvm_ir, Scalar r_cut,
-                       const unsigned int array_size);
+                       pybind11::array_t<float> param_array);
 
        virtual Scalar getRelevantRCut()
            {
@@ -95,7 +99,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
-        static pybind11::object getAlphaNP(pybind11::object self)
+        static pybind11::object getParamArray(pybind11::object self)
             {
             auto self_cpp = self.cast<PatchEnergyJIT *>();
             return pybind11::array(self_cpp->m_alpha_size, self_cpp->m_factory->getAlphaArray(), self);
