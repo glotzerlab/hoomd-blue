@@ -293,7 +293,7 @@ if (BUILD_JIT)
 
     # install the library
     install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_llvm
-            LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/${PACKAGE_NAME}
+            LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc
             )
 
     # install headers in installation target
