@@ -24,6 +24,7 @@ namespace py = pybind11;
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <thread>
 
 using namespace std;
 
@@ -207,15 +208,16 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     #endif
 
     #ifdef ENABLE_TBB
-    m_num_threads = std::thread::hardware_concurrency();
+    unsigned int num_threads = std::thread::hardware_concurrency();
 
     char *env;
     if ((env = getenv("OMP_NUM_THREADS")) != NULL)
         {
-        unsigned int num_threads = atoi(env);
+        num_threads = atoi(env);
         msg->notice(2) << "Setting number of TBB threads to value of OMP_NUM_THREADS=" << num_threads << std::endl;
-        setNumThreads(num_threads);
         }
+
+    setNumThreads(num_threads);
     #endif
 
     #if defined(ENABLE_HIP)

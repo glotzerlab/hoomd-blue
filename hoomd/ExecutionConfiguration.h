@@ -266,6 +266,8 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     std::shared_ptr<tbb::task_arena> getTaskArena() const
         {
+        if (!m_task_arena)
+            throw std::runtime_error("TBB task arena not set.");
         return m_task_arena;
         }
     #endif
