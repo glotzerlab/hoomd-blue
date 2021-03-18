@@ -16,14 +16,17 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
     {
     public:
         //! Constructor
-        PatchEnergyJITGPU(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut,
+        PatchEnergyJITGPU(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ExecutionConfiguration> exec_conf,
+                       const std::string& llvm_ir,
+                       Scalar r_cut,
                        const unsigned int array_size,
                        const std::string& code,
                        const std::string& kernel_name,
                        const std::vector<std::string>& options,
                        const std::string& cuda_devrt_library_path,
                        unsigned int compute_arch)
-            : PatchEnergyJIT(exec_conf, llvm_ir, r_cut, array_size),
+            : PatchEnergyJIT(sysdef, exec_conf, llvm_ir, r_cut, array_size),
               m_gpu_factory(exec_conf, code, kernel_name, options, cuda_devrt_library_path, compute_arch)
             {
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
@@ -74,8 +77,10 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
 inline void export_PatchEnergyJITGPU(pybind11::module &m)
     {
     pybind11::class_<PatchEnergyJITGPU, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITGPU> >(m, "PatchEnergyJITGPU")
-            .def(pybind11::init< std::shared_ptr<ExecutionConfiguration>,
-                                 const std::string&, Scalar, const unsigned int,
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+                                 std::shared_ptr<ExecutionConfiguration>,
+                                 const std::string&, Scalar,
+                                 const unsigned int,
                                  const std::string&,
                                  const std::string&,
                                  const std::vector<std::string>&,
