@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "hoomd/jit/Evaluator.cuh"
+#include "hoomd/hpmc/Evaluator.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/GPUTree.h"
