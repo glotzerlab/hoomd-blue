@@ -11,21 +11,18 @@ import numpy as np
 
 valid_constructor_args = [
     dict(code='return -1;',
-         llvm_ir_file="code.ll",
          clang_exec='/usr/bin/clang')
 ]
 
 
 # setable attributes before attach for CPPExternalField objects
 valid_attrs = [('code', 'return -1;'),
-               ('llvm_ir_file', 'code.ll'),
                ('clang_exec', 'clang')
 ]
 
 
 # attributes that cannot be set after object is attached
 attr_error =  [('code', 'return -1.0;'),
-               ('llvm_ir_file', 'test.ll'),
                ('clang_exec', '/usr/bin/clang')
 ]
 
