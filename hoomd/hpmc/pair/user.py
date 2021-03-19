@@ -3,71 +3,14 @@
 # License.
 
 import hoomd
+from hoomd import _compile
 from hoomd.hpmc import integrate
 from hoomd.hpmc import _jit
 from hoomd.operation import Compute
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
-import subprocess
-import os
 import numpy as np
-
-
-def to_llvm_ir(code, clang_exec):
-    r"""Helper function to compile the provided code into an executable
-
-    Args:
-        code (`str`): C++ code to compile
-        clang_exec (`str`): The Clang executable to use
-        fn (`str`, **optional**): If provided, the code will be written to a
-        file.
-    """
-    hoomd_include_path = os.path.dirname(hoomd.__file__) + '/include'
-
-    cmd = [
-        clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I',
-        hoomd_include_path, '-I', hoomd.version.source_dir, '-S', '-emit-llvm',
-        '-x', 'c++', '-o', '-', '-'
-    ]
-    p = subprocess.Popen(cmd,
-                         stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-
-    # pass C++ function to stdin
-    output = p.communicate(code.encode('utf-8'))
-    llvm_ir = output[0].decode()
-
-    if p.returncode != 0:
-        raise RuntimeError(f"Error initializing potential: {output[1]}")
-
-    return llvm_ir
-
-
-def get_gpu_compilation_settings(gpu):
-    """Helper function to set CUDA libraries for GPU execution. """
-    includes = [
-        "-I" + os.path.dirname(hoomd.__file__) + '/include',
-        "-I" + hoomd.version.source_dir,
-        "-I" + _jit.__cuda_include_path__
-    ]
-    cuda_devrt_lib_path = _jit.__cuda_devrt_library_path__
-
-    # select maximum supported compute capability out of those we compile for
-    compute_archs = _jit.__cuda_compute_archs__
-    compute_capability = gpu._cpp_exec_conf.getComputeCapability(0)  # GPU 0
-    compute_major, compute_minor = compute_capability.split('.')
-    max_arch = 0
-    for a in compute_archs.split('_'):
-        if int(a) < int(compute_major) * 10 + int(compute_major):
-            max_arch = max(max_arch, int(a))
-    return {
-        "includes": includes,
-        "cuda_devrt_lib_path": cuda_devrt_lib_path,
-        "compute_archs": compute_archs,
-        "max_arch": max_arch
-        }
 
 
 class CPPPotentialBase(Compute):
@@ -139,7 +82,8 @@ class CPPPotentialBase(Compute):
     """
 
     def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
-        self._cpu_llvm_ir = to_llvm_ir(self._wrap_cpu_code(code), clang_exec)
+        self._cpu_llvm_ir = _compile.to_llvm_ir(
+            self._wrap_cpu_code(code), clang_exec)
         self._code = code
         param_dict = ParameterDict(
             r_cut=r_cut,
@@ -282,7 +226,7 @@ class CPPPotential(CPPPotentialBase):
         device = self._simulation.device
         cpp_sys_def = self._simulation.state._cpp_sys_def
         if isinstance(device, hoomd.device.GPU):
-            gpu_settings = get_gpu_compilation_settings(device)
+            gpu_settings = _compile.get_gpu_compilation_settings(device)
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITGPU(
                 cpp_sys_def, device._cpp_exec_conf, self._cpu_llvm_ir,
@@ -459,7 +403,8 @@ class _CPPUnionPotential(CPPPotentialBase):
         # compile code if provided
         if self._code_union is not None:
             cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = to_llvm_ir(cpp_function_union, self._clang_exec)
+            llvm_ir_union = _compile._to_llvm_ir(
+                cpp_function_union, self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file
@@ -470,7 +415,7 @@ class _CPPUnionPotential(CPPPotentialBase):
 
         if self._code is not None:
             cpp_function = self._wrap_cpu_code(self._code)
-            llvm_ir = to_llvm_ir(cpp_function, self._clang_exec)
+            llvm_ir = _compile.to_llvm_ir(cpp_function, self._clang_exec)
         elif self._llvm_ir_file is not None:
             # IR is a text file
             with open(self._llvm_ir_file, 'r') as f:
@@ -478,11 +423,11 @@ class _CPPUnionPotential(CPPPotentialBase):
         else:
             # provide a dummy function
             cpp_dummy = self._wrap_cpu_code('return 0.0;')
-            llvm_ir = to_llvm_ir(cpp_dummy, self._clang_exec)
+            llvm_ir = _compile.to_llvm_ir(cpp_dummy, self._clang_exec)
 
         device = self._simulation.device
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            gpu_settings = get_gpu_compilation_settings(device)
+            gpu_settings = _compile.get_gpu_compilation_settings(device)
             # use union evaluator
             gpu_code = self._wrap_gpu_code(self._code)
             self._cpp_obj = _jit.PatchEnergyJITUnionGPU(
