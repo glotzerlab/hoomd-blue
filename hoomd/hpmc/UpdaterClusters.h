@@ -83,7 +83,7 @@ class my_atomic_flag
 class Graph
     {
     public:
-        Graph(std::shared_ptr<tbb::task_arena> task_arena) : m_task_arena(task_arena)
+        Graph()
             {
             }
 
@@ -99,6 +99,13 @@ class Graph
         inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
         #endif
 
+        #ifdef ENABLE_TBB_TASK
+        void setTaskArena(std::shared_ptr<tbb::task_arena> task_arena)
+            {
+            m_task_arena = task_arena;
+            }
+        #endif
+
     private:
         #ifndef ENABLE_TBB_TASK
         std::multimap<unsigned int,unsigned int> adj;
@@ -112,8 +119,10 @@ class Graph
         std::vector<my_atomic_flag> visited;
         #endif
 
+        #ifdef ENABLE_TBB_TASK
         /// The TBB task arena
         std::shared_ptr<tbb::task_arena> m_task_arena;
+        #endif
 
         #ifndef ENABLE_TBB_TASK
         // A function used by DFS
@@ -431,9 +440,13 @@ template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc)
         : Updater(sysdef), m_mc(mc), m_move_ratio(0.5),
-            m_flip_probability(0.5), m_G(sysdef->getParticleData()->getExecConf()->getTaskArena())
+            m_flip_probability(0.5)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
+
+    #ifdef ENABLE_TBB_TASK
+    m_G.setTaskArena(sysdef->getParticleData()->getExecConf()->getTaskArena());
+    #endif
 
     // initialize logger and stats
     resetStats();
