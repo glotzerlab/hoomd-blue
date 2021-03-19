@@ -324,6 +324,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 set(files benchmark.py
           box.py
           communicator.py
+          _compile.py
           conftest.py
           device.py
           __init__.py
