@@ -158,14 +158,11 @@ def test_pivot_moves(device, simulation_factory,
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
-    mc = hoomd.hpmc.integrate.Sphere(seed=1, d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
-                                    swap_type_pair=[],
-                                    move_ratio=0.5,
-                                    delta_mu=-2.0,
-                                    seed=12)
+                                    pivot_move_ratio=0.1)
     operation_pickling_check(cl, sim)

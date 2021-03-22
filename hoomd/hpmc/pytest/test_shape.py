@@ -639,12 +639,12 @@ def test_pickling(valid_args, simulation_factory,
     if isinstance(integrator, tuple):
         inner_integrator = integrator[0]
         integrator = integrator[1]
-        inner_mc = inner_integrator(23456)
+        inner_mc = inner_integrator()
         for i in range(len(args["shapes"])):
             # This will fill in default values for the inner shape objects
             inner_mc.shape["A"] = args["shapes"][i]
             args["shapes"][i] = inner_mc.shape["A"]
-    mc = integrator(23456)
+    mc = integrator()
     mc.shape["A"] = args
     sim = simulation_factory(two_particle_snapshot_factory())
     operation_pickling_check(mc, sim)
