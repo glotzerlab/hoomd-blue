@@ -468,6 +468,12 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch = patch;
             }
 
+        //! Get the patch energy
+        std::shared_ptr<PatchEnergy> getPatchEnergy()
+            {
+            return m_patch;
+            }
+
         #ifdef ENABLE_MPI
         //! Set the MPI communicator
         /*! \param comm the communicator

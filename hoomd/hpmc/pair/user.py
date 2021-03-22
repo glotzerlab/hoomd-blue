@@ -96,11 +96,6 @@ class CPPPotentialBase(_HOOMDBaseObject):
             param_dict['param_array'] = param_array
         self._param_dict.update(param_dict)
 
-    def _attach(self):
-        self._simulation.operations.integrator._cpp_obj.setPatchEnergy(
-            self._cpp_obj)
-        super()._attach()
-
     @log
     def energy(self):
         """float: Total interaction energy of the system in the current state.
@@ -191,7 +186,7 @@ class CPPPotential(CPPPotentialBase):
             all pair interactions are assumed 0.
         code (str): C++ code defining the function body for pair interactions
             between particles.
-        clang_exec (str, optional): The Clang executable to compile
+        clang_exec (`str`, optional): The Clang executable to compile
             the provided code, defaults to ``'clang'``.
 
     Examples:

@@ -13,7 +13,6 @@ from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
-import math
 
 
 class HPMCIntegrator(BaseIntegrator):
@@ -126,6 +125,8 @@ class HPMCIntegrator(BaseIntegrator):
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect))
         self._param_dict.update(param_dict)
+        self._potential = None
+        self._field = None
 
         # Set standard typeparameters for hpmc integrators
         typeparam_d = TypeParameter('d',
@@ -167,6 +168,10 @@ class HPMCIntegrator(BaseIntegrator):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
+        if self._field is not None:
+            self._field._add()
+        if self._potential is not None:
+            self._potential._add()
 
     def _attach(self):
         """Initialize the reflected c++ class."""
@@ -188,6 +193,12 @@ class HPMCIntegrator(BaseIntegrator):
             self._cpp_cell = None
 
         super()._attach()
+        if self._field is not None:
+            self._field._attach()
+            self._cpp_obj.setExternalField(self._field._cpp_obj)
+        if self._potential is not None:
+            self._potential._attach()
+            self._cpp_obj.setPatchEnergy(self._potential._cpp_obj)
 
     # TODO need to validate somewhere that quaternions are normalized
 
@@ -364,6 +375,47 @@ class HPMCIntegrator(BaseIntegrator):
             return self._cpp_obj.getCounters(1)
         else:
             return None
+
+    @property
+    def potential(self):
+        return self._potential
+
+    @potential.setter
+    def potential(self, new_potential):
+        if not isinstance(new_potential, hoomd.hpmc.pair.user.CPPPotentialBase):
+            raise TypeError(
+                "Potentials should be an instance of CPPPotentialBase")
+        if self._added:
+            new_potential._add(self._simulation)
+        if self._attached:
+            new_potential.attach()
+            self._cpp_obj.setPatchEnergy(new_potential._cpp_obj)
+            if self._potential is not None:
+                self._potential.detach()
+        if self._added and self._potential is not None:
+            self._potential._remove()
+        self._potential = new_potential
+
+    @property
+    def field(self):
+        return self._field
+
+    @field.setter
+    def field(self, new_field):
+        if not isinstance(
+                new_field, hoomd.hpmc.external.user.CPPExternalField):
+            raise TypeError(
+                "External potentials should be an instance of CPPExternalField")
+        if self._added:
+            new_field._add(self._simulation)
+        if self._attached:
+            new_field._attach()
+            self._cpp_obj.setExternalField(new_field._cpp_obj)
+            if self._field is not None:
+                self._field.detach()
+        if self._added and self._field is not None:
+            self._field._remove()
+        self._field = new_field
 
 
 class Sphere(HPMCIntegrator):
