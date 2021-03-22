@@ -54,7 +54,6 @@ class UpdaterMuVT : public Updater
          */
         std::shared_ptr<Variant> getFugacity(const std::string& typ)
             {
-            assert(type < m_pdata->getNTypes());
             unsigned int id = this->m_pdata->getTypeByName(typ);
             return m_fugacity[id];
             }
