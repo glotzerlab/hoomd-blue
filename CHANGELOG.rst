@@ -15,6 +15,8 @@ v3.0.0-beta.5 (not yet released)
 - ``net_force``, ``net_torque``, and ``net_energy`` per-particle arrays in local snapshots.
 - Support ``hpmc.update.Clusters`` on the GPU.
 - ``hpmc.update.MuVT`` - Gibbs ensemble simulations with HPMC.
+- ``md.update.ZeroMomentum`` - Remove linear momentum from the system.
+- ``hpmc.compute.FreeVolume`` - Compute free volume available to test particles.
 
 *Changed*
 
@@ -242,6 +244,25 @@ functionality.
 
 v2.x
 ----
+
+v2.9.5 (2021-03-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support macos-arm64.
+* Support TBB 2021.
+* Fix memory leak in PPPM.
+
+v2.9.4 (2021-02-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support thrust 1.10
+* Support LLVM11
+* Fix Python syntax warnings
+* Fix compile errors with gcc 10
 
 v2.9.3 (2020-08-05)
 ^^^^^^^^^^^^^^^^^^^
