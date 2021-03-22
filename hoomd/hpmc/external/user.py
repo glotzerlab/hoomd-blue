@@ -6,11 +6,11 @@ import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
 from hoomd.hpmc import _jit
-from hoomd.operation import Compute
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.logging import log
 
 
-class CPPExternalField(Compute):
+class CPPExternalField(_HOOMDBaseObject):
     r'''Define an external field imposed on all particles in the system.
 
     Args:

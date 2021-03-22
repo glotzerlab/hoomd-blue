@@ -6,14 +6,14 @@ import hoomd
 from hoomd import _compile
 from hoomd.hpmc import integrate
 from hoomd.hpmc import _jit
-from hoomd.operation import Compute
+from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.logging import log
 import numpy as np
 
 
-class CPPPotentialBase(Compute):
+class CPPPotentialBase(_HOOMDBaseObject):
     """Base class for all HOOMD JIT interaction between pairs of particles.
 
     Note:
