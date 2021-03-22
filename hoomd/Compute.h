@@ -75,7 +75,8 @@ class PYBIND11_EXPORT Compute
             if (m_pdata->getDomainDecomposition() && !m_comm)
                 {
                 throw std::runtime_error(
-                    "Bug: m_comm not set for a system with a domain decomposition.");
+                    "Bug: m_comm not set for a system with a domain decomposition in " +
+                    std::string(typeid(*this).name()));
                 }
             #endif
             }
