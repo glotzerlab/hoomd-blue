@@ -108,4 +108,5 @@ class BoxResize(Updater):
                                           box,
                                           Constant(1),
                                           group)
+        updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)
