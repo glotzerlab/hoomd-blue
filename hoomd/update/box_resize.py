@@ -108,5 +108,6 @@ class BoxResize(Updater):
                                           box,
                                           Constant(1),
                                           group)
-        updater.setCommunicator(state._simulation._system_communicator)
+        if state._simulation._system_communicator is not None:
+            updater.setCommunicator(state._simulation._system_communicator)
         updater.update(state._simulation.timestep)
