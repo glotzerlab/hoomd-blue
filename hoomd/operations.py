@@ -307,6 +307,7 @@ class Operations(Collection):
         return self._computes
 
     def __getstate__(self):
+        """Get the current state of the operations container for pickling."""
         # ensure that top level changes to self.__dict__ are not propagated
         state = copy(self.__dict__)
         state['_simulation'] = None

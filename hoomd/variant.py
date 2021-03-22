@@ -74,6 +74,7 @@ class Constant(_hoomd.VariantConstant, Variant):
         _hoomd.VariantConstant.__init__(self, value)
 
     def __eq__(self, other):
+        """Return whether two variants are equivalent."""
         if not isinstance(other, Variant):
             return NotImplemented
         if not isinstance(other, type(self)):
@@ -107,6 +108,7 @@ class Ramp(_hoomd.VariantRamp, Variant):
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
 
     def __eq__(self, other):
+        """Return whether two variants are equivalent."""
         if not isinstance(other, Variant):
             return NotImplemented
         if not isinstance(other, type(self)):
@@ -151,6 +153,7 @@ class Cycle(_hoomd.VariantCycle, Variant):
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
 
     def __eq__(self, other):
+        """Return whether two variants are equivalent."""
         if not isinstance(other, Variant):
             return NotImplemented
         if not isinstance(other, type(self)):
@@ -193,6 +196,7 @@ class Power(_hoomd.VariantPower, Variant):
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
 
     def __eq__(self, other):
+        """Return whether two variants are equivalent."""
         if not isinstance(other, Variant):
             return NotImplemented
         if not isinstance(other, type(self)):
