@@ -40,7 +40,7 @@ v3.0.0-beta.5 (2021-03-23)
 - [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
 - [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
 - Use latest version of getar library.
-- Documentation improvements.
+- Improve documentation.
 - Improve performance of ``md.pair.Mie``.
 - [breaking] ``hpmc.update.Clusters`` re-implemented with a rejection free, but not ergodic,
   algorithm for anisotropic particles. The new algorithm does not run in parallel over MPI ranks.
