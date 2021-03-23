@@ -189,7 +189,7 @@ class EvaluatorPairLJ0804
             if (rsq < rcutsq && lj1 != 0)
                 {
                 Scalar r2inv = Scalar(1.0)/rsq;
-		Scalar r4inv = r2inv * r2inv;
+                Scalar r4inv = r2inv * r2inv;
                 force_divr= r2inv * r4inv * (Scalar(8.0)*lj1*r4inv - Scalar(4.0)*lj2);
 
                 pair_eng = r4inv * (lj1*r4inv - lj2);
