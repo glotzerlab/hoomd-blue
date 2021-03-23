@@ -28,6 +28,7 @@
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairTWF.h"
+#include "EvaluatorPairTable.h"
 
 #ifdef ENABLE_HIP
 #include "PotentialPairGPU.h"
@@ -87,6 +88,8 @@ typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
+/// Tabulateed pair potential
+typedef PotentialPair<EvaluatorPairTable> PotentialPairTable;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
