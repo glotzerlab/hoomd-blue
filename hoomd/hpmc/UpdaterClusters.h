@@ -1580,6 +1580,7 @@ void UpdaterClusters<Shape>::connectedComponents()
 template< class Shape >
 void UpdaterClusters<Shape>::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     #ifdef ENABLE_MPI
     if (this->m_pdata->getDomainDecomposition())
         throw std::runtime_error("UpdaterClusters does not work with spatial domain decomposition.");

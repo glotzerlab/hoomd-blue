@@ -37,6 +37,7 @@ LogHDF5::~LogHDF5(void)
  */
 void LogHDF5::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     //Call the base class to cache all values.
     LogMatrix::analyze(timestep);
 

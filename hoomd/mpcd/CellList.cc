@@ -58,6 +58,7 @@ mpcd::CellList::~CellList()
 
 void mpcd::CellList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
 
     if (m_virtual_change)

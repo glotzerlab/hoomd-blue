@@ -140,6 +140,7 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
 template<class Shape>
 void ComputeFreeVolume<Shape>::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (!shouldCompute(timestep))
         return;
 
