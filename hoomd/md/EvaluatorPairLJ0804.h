@@ -78,7 +78,7 @@
 
     EvaluatorPairLJ0804 evaluates the function:
     \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{8} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f]
+                                           \left( \frac{\sigma}{r} \right)^{4} \right] \f]
     broken up as follows for efficiency
     \f[ V_{\mathrm{LJ}}(r) = r^{-4} \cdot \left( 4 \varepsilon \sigma^{8} \cdot r^{-4} -
                                             4 \varepsilon \sigma^{4} \right) \f]
