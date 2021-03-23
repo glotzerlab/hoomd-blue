@@ -91,7 +91,7 @@
 
     These are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,8.0)
-    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,4.0);
+    - \a lj2 = 4.0 * epsilon * pow(sigma,4.0);
 
 */
 class EvaluatorPairLJ0804
