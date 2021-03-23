@@ -1,9 +1,6 @@
 import hoomd
 from hoomd.conftest import pickling_check
 import pytest
-import numpy
-import itertools
-from copy import deepcopy
 
 
 def test_brownian_attributes():
@@ -778,8 +775,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
                          tauS=2.0,
                          box_dof=[True, True, True, True, True, True],
                          couple='xyz'),
-    hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5, seed=2),
-    hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=1.5, seed=2),
+    hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=1.5),
+    hoomd.md.methods.Brownian(filter=hoomd.filter.All(), kT=1.5),
     hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=1.5, tau=10.0)
 ],
                           ids=lambda x: x.__class__.__name__)
