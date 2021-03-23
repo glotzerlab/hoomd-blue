@@ -98,6 +98,35 @@ class EvaluatorPairTable
 
             pybind11::dict asDict()
                 {
+                Scalar *V = new Scalar[width];
+                Scalar *F = new Scalar[width];
+                for (unsigned int i = 0; i < width; i++)
+                    {
+                    V[i] = (Scalar) V_table[i];
+                    F[i] = (Scalar) F_table[i];
+                    }
+
+                pybind11::capsule free_V(V, [](void *f)
+                    {
+                    Scalar *V = reinterpret_cast<Scalar *>(f);
+                    delete[] V;
+                    });
+                pybind11::capsule free_F(F, [](void *f)
+                    {
+                    Scalar *F = reinterpret_cast<Scalar *>(f);
+                    delete[] F;
+                    });
+
+                pybind11::dict v;
+                v["V"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width, 1}),
+                                                   pybind11::array::StridesContainer({1*sizeof(Scalar), sizeof(Scalar)}),
+                                                   V,
+                                                   free_V);
+                v["F"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width, 1}),
+                                                   pybind11::array::StridesContainer({1*sizeof(Scalar), sizeof(Scalar)}),
+                                                   F,
+                                                   free_F);
+                return v;
                 }
             #endif
             }
