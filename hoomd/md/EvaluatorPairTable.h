@@ -176,6 +176,36 @@ class EvaluatorPairTable
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
+            // compute the force divided by r in force_divr
+            if (rsq < rcutsq)
+                {
+                Scalar delta_r = std::sqrt(rcutsq) / width;
+                // precomputed term
+                Scalar value_f = (std::sqrt(rcutsq) - std::sqrt(rsq)) / delta_r;
+
+                // compute index into the table and read in values
+                unsigned int value_i = (unsigned int)floor(value_f);
+                // unpack the data
+                Scalar V0 = V_table[value_i];
+                Scalar V1 = V_table[value_i + 1];
+                Scalar F0 = F_table[value_i];
+                Scalar F1 = F_table[value_i + 1];
+
+                // compute the linear interpolation coefficient
+                Scalar f = value_f - Scalar(value_i);
+
+                // interpolate to get V and F;
+                Scalar V = V0 + f * (V1 - V0);
+                Scalar F = F0 + f * (F1 - F0);
+
+                // convert to standard variables used by the other pair computes in HOOMD-blue
+                if (rsq > Scalar(0.0))
+                    force_divr = F / std::sqrt(rsq);
+                pair_eng = Scalar(0.5) * V;
+                return true;
+                }
+            else
+                return false;
             }
 
         #ifndef __HIPCC__
