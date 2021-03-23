@@ -518,22 +518,21 @@ class Ewald(Pair):
         self._add_typeparam(params)
 
 
-def _table_eval(r, rmin, rmax, V, F, width):
-    dr = (rmax - rmin) / float(width-1);
-    i = int(round((r - rmin)/dr))
-    return (V[i], F[i])
-
-
 class Table(Pair):
-    R""" Tabulated pair potential.
+    """ Tabulated pair potential.
 
     Args:
-        width (int): Number of points to use to interpolate V and F.
-        nlist (`hoomd.md.nlist.NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-        name (str): Name of the force instance
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
-    :py:class:`table` specifies that a tabulated pair potential should be applied between every
+    :py:class:`Table` specifies that a tabulated pair potential should be applied between every
     non-excluded particle pair in the simulation.
+
+    Note:
+        For potentials that diverge near r=0, make sure to set *rmin* to a reasonable value. If a potential does
+        not diverge near r=0, then a setting of *rmin=0* is valid.
 
     The force :math:`\vec{F}` is (in force units):
 
@@ -563,46 +562,33 @@ class Table(Pair):
     :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
     For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`.
 
-    The following coefficients must be set per unique pair of particle types:
+    See `Pair` for the available energy shifting and smoothing modes. Use
+    `params` dictionary to set potential coefficients. The coefficients must
+    be set per unique pair of particle types.
 
-    - :math:`V_{\mathrm{user}}(r)` and :math:`F_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
-    - coefficients passed to ``func`` - *coeff* (see example)
-    - :math:`_{\mathrm{min}}` - *rmin* (in distance units)
-    - :math:`_{\mathrm{max}}` - *rmax* (in distance units)
+    Attributes:
+        params (`TypeParameter` [\
+          `tuple` [``particle_type``, ``particle_type``],\
+          `dict`]):
+          The potential parameters. The dictionary has the following keys:
 
-    .. rubric:: Set table from a given function
+          * ``V`` (`numpy.ndarray`, **required**) - the tabulated energy values
+            (in energy units)
 
-    When you have a functional form for V and F, you can enter that
-    directly into python. :py:class:`table` will evaluate the given function over *width* points between
-    *rmin* and *rmax* and use the resulting values in the table::
+          * ``F`` (`numpy.ndarray`, **required**) - the tabulated force values
+            (in force units)
 
-        def lj(r, rmin, rmax, epsilon, sigma):
-            V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
-            F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
-            return (V, F)
+          * ``width`` (`float`, **required**) - the length of the force and
+            energy arrays
 
-        nl = nlist.cell()
-        table = pair.table(width=1000, nlist=nl)
-        table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-        table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-        table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
+    Example::
 
-    .. rubric:: Set a table from a file
-
-    When you have no function for for *V* or *F*, or you otherwise have the data listed in a file,
-    :py:class:`table` can use the given values directly. You must first specify the number of rows
-    in your tables when initializing pair.table. Then use :py:meth:`set_from_file()` to read the file::
-
-        nl = nlist.cell()
-        table = pair.table(width=1000, nlist=nl)
-        table.set_from_file('A', 'A', filename='table_AA.dat')
-        table.set_from_file('A', 'B', filename='table_AB.dat')
-        table.set_from_file('B', 'B', filename='table_BB.dat')
-
-    Note:
-        For potentials that diverge near r=0, make sure to set *rmin* to a reasonable value. If a potential does
-        not diverge near r=0, then a setting of *rmin=0* is valid.
-
+        nl = nlist.Cell()
+        r_cut = 3.0
+        V = numpy.arange(0, 20, 1) / 10
+        F = numpy.asarray([-1 * (max(V) / r_cut)] * len(V))
+        table = pair.Table(r_cut=r_cut, nlist=nl)
+        table.params[('A', 'A')] = dict(V=V, F=F, width=len(V))
     """
     _cpp_class_name = "PotentialPairTable"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
