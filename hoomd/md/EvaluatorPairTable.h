@@ -143,7 +143,7 @@ class EvaluatorPairTable
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairTable(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            :
+            : rsq(_rsq), rcutsq(_rcutsq), width(_params.width), V_table(_params.V_table), F_table(_params.F_table)
             {
             }
 
@@ -197,6 +197,9 @@ class EvaluatorPairTable
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
+        Scalar width;   //!< extracted from the params passed to the constructor
+        std::vector<Scalar> V_table; //!< extracted from the params passed to the constructor
+        std::vector<Scalar> F_table; //!< extracted from the params passed to the constructor
     };
 
 #endif
