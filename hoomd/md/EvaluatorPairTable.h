@@ -72,6 +72,9 @@ class EvaluatorPairTable
         //! Define the parameter type used by this pair potential evaluator
         struct param_type
             {
+            unsigned int width;
+            std::vector<Scalar> V_table;
+            std::vector<Scalar> F_table;
 
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
@@ -82,10 +85,15 @@ class EvaluatorPairTable
             #endif
 
             #ifndef __HIPCC__
-            param_type() :
+            param_type() : width(0), V_table({}), F_table({}) {}
 
             param_type(pybind11::dict v)
                 {
+                width = v["width"].cast<unsigned int>();
+                V_table = v["V"].cast<std::vector<Scalar>>();
+                F_table = v["F"].cast<std::vector<Scalar>>();
+                if (V_table.size() != F_table.size())
+                    {throw std::runtime_error("The length of V and F arrays must be equal");}
                 }
 
             pybind11::dict asDict()
