@@ -646,5 +646,5 @@ def test_pickling(valid_args, simulation_factory,
             args["shapes"][i] = inner_mc.shape["A"]
     mc = integrator()
     mc.shape["A"] = args
-    sim = simulation_factory(two_particle_snapshot_factory())
+    sim = simulation_factory(two_particle_snapshot_factory(L=40))
     operation_pickling_check(mc, sim)
