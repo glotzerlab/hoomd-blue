@@ -646,5 +646,8 @@ def test_pickling(valid_args, simulation_factory,
             args["shapes"][i] = inner_mc.shape["A"]
     mc = integrator()
     mc.shape["A"] = args
-    sim = simulation_factory(two_particle_snapshot_factory(L=40))
+    # L needs to be ridiculously large as to not be too small for the domain
+    # decomposition of some of the shapes definitions in valid_args which have
+    # shapes with large extent in at least one dimension.
+    sim = simulation_factory(two_particle_snapshot_factory(L=1000))
     operation_pickling_check(mc, sim)
