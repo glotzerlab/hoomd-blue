@@ -1,12 +1,12 @@
-# Copyright (c) 2009-2020 The Regents of the University of Michigan
-#                    2020 Marco Klement and Michael Engel
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyType, OnlyIf, to_type_converter)
+    OnlyFrom, OnlyTypes, OnlyIf, to_type_converter)
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (
     _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)
@@ -124,7 +124,7 @@ class _InternalChainTime(_InternalAction):
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
         param_dict = ParameterDict(
-            target=OnlyType(float, postprocess=target_postprocess),
+            target=OnlyTypes(float, postprocess=target_postprocess),
             solver=SolverStep
             )
 

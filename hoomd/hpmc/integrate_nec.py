@@ -1,6 +1,6 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
-#               2019-2020 Marco Klement and Michael Engel
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 import hoomd
 import sys
@@ -19,7 +19,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
     _cpp_cls = None
 
     def __init__(self,
-                 seed,
                  d=0.1,
                  a=0.1,
                  chain_probability=0.5,
@@ -27,7 +26,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
                  update_fraction=0.5,
                  nselect=1):
         # initialize base class
-        super().__init__(seed, d, a, 0.5, nselect)
+        super().__init__(d, a, 0.5, nselect)
 
         # Set base parameter dict for hpmc chain integrators
         param_dict = ParameterDict(
@@ -113,13 +112,13 @@ class HPMCNECIntegrator(HPMCIntegrator):
         #Get the current chain_time value. (For use in a tuner.)
         #"""
         #return self._cpp_obj.getChainTime()
-    
+
     #def set_chain_time(self,chain_time):
         #R"""
         #Set the chain_time parameter to a new value. (For use in a tuner.)
         #"""
         #self._cpp_obj.setChainTime(chain_time)
-        
+
 
 
 class Sphere(HPMCNECIntegrator):
@@ -140,10 +139,10 @@ class Sphere(HPMCNECIntegrator):
         cpu = hoomd.device.CPU()
         sim = hoomd.Simulation(device=cpu)
         sim.create_state_from_gsd(filename='start.gsd')
-        
-        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
-        
-        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, seed=1, update_fraction=0.05)
+
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
+
+        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
         mc.shape['A'] = dict(diameter=1)
         mc.chain_time = 0.05
         sim.operations.integrator = mc
@@ -151,32 +150,30 @@ class Sphere(HPMCNECIntegrator):
         triggerTune = hoomd.trigger.Periodic(50,0)
         tune_nec_d  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['d'], target=0.10, tol=0.001, max_translation_move=0.15)
         sim.operations.tuners.append(tune_nec_d)
-        
+
         import hoomd.hpmc.tune.nec_chain_time
         tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
         sim.operations.tuners.append(tune_nec_ct)
-        
+
         sim.run(1000)
     """
 
     _cpp_cls = 'IntegratorHPMCMonoNECSphere'
 
     def __init__(self,
-                 seed,
                  d=0.1,
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
         # initialize base class
         super().__init__(
-                 seed=seed,
                  d=d,
                  a=0.1,
                  chain_probability=1.0,
                  chain_time=chain_time,
                  update_fraction=update_fraction,
                  nselect=nselect)
-        
+
         typeparam_shape = TypeParameter('shape',
                                 type_kind='particle_types',
                                 param_dict=TypeParameterDict(
@@ -186,7 +183,7 @@ class Sphere(HPMCNECIntegrator):
                                     len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -204,14 +201,13 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     R""" HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
-        seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         chain_probability (float): Ratio of chains to rotation moves. As there should be several particles in a chain it will be small. See example.
         chain_time (float):
         update_fraction (float):
         nselect (int): Number of repeated updates for the cell/system.
-        
+
     Convex polyhedron parameters:
         see ``ConvexPolyhedron``
 
@@ -224,10 +220,10 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         cpu = hoomd.device.CPU()
         sim = hoomd.Simulation(device=cpu)
         sim.create_state_from_gsd(filename='start.gsd')
-        
-        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1, seed=1)
-        
-        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, seed=1, update_fraction=0.05)
+
+        sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
+
+        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
         mc.shape['A'] = dict(diameter=1)
         mc.chain_time = 0.05
         sim.operations.integrator = mc
@@ -237,29 +233,27 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         sim.operations.tuners.append(tune_nec_d)
         tune_nec_a  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['a'], target=0.30)
         sim.operations.tuners.append(tune_nec_a)
-        
+
         import hoomd.hpmc.tune.nec_chain_time
         tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
         sim.operations.tuners.append(tune_nec_ct)
-        
+
         sim.run(1000)
 
-        
+
     """
     _cpp_cls = 'IntegratorHPMCMonoNECConvexPolyhedron'
 
 
     def __init__(self,
-                 seed,
                  d=0.1,
                  a=0.1,
                  chain_probability=0.5,
                  chain_time=0.5,
                  update_fraction=0.5,
                  nselect=1):
-        
+
         super().__init__(
-                 seed=seed,
                  d=d,
                  a=a,
                  chain_probability=chain_probability,
@@ -276,7 +270,7 @@ class ConvexPolyhedron(HPMCNECIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(flag='object')
+    @log(category='object')
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 

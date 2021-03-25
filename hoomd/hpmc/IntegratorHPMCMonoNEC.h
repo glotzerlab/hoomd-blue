@@ -1,5 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
-// Copyright (c) 2017-2019 Marco Klement, Michael Engel
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_NEC__H__
@@ -28,8 +27,8 @@ namespace hpmc
 
 //! Template class for HPMC update with Newtonian event chains
 /*!
-    
-    
+
+
     \ingroup hpmc_integrators
 */
 template< class Shape >
@@ -38,8 +37,8 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
     protected:
         Scalar m_chain_time;        //!< the length of a chain, given in units of time
         unsigned int m_chain_probability; //!< how often we do a chain. Replaces translation_move_probability
-        Scalar m_update_fraction;   //!< if we perform chains we update several particles as one 
-        
+        Scalar m_update_fraction;   //!< if we perform chains we update several particles as one
+
         // GlobalArray< hpmc_counters_t >     m_count_total;      // Inherited from base class
         GlobalArray< hpmc_nec_counters_t > m_nec_count_total;  //!< counters for chain statistics
 
@@ -47,14 +46,14 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 //         unsigned long int count_moved_again;     // Counts translations that do not result in a collision (or end of chain)
 //         unsigned long int count_move_attempts;   // Counts chains
 //         unsigned long int count_events;          // Counts everything (translations, repeated translations, and rotations [if applicable])
-//         
-//         unsigned long int count_tuner_chains;  
-//         unsigned long int count_tuner_collisions;  
-        
+//
+//         unsigned long int count_tuner_chains;
+//         unsigned long int count_tuner_collisions;
+
         // statistics - pressure
         // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
-        Scalar count_pressurevirial; 
-        Scalar count_movelength;     
+        Scalar count_pressurevirial;
+        Scalar count_movelength;
 
     private: // in line with IntegratorHPMC
         hpmc_nec_counters_t m_nec_count_run_start;             //!< Count saved at run() start
@@ -62,8 +61,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef,
-                              unsigned int seed);
+        IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         virtual ~IntegratorHPMCMonoNEC();
 
@@ -93,7 +91,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         inline Scalar getChainTime()
             {
             return m_chain_time;
-            }            
+            }
 
         //! Change move ratio
         /*! \param m_chain_time set duration of a chain
@@ -101,7 +99,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         void setChainProbability(Scalar chain_probability)
             {
             this->m_exec_conf->msg->notice(10) << "IntegratorHPMCMonoNEC<Shape>::setChainProbability(" << chain_probability << ")" << std::endl;
-            m_chain_probability = chain_probability * 65536.0;
+            m_chain_probability = static_cast<unsigned int>(chain_probability * 65536.0);
             }
 
         //! Get move ratio
@@ -109,7 +107,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         inline Scalar getChainProbability()
             {
             return m_chain_probability / 65536.0;
-            }            
+            }
 
         //! Change update_fraction
         /*! \param update_fraction new update_fraction to set
@@ -128,9 +126,9 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         inline double getUpdateFraction()
             {
             return m_update_fraction;
-            }            
-            
-            
+            }
+
+
         /** \returns a list of provided quantities
         */
         std::vector< std::string > getProvidedLogQuantities()
@@ -149,29 +147,29 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             result.push_back("hpmc_ec_pressure");
             return result;
             }
-            
+
         //! Get pressure from virial expression
         //! We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
         //! \returns pressure
         inline double getPressure()
             {
             return (1+count_pressurevirial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
-            }  
-            
-             
+            }
+
+
 
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
+
         Scalar getTunerParticlesPerChain()
         {
             hpmc_nec_counters_t nec_counters = getNECCounters(2);
-            return nec_counters.chain_at_collision_count*Scalar(1.0)/nec_counters.chain_start_count;
+            return Scalar(nec_counters.chain_at_collision_count)/Scalar(nec_counters.chain_start_count);
         }
-        
+
         //! Get the current counter values for NEC
         hpmc_nec_counters_t getNECCounters(unsigned int mode=0);
-        
+
     private:
         /*!
          This function is an extracted overlap check from the precursor
@@ -186,9 +184,9 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param h_overlaps
          \param h_postype
          \param h_orientation
-         \param counters 
+         \param counters
          */
-        bool checkForOverlap(unsigned int timestep, 
+        bool checkForOverlap(unsigned int timestep,
                              unsigned int i,
                              int typ_i,
                              vec3<Scalar>& pos_i,
@@ -203,10 +201,10 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         /*!
          This function measures the distance sphere 'i' could move in
          'direction' until it would hit another particle.
-         
+
          To enhance logic and speed the distance is limited to the parameter
          maxSweep.
-         
+
          Much of the layout is based on the checkForOverlap function.
          \param timestep
          \param direction Where are we going?
@@ -220,7 +218,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param h_overlaps
          \param h_postype
          \param h_orientation
-         \param counters 
+         \param counters
          \param collisionPlaneVector
          */
         double sweepDistance(unsigned int timestep,
@@ -241,10 +239,10 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         /*!
          This function measures the distance ConvexPolyhedron 'i' could move in
          'direction' until it would hit another particle.
-         
+
          To enhance logic and speed the distance is limited to the parameter
          maxSweep.
-         
+
          Much of the layout is based on the checkForOverlap function.
          \param timestep
          \param direction Where are we going?
@@ -258,7 +256,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param h_overlaps
          \param h_postype
          \param h_orientation
-         \param counters 
+         \param counters
          \param collisionPlaneVector
          */
         double sweepDistance(unsigned int timestep,
@@ -292,18 +290,17 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
     */
 
 template< class Shape >
-IntegratorHPMCMonoNEC< Shape >::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef,
-                                                                   unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed)
+IntegratorHPMCMonoNEC< Shape >::IntegratorHPMCMonoNEC(std::shared_ptr<SystemDefinition> sysdef)
+    : IntegratorHPMCMono<Shape>(sysdef)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCMonoNEC" << std::endl;
     count_pressurevirial  = 0.0;
     count_movelength      = 0.0;
-    
+
     m_update_fraction     = 1.0;
-    m_chain_probability   = 0.01;
+    m_chain_probability   = static_cast<unsigned int>(0.01 * 65535);
     m_chain_time          = 1.0;
-    
+
     GlobalArray<hpmc_nec_counters_t> nec_counters(1, this->m_exec_conf);
     m_nec_count_total.swap(nec_counters);
     }
@@ -347,8 +344,8 @@ hpmc_nec_counters_t IntegratorHPMCMonoNEC< Shape >::getNECCounters(unsigned int 
 #endif
     return result;
     }
-    
-    
+
+
 template< class Shape >
 void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     {
@@ -359,7 +356,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total, access_location::host, access_mode::readwrite);
     hpmc_counters_t& counters = h_counters.data[0];
     // m_count_step_start = h_counters.data[0]; // in IntegratorHPMC
-    
+
     ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total, access_location::host, access_mode::readwrite);
     hpmc_nec_counters_t& nec_counters = h_nec_counters.data[0];
     m_nec_count_step_start = h_nec_counters.data[0];
@@ -372,7 +369,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     // compute the width of the active region
     Scalar3 npd = box.getNearestPlaneDistance();
     Scalar3 ghost_fraction = this->m_nominal_width / npd;
-    
+
     vec3<Scalar> lattice_x = vec3<Scalar>(box.getLatticeVector(0));
     vec3<Scalar> lattice_y = vec3<Scalar>(box.getLatticeVector(1));
     vec3<Scalar> lattice_z = vec3<Scalar>(box.getLatticeVector(2));
@@ -418,13 +415,15 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     ArrayHandle<Scalar> h_d(this->m_d, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_a(this->m_a, access_location::host, access_mode::read);
 
+    uint16_t seed = this->m_sysdef->getSeed();
+
     // loop over local particles nselect times
     for (unsigned int i_nselect = 0; i_nselect < this->m_nselect; i_nselect++)
         {
 
         // With chains particles move way more, so we need to update the AABB-Tree more often.
         // Previously n_select = 1 was fine. To avoid confusion
-    
+
         // update the AABB Tree
         this->buildAABBTree();
         // limit m_d entries so that particles cannot possibly wander more than one box image in one time step
@@ -436,7 +435,12 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
         for (unsigned int cur_chain = 0; cur_chain < this->m_pdata->getN() * m_update_fraction; cur_chain++)
             {
             // Get the RNG for chain cur_chain.
-            hoomd::RandomGenerator rng_chain_i(hoomd::RNGIdentifier::HPMCMonoChainMove, this->m_seed, cur_chain, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::RandomGenerator rng_chain_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoChainMove,
+                                                           timestep,
+                                                           seed),
+                                               hoomd::Counter(cur_chain,
+                                                              this->m_exec_conf->getRank(),
+                                                              i_nselect));
 
             // this->m_update_order.shuffle(...) wants to update the particles in forward or reverse order.
             // For chains this is an invalid behavior. Instead we have to pick a starting particle randomly.
@@ -447,7 +451,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             Scalar4 velocity_i    = h_velocities.data[i];
             int typ_i             = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
-  
+
             #ifdef ENABLE_MPI
             if (this->m_comm)
                 {
@@ -466,32 +470,32 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 // -> increment chain counter
                 nec_counters.chain_start_count++;
                 //count_tuner_chains++;
-            
+
                 // take the particle's velocity as direction and normalize the direction vector
                 vec3<Scalar> direction = vec3<Scalar>(velocity_i);
                 Scalar       velocity  = sqrt( dot(direction,direction));
-            
+
                 if( velocity == 0.0 )
                     {
                     this->m_exec_conf->msg->error() << "Trying to start a chain with exactly zero velocity. Were velocities initialized propperly?" << std::endl;
                     break;
                     }
-                    
+
                 direction /= velocity;
-                    
+
                 double chain_time = m_chain_time;
                 double sweep;
-                
+
                 int debug_max_chain = 1e5;
                 int count_chain = 0;
-                
+
                 // perform the chain in a loop.
                 // next denotes the next particle, where -1 means there is no further particle.
                 //int prev = -1;
                 int next = i;
                 while( next > -1 )
                     {
-                    
+
                     count_chain++;
                     if( count_chain == debug_max_chain )
                     {
@@ -499,35 +503,35 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         this->m_exec_conf->msg->error() << "Shorten chain_time if this message appears regularly." << std::endl;
                         break;
                     }
-                        
+
                     // k is the current particle, which is to be moved
                     int k = next;
-                    
+
                     // read in the current position and orientation
                     Scalar4 orientation_k = h_orientation.data[k];
-                    
+
                     Scalar4 postype_k     = h_postype.data[k];
                     int     typ_k         = __scalar_as_int(postype_k.w);
                     vec3<Scalar> pos_k    = vec3<Scalar>(postype_k);
 
                     Shape   shape_k(  quat<Scalar>(orientation_k), this->m_params[typ_k]);
 
-                    
-                    // we use the parameter 'd' as search radius for potential collisions. 
+
+                    // we use the parameter 'd' as search radius for potential collisions.
                     // if we can not find a collision partner within this distance we will
-                    // move the particle again in the next step. 
-                    // This is neccessary to not check the whole simulation volume (or a 
+                    // move the particle again in the next step.
+                    // This is neccessary to not check the whole simulation volume (or a
                     // huge fraction of it) for potential collisions.
                     double maxSweep  = h_d.data[typ_k];
-                    
-                    
+
+
                     // the collisionPlaneVector will be set to the direction of the separating axis as two particles collide.
                     // for spheres this is r_ij (or delta_pos later), for polyhedron it is different.
                     // to make sure that the collided particle will not run into the one we are currently moving we use this
                     // vector instead of r_ij
                     vec3<Scalar> collisionPlaneVector;
-                    
-                    
+
+
                     // measure the distance to the next particle
                     // updates:
                     //   sweep                 - return value (units of length)
@@ -553,7 +557,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     if (this->m_comm)
                         {
                         // Collide with walls of the active domain for non-periodic dimensions.
-                    
+
                         vec3<Scalar> pos_rel = pos_k - vec3<Scalar>(box.getLo());
                         // x
                         if( not periodic.x )
@@ -569,7 +573,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                                 {
                                 planeCollisionDistance = (latticeNormal_x - posNormal) / directionNormal;
                                 }
-                            
+
                             if( planeCollisionDistance < sweep )
                                 {
                                 sweep = planeCollisionDistance;
@@ -591,7 +595,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                                 {
                                 planeCollisionDistance = (latticeNormal_y - posNormal) / directionNormal;
                                 }
-                            
+
                             if( planeCollisionDistance < sweep )
                                 {
                                 sweep = planeCollisionDistance;
@@ -613,7 +617,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                                 {
                                 planeCollisionDistance = (latticeNormal_z - posNormal) / directionNormal;
                                 }
-                            
+
                             if( planeCollisionDistance < sweep )
                                 {
                                 sweep = planeCollisionDistance;
@@ -623,9 +627,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                             }
                         }
                     #endif
-            
+
                     // Error handling
-                    // If the next collision is further than we looked for a collision 
+                    // If the next collision is further than we looked for a collision
                     // limit the possible update and try again in the next iteration
                     if( sweep > maxSweep )
                         {
@@ -649,7 +653,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     // increment accept counter
                     if (!shape_i.ignoreStatistics())
                         {
-                    
+
                         // Note:
                         // counters.translate_* can still be used by tuners. i.e. MoveSize
                         // we want a very low "acceptance" like 3% though, to avoid too many
@@ -673,7 +677,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     // update position of particle
                     h_postype.data[k] = make_scalar4(pos_k.x,pos_k.y,pos_k.z,postype_k.w);
                     box.wrap(h_postype.data[k], h_image.data[k]);
-                    
+
                     // update the position of the particle in the tree for future updates
                     detail::AABB aabb_k_local = shape_k.getAABB(vec3<Scalar>(0,0,0));
                     detail::AABB aabb = aabb_k_local;
@@ -682,7 +686,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     this->m_aabb_tree.update(k, aabb);
 
 
-                    
+
                     #ifdef ENABLE_MPI
                     if (this->m_comm and next == -2)
                         {
@@ -694,9 +698,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                         h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
                         next = k;
-                    
+
                         velocity = sqrt( dot(vel_k,vel_k));
-                                
+
                         direction = vel_k / velocity;
                         }
                     else
@@ -709,11 +713,11 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                         vec3<Scalar> vel_n = vec3<Scalar>(h_velocities.data[next]);
                         vec3<Scalar> vel_k = vec3<Scalar>(h_velocities.data[k]);
-                        
+
                         int3 null_image;
                         vec3<Scalar> delta_pos = pos_n-pos_k;
                         box.wrap(delta_pos, null_image );
-                        
+
                         //statistics for pressure  -2-
                         count_pressurevirial   += dot(delta_pos, direction);
                         //count_tuner_collisions++;
@@ -726,7 +730,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                             // Update Velocities (fully elastic)
                             vec3<Scalar> delta_vel  = vel_n-vel_k;
                             vec3<Scalar> vel_change = collisionPlaneVector * (dot(delta_vel,collisionPlaneVector) / dot(collisionPlaneVector,collisionPlaneVector));
-                            
+
                             //
                             //  Update Velocities when actually colliding
                             //  otherwise they will collide again in the next step.
@@ -738,7 +742,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                             h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
 
                             velocity = sqrt( dot(vel_n,vel_n));
-                            
+
                             direction = vel_n / velocity;
                         #ifdef ENABLE_MPI
                             }
@@ -749,13 +753,13 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                                 h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
                                 next = k;
-                                
+
                                 velocity = sqrt( dot(vel_k,vel_k));
-                                
+
                                 direction = vel_k / velocity;
                             }
                         #endif
-                        
+
                         if( velocity == 0.0 )
                             {
                             this->m_exec_conf->msg->warning() << "Cannot continue a chain without moving.\n";
@@ -773,7 +777,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
             else
                 {
                 // Get the RNG for current particle
-                hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoTrialMove, this->m_seed, i, this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+                hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+                                             hoomd::Counter(i, this->m_exec_conf->getRank(), i_nselect));
 
                 bool overlap = false;
                 Scalar4 postype_i     = h_postype.data[i];
@@ -781,14 +786,14 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                 vec3<Scalar> pos_i    = vec3<Scalar>(postype_i);
                 Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
 
-            
+
                 //move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 if (ndim == 2)
                     move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                 else
                     move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
-                
-                
+
+
                 detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
                 overlap = checkForOverlap(timestep,
@@ -814,8 +819,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                         else
                             counters.rotate_accept_count++;
                         }
-                    
-                    
+
+
                     // update the position of the particle in the tree for future updates
                     detail::AABB aabb = aabb_i_local;
                     aabb.translate(pos_i);
@@ -864,7 +869,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::HPMCMonoShift, this->m_seed, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShift, timestep, this->m_sysdef->getSeed()),
+                                   hoomd::Counter());
         Scalar3 shift = make_scalar3(0,0,0);
         hoomd::UniformDistribution<Scalar> uniform(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
         shift.x = uniform(rng);
@@ -885,7 +891,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
         this->m_pdata->translateOrigin(shift);
         }
     #endif
-    
+
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     // migrate and exchange particles
@@ -893,7 +899,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
     // all particle have been moved, the aabb tree is now invalid
     this->m_aabb_tree_invalid = true;
-    
+
     hpmc_counters_t     run_counters     = this->getCounters(1);
     hpmc_nec_counters_t run_nec_counters = getNECCounters(1);
     double cur_time = double(this->m_clock.getTime()) / Scalar(1e9);
@@ -901,9 +907,9 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
     this->m_mps = double(sum_of_moves) / cur_time;
     }
 
-    
+
 template< class Shape >
-bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep, 
+bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep,
                                                     unsigned int i,
                                                     int typ_i,
                                                     vec3<Scalar>& pos_i,
@@ -917,9 +923,9 @@ bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep,
     {
     bool overlap=false;
     detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
-    
+
     // All image boxes (including the primary)
-    const unsigned int n_images = this->m_image_list.size();
+    const unsigned int n_images = static_cast<unsigned int>(this->m_image_list.size());
     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
         {
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
@@ -993,10 +999,10 @@ bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep,
         if (overlap)
             break;
         } // end loop over images
-        
+
     return overlap;
     }
-   
+
 // sweepableDistance for spheres
 template< class Shape >
 double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
@@ -1011,23 +1017,23 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                                     ArrayHandle<unsigned int>& h_overlaps,
                                                     ArrayHandle<Scalar4>& h_postype,
                                                     ArrayHandle<Scalar4>& h_orientation,
-                                                    hpmc_nec_counters_t& nec_counters, 
+                                                    hpmc_nec_counters_t& nec_counters,
                                                     vec3<Scalar>& collisionPlaneVector
                                                    )
     {
     double sweepableDistance = maxSweep;
 
     direction /= sqrt(dot(direction,direction));
-    
+
     detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0,0,0));
     detail::AABB aabb_i_future  = aabb_i_current;
     aabb_i_future.translate(maxSweep * direction);
-    
+
     detail::AABB aabb_i_test    = detail::merge( aabb_i_current, aabb_i_future );
 
-    
+
     // All image boxes (including the primary)
-    const unsigned int n_images = this->m_image_list.size();
+    const unsigned int n_images = static_cast<unsigned int>(this->m_image_list.size());
     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
         {
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
@@ -1078,29 +1084,29 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                         nec_counters.distance_queries++;
-                        
-                        
+
+
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
                             {
                             double sumR   =   shape_i.params.radius
                                             + shape_j.params.radius;
                             double maxR   = sumR + sweepableDistance;
                             double distSQ = dot(r_ij,r_ij);
-                        
+
                             if( distSQ < maxR*maxR )
                                 {
                                 double d_parallel =  dot(r_ij, direction);
                                 if( d_parallel   <= 0 ) continue; // Moving apart
-                                
+
                                 double discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
                                 if( discriminant < 0 )
                                     {
                                     // orthogonal distance larger than sum of radii
                                     continue;
                                     }
-                                    
+
                                 double newDist = d_parallel - sqrt( discriminant );
-                            
+
                                 if( newDist > 0)
                                     {
                                     if( newDist < sweepableDistance )
@@ -1122,11 +1128,11 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                     {
                                     this->m_exec_conf->msg->error() << "Two particles overlapping [with negative sweepable distance]." << i << " and " << j  << std::endl;
                                     this->m_exec_conf->msg->error() << "Proceeding with the new particle without moving the initial one" << std::endl;
-                                
+
                                     sweepableDistance = 0.0;
                                     next = j;
                                     collisionPlaneVector = r_ij;
-                                    
+
                                     return sweepableDistance;
                                     }
                                 }
@@ -1141,13 +1147,13 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                 }
             }  // end loop over AABB nodes
         } // end loop over images
-        
+
     return sweepableDistance;
     }
 
 
 
-    
+
 // sweepableDistance for convex polyhedron
 template< class Shape >
 double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
@@ -1171,20 +1177,20 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
     detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0,0,0));
     detail::AABB aabb_i_future  = aabb_i_current;
     aabb_i_future.translate(maxSweep * direction);
-    
+
     detail::AABB aabb_i_test    = detail::merge( aabb_i_current, aabb_i_future );
 
     vec3<Scalar> newCollisionPlaneVector;
 
-    
+
     // All image boxes (including the primary)
-    const unsigned int n_images = this->m_image_list.size();
+    const unsigned int n_images = static_cast<unsigned int>(this->m_image_list.size());
     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
         {
         vec3<Scalar> pos_i_image = pos_i + this->m_image_list[cur_image];
         detail::AABB aabb = aabb_i_test;
         aabb.translate(pos_i_image);
-    
+
         // stackless search
         for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
             {
@@ -1229,19 +1235,19 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                         Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                         nec_counters.distance_queries++;
-                        
-                        
+
+
                         if ( h_overlaps.data[this->m_overlap_idx(typ_i, typ_j)])
                             {
                             double maxR =   shape_i.getCircumsphereDiameter()
                                           + shape_j.getCircumsphereDiameter();
                             maxR /= 2;
                             maxR += sweepableDistance;//maxSweep;
-                        
+
                             if( dot(r_ij,r_ij) < maxR*maxR )
                                 {
                                 double newDist = sweep_distance(r_ij, shape_i, shape_j, direction, nec_counters.overlap_err_count, newCollisionPlaneVector);
-                            
+
                                 if( newDist >= 0 and newDist < sweepableDistance )
                                     {
                                     collisionPlaneVector = newCollisionPlaneVector;
@@ -1252,7 +1258,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                     {
                                     if( newDist < -3.5 ) // resultOverlapping = -3.0;
                                         {
-                                        
+
                                         if( dot(r_ij,direction) > 0 )
                                             {
                                             collisionPlaneVector = newCollisionPlaneVector;
@@ -1260,9 +1266,9 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                                             sweepableDistance = 0.0;
                                             }
                                         }
-                                    
-                                        
-                                        
+
+
+
                                     if( newDist == sweepableDistance )
                                         {
                                         this->m_exec_conf->msg->error() << "Two particles with the same distance\n";
@@ -1280,7 +1286,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
                 }
             }  // end loop over AABB nodes
         } // end loop over images
-        
+
     return sweepableDistance;
     }
 
@@ -1341,7 +1347,7 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
     {
     pybind11::class_< IntegratorHPMCMonoNEC<Shape>, IntegratorHPMCMono<Shape>, IntegratorHPMC,
             std::shared_ptr< IntegratorHPMCMonoNEC<Shape> > >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
         .def("setChainTime", &IntegratorHPMCMonoNEC<Shape>::setChainTime)
         .def("getChainTime", &IntegratorHPMCMonoNEC<Shape>::getChainTime)
         .def_property("chain_time", &IntegratorHPMCMonoNEC<Shape>::getChainTime, &IntegratorHPMCMonoNEC<Shape>::setChainTime)
@@ -1357,7 +1363,7 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
         ;
 
     }
-    
+
 inline void export_hpmc_nec_counters(pybind11::module& m)
     {
     pybind11::class_< hpmc_nec_counters_t >(m, "hpmc_nec_counters_t")

@@ -1,5 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
-// Copyright (c) 2017-2019 Marco Klement, Michael Engel
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -47,7 +46,7 @@ namespace detail
     \returns positive for two particles that collide in a given distance, negative for error values. -1: resultNoCollision, -2: resultNoForwardCollisionOrOverlapping, -3: resultOverlapping
 
     XenoSweep is an extension of the XenoCollide algorithm. Described in arXiv:xxxx.xxxxx | [insert-paper-here]
-    
+
     We try to find the surface element of the minkowski difference, that will be hit by the origin.
     It works well for polyhedra. As spherical/round shapes do not have a defined surface element that we can find, convergence is slow and way less efficient.
 
@@ -68,39 +67,39 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     vec3<OverlapReal> v0, v1, v2, v3, v4, n, x;
     CompositeSupportFunc3D<SupportFuncA, SupportFuncB> S(sa, sb, ab_t, q);
     OverlapReal d;
-    
+
     #if defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION)
         // precision tolerance for single-precision floats near 1.0
-        const OverlapReal precision_tol = 5e-7;
+        const OverlapReal precision_tol = OverlapReal(5e-7);
 
         // square root of precision tolerance
-        const OverlapReal root_tol = 3e-4;
+        const OverlapReal root_tol = OverlapReal(3e-4);
     #else
         // precision tolerance for double-precision floats near 1.0
-        const OverlapReal precision_tol = 1e-14; // 4e-14 for overlap check
+        const OverlapReal precision_tol = OverlapReal(1e-14); // 4e-14 for overlap check
 
         // square root of precision tolerance
-        const OverlapReal root_tol = 2e-7; // 1e-7 for overlap check
+        const OverlapReal root_tol = OverlapReal(2e-7); // 1e-7 for overlap check
     #endif
-    
+
 
     const OverlapReal resultNoCollision = -1.0;
     const OverlapReal resultNoForwardCollisionOrOverlapping = -2.0;
     // If there is a known overlap we will return a value <= -3 (which is related to how early the overlap was detected).
     // const OverlapReal resultOverlapping = -3.0;
-    
+
     if (fabs(ab_t.x) < root_tol && fabs(ab_t.y) < root_tol && fabs(ab_t.z) < root_tol)
         {
         // Interior point is at origin => particles overlap
         return resultNoCollision;
         }
-        
+
     // Phase 1: Portal Discovery
     // ------
     // The portal-discovery for sweeps is a 2D-Collision detection with all
     // points projected into the plane perpendicular to the sweeping direction.
     //
-    // vector 0 : the sweeping direction.    
+    // vector 0 : the sweeping direction.
     v0 = direction;
 
     // ------
@@ -109,7 +108,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
     // find support v1 in the direction reverse to the sweeping direction
     v1 = ab_t;//S(-v0);
 
-    // find support v2 in reversed v0 direction minus the part covered by v1 
+    // find support v2 in reversed v0 direction minus the part covered by v1
     n = dot(v0,v0)*v1 - dot(v1,v0)*v0;
     v2 = S(-n);
 
@@ -119,7 +118,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         v1.swap(v2);
         n = -n;
         }
-        
+
     unsigned int count = 0;
     while (true) // 2D-Refinement-Loop
         {
@@ -128,24 +127,24 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
-            
+
             return resultNoForwardCollisionOrOverlapping;
             }
 
         // Get the next support point
         v3 = S(-n);
-        
+
         //TODO Fix exceeding limit.
         //  Ideas:
         //  Numerical tolerant check for "dot on line"?
-        
+
         if( dot(n,v3) >= OverlapReal(0.0) )
             {
             // The origin is not within the projected minkowski sum on the plane
             // perpendicular to the sweeping direction. No forward collision possible.
             return resultNoCollision;
             }
-        
+
         // Updating v1 or v2.
         // consider the portals v1-v3 and v2-v3. The new portal should contain the
         // origin on the far side of v0. If neither portal does, the origin is inside;
@@ -160,11 +159,11 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             v1 = v3;
             }
         else break;
-        
+
         // Finally update the normal vector for the next iteration.
         n = cross(v0, v2-v1);
         }
-        
+
 
     // Phase 2: Portal Refinement (in 3D)
     count = 0;
@@ -180,7 +179,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         if (dot(v1, n) <= OverlapReal(0.0))
             {
             collisionPlaneVector = n;
-            return resultNoForwardCollisionOrOverlapping - count + 1;
+            return resultNoForwardCollisionOrOverlapping - OverlapReal(count + 1);
             }
 
         // ----
@@ -201,7 +200,7 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             return dot(n,v1) / dot(n,v0);
             }
 
-        
+
         if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;

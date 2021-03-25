@@ -848,12 +848,12 @@ DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
 
 	OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    double distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+    OverlapReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
                                 detail::SupportFuncConvexPolyhedron(b.verts),
                                 rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                 conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
 								rotate(conj(quat<OverlapReal>(a.orientation)), to),
-                                DaDb/2.0,
+                                DaDb/OverlapReal(2.0),
                                 err,
 								csp
    							);
