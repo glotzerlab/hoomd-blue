@@ -61,9 +61,21 @@ def hoomd_snapshot(lattice_snapshot_factory):
 
     return snap
 
+@pytest.fixture(scope='function')
+def create_md_sim(simulation_factory, device, hoomd_snapshot):
+    sim = simulation_factory(hoomd_snapshot)
+    integrator = hoomd.md.Integrator(dt=0.005)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    lj.params.default = {'sigma': 1, 'epsilon': 1}
+    integrator.forces.append(lj)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
 
-def test_write(simulation_factory, device,
-               hoomd_snapshot, tmp_path):
+    return sim
+
+
+def test_write(simulation_factory, hoomd_snapshot, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
@@ -75,23 +87,11 @@ def test_write(simulation_factory, device,
         assert_equivalent_snapshots(traj, hoomd_snapshot)
 
 
-def test_write_gsd_trigger(simulation_factory, device,
-                           hoomd_snapshot, tmp_path):
+def test_write_gsd_trigger(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
+    sim = create_md_sim
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
                                  mode='wb', dynamic=['momentum'])
@@ -103,73 +103,49 @@ def test_write_gsd_trigger(simulation_factory, device,
         snapshot_list.append(sim.state.snapshot)
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5):
-            assert_equivalent_snapshots(traj[step], snapshot_list[step])
+        assert len(traj) == len(snapshot_list)
+        for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
+            assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
-def test_write_gsd_mode(simulation_factory, device,
-                        hoomd_snapshot, tmp_path):
+def test_write_gsd_mode(create_md_sim, hoomd_snapshot, tmp_path, simulation_factory):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
+    with open(filename, 'w') as traj:
+        traj.write('test')
 
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
+    sim = create_md_sim
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
-                                 mode='wb')
+                                 mode='wb', dynamic=['momentum'])
     sim.operations.writers.append(gsd_writer)
 
-    sim.run(2)
-
-    # test mode=ab
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
-    gsd_writer = hoomd.write.GSD(filename=filename,
-                                 trigger=hoomd.trigger.Periodic(1),
-                                 mode='ab', dynamic=['momentum'])
-    sim.operations.writers.append(gsd_writer)
-
+    # run 5 steps and create a gsd file for testing mode=ab
     snapshot_list = []
     for _ in range(5):
         sim.run(1)
         snapshot_list.append(sim.state.snapshot)
 
+    # test mode=ab
+    sim.operations.writers.clear()
+
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='wb', dynamic=['momentum'])
+    sim.operations.writers.append(gsd_writer)
+
+    snap_list = []
+    for _ in range(5):
+        sim.run(1)
+        snap_list.append(sim.state.snapshot)
+
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5):
-            assert_equivalent_snapshots(traj[step + 2], snapshot_list[step])
+        for gsd_snap, hoomd_snap in zip(traj[5:], snap_list):
+            assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
-    # test mode=xb exception
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    # test mode=xb raises an exception when the file exists
+    sim.operations.writers.clear()
 
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -179,15 +155,12 @@ def test_write_gsd_mode(simulation_factory, device,
         sim.run(1)
 
     # test mode=xb creating file
-    filename_xb = tmp_path / "temporary_test_file_xb.gsd"
+    filename_xb = tmp_path / "new_temporary_test_file.gsd"
 
     sim = simulation_factory(hoomd_snapshot)
-
     integrator = hoomd.md.Integrator(dt=0.005)
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
+    lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
     integrator.methods.append(langevin)
@@ -201,28 +174,17 @@ def test_write_gsd_mode(simulation_factory, device,
     sim.run(5)
 
     with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
-        for step in range(5):
-            assert_equivalent_snapshots(traj[step], snapshot_list[step])
+        assert len(traj) == len(snapshot_list)
+        for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
+            assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
-def test_write_gsd_null_filter(simulation_factory, device,
-                               hoomd_snapshot, tmp_path):
+def test_write_gsd_filter(create_md_sim, hoomd_snapshot, tmp_path, simulation_factory):
 
     # test Null filter
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-
+    sim = create_md_sim
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
                                  filter=hoomd.filter.Null(),
@@ -232,23 +194,16 @@ def test_write_gsd_null_filter(simulation_factory, device,
     sim.run(3)
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(3):
-            assert traj[step].particles.N == 0
-
-
-def test_write_gsd_type_filter(simulation_factory, device,
-                               hoomd_snapshot, tmp_path):
+        for frame in traj:
+            assert frame.particles.N == 0
 
     # test using Type filter
-    filename = tmp_path / "temporary_test_file.gsd"
+    # filename = tmp_path / "new_temporary_test_file.gsd"
 
     sim = simulation_factory(hoomd_snapshot)
-
     integrator = hoomd.md.Integrator(dt=0.005)
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
+    lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
     integrator.methods.append(langevin)
@@ -264,27 +219,16 @@ def test_write_gsd_type_filter(simulation_factory, device,
     snapshot = sim.state.snapshot
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5):
-            np.testing.assert_array_equal(traj[step].particles.typeid,
+        for frame in traj:
+            np.testing.assert_array_equal(frame.particles.typeid,
                                           [1] * int(snapshot.particles.N / 2))
 
 
-def test_write_gsd_truncate(simulation_factory, device,
-                            hoomd_snapshot, tmp_path):
+def test_write_gsd_truncate(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    sim = create_md_sim
 
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -292,32 +236,19 @@ def test_write_gsd_truncate(simulation_factory, device,
                                  mode='wb')
     sim.operations.writers.append(gsd_writer)
 
-    snapshot_list = []
-    for _ in range(2):
-        sim.run(1)
-        snapshot_list.append(sim.state.snapshot)
+    sim.run(2)
+    snapshot = sim.state.snapshot
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        assert_equivalent_snapshots(traj[0], snapshot_list[-1])
-        assert_equivalent_snapshots(traj[-1], snapshot_list[-1])
+        for gsd_snap in traj:
+            assert_equivalent_snapshots(gsd_snap, snapshot)
 
 
-def test_write_gsd_dynamic(simulation_factory, device,
-                           hoomd_snapshot, tmp_path):
-
+def test_write_gsd_dynamic(create_md_sim, tmp_path):
+    # To do:test everything for dynamic
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    sim = create_md_sim
 
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -337,22 +268,11 @@ def test_write_gsd_dynamic(simulation_factory, device,
                                        rtol=1e-07, atol=1.5e-07)
 
 
-def test_write_gsd_log(simulation_factory, device,
-                       hoomd_snapshot, tmp_path):
+def test_write_gsd_log(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
-    sim = simulation_factory(hoomd_snapshot)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params[('p1', 'p1')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    sim = create_md_sim
 
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     sim.operations.computes.append(thermo)

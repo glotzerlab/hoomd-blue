@@ -49,7 +49,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                 else:
                     assert x == y
             elif prop == 'acceleration' or prop == 'is_accel_set':
-                next
+                continue
             else:
                 x = getattr(getattr(gsd_snap, attr), prop)
                 y = getattr(getattr(hoomd_snap, attr), prop)
