@@ -283,8 +283,8 @@ class ThermodynamicQuantities(_Thermo):
             return None
 
 
-class ThermoHMA(Compute):
-    """Compute HMA thermodynamic properties of a group of particles.
+class HarmonicAveragedThermodynamicQuantities(Compute):
+    """Compute harmonic averaged thermodynamic properties of a group of particles.
 
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
@@ -295,17 +295,13 @@ class ThermoHMA(Compute):
             If ommitted, the HMA pressure can still be computed, but will be
             similar in precision to the conventional pressure.
 
-    :py:class:`ThermoHMA` acts on a given group of particles and calculates HMA
-    (harmonically mapped averaging) properties of those particles when
-    requested. HMA computes properties more precisely (with less variance) for
-    atomic crystals in NVT simulations.  The presence of diffusion (vacancy
-    hopping, etc.) will prevent HMA from providing improvement.  HMA tracks
-    displacements from the lattice positions, which are saved at the start
-    of the first call to `Simulation.run`.
-
-Very fast averaging of thermal properties of crystals by molecular simulation
-Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke
-Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
+    :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given group
+    of particles and calculates harmonically mapped average (HMA) properties
+    of those particles when requested. HMA computes properties more precisely
+    (with less variance) for atomic crystals in NVT simulations.  The presence
+    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
+    improvement.  HMA tracks displacements from the lattice positions, which
+    are saved at the startof the first call to `Simulation.run`.
 
     Note:
         :py:class:`ThermoHMA` is an implementation of the methods section of
@@ -315,7 +311,7 @@ Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
 
     Examples::
 
-        hma = hoomd.compute.thermoHMA(filter=hoomd.filter.Type('A'), kT=1.0)
+        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(filter=hoomd.filter.Type('A'), kT=1.0)
 
 
     Attributes:
