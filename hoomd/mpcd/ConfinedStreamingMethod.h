@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -61,7 +61,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
           {}
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep);
+        virtual void stream(uint64_t timestep);
 
         //! Get the streaming geometry
         std::shared_ptr<const Geometry> getGeometry() const
@@ -91,7 +91,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
  * \param timestep Current time to stream
  */
 template<class Geometry>
-void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
+void ConfinedStreamingMethod<Geometry>::stream(uint64_t timestep)
     {
     if (!shouldStream(timestep)) return;
 

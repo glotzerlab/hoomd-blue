@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -16,7 +16,7 @@
 
 //! helper to add a given force/virial pointer pair
 template< unsigned int compute_virial >
-__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const unsigned int virial_pitch, Scalar4* d_t, int idx)
+__device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4& net_torque, Scalar4* d_f, Scalar* d_v, const size_t virial_pitch, Scalar4* d_t, int idx)
     {
     if (d_f != NULL && d_v != NULL && d_t != NULL)
         {
@@ -59,7 +59,7 @@ __device__ void add_force_total(Scalar4& net_force, Scalar *net_virial, Scalar4&
 template< unsigned int compute_virial >
 __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
                                                     Scalar *d_net_virial,
-                                                    const unsigned int net_virial_pitch,
+                                                    const size_t net_virial_pitch,
                                                     Scalar4 *d_net_torque,
                                                     const gpu_force_list force_list,
                                                     unsigned int nwork,
@@ -120,7 +120,7 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4 *d_net_force,
 
 hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
-                                         const unsigned int net_virial_pitch,
+                                         size_t net_virial_pitch,
                                          Scalar4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,

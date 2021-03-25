@@ -1,52 +1,204 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-import numpy
+from inspect import isclass
+import pickle
+
+import numpy as np
 import hoomd
 import hoomd.variant
 import pytest
 
 
-def test_constant():
-    """ Test construction and properties of variant.constant
-    """
+_classes = [
+    hoomd.variant.Constant,
+    hoomd.variant.Ramp,
+    hoomd.variant.Cycle,
+    hoomd.variant.Power
+]
 
-    a = hoomd.variant.Constant(10.0)
+_test_kwargs = [
+    # Constant: first args value=1
+    {'value': np.linspace(1, 10, 3)},
+    # Ramp: first args A=1, B=3, t_start=0, t_ramp=10
+    {'A': np.linspace(1, 10, 3), 'B': np.linspace(3, 10, 3),
+     't_start': (0, 10, 10000000000), 't_ramp': (10, 20, 2000000000000)},
+    # Cycle: first args A=2, B=5, t_start=0, t_A=10, t_AB=15, t_B=10, t_BA_20
+    {'A': np.linspace(2, 10, 3), 'B': np.linspace(5, 10, 3),
+     't_start': (0, 10, 10000000000), 't_A': (10, 20, 2000000000000),
+     't_AB': (15, 30, 40000000000), 't_B': (10, 20, 2000000000000),
+     't_BA': (20, 40, 560000000000)},
+    # Power: first args A=1, B=10, t_start=0, t_ramp=10
+    {'A': np.linspace(1, 10, 3), 'B': np.linspace(10, 100, 3),
+     'power': np.linspace(2, 5, 3), 't_start': (0, 10, 10000000000),
+     't_ramp': (10, 20, 2000000000000)}
+]
 
-    assert a.value == 10.0
 
-    a.value = 0.125
-
-    assert a.min == 0.125
-    assert a.max == 0.125
-    assert a.range == (0.125, 0.125)
+def _to_kwargs(specs):
+    """Take a dictionary of iterables into a generator of dicts."""
+    for value in zip(*specs.values()):
+        yield dict(zip(specs.keys(), value))
 
 
-def test_constant_eval():
-    a = hoomd.variant.Constant(10.0)
+def _test_id(value):
+    if isinstance(value, hoomd.variant.Variant):
+        if isclass(value):
+            return value.__name__
+        else:
+            return value.__class__.__name__
+    else:
+        return None
 
-    for i in range(10000):
-        assert a(i) == 10.0
 
-    for i in range(10000000000, 10000010000):
-        assert a(i) == 10.0
+@pytest.mark.parametrize(
+    'cls, kwargs',
+    ((cls, kwarg) for cls, kwargs in zip(_classes, _test_kwargs)
+        for kwarg in _to_kwargs(kwargs)),
+    ids=_test_id)
+def test_construction(cls, kwargs):
+    variant = cls(**kwargs)
+    for key, value in kwargs.items():
+        assert getattr(variant, key) == value
+
+
+_expected_min_max = [
+    (1., 1.),
+    (1., 3.),
+    (2., 5.),
+    (1., 10.),
+]
+
+
+_single_kwargs = [next(_to_kwargs(kwargs)) for kwargs in _test_kwargs]
+
+
+def variants():
+    return (cls(**kwargs) for cls, kwargs in zip(_classes, _single_kwargs))
+
+
+@pytest.mark.parametrize(
+    'variant, expected_min_max',
+    zip(variants(), _expected_min_max),
+    ids=_test_id)
+def test_min_max(variant, expected_min_max):
+    assert np.isclose(variant.min, expected_min_max[0])
+    assert np.isclose(variant.max, expected_min_max[1])
+    assert np.allclose(variant.range, expected_min_max)
+
+
+@pytest.mark.parametrize(
+    'variant, attrs',
+    ((variant, kwarg) for variant, kwargs in zip(variants(), _test_kwargs)
+        for kwarg in _to_kwargs(kwargs)),
+    ids=_test_id)
+def test_setattr(variant, attrs):
+    for attr, value in attrs.items():
+        setattr(variant, attr, value)
+        assert getattr(variant, attr) == value
+
+
+def constant_eval(value):
+    def expected_value(timestep):
+        return value
+    return expected_value
+
+
+def power_eval(A, B, power, t_start, t_ramp):
+    def expected_value(timestep):
+        if timestep < t_start:
+            return A
+        elif timestep < t_start + t_ramp:
+            inv_a, inv_b = (A ** (1 / power)), (B ** (1 / power))
+            frac = (timestep - t_start) / t_ramp
+            return ((inv_b * frac) + ((1 - frac) * inv_a)) ** power
+        else:
+            return B
+    return expected_value
+
+
+def ramp_eval(A, B, t_start, t_ramp):
+    def expected_value(timestep):
+        if timestep < t_start:
+            return A
+        elif timestep < t_start + t_ramp:
+            frac = (timestep - t_start) / t_ramp
+            return (B * frac) + ((1 - frac) * A)
+        else:
+            return B
+    return expected_value
+
+
+def cycle_eval(A, B, t_start, t_A, t_AB, t_BA, t_B):
+    period = t_A + t_B + t_AB + t_BA
+
+    def expected_value(timestep):
+        delta = (timestep - t_start) % period
+        if timestep < t_start or delta < t_A:
+            return A
+        elif delta < t_A + t_AB:
+            scale = (delta - t_A) / t_AB
+            return (scale * B) + ((1 - scale) * A)
+        elif delta < t_A + t_AB + t_B:
+            return B
+        else:
+            scale = (delta - (t_A + t_AB + t_B)) / t_BA
+            return (scale * A) + ((1 - scale) * B)
+    return expected_value
+
+
+_eval_constructors = [
+    constant_eval,
+    ramp_eval,
+    cycle_eval,
+    power_eval
+]
+
+
+@pytest.mark.parametrize(
+    'variant, evaluator, kwargs',
+    ((variant, evaluator, kwarg) for variant, evaluator, kwargs in zip(
+            variants(), _eval_constructors, _test_kwargs)
+        for kwarg in _to_kwargs(kwargs)),
+    ids=_test_id)
+def test_evaulation(variant, evaluator, kwargs):
+    for attr, value in kwargs.items():
+        setattr(variant, attr, value)
+    eval_func = evaluator(**kwargs)
+    for i in range(1000):
+        assert np.isclose(eval_func(i), variant(i))
+    for i in range(1000000000000, 1000000001000):
+        assert np.isclose(eval_func(i), variant(i))
+
+
+@pytest.mark.parametrize(
+    'variant, attrs',
+    ((variant, list(kwarg.keys())) for variant, kwarg in zip(
+        variants(), _single_kwargs)),
+    ids=_test_id)
+def test_pickling(variant, attrs):
+    pkled_variant = pickle.loads(pickle.dumps(variant))
+    for attr in attrs:
+        assert getattr(pkled_variant, attr) == getattr(variant, attr)
+
+
+class CustomVariant(hoomd.variant.Variant):
+    def __init__(self):
+        hoomd.variant.Variant.__init__(self)
+        self._a = 1
+
+    def __call__(self, timestep):
+        return (float(timestep)**(1 / 2))
+
+    def _min(self):
+        return 0.0
+
+    def _max(self):
+        return 1.0
 
 
 def test_custom():
-    class CustomVariant(hoomd.variant.Variant):
-        def __init__(self):
-            hoomd.variant.Variant.__init__(self)
-
-        def __call__(self, timestep):
-            return (float(timestep)**(1 / 2))
-
-        def _min(self):
-            return 0.0
-
-        def _max(self):
-            return 1.0
-
     c = CustomVariant()
 
     # test that the custom variant can be called from c++
@@ -60,250 +212,7 @@ def test_custom():
     assert hoomd._hoomd._test_variant_min(c) == 0.0
     assert hoomd._hoomd._test_variant_max(c) == 1.0
 
-
-def test_ramp():
-    a = hoomd.variant.Ramp(1.0, 11.0, 100, 10000)
-
-    for i in range(100):
-        assert a(i) == 1.0
-
-    assert a(100) == 1.0
-    numpy.testing.assert_allclose(a(2600), 3.5)
-    numpy.testing.assert_allclose(a(5100), 6.0)
-    numpy.testing.assert_allclose(a(7600), 8.5)
-    assert a(10100) == 11.0
-
-    for i in range(10000000000, 10000010000):
-        assert a(i) == 11.0
-
-
-def test_ramp_properties():
-    a = hoomd.variant.Ramp(1.0, 11.0, 100, 10000)
-    assert a.A == 1.0
-    assert a.B == 11.0
-    assert a.t_start == 100
-    assert a.t_ramp == 10000
-
-    a.A = 100
-    assert a.A == 100.0
-    assert a(0) == 100.0
-
-    a.B = -25
-    assert a.B == -25.0
-    assert a(10100) == -25.0
-
-    a.t_start = 1000
-    assert a.t_start == 1000
-    assert a(1000) == 100.0
-    assert a(1001) < 100.0
-
-    a.t_ramp = int(1e6)
-    assert a.t_ramp == int(1e6)
-    assert a(1001000) == -25.0
-    assert a(1000999) > -25.0
-
-    with pytest.raises(ValueError):
-        a.t_ramp = int(2**53 + 1)
-
-
-def test_ramp_min_max():
-    a = hoomd.variant.Ramp(1.0, 11.0, 100, 10000)
-    assert a.min == 1.
-    assert a.max == 11.
-    assert a.range == (1., 11.)
-    a.B = -5
-    assert a.min == -5
-    assert a.max == 1.
-    assert a.range == (-5., 1.)
-
-
-def test_cycle():
-    A = 0.0
-    B = 10.0
-    t_start = 100
-    t_A = 200
-    t_AB = 400
-    t_B = 300
-    t_BA = 100
-
-    a = hoomd.variant.Cycle(A=A,
-                            B=B,
-                            t_start=t_start,
-                            t_A=t_A,
-                            t_AB=t_AB,
-                            t_B=t_B,
-                            t_BA=t_BA)
-
-    # t_start
-    for i in range(t_start):
-        assert a(i) == A
-
-    period = t_A + t_AB + t_B + t_BA
-    for cycle in [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 10000000000]:
-        offset = period * cycle + t_start
-
-        # t_A
-        for i in range(offset, offset + t_A):
-            assert a(i) == A
-
-        # t_AB ramp
-        numpy.testing.assert_allclose(a(offset + t_A + t_AB // 2), (A + B) / 2)
-
-        # t_B
-        for i in range(offset + t_A + t_AB, offset + t_A + t_AB + t_B):
-            assert a(i) == B
-
-        # t_BA ramp
-        numpy.testing.assert_allclose(a(offset + t_A + t_AB + t_B + t_BA // 2),
-                                      (A + B) / 2)
-
-
-def test_cycle_properties():
-    a = hoomd.variant.Cycle(A=1.0,
-                            B=12.0,
-                            t_start=100,
-                            t_A=200,
-                            t_AB=300,
-                            t_B=400,
-                            t_BA=500)
-    assert a.A == 1.0
-    assert a.B == 12.0
-    assert a.t_start == 100
-    assert a.t_A == 200
-    assert a.t_AB == 300
-    assert a.t_B == 400
-    assert a.t_BA == 500
-
-    a.A = 100
-    assert a.A == 100.0
-    assert a(0) == 100.0
-
-    a.B = -25
-    assert a.B == -25.0
-    assert a(600) == -25.0
-
-    a.t_start = 1000
-    assert a.t_start == 1000
-    assert a(1000) == 100.0
-    assert a(1201) < 100.0
-
-    a.t_A = 400
-    assert a.t_A == 400
-    assert a(1400) == 100.0
-    assert a(1401) < 100.0
-
-    a.t_AB = 600
-    assert a.t_AB == int(600)
-    assert a(2000) == -25.0
-    assert a(1999) > -25.0
-
-    a.t_B = 1000
-    assert a.t_B == 1000
-    assert a(3000) == -25.0
-    assert a(3001) > -25.0
-
-    a.t_BA = 10000
-    assert a.t_BA == 10000
-    assert a(13000) == 100.0
-    assert a(12999) < 100.0
-
-    with pytest.raises(ValueError):
-        a.t_AB = int(2**53 + 1)
-
-    with pytest.raises(ValueError):
-        a.t_BA = int(2**53 + 1)
-
-
-def test_cycle_min_max():
-    A = 0.0
-    B = 10.0
-    t_start = 100
-    t_A = 200
-    t_AB = 400
-    t_B = 300
-    t_BA = 100
-
-    a = hoomd.variant.Cycle(A, B, t_start, t_A, t_AB, t_B, t_BA)
-    assert a.min == 0.
-    assert a.max == 10.
-    assert a.range == (0., 10.)
-    a.B = -5
-    assert a.min == -5
-    assert a.max == 0.
-    assert a.range == (-5., 0.)
-
-
-def test_power():
-    args = (1.0, 100.0, 2., 100, 1000)
-    a = hoomd.variant.Power(*args)
-
-    def power(init, final, power, start, length):
-        def expected_value(timestep):
-            if timestep < start:
-                return init
-            elif timestep < start + length:
-                inv_a, inv_b = (init ** (1 / power)), (final ** (1 / power))
-                frac = (timestep - start) / length
-                return ((inv_b * frac) + ((1 - frac) * inv_a)) ** power
-            else:
-                return final
-        return expected_value
-
-    expected_value = power(*args)
-
-    for i in range(100):
-        assert a(i) == 1.0
-
-    assert a(100) == 1.0
-    for i in range(101, 1000):
-        numpy.testing.assert_allclose(a(i), expected_value(i))
-    assert a(10100) == 100.0
-
-    for i in range(10000000000, 10000010000):
-        assert a(i) == 100.0
-
-
-def test_power_properties():
-    a = hoomd.variant.Power(1.0, 100.0, 2., 100, 1000)
-    assert a.A == 1.0
-    assert a.B == 100.0
-    assert a.power == 2.
-    assert a.t_start == 100
-    assert a.t_size == 1000
-
-    a.A = 100
-    assert a.A == 100.0
-    assert a(0) == 100.0
-
-    a.B = -25
-    assert a.B == -25.0
-    assert a(10100) == -25.0
-
-    pow_2 = a(101)
-    a.power = 1 / 10
-    assert a.power == 1 / 10
-    assert a(101) > pow_2
-
-    a.t_start = 1000
-    assert a.t_start == 1000
-    assert a(1000) == 100.0
-    assert a(1001) < 100.0
-
-    a.t_size = int(1e6)
-    assert a.t_size == int(1e6)
-    assert a(1001000) == -25.0
-    assert a(1000990) > -25.0
-
-    with pytest.raises(ValueError):
-        a.t_size = int(2**53 + 1)
-
-
-def test_power_min_max():
-    a = hoomd.variant.Power(1.0, 11.0, 2, 100, 10000)
-    assert a.min == 1.
-    assert a.max == 11.
-    assert a.range == (1., 11.)
-    a.B = -5
-    assert a.min == -5
-    assert a.max == 1.
-    assert a.range == (-5., 1.)
+    pkled_variant = pickle.loads(pickle.dumps(c))
+    assert pkled_variant._a == 1
+    for i in range(0, 10000, 100):
+        assert hoomd._hoomd._test_variant_call(pkled_variant, i) == float(i)**(1 / 2)

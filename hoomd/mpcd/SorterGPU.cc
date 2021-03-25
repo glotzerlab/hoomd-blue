@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -31,7 +31,7 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
  * particles appear. This will put the particles into a cell-list order, which
  * should be more friendly for other MPCD cell-based operations.
  */
-void mpcd::SorterGPU::computeOrder(unsigned int timestep)
+void mpcd::SorterGPU::computeOrder(uint64_t timestep)
     {
     if (m_prof) m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank

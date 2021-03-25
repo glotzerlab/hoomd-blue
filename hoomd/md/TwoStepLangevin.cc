@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevin.h"
@@ -16,9 +16,8 @@ using namespace hoomd;
 
 TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed)
-    : TwoStepLangevinBase(sysdef, group, T, seed), m_reservoir_energy(0),
+                           std::shared_ptr<Variant> T)
+    : TwoStepLangevinBase(sysdef, group, T), m_reservoir_energy(0),
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
@@ -46,7 +45,7 @@ std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
     \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
-Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+Scalar TwoStepLangevin::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
     {
     if (m_tally && quantity == m_log_name)
         {
@@ -61,7 +60,7 @@ Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int ti
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepLangevin::integrateStepOne(unsigned int timestep)
+void TwoStepLangevin::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -214,7 +213,7 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevin::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -240,20 +239,23 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
 
     // grab some initial variables
     const Scalar currentTemp = (*m_T)(timestep);
-    const unsigned int D = Scalar(m_sysdef->getNDimensions());
+    const unsigned int D = m_sysdef->getNDimensions();
 
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
 
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    uint16_t seed = m_sysdef->getSeed();
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, m_seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
 
         // first, calculate the BD forces
         // Generate three random numbers
@@ -407,8 +409,7 @@ void export_TwoStepLangevin(py::module& m)
     py::class_<TwoStepLangevin, TwoStepLangevinBase, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<Variant>,
-                            unsigned int>())
+                            std::shared_ptr<Variant>>())
         .def_property("tally_reservoir_energy", &TwoStepLangevin::getTallyReservoirEnergy,
                                                 &TwoStepLangevin::setTallyReservoirEnergy)
         .def_property_readonly("reservoir_energy", &TwoStepLangevin::getReservoirEnergy)

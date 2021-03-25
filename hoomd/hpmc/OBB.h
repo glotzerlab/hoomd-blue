@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -14,6 +14,7 @@
 #define __OBB_H__
 
 #include <cfloat>
+#include <cmath>
 
 #ifndef __HIPCC__
 #include <algorithm>
@@ -21,10 +22,15 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpessimizing-move"
 #include "hoomd/extern/quickhull/QuickHull.hpp"
+#pragma GCC diagnostic pop
 
 #include <random>
 #endif
+
+#define DEFAULT_MASK 0xffffffffu
 
 /*! \file OBB.h
     \brief Basic OBB routines
@@ -53,6 +59,21 @@ namespace detail
     @{
 */
 
+/// Update the bounds of an ABB
+DEVICE inline void update_bounds(OverlapReal &l, OverlapReal &u, OverlapReal e, OverlapReal f)
+    {
+    if (e < f)
+        {
+        l += e;
+        u += f;
+        }
+    else
+        {
+        l += f;
+        u += e;
+        }
+    }
+
 //! Axis aligned bounding box
 /*! An OBB represents a bounding volume defined by an axis-aligned bounding box. It is stored as plain old data
     with a lower and upper bound. This is to make the most common operation of OBB overlap testing fast.
@@ -74,7 +95,7 @@ struct OBB
     unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() : mask(1), is_sphere(0) {}
+    DEVICE OBB() : mask(DEFAULT_MASK), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -86,7 +107,7 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
-        mask = 1;
+        mask = DEFAULT_MASK;
         is_sphere = 1;
         }
 
@@ -94,7 +115,7 @@ struct OBB
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
-        mask = 1;
+        mask = DEFAULT_MASK;
         is_sphere = 0;
         }
 
@@ -137,56 +158,86 @@ struct OBB
         rotation = q * rotation;
         }
 
-    DEVICE OverlapReal getVolume() const
+    DEVICE OverlapReal getVolume(unsigned int dim=3) const
         {
-        return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
+        if (dim == 3)
+            {
+            return is_sphere ? OverlapReal(4./3.*M_PI)*lengths.x*lengths.x*lengths.x :
+                OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
+            }
+        else
+            {
+            return is_sphere ? OverlapReal(M_PI)*lengths.x*lengths.x :
+                OverlapReal(8.0)*lengths.x*lengths.y;
+            }
         }
 
+     //! tightly fit an AABB to the OBB
+     DEVICE AABB getAABB()
+        {
+        rotmat3<OverlapReal> M(rotation);
+
+        vec3<OverlapReal> lower_a = -lengths;
+        vec3<OverlapReal> upper_a = lengths;
+        vec3<OverlapReal> lower_b = center;
+        vec3<OverlapReal> upper_b = center;
+
+        update_bounds(lower_b.x, upper_b.x, M.row0.x*lower_a.x, M.row0.x*upper_a.x);
+        update_bounds(lower_b.x, upper_b.x, M.row0.y*lower_a.y, M.row0.y*upper_a.y);
+        update_bounds(lower_b.x, upper_b.x, M.row0.z*lower_a.z, M.row0.z*upper_a.z);
+
+        update_bounds(lower_b.y, upper_b.y, M.row1.x*lower_a.x, M.row1.x*upper_a.x);
+        update_bounds(lower_b.y, upper_b.y, M.row1.y*lower_a.y, M.row1.y*upper_a.y);
+        update_bounds(lower_b.y, upper_b.y, M.row1.z*lower_a.z, M.row1.z*upper_a.z);
+
+        update_bounds(lower_b.z, upper_b.z, M.row2.x*lower_a.x, M.row2.x*upper_a.x);
+        update_bounds(lower_b.z, upper_b.z, M.row2.y*lower_a.y, M.row2.y*upper_a.y);
+        update_bounds(lower_b.z, upper_b.z, M.row2.z*lower_a.z, M.row2.z*upper_a.z);
+
+        return detail::AABB(lower_b, upper_b);
+        }
     };
 
 // from Christer Ericsen, Real-time collision detection
 // https://doi.org/10.1201/b14581
-DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& b,
+DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const OBB& obb,
    const OverlapReal max_sq)
     {
-    vec3<OverlapReal> v = p - b.center;
-
     OverlapReal sqDist(0.0);
-
-    rotmat3<OverlapReal> u(conj(b.rotation));
+    const vec3<OverlapReal> u = rotate(conj(obb.rotation), p-obb.center);
 
     // Project vector from box center to p on each axis, getting the distance
     // of p along that axis, and count any excess distance outside box extents
 
-    OverlapReal d = dot(v, u.row0);
+    OverlapReal d = dot(u, vec3<OverlapReal>(1.0,0,0));
     OverlapReal excess(0.0);
 
-    if (d < -b.lengths.x)
-        excess = d + b.lengths.x;
-    else if (d > b.lengths.x)
-        excess = d - b.lengths.x;
+    if (d < -obb.lengths.x)
+        excess = d + obb.lengths.x;
+    else if (d > obb.lengths.x)
+        excess = d - obb.lengths.x;
     sqDist += excess*excess;
 
     if (sqDist > max_sq)
         return false;
 
-    d = dot(v,u.row1);
+    d = dot(u, vec3<OverlapReal>(0,1.0,0));
     excess = OverlapReal(0.0);
-    if (d < -b.lengths.y)
-        excess = d + b.lengths.y;
-    else if (d > b.lengths.y)
-        excess = d - b.lengths.y;
+    if (d < -obb.lengths.y)
+        excess = d + obb.lengths.y;
+    else if (d > obb.lengths.y)
+        excess = d - obb.lengths.y;
     sqDist += excess*excess;
 
     if (sqDist > max_sq)
         return false;
 
-    d = dot(v,u.row2);
+    d = dot(u, vec3<OverlapReal>(0,0,1.0));
     excess = OverlapReal(0.0);
-    if (d < -b.lengths.z)
-        excess = d + b.lengths.z;
-    else if (d > b.lengths.z)
-        excess = d - b.lengths.z;
+    if (d < -obb.lengths.z)
+        excess = d + obb.lengths.z;
+    else if (d > obb.lengths.z)
+        excess = d - obb.lengths.z;
     sqDist += excess*excess;
 
     return sqDist <= max_sq;
@@ -205,12 +256,10 @@ DEVICE inline bool SqDistPointOBBSmallerThan(const vec3<OverlapReal>& p, const O
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b,
-    bool ignore_mask=false,
-    bool exact=true)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // exit early if the masks don't match
-    if (!ignore_mask && !(a.mask & b.mask)) return false;
+    if (!(a.mask & b.mask)) return false;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
@@ -237,7 +286,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b,
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-6); // can be large, because false positives don't harm
+    const OverlapReal eps(OverlapReal(1e-6)); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
@@ -545,25 +594,25 @@ inline OverlapReal eigen_sphere(const std::vector< vec3<OverlapReal> >& verts, v
         // get the orthonormal basis
         Eigen::MatrixXd eigenvec = es.eigenvectors();
 
-        r.row0 = vec3<OverlapReal>(eigenvec(0,0),eigenvec(0,1),eigenvec(0,2));
-        r.row1 = vec3<OverlapReal>(eigenvec(1,0),eigenvec(1,1),eigenvec(1,2));
-        r.row2 = vec3<OverlapReal>(eigenvec(2,0),eigenvec(2,1),eigenvec(2,2));
+        r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec(0,0)),OverlapReal(eigenvec(0,1)),OverlapReal(eigenvec(0,2)));
+        r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec(1,0)),OverlapReal(eigenvec(1,1)),OverlapReal(eigenvec(1,2)));
+        r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec(2,0)),OverlapReal(eigenvec(2,1)),OverlapReal(eigenvec(2,2)));
         eigen_val = es.eigenvalues();
         }
 
 
     // maximum eigenvalue
     vec3<OverlapReal> max_evec(r.row0.x,r.row1.x,r.row2.x);
-    OverlapReal max_eval = eigen_val(0);
+    OverlapReal max_eval = OverlapReal(eigen_val(0));
     if (eigen_val(1) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        max_eval = eigen_val(1);
+        max_eval = OverlapReal(eigen_val(1));
         }
     if (eigen_val(2) > max_eval)
         {
         max_evec = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
-        max_eval = eigen_val(2);
+        max_eval = OverlapReal(eigen_val(2));
         }
 
     max_evec /= (OverlapReal)sqrt(dot(max_evec,max_evec));
@@ -620,14 +669,14 @@ inline OverlapReal ritter_iterative(std::vector<vec3<OverlapReal> > verts, vec3<
 
     for (unsigned int k = 0; k < MAX_IT; ++k)
         {
-        r2 *= 0.95;
+        r2 *= OverlapReal(0.95);
 
         for (unsigned int i = 0; i < verts.size(); ++i)
             {
             if (i < verts.size() - 1)
                 {
                 unsigned int j;
-                std::uniform_int_distribution<> dis(i+1, verts.size()-1);
+                std::uniform_int_distribution<> dis(i+1, (unsigned int)(verts.size()-1));
                 j = dis(g);
                 std::swap(verts[i],verts[j]);
                 std::swap(vertex_radii[i],vertex_radii[j]);
@@ -654,7 +703,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
         // compute mean
         vec3<OverlapReal> mean = vec3<OverlapReal>(0,0,0);
 
-        unsigned int n = pts.size();
+        unsigned int n = (unsigned int)pts.size();
         for (unsigned int i = 0; i < n; ++i)
             {
             mean += pts[i]/(OverlapReal)n;
@@ -698,7 +747,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
                 hull_area += area;
                 hull_centroid += area*centroid;
 
-                OverlapReal fac = area/12.0;
+                OverlapReal fac = area/OverlapReal(12.0);
                 m(0,0) += fac*(9.0*centroid.x*centroid.x + p.x*p.x + q.x*q.x + r.x*r.x);
                 m(0,1) += fac*(9.0*centroid.x*centroid.y + p.x*p.y + q.x*q.y + r.x*r.y);
                 m(0,2) += fac*(9.0*centroid.x*centroid.z + p.x*p.z + q.x*q.z + r.x*r.z);
@@ -762,9 +811,9 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
             Eigen::HouseholderQR<Eigen::MatrixXd> qr(es.eigenvectors());
             Eigen::MatrixXd eigenvec_ortho = qr.householderQ();
 
-            r.row0 = vec3<OverlapReal>(eigenvec_ortho(0,0),eigenvec_ortho(0,1),eigenvec_ortho(0,2));
-            r.row1 = vec3<OverlapReal>(eigenvec_ortho(1,0),eigenvec_ortho(1,1),eigenvec_ortho(1,2));
-            r.row2 = vec3<OverlapReal>(eigenvec_ortho(2,0),eigenvec_ortho(2,1),eigenvec_ortho(2,2));
+            r.row0 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(0,0)),OverlapReal(eigenvec_ortho(0,1)),OverlapReal(eigenvec_ortho(0,2)));
+            r.row1 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(1,0)),OverlapReal(eigenvec_ortho(1,1)),OverlapReal(eigenvec_ortho(1,2)));
+            r.row2 = vec3<OverlapReal>(OverlapReal(eigenvec_ortho(2,0)),OverlapReal(eigenvec_ortho(2,1)),OverlapReal(eigenvec_ortho(2,2)));
             }
 
         if (pts.size() >= 3)
@@ -806,7 +855,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
 
                     vec2<double> new_axes_2d[2];
                     vec2<double> c;
-                    double area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
+                    double area = MinAreaRect(&proj_2d.front(),(unsigned int)hull_pts.size(),c,new_axes_2d);
 
                     // find extent along test_axis
                     double proj_min = DBL_MAX;
@@ -955,4 +1004,5 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
 }; // end namespace hpmc
 
 #undef DEVICE
+#undef DEFAULT_MASK
 #endif //__OBB_H__

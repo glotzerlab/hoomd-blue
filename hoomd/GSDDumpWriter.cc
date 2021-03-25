@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "GSD.h"
@@ -139,8 +139,9 @@ GSDDumpWriter::~GSDDumpWriter()
     The first call to analyze() will create or overwrite the file and write out the current system configuration
     as frame 0. Subsequent calls will append frames to the file, or keep overwriting frame 0 if m_truncate is true.
 */
-void GSDDumpWriter::analyze(unsigned int timestep)
+void GSDDumpWriter::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     int retval;
     bool root=true;
 
@@ -267,7 +268,7 @@ void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector< std::string
     N is not strictly necessary for constant N data, but is always written in case the user fails to select
     dynamic attributes with a variable N file.
 */
-void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
+void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
     {
     int retval;
     m_exec_conf->msg->notice(10) << "GSD: writing configuration/step" << endl;
@@ -278,7 +279,7 @@ void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
     if (gsd_get_nframes(&m_handle) == 0)
         {
         m_exec_conf->msg->notice(10) << "GSD: writing configuration/dimensions" << endl;
-        uint8_t dimensions = m_sysdef->getNDimensions();
+        uint8_t dimensions = (uint8_t)m_sysdef->getNDimensions();
         retval = gsd_write_chunk(&m_handle, "configuration/dimensions", GSD_TYPE_UINT8, 1, 1, 0, (void *)&dimensions);
         GSDUtils::checkError(retval, m_fname);
         }
@@ -286,12 +287,12 @@ void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "GSD: writing configuration/box" << endl;
     BoxDim box = m_pdata->getGlobalBox();
     float box_a[6];
-    box_a[0] = box.getL().x;
-    box_a[1] = box.getL().y;
-    box_a[2] = box.getL().z;
-    box_a[3] = box.getTiltFactorXY();
-    box_a[4] = box.getTiltFactorXZ();
-    box_a[5] = box.getTiltFactorYZ();
+    box_a[0] = (float)box.getL().x;
+    box_a[1] = (float)box.getL().y;
+    box_a[2] = (float)box.getL().z;
+    box_a[3] = (float)box.getTiltFactorXY();
+    box_a[4] = (float)box.getTiltFactorXZ();
+    box_a[5] = (float)box.getTiltFactorYZ();
     retval = gsd_write_chunk(&m_handle, "configuration/box", GSD_TYPE_FLOAT, 6, 1, 0, (void *)box_a);
     GSDUtils::checkError(retval, m_fname);
 
@@ -657,9 +658,9 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
                 all_default = false;
                 }
 
-            data[group_idx*3+0] = float(snapshot.image[it->second].x);
-            data[group_idx*3+1] = float(snapshot.image[it->second].y);
-            data[group_idx*3+2] = float(snapshot.image[it->second].z);
+            data[group_idx*3+0] = snapshot.image[it->second].x;
+            data[group_idx*3+1] = snapshot.image[it->second].y;
+            data[group_idx*3+2] = snapshot.image[it->second].z;
             }
 
         if (!all_default || (nframes > 0 && m_nondefault["particles/image"]))
@@ -888,6 +889,8 @@ void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
                 {
                 N = arr.shape(0);
                 M = arr.shape(1);
+                if (M > std::numeric_limits<uint32_t>::max())
+                    throw runtime_error("Array dimension too large in gsd log data [" + name + "]");
                 }
             if (ndim > 2)
                 {
@@ -898,7 +901,7 @@ void GSDDumpWriter::writeLogQuantities(pybind11::dict dict)
                                         name.c_str(),
                                         type,
                                         N,
-                                        M,
+                                        (uint32_t)M,
                                         0,
                                         (void *)arr.data());
             GSDUtils::checkError(retval, m_fname);

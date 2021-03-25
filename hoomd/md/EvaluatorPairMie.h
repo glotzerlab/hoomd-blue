@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,9 +75,9 @@ class EvaluatorPairMie
                 Scalar epsilon = v["epsilon"].cast<Scalar>();
                 Scalar sigma = v["sigma"].cast<Scalar>();
 
-                Scalar outFront = (m3/(m3-m4)) * pow(m3/m4, m4/(m3-m4));
-                m1 = outFront * epsilon * pow(sigma, m3);
-                m2 = outFront * epsilon * pow(sigma, m4);
+                Scalar outFront = (m3/(m3-m4)) * fast::pow(m3/m4, m4/(m3-m4));
+                m1 = outFront * epsilon * fast::pow(sigma, m3);
+                m2 = outFront * epsilon * fast::pow(sigma, m4);
                 }
 
             pybind11::dict asDict()
@@ -86,12 +86,11 @@ class EvaluatorPairMie
                 v["n"] = m3;
                 v["m"] = m4;
 
-                Scalar sigma = pow(m1 / m2, 1 / (m3 - m4));
-                Scalar epsilon = m1 / pow(sigma, m3) * (m3 - m4) / m3 * pow(m3 / m4, m4 / (m4 - m3));
-
+                Scalar sigma = fast::pow(m1 / m2, 1 / (m3 - m4));
+                Scalar epsilon = m1 / fast::pow(sigma, m3) * (m3 - m4) / m3 * fast::pow(m3 / m4, m4 / (m4 - m3));
+		
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
-
                 return v;
                 }
             #endif
@@ -141,17 +140,17 @@ class EvaluatorPairMie
             if (rsq < rcutsq && mie1 != 0)
                 {
                 Scalar r2inv = Scalar(1.0)/rsq;
-                Scalar rninv = pow(r2inv,mie3/Scalar(2.0));
-                Scalar rminv = pow(r2inv,mie4/Scalar(2.0));
+                Scalar rninv = fast::pow(r2inv,mie3/Scalar(2.0));
+                Scalar rminv = fast::pow(r2inv,mie4/Scalar(2.0));
                 force_divr= r2inv * (mie3 * mie1 * rninv - mie4 * mie2 * rminv);
 
                 pair_eng = mie1 * rninv - mie2 * rminv;
 
                 if (energy_shift)
                     {
-                    Scalar rcutninv = Scalar(1.0)/pow(rcutsq,mie3/Scalar(2.0));
-                    Scalar rcutminv = Scalar(1.0)/pow(rcutsq,mie4/Scalar(2.0));
-                    pair_eng -= mie1 * rcutninv - mie2* rcutminv;
+                    Scalar rcutninv = fast::pow(rcutsq,-mie3/Scalar(2.0));
+                    Scalar rcutminv = fast::pow(rcutsq,-mie4/Scalar(2.0));
+                    pair_eng -= mie1 * rcutninv - mie2 * rcutminv;
                     }
                 return true;
                 }

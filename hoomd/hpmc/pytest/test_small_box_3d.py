@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
@@ -21,10 +21,9 @@ def one_cube_simulation(simulation_factory):
     snap.particles.types = ['A']
     snap.particles.position[:] = [[0, 0, 0]]
     snap.configuration.box = [1.2, 1.2, 1.2, 0, 0, 0]
-    snap.configuration.dimensions = 3
 
     sim = simulation_factory(snap)
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(seed=1)
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
     mc.shape['A'] = dict(vertices=[
         (-0.5, -0.5, -0.5),
         (-0.5, -0.5, 0.5),
@@ -119,11 +118,10 @@ def test_large_moves(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(dimensions=3, a=2, n=16)
 
     sim = simulation_factory(snap)
-    mc = hoomd.hpmc.integrate.ConvexPolygon(seed=1,
-                                            translation_move_probability=1.0,
+    mc = hoomd.hpmc.integrate.ConvexPolygon(translation_move_probability=1.0,
                                             nselect=4,
                                             d=100)
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(seed=1)
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron()
     mc.shape['A'] = dict(vertices=[
         (-0.5, -0.5, -0.5),
         (-0.5, -0.5, 0.5),

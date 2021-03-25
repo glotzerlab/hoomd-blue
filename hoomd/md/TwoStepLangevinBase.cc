@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepLangevinBase.h"
@@ -13,25 +13,14 @@ using namespace std;
 /** @param sysdef SystemDefinition this method will act on. Must not be NULL.
     @param group The group of particles this integration method is to work on
     @param T Temperature set point as a function of time
-    @param seed Random seed to use in generating random numbers
-    @note All ranks other than 0 ignore the seed input and use the value of rank 0.
 */
 TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed)
-    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_seed(seed), m_use_alpha(false),
+                           std::shared_ptr<Variant> T)
+    : IntegrationMethodTwoStep(sysdef, group), m_T(T), m_use_alpha(false),
       m_alpha(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevinBase" << endl;
-
-    // In case of MPI run, every rank should be initialized with the same seed.
-    // For simplicity we broadcast the seed of rank 0 to all ranks.
-
-    #ifdef ENABLE_MPI
-    if( this->m_pdata->getDomainDecomposition() )
-        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
-    #endif
 
     // allocate memory for the per-type gamma storage and initialize them to 1.0
     GlobalVector<Scalar> gamma(m_pdata->getNTypes(), m_exec_conf);
@@ -78,7 +67,7 @@ void TwoStepLangevinBase::slotNumTypesChange()
         return;
 
     // re-allocate memory for the per-type gamma storage and initialize them to 1.0
-    unsigned int old_ntypes = m_gamma.size();
+    unsigned int old_ntypes = (unsigned int)m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
     m_gamma_r.resize(m_pdata->getNTypes());
 
@@ -179,8 +168,7 @@ void export_TwoStepLangevinBase(py::module& m)
     py::class_<TwoStepLangevinBase, IntegrationMethodTwoStep, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<ParticleGroup>,
-                                std::shared_ptr<Variant>,
-                                unsigned int
+                                std::shared_ptr<Variant>
                                 >())
         .def_property("kT", &TwoStepLangevinBase::getT, &TwoStepLangevinBase::setT)
         .def("setGamma", &TwoStepLangevinBase::setGamma)
@@ -189,6 +177,5 @@ void export_TwoStepLangevinBase(py::module& m)
         .def("getGammaR", &TwoStepLangevinBase::getGammaR)
         .def_property("alpha", &TwoStepLangevinBase::getAlpha,
                       &TwoStepLangevinBase::setAlpha)
-        .def_property_readonly("seed", &TwoStepLangevinBase::getSeed)
         ;
     }

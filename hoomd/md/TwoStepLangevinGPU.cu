@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -56,8 +56,8 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  unsigned int n_types,
                                  bool use_alpha,
                                  Scalar alpha,
-                                 unsigned int timestep,
-                                 unsigned int seed,
+                                 uint64_t timestep,
+                                 uint16_t seed,
                                  Scalar T,
                                  bool noiseless_t,
                                  Scalar deltaT,
@@ -117,7 +117,8 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(-1, 1);
 
         Scalar randomx = uniform(rng);
@@ -255,8 +256,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              const unsigned int *d_tag,
                              unsigned int n_types,
                              unsigned int group_size,
-                             unsigned int timestep,
-                             unsigned int seed,
+                             uint64_t timestep,
+                             uint16_t seed,
                              Scalar T,
                              bool noiseless_r,
                              Scalar deltaT,
@@ -307,7 +308,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
+                                hoomd::Counter(ptag));
             Scalar rand_x = NormalDistribution<Scalar>(sigma_r.x)(rng);
             Scalar rand_y = NormalDistribution<Scalar>(sigma_r.y)(rng);
             Scalar rand_z = NormalDistribution<Scalar>(sigma_r.z)(rng);

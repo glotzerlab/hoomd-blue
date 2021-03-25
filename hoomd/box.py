@@ -87,7 +87,8 @@ class Box:
     .. rubric:: Factory Methods
 
     `Box` has factory methods to enable easier creation of boxes: `cube`,
-    `square`, and `from_matrix`. See the method documentation for usage.
+    `square`, `from_matrix`, and `from_box`. See the method documentation for
+    usage.
 
     Examples:
 
@@ -174,9 +175,9 @@ class Box:
         .. note:: Objects that can be converted to HOOMD-blue boxes include
                   lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
                   dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz', 'dimensions'`,
+                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
                   objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz, dimensions`,
+                  :code:`Lx, Ly, Lz, xy, xz, yz,
                   3x3 matrices (see `from_matrix`),
                   or existing :class:`hoomd.Box` objects.
 
@@ -347,7 +348,7 @@ class Box:
     def periodic(self):
         """(3) `numpy.ndarray` of `bool`: The periodicity of
         each dimension."""
-        return _vec3_to_array(self._cpp_obj.getPeriodic(), np.bool)
+        return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
     def lattice_vectors(self):
@@ -415,7 +416,7 @@ class Box:
                 single float is given then scale all dimensions by s; otherwise,
                 s must be a sequence of 3 values used to scale each dimension.
         """
-        s = np.asarray(s, dtype=np.float)
+        s = np.asarray(s, dtype=float)
         self.L *= s
 
     # Magic Methods
@@ -424,9 +425,13 @@ class Box:
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        if not isinstance(other, Box):
+            return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
 #     def wrap(self, v, image=(0, 0, 0)):

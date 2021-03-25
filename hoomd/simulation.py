@@ -1,8 +1,9 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
 """Define the Simulation class."""
+import inspect
 
 import hoomd._hoomd as _hoomd
 from hoomd.logging import log, Loggable
@@ -12,25 +13,33 @@ from hoomd.operations import Operations
 import hoomd
 import json
 
+TIMESTEP_MAX = 2**64 - 1
+SEED_MAX = 2**16 - 1
+
 
 class Simulation(metaclass=Loggable):
     """Define a simulation.
 
     Args:
         device (`hoomd.device.Device`): Device to execute the simulation.
+        seed (int): Random number seed.
 
     `Simulation` is the central class in HOOMD-blue that defines a simulation,
     including the `state` of the system, the `operations` that apply to the
     state during a simulation `run`, and the `device` to use when executing
     the simulation.
+
+    `seed` sets the seed for the random number generator used by all operations
+    added to this `Simulation`.
     """
 
-    def __init__(self, device):
+    def __init__(self, device, seed=None):
         self._device = device
         self._state = None
         self._operations = Operations()
         self._operations._simulation = self
         self._timestep = None
+        self._seed = seed
 
     @property
     def device(self):
@@ -62,12 +71,58 @@ class Simulation(metaclass=Loggable):
 
     @timestep.setter
     def timestep(self, step):
-        if step < 0:
-            raise ValueError("Timestep must be positive.")
+        if int(step) < 0 or int(step) > TIMESTEP_MAX:
+            raise ValueError(f"steps must be in the range [0, {TIMESTEP_MAX}]")
         elif self._state is None:
             self._timestep = step
         else:
             raise RuntimeError("State must not be set to change timestep.")
+
+    @log
+    def seed(self):
+        """int: Random number seed.
+
+        Seeds are in the range [0, 65535]. When set, `seed` will take only the
+        lowest 16 bits of the given value.
+
+        HOOMD-blue uses a deterministic counter based pseudorandom number
+        generator. Any time a random value is needed, HOOMD-blue computes it as
+        a function of the user provided seed `seed` (16 bits), the current
+        `timestep` (lower 40 bits), particle identifiers, MPI ranks, and other
+        unique identifying values as needed to sample uncorrelated values:
+        ``random_value = f(seed, timestep, ...)``
+        """
+        if self.state is None or self._seed is None:
+            return self._seed
+        else:
+            return self._state._cpp_sys_def.getSeed()
+
+    @seed.setter
+    def seed(self, v):
+        v_int = int(v)
+        if v_int < 0 or v_int > SEED_MAX:
+            v_int = v_int & SEED_MAX
+            self.device._cpp_msg.warning(
+                f"Provided seed {v} is larger than {SEED_MAX}. "
+                f"Truncating to {v_int}.\n")
+
+        self._seed = v_int
+
+        if self._state is not None:
+            self._state._cpp_sys_def.setSeed(v_int)
+
+    def _init_system(self, step):
+        """Initialize the system State.
+
+        Perform additional initialization operations not in the State
+        constructor.
+        """
+        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
+
+        if self._seed is not None:
+            self._state._cpp_sys_def.setSeed(self._seed)
+
+        self._init_communicator()
 
     def _init_communicator(self):
         """Initialize the Communicator."""
@@ -92,6 +147,11 @@ class Simulation(metaclass=Loggable):
         else:
             self._system_communicator = None
 
+    def _warn_if_seed_unset(self):
+        if self.seed is None:
+            self.device._cpp_msg.warning(
+                "Simulation.seed is not set, using default seed=0\n")
+
     def create_state_from_gsd(self, filename, frame=-1):
         """Create the simulation state from a GSD file.
 
@@ -115,37 +175,43 @@ class Simulation(metaclass=Loggable):
         self._state = State(self, snapshot)
 
         reader.clearSnapshot()
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
-        self.operations._store_reader(reader)
+
+        self._init_system(step)
 
     def create_state_from_snapshot(self, snapshot):
         """Create the simulations state from a `Snapshot`.
 
         Args:
-            snapshot (Snapshot): Snapshot to initialize the state from.
+            snapshot (Snapshot or gsd.hoomd.Snapshot): Snapshot to initialize
+                the state from. A `gsd.hoomd.Snapshot` will first be
+                converted to a `hoomd.Snapshot`.
+
 
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
-
-        Warning:
-            *snapshot* must be a `hoomd.Snapshot`. Use `create_state_from_gsd`
-            to read GSD files. `create_state_from_snapshot` does not support
-            ``gsd.hoomd.Snapshot`` objects from the ``gsd`` Python package.
         """
         if self.state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
-        self._state = State(self, snapshot)
+        if isinstance(snapshot, Snapshot):
+            # snapshot is hoomd.Snapshot
+            self._state = State(self, snapshot)
+        elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
+            # snapshot is gsd.hoomd.Snapshot
+            snapshot = Snapshot.from_gsd_snapshot(
+                    snapshot, self._device.communicator
+                    )
+            self._state = State(self, snapshot)
+        else:
+            raise TypeError(
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
+            )
 
         step = 0
         if self.timestep is not None:
             step = self.timestep
 
-        # Store System and Reader for Operations
-        self._cpp_sys = _hoomd.System(self.state._cpp_sys_def, step)
-        self._init_communicator()
+        self._init_system(step)
 
     @property
     def state(self):
@@ -177,7 +243,7 @@ class Simulation(metaclass=Loggable):
                 operations._schedule()
                 self._operations = operations
 
-    @property
+    @log
     def tps(self):
         """float: The average number of time steps per second.
 
@@ -193,6 +259,34 @@ class Simulation(metaclass=Loggable):
             return None
         else:
             return self._cpp_sys.getLastTPS()
+
+    @log
+    def walltime(self):
+        """float: The walltime spent during the last call to `run`.
+
+        `walltime` is the number seconds that the last call to `run` took to
+        complete. It is updated during the `run` loop and remains fixed after
+        `run` completes.
+
+        Note:
+            `walltime` resets to 0 at the beginning of each call to `run`.
+        """
+        if self.state is None:
+            return 0
+        else:
+            return self._cpp_sys.walltime
+
+    @log
+    def final_timestep(self):
+        """float: `run` will end at this timestep.
+
+        `final_timestep` is the timestep on which the currently executing `run`
+        will complete.
+        """
+        if self.state is None:
+            return self.timestep
+        else:
+            return self._cpp_sys.final_timestep
 
     @property
     def always_compute_pressure(self):
@@ -282,10 +376,18 @@ class Simulation(metaclass=Loggable):
         # check if initialization has occurred
         if not hasattr(self, '_cpp_sys'):
             raise RuntimeError('Cannot run before state is set.')
+        if self._state._in_context_manager:
+            raise RuntimeError(
+                "Cannot call run inside of a local snapshot context manager.")
         if not self.operations._scheduled:
             self.operations._schedule()
 
-        self._cpp_sys.run(int(steps), write_at_start)
+        steps_int = int(steps)
+        if steps_int < 0 or steps_int > TIMESTEP_MAX - 1:
+            raise ValueError(f"steps must be in the range [0, "
+                             f"{TIMESTEP_MAX-1}]")
+
+        self._cpp_sys.run(steps_int, write_at_start)
 
     def write_debug_data(self, filename):
         """Write debug data to a JSON file.
@@ -330,7 +432,8 @@ class Simulation(metaclass=Loggable):
             gpu_unavailable_device_reasons=reasons)
 
         debug_data['communicator'] = dict(
-            num_ranks=self.device.communicator.num_ranks)
+            num_ranks=self.device.communicator.num_ranks,
+            partition=self.device.communicator.partition)
 
         # TODO: Domain decomposition
 
@@ -362,3 +465,8 @@ class Simulation(metaclass=Loggable):
         if self.device.communicator.rank == 0:
             with open(filename, 'w') as f:
                 json.dump(debug_data, f, default=lambda v: str(v), indent=4)
+
+
+def _match_class_path(obj, *matches):
+    return any(cls.__module__ + '.' + cls.__name__ in matches
+               for cls in inspect.getmro(type(obj)))

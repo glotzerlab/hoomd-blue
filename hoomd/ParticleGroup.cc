@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -282,7 +282,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     if (m_pdata->getDomainDecomposition())
         {
         // do a simple sanity check
-        unsigned int nptl = member_tags.size();
+        unsigned int nptl = (unsigned int)member_tags.size();
         bcast(nptl, 0, m_exec_conf->getMPICommunicator());
 
         if (nptl != member_tags.size())
@@ -650,8 +650,8 @@ void ParticleGroup::buildTagHash() const
     // reset member ship flags
     memset(h_is_member_tag.data, 0, sizeof(unsigned int)*(m_pdata->getRTags().size()));
 
-    unsigned int num_members = m_member_tags.getNumElements();
-    for (unsigned int member = 0; member < num_members; member++)
+    size_t num_members = m_member_tags.getNumElements();
+    for (size_t member = 0; member < num_members; member++)
         {
         h_is_member_tag.data[h_member_tags.data[member]] = 1;
         }
@@ -792,11 +792,11 @@ unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> othe
     return n;
     }
 
-void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep)
+void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
     {
     unsigned int group_size = this->getNumMembers();
 
-    const unsigned int n_dimensions = Scalar(m_sysdef->getNDimensions());
+    const unsigned int n_dimensions = m_sysdef->getNDimensions();
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
                                access_location::host,
@@ -828,7 +828,10 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
         unsigned int ptag = h_tag.data[j];
 
         // Seed the RNG
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ParticleGroupThermalize, seed, ptag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ParticleGroupThermalize,
+                                               timestep,
+                                               m_sysdef->getSeed()),
+                                   hoomd::Counter(ptag));
 
         // Generate a random velocity
         Scalar mass =  h_vel.data[j].w;

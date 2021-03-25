@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -480,7 +480,7 @@ inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     #endif
     }
 
-//! Compute both of sin of x and cos of x with dobule precision
+//! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     {
     #if defined(__HIP_DEVICE_COMPILE__)
@@ -492,20 +492,20 @@ inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     #endif
     }
 
-//! Compute the pow of x,y
+//! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE float pow(float x, float y)
     {
     #ifdef __HIP_DEVICE_COMPILE__
-    return __powf(x, y);
+    return __expf(y * __logf(x));
     #else
-    return ::powf(x, y);
+    return ::expf(y * logf(x));
     #endif
     }
 
-//! Compute the sin of x
+//! Compute the pow of x,y with double precision via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
 inline HOSTDEVICE double pow(double x, double y)
     {
-    return ::pow(x, y);
+    return ::exp(y * log(x));
     }
 
 //! Compute the exp of x
@@ -530,7 +530,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return __logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 
@@ -545,7 +545,7 @@ inline HOSTDEVICE float sqrt(float x)
     {
     #if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
     return ::__fsqrt_rn(x);
-    #else 
+    #else
     return ::sqrtf(x);
     #endif
     }
@@ -693,7 +693,7 @@ inline HOSTDEVICE float log(float x)
     #ifdef __HIP_DEVICE_COMPILE__
     return logf(x);
     #else
-    return ::log(x);
+    return ::logf(x);
     #endif
     }
 
@@ -762,6 +762,30 @@ inline HOSTDEVICE float floor(float x)
 inline HOSTDEVICE double floor(double x)
     {
     return ::floor(x);
+    }
+
+/// Compute the hypberbolic tangent of x
+inline HOSTDEVICE double tanh(double x)
+    {
+    return ::tanh(x);
+    }
+
+/// Compute the hypberbolic tangent of x
+inline HOSTDEVICE float tanh(float x)
+    {
+    return ::tanhf(x);
+    }
+
+/// Compute the rint of x
+inline HOSTDEVICE double rint(double x)
+    {
+    return ::rint(x);
+    }
+
+/// Compute the rint of x
+inline HOSTDEVICE float rint(float x)
+    {
+    return ::rintf(x);
     }
 }
 

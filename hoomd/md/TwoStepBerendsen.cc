@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -47,7 +47,7 @@ TwoStepBerendsen::~TwoStepBerendsen()
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsen::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -110,7 +110,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current timestep
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -155,7 +155,7 @@ void export_Berendsen(py::module& m)
                          Scalar,
                          std::shared_ptr<Variant>
                          >())
-        .def("setT", &TwoStepBerendsen::setT)
-        .def("setTau", &TwoStepBerendsen::setTau)
+        .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
+        .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau)
         ;
     }

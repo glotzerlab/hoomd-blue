@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -169,7 +169,7 @@ void mpcd::Communicator::initializeNeighborArrays()
         neigh_map.insert(std::make_pair(h_neighbors.data[i], m));
         }
 
-    m_n_unique_neigh = neigh_map.size();
+    m_n_unique_neigh = (unsigned int)neigh_map.size();
 
     m_unique_neigh_map.clear();
     n = 0;
@@ -185,7 +185,7 @@ void mpcd::Communicator::initializeNeighborArrays()
 /*!
  * \param timestep Current timestep for communication
  */
-void mpcd::Communicator::communicate(unsigned int timestep)
+void mpcd::Communicator::communicate(uint64_t timestep)
     {
     if (m_is_communicating)
         {
@@ -256,7 +256,7 @@ class MigratePartitionOp
 }
 }
 
-void mpcd::Communicator::migrateParticles(unsigned int timestep)
+void mpcd::Communicator::migrateParticles(uint64_t timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
@@ -297,7 +297,7 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             // first, partition off particles that may be sent in either direction
             mpcd::detail::MigratePartitionOp part_op(stage_mask);
             auto bound = std::partition(h_sendbuf.data, h_sendbuf.data + m_sendbuf.size(), part_op);
-            n_keep = &(*bound)-h_sendbuf.data;
+            n_keep = (unsigned int)(&(*bound)-h_sendbuf.data);
 
             // then, partition the sent particles into the left and right ranks so that particles getting sent right come first
             if (left_neigh != right_neigh)
@@ -305,12 +305,12 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
                 // partition the remaining particles left and right
                 mpcd::detail::MigratePartitionOp sort_op(left_mask);
                 bound = std::partition(h_sendbuf.data + n_keep, h_sendbuf.data + m_sendbuf.size(), sort_op);
-                n_send_right = &(*bound) - (h_sendbuf.data + n_keep);
-                n_send_left = m_sendbuf.size() - n_keep - n_send_right;
+                n_send_right = (unsigned int)(&(*bound) - (h_sendbuf.data + n_keep));
+                n_send_left = (unsigned int)(m_sendbuf.size() - n_keep - n_send_right);
                 }
             else
                 {
-                n_send_right = m_sendbuf.size() - n_keep;
+                n_send_right = (unsigned int)(m_sendbuf.size() - n_keep);
                 n_send_left = 0;
                 }
             }
@@ -371,10 +371,10 @@ void mpcd::Communicator::migrateParticles(unsigned int timestep)
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
             mpcd::detail::MigratePartitionOp part_op(~stage_mask);
             auto bound = std::partition(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), part_op);
-            n_recv = &(*bound) - h_recvbuf.data;
+            n_recv = (unsigned int)(&(*bound) - h_recvbuf.data);
 
             // move particles to resend over to the send buffer and unset the bits from this stage
-            const unsigned int n_resend = m_recvbuf.size() - n_recv;
+            const unsigned int n_resend = (unsigned int)(m_recvbuf.size() - n_recv);
             m_sendbuf.resize(n_keep + n_resend);
             ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
             std::copy(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), h_sendbuf.data + n_keep);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -51,13 +51,13 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
          *
          * \param timestep The time step
          */
-        virtual void beginUpdateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(uint64_t timestep);
 
         /*! Finish ghost update
          *
          * \param timestep The time step
          */
-        virtual void finishUpdateGhosts(unsigned int timestep);
+        virtual void finishUpdateGhosts(uint64_t timestep);
 
         //! Transfer particles between neighboring domains
         virtual void migrateParticles();
@@ -68,7 +68,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
         /*! Communicate the net particle force
          * \parm timestep The time step
          */
-        virtual void updateNetForce(unsigned int timestep);
+        virtual void updateNetForce(uint64_t timestep);
         //@}
 
         //! Set maximum number of communication stages

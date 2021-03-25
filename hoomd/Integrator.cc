@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "Integrator.h"
@@ -171,7 +171,7 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
 
     See Logger for more information on what this is about.
 */
-Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar Integrator::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "volume")
         {
@@ -232,7 +232,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 /** @param timestep Current timestep
     \post \c h_accel.data[i] is set based on the forces computed by the ForceComputes
 */
-void Integrator::computeAccelerations(unsigned int timestep)
+void Integrator::computeAccelerations(uint64_t timestep)
     {
     m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
@@ -268,7 +268,7 @@ void Integrator::computeAccelerations(unsigned int timestep)
     computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates the magnitude of the total
     system momentum
 */
-Scalar Integrator::computeTotalMomentum(unsigned int timestep)
+Scalar Integrator::computeTotalMomentum(uint64_t timestep)
     {
     // grab access to the particle data
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
@@ -305,7 +305,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
           if the forces and/or integrator are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
-void Integrator::computeNetForce(unsigned int timestep)
+void Integrator::computeNetForce(uint64_t timestep)
     {
     std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
@@ -341,7 +341,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
@@ -361,7 +361,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -430,7 +430,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -444,7 +444,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());
@@ -489,7 +489,7 @@ void Integrator::computeNetForce(unsigned int timestep)
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.
 */
-void Integrator::computeNetForceGPU(unsigned int timestep)
+void Integrator::computeNetForceGPU(uint64_t timestep)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -518,7 +518,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GlobalArray< Scalar4 >& net_force  = m_pdata->getNetForce();
         const GlobalArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
         const GlobalArray< Scalar >&  net_virial = m_pdata->getNetVirial();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
@@ -849,8 +849,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 /** The base class integrator actually does nothing in update()
     @param timestep Current time step of the simulation
 */
-void Integrator::update(unsigned int timestep)
+void Integrator::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     }
 
 /** prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full
@@ -862,7 +863,7 @@ void Integrator::update(unsigned int timestep)
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(unsigned int timestep)
+void Integrator::prepRun(uint64_t timestep)
     {
     }
 
@@ -872,7 +873,7 @@ void Integrator::prepRun(unsigned int timestep)
     The flags needed are determined by peeking to \a tstep and then using bitwise or
     to combine the flags from all ForceComputes
 */
-CommFlags Integrator::determineFlags(unsigned int timestep)
+CommFlags Integrator::determineFlags(uint64_t timestep)
     {
     CommFlags flags(0);
 
@@ -907,7 +908,7 @@ void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     m_signals_connected = true;
     }
 
-void Integrator::computeCallback(unsigned int timestep)
+void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
     std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;

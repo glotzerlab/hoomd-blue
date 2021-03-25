@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -41,8 +41,9 @@ Enforce2DUpdater::~Enforce2DUpdater()
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation
 */
-void Enforce2DUpdater::update(unsigned int timestep)
+void Enforce2DUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("Enforce2D");
 
     assert(m_pdata);

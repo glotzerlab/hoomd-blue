@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -103,7 +103,7 @@ void TwoStepNVE::setZeroForce(pybind11::object zero_force)
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVE::integrateStepOne(unsigned int timestep)
+void TwoStepNVE::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -276,7 +276,7 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNVE::integrateStepTwo(unsigned int timestep)
+void TwoStepNVE::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -371,8 +371,8 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
 void export_TwoStepNVE(py::module& m)
     {
     py::class_<TwoStepNVE, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVE> >(m, "TwoStepNVE")
-        .def(py::init< std::shared_ptr<SystemDefinition>, 
-                       std::shared_ptr<ParticleGroup>, 
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
                        bool >())
         .def_property("limit", &TwoStepNVE::getLimit,
                                &TwoStepNVE::setLimit)

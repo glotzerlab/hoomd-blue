@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -187,13 +187,13 @@ class PYBIND11_EXPORT NeighborList : public Compute
                    to require a neighbor list update.
             \param dist_check Set to false to enforce nlist builds exactly \a every steps
         */
-        void setRebuildCheckDelay(unsigned int every)
+        void setRebuildCheckDelay(uint64_t every)
             {
             m_rebuild_check_delay = every;
             forceUpdate();
             }
 
-        unsigned int getRebuildCheckDelay() {return m_rebuild_check_delay;}
+        uint64_t getRebuildCheckDelay() {return m_rebuild_check_delay;}
 
         void setDistCheck(bool dist_check) {m_dist_check = dist_check;}
 
@@ -463,7 +463,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         // @}
 
         //! Computes the NeighborList if it needs updating
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Benchmark the neighbor list
         virtual double benchmark(unsigned int num_iters);
@@ -475,7 +475,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Get the number of updates
-        virtual unsigned int getNumUpdates()
+        virtual uint64_t getNumUpdates()
             {
             return m_updates + m_forced_updates;
             }
@@ -490,7 +490,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Returns true if the particle migration criterion is fulfilled
         /*! \param timestep The current timestep
          */
-        bool peekUpdate(unsigned int timestep);
+        bool peekUpdate(uint64_t timestep);
 #endif
 
         //! Return true if the neighbor list has been updated this time step
@@ -498,7 +498,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
          *
          *  This is supposed to be called after a call to compute().
          */
-        bool hasBeenUpdated(unsigned int timestep)
+        bool hasBeenUpdated(uint64_t timestep)
             {
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
@@ -551,16 +551,16 @@ class PYBIND11_EXPORT NeighborList : public Compute
         bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         //! Return true if we are supposed to do a distance check in this time step
-        bool shouldCheckDistance(unsigned int timestep);
+        bool shouldCheckDistance(uint64_t timestep);
 
         //! Performs the distance check
-        virtual bool distanceCheck(unsigned int timestep);
+        virtual bool distanceCheck(uint64_t timestep);
 
         //! Updates the previous position table for use in the next distance check
         virtual void setLastUpdatedPos();
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
         //! Updates the idx exclusion list
         virtual void updateExListIdx();
@@ -578,10 +578,10 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void buildHeadList();
 
         //! Amortized resizing of the neighborlist
-        void resizeNlist(unsigned int size);
+        void resizeNlist(size_t size);
 
         #ifdef ENABLE_MPI
-        CommFlags getRequestedCommFlags(unsigned int timestep)
+        CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags(0);
 
@@ -612,22 +612,22 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_rcut_changed = true;
             }
 
-        int64_t m_updates;              //!< Number of times the neighbor list has been updated
-        int64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
-        int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
+        uint64_t m_updates;              //!< Number of times the neighbor list has been updated
+        uint64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
+        uint64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_rebuild_check_delay steps)
         bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
-        unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
-        unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
+        uint64_t m_last_updated_tstep; //!< Track the last time step we were updated
+        uint64_t m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
-        unsigned int m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
-        std::vector<unsigned int> m_update_periods;    //!< Steps between updates
+        uint64_t m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
+        std::vector<uint64_t> m_update_periods;    //!< Steps between updates
         std::set<std::string> m_exclusions;        //!< Exclusions that have been set
 
         //! Test if the list needs updating
-        bool needsUpdating(unsigned int timestep);
+        bool needsUpdating(uint64_t timestep);
 
         //! Reallocate internal neighbor list data structures
         void reallocate();

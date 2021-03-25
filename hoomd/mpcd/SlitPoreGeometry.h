@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -77,8 +77,8 @@ class __attribute__((visibility("default"))) SlitPoreGeometry
             /* First check that the particle ended up inside the pore or walls.
              * sign.x is +1 if outside pore in +x, -1 if outside pore in -x, and 0 otherwise.
              * sign.y is +1 if outside walls in +z, -1 if outside walls in -z, and 0 otherwise. */
-            const char2 sign = make_char2((pos.x >= m_L) - (pos.x <= -m_L),
-                                          (pos.z >  m_H) - (pos.z <  -m_H));
+            const char2 sign = make_char2((char)((pos.x >= m_L) - (pos.x <= -m_L)),
+                                          (char)((pos.z >  m_H) - (pos.z <  -m_H)));
             // exit early if collision didn't happen
             if (sign.x != 0 || sign.y == 0)
                 {

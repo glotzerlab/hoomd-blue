@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -48,7 +48,7 @@ class PYBIND11_EXPORT Sorter
         virtual ~Sorter();
 
         //! Update the particle data order
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Sets the profiler for the integration method to use
         void setProfiler(std::shared_ptr<Profiler> prof)
@@ -65,7 +65,7 @@ class PYBIND11_EXPORT Sorter
          */
         virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
-        bool peekSort(unsigned int timestep) const;
+        bool peekSort(uint64_t timestep) const;
 
         //! Change the period
         void setPeriod(unsigned int cur_timestep, unsigned int period)
@@ -89,16 +89,16 @@ class PYBIND11_EXPORT Sorter
         GPUVector<unsigned int> m_rorder;   //!< Maps old particle indexes onto new sorted indexes
 
         unsigned int m_period;          //!< Sorting period
-        unsigned int m_next_timestep;   //!< Next step to apply sorting
+        uint64_t m_next_timestep;   //!< Next step to apply sorting
 
         //! Compute the sorting order at the current timestep
-        virtual void computeOrder(unsigned int timestep);
+        virtual void computeOrder(uint64_t timestep);
 
         //! Apply the sorting order
         virtual void applyOrder() const;
 
     private:
-        bool shouldSort(unsigned int timestep);
+        bool shouldSort(uint64_t timestep);
     };
 
 namespace detail

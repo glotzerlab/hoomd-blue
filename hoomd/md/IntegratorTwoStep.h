@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/Integrator.h"
@@ -57,10 +57,10 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         /// Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         /// Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         /// Change the timestep
         virtual void setDeltaT(Scalar deltaT);
@@ -90,7 +90,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         virtual const std::string getAnisotropicMode();
 
         /// Prepare for the run
-        virtual void prepRun(unsigned int timestep);
+        virtual void prepRun(uint64_t timestep);
 
         /// Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
@@ -109,7 +109,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
 #endif
 
         /// Updates the rigid body constituent particles
-        virtual void updateRigidBodies(unsigned int timestep);
+        virtual void updateRigidBodies(uint64_t timestep);
 
         /// Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);

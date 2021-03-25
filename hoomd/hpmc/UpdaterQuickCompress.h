@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -31,14 +31,12 @@ class UpdaterQuickCompress : public Updater
         @param max_overlaps_per_particle Maximum number of overlaps allowed per particle
         @param min_scale The minimum scale factor to use when scaling the box parameters
         @param target_box The target box
-        @param seed PRNG seed
     */
     UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<IntegratorHPMC> mc,
                          double max_overlaps_per_particle,
                          double min_scale,
-                         pybind11::object target_box,
-                         const unsigned int seed);
+                         pybind11::object target_box);
 
     /// Destructor
     virtual ~UpdaterQuickCompress();
@@ -57,7 +55,7 @@ class UpdaterQuickCompress : public Updater
 
         @param timestep timestep at which update is being evaluated
     */
-    virtual void update(unsigned int timestep);
+    virtual void update(uint64_t timestep);
 
     /// Get the maximum number of overlaps allowed per particle
     double getMaxOverlapsPerParticle()
@@ -99,16 +97,22 @@ class UpdaterQuickCompress : public Updater
         m_target_box = target_box;
         }
 
-    /// Get the PRNG seed
-    unsigned int getSeed()
-        {
-        return m_seed;
-        }
-
     /// Return true if the updater is complete and the simulation should end.
     virtual bool isComplete()
         {
         return m_is_complete;
+        }
+
+    /// Set the RNG instance
+    void setInstance(unsigned int instance)
+        {
+        m_instance = instance;
+        }
+
+    /// Get the RNG instance
+    unsigned int getInstance()
+        {
+        return m_instance;
         }
 
     private:
@@ -124,17 +128,17 @@ class UpdaterQuickCompress : public Updater
     /// The target box dimensions
     pybind11::object m_target_box;
 
-    /// The RNG seed
-    unsigned int m_seed;
+    /// Unique ID for RNG seeding
+    unsigned int m_instance=0;
 
     /// hold backup copy of particle positions
     GPUArray<Scalar4> m_pos_backup;
 
     /// Perform the box scale move
-    void performBoxScale(unsigned int timestep);
+    void performBoxScale(uint64_t timestep);
 
     /// Get the new box to set
-    BoxDim getNewBox(unsigned int timestep);
+    BoxDim getNewBox(uint64_t timestep);
 
     /// Store the last HPMC counters
     hpmc_counters_t m_last_move_counters;

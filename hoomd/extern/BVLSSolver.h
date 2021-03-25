@@ -184,10 +184,10 @@ class BVLSSolver
 
         unsigned int m_n_free;      //!< Number of free variables
         std::vector<int> m_free;    //!< Indexes of all free variables
-        int m_next_bound_free;      //!< Index of the next variable to free from the bound vector
+        ssize_t m_next_bound_free;  //!< Index of the next variable to free from the bound vector
         int m_last_freed_var;       //!< Index of the last variable freed
 
-        unsigned int m_n_bound;     //!< Number of bound variables
+        size_t m_n_bound;           //!< Number of bound variables
         std::vector<int> m_bound;   //!< Indexes of all bound variables (offset by one and signed to indicate upper or lower set)
 
         //! Initializes memory and variables for solving the problem

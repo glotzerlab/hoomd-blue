@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -58,7 +58,7 @@ void gpu_stage_particles(const unsigned int n,
     \param d_neighbors List of neighbor ranks
     \param alloc Caching allocator
  */
-void gpu_sort_migrating_particles(const unsigned int nsend,
+void gpu_sort_migrating_particles(const size_t nsend,
                    pdata_element *d_in,
                    const unsigned int *d_comm_flags,
                    const Index3D& di,

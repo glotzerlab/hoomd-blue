@@ -16,7 +16,7 @@ hoomd.variant
 
 .. automodule:: hoomd.variant
     :synopsis: Values that vary as a function of time step.
-    :members:
+    :no-members:
 
     .. autoclass:: Constant(value)
     .. autoclass:: Cycle(A, B, t_start, t_A, t_AB, t_B, t_BA)

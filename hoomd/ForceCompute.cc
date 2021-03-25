@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -287,8 +287,8 @@ pybind11::object ForceCompute::getEnergiesPython()
         }
     std::vector<double> energy(dims[0]);
 
-    // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double e = getEnergy(i);
         if (root)
@@ -328,8 +328,8 @@ pybind11::object ForceCompute::getForcesPython()
         }
     std::vector<vec3<double>> force(dims[0]);
 
-    // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar3 f = getForce(i);
         if (root)
@@ -371,8 +371,8 @@ pybind11::object ForceCompute::getTorquesPython()
         }
     std::vector<vec3<double>> torque(dims[0]);
 
-    // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         Scalar4 f = getTorque(i);
         if (root)
@@ -419,8 +419,8 @@ pybind11::object ForceCompute::getVirialsPython()
         }
     std::vector<double> virial(dims[0]*dims[1]);
 
-    // This is slow: TODO implement a propert gather operation
-    for (size_t i = 0; i < m_pdata->getNGlobal(); i++)
+    // This is slow: TODO implement a proper gather operation
+    for (unsigned int i = 0; i < m_pdata->getNGlobal(); i++)
         {
         double v0 = getVirial(i, 0);
         double v1 = getVirial(i, 1);
@@ -457,8 +457,9 @@ pybind11::object ForceCompute::getVirialsPython()
         be done
 */
 
-void ForceCompute::compute(unsigned int timestep)
+void ForceCompute::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // recompute forces if the particles were sorted, this is a new timestep, or the particle data
     // flags do not match
     if (m_particles_sorted ||

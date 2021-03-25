@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,8 +13,11 @@
 
 #include "LoadBalancerGPU.cuh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/copy.h>
 #include <thrust/execution_policy.h>
+#pragma GCC diagnostic pop
 
 //! Mark the particles that are off rank
 /*!
@@ -151,7 +154,7 @@ unsigned int gpu_load_balance_select_off_rank(unsigned int *d_off_rank,
     if (N == 0) return 0;
 
     unsigned int* last = thrust::copy_if(thrust::device, d_ranks, d_ranks+N, d_off_rank, NotEqual(cur_rank));
-    return (last-d_off_rank);
+    return (unsigned int)(last-d_off_rank);
     }
 
 #endif // ENABLE_MPI

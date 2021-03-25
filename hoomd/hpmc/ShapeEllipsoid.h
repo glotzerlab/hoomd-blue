@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -92,6 +92,9 @@ struct ShapeEllipsoid
     {
     /// Define the parameter type
     typedef EllipsoidParams param_type;
+
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
@@ -434,9 +437,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeEllipsoid,ShapeEllipsoid>(const vec3<Scalar>& r_ab,
                                                                const ShapeEllipsoid& a,
                                                                const ShapeEllipsoid& b,
-                                                               unsigned int& err,
-                                                               Scalar sweep_radius_a,
-                                                               Scalar sweep_radius_b)
+                                                               unsigned int& err)
     {
 
     // matrix representations of the two ellipsoids

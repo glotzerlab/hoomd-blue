@@ -81,7 +81,7 @@ class ParticleLocalAccessBase(_LocalAccess):
     """Class for directly accessing HOOMD-blue particle data.
 
     Attributes:
-        type ((N_particles) `hoomd.data.array` object of ``float``):
+        typeid ((N_particles) `hoomd.data.array` object of ``float``):
             The integer type of a particle
         tag ((N_particles) `hoomd.data.array` object of ``int``):
             The tag of a particle.  HOOMD-blue uses spacial sorting to improve
@@ -122,6 +122,9 @@ class ParticleLocalAccessBase(_LocalAccess):
             net torque on particle
         net_virial ((N_particles, 3) `hoomd.data.array` object of ``float``):
             net virial on particle
+        net_energy ((N_particles,) `hoomd.data.array` object of ``float``):
+            net energy of a particle (accounts for duplicate counting of an
+            interaction).
 
     Note:
         That changing some attributes like (``velocity`` or ``acceleration``)
@@ -152,7 +155,8 @@ class ParticleLocalAccessBase(_LocalAccess):
         'rigid_body_id': 'getBodies',
         'net_force': 'getNetForce',
         'net_torque': 'getNetTorque',
-        'net_virial': 'getNetVirial'}
+        'net_virial': 'getNetVirial',
+        'net_energy': 'getNetEnergy'}
 
     def __init__(self, state):
         super().__init__()

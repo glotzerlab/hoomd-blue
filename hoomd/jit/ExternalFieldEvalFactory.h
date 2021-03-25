@@ -8,7 +8,7 @@
 #include "KaleidoscopeJIT.h"
 
 // Forward declare box class
-class BoxDim;
+struct BoxDim;
 
 class ExternalFieldEvalFactory
     {

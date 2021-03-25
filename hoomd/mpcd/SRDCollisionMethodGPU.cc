@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -15,7 +15,7 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             unsigned int seed,
+                                             uint16_t seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
     : mpcd::SRDCollisionMethod(sysdata,cur_timestep,period,phase,seed,thermo)
     {
@@ -23,9 +23,11 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
     m_tuner_rotate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_srd_rotate", m_exec_conf));
     }
 
-void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
+void mpcd::SRDCollisionMethodGPU::drawRotationVectors(uint64_t timestep)
     {
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
+
+    uint16_t seed = m_sysdef->getSeed();
 
     if (m_T)
         {
@@ -41,7 +43,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
                                     m_cl->getGlobalDim(),
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     (*m_T)(timestep),
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
@@ -59,7 +61,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
                                     m_cl->getGlobalDim(),
                                     m_cl->getGlobalCellIndexer(),
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     1.0,
                                     m_sysdef->getNDimensions(),
                                     m_tuner_rotvec->getParam());
@@ -68,7 +70,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
         }
     }
 
-void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
+void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);

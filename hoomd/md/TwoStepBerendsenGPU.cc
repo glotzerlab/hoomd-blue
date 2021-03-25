@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -42,7 +42,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -84,7 +84,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 

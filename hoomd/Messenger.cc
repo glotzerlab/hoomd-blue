@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -274,7 +274,7 @@ void Messenger::collectiveNoticeStr(unsigned int level, const std::string& msg)
                 {
                 if (notice_it == rank_notices.end() || *notice_it != last_msg)
                     {
-                    int rank = notice_it - rank_notices.begin();
+                    int rank = int(notice_it - rank_notices.begin());
                     // output message for accumulated ranks
                     if (last_output_rank+1 == rank-1)
                         notice(level) << "Rank " << last_output_rank + 1 << ": " << last_msg << std::flush;

@@ -91,11 +91,11 @@ _valid_args = [
     (Ellipsoid, {
         'a': 4,
         'b': 1,
-        'c': 30,
+        'c': 3,
         'ignore_statistics': 1
     }),
     (Ellipsoid, {
-        'a': 10,
+        'a': 1,
         'b': 5,
         'c': 6,
         'ignore_statistics': 0
@@ -1007,13 +1007,13 @@ def _cpp_args(_valid_args):
             if isinstance(integrator, tuple):
                 inner_integrator = integrator[0]
                 integrator = integrator[1]
-                inner_mc = inner_integrator(23456)
+                inner_mc = inner_integrator()
                 for i in range(len(args["shapes"])):
                     # This will fill in default values for the inner shape
                     # objects
                     inner_mc.shape["A"] = args["shapes"][i]
                     args["shapes"][i] = inner_mc.shape["A"]
-            mc = integrator(2345)
+            mc = integrator()
             mc.shape['A'] = args
             args_list.append((cpp_shape, mc.shape['A']))
     return args_list

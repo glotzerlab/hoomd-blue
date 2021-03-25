@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mspells
@@ -78,7 +78,7 @@ template<typename Real, typename Real4, typename Potential>
 std::string DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec2<Real>> &verts, const Real &radius) const
     {
     std::ostringstream shapedef;
-    unsigned int nverts = verts.size();
+    size_t nverts = verts.size();
     if (nverts == 1)
         {
         shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
@@ -99,9 +99,9 @@ template<typename Real, typename Real4, typename Potential>
 std::string DEM2DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec2<Real>> &verts) const
     {
     std::ostringstream vertstr;
-    unsigned int nverts = verts.size();
+    size_t nverts = verts.size();
     vertstr << "[";
-    for (unsigned int i = 0; i < nverts-1; i++)
+    for (size_t i = 0; i < nverts-1; i++)
         {
         vertstr << "[" << verts[i].x << ", " << verts[i].y << "], ";
         }
@@ -145,7 +145,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::setParams(
         throw runtime_error("Error setting parameters in DEM2DForceCompute");
         }
 
-    for(int i(type - m_shapes.size()); i >= 0; --i)
+    for(size_t i(type - m_shapes.size()); i >= 0; --i)
         m_shapes.push_back(vector<vec2<Real> >(0));
 
     // build a vector of points
@@ -179,7 +179,7 @@ std::vector< std::string > DEM2DForceCompute<Real, Real4, Potential>::getProvide
     }
 
 template<typename Real, typename Real4, typename Potential>
-Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, unsigned int timestep)
+Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("pair_dem_energy"))
         {
@@ -199,7 +199,7 @@ Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& q
   \param timestep specifies the current time step of the simulation
 */
 template<typename Real, typename Real4, typename Potential>
-void DEM2DForceCompute<Real, Real4, Potential>::computeForces(unsigned int timestep)
+void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -211,7 +211,7 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    const unsigned int virial_pitch = m_virial.getPitch();
+    const size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

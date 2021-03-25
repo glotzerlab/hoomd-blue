@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -49,8 +49,9 @@ CellListStencil::~CellListStencil()
     m_cl->getCellWidthChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(this);
     }
 
-void CellListStencil::compute(unsigned int timestep)
+void CellListStencil::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // guard against unnecessary calls
     if (!shouldCompute(timestep)) return;
 
@@ -171,7 +172,7 @@ void CellListStencil::compute(unsigned int timestep)
         m_prof->pop();
     }
 
-bool CellListStencil::shouldCompute(unsigned int timestep)
+bool CellListStencil::shouldCompute(uint64_t timestep)
     {
     if (m_compute_stencil)
         {

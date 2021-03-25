@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -45,7 +45,7 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
 
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         num_blocks = std::max(num_blocks, group_size);
         }
 
@@ -62,9 +62,9 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
 
 /*! \param timesteps is the iteration number
 */
-void FIREEnergyMinimizerGPU::update(unsigned int timestep)
+void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     {
-
+    Integrator::update(timestep);
     if (m_converged)
         return;
 
@@ -90,7 +90,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
 
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         total_group_size += group_size;
 
         ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
@@ -143,13 +143,15 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "FIRE P, vnorm, fnorm");
 
+    #ifdef ENABLE_MPI
     bool aniso = false;
+    #endif
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
 
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             {
@@ -185,7 +187,9 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
 
         if ((*method)->getAnisotropic())
             {
+            #ifdef ENABLE_MPI
             aniso = true;
+            #endif
 
                 {
                 ArrayHandle<Scalar> d_partial_sum_Pr(m_partial_sum1, access_location::device, access_mode::overwrite);
@@ -282,7 +286,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
         {
         std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
 
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        unsigned int group_size = current_group->getNumMembers();
         ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
         ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -346,7 +350,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-            unsigned int group_size = current_group->getIndexArray().getNumElements();
+            unsigned int group_size = current_group->getNumMembers();
             ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);

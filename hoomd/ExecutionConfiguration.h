@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -29,7 +29,7 @@
 #endif
 
 #ifdef ENABLE_TBB
-#include <tbb/task_scheduler_init.h>
+#include <tbb/task_arena.h>
 #endif
 
 #include "Messenger.h"
@@ -138,7 +138,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
     unsigned int getNumActiveGPUs() const
         {
         #if defined(ENABLE_HIP)
-        return m_gpu_id.size();
+        return (unsigned int)m_gpu_id.size();
         #else
         return 0;
         #endif
@@ -153,7 +153,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     void hipProfileStart() const
         {
-        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; idev--)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();
@@ -172,7 +172,7 @@ class PYBIND11_EXPORT ExecutionConfiguration
 
     void hipProfileStop() const
         {
-        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+        for (int idev = (unsigned int)(m_gpu_id.size()-1); idev >= 0; idev--)
             {
             hipSetDevice(m_gpu_id[idev]);
             hipDeviceSynchronize();
@@ -260,8 +260,15 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! set number of TBB threads
     void setNumThreads(unsigned int num_threads)
         {
-        m_task_scheduler.reset(new tbb::task_scheduler_init(num_threads));
+        m_task_arena = std::make_shared<tbb::task_arena>(num_threads);
         m_num_threads = num_threads;
+        }
+
+    std::shared_ptr<tbb::task_arena> getTaskArena() const
+        {
+        if (!m_task_arena)
+            throw std::runtime_error("TBB task arena not set.");
+        return m_task_arena;
         }
     #endif
 
@@ -406,7 +413,7 @@ private:
     #endif
 
     #ifdef ENABLE_TBB
-    std::unique_ptr<tbb::task_scheduler_init> m_task_scheduler; //!< The TBB task scheduler
+    std::shared_ptr<tbb::task_arena> m_task_arena; //!< The TBB task arena
     unsigned int m_num_threads;            //!<  The number of TBB threads used
     #endif
 

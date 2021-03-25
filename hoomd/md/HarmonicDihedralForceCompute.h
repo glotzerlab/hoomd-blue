@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -67,7 +67,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual ~HarmonicDihedralForceCompute();
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0);
+        virtual void setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
 
         virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -78,13 +78,13 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step
         */
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags = CommFlags(0);
             flags[comm_flag::tag] = 1;
@@ -102,7 +102,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the DihedralForceCompute class to python

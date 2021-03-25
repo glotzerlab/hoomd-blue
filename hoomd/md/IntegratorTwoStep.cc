@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorTwoStep.h"
@@ -67,7 +67,7 @@ std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
 */
-Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     bool quantity_flag = false;
     Scalar log_value;
@@ -85,8 +85,9 @@ Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, unsigned int 
           state variables forward to \a timestep+1.
     \post Internally, all forces added via Integrator::addForceCompute are evaluated at \a timestep+1
 */
-void IntegratorTwoStep::update(unsigned int timestep)
+void IntegratorTwoStep::update(uint64_t timestep)
     {
+    Integrator::update(timestep);
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {
@@ -301,7 +302,7 @@ Scalar IntegratorTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> gro
 */
 Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     {
-    int res = 0;
+    double res = 0;
 
     bool aniso = false;
 
@@ -381,7 +382,7 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
     If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
     are available for the logger. This solves ticket #393
 */
-void IntegratorTwoStep::prepRun(unsigned int timestep)
+void IntegratorTwoStep::prepRun(uint64_t timestep)
     {
     bool aniso = false;
 
@@ -476,7 +477,7 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
 #endif
 
 //! Updates the rigid body constituent particles
-void IntegratorTwoStep::updateRigidBodies(unsigned int timestep)
+void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
     {
     // slave any constituents of local composite particles
     for (auto force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)

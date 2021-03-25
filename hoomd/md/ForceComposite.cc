@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -146,7 +146,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             body_updated = true;
 
-            h_body_len.data[body_typeid] = type.size();
+            h_body_len.data[body_typeid] = (unsigned int)type.size();
             body_len_changed = true;
             }
         else
@@ -177,7 +177,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_pos.resize(m_pdata->getNTypes(), type.size());
             m_body_orientation.resize(m_pdata->getNTypes(), type.size());
 
-            m_body_idx = Index2D(m_body_types.getPitch(), m_body_types.getHeight());
+            m_body_idx = Index2D((unsigned int)m_body_types.getPitch(),
+                                 (unsigned int)m_body_types.getHeight());
 
             // set memory hints
             lazyInitMem();
@@ -269,10 +270,10 @@ void ForceComposite::slotNumTypesChange()
     //! initial allocation if necessary
     lazyInitMem();
 
-    unsigned int old_ntypes = m_body_len.getNumElements();
+    unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
-    unsigned int height = m_body_pos.getHeight();
+    size_t height = m_body_pos.getHeight();
 
     // resize per-type arrays (2D)
     m_body_types.resize(new_ntypes, height);
@@ -282,7 +283,7 @@ void ForceComposite::slotNumTypesChange()
     m_body_charge.resize(new_ntypes);
     m_body_diameter.resize(new_ntypes);
 
-    m_body_idx = Index2D(m_body_pos.getPitch(), height);
+    m_body_idx = Index2D((unsigned int)m_body_pos.getPitch(), (unsigned int)height);
 
     m_body_len.resize(new_ntypes);
 
@@ -729,7 +730,7 @@ void ForceComposite::validateRigidBodies(bool create)
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
+CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -756,7 +757,7 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 #endif
 
 //! Compute the forces and torques on the central particle
-void ForceComposite::computeForces(unsigned int timestep)
+void ForceComposite::computeForces(uint64_t timestep)
     {
     // access local molecule data
     // need to move this on top because of scoping issues
@@ -793,7 +794,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
-    unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
+    size_t net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
@@ -921,7 +922,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     based on the body center of mass and particle relative position in each body frame.
 */
 
-void ForceComposite::updateCompositeParticles(unsigned int timestep)
+void ForceComposite::updateCompositeParticles(uint64_t timestep)
     {
     // access molecule order (this needs to be on top because of ArrayHandle scope)
     ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);

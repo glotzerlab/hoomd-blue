@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
@@ -24,7 +24,7 @@ def test_write_debug_data(simulation_factory, lattice_snapshot_factory,
 
     md.forces = [lj, gauss]
     md.methods = [
-        hoomd.md.methods.Langevin(kT=1.5, seed=6, filter=hoomd.filter.All())
+        hoomd.md.methods.Langevin(kT=1.5, filter=hoomd.filter.All())
     ]
 
     sim.operations.integrator = md

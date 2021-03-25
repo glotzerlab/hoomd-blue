@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -88,7 +88,7 @@ void ComputeThermoHMAGPU::computeProperties()
     unsigned int num_blocks = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
-    unsigned int old_size = m_scratch.size();
+    size_t old_size = m_scratch.size();
 
     m_scratch.resize(num_blocks);
 

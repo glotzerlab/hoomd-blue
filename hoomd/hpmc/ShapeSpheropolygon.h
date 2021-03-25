@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -88,6 +88,9 @@ struct ShapeSpheropolygon
     //! Define the parameter type
     typedef detail::PolygonVertices param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     //! Initialize a polygon
     DEVICE ShapeSpheropolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
@@ -155,7 +158,6 @@ struct ShapeSpheropolygon
     \param a first shape
     \param b second shape
     \param err in/out variable incremented when error conditions occur in the overlap test
-    \param sweep_radius Additional sphere radius to sweep the shapes with
     \returns true when *a* and *b* overlap, and false when they are disjoint
 
     \ingroup shape
@@ -164,11 +166,9 @@ template <>
 DEVICE inline bool test_overlap<ShapeSpheropolygon,ShapeSpheropolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeSpheropolygon& a,
                                                                        const ShapeSpheropolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     /*return detail::gjke_2d(detail::SupportFuncSpheropolygon(a.verts),
                            detail::SupportFuncSpheropolygon(b.verts),

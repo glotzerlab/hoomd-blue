@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: Lin Yang, Alex Travesset
@@ -63,7 +63,7 @@ public:
     virtual std::vector<std::string> getProvidedLogQuantities();
 
     //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string &quantity, unsigned int timestep);
+    virtual Scalar getLogValue(const std::string &quantity, uint64_t timestep);
 
     //! Load EAM potential file
     virtual void loadFile(char *filename, int type_of_file);
@@ -94,7 +94,7 @@ protected:
     GPUArray<Scalar> m_dFdP;               //!< derivative F / derivative P
 
     //! Actually compute the forces
-    virtual void computeForces(unsigned int timestep);
+    virtual void computeForces(uint64_t timestep);
 
     //! Method to be called when number of types changes
     virtual void slotNumTypesChange()

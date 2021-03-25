@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -24,6 +24,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -56,6 +57,7 @@ void export_sphinx(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoSphinxGPU");
     export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeSphinxGPU");
+    export_UpdaterClustersGPU< ShapeSphinx >(m, "UpdaterClustersSphinxGPU");
 
     #endif
     #endif

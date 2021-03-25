@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -12,6 +12,7 @@
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
+#include "hoomd/Communicator.h"
 
 HOOMD_UP_MAIN()
 
@@ -60,7 +61,10 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
 
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    cl->setCommunicator(pdata_comm);
     std::shared_ptr<CT> thermo = std::make_shared<CT>(mpcd_sys);
+    thermo->setCommunicator(pdata_comm);
     AllThermoRequest thermo_req(thermo);
     thermo->compute(0);
         {

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -47,7 +47,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     protected:
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
@@ -68,7 +68,7 @@ PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefi
     \param timestep Current timestep
 */
 template<class evaluator>
-void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
+void PotentialExternalGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "PotentialExternalGPU");

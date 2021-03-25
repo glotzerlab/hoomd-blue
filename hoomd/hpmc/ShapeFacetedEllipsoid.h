@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -59,7 +59,7 @@ struct FacetedEllipsoidParams : ShapeParams
 
     /// Construct from a Python dictionary
     FacetedEllipsoidParams(pybind11::dict v, bool managed=false)
-        : FacetedEllipsoidParams(pybind11::len(v["normals"]), managed)
+        : FacetedEllipsoidParams((unsigned int)pybind11::len(v["normals"]), managed)
         {
         pybind11::list normals = v["normals"];
         pybind11::list offsets = v["offsets"];
@@ -496,6 +496,9 @@ struct ShapeFacetedEllipsoid
     /// Define the parameter type
     typedef detail::FacetedEllipsoidParams param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapeFacetedEllipsoid(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), params(_params)
@@ -595,17 +598,18 @@ struct ShapeFacetedEllipsoid
     @returns true when *a* and *b* overlap, and false when they are disjoint
 */
 template <>
-DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
-    unsigned int& err, Scalar sweep_radius_a, Scalar sweep_radius_b)
+DEVICE inline bool test_overlap<ShapeFacetedEllipsoid, ShapeFacetedEllipsoid>(
+    const vec3<Scalar>& r_ab, const ShapeFacetedEllipsoid& a, const ShapeFacetedEllipsoid& b,
+    unsigned int &err)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params, sweep_radius_a),
-                           detail::SupportFuncFacetedEllipsoid(b.params, sweep_radius_b),
+    return detail::xenocollide_3d(detail::SupportFuncFacetedEllipsoid(a.params),
+                           detail::SupportFuncFacetedEllipsoid(b.params),
                            rotate(conj(quat<OverlapReal>(a.orientation)), dr + rotate(quat<OverlapReal>(b.orientation),b.params.origin))-a.params.origin,
                            conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                           DaDb/2.0,
+                           DaDb/OverlapReal(2.0),
                            err);
 
     }

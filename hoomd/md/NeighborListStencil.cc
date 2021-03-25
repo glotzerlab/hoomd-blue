@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -76,7 +76,7 @@ void NeighborListStencil::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
-void NeighborListStencil::buildNlist(unsigned int timestep)
+void NeighborListStencil::buildNlist(uint64_t timestep)
     {
     if (m_update_cell_size)
         {
@@ -136,8 +136,17 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        std::ostringstream oss;
+        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
+            << "rmax=" << rmax << std::endl;
+
+        if (box.getPeriodic().x)
+            oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+        if (box.getPeriodic().y)
+            oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+        if (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z)
+            oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+        throw std::runtime_error(oss.str());
         }
 
     // access the rlist data

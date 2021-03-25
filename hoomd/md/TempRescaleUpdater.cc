@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -43,8 +43,9 @@ TempRescaleUpdater::~TempRescaleUpdater()
 /*! Perform the proper velocity rescaling
     \param timestep Current time step of the simulation
 */
-void TempRescaleUpdater::update(unsigned int timestep)
+void TempRescaleUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // find the current temperature
 
     assert(m_thermo);

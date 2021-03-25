@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -58,7 +58,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
@@ -94,7 +94,7 @@ PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<System
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
+void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);

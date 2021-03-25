@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -143,7 +143,7 @@ class PYBIND11_EXPORT ParticleData
         //! Get number of MPCD particle types
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)m_type_mapping.size();
             }
 
         //! Get the type-name mapping
@@ -288,7 +288,7 @@ class PYBIND11_EXPORT ParticleData
             }
 
         //! Signature for particle sort signal
-        typedef Nano::Signal<void (unsigned int, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
+        typedef Nano::Signal<void (uint64_t timestep, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
 
         //! Get the sort signal
         /*!
@@ -310,7 +310,7 @@ class PYBIND11_EXPORT ParticleData
          * Subscribers may choose to use \a order and \a rorder to reorder their
          * per-particle data immediately, or delay the sort until their next call.
          */
-        void notifySort(unsigned int timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
+        void notifySort(uint64_t timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
             {
             m_sort_signal.emit(timestep, order, rorder);
             }
@@ -322,7 +322,7 @@ class PYBIND11_EXPORT ParticleData
          * This method notifies the subscribers of the sort occurring at \a timestep.
          * Subscribers are not given the updated particle order.
          */
-        void notifySort(unsigned int timestep)
+        void notifySort(uint64_t timestep)
             {
             GPUArray<unsigned int> order, rorder;
             m_sort_signal.emit(timestep, order, rorder);
@@ -373,17 +373,17 @@ class PYBIND11_EXPORT ParticleData
         //@{
 
         //! Pack particle data into a buffer
-        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
+        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
 
         //! Add new local particles
-        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
+        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
 
         #ifdef ENABLE_HIP
         //! Pack particle data into a buffer (GPU version)
-        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
+        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
 
         //! Add new local particles (GPU version)
-        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
+        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
         #endif // ENABLE_HIP
 
         //! Get the MPCD particle communication flags

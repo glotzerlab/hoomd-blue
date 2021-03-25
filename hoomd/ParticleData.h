@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -132,6 +132,9 @@ namespace cereal
         }
     }
 #endif
+
+/// Get a default type name given a type id
+std::string getDefaultTypeName(unsigned int id);
 
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
@@ -507,7 +510,7 @@ class PYBIND11_EXPORT ParticleData
         */
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)(m_type_mapping.size());
             }
 
         //! Get the origin for the particle system
@@ -1415,7 +1418,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     m_net_force_handle,
                     &ParticleData::getNetForce,
                     flag,
-                    4
+                    3
                 );
                 }
 
@@ -1425,7 +1428,7 @@ class PYBIND11_EXPORT LocalParticleData :
                     m_net_torque_handle,
                     &ParticleData::getNetTorqueArray,
                     flag,
-                    4
+                    3
                 );
                 }
 
@@ -1438,6 +1441,17 @@ class PYBIND11_EXPORT LocalParticleData :
                     6,
                     0,
                     std::vector<ssize_t>({6 * sizeof(Scalar), sizeof(Scalar)})
+                );
+                }
+
+            Output getNetEnergy(GhostDataFlag flag)
+                {
+                return this->template getBuffer<Scalar4, Scalar>(
+                    m_net_force_handle,
+                    &ParticleData::getNetForce,
+                    flag,
+                    0,
+                    3 * sizeof(Scalar)
                 );
                 }
 
@@ -1505,7 +1519,7 @@ void export_LocalParticleData(pybind11::module& m, std::string name)
     .def("getMasses", &LocalParticleData<Output>::getMasses)
     .def("getOrientation", &LocalParticleData<Output>::getOrientation)
     .def("getAngularMomentum", &LocalParticleData<Output>::getAngularMomentum)
-    .def("getMomentsOfIntertia",
+    .def("getMomentsOfInertia",
          &LocalParticleData<Output>::getMomentsOfInertia)
     .def("getCharge", &LocalParticleData<Output>::getCharge)
     .def("getDiameter", &LocalParticleData<Output>::getDiameter)
@@ -1513,6 +1527,10 @@ void export_LocalParticleData(pybind11::module& m, std::string name)
     .def("getTags", &LocalParticleData<Output>::getTags)
     .def("getRTags", &LocalParticleData<Output>::getRTags)
     .def("getBodies", &LocalParticleData<Output>::getBodies)
+    .def("getNetForce", &LocalParticleData<Output>::getNetForce)
+    .def("getNetVirial", &LocalParticleData<Output>::getNetVirial)
+    .def("getNetTorque", &LocalParticleData<Output>::getNetTorque)
+    .def("getNetEnergy", &LocalParticleData<Output>::getNetEnergy)
     .def("enter", &LocalParticleData<Output>::enter)
     .def("exit", &LocalParticleData<Output>::exit)
     ;

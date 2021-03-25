@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,9 +11,12 @@
 
 #include <hip/hip_runtime.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 #include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 #include "SFCPackTunerGPU.cuh"
 
@@ -141,7 +144,7 @@ __global__ void gpu_apply_sorted_order_kernel(
         Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
-        unsigned int virial_pitch,
+        size_t virial_pitch,
         const Scalar4 *d_net_force,
         Scalar4 *d_net_force_alt,
         const Scalar4 *d_net_torque,
@@ -212,7 +215,7 @@ void gpu_apply_sorted_order(
         Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
-        unsigned int virial_pitch,
+        size_t virial_pitch,
         const Scalar4 *d_net_force,
         Scalar4 *d_net_force_alt,
         const Scalar4 *d_net_torque,

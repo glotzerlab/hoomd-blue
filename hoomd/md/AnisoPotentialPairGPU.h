@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -37,7 +37,7 @@
 */
 template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
-                                                const typename evaluator::shape_param_type *d_shape_params) >
+                                                const typename evaluator::shape_type *d_shape_params) >
 class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
     {
     public:
@@ -74,12 +74,12 @@ class AnisoPotentialPairGPU : public AnisoPotentialPair<evaluator>
         unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
-                                                const typename evaluator::shape_param_type *d_shape_params) >
+                                                const typename evaluator::shape_type *d_shape_params) >
 AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                           std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : AnisoPotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
@@ -115,8 +115,8 @@ AnisoPotentialPairGPU< evaluator, gpu_cgpf >::AnisoPotentialPairGPU(std::shared_
 
 template< class evaluator, hipError_t gpu_cgpf(const a_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params,
-                                                const typename evaluator::shape_param_type *d_shape_params) >
-void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+                                                const typename evaluator::shape_type *d_shape_params) >
+void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -150,7 +150,7 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     // access parameters
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
-    ArrayHandle<typename evaluator::shape_param_type> d_shape_params(this->m_shape_params, access_location::device, access_mode::read);
+    ArrayHandle<typename evaluator::shape_type> d_shape_params(this->m_shape_params, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);

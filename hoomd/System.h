@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -65,7 +65,7 @@ class PYBIND11_EXPORT System
     {
     public:
         //! Constructor
-        System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
+        System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep);
 
         // -------------- Integrator methods
 
@@ -99,7 +99,7 @@ class PYBIND11_EXPORT System
             @param write_at_start Set to true to evaluate writers before the
                 loop
         */
-        void run(unsigned int nsteps, bool write_at_start=false);
+        void run(uint64_t nsteps, bool write_at_start=false);
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
@@ -114,9 +114,21 @@ class PYBIND11_EXPORT System
             }
 
         //! Get the current time step
-        unsigned int getCurrentTimeStep()
+        uint64_t getCurrentTimeStep()
             {
             return m_cur_tstep;
+            }
+
+        /// Get the current wall time
+        double getCurrentWalltime()
+            {
+            return m_last_walltime;
+            }
+
+        /// Get the end time step
+        uint64_t getEndStep()
+            {
+            return m_end_tstep;
             }
 
         // -------------- Misc methods
@@ -180,9 +192,9 @@ class PYBIND11_EXPORT System
 #ifdef ENABLE_MPI
         std::shared_ptr<Communicator> m_comm;         //!< Communicator to use
 #endif
-        unsigned int m_start_tstep;     //!< Initial time step of the current run
-        unsigned int m_end_tstep;       //!< Final time step of the current run
-        unsigned int m_cur_tstep;       //!< Current time step
+        uint64_t m_start_tstep;     //!< Initial time step of the current run
+        uint64_t m_end_tstep;       //!< Final time step of the current run
+        uint64_t m_cur_tstep;       //!< Current time step
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
 
@@ -199,13 +211,16 @@ class PYBIND11_EXPORT System
         void resetStats();
 
         //! Get the flags needed for a particular step
-        PDataFlags determineFlags(unsigned int tstep);
+        PDataFlags determineFlags(uint64_t tstep);
 
         /// Record the initial time of the last run
         int64_t m_initial_time=0;
 
         /// Store the last recorded tPS
-        Scalar m_last_TPS=0;
+        double m_last_TPS=0;
+
+        /// Store the last recorded walltime
+        double m_last_walltime=0;
 
         /// Update the TPS average
         void updateTPS();

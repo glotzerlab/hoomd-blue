@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -50,7 +50,7 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(), m_bond_data->getNTypes());
     m_table_value = table_value;
 
 
@@ -129,7 +129,7 @@ std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
     return list;
     }
 
-Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar BondTablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -146,7 +146,7 @@ Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void BondTablePotential::computeForces(unsigned int timestep)
+void BondTablePotential::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute

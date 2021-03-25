@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mspells
@@ -24,7 +24,7 @@ hipError_t gpu_compute_dem3d_forces(
     Scalar4* d_force,
     Scalar4* d_torque,
     Scalar* d_virial,
-    const unsigned int virial_pitch,
+    const size_t virial_pitch,
     const unsigned int N,
     const unsigned int n_ghosts,
     const Scalar4 *d_pos,

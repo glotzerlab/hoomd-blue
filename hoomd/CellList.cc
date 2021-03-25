@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -116,8 +116,9 @@ uint3 CellList::computeDimensions()
     return dim;
     }
 
-void CellList::compute(unsigned int timestep)
+void CellList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     bool force = false;
 
     if (m_prof)

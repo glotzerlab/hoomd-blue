@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_EXTERNAL_FIELD_H_
@@ -90,7 +90,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             }
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
             {
             if (quantity == "hpmc_wall_acceptance_ratio")
                 {
@@ -126,15 +126,28 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             else { return m_count_total_tot; }
             }
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             // Choose whether or not to update the external field
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterExternalFieldWall, timestep, m_sysdef->getSeed()),
+                                       hoomd::Counter(m_instance));
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-            unsigned int move_probability = m_move_probability * 65536;
+            unsigned int move_probability = (unsigned int)(m_move_probability * 65536);
             // Attempt and evaluate a move
             if (move_type_select < move_probability)
                 {
@@ -152,9 +165,9 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
                 // the only thing that changed was the external field,
                 // not particle positions or orientations. so all we need to do is
                 // make sure our update didn't result in infinite energy (any overlaps).
-                unsigned int boltz = m_external->calculateBoltzmannWeight(timestep);
+                Scalar boltz = m_external->calculateBoltzmannWeight(timestep);
 
-                if( boltz != 0 )
+                if( boltz != 0.0 )
                     {
                     m_count_accepted_rel++;
                     m_count_accepted_tot++;
@@ -182,6 +195,8 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::vector<SphereWall> m_CurrSpheres;                    //!< Copy of current sphere walls
         std::vector<CylinderWall> m_CurrCylinders;                //!< Copy of current cylinder walls
         std::vector<PlaneWall> m_CurrPlanes;                      //!< Copy of current plane walls
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
     };
 
 template< class Shape >
@@ -192,6 +207,9 @@ void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)
+    .def_property("instance",
+                  &UpdaterExternalFieldWall<Shape>::getInstance,
+                  &UpdaterExternalFieldWall<Shape>::setInstance)
     ;
     }
 } // namespace

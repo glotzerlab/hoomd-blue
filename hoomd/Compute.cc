@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -59,7 +59,7 @@ void Compute::setProfiler(std::shared_ptr<Profiler> prof)
         at this \a timestep.
     \note This method is designed to only be called once per call to compute() like so:
 \code
-void SomeClass::compute(unsigned int timestep)
+void SomeClass::compute(uint64_t timestep)
     {
     if (!shouldCompute(timestep))
         return;
@@ -67,7 +67,7 @@ void SomeClass::compute(unsigned int timestep)
     }
 \endcode
 */
-bool Compute::shouldCompute(unsigned int timestep)
+bool Compute::shouldCompute(uint64_t timestep)
     {
     // handle case where no computation has been performed yet
     if (m_first_compute)
@@ -105,12 +105,12 @@ bool Compute::shouldCompute(unsigned int timestep)
     be called at \a timestep. However, unlike shouldCompute(), this method does not
     modify the internal state of the Compute and is safe to be called multiple times.
 */
-bool Compute::peekCompute(unsigned int timestep) const
+bool Compute::peekCompute(uint64_t timestep) const
     {
     return (m_first_compute || m_force_compute || m_last_computed != timestep);
     }
 
-void Compute::forceCompute(unsigned int timestep)
+void Compute::forceCompute(uint64_t timestep)
     {
     m_force_compute = true;
 

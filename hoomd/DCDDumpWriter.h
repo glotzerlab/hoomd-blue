@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -62,12 +62,17 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
         ~DCDDumpWriter();
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         //! Set whether coordinates should be written out wrapped or unwrapped.
         void setUnwrapFull(bool enable)
             {
             m_unwrap_full = enable;
+            }
+
+        bool getUnwrapFull()
+            {
+            return m_unwrap_full;
             }
 
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
@@ -76,15 +81,30 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
             m_unwrap_rigid = enable;
             }
 
+        bool getUnwrapRigid()
+            {
+            return m_unwrap_rigid;
+            }
+
         //! Set whether the z-component should be overwritten by the orientation angle
         void setAngleZ(bool enable)
             {
             m_angle = enable;
             }
 
+        bool getAngleZ()
+            {
+            return m_angle;
+            }
+
+        bool getOverwrite()
+            {
+            return m_overwrite;
+            }
+
     private:
         std::string m_fname;                //!< The file name we are writing to
-        unsigned int m_start_timestep;      //!< First time step written to the file
+        uint64_t m_start_timestep;          //!< First time step written to the file
         unsigned int m_period;              //!< Time step period between writes
         std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
@@ -110,9 +130,9 @@ class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
         //! Writes the particle positions for a frame
         void write_frame_data(std::fstream &file, const SnapshotParticleData<Scalar>& snapshot);
         //! Updates the file header
-        void write_updated_header(std::fstream &file, unsigned int timestep);
+        void write_updated_header(std::fstream &file, uint64_t timestep);
         //! Initializes the output file for writing
-        void initFileIO(unsigned int timestep);
+        void initFileIO(uint64_t timestep);
 
     };
 

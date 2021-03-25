@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -88,7 +88,7 @@ ForceDistanceConstraintGPU::~ForceDistanceConstraintGPU()
     #endif
     }
 
-void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
+void ForceDistanceConstraintGPU::fillMatrixVector(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "fill matrix");
@@ -180,7 +180,7 @@ void ForceDistanceConstraintGPU::fillMatrixVector(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
+void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
     {
     // ==1 if the sparsity pattern of the matrix changes (in particular if connectivity changes)
     unsigned int sparsity_pattern_changed = m_condition.readFlags();
@@ -558,7 +558,7 @@ void ForceDistanceConstraintGPU::solveConstraints(unsigned int timestep)
     #endif
     }
 
-void ForceDistanceConstraintGPU::computeConstraintForces(unsigned int timestep)
+void ForceDistanceConstraintGPU::computeConstraintForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf,"constraint forces");

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __PPPM_FORCE_COMPUTE_H__
@@ -37,7 +37,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
             unsigned int order, Scalar kappa, Scalar rcut, Scalar alpha = 0);
 
-        void computeForces(unsigned int timestep);
+        void computeForces(uint64_t timestep);
 
         /*! Returns the names of provided log quantities.
          */
@@ -55,7 +55,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
          * \param quantity The name of the quantity to return the value of
          * \param timestep The current value of the time step
          */
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Get sum of charges
         Scalar getQSum();
@@ -67,7 +67,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step
         */
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags = ForceCompute::getRequestedCommFlags(timestep);
             bool correct_body = m_nlist->getFilterBody();
@@ -95,7 +95,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
 
             \param timestep The current value of the time step
          */
-        void computeBiasForces(unsigned int timestep);
+        void computeBiasForces(uint64_t timestep);
 
         std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
         std::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
@@ -178,8 +178,8 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         virtual void computeBodyCorrection();
 
     private:
-        kiss_fftnd_cfg m_kiss_fft;         //!< The FFT configuration
-        kiss_fftnd_cfg m_kiss_ifft;        //!< Inverse FFT configuration
+        kiss_fftnd_cfg m_kiss_fft=NULL;         //!< The FFT configuration
+        kiss_fftnd_cfg m_kiss_ifft=NULL;        //!< Inverse FFT configuration
 
         #ifdef ENABLE_MPI
         dfft_plan m_dfft_plan_forward;     //!< Distributed FFT for forward transform

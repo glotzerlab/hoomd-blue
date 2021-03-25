@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -336,7 +336,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
 
     // timestep counter and number of samples to make
-    unsigned int timestep = 0;
+    uint64_t timestep = 0;
     const unsigned int N = 1000;
 
     // set the temperature to 2.0 and check

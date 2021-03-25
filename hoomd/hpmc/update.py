@@ -1,400 +1,187 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-""" HPMC updaters.
-"""
+"""HPMC updaters."""
 
 from . import _hpmc
 from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
 
 
-class boxmc(_updater):
-    R""" Apply box updates to sample isobaric and related ensembles.
+class BoxMC(Updater):
+    r"""Apply box updates to sample isobaric and related ensembles.
 
     Args:
+        betaP (`float` or :py:mod:`hoomd.variant.Variant`):
+            :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
+            inverse volume in 3D).
+        trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
+            trial moves.
 
-        mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        betaP (:py:class:`float` or :py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
-                                                    inverse volume in 3D) Apply your chosen reduced pressure convention
-                                                    externally.
-        seed (int): random number seed for MC box changes
+    Use `BoxMC` in conjunction with an HPMC integrator to allow the simulation
+    box to undergo random fluctuations at constant pressure. `BoxMC` supports
+    both isotropic (all box sides changed equally) and anisotropic volume change
+    moves as well as shearing of the simulation box. Multiple types of box moves
+    can be applied simultaneously during a simulation. For this purpose, each
+    type of box move has an associated weight that determines the relative
+    frequency of a box move happening relative to the others. By default, no
+    moves are applied (*weight* values for all move types default to 0). After
+    a box trial move is proposed, all the particle positions are scaled into the
+    new box. Trial moves are then accepted, if they do not produce an overlap,
+    according to standard Metropolis criterion and rejected otherwise.
 
-    One or more Monte Carlo move types are applied to evolve the simulation box. By default, no moves are applied.
-    Activate desired move types using the following methods with a non-zero weight:
+    Attributes:
+        volume (dict):
+            Parameters for isobaric volume moves that scale the box lengths
+            uniformly. The dictionary has the following keys:
 
-    - :py:meth:`aspect` - box aspect ratio moves
-    - :py:meth:`length` - change box lengths independently
-    - :py:meth:`shear` - shear the box
-    - :py:meth:`volume` - scale the box lengths uniformly
-    - :py:meth:`ln_volume` - scale the box lengths uniformly with logarithmic increments
+            * ``weight`` (float) - Relative weight of volume box moves.
+            * ``mode`` (str) - ``standard`` proposes changes to the box volume
+              and ``ln`` proposes changes to the logarithm of the volume.
+              Initially starts off in 'standard' mode.
+            * ``delta`` (float) - Maximum change in **V** or **ln(V)** where V
+              is box area (2D) or volume (3D).
 
-    Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
-    pressure :math:`P^*` are left for the user to perform.
+        aspect (dict):
+            Parameters for isovolume aspect ratio moves. The dictionary has the
+            following keys:
 
-    Note:
-        All *delta* and *weight* values for all move types default to 0.
+            * ``weight`` (float) - Relative weight of aspect box moves.
+            * ``delta`` (float) - Maximum relative change of box aspect ratio.
 
-    Example::
+        length (dict):
+            Parameters for isobaric box length moves that change box lengths
+            independently. The dictionary has the following keys:
 
-        mc = hpmc.integrate.sphere(seed=415236, d=0.3)
-        boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
-        boxMC.set_betap(2.0)
-        boxMC.ln_volume(delta=0.01, weight=2.0)
-        boxMC.length(delta=(0.1,0.1,0.1), weight=4.0)
-        run(30) # perform approximately 10 volume moves and 20 length moves
+            * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
+              Lx, Ly, and Lz.
+            * ``delta`` (tuple[float, float, float]) - Maximum change of the
+              box lengths ``(Lx, Ly, Lz)``.
 
+        shear (dict):
+            Parameters for isovolume box shear moves. The dictionary has the
+            following keys:
+
+            * ``weight`` (float) - Relative weight of shear box moves.
+            * ``delta`` (tuple[float, float, float]) -  maximum change of the
+              box tilt factor ``(xy, xz, yz)``.
+            * ``reduce`` (float) - Maximum number of lattice vectors of shear
+              to allow before applying lattice reduction. Values less than 0.5
+              disable shear reduction.
+
+        instance (int):
+            When using multiple `BoxMC` updaters in a single simulation,
+            give each a unique value for `instance` so they generate
+            different streams of random numbers.
     """
 
-    def __init__(self, mc, betaP, seed):
-        # initialize base class
-        _updater.__init__(self);
+    def __init__(self, betaP, trigger=1):
+        super().__init__(trigger)
 
-        # Updater gets called at every timestep. Whether to perform a move is determined independently
-        # according to frequency parameter.
-        period = 1
+        _default_dict = dict(weight=0.0, delta=0.0)
+        param_dict = ParameterDict(
+            volume={
+                "mode": hoomd.data.typeconverter.OnlyFrom(['standard', 'ln']),
+                **_default_dict
+            },
+            aspect=_default_dict,
+            length=dict(weight=0.0, delta=(0.0,) * 3),
+            shear=dict(weight=0.0, delta=(0.0,) * 3, reduce=0.0),
+            betaP=hoomd.variant.Variant,
+            instance=int,
+            _defaults={'volume': {'mode': 'standard'}})
+        self._param_dict.update(param_dict)
+        self.betaP = betaP
+        self.instance = 0
 
-        if not isinstance(mc, integrate.HPMCIntegrator):
-            hoomd.context.current.device.cpp_msg.warning("update.boxmc: Must have a handle to an HPMC integrator.\n");
-            return;
+    def _add(self, simulation):
+        """Add the operation to a simulation.
 
-        self.betaP = hoomd.variant._setup_variant_input(betaP);
-
-        self.seed = int(seed)
-
-        # create the c++ mirror class
-        self.cpp_updater = _hpmc.UpdaterBoxMC(hoomd.context.current.system_definition,
-                                               mc.cpp_integrator,
-                                               self.betaP.cpp_variant,
-                                               1,
-                                               self.seed,
-                                               );
-        self.setupUpdater(period);
-
-        self.volume_delta = 0.0;
-        self.volume_weight = 0.0;
-        self.ln_volume_delta = 0.0;
-        self.ln_volume_weight = 0.0;
-        self.length_delta = [0.0, 0.0, 0.0];
-        self.length_weight = 0.0;
-        self.shear_delta = [0.0, 0.0, 0.0];
-        self.shear_weight = 0.0;
-        self.shear_reduce = 0.0;
-        self.aspect_delta = 0.0;
-        self.aspect_weight = 0.0;
-
-        self.metadata_fields = ['betaP',
-                                 'seed',
-                                 'volume_delta',
-                                 'volume_weight',
-                                 'ln_volume_delta',
-                                 'ln_volume_weight',
-                                 'length_delta',
-                                 'length_weight',
-                                 'shear_delta',
-                                 'shear_weight',
-                                 'shear_reduce',
-                                 'aspect_delta',
-                                 'aspect_weight']
-
-    def set_betap(self, betaP):
-        R""" Update the pressure set point for Metropolis Monte Carlo volume updates.
-
-        Args:
-            betaP (float) or (:py:mod:`hoomd.variant`): :math:`\frac{p}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
-                inverse volume in 3D) Apply your chosen reduced pressure convention
-                externally.
+        HPMC uses RNGs. Warn the user if they did not set the seed.
         """
-        self.betaP = hoomd.variant._setup_variant_input(betaP)
-        self.cpp_updater.setP(self.betaP.cpp_variant)
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
 
-    def volume(self, delta=None, weight=None):
-        R""" Enable/disable isobaric volume move and set parameters.
+        super()._add(simulation)
 
-        Args:
-            delta (float): maximum change of the box area (2D) or volume (3D).
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        Sample the isobaric distribution of box volumes by rescaling the box.
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        self._cpp_obj = _hpmc.UpdaterBoxMC(self._simulation.state._cpp_sys_def,
+                                           integrator._cpp_obj, self.betaP)
+        super()._attach()
+
+    @property
+    def counter(self):
+        """Trial move counters.
+
+        The counter object has the following attributes:
+
+        * ``volume``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          volume and length moves.
+        * ``shear``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          shear moves.
+        * ``aspect``: `tuple` [`int`, `int`] - Number of accepted and rejected
+          aspect moves.
 
         Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            box_update.volume(delta=0.01)
-            box_update.volume(delta=0.01, weight=2)
-            box_update.volume(delta=0.01, weight=0.15)
-
-        Returns:
-            A :py:class:`dict` with the current values of *delta* and *weight*.
-
+            The counts are reset to 0 at the start of each call to
+            `hoomd.Simulation.run`.
         """
-        self.check_initialization();
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getCounters(1)
 
-        if weight is not None:
-            self.volume_weight = float(weight)
+    @log(category="sequence")
+    def volume_moves(self):
+        """tuple[int, int]: The accepted and rejected volume and length moves.
 
-        if delta is not None:
-            self.volume_delta = float(delta)
-
-        self.cpp_updater.volume(self.volume_delta, self.volume_weight);
-        return {'delta': self.volume_delta, 'weight': self.volume_weight};
-
-    def ln_volume(self, delta=None, weight=None):
-        R""" Enable/disable isobaric volume move and set parameters.
-
-        Args:
-            delta (float): maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
-
-        Sample the isobaric distribution of box volumes by rescaling the box.
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            box_update.ln_volume(delta=0.001)
-            box_update.ln_volume(delta=0.001, weight=2)
-            box_update.ln_volume(delta=0.001, weight=0.15)
-
-        Returns:
-            A :py:class:`dict` with the current values of *delta* and *weight*.
-
+        (0, 0) when not attached.
         """
-        self.check_initialization();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            attr = "volume" if self.volume["mode"] == "standard" else "ln_volume"
+            return getattr(counter, attr)
 
-        if weight is not None:
-            self.ln_volume_weight = float(weight)
+    @log(category="sequence")
+    def shear_moves(self):
+        """tuple[int, int]: The accepted and rejected shear moves.
 
-        if delta is not None:
-            self.ln_volume_delta = float(delta)
-
-        self.cpp_updater.ln_volume(self.ln_volume_delta, self.ln_volume_weight);
-        return {'delta': self.ln_volume_delta, 'weight': self.ln_volume_weight};
-
-    def length(self, delta=None, weight=None):
-        R""" Enable/disable isobaric box dimension move and set parameters.
-
-        Args:
-            delta (:py:class:`float` or :py:class:`tuple`): maximum change of the box thickness for each pair of parallel planes
-                                               connected by the corresponding box edges. I.e. maximum change of
-                                               HOOMD-blue box parameters Lx, Ly, Lz. A single float *x* is equivalent to
-                                               (*x*, *x*, *x*).
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
-                            move type.
-
-        Sample the isobaric distribution of box dimensions by rescaling the plane-to-plane distance of box faces,
-        Lx, Ly, Lz.
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            box_update.length(delta=(0.01, 0.01, 0.0)) # 2D box changes
-            box_update.length(delta=(0.01, 0.01, 0.01), weight=2)
-            box_update.length(delta=0.01, weight=2)
-            box_update.length(delta=(0.10, 0.01, 0.01), weight=0.15) # sample Lx more aggressively
-
-        Returns:
-            A :py:class:`dict` with the current values of *delta* and *weight*.
-
+        (0, 0) when not attached.
         """
-        self.check_initialization();
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.shear
 
-        if weight is not None:
-            self.length_weight = float(weight)
+    @log(category="sequence")
+    def aspect_moves(self):
+        """tuple[int, int]: The accepted and rejected aspect moves.
 
-        if delta is not None:
-            if isinstance(delta, float) or isinstance(delta, int):
-                self.length_delta = [float(delta)] * 3
-            else:
-                self.length_delta = [ float(d) for d in delta ]
-
-        self.cpp_updater.length(   self.length_delta[0], self.length_delta[1],
-                                        self.length_delta[2], self.length_weight);
-        return {'delta': self.length_delta, 'weight': self.length_weight};
-
-    def shear(self,  delta=None, weight=None, reduce=None):
-        R""" Enable/disable box shear moves and set parameters.
-
-        Args:
-            delta (tuple): maximum change of the box tilt factor xy, xz, yz.
-            reduce (float): Maximum number of lattice vectors of shear to allow before applying lattice reduction.
-                    Shear of +/- 0.5 cannot be lattice reduced, so set to a value < 0.5 to disable (default 0)
-                    Note that due to precision errors, lattice reduction may introduce small overlaps which can be
-                    resolved, but which temporarily break detailed balance.
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
-                            move type.
-
-        Sample the distribution of box shear by adjusting the HOOMD-blue tilt factor parameters xy, xz, and yz.
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            box_update.shear(delta=(0.01, 0.00, 0.0)) # 2D box changes
-            box_update.shear(delta=(0.01, 0.01, 0.01), weight=2)
-            box_update.shear(delta=(0.10, 0.01, 0.01), weight=0.15) # sample xy more aggressively
-
-        Returns:
-            A :py:class:`dict` with the current values of *delta*, *weight*, and *reduce*.
-
+        (0, 0) when not attached.
         """
-        self.check_initialization();
-
-        if weight is not None:
-            self.shear_weight = float(weight)
-
-        if reduce is not None:
-            self.shear_reduce = float(reduce)
-
-        if delta is not None:
-            if isinstance(delta, float) or isinstance(delta, int):
-                self.shear_delta = [float(delta)] * 3
-            else:
-                self.shear_delta = [ float(d) for d in delta ]
-
-        self.cpp_updater.shear(    self.shear_delta[0], self.shear_delta[1],
-                                        self.shear_delta[2], self.shear_reduce,
-                                        self.shear_weight);
-        return {'delta': self.shear_delta, 'weight': self.shear_weight, 'reduce': self.shear_reduce}
-
-    def aspect(self, delta=None, weight=None):
-        R""" Enable/disable aspect ratio move and set parameters.
-
-        Args:
-            delta (float): maximum relative change of aspect ratio
-            weight (float): relative weight of this box move type relative to other box move types. 0 disables this
-                            move type.
-
-        Rescale aspect ratio along a randomly chosen dimension.
-
-        Note:
-            When an argument is None, the value is left unchanged from its current state.
-
-        Example::
-
-            box_update.aspect(delta=0.01)
-            box_update.aspect(delta=0.01, weight=2)
-            box_update.aspect(delta=0.01, weight=0.15)
-
-        Returns:
-            A :py:class:`dict` with the current values of *delta*, and *weight*.
-
-        """
-        self.check_initialization();
-
-        if weight is not None:
-            self.aspect_weight = float(weight)
-
-        if delta is not None:
-            self.aspect_delta = float(delta)
-
-        self.cpp_updater.aspect(self.aspect_delta, self.aspect_weight);
-        return {'delta': self.aspect_delta, 'weight': self.aspect_weight}
-
-    def get_volume_acceptance(self):
-        R""" Get the average acceptance ratio for volume changing moves.
-
-        Returns:
-            The average volume change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            v_accept = box_update.get_volume_acceptance()
-
-        """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getVolumeAcceptance();
-
-    def get_ln_volume_acceptance(self):
-        R""" Get the average acceptance ratio for log(V) changing moves.
-
-        Returns:
-            The average volume change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            v_accept = box_update.get_ln_volume_acceptance()
-
-        """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getLogVolumeAcceptance();
-
-    def get_shear_acceptance(self):
-        R"""  Get the average acceptance ratio for shear changing moves.
-
-        Returns:
-           The average shear change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc.shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            s_accept = box_update.get_shear_acceptance()
-
-        """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getShearAcceptance();
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getShearAcceptance();
-
-    def get_aspect_acceptance(self):
-        R"""  Get the average acceptance ratio for aspect changing moves.
-
-        Returns:
-            The average aspect change acceptance for the last run
-
-        Example::
-
-            mc = hpmc.integrate.shape(..);
-            mc_shape_param[name].set(....);
-            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
-            run(100)
-            a_accept = box_update.get_aspect_acceptance()
-
-        """
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getAspectAcceptance();
-        counters = self.cpp_updater.getCounters(1);
-        return counters.getAspectAcceptance();
-
-    def enable(self):
-        R""" Enables the updater.
-
-        Example::
-
-            box_updater.set_params(isotropic=True)
-            run(1e5)
-            box_updater.disable()
-            update.box_resize(dLy = 10)
-            box_updater.enable()
-            run(1e5)
-
-        See updater base class documentation for more information
-        """
-        self.cpp_updater.computeAspectRatios();
-        _updater.enable(self);
+        counter = self.counter
+        if counter is None:
+            return (0, 0)
+        else:
+            return counter.aspect
 
 
 class wall(_updater):
@@ -507,15 +294,15 @@ class wall(_updater):
         return self.cpp_updater.getTotalCount(mode);
 
 
-class muvt(_updater):
+class MuVT(Updater):
     R""" Insert and remove particles in the muVT ensemble.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
-        period (int): Number of timesteps between histogram evaluations.
-        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes (if *None*, all types)
+        trigger (int): Number of timesteps between grand canonical insertions
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
+        max_volume_rescale (float): maximum step size in ln(V) (applies to Gibbs ensemble)
+        move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
 
@@ -527,160 +314,123 @@ class muvt(_updater):
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
         to update.muvt(), where the number of partitions can be a multiple of ngibbs.
 
+    Attributes:
+        trigger (int): Select the timesteps on which to perform cluster moves.
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
+        max_volume_rescale (float): Maximum step size in ln(V) (applies to Gibbs ensemble)
+        move_ratio (float): The ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+        ntrial (float): (**default**: 1) Number of configurational bias attempts to swap depletants
+
     Example::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        update.muvt(mc=mc, period)
+        TODO: link to example notebooks
 
     """
-    def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
+    def __init__(self, transfer_types, ngibbs=1, max_volume_rescale=0.1,
+        volume_move_probability=0.5, trigger=1):
+        super().__init__(trigger)
 
-        if not isinstance(mc, integrate.HPMCIntegrator):
-            hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
-            return;
+        self.ngibbs = int(ngibbs)
 
-        self.mc = mc
+        _default_dict = dict(ntrial=1)
+        param_dict = ParameterDict(transfer_types=list(transfer_types),
+                                   max_volume_rescale=float(max_volume_rescale),
+                                   volume_move_probability=float(volume_move_probability),
+                                   **_default_dict)
+        self._param_dict.update(param_dict)
 
-        # initialize base class
-        _updater.__init__(self);
+        typeparam_fugacity = TypeParameter('fugacity',
+                                    type_kind='particle_types',
+                                    param_dict=TypeParameterDict(hoomd.variant.Variant,
+                                                                 len_keys=1,
+                                                                 _defaults = hoomd.variant.Constant(0.0)))
+        self._extend_typeparam([typeparam_fugacity])
 
-        if ngibbs > 1:
-            self.gibbs = True;
-        else:
-            self.gibbs = False;
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        cpp_cls_name = "UpdaterMuVT"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        # by default, transfer all types
-        if transfer_types is None:
-            transfer_types = type_list
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                self.ngibbs)
+        super()._attach()
 
-        cls = None;
+    @log(category='sequence')
+    def insert_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle insertion moves.
 
-        if isinstance(mc, integrate.sphere):
-            cls = _hpmc.UpdaterMuVTSphere;
-        elif isinstance(mc, integrate.convex_polygon):
-            cls = _hpmc.UpdaterMuVTConvexPolygon;
-        elif isinstance(mc, integrate.simple_polygon):
-            cls = _hpmc.UpdaterMuVTSimplePolygon;
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterMuVTConvexPolyhedron;
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterMuVTSpheropolyhedron;
-        elif isinstance(mc, integrate.ellipsoid):
-            cls = _hpmc.UpdaterMuVTEllipsoid;
-        elif isinstance(mc, integrate.convex_spheropolygon):
-            cls =_hpmc.UpdaterMuVTSpheropolygon;
-        elif isinstance(mc, integrate.faceted_sphere):
-            cls =_hpmc.UpdaterMuVTFacetedEllipsoid;
-        elif isinstance(mc, integrate.sphere_union):
-            cls = _hpmc.UpdaterMuVTSphereUnion;
-        elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-            cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
-        elif isinstance(mc, integrate.faceted_ellipsoid_union):
-            cls = _hpmc.UpdaterMuVTFacetedEllipsoidUnion;
-        elif isinstance(mc, integrate.polyhedron):
-            cls =_hpmc.UpdaterMuVTPolyhedron;
-        else:
-            hoomd.context.current.device.cpp_msg.error("update.muvt: Unsupported integrator.\n");
-            raise RuntimeError("Error initializing update.muvt");
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               mc.cpp_integrator,
-                               int(seed),
-                               ngibbs);
-
-        # register the muvt updater
-        self.setupUpdater(period);
-
-        # set the list of transferred types
-        if not isinstance(transfer_types,list):
-            hoomd.context.current.device.cpp_msg.error("update.muvt: Need list of types to transfer.\n");
-            raise RuntimeError("Error initializing update.muvt");
-
-        cpp_transfer_types = _hoomd.std_vector_uint();
-        for t in transfer_types:
-            if t not in type_list:
-                hoomd.context.current.device.cpp_msg.error("Trying to transfer unknown type " + str(t) + "\n");
-                raise RuntimeError("Error setting muVT parameters");
-            else:
-                type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(t);
-
-            cpp_transfer_types.append(type_id)
-
-        self.cpp_updater.setTransferTypes(cpp_transfer_types)
-
-    def set_fugacity(self, type, fugacity):
-        R""" Change muVT fugacities.
-
-        Args:
-            type (str): Particle type to set parameters for
-            fugacity (float): Fugacity of this particle type (dimension of volume^-1)
-
-        Example::
-
-            muvt = hpmc.update.muvt(mc, period=10)
-            muvt.set_fugacity(type='A', fugacity=1.23)
-            variant = hoomd.variant.linear_interp(points=[(0,1e1), (1e5, 4.56)])
-            muvt.set_fugacity(type='A', fugacity=variant)
-
+        None when not attached
         """
-        self.check_initialization();
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
-        if self.gibbs:
-            raise RuntimeError("Gibbs ensemble does not support setting the fugacity.\n");
-
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        if type not in type_list:
-            hoomd.context.current.device.cpp_msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
-            raise RuntimeError("Error setting muVT parameters");
+        if counter is None:
+            return None
         else:
-            type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
+            return counter.insert
 
-        fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
-        self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
+    @log(category='sequence')
+    def remove_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle removal moves.
 
-    def set_params(self, dV=None, volume_move_probability=None, n_trial=None):
-        R""" Set muVT parameters.
-
-        Args:
-            dV (float): (if set) Set volume rescaling factor (dimensionless)
-            volume_move_probability (float): (if set) In the Gibbs ensemble, set the
-                probability of volume moves (other moves are exchange/transfer moves).
-            n_trial (int): (if set) Number of re-insertion attempts per depletant
-
-        Example::
-
-            muvt = hpmc.update.muvt(mc, period = 10)
-            muvt.set_params(dV=0.1)
-            muvt.set_params(n_trial=2)
-            muvt.set_params(volume_move_probability=0.05)
-
+        None when not attached
         """
-        self.check_initialization();
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
-        if volume_move_probability is not None:
-            if not self.gibbs:
-                hoomd.context.current.device.cpp_msg.warning("Move ratio only used in Gibbs ensemble.\n");
-            self.cpp_updater.setVolumeMoveProbability(float(volume_move_probability))
+        if counter is None:
+            return None
+        else:
+            return counter.remove
 
-        if dV is not None:
-            if not self.gibbs:
-                hoomd.context.current.device.cpp_msg.warning("Parameter dV only available for Gibbs ensemble.\n");
-            self.cpp_updater.setMaxVolumeRescale(float(dV))
+    @log(category='sequence')
+    def exchange_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle exchange moves.
 
-        if n_trial is not None:
-            self.cpp_updater.setNTrial(int(n_trial))
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
+        if counter is None:
+            return None
+        else:
+            return counter.exchange
+
+    @log(category='sequence')
+    def volume_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle volume moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.volume
+
+    @log(category='object')
+    def N(self):
+        """dict: Map of number of particles per type
+
+        None when not attached
+        """
+        n_dict = None
+        if self._attached:
+            N_dict = self._cpp_obj.N
+
+        return N_dict
 
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
@@ -747,14 +497,9 @@ class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        seed (int): Random number seed.
-        swap_types (list[tuple[str, str]]): A pair of two types whose identities
-            may be swapped.
-        move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio (float): Set the ratio between type swap moves and
-                                geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
 
@@ -762,165 +507,100 @@ class Clusters(Updater):
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
     interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off
-    criterion. Two particles belong to the same cluster if the circumspheres of
-    the depletant-excluded volumes overlap.
+    Implicit depletants are supported and simulated on-the-fly, as if they were
+    present in the actual system.
 
-    Supported moves include pivot moves (point reflection), line reflections
-    (pi rotation around an axis), and type swaps.  Only the pivot move is
-    rejection free. With anisotropic particles, the pivot move cannot be used
-    because it would create a chiral mirror image of the particle, and only
-    line reflections are employed. Line reflections are not rejection free
-    because of periodic boundary conditions, as discussed in Sinkovits et al.
-    (2012), http://doi.org/10.1063/1.3694271.
+    Supported moves include pivot moves (point reflection) and line reflections
+    (pi rotation around an axis).  With anisotropic particles, the pivot move
+    cannot be used because it would create a chiral mirror image of the
+    particle, and only line reflections are employed. In general, line
+    reflections are not rejection free because of periodic boundary conditions,
+    as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    However, we restrict the line reflections to axes parallel to the box axis,
+    which makes those moves rejection-free for anisotropic particles, but the
+    algorithm is then no longer ergodic for those and needs to be combined with
+    local moves.
 
-    The type swap move works between two types of spherical particles and
-    exchanges their identities.
 
     .. rubric:: Threading
 
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        seed (int): Random number seed.
-        swap_types (list): A pair of two types whose identities may be swapped.
-        move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio (float): Set the ratio between type swap moves and
-                                geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
     """
 
-    def __init__(self, seed, swap_types, move_ratio=0.5,
-                 flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
+    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
-        try:
-            if len(swap_types) != 2 and len(swap_types) != 0:
-                raise ValueError
-        except (TypeError, ValueError):
-            raise ValueError("swap_types must be an iterable of length "
-                             "2 or 0.")
 
-        param_dict = ParameterDict(seed=int(seed),
-                                   swap_types=list(swap_types),
-                                   move_ratio=float(move_ratio),
-                                   flip_probability=float(flip_probability),
-                                   swap_move_ratio=float(swap_move_ratio))
+        param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
+                                   flip_probability=float(flip_probability))
+
         self._param_dict.update(param_dict)
+        self.instance = 0
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        integrator_pairs = [
-                (integrate.Sphere,
-                    _hpmc.UpdaterClustersSphere),
-                (integrate.convex_polygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.simple_polygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.convex_polyhedron,
-                    _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.convex_spheropolyhedron,
-                    _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.ellipsoid,
-                    _hpmc.UpdaterClustersEllipsoid),
-                (integrate.convex_spheropolygon,
-                    _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.faceted_sphere,
-                    _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.sphere_union,
-                    _hpmc.UpdaterClustersSphereUnion),
-                (integrate.convex_spheropolyhedron_union,
-                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.faceted_ellipsoid_union,
-                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.polyhedron,
-                    _hpmc.UpdaterClustersPolyhedron),
-                (integrate.sphinx,
-                    _hpmc.UpdaterClustersSphinx)
-                ]
-
-        cpp_cls = None
-        for python_integrator, cpp_updater in integrator_pairs:
-            if isinstance(integrator, python_integrator):
-                cpp_cls = cpp_updater
-        if cpp_cls is None:
-            raise RuntimeError("Unsupported integrator.\n")
+        cpp_cls_name = "UpdaterClusters"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        use_gpu = (isinstance(self._simulation.device, hoomd.device.GPU)
+                   and (cpp_cls_name + 'GPU') in _hpmc.__dict__)
+        if use_gpu:
+            cpp_cls_name += "GPU"
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                int(self.seed))
+
+        if use_gpu:
+            sys_def = self._simulation.state._cpp_sys_def
+            self._cpp_cell = _hoomd.CellListGPU(sys_def)
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    self._cpp_cell)
+        else:
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj)
         super()._attach()
 
-    @property
-    def counter(self):
-        """Get the number of accepted and rejected cluster moves.
+    @log
+    def avg_cluster_size(self):
+        """float: the typical size of clusters
 
-        Returns:
-            A counter object with pivot, reflection, and swap properties. Each
-            property is a list of accepted moves and rejected moves since the
-            last run.
-
-        Note:
-            `None` when the simulation run has not started.
+        None when not attached
         """
-        if not self._attached:
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
             return None
         else:
-            return self._cpp_obj.getCounters(1)
-
-    @log(flag='sequence')
-    def pivot_moves(self):
-        """tuple[int, int]: Number of accepted and rejected pivot moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.pivot
-
-    @log(flag='sequence')
-    def reflection_moves(self):
-        """tuple[int, int]: Number of accepted and rejected reflection moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.reflection
-
-    @log(flag='sequence')
-    def swap_moves(self):
-        """tuple[int, int]: Number of accepted and rejected swap moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.swap
+            return counter.average_cluster_size
 
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
 
     Args:
         trigger (Trigger): Update the box dimensions on triggered time steps.
-
-        seed (int): Random number seed.
 
         target_box (Box): Dimensions of the target box.
 
@@ -937,13 +617,12 @@ class QuickCompress(Updater):
     steps.
 
     It operates by making small changes toward the `target_box`: ``L_new = scale
-    * L_current`` for each box parameter (where the smallest value of `scale` is
-    `min_scale`) and then scaling the particle positions into the new box. If
-    there are more than ``max_overlaps_per_particle * N_particles`` hard
-    particle overlaps in the system, the box move is rejected. Otherwise, the
-    small number of overlaps remain. `QuickCompress` then waits until local MC
-    trial moves provided by the HPMC integrator remove all overlaps before it
-    makes another box change.
+    * L_current`` for each box parameter and then scaling the particle positions
+    into the new box. If there are more than ``max_overlaps_per_particle *
+    N_particles`` hard particle overlaps in the system, the box move is
+    rejected. Otherwise, the small number of overlaps remain. `QuickCompress`
+    then waits until local MC trial moves provided by the HPMC integrator
+    remove all overlaps before it makes another box change.
 
     Note:
         The target box size may be larger or smaller than the current system
@@ -951,15 +630,25 @@ class QuickCompress(Updater):
         parameter is larger than the current, it scales by ``L_new = 1/scale *
         L_current``
 
+    `QuickCompress` adjusts the value of ``scale`` based on the particle and
+    translational trial move sizes to ensure that the trial moves will be able
+    to remove the overlaps. It chooses a value of ``scale`` randomly between
+    ``max(min_scale, 1.0 - min_move_size / max_diameter)`` and 1.0 where
+    ``min_move_size`` is the smallest MC translational move size adjusted
+    by the acceptance ratio and ``max_diameter`` is the circumsphere diameter
+    of the largest particle type.
+
     Tip:
         Use the `hoomd.hpmc.tune.MoveSizeTuner` in conjunction with
         `QuickCompress` to adjust the move sizes to maintain a constant
         acceptance ratio as the density of the system increases.
 
+    Warning:
+        When the smallest MC translational move size is 0, `QuickCompress`
+        will scale the box by 1.0 and not progress toward the target box.
+
     Attributes:
         trigger (Trigger): Update the box dimensions on triggered time steps.
-
-        seed (int): Random number seed.
 
         target_box (Box): Dimensions of the target box.
 
@@ -969,29 +658,44 @@ class QuickCompress(Updater):
             particles when max_overlaps_per_particle=0.25).
 
         min_scale (float): The minimum scale factor to apply to box dimensions.
+
+        instance (int):
+            When using multiple `QuickCompress` updaters in a single simulation,
+            give each a unique value for `instance` so that they generate
+            different streams of random numbers.
     """
 
     def __init__(self,
                  trigger,
                  target_box,
-                 seed,
                  max_overlaps_per_particle=0.25,
                  min_scale=0.99):
         super().__init__(trigger)
 
         param_dict = ParameterDict(
-            seed=int,
             max_overlaps_per_particle=float,
             min_scale=float,
-            target_box=hoomd.data.typeconverter.OnlyType(
+            target_box=hoomd.data.typeconverter.OnlyTypes(
                 hoomd.Box,
-                preprocess=hoomd.data.typeconverter.box_preprocessing))
-        param_dict['seed'] = seed
+                preprocess=hoomd.data.typeconverter.box_preprocessing),
+                instance=int)
         param_dict['max_overlaps_per_particle'] = max_overlaps_per_particle
         param_dict['min_scale'] = min_scale
         param_dict['target_box'] = target_box
 
         self._param_dict.update(param_dict)
+
+        self.instance = 0
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -1003,17 +707,12 @@ class QuickCompress(Updater):
 
         self._cpp_obj = _hpmc.UpdaterQuickCompress(
             self._simulation.state._cpp_sys_def, integrator._cpp_obj,
-            self.max_overlaps_per_particle, self.min_scale, self.target_box,
-            self.seed)
+            self.max_overlaps_per_particle, self.min_scale, self.target_box)
         super()._attach()
 
     @property
     def complete(self):
-        """True when the operation is complete.
-
-        `Simulation.run` stops the running whenever any operation in the
-        `Simulation` is complete.
-        """
+        """True when the box has achieved the target."""
         if not self._attached:
             return False
 

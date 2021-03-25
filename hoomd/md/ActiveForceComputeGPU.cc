@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,8 +15,7 @@ using namespace std;
     \brief Contains code for the ActiveForceComputeGPU class
 */
 
-/*! \param seed required user-specified seed number for random number generator.
-    \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
+/*! \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     \param orientation_link if True then forces and torques are applied in the particle's reference frame. If false, then the box reference fra    me is used. Only relevant for non-point-like anisotropic particles.
     /param orientation_reverse_link When True, the particle's orientation is set to match the active force vector. Useful for
     for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles
@@ -26,13 +25,12 @@ using namespace std;
 */
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
-                                        int seed,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ActiveForceCompute(sysdef, group, seed, rotation_diff, P, rx, ry, rz), m_block_size(256)
+        : ActiveForceCompute(sysdef, group, rotation_diff, P, rx, ry, rz), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -114,7 +112,7 @@ void ActiveForceComputeGPU::setForces()
  * force vector does not change
     \param timestep Current timestep
 */
-void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
+void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
@@ -141,7 +139,7 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                 is2D,
                                                 m_rotationConst,
                                                 timestep,
-                                                m_seed,
+                                                m_sysdef->getSeed(),
                                                 m_block_size);
     }
 
@@ -178,7 +176,6 @@ void export_ActiveForceComputeGPU(py::module& m)
     py::class_< ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU")
         .def(py::init<  std::shared_ptr<SystemDefinition>,
                         std::shared_ptr<ParticleGroup>,
-                        int,
                         Scalar,
                         Scalar3,
                         Scalar,

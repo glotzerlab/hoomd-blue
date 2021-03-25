@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,6 +15,7 @@
 #include "Updater.h"
 #include "Variant.h"
 #include "BoxDim.h"
+#include "ParticleGroup.h"
 
 #include <memory>
 #include <string>
@@ -38,19 +39,14 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
                          pybind11::object box1,
                          pybind11::object box2,
-                         std::shared_ptr<Variant> variant);
+                         std::shared_ptr<Variant> variant,
+                         std::shared_ptr<ParticleGroup> m_group);
 
         /// Destructor
         virtual ~BoxResizeUpdater();
 
-        /// Sets particle scaling. When true, particle positions are scaled with the box.
-        void setScaleParticles(bool scale_particles)
-            {
-            m_scale_particles = scale_particles;
-            }
-
-        /// Gets particle scaling setting
-        bool getScaleParticles() {return m_scale_particles;}
+        /// Gets particle scaling filter
+        std::shared_ptr<ParticleGroup> getGroup() {return m_group;}
 
         /// Set a new initial box from a python object
         void setPyBox1(pybind11::object box1);
@@ -71,10 +67,10 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         std::shared_ptr<Variant> getVariant() {return m_variant;}
 
         /// Get the current box for the given timestep
-        BoxDim getCurrentBox(unsigned int timestep);
+        BoxDim getCurrentBox(uint64_t timestep);
 
         /// Update box interpolation based on provided timestep
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     private:
         pybind11::object m_py_box1;  ///< The python box assoc with min
@@ -82,7 +78,7 @@ class PYBIND11_EXPORT BoxResizeUpdater : public Updater
         BoxDim& m_box1;  ///< C++ box assoc with min
         BoxDim& m_box2;  ///< C++ box assoc with max
         std::shared_ptr<Variant> m_variant; //!< Variant that interpolates between boxes
-        bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+        std::shared_ptr<ParticleGroup> m_group; //!< Selected particles to scale when resizing the box.
     };
 
 /// Export the BoxResizeUpdater to python

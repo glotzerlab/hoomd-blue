@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -69,7 +69,13 @@ struct SphinxParams : ShapeParams
 
     #ifndef __HIPCC__
     /// Empty constructor
-    SphinxParams() : circumsphereDiameter(0.0), N(0) { }
+    SphinxParams() : circumsphereDiameter(0.0), N(0), ignore(0)
+        {
+        for (size_t i = 0; i < MAX_SPHINX_SPHERE_CENTERS; i++)
+            {
+            diameter[i] = 0;
+            }
+        }
 
     /// Construct from a python dictionary
     SphinxParams(pybind11::dict v, bool managed=false)
@@ -78,8 +84,8 @@ struct SphinxParams : ShapeParams
         pybind11::list diameters = v["diameters"];
         ignore = v["ignore_statistics"].cast<unsigned int>();
 
-        N = pybind11::len(diameters);
-        unsigned int N_centers = pybind11::len(centers);
+        N = (unsigned int)pybind11::len(diameters);
+        unsigned int N_centers = (unsigned int)pybind11::len(centers);
 
         if (N_centers > MAX_SPHINX_SPHERE_CENTERS)
             throw std::runtime_error("Too many spheres");
@@ -112,7 +118,7 @@ struct SphinxParams : ShapeParams
             }
 
         // set the diameter
-        circumsphereDiameter = 2.0*radius;
+        circumsphereDiameter = OverlapReal(2.0)*radius;
         }
 
     /// Convert parameters to a python dictionary
@@ -161,16 +167,19 @@ struct ShapeSphinx
     /// Define the parameter type
     typedef detail::SphinxParams param_type;
 
+    /// Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE inline ShapeSphinx(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), convex(true), spheres(_params)
         {
         volume = 0.0;
-        radius = spheres.circumsphereDiameter/(2.0);
+        radius = spheres.circumsphereDiameter/OverlapReal(2.0);
         n = spheres.N;
         for(unsigned int i = 0; i<n;i++)
             {
-            r[i] = spheres.diameter[i]/(2.0);
+            r[i] = spheres.diameter[i]/OverlapReal(2.0);
             R[i] = r[i]*r[i];
             s[i] = (r[i]<0) ? -1 : 1;
             u[i] = spheres.center[i];
@@ -180,7 +189,7 @@ struct ShapeSphinx
             for(unsigned int j=0; j<i; j++)
                 {
                 D[(i-1)*i/2+j] = dot(u[i]-u[j],u[i]-u[j]);
-                d[(i-1)*i/2+j] = s[i]*s[j]*sqrt(D[(i-1)*i/2+j]);
+                d[(i-1)*i/2+j] = OverlapReal(s[i]*s[j])*sqrt(D[(i-1)*i/2+j]);
                 }
             }
         disjoint = ((n > 0) && (s[0] > 0));
@@ -288,9 +297,7 @@ struct ShapeSphinx
 template <>
 DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_ab,
                                                           const ShapeSphinx& p,
-                                                          const ShapeSphinx& q, unsigned int& err,
-                                                          Scalar sweep_radius_a,
-                                                          Scalar sweep_radius_b)
+                                                          const ShapeSphinx& q, unsigned int& err)
     {
     vec3<OverlapReal> pv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of p
     vec3<OverlapReal> qv[detail::MAX_SPHINX_SPHERE_CENTERS];           /// rotated centers of q
@@ -319,7 +326,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
                 {
                 vec3<OverlapReal> a = x + pv[0],b = y+qv[0];
                 if(detail::sep2(false,
-                        p.s[0],q.s[0],
+                        OverlapReal(p.s[0]),OverlapReal(q.s[0]),
                         p.R[0],q.R[0],
                         detail::norm2(a-b))) return false;
                 }
@@ -331,7 +338,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
                     int k = (i-1)*i/2;
                     vec3<OverlapReal> b = x+pv[i];
                     if(detail::sep3(false,
-                            p.s[0],p.s[i],q.s[0],
+                            OverlapReal(p.s[0]),OverlapReal(p.s[i]),OverlapReal(q.s[0]),
                             p.R[0],p.R[i],q.R[0],
                             p.D[k],detail::norm2(a-c),
                             detail::norm2(b-c))) return false;
@@ -345,7 +352,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
                     int l = (j-1)*j/2;
                     vec3<OverlapReal> c = y+qv[j];
                     if(detail::sep3(false,
-                            p.s[0],q.s[0],q.s[j],
+                            OverlapReal(p.s[0]),OverlapReal(q.s[0]),OverlapReal(q.s[j]),
                             p.R[0],q.R[0],q.R[j],
                             detail::norm2(a-b),detail::norm2(a-c),
                             q.D[l])) return false;
@@ -362,7 +369,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
                         int l = (j-1)*j/2;
                         vec3<OverlapReal> b = x+pv[i],d = y+qv[j];
                         if(detail::sep4(false,
-                                p.s[0],p.s[i],q.s[0],q.s[j],
+                                OverlapReal(p.s[0]),OverlapReal(p.s[i]),OverlapReal(q.s[0]),OverlapReal(q.s[j]),
                                 p.R[0],p.R[i],q.R[0],q.R[j],
                                 p.D[k],detail::norm2(a-c),detail::norm2(a-d),
                                 detail::norm2(b-c),detail::norm2(b-d),
@@ -377,7 +384,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = y+qv[0];
             return !detail::sep2(p.convex && q.convex,
-                         p.s[0],q.s[0],
+                         OverlapReal(p.s[0]),OverlapReal(q.s[0]),
                          p.R[0],q.R[0],
                          detail::norm2(a-b));
             }
@@ -386,7 +393,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = y+qv[0];
             return !detail::sep3(p.convex && q.convex,
-                         p.s[0],p.s[1],q.s[0],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(q.s[0]),
                          p.R[0],p.R[1],q.R[0],
                          p.D[0],detail::norm2(a-c),
                          detail::norm2(b-c));
@@ -395,7 +402,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = y+qv[0],c = y+qv[1];
             return !detail::sep3(p.convex && q.convex,
-                         p.s[0],q.s[0],q.s[1],
+                         OverlapReal(p.s[0]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),
                          p.R[0],q.R[0],q.R[1],
                          detail::norm2(a-b),detail::norm2(a-c),
                          q.D[0]);
@@ -405,7 +412,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = y+qv[0];
             return !detail::sep4(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],q.s[0],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(q.s[0]),
                          p.R[0],p.R[1],p.R[2],q.R[0],
                          p.D[0],p.D[1],detail::norm2(a-d),
                          p.D[2],detail::norm2(b-d),
@@ -415,7 +422,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = y+qv[0],d = y+qv[1];
             return !detail::sep4(p.convex && q.convex,
-                         p.s[0],p.s[1],q.s[0],q.s[1],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),
                          p.R[0],p.R[1],q.R[0],q.R[1],
                          p.D[0],detail::norm2(a-c),detail::norm2(a-d),
                          detail::norm2(b-c),detail::norm2(b-d),
@@ -425,7 +432,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = y+qv[0],c = y+qv[1],d = y+qv[2];
             return !detail::sep4(p.convex && q.convex,
-                         p.s[0],q.s[0],q.s[1],q.s[2],
+                         OverlapReal(p.s[0]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),
                          p.R[0],q.R[0],q.R[1],q.R[2],
                          detail::norm2(a-b),detail::norm2(a-c),detail::norm2(a-d),
                          q.D[0],q.D[1],
@@ -436,7 +443,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = y+qv[0];
             return !detail::sep5(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],q.s[0],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(q.s[0]),
                          p.R[0],p.R[1],p.R[2],p.R[3],q.R[0],
                          p.D[0],p.D[1],p.D[3],detail::norm2(a-e),
                          p.D[2],p.D[4],detail::norm2(b-e),
@@ -447,7 +454,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = y+qv[0],e = y+qv[1];
             return !detail::sep5(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],q.s[0],q.s[1],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),
                          p.R[0],p.R[1],p.R[2],q.R[0],q.R[1],
                          p.D[0],p.D[1],detail::norm2(a-d),detail::norm2(a-e),
                          p.D[2],detail::norm2(b-d),detail::norm2(b-e),
@@ -458,7 +465,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = y+qv[0],d = y+qv[1],e = y+qv[2];
             return !detail::sep5(p.convex && q.convex,
-                         p.s[0],p.s[1],q.s[0],q.s[1],q.s[2],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),
                          p.R[0],p.R[1],q.R[0],q.R[1],q.R[2],
                          p.D[0],detail::norm2(a-c),detail::norm2(a-d),detail::norm2(a-e),
                          detail::norm2(b-c),detail::norm2(b-d),detail::norm2(b-e),
@@ -469,7 +476,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = y+qv[0],c = y+qv[1],d = y+qv[2],e = y+qv[3];
             return !detail::sep5(p.convex && q.convex,
-                         p.s[0],q.s[0],q.s[1],q.s[2],q.s[3],
+                         OverlapReal(p.s[0]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),
                          p.R[0],q.R[0],q.R[1],q.R[2],q.R[3],
                          detail::norm2(a-b),detail::norm2(a-c),detail::norm2(a-d),detail::norm2(a-e),
                          q.D[0],q.D[1],q.D[3],
@@ -481,7 +488,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = x+pv[4],f = y+qv[0];
             return !detail::sep6(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],p.s[4],q.s[0],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(p.s[4]),OverlapReal(q.s[0]),
                          p.R[0],p.R[1],p.R[2],p.R[3],p.R[4],q.R[0],
                          p.D[0],p.D[1],p.D[3],p.D[6],detail::norm2(a-f),
                          p.D[2],p.D[4],p.D[7],detail::norm2(b-f),
@@ -493,7 +500,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = y+qv[0],f = y+qv[1];
             return !detail::sep6(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],q.s[0],q.s[1],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),
                          p.R[0],p.R[1],p.R[2],p.R[3],q.R[0],q.R[1],
                          p.D[0],p.D[1],p.D[3],detail::norm2(a-e),detail::norm2(a-f),
                          p.D[2],p.D[4],detail::norm2(b-e),detail::norm2(b-f),
@@ -505,7 +512,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = y+qv[0],e = y+qv[1],f = y+qv[2];
             return !detail::sep6(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],q.s[0],q.s[1],q.s[2],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),
                          p.R[0],p.R[1],p.R[2],q.R[0],q.R[1],q.R[2],
                          p.D[0],p.D[1],detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),
                          p.D[2],detail::norm2(b-d),detail::norm2(b-e),detail::norm2(b-f),
@@ -517,7 +524,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = y+qv[0],d = y+qv[1],e = y+qv[2],f = y+qv[3];
             return !detail::sep6(p.convex && q.convex,
-                         p.s[0],p.s[1],q.s[0],q.s[1],q.s[2],q.s[3],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),
                          p.R[0],p.R[1],q.R[0],q.R[1],q.R[2],q.R[3],
                          p.D[0],detail::norm2(a-c),detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),
                          detail::norm2(b-c),detail::norm2(b-d),detail::norm2(b-e),detail::norm2(b-f),
@@ -529,7 +536,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = y+qv[0],c = y+qv[1],d = y+qv[2],e = y+qv[3],f = y+qv[4];
             return !detail::sep6(p.convex && q.convex,
-                         p.s[0],q.s[0],q.s[1],q.s[2],q.s[3],q.s[4],
+                         OverlapReal(p.s[0]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),OverlapReal(q.s[4]),
                          p.R[0],q.R[0],q.R[1],q.R[2],q.R[3],q.R[4],
                          detail::norm2(a-b),detail::norm2(a-c),detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),
                          q.D[0],q.D[1],q.D[3],q.D[6],
@@ -542,7 +549,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = x+pv[4],f = y+qv[0],g = y+qv[1];
             return !detail::sep7(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],p.s[4],q.s[0],q.s[1],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(p.s[4]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),
                          p.R[0],p.R[1],p.R[2],p.R[3],p.R[4],q.R[0],q.R[1],
                          p.D[0],p.D[1],p.D[3],p.D[6],detail::norm2(a-f),detail::norm2(a-g),
                          p.D[2],p.D[4],p.D[7],detail::norm2(b-f),detail::norm2(b-g),
@@ -555,7 +562,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = y+qv[0],f = y+qv[1],g = y+qv[2];
             return !detail::sep7(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],q.s[0],q.s[1],q.s[2],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),
                          p.R[0],p.R[1],p.R[2],p.R[3],q.R[0],q.R[1],q.R[2],
                          p.D[0],p.D[1],p.D[3],detail::norm2(a-e),detail::norm2(a-f),detail::norm2(a-g),
                          p.D[2],p.D[4],detail::norm2(b-e),detail::norm2(b-f),detail::norm2(b-g),
@@ -568,7 +575,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = y+qv[0],e = y+qv[1],f = y+qv[2],g = y+qv[3];
             return !detail::sep7(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],q.s[0],q.s[1],q.s[2],q.s[3],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),
                          p.R[0],p.R[1],p.R[2],q.R[0],q.R[1],q.R[2],q.R[3],
                          p.D[0],p.D[1],detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),detail::norm2(a-g),
                          p.D[2],detail::norm2(b-d),detail::norm2(b-e),detail::norm2(b-f),detail::norm2(b-g),
@@ -581,7 +588,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = y+qv[0],d = y+qv[1],e = y+qv[2],f = y+qv[3],g = y+qv[4];
             return !detail::sep7(p.convex && q.convex,
-                         p.s[0],p.s[1],q.s[0],q.s[1],q.s[2],q.s[3],q.s[4],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),OverlapReal(q.s[4]),
                          p.R[0],p.R[1],q.R[0],q.R[1],q.R[2],q.R[3],q.R[4],
                          p.D[0],detail::norm2(a-c),detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),detail::norm2(a-g),
                          detail::norm2(b-c),detail::norm2(b-d),detail::norm2(b-e),detail::norm2(b-f),detail::norm2(b-g),
@@ -595,7 +602,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = x+pv[4],f = y+qv[0],g = y+qv[1],h = y+qv[2];
             return !detail::sep8(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],p.s[4],q.s[0],q.s[1],q.s[2],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(p.s[4]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),
                          p.R[0],p.R[1],p.R[2],p.R[3],p.R[4],q.R[0],q.R[1],q.R[2],
                          p.D[0],p.D[1],p.D[3],p.D[6],detail::norm2(a-f),detail::norm2(a-g),detail::norm2(a-h),
                          p.D[2],p.D[4],p.D[7],detail::norm2(b-f),detail::norm2(b-g),detail::norm2(b-h),
@@ -609,7 +616,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = x+pv[3],e = y+qv[0],f = y+qv[1],g = y+qv[2],h = y+qv[3];
             return !detail::sep8(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],p.s[3],q.s[0],q.s[1],q.s[2],q.s[3],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(p.s[3]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),
                          p.R[0],p.R[1],p.R[2],p.R[3],q.R[0],q.R[1],q.R[2],q.R[3],
                          p.D[0],p.D[1],p.D[3],detail::norm2(a-e),detail::norm2(a-f),detail::norm2(a-g),detail::norm2(a-h),
                          p.D[2],p.D[4],detail::norm2(b-e),detail::norm2(b-f),detail::norm2(b-g),detail::norm2(b-h),
@@ -623,7 +630,7 @@ DEVICE inline bool test_overlap<ShapeSphinx,ShapeSphinx>(const vec3<Scalar>& r_a
             {
             vec3<OverlapReal> a = x+pv[0],b = x+pv[1],c = x+pv[2],d = y+qv[0],e = y+qv[1],f = y+qv[2],g = y+qv[3],h = y+qv[4];
             return !detail::sep8(p.convex && q.convex,
-                         p.s[0],p.s[1],p.s[2],q.s[0],q.s[1],q.s[2],q.s[3],q.s[4],
+                         OverlapReal(p.s[0]),OverlapReal(p.s[1]),OverlapReal(p.s[2]),OverlapReal(q.s[0]),OverlapReal(q.s[1]),OverlapReal(q.s[2]),OverlapReal(q.s[3]),OverlapReal(q.s[4]),
                          p.R[0],p.R[1],p.R[2],q.R[0],q.R[1],q.R[2],q.R[3],q.R[4],
                          p.D[0],p.D[1],detail::norm2(a-d),detail::norm2(a-e),detail::norm2(a-f),detail::norm2(a-g),detail::norm2(a-h),
                          p.D[2],detail::norm2(b-d),detail::norm2(b-e),detail::norm2(b-f),detail::norm2(b-g),detail::norm2(b-h),

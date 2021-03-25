@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -63,7 +63,7 @@ ForceCompositeGPU::~ForceCompositeGPU()
 
 
 //! Compute the forces and torques on the central particle
-void ForceCompositeGPU::computeForces(unsigned int timestep)
+void ForceCompositeGPU::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
@@ -253,7 +253,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
+void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
@@ -363,7 +363,7 @@ void ForceCompositeGPU::findRigidCenters()
 
     m_rigid_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
-    unsigned int old_size = m_lookup_center.getNumElements();
+    size_t old_size = m_lookup_center.getNumElements();
     m_lookup_center.resize(m_pdata->getN()+m_pdata->getNGhosts());
 
     #ifdef __HIP_PLATFORM_NVCC__

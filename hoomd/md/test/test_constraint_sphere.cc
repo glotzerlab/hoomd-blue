@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -68,7 +68,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
     std::shared_ptr<VariantConstant> T_variant(new VariantConstant(Temp));
-    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123));
+    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 

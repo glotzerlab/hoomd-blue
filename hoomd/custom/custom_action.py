@@ -21,8 +21,7 @@ class Action(metaclass=_AbstractLoggable):
 
     To use subclasses of this class, the object must be passed as an argument
     to a `hoomd.update.CustomUpdater`, `hoomd.write.CustomWriter`, or
-    `hoomd.tune.CustomTuner`.
-    constructor.
+    `hoomd.tune.CustomTuner` constructor.
 
     If the pressure, rotational kinetic energy, or external field virial is
     needed for a subclass, the flags attribute of the class needs to be set with
@@ -69,7 +68,7 @@ class Action(metaclass=_AbstractLoggable):
 
         class ExampleAction(Action):
             def act(self, timestep):
-                self.com = self.snapshot.particles.position.mean(axis=0)
+                self.com = self._state.snapshot.particles.position.mean(axis=0)
 
 
     Attributes:
@@ -126,7 +125,7 @@ class Action(metaclass=_AbstractLoggable):
             A `hoomd.State` is not given here. This means that if the default
             `attach` method is overwritten, there is no way to query or change
             the state when called. By default, the state is accessible through
-            ``self.state`` after attaching.
+            ``self._state`` after attaching.
         """
         pass
 

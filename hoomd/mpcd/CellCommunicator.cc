@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -231,8 +231,8 @@ void mpcd::CellCommunicator::initialize()
             auto upper = send_map.upper_bound(*it);
 
             m_neighbors[idx] = *it;
-            m_begin[idx] = std::distance(send_map.begin(), lower);
-            m_num_send[idx] = std::distance(lower, upper);
+            m_begin[idx] = (unsigned int)std::distance(send_map.begin(), lower);
+            m_num_send[idx] = (unsigned int)std::distance(lower, upper);
             ++idx;
             }
         }
@@ -249,7 +249,7 @@ void mpcd::CellCommunicator::initialize()
             MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
             MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
-        MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+        MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
 
     // transform all of the global cell indexes back into local cell indexes
@@ -271,7 +271,7 @@ void mpcd::CellCommunicator::initialize()
             unique_cells.insert(cell);
             cell_map.insert(std::make_pair(cell, idx));
             }
-        m_num_cells = unique_cells.size();
+        m_num_cells = (unsigned int)unique_cells.size();
 
         /*
          * Allocate auxiliary memory for receiving cell reordering

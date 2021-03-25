@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 /*! \file LogMatrix.h
@@ -56,10 +56,10 @@ class LogMatrix : public Logger
         std::vector<std::string> getLoggedMatrixQuantities(void)const{return m_logged_matrix_quantities;}
 
         //! Query the cached matrix for a given quantity.
-        virtual pybind11::array getMatrixQuantity(const std::string& quantity, unsigned int timestep);
+        virtual pybind11::array getMatrixQuantity(const std::string& quantity, uint64_t timestep);
 
         //! Cache the data for the current timestep
-        virtual void analyze(unsigned int timestep);
+        virtual void analyze(uint64_t timestep);
 
     protected:
         //! A map of computes indexed by logged matrix quantity that they provide
@@ -74,7 +74,7 @@ class LogMatrix : public Logger
         std::vector< pybind11::array > m_cached_matrix_quantities;
     private:
         //! Obtain the matrix quantities for caching.
-        virtual pybind11::array getMatrix(const std::string& quantity, unsigned int timestep);
+        virtual pybind11::array getMatrix(const std::string& quantity, uint64_t timestep);
     };
 
 //! exports the LogMatrix class to python

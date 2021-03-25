@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -71,7 +71,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 
     Sets parameters for the potential of a particular dihedral type
 */
-void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
+void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
@@ -81,8 +81,8 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         }
 
     m_K[type] = K;
-    m_sign[type] = (Scalar)sign;
-    m_multi[type] = (Scalar)multiplicity;
+    m_sign[type] = sign;
+    m_multi[type] = multiplicity;
     m_phi_0[type] = phi_0;
 
     // check for some silly errors a user could make
@@ -128,7 +128,7 @@ std::vector< std::string > HarmonicDihedralForceCompute::getProvidedLogQuantitie
 /*! \param quantity Name of the quantity to get the log value of
     \param timestep Current time step of the simulation
 */
-Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("dihedral_harmonic_energy"))
         {
@@ -145,7 +145,7 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
+void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Dihedral");
 
@@ -167,7 +167,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();

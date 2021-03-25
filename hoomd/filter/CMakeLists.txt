@@ -1,23 +1,27 @@
-set (_header_files filter/ParticleFilter.h
-                   filter/ParticleFilterAll.h
-                   filter/ParticleFilterIntersection.h
-                   filter/ParticleFilterSetDifference.h
-                   filter/ParticleFilterTags.h
-                   filter/ParticleFilterType.h
-                   filter/ParticleFilterUnion.h
-                   filter/export_filters.h
+set (_header_files export_filters.h
+                   ParticleFilterAll.h
+                   ParticleFilterCustom.h
+                   ParticleFilter.h
+                   ParticleFilterIntersection.h
+                   ParticleFilterNull.h
+                   ParticleFilterSetDifference.h
+                   ParticleFilterTags.h
+                   ParticleFilterType.h
+                   ParticleFilterUnion.h
            )
 
-install(FILES ${_headers_files}
+install(FILES ${_header_files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/filter
        )
 
 set(files __init__.py
           filter_.py
           all_.py
+          null.py
           set_.py
           tags.py
           type_.py
+          custom.py
           )
 
 install(FILES ${files}

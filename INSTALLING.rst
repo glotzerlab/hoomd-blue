@@ -37,7 +37,7 @@ from the ``conda-forge`` channel::
 
 Install the v3.0.0-beta release with::
 
-    $ conda install -c conda-forge/label/hoomd_dev hoomd
+    $ conda install -c conda-forge/label/hoomd_dev -c conda-forge hoomd
 
 A build of HOOMD with support for NVIDIA GPUs is also available from the
 ``conda-forge`` channel::
@@ -55,7 +55,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.1.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.5.tar.gz
 
 Or clone using Git:
 
@@ -66,108 +66,73 @@ Or clone using Git:
 **HOOMD-blue** uses Git submodules. Either clone with the ``--recursive``
 option, or execute ``git submodule update --init`` to fetch the submodules.
 
-Configure a virtual environment
--------------------------------
-
-When using a shared Python installation, create a `virtual environment
-<https://docs.python.org/3/library/venv.html>`_ where you can install
-**HOOMD-blue**::
-
-    $ python3 -m venv /path/to/environment --system-site-packages
-
-Activate the environment before configuring and before executing
-**HOOMD-blue** scripts::
-
-   $ source /path/to/environment/bin/activate
-
-Tell CMake to search for packages in the virtual environment first::
-
-    $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-.. note::
-
-   Other types of virtual environments (such as *conda*) may work, but are not thoroughly tested.
-
 Install prerequisites
 ---------------------
 
-**HOOMD-blue** requires a number of libraries to build.
+**HOOMD-blue** requires a number of libraries to build. The flags ``ENABLE_MPI``,
+``ENABLE_GPU``, ``ENABLE_TBB``, and ``BUILD_JIT`` each require additional libraries.
 
-- Required:
+**General requirements**
 
-  - C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
-    8, 9, ``clang`` 5, 6, 7, 8)
-  - Python >= 3.5
-  - NumPy >= 1.7
-  - pybind11 >= 2.2
-  - Eigen >= 3.2
-  - CMake >= 3.9
-  - For MPI parallel execution (required when ``ENABLE_MPI=on``):
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10 / ``clang`` 6, 7, 8, 9, 10, 11)
+- Python >= 3.6
+- NumPy >= 1.7
+- pybind11 >= 2.2
+- Eigen >= 3.2
+- CMake >= 3.9
 
-    - MPI (tested with OpenMPI, MVAPICH)
-    - cereal >= 1.1 (required when ``ENABLE_MPI=on``)
+**For MPI parallel execution** (required when ``ENABLE_MPI=on``)
 
-  - For GPU execution (required when ``ENABLE_GPU=on``):
+- MPI (tested with OpenMPI, MVAPICH)
+- cereal >= 1.1
 
-    - NVIDIA CUDA Toolkit >= 9.0
+**For GPU execution** (required when ``ENABLE_GPU=on``)
 
-    **OR**
+- NVIDIA CUDA Toolkit >= 9.0
 
-    - `AMD ROCm >= 2.9 <https://rocm.github.io/ROCmInstall.html>`_
+  *OR*
 
-      Additional dependencies:
-        - HIP [with ``hipcc`` and ``hcc`` as backend]
-        - rocFFT
-        - rocPRIM
-        - rocThrust
-        - hipCUB, included for NVIDIA GPU targets, but required as an
-          external dependency when building for AMD GPUs
-        - roctracer-dev
-        - Linux kernel >= 3.5.0
+- `AMD ROCm >= 3.5.0 <https://rocm.github.io/ROCmInstall.html>`_ with additional dependencies:
 
-      For HOOMD-blue on AMD GPUs, the following limitations currently apply.
+  - HIP [with ``hipcc`` and ``hcc`` as backend]
+  - rocFFT
+  - rocPRIM
+  - rocThrust
+  - hipCUB, included for NVIDIA GPU targets, but required as an
+    external dependency when building for AMD GPUs
+  - roctracer-dev
+  - Linux kernel >= 3.5.0
 
-      1. Certain HOOMD-blue kernels trigger a `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
-         A `temporary bugfix branch of HIP <https://github.com/glotzerlab/HIP/tree/hipfuncgetattributes_revertvectortypes>`_
-         addresses these problems. When using a custom HIP version, other libraries used by HOOMD-blue (``rocfft``) need
-         to be compiled against that same HIP version.
+  For HOOMD-blue on AMD GPUs, the following limitations currently apply.
 
-      2. The `mpcd` component is disabled on AMD GPUs.
+   1. Certain HOOMD-blue kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+   2. The `mpcd` component is disabled on AMD GPUs.
+   3. Multi-GPU execution via unified memory is not available.
 
-      3. Multi-GPU execution via unified memory is not available.
+**For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``)
 
-  - For threaded parallelism on the CPU (required when ``ENABLE_TBB=on``):
+- Intel Threading Building Blocks >= 4.3
 
-    - Intel Threading Building Blocks >= 4.3
+**For runtime code generation** (required when ``BUILD_JIT=on``)
 
-  - For runtime code generation (required when ``BUILD_JIT=on``):
+- LLVM >= 6.0
 
-    - LLVM >= 5.0
+**To build documentation**
 
-  - To build documentation:
+- Doxygen >= 1.8.5
+- Sphinx >= 1.6
 
-    - Doxygen >= 1.8.5
-    - Sphinx >= 1.6
-
-Install these tools with your system or virtual environment package manager. HOOMD developers have had success with
+Install these tools with your system or virtual environment package manager.
+HOOMD developers have had success with
 ``pacman`` (`arch linux <https://www.archlinux.org/>`_), ``apt-get`` (`ubuntu <https://ubuntu.com/>`_), `Homebrew
-<https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS)::
+<https://brew.sh/>`_ (macOS), and `MacPorts <https://www.macports.org/>`_ (macOS).
+Note that packages may be named differently, so check your system's package list and install any ``-dev`` packages as needed. ::
 
     $ your-package-manager install python python-numpy pybind11 eigen cmake openmpi cereal cuda
 
 Typical HPC cluster environments provide python, numpy, cmake, cuda, and mpi, via a module system::
 
     $ module load gcc python cuda cmake
-
-.. note::
-
-    Packages may be named differently, check your system's package list. Install any ``-dev`` packages as needed.
-
-.. tip::
-
-    You can install numpy and other python packages into your virtual environment::
-
-        python3 -m pip install numpy
 
 Some package managers (such as *pip*) and most clusters are missing some or all of pybind11, eigen, and cereal.
 ``install-prereq-headers.py`` will install the missing packages into your virtual environment::
@@ -177,24 +142,36 @@ Some package managers (such as *pip*) and most clusters are missing some or all 
 
 Run ``python3 install-prereq-headers.py -h`` to see a list of the command line options.
 
+Configure a virtual environment
+-------------------------------
+
+When using a shared Python installation, create a `virtual environment
+<https://docs.python.org/3/library/venv.html>`_ where you can install the dependencies and
+**HOOMD-blue**.
+You can install numpy and other python packages into your virtual environment using, *e.g.*, ``python3 -m pip install numpy``.
+Note that other types of virtual environments
+(such as *conda*) may work, but are not thoroughly tested. ::
+
+    $ python3 -m venv /path/to/environment
+
+
 Compile HOOMD-blue
 ------------------
 
-Configure::
+Activate the environment and tell CMake to search for packages there
+before configuring and installing **HOOMD-blue**. ::
+
+    $ source /path/to/environment/bin/activate
+    $ export CMAKE_PREFIX_PATH=/path/to/environment
+
+By default, **HOOMD-blue** configures a *Release* optimized build type for a
+generic CPU architecture and with no optional libraries::
 
     $ cd /path/to/hoomd-blue
     $ cmake -B build
     $ cd build
 
-.. warning::
-
-    Make certain you point ``CMAKE_PREFIX_PATH`` at your virtual environment so that CMake can find
-    packages there and correctly determine the installation location.::
-
-        $ export CMAKE_PREFIX_PATH=/path/to/environment
-
-By default, **HOOMD-blue** configures a *Release* optimized build type for a
-generic CPU architecture and with no optional libraries. Pass these options to cmake
+Pass these options to cmake
 to enable optimizations specific to your CPU::
 
     -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
@@ -225,7 +202,7 @@ Execute longer running validation tests::
 
     On a cluster, run tests within a job on a GPU compute node.
 
-To install **HOOMD-blue** into your Python environment, run::
+Install **HOOMD-blue** into your Python environment::
 
     $ make install
 

@@ -1,21 +1,22 @@
-# Copyright (c) 2009-2020 The Regents of the University of Michigan This file is
+# Copyright (c) 2009-2021 The Regents of the University of Michigan This file is
 # part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """Write GSD files storing simulation trajectories and logging data."""
 
+from collections.abc import Mapping, Collection
 from hoomd import _hoomd
 from hoomd.util import dict_flatten, array_to_strings
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, RequiredArg
 from hoomd.filter import ParticleFilter, All
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.logging import Logger, TypeFlags
+from hoomd.logging import Logger, LoggerCategories
 from hoomd.operation import Writer
 import numpy as np
 import json
 
 
 class GSD(Writer):
-    """Write simulation trajectories in the GSD format.
+    r"""Write simulation trajectories in the GSD format.
 
     Args:
         filename (str): File name to write.
@@ -92,17 +93,18 @@ class GSD(Writer):
 
     * **topology**
 
-        * bonds/
-        * angles/
-        * dihedrals/
-        * impropers/
-        * constraints/
-        * pairs/
+        * bonds/*
+        * angles/*
+        * dihedrals/*
+        * impropers/*
+        * constraints/*
+        * pairs/*
 
     See Also:
-        See the `GSD documentation <http://gsd.readthedocs.io/>`__ and `GitHub
-        project <https://github.com/glotzerlab/gsd>`__ for more information on
-        GSD files.
+        See the `GSD documentation <https://gsd.readthedocs.io/>`__, `GSD HOOMD
+        Schema <https://gsd.readthedocs.io/en/stable/schema-hoomd.html>`__, and
+        `GSD GitHub project <https://github.com/glotzerlab/gsd>`__ for more
+        information on GSD files.
 
     Note:
         When you use ``filter`` to select a subset of the whole system, `GSD`
@@ -222,28 +224,53 @@ class GSD(Writer):
         self._log = log
 
 
+def _iterable_is_incomplete(iterable):
+    """Checks that any nested attribute has no instances of RequiredArg.
+
+    Given the arbitrary nesting of container types in HOOMD-blue's data
+    model, we need to ensure that no RequiredArg values exist at any depth
+    in a state loggable key. Otherwise, the gsd backend will fail in its
+    conversion to NumPy arrays.
+    """
+    if (not isinstance(iterable, Collection) or isinstance(iterable, str)
+            or len(iterable) == 0):
+        return False
+    incomplete = False
+
+    if isinstance(iterable, Mapping):
+        iter_ = iterable.keys()
+    else:
+        iter_ = iterable
+    for v in iter_:
+        if isinstance(v, Collection):
+            incomplete |= _iterable_is_incomplete(v)
+        else:
+            incomplete |= v is RequiredArg
+    return incomplete
+
+
 class _GSDLogWriter:
     """Helper class to store `hoomd.logging.Logger` log data to GSD file.
 
     Class Attributes:
-        _per_flags (`hoomd.logging.TypeFlags`): flag that contains all
-            per-{particle,bond,...} quantities.
-        _convert_flags (`hoomd.logging.TypeFlags`): flag that contains all types
-            that must be converted for storage in a GSD file.
-        _skip_flags (`hoomd.logging.TypeFlags`): flags that should be skipped by
-            and not stored.
+        _per_categories (`hoomd.logging.LoggerCategories`): category that
+            contains all per-{particle,bond,...} quantities.
+        _convert_categories (`hoomd.logging.LoggerCategories`): categories that
+            contains all types that must be converted for storage in a GSD file.
+        _skip_categories (`hoomd.logging.LoggerCategories`): categories that
+            should be skipped by and not stored.
         _special_keys (`list` of `str`): list of loggable quantity names that
             need to be treated specially. In general, this is only for
             `type_shapes`.
         _global_prepend (`str`): a str that gets prepending into the namespace
             of each logged quantity.
     """
-    _per_flags = TypeFlags.any([
+    _per_categories = LoggerCategories.any([
         'angle', 'bond', 'constraint', 'dihedral', 'improper', 'pair',
         'particle'
     ])
-    _convert_flags = TypeFlags.any(['string', 'strings'])
-    _skip_flags = TypeFlags['object']
+    _convert_categories = LoggerCategories.any(['string', 'strings'])
+    _skip_categories = LoggerCategories['object']
     _special_keys = ['type_shapes']
     _global_prepend = 'log'
 
@@ -254,15 +281,17 @@ class _GSDLogWriter:
         """Get the flattened dictionary for consumption by GSD object."""
         log = dict()
         for key, value in dict_flatten(self.logger.log()).items():
-            log_value, type_flag = value
-            type_flag = TypeFlags[type_flag]
-            # This has to be checked first since type_shapes has a flag
-            # TypeFlags.object.
+            if 'state' in key and _iterable_is_incomplete(value[0]):
+                pass
+            log_value, type_category = value
+            type_category = LoggerCategories[type_category]
+            # This has to be checked first since type_shapes has a category
+            # LoggerCategories.object.
             if key[-1] in self._special_keys:
                 self._log_special(log, key[-1], log_value)
-            # Now we can skip any flags we don't process, in this case
-            # TypeFlags.object.
-            if type_flag not in self._skip_flags:
+            # Now we can skip any categories we don't process, in this case
+            # LoggerCategories.object.
+            if type_category not in self._skip_categories:
                 if log_value is None:
                     continue
                 else:
@@ -270,13 +299,13 @@ class _GSDLogWriter:
                     # per-{particle,bond,...} into the correct GSD namespace
                     # log/particles/{remaining namespace}. This preserves OVITO
                     # intergration.
-                    if type_flag in self._per_flags:
-                        log['/'.join((self._global_prepend,
-                                      type_flag.name + 's') + key)] = log_value
-                    elif type_flag in self._convert_flags:
+                    if type_category in self._per_categories:
+                        log['/'.join((self._global_prepend, type_category.name
+                                      + 's') + key)] = log_value
+                    elif type_category in self._convert_categories:
                         self._log_convert_value(
                             log, '/'.join((self._global_prepend,) + key),
-                            type_flag, log_value)
+                            type_category, log_value)
                     else:
                         log['/'.join((self._global_prepend,) + key)] = \
                             log_value
@@ -304,13 +333,13 @@ class _GSDLogWriter:
             dict_['particles/type_shapes'] = \
                 str_array.view(dtype=np.int8).reshape(num_shapes, max_len)
 
-    def _log_convert_value(self, dict_, key, flag, value):
+    def _log_convert_value(self, dict_, key, category, value):
         """Convert loggable types that cannot be directly stored by GSD."""
-        if flag == TypeFlags.string:
+        if category == LoggerCategories.string:
             value = bytes(value, 'UTF-8')
             value = np.array([value], dtype=np.dtype((bytes, len(value) + 1)))
             value = value.view(dtype=np.int8)
-        if flag == TypeFlags.strings:
+        elif category == LoggerCategories.strings:
             value = [bytes(v + '\0', 'UTF-8') for v in value]
             max_len = np.max([len(string) for string in value])
             num_strings = len(value)

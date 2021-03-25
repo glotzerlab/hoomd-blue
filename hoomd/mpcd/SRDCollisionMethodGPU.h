@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -29,7 +29,7 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
                               unsigned int cur_timestep,
                               unsigned int period,
                               int phase,
-                              unsigned int seed,
+                              uint16_t seed,
                               std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
         //! Set autotuner parameters
@@ -47,10 +47,10 @@ class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
 
     protected:
         //! Randomly draw cell rotation vectors
-        virtual void drawRotationVectors(unsigned int timestep);
+        virtual void drawRotationVectors(uint64_t timestep);
 
         //! Apply rotation matrix to velocities
-        virtual void rotate(unsigned int timestep);
+        virtual void rotate(uint64_t timestep);
 
     private:
         std::unique_ptr<Autotuner> m_tuner_rotvec;  //!< Tuner for drawing rotation vectors

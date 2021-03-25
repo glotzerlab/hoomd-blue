@@ -1,14 +1,16 @@
+# Trigger on new tags to build and upload release tarballs.
 trigger:
   tags:
     include:
     - 'v*'
 
+# Trigger on PRs to test that PRs do not break the tarball build. PR builds skip the upload step.
 pr:
   - maint
   - master
 
 variables:
-  image_root: glotzerlab/ci:2020.07
+  image_root: glotzerlab/ci:2021.03
   name: hoomd
 
 jobs:

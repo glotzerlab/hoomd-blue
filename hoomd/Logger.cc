@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -138,8 +138,9 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     Writes a single line of output to the log file with each specified quantity separated by
     the delimiter;
 */
-void Logger::analyze(unsigned int timestep)
+void Logger::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     if (m_prof) m_prof->push("Log");
 
     // update info in cache for later use and for immediate output.
@@ -153,7 +154,7 @@ void Logger::analyze(unsigned int timestep)
 
 /*! \param quantity Quantity to get
 */
-Scalar Logger::getQuantity(const std::string &quantity, unsigned int timestep, bool use_cache)
+Scalar Logger::getQuantity(const std::string &quantity, uint64_t timestep, bool use_cache)
     {
     // update info in cache for later use
     if (!use_cache && timestep != m_cached_timestep)
@@ -181,7 +182,7 @@ Scalar Logger::getQuantity(const std::string &quantity, unsigned int timestep, b
 /*! \param quantity Quantity to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-Scalar Logger::getValue(const std::string &quantity, int timestep)
+Scalar Logger::getValue(const std::string &quantity, uint64_t timestep)
     {
     // first see if it is the built-in time quantity
     if (quantity == "time")

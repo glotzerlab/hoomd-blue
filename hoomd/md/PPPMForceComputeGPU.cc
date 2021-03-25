@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.h"
@@ -52,6 +52,23 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
 
 void PPPMForceComputeGPU::initializeFFT()
     {
+    // free plans if they have already been initialized
+    if (m_local_fft && m_cufft_initialized)
+        {
+        #ifdef __HIP_PLATFORM_HCC__
+        CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
+        #else
+        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
+        #endif
+        }
+    #ifdef ENABLE_MPI
+    else if (m_cuda_dfft_initialized)
+        {
+        dfft_destroy_plan(m_dfft_plan_forward);
+        dfft_destroy_plan(m_dfft_plan_inverse);
+        }
+    #endif
+
     #ifdef ENABLE_MPI
     m_local_fft = !m_pdata->getDomainDecomposition();
 
@@ -221,7 +238,7 @@ void PPPMForceComputeGPU::assignParticles()
                         d_charge.data,
                         d_mesh.data,
                         d_mesh_scratch.data,
-                        m_mesh.getNumElements(),
+                        (unsigned int)m_mesh.getNumElements(),
                         m_order,
                         m_pdata->getBox(),
                         block_size,
@@ -238,7 +255,7 @@ void PPPMForceComputeGPU::assignParticles()
     if (m_exec_conf->getNumActiveGPUs() > 1)
         {
         m_tuner_reduce_mesh->begin();
-        gpu_reduce_meshes(m_mesh.getNumElements(),
+        gpu_reduce_meshes((unsigned int)m_mesh.getNumElements(),
             d_mesh_scratch.data,
             d_mesh.data,
             m_exec_conf->getNumActiveGPUs(),

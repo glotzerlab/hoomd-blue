@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -9,7 +9,6 @@
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide3D.h"
 #include "XenoSweep3D.h"
-#include "MAP3D.h"
 #include "hoomd/ManagedArray.h"
 #include "hoomd/hpmc/OBB.h"
 
@@ -70,11 +69,11 @@ struct PolyhedronVertices : ShapeParams
                        OverlapReal sweep_radius_,
                        unsigned int ignore_,
                        bool managed=false)
-        : x(verts.size(), managed),
-          y(verts.size(), managed),
-          z(verts.size(), managed),
+        : x((unsigned int)verts.size(), managed),
+          y((unsigned int)verts.size(), managed),
+          z((unsigned int)verts.size(), managed),
           n_hull_verts(0),
-          N(verts.size()),
+          N((unsigned int)verts.size()),
           diameter(0.0),
           sweep_radius(sweep_radius_),
           ignore(ignore_)
@@ -92,7 +91,7 @@ struct PolyhedronVertices : ShapeParams
     void setVerts(const std::vector<vec3<OverlapReal>>& verts,
                   OverlapReal sweep_radius_)
         {
-        N = verts.size();
+        N = (unsigned int)verts.size();
         diameter = 0;
         sweep_radius = sweep_radius_;
         bool managed = x.isManaged();
@@ -139,11 +138,11 @@ struct PolyhedronVertices : ShapeParams
             auto hull = qh.getConvexHull(qh_pts, false, true);
             auto indexBuffer = hull.getIndexBuffer();
 
-            hull_verts = ManagedArray<unsigned int>(indexBuffer.size(), managed);
-            n_hull_verts = indexBuffer.size();
+            hull_verts = ManagedArray<unsigned int>((unsigned int)indexBuffer.size(), managed);
+            n_hull_verts = (unsigned int)indexBuffer.size();
 
             for (unsigned int i = 0; i < indexBuffer.size(); i++)
-                 hull_verts[i] = indexBuffer[i];
+                 hull_verts[i] = (unsigned int)indexBuffer[i];
             }
 
         if (N >= 1)
@@ -704,6 +703,9 @@ struct ShapeConvexPolyhedron
     /// Define the parameter type
     typedef detail::PolyhedronVertices param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
@@ -798,19 +800,17 @@ template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapeConvexPolyhedron& a,
                                  const ShapeConvexPolyhedron& b,
-                                 unsigned int& err,
-                                 Scalar sweep_radius_a,
-                                 Scalar sweep_radius_b)
+                                 unsigned int& err)
     {
     vec3<OverlapReal> dr(r_ab);
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
-                                  detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
+    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                  detail::SupportFuncConvexPolyhedron(b.verts),
                                   rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                   conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-                                  DaDb/2.0,
+                                  DaDb/OverlapReal(2.0),
                                   err);
 
     /*
@@ -823,7 +823,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                            err);
     */
     }
-
 
 //! Convex polyhedron sweep distance
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
@@ -844,9 +843,9 @@ DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
     {
     vec3<OverlapReal> dr(r_ab);
     vec3<OverlapReal> to(direction);
- 
+
 	vec3<OverlapReal> csp(collisionPlaneVector);
-	
+
 	OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     double distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
@@ -859,36 +858,8 @@ DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
 								csp
    							);
 	collisionPlaneVector = vec3<Scalar>( rotate(quat<OverlapReal>(a.orientation), csp) );
-	
-	return distance;
-    }
-    
-/** Test for the overlap of a third convex polyhedron with the intersection of two convex polyhedra
 
-    @param a First shape to test
-    @param b Second shape to test
-    @param c Third shape to test
-    @param ab_t Position of second shape relative to first
-    @param ac_t Position of third shape relative to first
-    @param err Output variable that is incremented upon non-convergence
-    @param sweep_radius Radius of a sphere to sweep all shapes by
-*/
-template<>
-DEVICE inline bool test_overlap_intersection(const ShapeConvexPolyhedron& a,
-    const ShapeConvexPolyhedron& b, const ShapeConvexPolyhedron& c,
-    const vec3<Scalar>& ab_t, const vec3<Scalar>& ac_t, unsigned int &err,
-    Scalar sweep_radius_a, Scalar sweep_radius_b, Scalar sweep_radius_c)
-    {
-    return detail::map_three(a,b,c,
-        detail::SupportFuncConvexPolyhedron(a.verts,sweep_radius_a),
-        detail::SupportFuncConvexPolyhedron(b.verts,sweep_radius_b),
-        detail::SupportFuncConvexPolyhedron(c.verts,sweep_radius_c),
-        detail::ProjectionFuncConvexPolyhedron(a.verts,sweep_radius_a),
-        detail::ProjectionFuncConvexPolyhedron(b.verts,sweep_radius_b),
-        detail::ProjectionFuncConvexPolyhedron(c.verts,sweep_radius_c),
-        vec3<OverlapReal>(ab_t),
-        vec3<OverlapReal>(ac_t),
-        err);
+	return distance;
     }
 
 #ifndef __HIPCC__
@@ -896,13 +867,20 @@ template<>
 inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     {
     std::ostringstream shapedef;
-    auto& verts = poly.verts;
+    const auto& verts = poly.verts;
     shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-    for (unsigned int i = 0; i < verts.N-1; i++)
+    if (verts.N != 0)
         {
-        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
+        for (unsigned int i = 0; i < verts.N-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
+            }
+        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
         }
-    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << ", " << verts.z[verts.N-1] << "]]}";
+    else
+        {
+        shapedef << "[0, 0, 0]]}";
+        }
     return shapedef.str();
     }
 #endif

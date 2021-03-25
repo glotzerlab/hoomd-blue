@@ -4,24 +4,166 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.2 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.5 (2021-03-23)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``filter`` parameter to ``update.BoxResize`` - A ``ParticleFilter`` that identifies the particles
+  to scale with the box.
+- ``Simulation.seed`` - one place to set random number seeds for all operations.
+- ``net_force``, ``net_torque``, and ``net_energy`` per-particle arrays in local snapshots.
+- Support ``hpmc.update.Clusters`` on the GPU.
+- ``hpmc.update.MuVT`` - Gibbs ensemble simulations with HPMC.
+- ``md.update.ZeroMomentum`` - Remove linear momentum from the system.
+- ``hpmc.compute.FreeVolume`` - Compute free volume available to test particles.
+- Custom action tutorials.
+
+*Changed*
+
+- [breaking]  Removed the parameter ``scale_particles`` in ``update.BoxResize``
+- [internal] Modified signature of ``data.typeconverter.OnlyTypes``
+- Remove use of deprecated numpy APIs.
+- Added more details to the migration guide.
+- Support timestep values in the range [0,2**64-1].
+- [breaking] Removed *seed* argument from ``State.thermalize_particle_momenta``
+- [breaking] Removed *seed* argument from ``md.methods.NVT.thermalize_thermostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.NPT.thermalize_thermostat_and_barostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.NPH.thermalize_barostat_dof``
+- [breaking] Removed *seed* argument from ``md.methods.Langevin``
+- [breaking] Removed *seed* argument from ``md.methods.Brownian``
+- [breaking] Removed *seed* argument from ``md.force.Active``
+- [breaking] Removed *seed* argument from ``md.pair.DPD``
+- [breaking] Removed *seed* argument from ``md.pair.DPDLJ``
+- [breaking] Removed *seed* argument from all HPMC integrators.
+- [breaking] Removed *seed* argument from ``hpmc.update.Clusters``
+- [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
+- [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
+- Use latest version of getar library.
+- Improve documentation.
+- Improve performance of ``md.pair.Mie``.
+- [breaking] ``hpmc.update.Clusters`` re-implemented with a rejection free, but not ergodic,
+  algorithm for anisotropic particles. The new algorithm does not run in parallel over MPI ranks.
+- [breaking] HPMC depletion algorithm rewritten.
+- [breaking, temporary] HPMC depletant fugacity is now set for type pairs. This change will be
+  reverted in a future release.
+- Tutorials require fresnel 0.13.
+- Support TBB 2021.
+
+*Fixed*
+
+- Install ``ParticleFilter`` header files for external plugins.
+- ``md.force.Active`` keeps floating point values set for ``active_force`` and ``active_torque``.
+- ``create_state_from_snapshot`` accepts ``gsd.hoomd.Snapshot`` objects without error.
+- HOOMD compiles on Apple silicon macOS systems.
+- Memory leak in PPPM force compute.
+- Segmentation fault that occurred when dumping GSD shapes for spheropolygons and spheropolyhedra
+  with 0 vertices.
+- Incorrect MD neighbor lists in MPI simulations with more than 1 rank.
+- ``md.bond.FENE`` accepts parameters.
+
+*Removed*
+
+- Testing with CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
+
+v3.0.0-beta.4 (2021-02-16)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.write.DCD`` - DCD trajectory writer.
+- ``hoomd.md.many_body`` - RevCross, SquareDensity, and Tersoff triplet
+  potentials.
+- ``hoomd.md.methods.Berendsen`` - Berendsen integration method.
+- ``hoomd.md.methods.NPH`` - Constant pressure constant enthalpy integration
+  method.
+- ``hoomd.md.pair.TWF`` - Potential for modeling globular proteins by Pieter
+  Rein ten Wolde and Daan Frenkel.
+- Custom particle filters in Python via ``hoomd.filter.CustomFilter``.
+
+*Changed*
+
+- Documentation improvements.
+
+*Fixed*
+
+- Correctly determine the maximum ``r_cut`` in simulations with more than one
+  pair potential and more than one type.
+
+v3.0.0-beta.3 (2021-01-11)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``hoomd.variant.Variant`` objects are picklable.
+- ``hoomd.filter.ParticleFilter`` objects are picklable.
+- ``hoomd.trigger.Trigger`` objects are picklable.
+- ``hoomd.Snapshot.from_gsd_snapshot`` - Convert GSD snapshots to HOOMD.
+- ``hoomd.md.pair.aniso.GayBerne`` - Uniaxial ellipsoid pair potential.
+- ``hoomd.md.pair.aniso.Dipole`` - Dipole pair potential.
+- ``hoomd.md.pair.OPP`` - Oscillating pair potential.
+
+*Changed*
+
+- Improved compilation docs.
+- Box equality checking now returns ``NotImplemented`` for non-``hoomd.Box``
+  objects.
+- ``Simulation.create_state_from_snapshot`` now accepts ``gsd.hoomd.Snapshot``
+  objects.
+- Attempting to run in a local snapshot context manager will now raise a
+  ``RuntimeError``.
+- Attempting to set the state to a new snapshot in a local snapshot context
+  manager will now raise a ``RuntimeError``.
+
+*Fixed*
+
+- ``hoomd.variant.Power`` objects now have a ``t_ramp`` attribute as documented.
+- Enable memory buffers larger than 2-4 GiB.
+- Correctly write large image flags to GSD files.
+- Support more than 26 default type names.
+- Correctly represent fractional degrees of freedom.
+- Compute the minimum image in double precision.
+
+v3.0.0-beta.2 (2020-12-15)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - Support pybind11 2.6.0
 - Exclusive creation file mode for ``write.GSD``.
+- ``hpmc.update.BoxMC``.
+- ``walltime`` and ``final_timestep`` loggable properties in ``Simulation``.
+- ``Null`` particle filter.
+- Logging tutorial.
 
 *Changed*
 
+- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- [breaking] Rename ``flags`` to ``categories`` in ``Logger``
+- ``hoomd.snapshot.ConfigurationData.dimensions`` is not settable and is
+  determined by the snapshot box. If ``box.Lz == 0``, the dimensions are 2
+  otherwise 3.
 - Building from source requires a C++14 compatible compiler.
 - Improved documentation.
-- [breaking] Replace ``write.GSD`` argument ``overwrite`` with ``mode``.
+- ``hpmc.integrate.FacetedEllipsoid``'s shape specification now has a default
+  origin of (0, 0, 0).
+- Document loggable quantities in property docstrings.
+- Skip GPU tests when no GPU is present.
+- ``write.Table`` writes integers with integer formatting.
 
 *Fixed*
 
 - ``Simulation.run`` now ends with a ``KeyboardInterrupt`` exception when
   Jupyter interrupts the kernel.
+- Logging the state of specific objects with nested attributes.
+- Broken relative RPATHs.
+- Add missing documentation for ``version.version``
+- Error when removing specific operations from a simulation's operations
+  attribute.
+- Find CUDA libraries on additional Linux distributions.
+- ``hpmc.update.Clusters`` now works with all HPMC integrators.
+- ``Simulation.timestep`` reports the correct value when analyzers are called.
+- ``Logger`` names quantities with the documented namespace name.
 
 v3.0.0-beta.1 (2020-10-15)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -105,6 +247,32 @@ functionality.
 
 v2.x
 ----
+
+v2.9.6 (2021-03-16)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support TBB 2021.
+
+v2.9.5 (2021-03-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support macos-arm64.
+* Support TBB 2021.
+* Fix memory leak in PPPM.
+
+v2.9.4 (2021-02-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support thrust 1.10
+* Support LLVM11
+* Fix Python syntax warnings
+* Fix compile errors with gcc 10
 
 v2.9.3 (2020-08-05)
 ^^^^^^^^^^^^^^^^^^^

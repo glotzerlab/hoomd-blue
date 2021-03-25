@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -25,7 +25,7 @@ class ExternalField : public Compute
     {
     public:
         ExternalField(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef) {}
-        /*! calculateBoltzmannWeight(unsigned int timestep)
+        /*! calculateBoltzmannWeight(uint64_t timestep)
             method used to calculate the boltzmann weight contribution for the
             external field of the entire system. This is used to interface with
             global moves such as the NPT box updater. The boltzmann factor can
@@ -36,7 +36,7 @@ class ExternalField : public Compute
             Scalar bw2 = external->calculateBoltzmannWeight(timestep);
             pacc = min(1, bw2/bw1);
         */
-        virtual Scalar calculateBoltzmannWeight(unsigned int timestep){return 0;}
+        virtual Scalar calculateBoltzmannWeight(uint64_t timestep){return 0;}
         /*! Calculate deltaE for the whole system
             Used for box resizing
         */
@@ -63,12 +63,12 @@ class ExternalFieldMono : public ExternalField
         ~ExternalFieldMono(){}
 
         //! needed for Compute. currently not used.
-        virtual void compute(unsigned int timestep) {}
+        virtual void compute(uint64_t timestep) {}
 
         //! method to calculate the energy difference for the proposed move.
         virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
-        virtual void reset(unsigned int timestep) {}
+        virtual void reset(uint64_t timestep) {}
     };
 
 

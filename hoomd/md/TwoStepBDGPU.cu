@@ -1,5 +1,5 @@
 #include "hip/hip_runtime.h"
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -71,8 +71,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const unsigned int n_types,
                                   const bool use_alpha,
                                   const Scalar alpha,
-                                  const unsigned int timestep,
-                                  const unsigned int seed,
+                                  const uint64_t timestep,
+                                  const uint16_t seed,
                                   const Scalar T,
                                   const bool aniso,
                                   const Scalar deltaT,
@@ -124,7 +124,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
         Scalar rx = uniform(rng);
         Scalar ry = uniform(rng);

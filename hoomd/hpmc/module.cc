@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -20,6 +20,7 @@
 #include "AnalyzerSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
+#include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
 
 #include "GPUTree.h"
@@ -124,6 +125,7 @@ PYBIND11_MODULE(_hpmc, m)
     // export counters
     export_hpmc_implicit_counters(m);
 
+    export_hpmc_muvt_counters(m);
     export_hpmc_clusters_counters(m);
 
     export_hpmc_nec_counters(m);

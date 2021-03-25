@@ -45,6 +45,7 @@ The following people have contributed to the to HOOMD-blue:
 * Grey Garrett, University of Michigan
 * Igor Morozov, Joint Institute for High Temperatures of RAS
 * Isaac Bruss, University of Michigan
+* Jakin B. Delony, University of South Florida
 * James Antonaglia, University of Michigan
 * James Proctor, University of Michigan
 * James W. Swan, Massachusetts Institute of Technology
@@ -52,10 +53,12 @@ The following people have contributed to the to HOOMD-blue:
 * Jens Glaser, Oak Ridge National Laboratory
 * Joseph Berleant, University of Michigan
 * Joshua A. Anderson, University of Michigan
+* Kelly Wang, University of Michigan
 * Kevin Daly, Princeton University
 * Kevin Kohlstedt, University of Michigan
 * Kevin Silmore, Princeton University
 * Khalid Ahmed, University of Michigan
+* Kristi Pepa, University of Michigan
 * Kwanghwi Je, University of Michigan
 * Lin Yang, Iowa State University
 * Ludwig Schneider, Georg-August Univeristy Goettingen

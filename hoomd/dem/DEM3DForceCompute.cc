@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer(s): mspells, rmarson
@@ -82,7 +82,7 @@ template<typename Real, typename Real4, typename Potential>
 std::string DEM3DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec3<Real>> &verts, const Real &radius) const
     {
     std::ostringstream shapedef;
-    unsigned int nverts = verts.size();
+    size_t nverts = verts.size();
     if (nverts == 1)
         {
         shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
@@ -103,9 +103,9 @@ template<typename Real, typename Real4, typename Potential>
 std::string DEM3DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec3<Real>> &verts) const
     {
     std::ostringstream vertstr;
-    unsigned int nverts = verts.size();
+    size_t nverts = verts.size();
     vertstr << "[";
-    for (unsigned int i = 0; i < nverts-1; i++)
+    for (size_t i = 0; i < nverts-1; i++)
         {
         vertstr << "[" << verts[i].x << ", " << verts[i].y << ", " << verts[i].z << "], ";
         }
@@ -157,7 +157,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
         throw runtime_error("Error setting parameters in DEM3DForceCompute");
         }
 
-    for(int i(type - m_shapes.size()); i >= 0; --i)
+    for(size_t i(type - m_shapes.size()); i >= 0; --i)
         {
         m_shapes.push_back(vector<vec3<Real> >(0));
         m_facesVec.push_back(vector<vector<unsigned int> >(0));
@@ -297,8 +297,8 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
     // m_firstTypeVert, and m_numTypeVerts
     for(size_t i(0), j(0); i < m_shapes.size(); ++i)
         {
-        h_firstTypeVert.data[i] = j;
-        h_numTypeVerts.data[i] = m_shapes[i].size();
+        h_firstTypeVert.data[i] = (unsigned int)j;
+        h_numTypeVerts.data[i] = (unsigned int)m_shapes[i].size();
 
         for(size_t k(0); k < m_shapes[i].size(); ++j, ++k)
             {
@@ -313,20 +313,20 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
         {
         if(m_facesVec[shapeIdx].size() > 1)
             {
-            h_nextFace.data[shapeIdx] = faceCount + nTypes;
+            h_nextFace.data[shapeIdx] = (unsigned int)(faceCount + nTypes);
 
             // We already account for two faces above and below here,
             // so only do N-2 iterations in this loop; basically, just
             // iterate to the end-1 instead of the end
             for(size_t faceIdx(2); faceIdx < m_facesVec[shapeIdx].size(); ++faceIdx, ++faceCount)
-                h_nextFace.data[faceCount + nTypes] = faceCount + nTypes + 1;
+                h_nextFace.data[faceCount + nTypes] = (unsigned int)(faceCount + nTypes + 1);
 
             // close the loop
-            h_nextFace.data[faceCount + nTypes] = shapeIdx;
+            h_nextFace.data[faceCount + nTypes] = (unsigned int)shapeIdx;
             ++faceCount;
             }
         else
-            h_nextFace.data[shapeIdx] = shapeIdx;
+            h_nextFace.data[shapeIdx] = (unsigned int)shapeIdx;
         }
 
     // build m_firstFaceVert
@@ -337,7 +337,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
             vecIdx < m_facesVec[shapeIdx].size();
             faceIdx = h_nextFace.data[faceIdx], ++vecIdx)
             {
-            h_firstFaceVert.data[faceIdx] = vertCount;
+            h_firstFaceVert.data[faceIdx] = (unsigned int)vertCount;
             vertCount += m_facesVec[shapeIdx][vecIdx].size();
             }
         }
@@ -353,10 +353,10 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
 
             for(size_t vertIdx(1); vertIdx < m_facesVec[shapeIdx][faceIdx].size();
                 ++vertIdx, ++vertCount)
-                h_nextFaceVert.data[vertCount] = vertCount + 1;
+                h_nextFaceVert.data[vertCount] = (unsigned int)(vertCount + 1);
 
             // close the loop
-            h_nextFaceVert.data[vertCount] = firstVert;
+            h_nextFaceVert.data[vertCount] = (unsigned int)firstVert;
             ++vertCount;
             }
         }
@@ -369,7 +369,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
             {
             for(size_t vertIdx(0); vertIdx < m_facesVec[shapeIdx][faceIdx].size();
                 ++vertIdx, ++vertCount)
-                h_realVertIndex.data[vertCount] = vertTypeOffset + m_facesVec[shapeIdx][faceIdx][vertIdx];
+                h_realVertIndex.data[vertCount] = (unsigned int)(vertTypeOffset + m_facesVec[shapeIdx][faceIdx][vertIdx]);
             }
         vertTypeOffset += m_shapes[shapeIdx].size();
         }
@@ -407,26 +407,26 @@ void DEM3DForceCompute<Real, Real4, Potential>::createGeometry()
         vertTypeOffset += m_shapes[shapeIdx].size();
 
         // fill the GPUArrays
-        h_firstTypeEdge.data[shapeIdx] = edgeCount;
+        h_firstTypeEdge.data[shapeIdx] = (unsigned int)edgeCount;
 
         for(std::set<edge>::const_iterator edgeIter(edges.begin());
             edgeIter != edges.end(); ++edgeIter, ++edgeCount)
             {
-            h_edges.data[2*edgeCount] = edgeIter->first;
-            h_edges.data[2*edgeCount + 1] = edgeIter->second;
+            h_edges.data[2*edgeCount] = (unsigned int)edgeIter->first;
+            h_edges.data[2*edgeCount + 1] = (unsigned int)edgeIter->second;
 
             ++h_vertexConnectivity.data[edgeIter->first];
             ++h_vertexConnectivity.data[edgeIter->second];
             }
 
-        h_numTypeEdges.data[shapeIdx] = edges.size();
+        h_numTypeEdges.data[shapeIdx] = (unsigned int)edges.size();
         }
 
     // build m_numTypeFaces
     for(size_t shapeIdx(0); shapeIdx < m_facesVec.size(); ++shapeIdx)
         {
-        const unsigned int faceSize(m_facesVec[shapeIdx].size());
-        h_numTypeFaces.data[shapeIdx] = faceSize;
+        size_t faceSize = m_facesVec[shapeIdx].size();
+        h_numTypeFaces.data[shapeIdx] = (unsigned int)faceSize;
         }
     }
 
@@ -551,7 +551,7 @@ std::vector< std::string > DEM3DForceCompute<Real, Real4, Potential>::getProvide
     }
 
 template<typename Real, typename Real4, typename Potential>
-Real DEM3DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, unsigned int timestep)
+Real DEM3DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == string("pair_dem_energy"))
         {
@@ -571,7 +571,7 @@ Real DEM3DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& q
   \param timestep specifies the current time step of the simulation
 */
 template<typename Real, typename Real4, typename Potential>
-void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int timestep)
+void DEM3DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -583,7 +583,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    const unsigned int virial_pitch = m_virial.getPitch();
+    const size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

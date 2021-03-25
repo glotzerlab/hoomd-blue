@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <iostream>
@@ -194,7 +194,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         // before computing averages
 
         std::cout << "Equilibrating 10,000 steps... " << std::endl;
-        unsigned int timestep;
+        uint64_t timestep;
         for (unsigned int i = 0; i < 10000; i++)
             {
             timestep = offs + i;
@@ -642,7 +642,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
         unsigned int n_equil_steps = 1500;
         std::cout << "Equilibrating " << n_equil_steps << " steps... " << std::endl;
-        unsigned int timestep;
+        uint64_t timestep;
         for (unsigned int i = 0; i < n_equil_steps; i++)
             {
             timestep = offs + i;

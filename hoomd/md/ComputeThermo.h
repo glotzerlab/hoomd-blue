@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -66,7 +66,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         virtual ~ComputeThermo();
 
         //! Compute the temperature
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Returns the overall temperature last computed by compute()
         /*! \returns Instantaneous overall temperature of the system
@@ -77,9 +77,16 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            Scalar prefactor = Scalar(2.0)/(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
-            return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
-                              h_properties.data[thermo_index::rotational_kinetic_energy]);
+            if (m_group->getTranslationalDOF() + m_group->getRotationalDOF() > 0)
+                {
+                Scalar prefactor = Scalar(2.0)/(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
+                return prefactor*(h_properties.data[thermo_index::translational_kinetic_energy] +
+                                  h_properties.data[thermo_index::rotational_kinetic_energy]);
+                }
+            else
+                {
+                return 0.0;
+                }
         }
 
         //! Returns the translational temperature last computed by compute()
@@ -91,7 +98,14 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             if (!m_properties_reduced) reduceProperties();
             #endif
             ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
-            return Scalar(2.0)/m_group->getTranslationalDOF()*h_properties.data[thermo_index::translational_kinetic_energy];
+            if (m_group->getTranslationalDOF() > 0)
+                {
+                return Scalar(2.0)/m_group->getTranslationalDOF()*h_properties.data[thermo_index::translational_kinetic_energy];
+                }
+            else
+                {
+                return 0.0;
+                }
             }
 
         //! Returns the rotational temperature last computed by compute()
@@ -259,17 +273,17 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
 
         // <--------------- Degree of Freedom Data
 
-        unsigned int getNDOF()
+        double getNDOF()
             {
             return m_group->getTranslationalDOF() + m_group->getRotationalDOF();
             }
 
-        unsigned int getTranslationalDOF()
+        double getTranslationalDOF()
             {
             return m_group->getTranslationalDOF();
             }
 
-        unsigned int getRotationalDOF()
+        double getRotationalDOF()
             {
             return m_group->getRotationalDOF();
             }
@@ -293,7 +307,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Control the enable_logging flag
         /*! Set this flag to false to prevent this compute from providing logged quantities.

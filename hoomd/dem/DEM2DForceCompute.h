@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mspells
@@ -60,7 +60,7 @@ class DEM2DForceCompute : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Real getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Real getLogValue(const std::string& quantity, uint64_t timestep);
 
         void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
@@ -76,7 +76,7 @@ class DEM2DForceCompute : public ForceCompute
 
     #ifdef ENABLE_MPI
         //! Get requested ghost communication flags
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             // by default, only request positions
             CommFlags flags(0);
@@ -101,7 +101,7 @@ class DEM2DForceCompute : public ForceCompute
         std::vector<std::vector<vec2<Real> > > m_shapes; //!< Vertices for each type
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 #include "DEM2DForceCompute.cc"

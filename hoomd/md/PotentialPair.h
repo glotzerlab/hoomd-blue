@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -119,7 +119,7 @@ class PotentialPair : public ForceCompute
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
         int slotWriteGSDShapeSpec(gsd_handle&) const;
         /// Validate that types are within Ntypes
-        virtual void validateTypes(unsigned int typ1, unsigned int typ2,
+        void validateTypes(unsigned int typ1, unsigned int typ2,
                                    std::string action);
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
@@ -127,7 +127,7 @@ class PotentialPair : public ForceCompute
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -156,6 +156,10 @@ class PotentialPair : public ForceCompute
             else if (mode == "xplor")
                 {
                 m_shift_mode = xplor;
+                }
+            else
+                {
+                throw std::runtime_error("Invalid energy shift mode.");
                 }
             }
 
@@ -186,7 +190,7 @@ class PotentialPair : public ForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Calculates the energy between two lists of particles.
@@ -227,7 +231,7 @@ class PotentialPair : public ForceCompute
         std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -401,13 +405,7 @@ PotentialPair< evaluator >::~PotentialPair()
 template< class evaluator >
 void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": Trying to set pair params for a non existent type! "
-                  << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
+    validateTypes(typ1, typ2, "setting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
     h_params.data[m_typpair_idx(typ2, typ1)] = param;
@@ -418,18 +416,7 @@ void PotentialPair<evaluator>::setParamsPython(pybind11::tuple typ, pybind11::di
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
-            << ": Trying to set pair params for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
-
-    ArrayHandle<param_type> h_params(m_params, access_location::host,
-                                     access_mode::readwrite);
-    h_params.data[m_typpair_idx(typ1, typ2)] = param_type(params);
-    h_params.data[m_typpair_idx(typ2, typ1)] = param_type(params);
+    setParams(typ1, typ2, param_type(params));
     }
 
 template< class evaluator >
@@ -437,13 +424,7 @@ pybind11::dict PotentialPair< evaluator >::getParams(pybind11::tuple typ)
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
-            << ": Trying to set pair params for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
-        }
+    validateTypes(typ1, typ2, "setting params");
 
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
@@ -454,17 +435,15 @@ template<class evaluator>
 void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
                                                unsigned int typ2,
                                                std::string action)
-{
-    // TODO change logic to just throw an exception
+    {
     auto n_types = this->m_pdata->getNTypes();
     if (typ1 >= n_types || typ2 >= n_types)
         {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName()
-            << ": Trying to " << action << " for a non existent type! "
-            << typ1 << "," << typ2 << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialPair");
+        throw std::runtime_error(
+            "Error in" + action +" for pair potential. Invalid type");
         }
-}
+    }
+
 /*! \param typ1 First type index in the pair
     \param typ2 Second type index in the pair
     \param rcut Cutoff radius to set
@@ -474,7 +453,7 @@ void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
 template< class evaluator >
 void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
-    validateTypes(typ1, typ2, "set rcut");
+    validateTypes(typ1, typ2, "setting r_cut");
         {
         // store r_cut**2 for use internally
         ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
@@ -505,7 +484,7 @@ Scalar PotentialPair< evaluator >::getRCut(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "get rcut.");
+    validateTypes(typ1, typ2, "getting r_cut.");
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
@@ -520,7 +499,7 @@ Scalar PotentialPair< evaluator >::getRCut(pybind11::tuple types)
 template< class evaluator >
 void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
-    validateTypes(typ1, typ2, "set ron");
+    validateTypes(typ1, typ2, "setting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
                                 access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
@@ -532,7 +511,7 @@ Scalar PotentialPair< evaluator >::getROn(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(types[1].cast<std::string>());
-    validateTypes(typ1, typ2, "get ron");
+    validateTypes(typ1, typ2, "getting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
@@ -581,7 +560,7 @@ std::vector< std::string > PotentialPair< evaluator >::getProvidedLogQuantities(
     \param timestep Current timestep of the simulation
 */
 template< class evaluator >
-Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -602,7 +581,7 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
     \param timestep specifies the current time step of the simulation
 */
 template< class evaluator >
-void PotentialPair< evaluator >::computeForces(unsigned int timestep)
+void PotentialPair< evaluator >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -821,7 +800,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialPair< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialPair< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -1042,13 +1021,6 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
-    ;
-
-    pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")
-        .value("no_shift", T::energyShiftMode::no_shift)
-        .value("shift", T::energyShiftMode::shift)
-        .value("xplor", T::energyShiftMode::xplor)
-        .export_values()
     ;
     }
 
