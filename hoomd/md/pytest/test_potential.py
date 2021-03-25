@@ -594,6 +594,19 @@ def _valid_params(particle_types=['A', 'B']):
                                         dict(zip(combos,
                                                  twf_valid_param_dicts)),
                                         {}))
+    r = np.arange(0, 2.6, 0.1)
+    Vs = [0.1 * (r**2 - r),
+          5 * ((r / 10)**12 - (r / 10)**6),
+          0.1 * ((2.5 - r)**2 - (2.5 - r))]
+    Fs = [0.5 * np.diff(V) / np.diff(r) for V in Vs]
+    table_arg_dict = {'V': [V[:-1].reshape(len(r) - 1, 1) for V in Vs],
+                      'F': [F.reshape(len(r) - 1, 1) for F in Fs],
+                      'width': [len(r) - 1] * 3}
+    table_valid_param_dicts = _make_valid_param_dicts(table_arg_dict)
+    valid_params_list.append(paramtuple(hoomd.md.pair.Table,
+                                        dict(zip(combos,
+                                                 table_valid_param_dicts)),
+                                        {}))
     return valid_params_list
 
 
