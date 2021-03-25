@@ -126,6 +126,7 @@ class EvaluatorPairTable
                                                    pybind11::array::StridesContainer({1*sizeof(Scalar), sizeof(Scalar)}),
                                                    F,
                                                    free_F);
+                v["width"] = width;
                 return v;
                 }
             #endif
