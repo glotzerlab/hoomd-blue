@@ -668,7 +668,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params)
+                                       pot.params.to_dict())
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
