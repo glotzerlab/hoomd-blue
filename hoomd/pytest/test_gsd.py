@@ -1,7 +1,11 @@
 import hoomd
-import gsd.hoomd
 import numpy as np
 import pytest
+try:
+    import gsd.hoomd
+except ImportError:
+    pytest.skip("gsd not available", allow_module_level=True)
+
 from hoomd.pytest.test_snapshot import assert_equivalent_snapshots
 
 
