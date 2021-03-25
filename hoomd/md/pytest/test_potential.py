@@ -147,10 +147,10 @@ def _make_invalid_param_dict(valid_dict):
         # Set one invalid argument per dictionary
         # Set two invalid arguments per key
         valid_value = invalid_dicts[count][key]
-        if not isinstance(valid_value, list):
+        if not (isinstance(valid_value, list) or isinstance(valid_value, np.ndarray)):
             invalid_dicts[count][key] = [1, 2]
             invalid_count += 1
-        if not isinstance(valid_value, str):
+        if not (isinstance(valid_value, str) or isinstance(valid_value, np.ndarray)):
             invalid_dicts[count + 1][key] = 'str'
             invalid_count += 1
         if invalid_count == 2:
@@ -307,6 +307,15 @@ def _invalid_params():
     invalid_params_list.extend(_make_invalid_params(twf_invalid_dicts,
                                                     hoomd.md.pair.TWF,
                                                     {}))
+
+    table_valid_dict = {'V': np.arange(0, 20, 1).reshape(20, 1) / 10,
+                        'F': np.asarray(20 * [-1.9 / 2.5]).reshape(20, 1),
+                        'width': 20}
+    table_invalid_dicts = _make_invalid_param_dict(table_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(table_invalid_dicts,
+                                                    hoomd.md.pair.Table,
+                                                    {}))
+
     tersoff_valid_dict = {
             'cutoff_thickness': 1.0,
             'magnitudes': (5.0, 2.0),
@@ -646,7 +655,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
     sim.operations.integrator.forces.append(pot)
     sim.run(1)
     assert _equivalent_data_structures(valid_params.pair_potential_params,
-                                       pot.params.to_dict())
+                                       pot.params)
 
 
 def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
