@@ -16,9 +16,8 @@ mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> s
                                              Scalar density,
                                              unsigned int type,
                                              std::shared_ptr<::Variant> T,
-                                             unsigned int seed,
                                              std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
-    : mpcd::VirtualParticleFiller(sysdata, density, type, T, seed), m_geom(geom)
+    : mpcd::VirtualParticleFiller(sysdata, density, type, T), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SlitGeometryFiller" << std::endl;
     }
@@ -75,7 +74,7 @@ void mpcd::SlitGeometryFiller::computeNumFill()
 /*!
  * \param timestep Current timestep to draw particles
  */
-void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
+void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -87,12 +86,15 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
 
     const Scalar vel_factor = fast::sqrt((*m_T)(timestep) / m_mpcd_pdata->getMass());
 
+    uint16_t seed = m_sysdef->getSeed();
+
     // index to start filling from
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
     for (unsigned int i=0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, m_seed, tag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+                                   hoomd::Counter(tag));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
@@ -134,7 +136,6 @@ void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
                       Scalar,
                       unsigned int,
                       std::shared_ptr<::Variant>,
-                      unsigned int,
                       std::shared_ptr<const mpcd::detail::SlitGeometry>>())
         .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry)
         ;

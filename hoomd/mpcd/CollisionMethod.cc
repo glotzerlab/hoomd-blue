@@ -20,37 +20,28 @@
  * \param seed Seed to pseudo-random number generator
  */
 mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
-                                       unsigned int cur_timestep,
-                                       unsigned int period,
-                                       int phase,
-                                       unsigned int seed)
+                                       uint64_t cur_timestep,
+                                       uint64_t period,
+                                       int phase)
     : m_mpcd_sys(sysdata),
       m_sysdef(m_mpcd_sys->getSystemDefinition()),
       m_pdata(m_sysdef->getParticleData()),
       m_mpcd_pdata(m_mpcd_sys->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
       m_cl(m_mpcd_sys->getCellList()),
-      m_period(period), m_seed(seed), m_enable_grid_shift(true)
+      m_period(period), m_enable_grid_shift(true)
     {
     // setup next timestep for collision
     m_next_timestep = cur_timestep;
     if (phase >= 0)
         {
         // determine next step that is in line with period + phase
-        unsigned int multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
+        uint64_t multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
         m_next_timestep = multiple * m_period + phase;
         }
-
-    #ifdef ENABLE_MPI
-    // synchronize seed from root across all ranks in MPI in case users has seeded from system time or entropy
-    if (m_exec_conf->getNRanks() > 1)
-        {
-        bcast(m_seed, 0, m_exec_conf->getMPICommunicator());
-        }
-    #endif // ENABLE_MPI
     }
 
-void mpcd::CollisionMethod::collide(unsigned int timestep)
+void mpcd::CollisionMethod::collide(uint64_t timestep)
     {
     if (!shouldCollide(timestep)) return;
 
@@ -72,7 +63,7 @@ void mpcd::CollisionMethod::collide(unsigned int timestep)
  * Using a multiple allows the collision method to be disabled and then reenabled later if the \a timestep has already
  * exceeded the \a m_next_timestep.
  */
-bool mpcd::CollisionMethod::peekCollide(unsigned int timestep) const
+bool mpcd::CollisionMethod::peekCollide(uint64_t timestep) const
     {
     if (timestep < m_next_timestep)
         return false;
@@ -96,7 +87,7 @@ void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
         }
 
     // try to update the period
-    const unsigned int old_period = m_period;
+    const uint64_t old_period = m_period;
     m_period = period;
 
     // validate the new period, resetting to the old one before erroring out if it doesn't match
@@ -115,7 +106,7 @@ void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
  * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
  *       If this behavior is not desired, then use peekCollide() instead.
  */
-bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
+bool mpcd::CollisionMethod::shouldCollide(uint64_t timestep)
     {
     if (peekCollide(timestep))
         {
@@ -138,8 +129,10 @@ bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
  *
  * If grid shifting is disabled, a zero vector is instead set.
  */
-void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
+void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
     {
+    uint16_t seed = m_sysdef->getSeed();
+
     // return zeros if shifting is off
     if (!m_enable_grid_shift)
         {
@@ -148,7 +141,8 @@ void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
     else
         {
         // PRNG using seed and timestep as seeds
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::CollisionMethod, m_seed, timestep / m_period);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
+                                   hoomd::Counter(m_instance));
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution
@@ -169,8 +163,12 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     {
     namespace py = pybind11;
     py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod> >(m, "CollisionMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, unsigned int>())
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
-        .def("setPeriod", &mpcd::CollisionMethod::setPeriod);
+        .def("setPeriod", &mpcd::CollisionMethod::setPeriod)
+        .def_property("instance",
+                      &mpcd::CollisionMethod::getInstance,
+                      &mpcd::CollisionMethod::setInstance)
+        ;
     }

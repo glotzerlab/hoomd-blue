@@ -31,7 +31,7 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
                            unsigned int cur_timestep,
                            unsigned int period,
                            int phase,
-                           unsigned int seed,
+                           uint16_t seed,
                            std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
         //! Destructor
@@ -95,13 +95,13 @@ class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
         GPUVector<double> m_factors;    //!< Cell-level rescale factors
 
         //! Implementation of the collision rule
-        virtual void rule(unsigned int timestep);
+        virtual void rule(uint64_t timestep);
 
         //! Randomly draw cell rotation vectors
-        virtual void drawRotationVectors(unsigned int timestep);
+        virtual void drawRotationVectors(uint64_t timestep);
 
         //! Apply rotation matrix to velocities
-        virtual void rotate(unsigned int timestep);
+        virtual void rotate(uint64_t timestep);
     };
 
 namespace detail

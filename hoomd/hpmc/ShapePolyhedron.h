@@ -54,9 +54,8 @@ namespace detail
 */
 struct TriangleMesh : ShapeParams
     {
-    DEVICE TriangleMesh()
-        : convex_hull_verts(), verts(), face_offs(),
-          face_verts(), face_overlap(), n_faces(0), ignore(0)
+    TriangleMesh()
+        : face_verts(), face_overlap(), n_faces(0), ignore(0)
         {
         };
 
@@ -66,11 +65,9 @@ struct TriangleMesh : ShapeParams
     TriangleMesh(unsigned int n_verts_,
                  unsigned int n_faces_,
                  unsigned int n_face_verts_,
-                 unsigned int n_hull_verts_,
                  bool managed)
-        : n_verts(n_verts_), n_faces(n_faces_), hull_only(0)
+        : n_verts(n_verts_), n_faces(n_faces_), hull_only(0), sweep_radius(0), diameter(0.0)
         {
-        convex_hull_verts = PolyhedronVertices(n_hull_verts_, managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1, managed);
         face_verts = ManagedArray<unsigned int>(n_face_verts_, managed);
@@ -100,40 +97,12 @@ struct TriangleMesh : ShapeParams
 
         unsigned int leaf_capacity = v["capacity"].cast<unsigned int>();
 
-        // compute convex hull of vertices
-        typedef quickhull::Vector3<OverlapReal> vec;
-        std::vector<vec> qh_pts;
-        for (unsigned int i = 0; i < n_verts; i++)
-            {
-            pybind11::list vert_list = verts_list[i];
-            if (len(vert_list) != 3)
-                throw std::runtime_error("Each vertex must have 3 elements");
-            vec vert;
-            vert.x = pybind11::cast<OverlapReal>(vert_list[0]);
-            vert.y = pybind11::cast<OverlapReal>(vert_list[1]);
-            vert.z = pybind11::cast<OverlapReal>(vert_list[2]);
-            qh_pts.push_back(vert);
-            }
-
-        quickhull::QuickHull<OverlapReal> qh;
-        auto hull = qh.getConvexHull(qh_pts, true, false);
-        auto vertexBuffer = hull.getVertexBuffer();
-
-        convex_hull_verts = PolyhedronVertices((unsigned int)vertexBuffer.size(), managed);
         verts = ManagedArray<vec3<OverlapReal> >(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
         face_verts = ManagedArray<unsigned int>(n_faces * 3, managed);
         face_overlap = ManagedArray<unsigned int>(n_faces, managed);
 
-        sweep_radius = convex_hull_verts.sweep_radius = R;
-        unsigned int k = 0;
-        for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
-            {
-            convex_hull_verts.x[k] = it->x;
-            convex_hull_verts.y[k] = it->y;
-            convex_hull_verts.z[k] = it->z;
-            k++;
-            }
+        sweep_radius = R;
 
         face_offs[0] = 0;
         for (unsigned int i = 1; i <= n_faces; i++)
@@ -223,7 +192,7 @@ struct TriangleMesh : ShapeParams
         delete [] obbs;
 
         // set the diameter
-        convex_hull_verts.diameter = 2*(sqrt(radius_sq)+sweep_radius);
+        diameter = 2*(sqrt(radius_sq)+sweep_radius);
         }
 
     /// Convert parameters to a python dictionary
@@ -278,9 +247,6 @@ struct TriangleMesh : ShapeParams
     /// Tree for fast locality lookups
     GPUTree tree;
 
-    /// Holds parameters of convex hull
-    PolyhedronVertices convex_hull_verts;
-
     /// Vertex coordinates
     ManagedArray<vec3<OverlapReal> > verts;
 
@@ -311,10 +277,13 @@ struct TriangleMesh : ShapeParams
     /// Radius of a sweeping sphere
     OverlapReal sweep_radius;
 
+    /// Pre-calculated diameter
+    OverlapReal diameter;
+
+
     DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
         {
         tree.load_shared(ptr, available_bytes);
-        convex_hull_verts.load_shared(ptr, available_bytes);
         verts.load_shared(ptr, available_bytes);
         face_offs.load_shared(ptr, available_bytes);
         face_verts.load_shared(ptr, available_bytes);
@@ -324,7 +293,6 @@ struct TriangleMesh : ShapeParams
     HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
         {
         tree.allocate_shared(ptr, available_bytes);
-        convex_hull_verts.allocate_shared(ptr, available_bytes);
         verts.allocate_shared(ptr, available_bytes);
         face_offs.allocate_shared(ptr, available_bytes);
         face_verts.allocate_shared(ptr, available_bytes);
@@ -335,7 +303,6 @@ struct TriangleMesh : ShapeParams
     void set_memory_hint() const
         {
         tree.set_memory_hint();
-        convex_hull_verts.set_memory_hint();
         verts.set_memory_hint();
         face_offs.set_memory_hint();
         face_verts.set_memory_hint();
@@ -354,6 +321,9 @@ struct ShapePolyhedron
     //. Define the parameter type
     typedef detail::TriangleMesh param_type;
 
+    /// Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), data(_params), tree(_params.tree)
@@ -370,7 +340,7 @@ struct ShapePolyhedron
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
-        return data.convex_hull_verts.diameter;
+        return data.diameter;
         }
 
     /// Get the in-sphere radius of the shape
@@ -386,10 +356,51 @@ struct ShapePolyhedron
         return data.sweep_radius != OverlapReal(0.0);
         }
 
+    #ifndef __HIPCC__
+    std::string getShapeSpec() const
+        {
+        unsigned int n_verts = data.n_verts;
+        unsigned int n_faces = data.n_faces;
+
+        std::ostringstream shapedef;
+        if (n_verts == 1 && data.verts[0].x == 0.0f && data.verts[0].y == data.verts[0].x && data.verts[0].y == data.verts[0].z)
+            {
+            shapedef << "{\"type\": \"Sphere\", \"diameter\": " << data.sweep_radius*OverlapReal(2.0) << "}";
+            }
+        else
+            {
+            shapedef << "{\"type\": \"Mesh\", \"vertices\": [";
+            for (unsigned int i = 0; i < n_verts-1; i++)
+                {
+                shapedef << "[" << data.verts[i].x << ", " << data.verts[i].y << ", " << data.verts[i].z << "], ";
+                }
+            shapedef << "[" << data.verts[n_verts-1].x << ", " << data.verts[n_verts-1].y << ", " << data.verts[n_verts-1].z << "]], \"indices\": [";
+            unsigned int nverts_face, offset;
+            for (unsigned int i = 0; i < n_faces; i++)
+                {
+                // Number of vertices of ith face
+                nverts_face = data.face_offs[i + 1] - data.face_offs[i];
+                offset = data.face_offs[i];
+                shapedef << "[";
+                for (unsigned int j = 0; j < nverts_face-1; j++)
+                    {
+                    shapedef << data.face_verts[offset+j] << ", ";
+                    }
+                shapedef << data.face_verts[offset+nverts_face-1];
+                if (i == n_faces-1)
+                    shapedef << "]]}";
+                else
+                    shapedef << "], ";
+                }
+            }
+        return shapedef.str();
+        }
+    #endif
+
     /// Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
+        return detail::AABB(pos, data.diameter/Scalar(2));
         }
 
     /// Return a tight fitting OBB
@@ -905,22 +916,8 @@ template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& a,
                                  const ShapePolyhedron& b,
-                                 unsigned int& err,
-                                 Scalar sweep_radius_a,
-                                 Scalar sweep_radius_b)
+                                 unsigned int& err)
     {
-    // test overlap of convex hulls
-    if (bool(a.isSpheroPolyhedron()) || bool(b.isSpheroPolyhedron()))
-        {
-        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.convex_hull_verts),
-               ShapeSpheropolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
-        }
-    else
-        {
-        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.convex_hull_verts),
-           ShapeConvexPolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
-        }
-
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(OverlapReal(DaDb*1e-12));
     vec3<OverlapReal> dr = r_ab;

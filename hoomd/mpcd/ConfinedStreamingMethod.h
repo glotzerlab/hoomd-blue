@@ -61,7 +61,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
           {}
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep);
+        virtual void stream(uint64_t timestep);
 
         //! Get the streaming geometry
         std::shared_ptr<const Geometry> getGeometry() const
@@ -91,7 +91,7 @@ class PYBIND11_EXPORT ConfinedStreamingMethod : public mpcd::StreamingMethod
  * \param timestep Current time to stream
  */
 template<class Geometry>
-void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
+void ConfinedStreamingMethod<Geometry>::stream(uint64_t timestep)
     {
     if (!shouldStream(timestep)) return;
 

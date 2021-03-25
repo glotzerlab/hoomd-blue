@@ -44,7 +44,7 @@ NeighborListBinned::~NeighborListBinned()
     m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
     }
 
-void NeighborListBinned::buildNlist(unsigned int timestep)
+void NeighborListBinned::buildNlist(uint64_t timestep)
     {
     // update the cell list size if needed
     if (m_update_cell_size)

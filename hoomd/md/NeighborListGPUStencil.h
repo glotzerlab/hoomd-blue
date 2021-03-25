@@ -69,13 +69,27 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            m_cls->setCommunicator(comm);
+            }
+
+        #endif
+
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
-        unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
+        uint64_t m_last_tuned_timestep;       //!< Last tuning timestep
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil

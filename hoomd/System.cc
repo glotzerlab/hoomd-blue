@@ -41,7 +41,7 @@ PyObject* walltimeLimitExceptionTypeObj = 0;
     analyzers or integrators. Profiling defaults to disabled and
     statistics are printed every 10 seconds.
 */
-System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
+System::System(std::shared_ptr<SystemDefinition> sysdef, uint64_t initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
           m_profile(false)
     {
@@ -85,7 +85,7 @@ void System::setCommunicator(std::shared_ptr<Communicator> comm)
 
 // -------------- Methods for running the simulation
 
-void System::run(unsigned int nsteps, bool write_at_start)
+void System::run(uint64_t nsteps, bool write_at_start)
     {
     ScopedSignalHandler signal_handler;
     m_start_tstep = m_cur_tstep;
@@ -129,7 +129,7 @@ void System::run(unsigned int nsteps, bool write_at_start)
         }
 
     // run the steps
-    for (unsigned int count = 0; count < nsteps; count++)
+    for (uint64_t count = 0; count < nsteps; count++)
         {
         for (auto &tuner: m_tuners)
             {
@@ -309,7 +309,7 @@ void System::resetStats()
     The flags needed are determined by peeking to \a tstep and then using bitwise or to combine all of the flags from the
     analyzers and updaters that are to be executed on that step.
 */
-PDataFlags System::determineFlags(unsigned int tstep)
+PDataFlags System::determineFlags(uint64_t tstep)
     {
     PDataFlags flags = m_default_flags;
     if (m_integrator)
@@ -346,7 +346,7 @@ void export_System(py::module& m)
     py::bind_vector<std::vector<std::shared_ptr<Compute> > > (m, "ComputeList");
 
     py::class_< System, std::shared_ptr<System> > (m,"System")
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, uint64_t>())
 
     .def("setIntegrator", &System::setIntegrator)
     .def("getIntegrator", &System::getIntegrator)

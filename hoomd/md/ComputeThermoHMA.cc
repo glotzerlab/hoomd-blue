@@ -79,8 +79,9 @@ ComputeThermoHMA::~ComputeThermoHMA()
 /*! Calls computeProperties if the properties need updating
     \param timestep Current time step of the simulation
 */
-void ComputeThermoHMA::compute(unsigned int timestep)
+void ComputeThermoHMA::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (!shouldCompute(timestep))
         return;
 
@@ -99,7 +100,7 @@ std::vector< std::string > ComputeThermoHMA::getProvidedLogQuantities()
         }
     }
 
-Scalar ComputeThermoHMA::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar ComputeThermoHMA::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     compute(timestep);
     if (quantity == m_logname_list[0])

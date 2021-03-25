@@ -337,9 +337,10 @@ namespace getardump{
             m_archive->close();
         }
 
-    void GetarDumpWriter::analyze(unsigned int timestep)
+    void GetarDumpWriter::analyze(uint64_t timestep)
         {
-        const unsigned int shiftedTimestep(timestep - m_offset);
+        Analyzer::analyze(timestep);
+        const uint64_t shiftedTimestep(timestep - m_offset);
         bool neededSnapshots[9] = {false, false, false, false, false,
                                    false, false, false, false};
         bool ranThisStep(false);
@@ -436,7 +437,7 @@ namespace getardump{
             }
         }
 
-    void GetarDumpWriter::write(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep)
+    void GetarDumpWriter::write(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep)
         {
         if(!m_archive)
             return;
@@ -449,7 +450,7 @@ namespace getardump{
             writeUniform(writer, desc, timestep);
         }
 
-    void GetarDumpWriter::writeIndividual(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep)
+    void GetarDumpWriter::writeIndividual(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep)
         {
         if(desc.m_prop == AngularMomentum)
             {
@@ -720,7 +721,7 @@ namespace getardump{
             }
         }
 
-    void GetarDumpWriter::writeUniform(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep)
+    void GetarDumpWriter::writeUniform(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep)
         {
         if(desc.m_prop == Box)
             {
@@ -757,7 +758,7 @@ namespace getardump{
             }
         }
 
-    void GetarDumpWriter::writeText(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep)
+    void GetarDumpWriter::writeText(GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep)
         {
         if(desc.m_prop == TypeNames)
             {
@@ -873,7 +874,7 @@ namespace getardump{
             }
         }
 
-    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, int timestep)
+    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, uint64_t timestep)
         {
         bool dynamic(timestep >= 0);
         gtar::Record rec("", name, "", gtar::Constant, gtar::UInt8, gtar::Text);
