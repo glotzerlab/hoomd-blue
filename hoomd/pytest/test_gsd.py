@@ -75,8 +75,8 @@ def test_write(simulation_factory, device,
     hoomd.write.GSD.write(state=sim.state, mode='wb',
                           filename=str(filename))
 
-    with gsd.hoomd.open(name=filename, mode='wb') as traj:
-        assert_equivalent_snapshots(traj, hoomd_snapshot)
+    with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        assert_equivalent_snapshots(traj[0], hoomd_snapshot)
 
 
 def test_write_gsd_trigger(simulation_factory, device,
@@ -92,7 +92,7 @@ def test_write_gsd_trigger(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -124,7 +124,7 @@ def test_write_gsd_mode(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -144,7 +144,7 @@ def test_write_gsd_mode(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -171,7 +171,7 @@ def test_write_gsd_mode(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -193,7 +193,7 @@ def test_write_gsd_mode(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -223,7 +223,7 @@ def test_write_gsd_null_filter(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -254,7 +254,7 @@ def test_write_gsd_type_filter(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -286,7 +286,7 @@ def test_write_gsd_truncate(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -319,7 +319,7 @@ def test_write_gsd_dynamic(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -354,7 +354,7 @@ def test_write_gsd_log(simulation_factory, device,
     lj.params[('p1', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     lj.params[('p2', 'p2')] = {'sigma': 1, 'epsilon': 5e-200}
     integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1, seed=1)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
