@@ -764,15 +764,15 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
 
 
 @pytest.mark.parametrize('method_cls, kwargs', [
-    (hoomd.md.methods.NVT(), {
+    (hoomd.md.methods.NVT, {
         'filter': hoomd.filter.All(),
         'kT': 1.0,
         'tau': 2.0
     }),
-    (hoomd.md.methods.NVE(), {
+    (hoomd.md.methods.NVE, {
         'filter': hoomd.filter.All()
     }),
-    (hoomd.md.methods.NPH(), {
+    (hoomd.md.methods.NPH, {
         'filter': hoomd.filter.All(),
         'kT': 2.0,
         'tau': 2.0,
@@ -781,7 +781,7 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         'box_dof': [True, True, True, True, True, True],
         'couple': 'xyz'
     }),
-    (hoomd.md.methods.NPT(), {
+    (hoomd.md.methods.NPT, {
         'filter': hoomd.filter.All(),
         'kT': 2.0,
         'tau': 2.0,
@@ -790,15 +790,15 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
         'box_dof': [True, True, True, True, True, True],
         'couple': 'xyz'
     }),
-    (hoomd.md.methods.Langevin(), {
+    (hoomd.md.methods.Langevin, {
         'filter': hoomd.filter.All(),
         'kT': 1.5
     }),
-    (hoomd.md.methods.Brownian(), {
+    (hoomd.md.methods.Brownian, {
         'filter': hoomd.filter.All(),
         'kT': 1.5
     }),
-    (hoomd.md.methods.Berendsen(), {
+    (hoomd.md.methods.Berendsen, {
         'filter': hoomd.filter.All(),
         'kT': 1.5,
         'tau': 10.0
