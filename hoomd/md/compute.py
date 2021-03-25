@@ -301,7 +301,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     (with less variance) for atomic crystals in NVT simulations.  The presence
     of diffusion (vacancy hopping, etc.) will prevent HMA from providing
     improvement.  HMA tracks displacements from the lattice positions, which
-    are saved at the startof the first call to `Simulation.run`.
+    are saved at the start of the first call to `Simulation.run`.
 
     Note:
         :py:class:`ThermoHMA` is an implementation of the methods section of
