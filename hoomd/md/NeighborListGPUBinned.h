@@ -76,6 +76,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             }
 
         #ifdef ENABLE_MPI
+
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method
@@ -84,6 +85,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             // set the communicator on the internal cell lists
             m_cl->setCommunicator(comm);
             }
+
         #endif
 
     protected:

@@ -9,6 +9,7 @@
 #include "hoomd/mpcd/CommunicatorUtilities.h"
 #include "hoomd/mpcd/ReductionOperators.h"
 #include "hoomd/mpcd/SystemData.h"
+#include "hoomd/Communicator.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -135,6 +136,8 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
     std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    cl->setCommunicator(pdata_comm);
     cl->computeDimensions();
 
     // Don't really care what's in this array, just want to make sure errors get thrown appropriately

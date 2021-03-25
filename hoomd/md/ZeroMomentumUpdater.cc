@@ -36,6 +36,7 @@ ZeroMomentumUpdater::~ZeroMomentumUpdater()
 */
 void ZeroMomentumUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ZeroMomentum");
 
     // calculate the average momentum

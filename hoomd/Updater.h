@@ -66,7 +66,17 @@ class PYBIND11_EXPORT Updater
         /*! Derived classes will implement this method to perform their specific update
             \param timestep Current time step of the simulation
         */
-        virtual void update(uint64_t timestep)  {};
+        virtual void update(uint64_t timestep)
+            {
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition() && !m_comm)
+                {
+                throw std::runtime_error(
+                    "Bug: m_comm not set for a system with a domain decomposition in " +
+                    std::string(typeid(*this).name()));
+                }
+            #endif
+            };
 
         //! Sets the profiler for the compute to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof);

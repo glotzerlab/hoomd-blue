@@ -314,6 +314,7 @@ NeighborList::~NeighborList()
 */
 void NeighborList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // check if the rcut array has changed and update it
     if (m_rcut_changed)
         {

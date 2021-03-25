@@ -69,6 +69,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             }
 
         #ifdef ENABLE_MPI
+
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method
@@ -78,6 +79,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_cl->setCommunicator(comm);
             m_cls->setCommunicator(comm);
             }
+
         #endif
 
     protected:

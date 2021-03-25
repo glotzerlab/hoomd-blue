@@ -56,6 +56,7 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
             }
 
         #ifdef ENABLE_MPI
+
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method
@@ -64,6 +65,7 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
             // set the communicator on the internal cell list
             m_cl->setCommunicator(comm);
             }
+
         #endif
 
     protected:

@@ -64,7 +64,7 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
 */
 void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     {
-
+    Integrator::update(timestep);
     if (m_converged)
         return;
 
