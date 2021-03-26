@@ -159,7 +159,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         Scalar getTunerParticlesPerChain()
         {
@@ -1285,7 +1285,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
     \return the requested log quantity.
 */
 template<class Shape>
-Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == "hpmc_chain_time")
         {
