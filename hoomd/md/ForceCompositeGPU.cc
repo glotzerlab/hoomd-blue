@@ -63,7 +63,7 @@ ForceCompositeGPU::~ForceCompositeGPU()
 
 
 //! Compute the forces and torques on the central particle
-void ForceCompositeGPU::computeForces(unsigned int timestep)
+void ForceCompositeGPU::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
@@ -253,7 +253,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
+void ForceCompositeGPU::updateCompositeParticles(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");

@@ -38,8 +38,9 @@ CallbackAnalyzer::~CallbackAnalyzer()
 
     analyze() will call the callback
 */
-void CallbackAnalyzer::analyze(unsigned int timestep)
+void CallbackAnalyzer::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
       callback(timestep);
     }
 

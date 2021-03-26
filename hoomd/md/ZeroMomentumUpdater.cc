@@ -34,8 +34,9 @@ ZeroMomentumUpdater::~ZeroMomentumUpdater()
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation
 */
-void ZeroMomentumUpdater::update(unsigned int timestep)
+void ZeroMomentumUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ZeroMomentum");
 
     // calculate the average momentum

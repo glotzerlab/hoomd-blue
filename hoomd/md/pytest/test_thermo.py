@@ -50,12 +50,12 @@ def _assert_thermo_properties(thermo, npart, rdof, tdof, pe, rke, tke, ke, p, pt
                                         thermo.rotational_degrees_of_freedom)
 
     np.testing.assert_allclose(thermo.potential_energy, pe)
-    np.testing.assert_allclose(thermo.rotational_kinetic_energy, rke, rtol=1e-5)
-    np.testing.assert_allclose(thermo.translational_kinetic_energy, tke, rtol=1e-5)
-    np.testing.assert_allclose(thermo.kinetic_energy, ke, rtol=1e-5)
-    np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-5)
-    np.testing.assert_allclose(thermo.pressure, p, rtol=1e-5)
-    np.testing.assert_allclose(thermo.pressure_tensor, pt, rtol=1e-5, atol=5e-5)
+    np.testing.assert_allclose(thermo.rotational_kinetic_energy, rke, rtol=1e-4)
+    np.testing.assert_allclose(thermo.translational_kinetic_energy, tke, rtol=1e-4)
+    np.testing.assert_allclose(thermo.kinetic_energy, ke, rtol=1e-4)
+    np.testing.assert_allclose(thermo.kinetic_temperature, 2*thermo.kinetic_energy/thermo.degrees_of_freedom, rtol=1e-4)
+    np.testing.assert_allclose(thermo.pressure, p, rtol=1e-4)
+    np.testing.assert_allclose(thermo.pressure_tensor, pt, rtol=1e-4, atol=5e-5)
 
 
 def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
@@ -95,7 +95,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
 
     integrator = hoomd.md.Integrator(dt=0.0001)
     integrator.methods.append(hoomd.md.methods.NVT(filterA, tau=1, kT=1))
-    integrator.methods.append(hoomd.md.methods.Langevin(filterB, kT=1, seed=3, alpha=0.00001))
+    integrator.methods.append(hoomd.md.methods.Langevin(filterB, kT=1, alpha=0.00001))
     sim.operations.integrator = integrator
 
     sim.run(1)

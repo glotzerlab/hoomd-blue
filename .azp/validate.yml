@@ -1,21 +1,29 @@
-trigger: none
-
+# Trigger on PRs into stable branches. These builds take a significant amount of time. In the Azure
+# Pipelines web UI, this pipeline is set to require a team member's request before building. Add a
+# PR comment `/azp run validate` to run this pipeline.
 pr:
   - maint
   - master
 
+# Do not trigger on every push. This runs every commit twice for PRs with branches on the main
+# repository.
+trigger: none
+
+# Instead, trigger periodic builds on active branches.
 schedules:
-- cron: "0 2 * * *"
-  displayName: Daily 10PM build
-  # 2am UTC is 10PM eastern time
+- cron: "0 2-20/6 * * *"
+  displayName: Periodic build
   branches:
     include:
     - "*"
 
 variables:
-  image_root: glotzerlab/ci:2021.01
+  image_root: glotzerlab/ci:2021.03
 
-  # default build parameters, will override as needed with job matrix values
+  # Default build parameters, will override as needed with job matrix values. Variables are
+  # automatically set as environment variables (with names converted to all caps). These variables
+  # are used throughout the azure pipelines configuration (such as in build.yml) and implicitly by
+  # applications that respond to environment variables.
   enable_gpu: off
   enable_mpi: off
   enable_tbb: off
@@ -25,10 +33,7 @@ variables:
   llvm_version: '6.0'
   build_testing: on
   always_use_managed_memory: off
-  ctest_start: 1
-  ctest_stride: 1
   mpiexec_timeout: 3000
-  suite_name: $(Agent.JobName)
 
 stages:
 - stage: build_test_cpu2
@@ -41,7 +46,6 @@ stages:
     timeoutInMinutes: 75
 
     strategy:
-      maxParallel: 5
       matrix:
         clang10_py38_mpi_tbb:
           container_image: clang10_py38
@@ -90,30 +94,12 @@ stages:
           container_image: gcc7_py37
           enable_tbb: on
 
-        gcc6_py37_mpi:
-          container_image: gcc6_py37
-          enable_mpi: on
-
-        gcc5_py37:
-          container_image: gcc5_py37
-
-        gcc48_py37_mpi_tbb:
-          container_image: gcc48_py37
-          enable_mpi: on
-          enable_tbb: on
-
         clang6_py37_mpi_tbb:
           container_image: clang6_py37
           enable_mpi: on
           enable_tbb: on
           build_jit: on
           llvm_version: '6.0'
-
-        clang5_py37_tbb_llvm5:
-          container_image: clang5_py37
-          enable_tbb: on
-          build_jit: on
-          llvm_version: '5.0'
 
         gcc7_py36:
           container_image: gcc7_py36
@@ -126,6 +112,8 @@ stages:
       options: -u 0
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -146,10 +134,14 @@ stages:
       vmImage: '$(mac_image)'
 
     steps:
-    - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    - checkout: self
+      submodules: true
+    - bash: sudo chown -R $USER $CONDA
+      displayName: Take ownership of conda installation
+    - script: $CONDA/bin/conda env create --quiet --prefix=$(Pipeline.Workspace)/conda --file .azp/environment.yml
+      displayName: Create conda environment
+    - bash: echo "##vso[task.prependpath]$(Pipeline.Workspace)/conda/bin"
       displayName: Add conda to PATH
-    - script: sudo conda install --yes --quiet -c conda-forge cereal cmake eigen ninja openmpi python pybind11 tbb tbb-devel pytest numpy gsd
-      displayName: Conda install prereqs
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -171,29 +163,22 @@ stages:
           always_use_managed_memory: on
           enable_mpi: on
 
-        cuda10_py37_mpi:
+        cuda10_py37:
           container_image: cuda10_gcc7_py37
-          enable_mpi: on
-
-        cuda9_py37_mpi:
-          container_image: cuda9_gcc7_py37
-          enable_mpi: on
-
-        cuda9_py37:
-          container_image: cuda9_gcc7_py37
 
     pool:
       name: 'GPU'
-      demands: short_jobs
 
     container:
         image: $(image_root)-$(container_image)
-        options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
+        options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
 
     workspace:
       clean: all
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_tests.yml
 
@@ -217,7 +202,6 @@ stages:
           enable_tbb: on
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU tbb2
 
         clang11_py39_mpi_tbb1:
           container_image: clang11_py39
@@ -226,21 +210,18 @@ stages:
           build_jit: on
           llvm_version: '9.0'
           omp_num_threads: '1'
-          suite_name: CPU tbb1
 
         clang11_py39_mpi:
           container_image: clang11_py39
           enable_mpi: on
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU no-tbb
 
         clang11_py39:
           container_image: clang11_py39
           enable_mpi: off
           build_jit: on
           llvm_version: '9.0'
-          suite_name: CPU no-mpi
 
     pool:
       vmImage: 'ubuntu-latest'
@@ -250,6 +231,8 @@ stages:
       options: -u 0
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_validation_tests.yml
 
@@ -268,10 +251,9 @@ stages:
 
     strategy:
       matrix:
-        cuda10_py37_cuda10_mpi:
-          container_image: cuda10_gcc7_py37
+        cuda11_py38_mpi:
+          container_image: cuda11_gcc9_py38
           enable_mpi: on
-          suite_name: GPU cuda10
 
     pool:
       name: 'GPU'
@@ -279,11 +261,13 @@ stages:
 
     container:
        image: $(image_root)-$(container_image)
-       options: -u 0 --gpus=all --cpus=4 --memory=16g -e CUDA_VISIBLE_DEVICES
+       options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
 
     workspace:
       clean: all
 
     steps:
+    - checkout: self
+      submodules: true
     - template: templates/build.yml
     - template: templates/run_validation_tests.yml

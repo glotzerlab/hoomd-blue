@@ -24,6 +24,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 
@@ -57,6 +58,7 @@ void export_convex_polygon(py::module& m)
     #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygonGPU");
     export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygonGPU");
+    export_UpdaterClustersGPU< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygonGPU");
     #endif
     }
 

@@ -54,7 +54,7 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the BondTablePotentialGPU class to python

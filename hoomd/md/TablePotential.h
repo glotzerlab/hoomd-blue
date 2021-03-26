@@ -82,7 +82,7 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         virtual void notifyDetach()
             {
@@ -111,7 +111,7 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();

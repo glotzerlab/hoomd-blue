@@ -37,13 +37,12 @@ class PYBIND11_EXPORT VirtualParticleFiller
         VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                               Scalar density,
                               unsigned int type,
-                              std::shared_ptr<::Variant> T,
-                              unsigned int seed);
+                              std::shared_ptr<::Variant> T);
 
         virtual ~VirtualParticleFiller() {}
 
         //! Fill up virtual particles
-        void fill(unsigned int timestep);
+        void fill(uint64_t timestep);
 
         //! Sets the profiler for the integration method to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof)
@@ -73,12 +72,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
             m_T = T;
             }
 
-        //! Set the fill seed
-        void setSeed(unsigned int seed)
-            {
-            m_seed = seed;
-            }
-
     protected:
         std::shared_ptr<::SystemDefinition> m_sysdef;                   //!< HOOMD system definition
         std::shared_ptr<::ParticleData> m_pdata;                        //!< HOOMD particle data
@@ -90,7 +83,6 @@ class PYBIND11_EXPORT VirtualParticleFiller
         Scalar m_density;               //!< Fill density
         unsigned int m_type;            //!< Fill type
         std::shared_ptr<::Variant> m_T; //!< Temperature for filled particles
-        unsigned int m_seed;            //!< Seed for PRNG
 
         unsigned int m_N_fill;      //!< Number of particles to fill locally
         unsigned int m_first_tag;   //!< First tag of locally held particles
@@ -99,7 +91,7 @@ class PYBIND11_EXPORT VirtualParticleFiller
         virtual void computeNumFill() {}
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep) {}
+        virtual void drawParticles(uint64_t timestep) {}
     };
 
 namespace detail

@@ -61,7 +61,7 @@ void CosineSqAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
 
     Calls gpu_compute_cosinesq_angle_forces to do the dirty work.
 */
-void CosineSqAngleForceComputeGPU::computeForces(unsigned int timestep)
+void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(m_exec_conf, "CosineSq Angle");

@@ -48,7 +48,7 @@ class PYBIND11_EXPORT IMDInterface : public Analyzer
         ~IMDInterface();
 
         //! Handle connection requests and send current positions if connected
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
     private:
         void *m_listen_sock;    //!< Socket we are listening on
         void *m_connected_sock; //!< Socket to transmit/receive data
@@ -90,7 +90,7 @@ class PYBIND11_EXPORT IMDInterface : public Analyzer
         //! Helper function to establish a connection
         void establishConnectionAttempt();
         //! Helper function to send current data to VMD
-        void sendCoords(unsigned int timestep);
+        void sendCoords(uint64_t timestep);
 
         //! Initialize socket and internal state variables for communication
         void initConnection();

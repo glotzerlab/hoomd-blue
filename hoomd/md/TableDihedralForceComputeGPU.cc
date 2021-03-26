@@ -46,7 +46,7 @@ TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<Syste
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
+void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
     {
 
     // start the profile
