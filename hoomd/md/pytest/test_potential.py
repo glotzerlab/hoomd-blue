@@ -308,8 +308,8 @@ def _invalid_params():
                                                     hoomd.md.pair.TWF,
                                                     {}))
 
-    table_valid_dict = {'V': np.arange(0, 20, 1).reshape(20, 1) / 10,
-                        'F': np.asarray(20 * [-1.9 / 2.5]).reshape(20, 1),
+    table_valid_dict = {'V': np.arange(0, 20, 1) / 10,
+                        'F': np.asarray(20 * [-1.9 / 2.5]),
                         'width': 20}
     table_invalid_dicts = _make_invalid_param_dict(table_valid_dict)
     invalid_params_list.extend(_make_invalid_params(table_invalid_dicts,
@@ -599,8 +599,8 @@ def _valid_params(particle_types=['A', 'B']):
           5 * ((r / 10)**12 - (r / 10)**6),
           0.1 * ((2.5 - r)**2 - (2.5 - r))]
     Fs = [0.5 * np.diff(V) / np.diff(r) for V in Vs]
-    table_arg_dict = {'V': [V[:-1].reshape(len(r) - 1, 1) for V in Vs],
-                      'F': [F.reshape(len(r) - 1, 1) for F in Fs],
+    table_arg_dict = {'V': [V[:-1] for V in Vs],
+                      'F': Fs,
                       'width': [len(r) - 1] * 3}
     table_valid_param_dicts = _make_valid_param_dicts(table_arg_dict)
     valid_params_list.append(paramtuple(hoomd.md.pair.Table,
