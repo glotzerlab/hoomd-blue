@@ -572,8 +572,12 @@ class Table(Pair):
           `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``width`` (`float`, **required**) - the length of the force and
+          * ``width`` (`int`, **required**) - the length of the force and
             energy arrays
+
+          * ``r_min`` (`float`, **required**) - the minimum distance to apply
+            the tabulated potential, corresponding to the first element of the
+            energy and force arrays
 
           * ``V`` (`numpy.ndarray`, **required**) - the tabulated energy values
             (in energy units).
@@ -585,17 +589,19 @@ class Table(Pair):
 
         nl = nlist.Cell()
         r_cut = 3.0
+        r_min = 0.0
         width = 20
-        V = numpy.linspace(0, r_cut, width)[::-1] * 5
-        F = numpy.asarray([-1 * max(V) / r_cut] * width)
+        V = numpy.linspace(r_min, r_cut, width)[::-1] * 5
+        F = numpy.asarray([-1 * max(V) / (r_cut - r_min)] * width)
         table = pair.Table(r_cut=r_cut, nlist=nl)
-        table.params[('A', 'A')] = dict(V=V, F=F, width=width)
+        table.params[('A', 'A')] = dict(V=V, F=F, width=width, r_min=r_min)
     """
     _cpp_class_name = "PotentialPairTable"
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(width=int,
+                                                 r_min=float,
                                                  V=numpy.ndarray,
                                                  F=numpy.ndarray,
                                                  len_keys=2))
