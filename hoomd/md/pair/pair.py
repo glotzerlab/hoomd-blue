@@ -576,18 +576,18 @@ class Table(Pair):
             energy arrays
 
           * ``V`` (`numpy.ndarray`, **required**) - the tabulated energy values
-            (in energy units). A numpy array of size (width, 1)
+            (in energy units).
 
           * ``F`` (`numpy.ndarray`, **required**) - the tabulated force values
-            (in force units). A numpy array of size (width, 1)
+            (in force units).
 
     Example::
 
         nl = nlist.Cell()
         r_cut = 3.0
         width = 20
-        V = numpy.linspace(0, r_cut, width)[::-1].reshape(width, 1) * 5
-        F = numpy.asarray([-1 * max(V) / r_cut] * width).reshape(width, 1)
+        V = numpy.linspace(0, r_cut, width)[::-1] * 5
+        F = numpy.asarray([-1 * max(V) / r_cut] * width)
         table = pair.Table(r_cut=r_cut, nlist=nl)
         table.params[('A', 'A')] = dict(V=V, F=F, width=width)
     """
