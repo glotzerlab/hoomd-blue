@@ -174,7 +174,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         /*!
          This function is an extracted overlap check from the precursor
          IntegratorHPMCMono. It was extracted to enhance readability.
-         \param timestep
          \param i
          \param next
          \param typ_i
@@ -186,8 +185,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param h_orientation
          \param counters
          */
-        bool checkForOverlap(unsigned int timestep,
-                             unsigned int i,
+        bool checkForOverlap(unsigned int i,
                              int typ_i,
                              vec3<Scalar>& pos_i,
                              Scalar4 postype_i,
@@ -206,7 +204,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          maxSweep.
 
          Much of the layout is based on the checkForOverlap function.
-         \param timestep
          \param direction Where are we going?
          \param maxSweep  How far will we go maximal
          \param i
@@ -221,8 +218,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param counters
          \param collisionPlaneVector
          */
-        double sweepDistance(unsigned int timestep,
-                             vec3<Scalar>& direction,
+        double sweepDistance(vec3<Scalar>& direction,
                              double maxSweep,
                              unsigned int i,
                              int& next,
@@ -244,7 +240,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          maxSweep.
 
          Much of the layout is based on the checkForOverlap function.
-         \param timestep
          \param direction Where are we going?
          \param maxSweep  How far will we go maximal
          \param i
@@ -259,8 +254,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
          \param counters
          \param collisionPlaneVector
          */
-        double sweepDistance(unsigned int timestep,
-                             vec3<Scalar>& direction,
+        double sweepDistance(vec3<Scalar>& direction,
                              double maxSweep,
                              unsigned int i,
                              int& next,
@@ -275,10 +269,10 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
                              vec3<Scalar>& collisionPlaneVector
                             );
 
-    protected:
+    public:
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     };
 
@@ -332,14 +326,14 @@ hpmc_nec_counters_t IntegratorHPMCMonoNEC< Shape >::getNECCounters(unsigned int 
         result = h_nec_counters.data[0] - m_nec_count_step_start;
 
 #ifdef ENABLE_MPI
-    if (m_comm)
+    if (this->m_comm)
         {
         // MPI Reduction to total result values on all nodes.
-        MPI_Allreduce(MPI_IN_PLACE, &result.chain_start_count,        1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.chain_at_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.chain_no_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.distance_queries,         1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_err_count,        1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_start_count,        1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_at_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.chain_no_collision_count, 1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.distance_queries,         1, MPI_LONG_LONG_INT, MPI_SUM, this->m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_err_count,        1, MPI_UNSIGNED,      MPI_SUM, this->m_exec_conf->getMPICommunicator());
         }
 #endif
     return result;
@@ -347,7 +341,7 @@ hpmc_nec_counters_t IntegratorHPMCMonoNEC< Shape >::getNECCounters(unsigned int 
 
 
 template< class Shape >
-void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
+void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
     {
     this->m_exec_conf->msg->notice(10) << "HPMCMonoEC update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
@@ -537,8 +531,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
                     //   sweep                 - return value (units of length)
                     //   next                  - given as reference
                     //   collisionPlaneVector  - given as reference
-                    sweep = sweepDistance(timestep,
-                                        direction,
+                    sweep = sweepDistance(direction,
                                         maxSweep,
                                         k,
                                         next,
@@ -796,8 +789,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
                 detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
-                overlap = checkForOverlap(timestep,
-                                            i,
+                overlap = checkForOverlap(  i,
                                             typ_i,
                                             pos_i,
                                             postype_i,
@@ -909,8 +901,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(unsigned int timestep)
 
 
 template< class Shape >
-bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep,
-                                                    unsigned int i,
+bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int i,
                                                     int typ_i,
                                                     vec3<Scalar>& pos_i,
                                                     Scalar4 postype_i,
@@ -1005,8 +996,7 @@ bool IntegratorHPMCMonoNEC< Shape >::checkForOverlap(unsigned int timestep,
 
 // sweepableDistance for spheres
 template< class Shape >
-double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
-                                                    vec3<Scalar>& direction,
+double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                                     double maxSweep,
                                                     unsigned int i,
                                                     int& next,
@@ -1156,8 +1146,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
 
 // sweepableDistance for convex polyhedron
 template< class Shape >
-double IntegratorHPMCMonoNEC< Shape >::sweepDistance(unsigned int timestep,
-                                                    vec3<Scalar>& direction,
+double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                                     double maxSweep,
                                                     unsigned int i,
                                                     int& next,
