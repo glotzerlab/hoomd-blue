@@ -8,7 +8,7 @@
 #include "NeighborList.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/GlobalArray.h"
-
+#include "hoomd/ManagedArray.h"
 #include <memory>
 
 /*! \file TablePotential.h
@@ -73,8 +73,8 @@ class EvaluatorPairTable
         struct param_type
             {
             unsigned int width;
-            std::vector<Scalar> V_table;
-            std::vector<Scalar> F_table;
+            ManagedArray<Scalar> V_table;
+            ManagedArray<Scalar> F_table;
 
             #ifdef ENABLE_HIP
             //! Set CUDA memory hints
@@ -90,8 +90,17 @@ class EvaluatorPairTable
             param_type(pybind11::dict v)
                 {
                 width = v["width"].cast<unsigned int>();
-                V_table = v["V"].cast<std::vector<Scalar>>();
-                F_table = v["F"].cast<std::vector<Scalar>>();
+                unsigned int align_size = 8; //for AVX
+                unsigned int N_align =((width + align_size - 1)/align_size)*align_size;
+                V_table = ManagedArray<Scalar>(N_align, false, 32); // 32byte alignment for AVX
+                F_table = ManagedArray<Scalar>(N_align, false, 32);
+                auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                for (unsigned int i = 0; i < width; i++)
+                    {
+                    V_table[i] = V_py[i];
+                    F_table[i] = F_py[i];
+                    }
                 if (V_table.size() != F_table.size())
                     {throw std::runtime_error("The length of V and F arrays must be equal");}
                 }
@@ -118,12 +127,12 @@ class EvaluatorPairTable
                     });
 
                 pybind11::dict v;
-                v["V"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width, 1}),
-                                                   pybind11::array::StridesContainer({1*sizeof(Scalar), sizeof(Scalar)}),
+                v["V"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width,}),
+                                                   pybind11::array::StridesContainer({1*sizeof(Scalar),}),
                                                    V,
                                                    free_V);
-                v["F"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width, 1}),
-                                                   pybind11::array::StridesContainer({1*sizeof(Scalar), sizeof(Scalar)}),
+                v["F"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width,}),
+                                                   pybind11::array::StridesContainer({1*sizeof(Scalar),}),
                                                    F,
                                                    free_F);
                 v["width"] = width;
@@ -229,8 +238,8 @@ class EvaluatorPairTable
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar width;   //!< extracted from the params passed to the constructor
-        std::vector<Scalar> V_table; //!< extracted from the params passed to the constructor
-        std::vector<Scalar> F_table; //!< extracted from the params passed to the constructor
+        ManagedArray<Scalar> V_table; //!< extracted from the params passed to the constructor
+        ManagedArray<Scalar> F_table; //!< extracted from the params passed to the constructor
     };
 
 #endif
