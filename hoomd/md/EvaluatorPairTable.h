@@ -73,6 +73,7 @@ class EvaluatorPairTable
         struct param_type
             {
             unsigned int width;
+            Scalar rmin;
             ManagedArray<Scalar> V_table;
             ManagedArray<Scalar> F_table;
 
@@ -85,11 +86,12 @@ class EvaluatorPairTable
             #endif
 
             #ifndef __HIPCC__
-            param_type() : width(0), V_table({}), F_table({}) {}
+            param_type() : width(0), rmin(0.0), V_table({}), F_table({}) {}
 
             param_type(pybind11::dict v)
                 {
                 width = v["width"].cast<unsigned int>();
+                rmin = v["r_min"].cast<Scalar>();
                 unsigned int align_size = 8; //for AVX
                 unsigned int N_align =((width + align_size - 1)/align_size)*align_size;
                 V_table = ManagedArray<Scalar>(N_align, false, 32); // 32byte alignment for AVX
@@ -136,6 +138,7 @@ class EvaluatorPairTable
                                                    F,
                                                    free_F);
                 v["width"] = width;
+                v["r_min"] = rmin;
                 return v;
                 }
             #endif
@@ -153,7 +156,7 @@ class EvaluatorPairTable
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairTable(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), width(_params.width), V_table(_params.V_table), F_table(_params.F_table)
+            : rsq(_rsq), rcutsq(_rcutsq), width(_params.width), rmin(_params.rmin), V_table(_params.V_table), F_table(_params.F_table)
             {
             }
 
@@ -187,9 +190,9 @@ class EvaluatorPairTable
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq)
+            if (rsq < rcutsq && std::sqrt(rsq) >= rmin)
                 {
-                Scalar delta_r = std::sqrt(rcutsq) / width;
+                Scalar delta_r = (std::sqrt(rcutsq) - rmin) / width;
                 // precomputed term
                 Scalar value_f = (std::sqrt(rcutsq) - std::sqrt(rsq)) / delta_r;
 
@@ -238,6 +241,7 @@ class EvaluatorPairTable
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar width;   //!< extracted from the params passed to the constructor
+        Scalar rmin;
         ManagedArray<Scalar> V_table; //!< extracted from the params passed to the constructor
         ManagedArray<Scalar> F_table; //!< extracted from the params passed to the constructor
     };
