@@ -562,10 +562,6 @@ class Table(Pair):
     :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
     For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`.
 
-    See `Pair` for the available energy shifting and smoothing modes. Use
-    `params` dictionary to set potential coefficients. The coefficients must
-    be set per unique pair of particle types.
-
     Attributes:
         params (`TypeParameter` [\
           `tuple` [``particle_type``, ``particle_type``],\
