@@ -117,11 +117,11 @@ class EvaluatorPairTable
 
                 pybind11::dict v;
                 v["V"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width,}),
-                                                   pybind11::array::StridesContainer({1*sizeof(Scalar),}),
+                                                   pybind11::array::StridesContainer({sizeof(Scalar),}),
                                                    V,
                                                    free_V);
                 v["F"] = pybind11::array_t<Scalar>(pybind11::array::ShapeContainer({width,}),
-                                                   pybind11::array::StridesContainer({1*sizeof(Scalar),}),
+                                                   pybind11::array::StridesContainer({sizeof(Scalar),}),
                                                    F,
                                                    free_F);
                 v["width"] = width;
