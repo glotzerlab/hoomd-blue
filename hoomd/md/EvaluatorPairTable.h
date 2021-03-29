@@ -41,24 +41,11 @@
 
     \b Table memory layout
 
-    V(r) and F(r) are specified for each unique particle type pair. They will be indexed so that values of increasing r
-    go along the rows in memory for cache efficiency when reading values. The row index to put the potential at can be
-    determined using an Index2DUpperTriangular (typei, typej), as it will uniquely index each unique pair.
-
-    To improve cache coherency even further, values for V and F will be interleaved like so: V1 F1 V2 F2 V3 F3 ... To
-    accomplish this, tables are stored with a value type of Scalar2, elem.x will be V and elem.y will be F. Since Fn,
-    Vn+1 and Fn+1 are read right after Vn, these are likely to be cache hits. Furthermore, on the GPU a single Scalar2
-    texture read can be used to access Vn and Fn.
-
-    Three parameters need to be stored for each potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing
-    between r values in the table respectively. For simple access on the GPU, these will be stored in a Scalar4 where
-    x is rmin, y is rmax, and z is dr. They are indexed with the same Index2DUpperTriangular as the tables themselves.
-
+    V(r) and F(r) are specified for each unique particle type pair. Three parameters need to be stored for each 
+    potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing between r values in the table respectively. 
     V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where i is chosen such that r >= rmin
     and r <= rmax. V(r) for r < rmin and > rmax is 0. The same goes for F. Thus V and F are defined between the region
     [rmin,rmax], inclusive.
-
-    For ease of storing the data, all tables must be of the same number of points for all type pairs.
 
     \b Interpolation
     Values are interpolated linearly between two points straddling the given r. For a given r, the first point needed, i
