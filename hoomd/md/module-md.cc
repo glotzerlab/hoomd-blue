@@ -225,7 +225,6 @@ PYBIND11_MODULE(_md, m)
     export_OPLSDihedralForceCompute(m);
     export_TableDihedralForceCompute(m);
     export_HarmonicImproperForceCompute(m);
-    // export_TablePotential(m);
     export_BondTablePotential(m);
     export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
     export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
