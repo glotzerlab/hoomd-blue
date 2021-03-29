@@ -525,7 +525,6 @@ class Table(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
 
     :py:class:`Table` specifies that a tabulated pair potential should be applied between every
     non-excluded particle pair in the simulation.
