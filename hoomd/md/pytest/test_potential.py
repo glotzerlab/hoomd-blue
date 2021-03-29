@@ -147,7 +147,7 @@ def _make_invalid_param_dict(valid_dict):
         # Set one invalid argument per dictionary
         # Set two invalid arguments per key
         valid_value = invalid_dicts[count][key]
-        if not (isinstance(valid_value, list) or isinstance(valid_value, np.ndarray)):
+        if not (isinstance(valid_value, (list, np.ndarray)):
             invalid_dicts[count][key] = [1, 2]
             invalid_count += 1
         if not (isinstance(valid_value, str) or isinstance(valid_value, np.ndarray)):
