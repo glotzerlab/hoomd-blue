@@ -5,11 +5,11 @@
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyTypes, OnlyIf, to_type_converter)
+from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
+                                      to_type_converter)
 from hoomd.tune import _InternalCustomTuner
-from hoomd.tune.attr_tuner import (
-    _TuneDefinition, SolverStep, ScaleSolver, SecantSolver)
+from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
+                                   SecantSolver)
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.integrate_nec import HPMCNECIntegrator
 
@@ -31,7 +31,7 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
 
     def _get_y(self):
         statistics = getattr(self.integrator, "nec_counters")
-        chain_hit   = statistics.chain_at_collision_count
+        chain_hit = statistics.chain_at_collision_count
         chain_start = statistics.chain_start_count
 
         # We return None when no chains are recorded since we don't want
@@ -43,7 +43,7 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         # computed or would be inaccurate at the current time. It informs the
         # `SolverStep` object to skip tuning this attribute for now.
         if self.previous_start is None or chain_start == 0:
-            self.previous_hit   = chain_hit
+            self.previous_hit = chain_hit
             self.previous_start = chain_start
             return None
 
@@ -59,14 +59,14 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
               or self.previous_hit > chain_hit):
             particles_per_chain = chain_hit / chain_start
         else:
-            particles_per_chain = ((chain_hit - self.previous_hit)
-                                   / (chain_start - self.previous_start))
+            particles_per_chain = ((chain_hit - self.previous_hit) /
+                                   (chain_start - self.previous_start))
 
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
         # disregard the information before the last tune.
-        self.previous_hit    = chain_hit
-        self.previous_start  = chain_start
+        self.previous_hit = chain_hit
+        self.previous_start = chain_start
         self.previous_particles_per_chain = particles_per_chain
         return particles_per_chain
 
@@ -77,11 +77,10 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         self.integrator.chain_time = value
 
     def __hash__(self):
-        return hash(( "chain_time", "", self._target, self._domain))
+        return hash(("chain_time", "", self._target, self._domain))
 
     def __eq__(self, other):
-        return (self._target == other._target and
-                self._domain == other._domain)
+        return (self._target == other._target and self._domain == other._domain)
 
 
 class _InternalChainTime(_InternalAction):
@@ -90,7 +89,9 @@ class _InternalChainTime(_InternalAction):
     _max_chain_time = 1e2
 
     def __init__(self, target, solver, max_chain_time=None):
+
         def target_postprocess(target):
+
             def check_fraction(value):
                 if 0 <= value <= 1000:
                     return value
@@ -123,10 +124,9 @@ class _InternalChainTime(_InternalAction):
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
-        param_dict = ParameterDict(
-            target=OnlyTypes(float, postprocess=target_postprocess),
-            solver=SolverStep
-            )
+        param_dict = ParameterDict(target=OnlyTypes(
+            float, postprocess=target_postprocess),
+                                   solver=SolverStep)
 
         self._param_dict.update(param_dict)
         self.target = target
@@ -139,8 +139,8 @@ class _InternalChainTime(_InternalAction):
         if not isinstance(simulation.operations.integrator, HPMCNECIntegrator):
             raise RuntimeError(
                 "ChainTimeTuner can only be used in HPMC-NEC simulations.")
-        self._update_tunables_attr(
-            'integrator', simulation.operations.integrator)
+        self._update_tunables_attr('integrator',
+                                   simulation.operations.integrator)
         self._is_attached = True
         self._update_tunables()
 
@@ -184,8 +184,8 @@ class _InternalChainTime(_InternalAction):
 
         # Add any chain time tune definitions that are required by the new
         # specification.
-        move_definition = _ChainTimeTuneDefinition( self.target,
-                                (self._min_chain_time, self.max_chain_time))
+        move_definition = _ChainTimeTuneDefinition(
+            self.target, (self._min_chain_time, self.max_chain_time))
         if move_definition not in tune_definitions:
             self._tunables.append(move_definition)
 
@@ -221,9 +221,13 @@ class ChainTime(_InternalCustomTuner):
     _internal_class = _InternalChainTime
 
     @classmethod
-    def scale_solver(cls, trigger, target,
+    def scale_solver(cls,
+                     trigger,
+                     target,
                      max_chain_time=None,
-                     max_scale=2., gamma=1., tol=1e-2):
+                     max_scale=2.,
+                     gamma=1.,
+                     tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
@@ -243,13 +247,15 @@ class ChainTime(_InternalCustomTuner):
                 significantly at typical tuning rates.
         """
         solver = ScaleSolver(max_scale, gamma, 'positive', tol)
-        return cls(trigger, target, solver,
-                   max_chain_time)
+        return cls(trigger, target, solver, max_chain_time)
 
     @classmethod
-    def secant_solver(cls, trigger, target,
+    def secant_solver(cls,
+                      trigger,
+                      target,
                       max_chain_time=None,
-                      gamma=0.8, tol=1e-2):
+                      gamma=0.8,
+                      tol=1e-2):
         """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
