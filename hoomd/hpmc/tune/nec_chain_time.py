@@ -52,9 +52,9 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         elif self.previous_start == chain_start:
             return self.previous_particles_per_chain
 
-        # If we have recorded a previous total then this condition implies a new
-        # run call. We should be able to tune here as we have no other
-        # indication the system has changed.
+        # If we have recorded a previous total larger than the current one
+        # then this condition implies a new run call. We should be able to
+        # tune here as we have no other indication the system has changed.
         elif (self.previous_start > chain_start
               or self.previous_hit > chain_hit):
             particles_per_chain = chain_hit / chain_start
@@ -86,26 +86,24 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
 class _InternalChainTime(_InternalAction):
     """Internal class for the ChainTime tuner."""
     _min_chain_time = 1e-7
-    _max_chain_time = 1e2
 
     def __init__(self, target, solver, max_chain_time=None):
 
         def target_postprocess(target):
 
-            def check_fraction(value):
+            def check_range(value):
                 if 0 <= value <= 1000:
                     return value
                 raise ValueError(
                     "Value {} should be between 0 and 1000.".format(value))
 
-            self._update_tunables_attr('target', check_fraction(target))
+            self._chain_time_def.target = check_range(target)
             self._tuned = 0
             return target
 
         # A flag for knowing when to update the maximum move sizes
         self._update_chain_time = False
 
-        self._tunables = []
         # A counter when tuned reaches 1 it means that the tuner has reported
         # being tuned one time in a row. However, as the first run of the tuner
         # is likely at timestep 0 which means that the counters are (0, 0) and
@@ -121,28 +119,31 @@ class _InternalChainTime(_InternalAction):
             self._update_chain_time = True
             return value
 
+        self._chain_time_def = _ChainTimeTuneDefinition(
+            target, (self._min_chain_time, max_chain_time))
+
         # This is a bit complicated because we are having to ensure that we keep
         # the list of tunables and the solver updated with the changes to
         # attributes. However, these are simply forwarding a change along.
         param_dict = ParameterDict(target=OnlyTypes(
             float, postprocess=target_postprocess),
-                                   solver=SolverStep)
+                                   solver=SolverStep,
+                                   max_chain_time=OnlyTypes(float,
+                                                            allow_none=True),
+                                   min_chain_time=OnlyTypes(float))
 
         self._param_dict.update(param_dict)
         self.target = target
         self.solver = solver
-
         self.max_chain_time = max_chain_time
-        self._update_tunables()
+        self.min_chain_time = self._min_chain_time
 
     def attach(self, simulation):
         if not isinstance(simulation.operations.integrator, HPMCNECIntegrator):
             raise RuntimeError(
                 "ChainTimeTuner can only be used in HPMC-NEC simulations.")
-        self._update_tunables_attr('integrator',
-                                   simulation.operations.integrator)
+        self._chain_time_def.integrator = simulation.operations.integrator
         self._is_attached = True
-        self._update_tunables()
 
     @property
     def _attached(self):
@@ -159,7 +160,7 @@ class _InternalChainTime(_InternalAction):
         return self._tuned >= 2
 
     def detach(self):
-        self._update_tunables_attr('integrator', None)
+        self._chain_time_def.integrator = None
         self._is_attached = False
 
     def act(self, timestep=None):
@@ -170,28 +171,13 @@ class _InternalChainTime(_InternalAction):
                 currently ignored.
         """
         if self._is_attached:
-            # update maximum move sizes
+            # update maximum chain time
             if self._update_chain_time:
-                for tunable in self._tunables:
-                    tunable.domain = (self._min_chain_time, self.max_chain_time)
+                self._chain_time_def.domain = (self.min_chain_time,
+                                               self.max_chain_time)
 
-            tuned = self.solver.solve(self._tunables)
+            tuned = self.solver.solve([self._chain_time_def])
             self._tuned = self._tuned + 1 if tuned else 0
-
-    def _update_tunables(self):
-        tunables = self._tunables
-        tune_definitions = set(self._tunables)
-
-        # Add any chain time tune definitions that are required by the new
-        # specification.
-        move_definition = _ChainTimeTuneDefinition(
-            self.target, (self._min_chain_time, self.max_chain_time))
-        if move_definition not in tune_definitions:
-            self._tunables.append(move_definition)
-
-    def _update_tunables_attr(self, attr, value):
-        for tunable in self._tunables:
-            setattr(tunable, attr, value)
 
 
 class ChainTime(_InternalCustomTuner):
@@ -228,14 +214,16 @@ class ChainTime(_InternalCustomTuner):
                      max_scale=2.,
                      gamma=1.,
                      tol=1e-2):
-        """Create a `MoveSize` tuner with a `hoomd.tune.ScaleSolver`.
+        """Create a `ChainTime` tuner with a `hoomd.tune.ScaleSolver`.
 
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
-            target (float): The acceptance rate for trial moves that is desired.
-                The value should be between 0 and 1.
+            target (float): The number of collisions in a chain that is
+                desired.
             max_chain_time (float): The maximum value of chain time to attempt.
+            max_scale (float): The maximum amount to scale the current
+                chain_time value with.
             gamma (float): The value of gamma to pass through to
                 `hoomd.tune.ScaleSolver`. Controls the size of corrections to
                 the move size (larger values increase stability while increasing
@@ -256,7 +244,7 @@ class ChainTime(_InternalCustomTuner):
                       max_chain_time=None,
                       gamma=0.8,
                       tol=1e-2):
-        """Create a `MoveSize` tuner with a `hoomd.tune.SecantSolver`.
+        """Create a `ChainTime` tuner with a `hoomd.tune.SecantSolver`.
 
         This solver can be faster than `hoomd.tune.ScaleSolver`, but depending
         on the system slightly less stable. In general, with the default value
@@ -265,8 +253,7 @@ class ChainTime(_InternalCustomTuner):
         Args:
             trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to
                 run the tuner.
-            target (float): The acceptance rate for trial moves that is desired.
-                The value should be between 0 and 1.
+            target (float): The number of collisions in a chain that is desired.
             max_chain_time (float): The maximum value of chain time to attempt,
                 defaults to ``None`` which represents no maximum chain time.
             gamma (float): The value of gamma to pass through

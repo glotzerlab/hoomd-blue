@@ -6,23 +6,22 @@
 
 import hoomd
 import hoomd.hpmc.integrate_nec
-import hoomd.hpmc.tune.nec_chain_time
+import hoomd.hpmc.tune
 
 import pytest
 import math
 
 ## from test_sphere_eos.py for hoomd-2.9
-##phi_p_ref = {0.29054: 0.1, 0.91912: 0.2, 2.2768: 0.3, 5.29102: 0.4, 8.06553: 0.45, 9.98979: 0.475}
-phi_p_ref = [(0.29054, 0.1), (0.91912, 0.2), (2.2768, 0.3), (5.29102, 0.4),
-             (8.06553, 0.45), (9.98979, 0.475)]
+_phi_p_ref = [(0.29054, 0.1), (0.91912, 0.2), (2.2768, 0.3), (5.29102, 0.4),
+              (8.06553, 0.45), (9.98979, 0.475)]
 rel_err_cs = 0.0015  # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
 
 
-@pytest.mark.parametrize("betap,phi", phi_p_ref)
+@pytest.mark.parametrize("betap,phi", _phi_p_ref)
 @pytest.mark.validate
 def test_sphere_eos_nec(betap, phi, simulation_factory,
                         lattice_snapshot_factory):
-    """Test that QuickCompress can compress (and expand) simulation boxes."""
+    """Test that NEC runs and computes the pressure correctly."""
     n = 7
 
     v_particle = 4 / 3 * math.pi * (0.5)**3
@@ -46,8 +45,10 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
         max_translation_move=0.15)
     sim.operations.tuners.append(tune_nec_d)
 
-    tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(
-        triggerTune, target=20, tol=1, gamma=20)
+    tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(triggerTune,
+                                                         target=20,
+                                                         tol=1,
+                                                         gamma=20)
     sim.operations.tuners.append(tune_nec_ct)
 
     #equilibrate
@@ -58,19 +59,17 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     mc.nselect = 50
     for i in range(100):
         sim.run(1)
-        pressures.append(mc.virial_pressure())
+        pressures.append(mc.virial_pressure)
 
     mean = sum(pressures) / len(pressures)
     variance = sum(p**2 for p in pressures) / len(pressures) - mean**2
     std_dev = variance**0.5
     error = std_dev / (len(pressures) - 1)**0.5
 
-    print(betap, mean, error)
-
     # confidence interval, 0.95 quantile of the normal distribution
     ci = 1.96
 
-    assert abs(betap - mean) < ci * (error + rel_err_cs * betap)
+    assert math.isclose(betap, mean, abs_tol=ci * (error + rel_err_cs * betap))
     assert error < 1
 
     mcCounts = mc.counters
