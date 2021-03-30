@@ -29,6 +29,7 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
     snap = lattice_snapshot_factory(n=n, a=lattice_length)
 
     sim = simulation_factory(snap)
+    sim.seed = 123456
     sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
     mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
