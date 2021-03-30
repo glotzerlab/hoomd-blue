@@ -836,30 +836,30 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
                                  const ShapeConvexPolyhedron& a,
                                  const ShapeConvexPolyhedron& b,
-								 const vec3<Scalar>& direction,
+                                 const vec3<Scalar>& direction,
                                  unsigned int& err,
-								 vec3<Scalar>& collisionPlaneVector
+                                 vec3<Scalar>& collisionPlaneVector
 )
     {
     vec3<OverlapReal> dr(r_ab);
     vec3<OverlapReal> to(direction);
 
-	vec3<OverlapReal> csp(collisionPlaneVector);
+    vec3<OverlapReal> csp(collisionPlaneVector);
 
-	OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
     OverlapReal distance = detail::xenosweep_3d(detail::SupportFuncConvexPolyhedron(a.verts),
                                 detail::SupportFuncConvexPolyhedron(b.verts),
                                 rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                 conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
-								rotate(conj(quat<OverlapReal>(a.orientation)), to),
+                                rotate(conj(quat<OverlapReal>(a.orientation)), to),
                                 DaDb/OverlapReal(2.0),
                                 err,
-								csp
-   							);
-	collisionPlaneVector = vec3<Scalar>( rotate(quat<OverlapReal>(a.orientation), csp) );
+                                csp
+                               );
+    collisionPlaneVector = vec3<Scalar>( rotate(quat<OverlapReal>(a.orientation), csp) );
 
-	return distance;
+    return distance;
     }
 
 #ifndef __HIPCC__
