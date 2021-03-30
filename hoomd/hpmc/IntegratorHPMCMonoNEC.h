@@ -7,20 +7,14 @@
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Autotuner.h"
 
-//#include <random>
-//#include <cfloat>
-
 /*! \file IntegratorHPMCMonoNEC.h
     \brief Defines the template class for HPMC with Newtonian event chains
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
-
-// use PYBIND11 included from integrator !!
-// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -39,16 +33,7 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
         unsigned int m_chain_probability; //!< how often we do a chain. Replaces translation_move_probability
         Scalar m_update_fraction;   //!< if we perform chains we update several particles as one
 
-        // GlobalArray< hpmc_counters_t >     m_count_total;      // Inherited from base class
         GlobalArray< hpmc_nec_counters_t > m_nec_count_total;  //!< counters for chain statistics
-
-//         unsigned long int count_moved_particles; // Counts translations that result in a collision (including the last particle)
-//         unsigned long int count_moved_again;     // Counts translations that do not result in a collision (or end of chain)
-//         unsigned long int count_move_attempts;   // Counts chains
-//         unsigned long int count_events;          // Counts everything (translations, repeated translations, and rotations [if applicable])
-//
-//         unsigned long int count_tuner_chains;
-//         unsigned long int count_tuner_collisions;
 
         // statistics - pressure
         // We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
@@ -129,22 +114,11 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             }
 
 
-        /** \returns a list of provided quantities
+        /** \returns empty list. (obsolete; used to return a list of provided quantities)
         */
         std::vector< std::string > getProvidedLogQuantities()
             {
-            // start with the integrator provided quantities
-            std::vector< std::string > result = IntegratorHPMCMono<Shape>::getProvidedLogQuantities();
-
-            // then add ours
-            result.push_back("hpmc_chain_time");
-//             result.push_back("hpmc_ec_move_size");
-//             result.push_back("hpmc_ec_sweepequivalent");
-//             result.push_back("hpmc_ec_raw_events");
-//             result.push_back("hpmc_ec_raw_mvd_ptcl");
-//             result.push_back("hpmc_ec_raw_mvd_agin");
-//             result.push_back("hpmc_ec_raw_mv_atmpt");
-            result.push_back("hpmc_ec_pressure");
+            std::vector< std::string > result;
             return result;
             }
 
@@ -160,12 +134,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
 
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
-        Scalar getTunerParticlesPerChain()
-        {
-            hpmc_nec_counters_t nec_counters = getNECCounters(2);
-            return Scalar(nec_counters.chain_at_collision_count)/Scalar(nec_counters.chain_start_count);
-        }
 
         //! Get the current counter values for NEC
         hpmc_nec_counters_t getNECCounters(unsigned int mode=0);
@@ -349,7 +317,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
     // get needed vars
     ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total, access_location::host, access_mode::readwrite);
     hpmc_counters_t& counters = h_counters.data[0];
-    // m_count_step_start = h_counters.data[0]; // in IntegratorHPMC
 
     ArrayHandle<hpmc_nec_counters_t> h_nec_counters(m_nec_count_total, access_location::host, access_mode::readwrite);
     hpmc_nec_counters_t& nec_counters = h_nec_counters.data[0];
@@ -369,11 +336,11 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
     vec3<Scalar> lattice_z = vec3<Scalar>(box.getLatticeVector(2));
 
     vec3<Scalar> normal_x = cross(lattice_y,lattice_z);
-    normal_x /= sqrt(dot(normal_x,normal_x));
+    normal_x *= fast::rsqrt(dot(normal_x,normal_x));
     vec3<Scalar> normal_y = cross(lattice_z,lattice_x);
-    normal_y /= sqrt(dot(normal_y,normal_y));
+    normal_y *= fast::rsqrt(dot(normal_y,normal_y));
     vec3<Scalar> normal_z = cross(lattice_x,lattice_y);
-    normal_z /= sqrt(dot(normal_z,normal_z));
+    normal_z *= fast::rsqrt(dot(normal_z,normal_z));
 
     Scalar latticeNormal_x = dot(normal_x,lattice_x) * (1 - ghost_fraction.x);
     Scalar latticeNormal_y = dot(normal_y,lattice_y) * (1 - ghost_fraction.y);
@@ -385,9 +352,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
     // reset pressure statistics
     count_pressurevirial = 0.0;
     count_movelength = 0.0;
-
-//     count_tuner_chains = 0;
-//     count_tuner_collisions = 0;
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC EC update");
 
@@ -463,11 +427,10 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                 // start a chain
                 // -> increment chain counter
                 nec_counters.chain_start_count++;
-                //count_tuner_chains++;
 
                 // take the particle's velocity as direction and normalize the direction vector
                 vec3<Scalar> direction = vec3<Scalar>(velocity_i);
-                Scalar       velocity  = sqrt( dot(direction,direction));
+                Scalar       velocity  = fast::sqrt( dot(direction,direction));
 
                 if( velocity == 0.0 )
                     {
@@ -485,7 +448,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
 
                 // perform the chain in a loop.
                 // next denotes the next particle, where -1 means there is no further particle.
-                //int prev = -1;
                 int next = i;
                 while( next > -1 )
                     {
@@ -674,7 +636,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                     // update the position of the particle in the tree for future updates
                     detail::AABB aabb_k_local = shape_k.getAABB(vec3<Scalar>(0,0,0));
                     detail::AABB aabb = aabb_k_local;
-                    //aabb.translate(pos_k);
                     aabb.translate( vec3<Scalar>(h_postype.data[k]));
                     this->m_aabb_tree.update(k, aabb);
 
@@ -692,7 +653,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                         h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
                         next = k;
 
-                        velocity = sqrt( dot(vel_k,vel_k));
+                        velocity = fast::sqrt( dot(vel_k,vel_k));
 
                         direction = vel_k / velocity;
                         }
@@ -713,7 +674,6 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
 
                         //statistics for pressure  -2-
                         count_pressurevirial   += dot(delta_pos, direction);
-                        //count_tuner_collisions++;
 
                         #ifdef ENABLE_MPI
                         if (! this->m_comm || isActive( vec_to_scalar3(pos_n),box,ghost_fraction) )
@@ -734,7 +694,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                             h_velocities.data[next] = make_scalar4( vel_n.x, vel_n.y, vel_n.z, h_velocities.data[next].w);
                             h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
 
-                            velocity = sqrt( dot(vel_n,vel_n));
+                            velocity = fast::sqrt( dot(vel_n,vel_n));
 
                             direction = vel_n / velocity;
                         #ifdef ENABLE_MPI
@@ -747,7 +707,7 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                                 h_velocities.data[k]    = make_scalar4( vel_k.x, vel_k.y, vel_k.z, h_velocities.data[k].w);
                                 next = k;
 
-                                velocity = sqrt( dot(vel_k,vel_k));
+                                velocity = fast::sqrt( dot(vel_k,vel_k));
 
                                 direction = vel_k / velocity;
                             }
@@ -758,14 +718,8 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                             this->m_exec_conf->msg->warning() << "Cannot continue a chain without moving.\n";
                             next = -1;
                             }
-
-                            // store previous particle.
-                            //prev = k;
                         }
                     } // end loop over totalDist.
-
-//                 counters.translate_accept_count++;
-
                 }
             else
                 {
@@ -779,13 +733,10 @@ void IntegratorHPMCMonoNEC< Shape >::update(uint64_t timestep)
                 vec3<Scalar> pos_i    = vec3<Scalar>(postype_i);
                 Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
 
-
-                //move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 if (ndim == 2)
                     move_rotate<2>(shape_i.orientation, rng_i, h_a.data[typ_i]);
                 else
                     move_rotate<3>(shape_i.orientation, rng_i, h_a.data[typ_i]);
-
 
                 detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
@@ -1013,7 +964,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
     {
     double sweepableDistance = maxSweep;
 
-    direction /= sqrt(dot(direction,direction));
+    direction *= fast::rsqrt(dot(direction,direction));
 
     detail::AABB aabb_i_current = shape_i.getAABB(vec3<Scalar>(0,0,0));
     detail::AABB aabb_i_future  = aabb_i_current;
@@ -1095,7 +1046,7 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
                                     continue;
                                     }
 
-                                double newDist = d_parallel - sqrt( discriminant );
+                                double newDist = d_parallel - fast::sqrt( discriminant );
 
                                 if( newDist > 0)
                                     {
@@ -1282,48 +1233,12 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
 
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
-    \return the requested log quantity.
+    \return 0 (obsolete; used to return the requested log quantity.)
 */
 template<class Shape>
 Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
     {
-    if (quantity == "hpmc_chain_time")
-        {
-        return m_chain_time;
-        }
-//     if (quantity == "hpmc_ec_move_size")
-//         {
-//         if( count_move_attempts == 0 ) return 0;
-//         return (Scalar)count_moved_particles / (Scalar)count_move_attempts;
-//         }
-//     if (quantity == "hpmc_ec_sweepequivalent")
-//         {
-//         return (Scalar)count_events / (Scalar)this->m_pdata->getN();
-//         }
-//     if (quantity == "hpmc_ec_raw_events")
-//         {
-//         return (Scalar)count_events;
-//         }
-//     if (quantity == "hpmc_ec_raw_mvd_ptcl")
-//         {
-//         return (Scalar)count_moved_particles;
-//         }
-//     if (quantity == "hpmc_ec_raw_mvd_agin")
-//         {
-//         return (Scalar)count_moved_again;
-//         }
-//     if (quantity == "hpmc_ec_raw_mv_atmpt")
-//         {
-//         return (Scalar)count_move_attempts;
-//         }
-    if (quantity == "hpmc_ec_pressure")
-        {
-        return (1+count_pressurevirial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
-        }
-
-
-    //nothing found -> pass on to base class
-    return IntegratorHPMCMono<Shape>::getLogValue(quantity, timestep);
+    return 0;
     }
 
 
@@ -1337,20 +1252,12 @@ template < class Shape > void export_IntegratorHPMCMonoNEC(pybind11::module& m, 
     pybind11::class_< IntegratorHPMCMonoNEC<Shape>, IntegratorHPMCMono<Shape>, IntegratorHPMC,
             std::shared_ptr< IntegratorHPMCMonoNEC<Shape> > >(m, name.c_str())
         .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
-        .def("setChainTime", &IntegratorHPMCMonoNEC<Shape>::setChainTime)
-        .def("getChainTime", &IntegratorHPMCMonoNEC<Shape>::getChainTime)
         .def_property("chain_time", &IntegratorHPMCMonoNEC<Shape>::getChainTime, &IntegratorHPMCMonoNEC<Shape>::setChainTime)
-        .def("setChainProbability", &IntegratorHPMCMonoNEC<Shape>::setChainProbability)
-        .def("getChainProbability", &IntegratorHPMCMonoNEC<Shape>::getChainProbability)
         .def_property("chain_probability", &IntegratorHPMCMonoNEC<Shape>::getChainProbability, &IntegratorHPMCMonoNEC<Shape>::setChainProbability)
-        .def("setUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
-        .def("getUpdateFraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction)
         .def_property("update_fraction", &IntegratorHPMCMonoNEC<Shape>::getUpdateFraction, &IntegratorHPMCMonoNEC<Shape>::setUpdateFraction)
-        .def("getTunerParticlesPerChain", &IntegratorHPMCMonoNEC<Shape>::getTunerParticlesPerChain)
-        .def("getPressure", &IntegratorHPMCMonoNEC<Shape>::getPressure)
+        .def_property_readonly("virial_pressure", &IntegratorHPMCMonoNEC<Shape>::getPressure)
         .def("getNECCounters", &IntegratorHPMCMonoNEC<Shape>::getNECCounters)
         ;
-
     }
 
 inline void export_hpmc_nec_counters(pybind11::module& m)

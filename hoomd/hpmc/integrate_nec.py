@@ -62,7 +62,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log(is_property=False)
+    @log
     def virial_pressure(self):
         """float: virial pressure
 
@@ -70,11 +70,11 @@ class HPMCNECIntegrator(HPMCIntegrator):
             The statistics are reset at every timestep.
         """
         if self._attached:
-            return self._cpp_obj.getPressure()
+            return self._cpp_obj.virial_pressure
         else:
             return None
 
-    @log(is_property=False)
+    @log
     def particles_per_chain(self):
         """float: particles per chain
 
@@ -87,7 +87,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
         else:
             return None
 
-    @log(is_property=False)
+    @log
     def chains_in_space(self):
         """float: rate of chain events that did neither collide nor end.
 
@@ -99,26 +99,6 @@ class HPMCNECIntegrator(HPMCIntegrator):
             return (necCounts.chain_no_collision_count - necCounts.chain_start_count) / ( necCounts.chain_at_collision_count + necCounts.chain_no_collision_count )
         else:
             return None
-
-    # Tuners... (this probably is different now as well?)
-    #def get_particles_per_chain(self):
-        #R"""
-        #Returns the average number of particles in a chain for the last update step. (For use in a tuner.)
-        #"""
-        #return self._cpp_obj.getTunerParticlesPerChain()
-
-    #def get_chain_time(self):
-        #R"""
-        #Get the current chain_time value. (For use in a tuner.)
-        #"""
-        #return self._cpp_obj.getChainTime()
-
-    #def set_chain_time(self,chain_time):
-        #R"""
-        #Set the chain_time parameter to a new value. (For use in a tuner.)
-        #"""
-        #self._cpp_obj.setChainTime(chain_time)
-
 
 
 class Sphere(HPMCNECIntegrator):
@@ -142,17 +122,20 @@ class Sphere(HPMCNECIntegrator):
 
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
+        mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
         mc.shape['A'] = dict(diameter=1)
         mc.chain_time = 0.05
         sim.operations.integrator = mc
 
         triggerTune = hoomd.trigger.Periodic(50,0)
-        tune_nec_d  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['d'], target=0.10, tol=0.001, max_translation_move=0.15)
+        tune_nec_d = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune,
+                        moves=['d'], target=0.10, tol=0.001,
+                        max_translation_move=0.15)
         sim.operations.tuners.append(tune_nec_d)
 
         import hoomd.hpmc.tune.nec_chain_time
-        tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
+        tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(
+                        triggerTune, target=20, tol=1, gamma=20 )
         sim.operations.tuners.append(tune_nec_ct)
 
         sim.run(1000)
@@ -201,9 +184,12 @@ class ConvexPolyhedron(HPMCNECIntegrator):
     R""" HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
-        chain_probability (float): Ratio of chains to rotation moves. As there should be several particles in a chain it will be small. See example.
+        d (float): Maximum move displacement, Scalar to set for all types,
+            or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a
+            dict containing {type:size} to set by type.
+        chain_probability (float): Ratio of chains to rotation moves. As there
+            should be several particles in a chain it will be small. See example.
         chain_time (float):
         update_fraction (float):
         nselect (int): Number of repeated updates for the cell/system.
@@ -223,19 +209,22 @@ class ConvexPolyhedron(HPMCNECIntegrator):
 
         sim.state.thermalize_particle_momenta(hoomd.filter.All(), kT=1)
 
-        mc            = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
+        mc = hoomd.hpmc.integrate_nec.Sphere(d=0.05, update_fraction=0.05)
         mc.shape['A'] = dict(diameter=1)
         mc.chain_time = 0.05
         sim.operations.integrator = mc
 
         triggerTune = hoomd.trigger.Periodic(50,0)
-        tune_nec_d  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['d'], target=0.10, max_translation_move=0.15)
+        tune_nec_d = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune,
+                        moves=['d'], target=0.10, max_translation_move=0.15)
         sim.operations.tuners.append(tune_nec_d)
-        tune_nec_a  = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune, moves=['a'], target=0.30)
+        tune_nec_a = hoomd.hpmc.tune.MoveSize.scale_solver(triggerTune,
+                        moves=['a'], target=0.30)
         sim.operations.tuners.append(tune_nec_a)
 
         import hoomd.hpmc.tune.nec_chain_time
-        tune_nec_ct = hoomd.hpmc.tune.nec_chain_time.ChainTime.scale_solver(triggerTune, target=20, tol=1, gamma=20 )
+        tune_nec_ct = hoomd.hpmc.tune.ChainTime.scale_solver(
+                        triggerTune, target=20, tol=1, gamma=20 )
         sim.operations.tuners.append(tune_nec_ct)
 
         sim.run(1000)

@@ -29,9 +29,6 @@ namespace hpmc
 
 namespace detail
 {
-
-//const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
-
 //! XenoSweep in 3D
 /*! \tparam SupportFuncA Support function class type for shape A
     \tparam SupportFuncB Support function class type for shape B
@@ -120,23 +117,12 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         }
 
     unsigned int count = 0;
-    while (true) // 2D-Refinement-Loop
+    while (count < XENOCOLLIDE_3D_MAX_ITERATIONS)
         {
         count++;
 
-        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
-            {
-            err_count++;
-
-            return resultNoForwardCollisionOrOverlapping;
-            }
-
         // Get the next support point
         v3 = S(-n);
-
-        //TODO Fix exceeding limit.
-        //  Ideas:
-        //  Numerical tolerant check for "dot on line"?
 
         if( dot(n,v3) >= OverlapReal(0.0) )
             {
@@ -163,11 +149,17 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // Finally update the normal vector for the next iteration.
         n = cross(v0, v2-v1);
         }
-
+    
+    // Error-Handling: We exceeded XENOCOLLIDE_3D_MAX_ITERATIONS, thus return an error.
+    if (count == XENOCOLLIDE_3D_MAX_ITERATIONS)
+        {
+        err_count++;
+        return resultNoForwardCollisionOrOverlapping;
+        }
 
     // Phase 2: Portal Refinement (in 3D)
     count = 0;
-    while (true) // 3D-Refinement-Loop
+    while (count < XENOCOLLIDE_3D_MAX_ITERATIONS)
         {
         count++;
 
@@ -200,33 +192,29 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
             return dot(n,v1) / dot(n,v0);
             }
 
-
-        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
-            {
-            err_count++;
-
-            collisionPlaneVector = n;
-            return dot(n,v1) / dot(n,v0);
-            // Return current distance, as it should be a better estimate than ignoring each other.
-            }
-
+        // As v4 is not in plane yet, update the portal for the next iteration.
         x = cross(v4, v0);
         if (dot(v1, x) > OverlapReal(0.0))
             {
             if (dot(v2, x) > OverlapReal(0.0))
-                v1 = v4;    // Inside v1 & inside v2 ==> eliminate v1
+                v1 = v4; // Inside v1 & inside v2 ==> eliminate v1
             else
-                v3 = v4;                   // Inside v1 & outside v2 ==> eliminate v3
+                v3 = v4; // Inside v1 & outside v2 ==> eliminate v3
             }
         else
             {
             if (dot(v3, x) > OverlapReal(0.0))
-                v2 = v4;    // Outside v1 & inside v3 ==> eliminate v2
+                v2 = v4; // Outside v1 & inside v3 ==> eliminate v2
             else
-                v1 = v4;                   // Outside v1 & outside v3 ==> eliminate v1
+                v1 = v4; // Outside v1 & outside v3 ==> eliminate v1
             }
-
         }
+        
+        // If we end up here, we exceeded XENOCOLLIDE_3D_MAX_ITERATIONS
+        // As best guess, take the current portal as approximant
+        err_count++;
+        collisionPlaneVector = n;
+        return dot(n,v1) / dot(n,v0);
     }
 } // end namespace hpmc::detail
 
