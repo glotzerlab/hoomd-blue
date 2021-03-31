@@ -163,7 +163,7 @@ void gpu_stage_particles(const unsigned int N,
     \param mask Mask of communicating directions
     \param alloc Caching allocator
  */
-void gpu_sort_migrating_particles(const unsigned int nsend,
+void gpu_sort_migrating_particles(const size_t nsend,
                    pdata_element *d_in,
                    const unsigned int *d_comm_flags,
                    const Index3D& di,
@@ -186,9 +186,6 @@ void gpu_sort_migrating_particles(const unsigned int nsend,
     assert(d_begin);
     assert(d_end);
     assert(d_neighbors);
-
-    if (!nsend)
-        return;
 
     // Wrap input & output
     thrust::device_ptr<pdata_element> in_ptr(d_in);

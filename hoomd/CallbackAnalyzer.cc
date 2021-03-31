@@ -40,6 +40,7 @@ CallbackAnalyzer::~CallbackAnalyzer()
 */
 void CallbackAnalyzer::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
       callback(timestep);
     }
 

@@ -78,7 +78,7 @@ using namespace std;
 using namespace hoomd;
 
 #ifdef ENABLE_TBB
-#include "tbb/task_scheduler_init.h"
+#include <tbb/task_arena.h>
 #endif
 
 /*! \file hoomd_module.cc

@@ -147,8 +147,8 @@ PPPMForceCompute::~PPPMForceCompute()
 
     if (m_kiss_fft_initialized)
         {
-        free(m_kiss_fft);
-        free(m_kiss_ifft);
+        kiss_fft_free(m_kiss_fft);
+        kiss_fft_free(m_kiss_ifft);
         kiss_fft_cleanup();
         }
     #ifdef ENABLE_MPI
@@ -485,6 +485,15 @@ void PPPMForceCompute::initializeFFT()
         dims[0] = m_mesh_points.z;
         dims[1] = m_mesh_points.y;
         dims[2] = m_mesh_points.x;
+
+        if (m_kiss_fft)
+            {
+            kiss_fft_free(m_kiss_fft);
+            }
+        if (m_kiss_ifft)
+            {
+            kiss_fft_free(m_kiss_ifft);
+            }
 
         m_kiss_fft = kiss_fftnd_alloc(dims, 3, 0, NULL, NULL);
         m_kiss_ifft = kiss_fftnd_alloc(dims, 3, 1, NULL, NULL);
