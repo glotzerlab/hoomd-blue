@@ -79,6 +79,9 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             {   
             pybind11::list types = v["types"];
             pybind11::list positions = v["positions"];
+            pybind11::list orientations = v["orientations"];
+            pybind11::list charges = v["charges"];
+            pybind11::list diameters = v["diameters"];
             int N = (unsigned int)len(positions);
 
             // extract the positions from the python list
@@ -97,17 +100,20 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             }   
 
         /// Convert parameters to a python dictionary
-        pybind11::dict getBody(std::string typ)
+        pybind11::dict getBody(std::string body_type_id)
             {
             pybind11::dict v;
             pybind11::list types;
             pybind11::list positions;
+            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+            unsigned int N = h_body_len.data[body_type_id];
             for(unsigned int i = 0; i < N; i++)
                 {
+                ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
                 pybind11::list pos;
-                pos.append(x[i]);
-                pos.append(y[i]);
-                pos.append(z[i]);
+                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].x);
+                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].y);
+                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].z);
                 pybind11::tuple pos_tuple = pybind11::tuple(pos);
                 positions.append(pos_tuple);
                 }
