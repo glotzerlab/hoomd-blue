@@ -774,12 +774,10 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     }),
     (hoomd.md.methods.NPH, {
         'filter': hoomd.filter.All(),
-        'kT': 2.0,
-        'tau': 2.0,
         'S': 2.0,
         'tauS': 2.0,
-        'box_dof': [True, True, True, True, True, True],
-        'couple': 'xyz'
+        'couple': 'xyz',
+        'box_dof': [True, True, True, True, True, True]
     }),
     (hoomd.md.methods.NPT, {
         'filter': hoomd.filter.All(),
