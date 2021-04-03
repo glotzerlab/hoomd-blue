@@ -808,6 +808,10 @@ def test_pickling(method_cls, kwargs, simulation_factory,
     method = method_cls(**kwargs)
     pickling_check(method)
     sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_cls == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
     integrator = hoomd.md.Integrator(0.05, methods=[method])
     sim.operations.integrator = integrator
     sim.run(0)
