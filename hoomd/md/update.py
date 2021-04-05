@@ -206,8 +206,8 @@ class constraint_ellipsoid(_updater):
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
 
-class MuellerPlatheFlow(Updater):
-    """Müller-Plathe method to establish shear flow.
+class ReversePerturbationFlow(Updater):
+    """ Reverse Perturbation (Müller-Plathe) method to establish shear flow.
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
      An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999."
@@ -258,9 +258,7 @@ class MuellerPlatheFlow(Updater):
         # const integrated flow with 0.1 slope for max 1e8 timesteps
         ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
         # velocity gradient in z direction and shear flow in x direction.
-        slab_direction = hoomd.md.update.MullerPlatheFlow.Z
-        flow_direction = hoomd.md.update.MullerPlatheFlow.X
-        mpf = hoomd.md.update.MuellerPlatheFlow(filter = hoomd.filter.All(), flow_target = ramp, slab_direction  = slab_direction, flow_direction = flow_direction, n_slabs = 20)
+        mpf = hoomd.md.update.ReversePerturbationFlow(filter=hoomd.filter.All(), flow_target=ramp, slab_direction="Z", flow_direction="X", n_slabs=20)
 
 
     Attributes:
@@ -283,7 +281,7 @@ class MuellerPlatheFlow(Updater):
         min_slab (int): Id < n_slabs where the min velocity component is
             searched for.
     """
-    def __init__(self, filter, flow_target, slab_direction, flow_direction ,n_slabs, max_slab=-1, min_slab=-1):
+    def __init__(self, filter, flow_target, slab_direction, flow_direction, n_slabs, max_slab=-1, min_slab=-1):
 
         assert (n_slabs > 0), "Invalid negative number of slabs."
         if min_slab < 0:
