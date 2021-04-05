@@ -141,6 +141,7 @@ GSDDumpWriter::~GSDDumpWriter()
 */
 void GSDDumpWriter::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     int retval;
     bool root=true;
 

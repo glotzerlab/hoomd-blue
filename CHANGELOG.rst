@@ -4,19 +4,25 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.5 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.5 (2021-03-23)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
 - ``filter`` parameter to ``update.BoxResize`` - A ``ParticleFilter`` that identifies the particles
   to scale with the box.
-- `Simulation.seed` - one place to set random number seeds for all operations.
+- ``Simulation.seed`` - one place to set random number seeds for all operations.
+- ``net_force``, ``net_torque``, and ``net_energy`` per-particle arrays in local snapshots.
+- Support ``hpmc.update.Clusters`` on the GPU.
+- ``hpmc.update.MuVT`` - Gibbs ensemble simulations with HPMC.
+- ``md.update.ZeroMomentum`` - Remove linear momentum from the system.
+- ``hpmc.compute.FreeVolume`` - Compute free volume available to test particles.
+- Custom action tutorials.
 
 *Changed*
 
 - [breaking]  Removed the parameter ``scale_particles`` in ``update.BoxResize``
-- [internal] Modified signature of `data.typeconverter.OnlyTypes`
+- [internal] Modified signature of ``data.typeconverter.OnlyTypes``
 - Remove use of deprecated numpy APIs.
 - Added more details to the migration guide.
 - Support timestep values in the range [0,2**64-1].
@@ -33,17 +39,32 @@ v3.0.0-beta.5 (not yet released)
 - [breaking] Removed *seed* argument from ``hpmc.update.Clusters``
 - [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
 - [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
+- Use latest version of getar library.
+- Improve documentation.
+- Improve performance of ``md.pair.Mie``.
+- [breaking] ``hpmc.update.Clusters`` re-implemented with a rejection free, but not ergodic,
+  algorithm for anisotropic particles. The new algorithm does not run in parallel over MPI ranks.
+- [breaking] HPMC depletion algorithm rewritten.
+- [breaking, temporary] HPMC depletant fugacity is now set for type pairs. This change will be
+  reverted in a future release.
+- Tutorials require fresnel 0.13.
+- Support TBB 2021.
 
 *Fixed*
 
 - Install ``ParticleFilter`` header files for external plugins.
-- ``md.force.Active`` keeps floating point values set for `active_force` and `active_torque`.
-- `create_state_from_snapshot` accepts `gsd.hoomd.Snapshot` objects without error.
+- ``md.force.Active`` keeps floating point values set for ``active_force`` and ``active_torque``.
+- ``create_state_from_snapshot`` accepts ``gsd.hoomd.Snapshot`` objects without error.
 - HOOMD compiles on Apple silicon macOS systems.
+- Memory leak in PPPM force compute.
+- Segmentation fault that occurred when dumping GSD shapes for spheropolygons and spheropolyhedra
+  with 0 vertices.
+- Incorrect MD neighbor lists in MPI simulations with more than 1 rank.
+- ``md.bond.FENE`` accepts parameters.
 
 *Removed*
 
-- Testing for CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
+- Testing with CUDA 9, GCC 4.8, GCC 5.x, GCC 6.x, clang 5
 
 v3.0.0-beta.4 (2021-02-16)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -226,6 +247,32 @@ functionality.
 
 v2.x
 ----
+
+v2.9.6 (2021-03-16)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support TBB 2021.
+
+v2.9.5 (2021-03-15)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support macos-arm64.
+* Support TBB 2021.
+* Fix memory leak in PPPM.
+
+v2.9.4 (2021-02-05)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support thrust 1.10
+* Support LLVM11
+* Fix Python syntax warnings
+* Fix compile errors with gcc 10
 
 v2.9.3 (2020-08-05)
 ^^^^^^^^^^^^^^^^^^^

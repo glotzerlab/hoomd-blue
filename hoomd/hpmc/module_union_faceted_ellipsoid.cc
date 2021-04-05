@@ -23,6 +23,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 namespace py = pybind11;
@@ -54,6 +55,7 @@ void export_union_faceted_ellipsoid(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnionGPU");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnionGPU");
+    export_UpdaterClustersGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnionGPU");
 
     #endif
     }

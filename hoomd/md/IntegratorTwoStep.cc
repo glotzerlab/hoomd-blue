@@ -87,6 +87,7 @@ Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, uint64_t time
 */
 void IntegratorTwoStep::update(uint64_t timestep)
     {
+    Integrator::update(timestep);
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0)
         {

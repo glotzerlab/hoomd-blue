@@ -9,7 +9,8 @@ from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.update import _updater
-from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
+from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
@@ -293,15 +294,15 @@ class wall(_updater):
         return self.cpp_updater.getTotalCount(mode);
 
 
-class muvt(_updater):
+class MuVT(Updater):
     R""" Insert and remove particles in the muVT ensemble.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
-        period (int): Number of timesteps between histogram evaluations.
-        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes (if *None*, all types)
+        trigger (int): Number of timesteps between grand canonical insertions
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
         ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
+        max_volume_rescale (float): maximum step size in ln(V) (applies to Gibbs ensemble)
+        move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
 
     The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
 
@@ -313,159 +314,123 @@ class muvt(_updater):
         Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
         to update.muvt(), where the number of partitions can be a multiple of ngibbs.
 
+    Attributes:
+        trigger (int): Select the timesteps on which to perform cluster moves.
+        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
+        max_volume_rescale (float): Maximum step size in ln(V) (applies to Gibbs ensemble)
+        move_ratio (float): The ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+        ntrial (float): (**default**: 1) Number of configurational bias attempts to swap depletants
+
     Example::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        update.muvt(mc=mc, period)
+        TODO: link to example notebooks
 
     """
-    def __init__(self, mc, seed, period=1, transfer_types=None,ngibbs=1):
+    def __init__(self, transfer_types, ngibbs=1, max_volume_rescale=0.1,
+        volume_move_probability=0.5, trigger=1):
+        super().__init__(trigger)
 
-        if not isinstance(mc, integrate.HPMCIntegrator):
-            hoomd.context.current.device.cpp_msg.warning("update.muvt: Must have a handle to an HPMC integrator.\n");
-            return;
+        self.ngibbs = int(ngibbs)
 
-        self.mc = mc
+        _default_dict = dict(ntrial=1)
+        param_dict = ParameterDict(transfer_types=list(transfer_types),
+                                   max_volume_rescale=float(max_volume_rescale),
+                                   volume_move_probability=float(volume_move_probability),
+                                   **_default_dict)
+        self._param_dict.update(param_dict)
 
-        # initialize base class
-        _updater.__init__(self);
+        typeparam_fugacity = TypeParameter('fugacity',
+                                    type_kind='particle_types',
+                                    param_dict=TypeParameterDict(hoomd.variant.Variant,
+                                                                 len_keys=1,
+                                                                 _defaults = hoomd.variant.Constant(0.0)))
+        self._extend_typeparam([typeparam_fugacity])
 
-        if ngibbs > 1:
-            self.gibbs = True;
-        else:
-            self.gibbs = False;
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        cpp_cls_name = "UpdaterMuVT"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
-        # by default, transfer all types
-        if transfer_types is None:
-            transfer_types = type_list
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                self.ngibbs)
+        super()._attach()
 
-        cls = None;
+    @log(category='sequence')
+    def insert_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle insertion moves.
 
-        if isinstance(mc, integrate.sphere):
-            cls = _hpmc.UpdaterMuVTSphere;
-        elif isinstance(mc, integrate.convex_polygon):
-            cls = _hpmc.UpdaterMuVTConvexPolygon;
-        elif isinstance(mc, integrate.simple_polygon):
-            cls = _hpmc.UpdaterMuVTSimplePolygon;
-        elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.UpdaterMuVTConvexPolyhedron;
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.UpdaterMuVTSpheropolyhedron;
-        elif isinstance(mc, integrate.ellipsoid):
-            cls = _hpmc.UpdaterMuVTEllipsoid;
-        elif isinstance(mc, integrate.convex_spheropolygon):
-            cls =_hpmc.UpdaterMuVTSpheropolygon;
-        elif isinstance(mc, integrate.faceted_sphere):
-            cls =_hpmc.UpdaterMuVTFacetedEllipsoid;
-        elif isinstance(mc, integrate.sphere_union):
-            cls = _hpmc.UpdaterMuVTSphereUnion;
-        elif isinstance(mc, integrate.convex_spheropolyhedron_union):
-            cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
-        elif isinstance(mc, integrate.faceted_ellipsoid_union):
-            cls = _hpmc.UpdaterMuVTFacetedEllipsoidUnion;
-        elif isinstance(mc, integrate.polyhedron):
-            cls =_hpmc.UpdaterMuVTPolyhedron;
-        else:
-            hoomd.context.current.device.cpp_msg.error("update.muvt: Unsupported integrator.\n");
-            raise RuntimeError("Error initializing update.muvt");
-
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               mc.cpp_integrator,
-                               ngibbs);
-
-        # register the muvt updater
-        self.setupUpdater(period);
-
-        # set the list of transferred types
-        if not isinstance(transfer_types,list):
-            hoomd.context.current.device.cpp_msg.error("update.muvt: Need list of types to transfer.\n");
-            raise RuntimeError("Error initializing update.muvt");
-
-        cpp_transfer_types = _hoomd.std_vector_uint();
-        for t in transfer_types:
-            if t not in type_list:
-                hoomd.context.current.device.cpp_msg.error("Trying to transfer unknown type " + str(t) + "\n");
-                raise RuntimeError("Error setting muVT parameters");
-            else:
-                type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(t);
-
-            cpp_transfer_types.append(type_id)
-
-        self.cpp_updater.setTransferTypes(cpp_transfer_types)
-
-    def set_fugacity(self, type, fugacity):
-        R""" Change muVT fugacities.
-
-        Args:
-            type (str): Particle type to set parameters for
-            fugacity (float): Fugacity of this particle type (dimension of volume^-1)
-
-        Example::
-
-            muvt = hpmc.update.muvt(mc, period=10)
-            muvt.set_fugacity(type='A', fugacity=1.23)
-            variant = hoomd.variant.linear_interp(points=[(0,1e1), (1e5, 4.56)])
-            muvt.set_fugacity(type='A', fugacity=variant)
-
+        None when not attached
         """
-        self.check_initialization();
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
-        if self.gibbs:
-            raise RuntimeError("Gibbs ensemble does not support setting the fugacity.\n");
-
-        # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
-
-        if type not in type_list:
-            hoomd.context.current.device.cpp_msg.error("Trying to set fugacity for unknown type " + str(type) + "\n");
-            raise RuntimeError("Error setting muVT parameters");
+        if counter is None:
+            return None
         else:
-            type_id = hoomd.context.current.system_definition.getParticleData().getTypeByName(type);
+            return counter.insert
 
-        fugacity_variant = hoomd.variant._setup_variant_input(fugacity);
-        self.cpp_updater.setFugacity(type_id, fugacity_variant.cpp_variant);
+    @log(category='sequence')
+    def remove_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle removal moves.
 
-    def set_params(self, dV=None, volume_move_probability=None, n_trial=None):
-        R""" Set muVT parameters.
-
-        Args:
-            dV (float): (if set) Set volume rescaling factor (dimensionless)
-            volume_move_probability (float): (if set) In the Gibbs ensemble, set the
-                probability of volume moves (other moves are exchange/transfer moves).
-            n_trial (int): (if set) Number of re-insertion attempts per depletant
-
-        Example::
-
-            muvt = hpmc.update.muvt(mc, period = 10)
-            muvt.set_params(dV=0.1)
-            muvt.set_params(n_trial=2)
-            muvt.set_params(volume_move_probability=0.05)
-
+        None when not attached
         """
-        self.check_initialization();
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
-        if volume_move_probability is not None:
-            if not self.gibbs:
-                hoomd.context.current.device.cpp_msg.warning("Move ratio only used in Gibbs ensemble.\n");
-            self.cpp_updater.setVolumeMoveProbability(float(volume_move_probability))
+        if counter is None:
+            return None
+        else:
+            return counter.remove
 
-        if dV is not None:
-            if not self.gibbs:
-                hoomd.context.current.device.cpp_msg.warning("Parameter dV only available for Gibbs ensemble.\n");
-            self.cpp_updater.setMaxVolumeRescale(float(dV))
+    @log(category='sequence')
+    def exchange_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle exchange moves.
 
-        if n_trial is not None:
-            self.cpp_updater.setNTrial(int(n_trial))
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
 
+        if counter is None:
+            return None
+        else:
+            return counter.exchange
+
+    @log(category='sequence')
+    def volume_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected paricle volume moves.
+
+        None when not attached
+        """
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
+            return None
+        else:
+            return counter.volume
+
+    @log(category='object')
+    def N(self):
+        """dict: Map of number of particles per type
+
+        None when not attached
+        """
+        n_dict = None
+        if self._attached:
+            N_dict = self._cpp_obj.N
+
+        return N_dict
 
 class remove_drift(_updater):
     R""" Remove the center of mass drift from a system restrained on a lattice.
@@ -532,14 +497,9 @@ class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        seed (int): Random number seed.
-        swap_type_pair (list[tuple[str, str]]): A pair of two types whose identities
-            may be swapped.
-        move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio (float): Set the ratio between type swap moves and
-                                geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
 
@@ -547,61 +507,39 @@ class Clusters(Updater):
     http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape, patch
     interactions and depletants.
 
-    With depletants, Clusters are defined by a simple distance cut-off
-    criterion. Two particles belong to the same cluster if the circumspheres of
-    the depletant-excluded volumes overlap.
+    Implicit depletants are supported and simulated on-the-fly, as if they were
+    present in the actual system.
 
-    Supported moves include pivot moves (point reflection), line reflections
-    (pi rotation around an axis), and type swaps.  Only the pivot move is
-    rejection free. With anisotropic particles, the pivot move cannot be used
-    because it would create a chiral mirror image of the particle, and only
-    line reflections are employed. Line reflections are not rejection free
-    because of periodic boundary conditions, as discussed in Sinkovits et al.
-    (2012), http://doi.org/10.1063/1.3694271.
+    Supported moves include pivot moves (point reflection) and line reflections
+    (pi rotation around an axis).  With anisotropic particles, the pivot move
+    cannot be used because it would create a chiral mirror image of the
+    particle, and only line reflections are employed. In general, line
+    reflections are not rejection free because of periodic boundary conditions,
+    as discussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+    However, we restrict the line reflections to axes parallel to the box axis,
+    which makes those moves rejection-free for anisotropic particles, but the
+    algorithm is then no longer ergodic for those and needs to be combined with
+    local moves.
 
-
-    Note:
-        The type swap move only works between two types of equal sized,
-        unorientable (``orientable``=``False``) spherical particles and
-        exchanges their identities.
 
     .. rubric:: Threading
 
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        swap_type_pair (list): A pair of two types whose identities may be swapped.
-        delta_mu (float): The chemical potential difference between types to be swapped
-        move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
-        swap_move_ratio (float): Set the ratio between type swap moves and
-                                geometric moves.
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
-
-        instance (int):
-            When using multiple `Clusters` updaters in a single simulation,
-            give each a unique value for `instance` so that they generate
-            different streams of random numbers.
     """
 
-    def __init__(self, swap_type_pair, delta_mu=0, move_ratio=0.5,
-                 flip_probability=0.5, swap_move_ratio=0.5, trigger=1):
+    def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
-        try:
-            if len(swap_type_pair) != 2 and len(swap_type_pair) != 0:
-                raise ValueError
-        except (TypeError, ValueError):
-            raise ValueError("swap_type_pair must be an iterable of length "
-                             "2 or 0.")
 
-        param_dict = ParameterDict(swap_type_pair=list(swap_type_pair),
-                                   move_ratio=float(move_ratio),
-                                   flip_probability=float(flip_probability),
-                                   swap_move_ratio=float(swap_move_ratio),
-                                   delta_mu=float(delta_mu),
-                                   instance=int)
+        param_dict = ParameterDict(pivot_move_ratio=float(pivot_move_ratio),
+                                   flip_probability=float(flip_probability))
+
         self._param_dict.update(param_dict)
         self.instance = 0
 
@@ -620,104 +558,43 @@ class Clusters(Updater):
         if not isinstance(integrator, integrate.HPMCIntegrator):
             raise RuntimeError("The integrator must be a HPMC integrator.")
 
-        integrator_pairs = [
-                (integrate.Sphere,
-                    _hpmc.UpdaterClustersSphere),
-                (integrate.ConvexPolygon,
-                    _hpmc.UpdaterClustersConvexPolygon),
-                (integrate.SimplePolygon,
-                    _hpmc.UpdaterClustersSimplePolygon),
-                (integrate.ConvexPolyhedron,
-                    _hpmc.UpdaterClustersConvexPolyhedron),
-                (integrate.ConvexSpheropolyhedron,
-                    _hpmc.UpdaterClustersSpheropolyhedron),
-                (integrate.Ellipsoid,
-                    _hpmc.UpdaterClustersEllipsoid),
-                (integrate.ConvexSpheropolygon,
-                    _hpmc.UpdaterClustersSpheropolygon),
-                (integrate.FacetedEllipsoid,
-                    _hpmc.UpdaterClustersFacetedEllipsoid),
-                (integrate.SphereUnion,
-                    _hpmc.UpdaterClustersSphereUnion),
-                (integrate.ConvexSpheropolyhedronUnion,
-                    _hpmc.UpdaterClustersConvexPolyhedronUnion),
-                (integrate.FacetedEllipsoidUnion,
-                    _hpmc.UpdaterClustersFacetedEllipsoidUnion),
-                (integrate.Polyhedron,
-                    _hpmc.UpdaterClustersPolyhedron),
-                (integrate.Sphinx,
-                    _hpmc.UpdaterClustersSphinx)
-                ]
-
-        cpp_cls = None
-        for python_integrator, cpp_updater in integrator_pairs:
-            if isinstance(integrator, python_integrator):
-                cpp_cls = cpp_updater
-        if cpp_cls is None:
-            raise RuntimeError("Unsupported integrator.\n")
+        cpp_cls_name = "UpdaterClusters"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        use_gpu = (isinstance(self._simulation.device, hoomd.device.GPU)
+                   and (cpp_cls_name + 'GPU') in _hpmc.__dict__)
+        if use_gpu:
+            cpp_cls_name += "GPU"
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
 
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj)
+
+        if use_gpu:
+            sys_def = self._simulation.state._cpp_sys_def
+            self._cpp_cell = _hoomd.CellListGPU(sys_def)
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    self._cpp_cell)
+        else:
+            self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj)
         super()._attach()
 
-    @property
-    def counter(self):
-        """Get the number of accepted and rejected cluster moves.
+    @log
+    def avg_cluster_size(self):
+        """float: the typical size of clusters
 
-        Returns:
-            A counter object with pivot, reflection, and swap properties. Each
-            property is a list of accepted moves and rejected moves since the
-            last run.
-
-        Note:
-            `None` when the simulation run has not started.
+        None when not attached
         """
-        if not self._attached:
+        counter = None
+        if self._attached:
+            counter = self._cpp_obj.getCounters(1)
+
+        if counter is None:
             return None
         else:
-            return self._cpp_obj.getCounters(1)
-
-    @log(category='sequence')
-    def pivot_moves(self):
-        """tuple[int, int]: Number of accepted and rejected pivot moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.pivot
-
-    @log(category='sequence')
-    def reflection_moves(self):
-        """tuple[int, int]: Number of accepted and rejected reflection moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.reflection
-
-    @log(category='sequence')
-    def swap_moves(self):
-        """tuple[int, int]: Number of accepted and rejected swap moves.
-
-        Returns:
-            A tuple of (accepted moves, rejected moves) since the last run.
-        """
-        counter = self.counter
-        if counter is None:
-            return (0, 0)
-        else:
-            return counter.swap
-
+            return counter.average_cluster_size
 
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
