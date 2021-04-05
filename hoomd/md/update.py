@@ -11,11 +11,12 @@ it in some way. See the documentation of specific updaters to find out what they
 
 from hoomd import _hoomd
 from hoomd.md import _md
-import hoomd;
+import hoomd
 from hoomd.update import _updater
 from hoomd.operations import Updater
 from hoomd.data.parameterdicts import ParameterDict
-import sys;
+import sys
+
 
 class rescale_temp(_updater):
     r""" Rescales particle velocities.
@@ -83,34 +84,29 @@ class rescale_temp(_updater):
             self.cpp_updater.setT(kT.cpp_variant);
             self.kT = kT
 
-class zero_momentum(_updater):
-    R""" Zeroes system momentum.
+class ZeroMomentum(Updater):
+    """Zeroes system momentum.
 
     Args:
-        period (int): Momentum will be zeroed every *period* time steps
-        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        trigger (hoomd.trigger.Trigger): Select the timesteps to zero momentum.
 
-    Every *period* time steps, particle velocities are modified such that the total linear
-    momentum of the system is set to zero.
+    During the time steps specified by *trigger*, particle velocities are
+    modified such that the total linear momentum of the system is set to zero.
 
     Examples::
 
-        update.zero_momentum()
-        zeroer= update.zero_momentum(period=10)
+        zeroer = hoomd.md.update.ZeroMomentum(hoomd.trigger.Periodic(100))
 
     """
-    def __init__(self, period=1, phase=0):
-
+    def __init__(self, trigger):
         # initialize base class
-        _updater.__init__(self);
+        super().__init__(trigger)
 
+    def _attach(self):
         # create the c++ mirror class
-        self.cpp_updater = _md.ZeroMomentumUpdater(hoomd.context.current.system_definition);
-        self.setupUpdater(period, phase);
+        self._cpp_obj = _md.ZeroMomentumUpdater(self._simulation.state._cpp_sys_def)
+        super()._attach()
 
-        # store metadata
-        self.period = period
-        self.metadata_fields = ['period']
 
 class enforce2d(_updater):
     R""" Enforces 2D simulation.

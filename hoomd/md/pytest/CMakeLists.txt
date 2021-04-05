@@ -3,6 +3,7 @@ set(files __init__.py
     aniso_forces_and_energies.json
     test_active.py
     test_aniso_pair.py
+    test_bond_FENE.py
     test_flags.py
     test_potential.py
     test_methods.py
@@ -10,6 +11,7 @@ set(files __init__.py
     test_thermo.py
     forces_and_energies.json
     test_write_debug_data_md.py
+    test_zero_momentum.py
     )
 
 install(FILES ${files}

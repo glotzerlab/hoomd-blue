@@ -34,6 +34,7 @@ Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysde
 */
 void Enforce2DUpdaterGPU::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     assert(m_pdata);
 
     if (m_prof)

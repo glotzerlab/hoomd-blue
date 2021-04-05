@@ -61,6 +61,7 @@ LoadBalancer::~LoadBalancer()
  */
 void LoadBalancer::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
 

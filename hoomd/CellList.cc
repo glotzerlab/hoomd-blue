@@ -118,6 +118,7 @@ uint3 CellList::computeDimensions()
 
 void CellList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     bool force = false;
 
     if (m_prof)

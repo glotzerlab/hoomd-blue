@@ -19,6 +19,7 @@
 #include "AnalyzerSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
+#include "UpdaterMuVT.h"
 #include "UpdaterQuickCompress.h"
 
 #include "GPUTree.h"
@@ -123,6 +124,7 @@ PYBIND11_MODULE(_hpmc, m)
     // export counters
     export_hpmc_implicit_counters(m);
 
+    export_hpmc_muvt_counters(m);
     export_hpmc_clusters_counters(m);
     }
 

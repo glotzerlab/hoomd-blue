@@ -70,6 +70,7 @@ SFCPackTuner::~SFCPackTuner()
  */
 void SFCPackTuner::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     m_exec_conf->msg->notice(6) << "SFCPackTuner: particle sort" << std::endl;
 
     #ifdef ENABLE_MPI

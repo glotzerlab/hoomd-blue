@@ -67,6 +67,7 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
 
 void MuellerPlatheFlow::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if( m_needs_orthorhombic_check)
         this->verify_orthorhombic_box();
 

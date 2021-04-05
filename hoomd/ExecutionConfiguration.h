@@ -29,7 +29,7 @@
 #endif
 
 #ifdef ENABLE_TBB
-#include <tbb/task_scheduler_init.h>
+#include <tbb/task_arena.h>
 #endif
 
 #include "Messenger.h"
@@ -260,8 +260,15 @@ class PYBIND11_EXPORT ExecutionConfiguration
     //! set number of TBB threads
     void setNumThreads(unsigned int num_threads)
         {
-        m_task_scheduler.reset(new tbb::task_scheduler_init(num_threads));
+        m_task_arena = std::make_shared<tbb::task_arena>(num_threads);
         m_num_threads = num_threads;
+        }
+
+    std::shared_ptr<tbb::task_arena> getTaskArena() const
+        {
+        if (!m_task_arena)
+            throw std::runtime_error("TBB task arena not set.");
+        return m_task_arena;
         }
     #endif
 
@@ -406,7 +413,7 @@ private:
     #endif
 
     #ifdef ENABLE_TBB
-    std::unique_ptr<tbb::task_scheduler_init> m_task_scheduler; //!< The TBB task scheduler
+    std::shared_ptr<tbb::task_arena> m_task_arena; //!< The TBB task arena
     unsigned int m_num_threads;            //!<  The number of TBB threads used
     #endif
 

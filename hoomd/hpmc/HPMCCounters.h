@@ -195,12 +195,16 @@ DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, co
 /*! \ingroup hpmc_data_structs */
 struct hpmc_implicit_counters_t
     {
-    unsigned long long int insert_count;                //!< Count of depletants inserted
+    unsigned long long int insert_count;              //!< Count of depletants inserted
+    unsigned long long int insert_accept_count;       //!< Count of depletants inserted successfully
+    unsigned long long int insert_accept_count_sq;    //!< Squared count of successful insertion attempts per depletant
 
     //! Construct a zero set of counters
     DEVICE hpmc_implicit_counters_t()
         {
         insert_count = 0;
+        insert_accept_count = 0;
+        insert_accept_count_sq = 0;
         }
     };
 
@@ -241,6 +245,14 @@ struct hpmc_muvt_counters_t
             return double(insert_accept_count) / double(insert_reject_count + insert_accept_count);
         }
 
+    //! Get the insert acceptance
+    /*! \returns The number of insertion moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getInsertCounts()
+        {
+        return std::make_pair(insert_accept_count, insert_reject_count);
+        }
+
     //! Get the acceptance for removing particles
     /*! \returns The ratio of deletion moves that are accepted, or 0 if there are no deletion moves
     */
@@ -250,6 +262,30 @@ struct hpmc_muvt_counters_t
             return 0.0;
         else
             return double(remove_accept_count) / double(remove_reject_count + remove_accept_count);
+        }
+
+    //! Get the remove acceptance
+    /*! \returns The number of removal moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getRemoveCounts()
+        {
+        return std::make_pair(remove_accept_count, remove_reject_count);
+        }
+
+    //! Get the exchange acceptance
+    /*! \returns The number of exchange moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getExchangeCounts()
+        {
+        return std::make_pair(exchange_accept_count, exchange_reject_count);
+        }
+
+    //! Get the volume acceptance
+    /*! \returns The number of volume moves that are accepted and rejected.
+    */
+    std::pair<unsigned long long int, unsigned long long int> getVolumeCounts()
+        {
+        return std::make_pair(volume_accept_count, volume_reject_count);
         }
 
     //! Get the acceptance for exchanging particle identities
@@ -298,65 +334,14 @@ struct hpmc_muvt_counters_t
 /*! \ingroup hpmc_data_structs */
 struct hpmc_clusters_counters_t
     {
-    unsigned long long int pivot_accept_count;      //!< Count of accepted pivot moves
-    unsigned long long int pivot_reject_count;      //!< Count of rejected pivot moves
-    unsigned long long int reflection_accept_count;         //!< Count of accepted reflection moves
-    unsigned long long int reflection_reject_count;         //!< Count of rejected reflection moves
-    unsigned long long int swap_accept_count;         //!< Count of accepted reflection moves
-    unsigned long long int swap_reject_count;         //!< Count of rejected reflection moves
     unsigned long long int n_clusters;                //!< Number of constructed clusters
     unsigned long long int n_particles_in_clusters;   //!< Number of particles in clusters
 
     //! Construct a zero set of counters
     DEVICE hpmc_clusters_counters_t()
         {
-        pivot_accept_count = 0;
-        pivot_reject_count = 0;
-        reflection_accept_count = 0;
-        reflection_reject_count = 0;
-        swap_accept_count = 0;
-        swap_reject_count = 0;
         n_clusters = 0;
         n_particles_in_clusters = 0;
-        }
-
-    //! Get the translate acceptance
-    /*! \returns The ratio of pivot moves that are accepted, or 0 if there are no pivot moves
-    */
-    DEVICE double getPivotAcceptance() const
-        {
-        if (pivot_reject_count + pivot_accept_count == 0)
-            return 0.0;
-        else
-            return double(pivot_accept_count) / double(pivot_reject_count + pivot_accept_count);
-        }
-
-    //! Get the reflection acceptance
-    /*! \returns The ratio of reflection moves that are accepted, or 0 if there are no reflection moves
-    */
-    DEVICE double getReflectionAcceptance() const
-        {
-        if (reflection_reject_count + reflection_accept_count == 0)
-            return 0.0;
-        else
-            return double(reflection_accept_count) / double(reflection_reject_count + reflection_accept_count);
-        }
-
-    //! Get the swap acceptance
-    /*! \returns The ratio of type swap moves that are accepted, or 0 if there are no type swap moves
-    */
-    DEVICE double getSwapAcceptance() const
-        {
-        if (swap_reject_count + swap_accept_count == 0)
-            return 0.0;
-        else
-            return double(swap_accept_count) / double(swap_reject_count + swap_accept_count);
-        }
-
-    //! Returns the number of particle moves
-    DEVICE unsigned long long int getNParticlesMoved() const
-        {
-        return pivot_accept_count + pivot_reject_count + reflection_accept_count + reflection_reject_count + swap_accept_count + swap_reject_count;
         }
 
     //! Returns the number of particle in clusters
@@ -380,6 +365,8 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count - b.insert_count;
+    result.insert_accept_count = a.insert_accept_count - b.insert_accept_count;
+    result.insert_accept_count_sq = a.insert_accept_count_sq - b.insert_accept_count_sq;
     return result;
     }
 
@@ -388,6 +375,8 @@ DEVICE inline hpmc_implicit_counters_t operator+(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count + b.insert_count;
+    result.insert_accept_count = a.insert_accept_count + b.insert_accept_count;
+    result.insert_accept_count_sq = a.insert_accept_count_sq + b.insert_accept_count_sq;
     return result;
     }
 
@@ -409,12 +398,6 @@ DEVICE inline hpmc_muvt_counters_t operator-(const hpmc_muvt_counters_t& a, cons
 DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t& a, const hpmc_clusters_counters_t& b)
     {
     hpmc_clusters_counters_t result;
-    result.pivot_accept_count = a.pivot_accept_count - b.pivot_accept_count;
-    result.reflection_accept_count = a.reflection_accept_count - b.reflection_accept_count;
-    result.swap_accept_count = a.swap_accept_count - b.swap_accept_count;
-    result.pivot_reject_count = a.pivot_reject_count - b.pivot_reject_count;
-    result.reflection_reject_count = a.reflection_reject_count - b.reflection_reject_count;
-    result.swap_reject_count = a.swap_reject_count - b.swap_reject_count;
     result.n_clusters = a.n_clusters - b.n_clusters;
     result.n_particles_in_clusters = a.n_particles_in_clusters - b.n_particles_in_clusters;
 

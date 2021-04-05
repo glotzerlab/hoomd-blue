@@ -55,6 +55,7 @@ mpcd::CellThermoCompute::~CellThermoCompute()
 
 void mpcd::CellThermoCompute::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // check if computation should proceed, and always mark the calculation as occurring at this timestep, even if forced
     if (!shouldCompute(timestep)) return;
     m_last_computed = timestep;

@@ -13,6 +13,7 @@
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #endif
 
 namespace hpmc
@@ -30,7 +31,6 @@ class UpdaterMuVT : public Updater
         //! Constructor
         UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-            unsigned int seed,
             unsigned int npartition);
         virtual ~UpdaterMuVT();
 
@@ -43,16 +43,31 @@ class UpdaterMuVT : public Updater
         /*! \param type The type id for which to set the fugacity
          * \param fugacity The value of the fugacity (variant)
          */
-        void setFugacity(unsigned int type, std::shared_ptr<Variant> fugacity)
+        void setFugacity(const std::string& typ, std::shared_ptr<Variant> fugacity)
             {
-            assert(type < m_pdata->getNTypes());
-            m_fugacity[type] = fugacity;
+            unsigned int id = this->m_pdata->getTypeByName(typ);
+            m_fugacity[id] = fugacity;
+            }
+
+        //! Get the fugacity of a particle type
+        /*! \param type The type id for which to get the fugacity
+         */
+        std::shared_ptr<Variant> getFugacity(const std::string& typ)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(typ);
+            return m_fugacity[id];
             }
 
         //! Set maximum factor for volume rescaling (Gibbs ensemble only)
         void setMaxVolumeRescale(Scalar fac)
             {
             m_max_vol_rescale = fac;
+            }
+
+        //! Get maximum factor for volume rescaling (Gibbs ensemble only)
+        Scalar getMaxVolumeRescale()
+            {
+            return m_max_vol_rescale;
             }
 
         //! In the Gibbs ensemble, set fraction of moves that are volume moves (remainder are exchange/transfer moves)
@@ -65,37 +80,50 @@ class UpdaterMuVT : public Updater
             m_volume_move_probability = volume_move_probability;
             }
 
+        //! Get the volume move probability
+        Scalar getVolumeMoveProbability()
+            {
+            return m_volume_move_probability;
+            }
+
         //! List of types that are inserted/removed/transferred
-        void setTransferTypes(std::vector<unsigned int>& transfer_types)
+        void setTransferTypes(const std::vector<std::string>& transfer_types)
             {
             assert(transfer_types.size() <= m_pdata->getNTypes());
             if (transfer_types.size() == 0)
                 {
                 throw std::runtime_error("Must transfer at least one type.\n");
                 }
-            m_transfer_types = transfer_types;
-            }
-
-
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector< std::string > result;
-
-            result.push_back("hpmc_muvt_insert_acceptance");
-            result.push_back("hpmc_muvt_remove_acceptance");
-            result.push_back("hpmc_muvt_exchange_acceptance");
-            result.push_back("hpmc_muvt_volume_acceptance");
-
-            for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
+            m_transfer_types.clear();
+            for (auto t: transfer_types)
                 {
-                result.push_back("hpmc_muvt_N_"+m_pdata->getNameByType(i));
+                unsigned int id = this->m_pdata->getTypeByName(t);
+                m_transfer_types.push_back(id);
                 }
-            return result;
             }
 
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
+        //! Get the list of types transferred
+        std::vector<std::string> getTransferTypes()
+            {
+            std::vector<std::string> transfer_types;
+            for (auto id: m_transfer_types)
+                {
+                transfer_types.push_back(this->m_pdata->getNameByType(id));
+                }
+            return transfer_types;
+            }
+
+        //! Get the number of particles per type
+        std::map<std::string, unsigned int> getN()
+            {
+            std::map<std::string, unsigned int> m;
+
+            for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+                {
+                m[this->m_pdata->getNameByType(i)] = getNumParticlesType(i);
+                }
+            return m;
+            }
 
         //! Reset statistics counters
         void resetStats()
@@ -103,10 +131,16 @@ class UpdaterMuVT : public Updater
             m_count_run_start = m_count_total;
             }
 
-        //! Set ntrial parameter
+        //! Set ntrial parameter for configurational bias attempts per depletant
         void setNTrial(unsigned int n_trial)
             {
             m_n_trial = n_trial;
+            }
+
+        //! Get the number of configurational bias attempts
+        unsigned int getNTrial()
+            {
+            return m_n_trial;
             }
 
         //! Get the current counter values
@@ -115,7 +149,6 @@ class UpdaterMuVT : public Updater
     protected:
         std::vector<std::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
-        unsigned int m_seed;                                  //!< RNG seed
         unsigned int m_npartition;                            //!< The number of partitions to use for Gibbs ensemble
         bool m_gibbs;                                         //!< True if we simulate a Gibbs ensemble
 
@@ -268,18 +301,11 @@ class UpdaterMuVT : public Updater
 template<class Shape>
 UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
-    unsigned int seed,
     unsigned int npartition)
-    : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
+    : Updater(sysdef), m_mc(mc), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_volume_move_probability(0.5), m_gibbs_other(0),
       m_n_trial(1)
     {
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
-
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConstant(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
@@ -438,7 +464,7 @@ template<class Shape>
 unsigned int UpdaterMuVT<Shape>::getNumDepletants(uint64_t timestep,  Scalar V, bool local, unsigned int type_d)
     {
     // parameter for Poisson distribution
-    Scalar lambda = this->m_mc->getDepletantFugacity(type_d)*V;
+    Scalar lambda = this->m_mc->getDepletantFugacity(type_d,type_d)*V;
 
     unsigned int n = 0;
     if (lambda > Scalar(0.0))
@@ -545,15 +571,18 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_b
         unsigned int overlap_count = 0;
 
         // loop over depletant types
-        if (m_mc->getQuermassMode())
-            throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
-
         for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
             {
-            if (m_mc->getDepletantFugacity(type_d) == 0.0)
+            if (m_mc->getDepletantFugacity(type_d,type_d) == 0.0)
                 continue;
 
-            if (m_mc->getDepletantFugacity(type_d) < 0.0)
+            for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+                {
+                if (type_j != type_d && m_mc->getDepletantFugacity(type_d,type_j) != 0.0)
+                    throw std::runtime_error("Non-additive depletants not supported in update.muvt()\n");
+                }
+
+            if (m_mc->getDepletantFugacity(type_d,type_d) < 0.0)
                 throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
             // draw number from Poisson distribution (using old box)
@@ -776,6 +805,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_b
 template<class Shape>
 void UpdaterMuVT<Shape>::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
 
@@ -1519,15 +1549,18 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(uint64_t timestep, unsigned int tag, 
     auto& params = this->m_mc->getParams();
     #endif
 
-    if (m_mc->getQuermassMode())
-        throw std::runtime_error("update.muvt() doesn't support quermass mode\n");
-
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        if (m_mc->getDepletantFugacity(type_d) == 0.0)
+        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+            {
+            if (type_j != type_d && m_mc->getDepletantFugacity(type_d,type_j) != 0.0)
+                throw std::runtime_error("Non-additive depletants not supported in update.muvt()\n");
+            }
+
+        if (m_mc->getDepletantFugacity(type_d,type_d) == 0.0)
             continue;
 
-        if (m_mc->getDepletantFugacity(type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d,type_d) < 0.0)
             throw std::runtime_error("Negative fugacties not supported in update.muvt()\n");
 
         #ifdef ENABLE_MPI
@@ -1802,10 +1835,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep, unsigned int type,
     // loop over depletant types
     for (unsigned int type_d = 0; type_d < this->m_pdata->getNTypes(); ++type_d)
         {
-        if (m_mc->getDepletantFugacity(type_d) == 0.0)
+        for (unsigned int type_j = 0; type_j < this->m_pdata->getNTypes(); ++type_j)
+            {
+            if (type_j != type_d && m_mc->getDepletantFugacity(type_d,type_j) != 0.0)
+                throw std::runtime_error("Non-additive depletants not supported in update.muvt()\n");
+            }
+
+        if (m_mc->getDepletantFugacity(type_d,type_d) == 0.0)
             continue;
 
-        if (m_mc->getDepletantFugacity(type_d) < 0.0)
+        if (m_mc->getDepletantFugacity(type_d,type_d) < 0.0)
             throw std::runtime_error("Negative fugacities not supported in update.muvt()\n");
 
         // Depletant and colloid diameter
@@ -1888,43 +1927,6 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(uint64_t timestep, unsigned int type,
         } // end loop over depletants
 
     return nonzero;
-    }
-
-template<class Shape>
-Scalar UpdaterMuVT<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    hpmc_muvt_counters_t counters = getCounters(1);
-
-    for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
-        {
-        std::string q = "hpmc_muvt_N_"+m_pdata->getNameByType(i);
-        if (quantity == q)
-            {
-            return getNumParticlesType(i);
-            }
-        }
-    if (quantity == "hpmc_muvt_insert_acceptance")
-        {
-        return counters.getInsertAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_remove_acceptance")
-        {
-        return counters.getRemoveAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_exchange_acceptance")
-        {
-        return counters.getExchangeAcceptance();
-        }
-    else if (quantity == "hpmc_muvt_volume_acceptance")
-        {
-        return counters.getVolumeAcceptance();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "UpdaterMuVT: Log quantity " << quantity
-            << " is not supported by this Updater." << std::endl;
-        throw std::runtime_error("Error querying log value.");
-        }
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -2483,7 +2485,8 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsig
     #endif
 
     // initialize another rng
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_seed, this->m_exec_conf->getPartition());
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterMuVTDepletants6, timestep, this->m_sysdef->getSeed()),
+                               hoomd::Counter(this->m_exec_conf->getPartition()));
 
     // update the aabb tree
     const detail::AABBTree& aabb_tree = this->m_mc->buildAABBTree();
@@ -2608,14 +2611,28 @@ unsigned int UpdaterMuVT<Shape>::countDepletantOverlaps(uint64_t timestep, unsig
 template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< UpdaterMuVT<Shape>, Updater, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str())
-          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
-          .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
-          .def("setVolumeMoveProbability", &UpdaterMuVT<Shape>::setVolumeMoveProbability)
-          .def("setTransferTypes", &UpdaterMuVT<Shape>::setTransferTypes)
-          .def("setNTrial",&hpmc::UpdaterMuVT<Shape>::setNTrial)
+          .def("getFugacity", &UpdaterMuVT<Shape>::getFugacity)
+          .def_property("max_volume_rescale", &UpdaterMuVT<Shape>::getMaxVolumeRescale, &UpdaterMuVT<Shape>::setMaxVolumeRescale)
+          .def_property("volume_move_probability", &UpdaterMuVT<Shape>::getVolumeMoveProbability, &UpdaterMuVT<Shape>::setVolumeMoveProbability)
+          .def_property("transfer_types", &UpdaterMuVT<Shape>::getTransferTypes, &UpdaterMuVT<Shape>::setTransferTypes)
+          .def_property("ntrial", &UpdaterMuVT<Shape>::getNTrial, &UpdaterMuVT<Shape>::setNTrial)
+          .def_property_readonly("N", &UpdaterMuVT<Shape>::getN)
+          .def("getCounters", &UpdaterMuVT<Shape>::getCounters)
           ;
     }
+
+inline void export_hpmc_muvt_counters(pybind11::module &m)
+    {
+    pybind11::class_< hpmc_muvt_counters_t >(m, "hpmc_muvt_counters_t")
+        .def_property_readonly("insert",  &hpmc_muvt_counters_t::getInsertCounts)
+        .def_property_readonly("remove",  &hpmc_muvt_counters_t::getRemoveCounts)
+        .def_property_readonly("exchange",  &hpmc_muvt_counters_t::getExchangeCounts)
+        .def_property_readonly("volume",  &hpmc_muvt_counters_t::getVolumeCounts)
+        ;
+    }
+
 
 } // end namespace hpmc
 #endif
