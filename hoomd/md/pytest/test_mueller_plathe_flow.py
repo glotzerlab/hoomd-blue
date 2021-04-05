@@ -11,7 +11,7 @@ def test_before_attaching(slab_direction, flow_direction):
     filt = hoomd.filter.All()
     ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
     n_slabs = 20
-    mpf = hoomd.md.update.MuellerPlatheFlow(filt, ramp, slab_direction, flow_direction, n_slabs)
+    mpf = hoomd.md.update.ReversePerturbationFlow(filt, ramp, slab_direction, flow_direction, n_slabs)
 
     assert mpf.filter is filt
     assert mpf.flow_target is ramp
@@ -33,7 +33,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     filt = hoomd.filter.All()
     ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
     n_slabs = 20
-    mpf = hoomd.md.update.MuellerPlatheFlow(filt, ramp, slab_direction, flow_direction, n_slabs)
+    mpf = hoomd.md.update.ReversePerturbationFlow(filt, ramp, slab_direction, flow_direction, n_slabs)
 
     nve = hoomd.md.methods.NVE(filter=hoomd.filter.All())
     sim = simulation_factory(two_particle_snapshot_factory())
