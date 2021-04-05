@@ -988,13 +988,14 @@ def test_logging(cls, expected_namespace, expected_loggables):
 def test_pickling(simulation_factory,
                   two_particle_snapshot_factory,
                   valid_params):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    _skip_if_triplet_gpu_mpi(sim, valid_params.pair_potential)
     pot = valid_params.pair_potential(**valid_params.extra_args,
                                       nlist=md.nlist.Cell(),
                                       r_cut=2.5)
     for pair in valid_params.pair_potential_params:
         pot.params[pair] = valid_params.pair_potential_params[pair]
     pickling_check(pot)
-    sim = simulation_factory(two_particle_snapshot_factory())
     integrator = hoomd.md.Integrator(0.05, forces=[pot])
     sim.operations.integrator = integrator
     sim.run(0)
