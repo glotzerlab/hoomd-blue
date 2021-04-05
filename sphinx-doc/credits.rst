@@ -32,6 +32,7 @@ The following people have contributed to the to HOOMD-blue:
 * Chrisy Du, University of Michigan
 * Cong Qiao, Brandeis University
 * Corwin Kerr, University of Michigan
+* Charlotte Zhao, University of Michigan
 * Dan Evans, University of Michigan
 * David LeBard, Temple University
 * Elizabeth R Chen, University of Michigan

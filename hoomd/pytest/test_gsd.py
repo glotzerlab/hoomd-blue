@@ -11,7 +11,7 @@ from hoomd.pytest.test_snapshot import assert_equivalent_snapshots
 
 @pytest.fixture(scope='function')
 def hoomd_snapshot(lattice_snapshot_factory):
-    snap = lattice_snapshot_factory(particle_types=['p1', 'p2'],
+    snap = lattice_snapshot_factory(particle_types=['t1', 't2'],
                                     n=10, a=2.0)
 
     typeid_list = [0] * int(snap.particles.N / 2)
@@ -88,9 +88,10 @@ def test_write(simulation_factory, hoomd_snapshot, tmp_path):
     hoomd.write.GSD.write(state=sim.state, mode='wb',
                           filename=str(filename))
 
-    with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        assert len(traj) == 1
-        assert_equivalent_snapshots(traj[0], hoomd_snapshot)
+    if hoomd_snapshot.exists:
+        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+            assert len(traj) == 1
+            assert_equivalent_snapshots(traj[0], hoomd_snapshot)
 
 
 def test_write_gsd_trigger(create_md_sim, tmp_path):
@@ -221,8 +222,8 @@ def test_write_gsd_truncate(create_md_sim, tmp_path):
             assert_equivalent_snapshots(gsd_snap, snapshot)
 
 
-def test_write_gsd_dynamic(create_md_sim, tmp_path):
-    # To do:test everything for dynamic
+def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
+
     filename = tmp_path / "temporary_test_file.gsd"
 
     sim = create_md_sim
@@ -246,11 +247,11 @@ def test_write_gsd_dynamic(create_md_sim, tmp_path):
             np.testing.assert_allclose(traj[step].particles.position,
                                        position_list[step],
                                        rtol=1e-07, atol=1.5e-07)
-            # check that orientation is default
+            # check orientation
             np.testing.assert_allclose(traj[step].particles.orientation,
                                        [[1, 0, 0, 0]] * snap.particles.N,
                                        rtol=1e-07, atol=1.5e-07)
-            # check that velocities are read from the first frame
+            # check velocities
             np.testing.assert_allclose(traj[step].particles.velocity,
                                        velocity_list[0],
                                        rtol=1e-07, atol=1.5e-07)
@@ -274,15 +275,35 @@ def test_write_gsd_dynamic(create_md_sim, tmp_path):
             np.testing.assert_allclose(traj[step].particles.velocity,
                                        velocity_list[step],
                                        rtol=1e-07, atol=1.5e-07)
-            # check that angmom is default
+            # check angmom
             np.testing.assert_allclose(traj[step].particles.angmom,
                                        [[0, 0, 0, 0]] * snap.particles.N,
                                        rtol=1e-07, atol=1.5e-07)
-            # check that image is default
+            # check image
             np.testing.assert_allclose(traj[step].particles.image,
                                        [[0, 0, 0]] * snap.particles.N,
                                        rtol=1e-07, atol=1.5e-07)
 
+    # test dynamic=['attribute']
+    type_list = snap.particles.types
+    snap.particles.types = ['t3']
+    sim = simulation_factory(snap)
+    integrator = hoomd.md.Integrator(dt=0.005)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
+    lj.params.default = {'sigma': 1, 'epsilon': 1}
+    integrator.forces.append(lj)
+    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='ab', dynamic=['attribute'])
+    sim.operations.writers.append(gsd_writer)
+    sim.run(3)
+    with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        for frame in traj:
+            frame.particles.types == ['t3']
+    
 
 def test_write_gsd_log(create_md_sim, tmp_path):
 
