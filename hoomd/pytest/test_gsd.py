@@ -24,6 +24,7 @@ def hoomd_snapshot(lattice_snapshot_factory):
     snap.particles.mass[:] = snap.particles.N * [1]
     snap.particles.charge[:] = snap.particles.N * [2]
     snap.particles.diameter[:] = snap.particles.N * [0.5]
+    snap.particles.angmom[:] = snap.particles.N * [[0, 0, 0, 1]]
 
     # bonds
     snap.bonds.types = ['b1', 'b2']
@@ -66,16 +67,21 @@ def hoomd_snapshot(lattice_snapshot_factory):
     return snap
 
 
-@pytest.fixture(scope='function')
-def create_md_sim(simulation_factory, device, hoomd_snapshot):
-    sim = simulation_factory(hoomd_snapshot)
+def lj_integrator():
     integrator = hoomd.md.Integrator(dt=0.005)
     lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
     lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
     integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+
+    return integrator
+
+
+@pytest.fixture(scope='function')
+def create_md_sim(simulation_factory, device, hoomd_snapshot):
+    sim = simulation_factory(hoomd_snapshot)
+    sim.operations.integrator = lj_integrator()
 
     return sim
 
@@ -162,13 +168,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
     filename_xb = tmp_path / "new_temporary_test_file.gsd"
 
     sim = simulation_factory(hoomd_snapshot)
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params.default = {'sigma': 1, 'epsilon': 1}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    sim.operations.integrator = lj_integrator()
 
     gsd_writer = hoomd.write.GSD(filename=filename_xb,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -243,15 +243,12 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
         for step in range(5):
-            # check that positions are stored in every frame
             np.testing.assert_allclose(traj[step].particles.position,
                                        position_list[step],
                                        rtol=1e-07, atol=1.5e-07)
-            # check orientation
             np.testing.assert_allclose(traj[step].particles.orientation,
                                        [[1, 0, 0, 0]] * snap.particles.N,
                                        rtol=1e-07, atol=1.5e-07)
-            # check velocities
             np.testing.assert_allclose(traj[step].particles.velocity,
                                        velocity_list[0],
                                        rtol=1e-07, atol=1.5e-07)
@@ -264,53 +261,96 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
 
     velocity_list = []
+    angmom_list = []
     for _ in range(5):
         sim.run(1)
         snap = sim.state.snapshot
         velocity_list.append(snap.particles.velocity)
+        angmom_list.append(snap.particles.angmom)
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
         for step in range(5):
-            # check that velocities are stored in every frame
             np.testing.assert_allclose(traj[step].particles.velocity,
                                        velocity_list[step],
                                        rtol=1e-07, atol=1.5e-07)
-            # check angmom
             np.testing.assert_allclose(traj[step].particles.angmom,
-                                       [[0, 0, 0, 0]] * snap.particles.N,
+                                       angmom_list[step],
                                        rtol=1e-07, atol=1.5e-07)
-            # check image
             np.testing.assert_allclose(traj[step].particles.image,
-                                       [[0, 0, 0]] * snap.particles.N,
+                                       snap.particles.N * [[0, 0, 0]],
                                        rtol=1e-07, atol=1.5e-07)
 
     # test dynamic=['attribute']
-    type_list = snap.particles.types
-    snap.particles.types = ['t3']
-    sim = simulation_factory(snap)
-    integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=2.5)
-    lj.params.default = {'sigma': 1, 'epsilon': 1}
-    integrator.forces.append(lj)
-    langevin = hoomd.md.methods.Langevin(hoomd.filter.All(), kT=1)
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
+    with gsd.hoomd.open(name=filename, mode='rb+') as traj:
+        s = traj[-1]
+        s.particles.types = ['t3']
+        s.particles.mass = s.particles.N * [0.8]
+        s.particles.diameter = s.particles.N * [0.2]
+        s.particles.charge = s.particles.N * [0]
+
+    sim = simulation_factory(s)
+    sim.operations.integrator = lj_integrator()
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
                                  mode='ab', dynamic=['attribute'])
     sim.operations.writers.append(gsd_writer)
-    sim.run(3)
+    sim.run(5)
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for frame in traj:
-            frame.particles.types == ['t3']
-    
+        for step in range(5, 10):
+            assert traj[step - 5].particles.types == snap.particles.types
+            assert traj[step].particles.types == ['t3']
+            assert traj[step].particles.N == snap.particles.N
+            np.testing.assert_allclose(traj[step].particles.typeid,
+                                       snap.particles.typeid,
+                                       rtol=1e-07, atol=1.5e-07)
+            np.testing.assert_allclose(traj[step].particles.mass,
+                                       snap.particles.N * [0.8],
+                                       rtol=1e-07, atol=1.5e-07)
+            np.testing.assert_allclose(traj[step].particles.charge,
+                                       snap.particles.N * [0],
+                                       rtol=1e-07, atol=1.5e-07)
+            np.testing.assert_allclose(traj[step].particles.diameter,
+                                       snap.particles.N * [0.2],
+                                       rtol=1e-07, atol=1.5e-07)
+            np.testing.assert_allclose(traj[step].particles.body,
+                                       snap.particles.N * [-1],
+                                       rtol=1e-07, atol=1.5e-07)
+            np.testing.assert_allclose(traj[step].particles.moment_inertia,
+                                       [[0, 0, 0]] * snap.particles.N,
+                                       rtol=1e-07, atol=1.5e-07)
+
+    # test dynamic=['topology']
+    with gsd.hoomd.open(name=filename, mode='rb+') as traj:
+        s = traj[-1]
+        s.bonds.types = ['b3', 'b4']
+        s.angles.types = ['a3', 'a4']
+        s.dihedrals.types = ['d2']
+        s.impropers.types = ['i2']
+
+    sim = simulation_factory(s)
+    sim.operations.integrator = lj_integrator()
+    gsd_writer = hoomd.write.GSD(filename=filename,
+                                 trigger=hoomd.trigger.Periodic(1),
+                                 mode='ab', dynamic=['topology'])
+    sim.operations.writers.append(gsd_writer)
+    sim.run(5)
+    with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        for step in range(10, 15):
+            assert traj[step - 5].bonds.types == ['b1', 'b2']
+            assert traj[step].bonds.types == ['b3', 'b4']
+            assert traj[step - 5].angles.types == ['a1', 'a2']
+            assert traj[step].angles.types == ['a3', 'a4']
+            assert traj[step - 5].dihedrals.types == ['d1']
+            assert traj[step].dihedrals.types == ['d2']
+            assert traj[step - 5].impropers.types == ['i1']
+            assert traj[step].impropers.types == ['i2']
+
 
 def test_write_gsd_log(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
 
     sim = create_md_sim
-
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
     sim.operations.computes.append(thermo)
 
