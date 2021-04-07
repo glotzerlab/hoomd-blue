@@ -52,7 +52,7 @@ class PYBIND11_EXPORT ConstraintSphere : public ForceConstraint
         Scalar m_r;          //!< Radius of the sphere
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
     private:
         //! Validate that the sphere is in the box and all particles are very near the constraint

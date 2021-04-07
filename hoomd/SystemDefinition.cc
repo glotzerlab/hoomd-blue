@@ -216,5 +216,7 @@ void export_SystemDefinition(py::module& m)
     .def("takeSnapshot_double", &SystemDefinition::takeSnapshot<double>)
     .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<float>)
     .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<double>)
+    .def("getSeed", &SystemDefinition::getSeed)
+    .def("setSeed", &SystemDefinition::setSeed)
     ;
     }

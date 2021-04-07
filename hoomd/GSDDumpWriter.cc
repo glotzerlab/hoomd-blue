@@ -139,8 +139,9 @@ GSDDumpWriter::~GSDDumpWriter()
     The first call to analyze() will create or overwrite the file and write out the current system configuration
     as frame 0. Subsequent calls will append frames to the file, or keep overwriting frame 0 if m_truncate is true.
 */
-void GSDDumpWriter::analyze(unsigned int timestep)
+void GSDDumpWriter::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     int retval;
     bool root=true;
 
@@ -267,7 +268,7 @@ void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector< std::string
     N is not strictly necessary for constant N data, but is always written in case the user fails to select
     dynamic attributes with a variable N file.
 */
-void GSDDumpWriter::writeFrameHeader(unsigned int timestep)
+void GSDDumpWriter::writeFrameHeader(uint64_t timestep)
     {
     int retval;
     m_exec_conf->msg->notice(10) << "GSD: writing configuration/step" << endl;

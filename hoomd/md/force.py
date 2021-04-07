@@ -317,8 +317,6 @@ class Active(Force):
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
-        seed (int): required user-specified seed number for random number
-            generator.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
             all particles in the group.
         active_force (tuple): active force vector in reference to the
@@ -352,17 +350,16 @@ class Active(Force):
 
         all = filter.All()
         active = hoomd.md.force.Active(
-            filter=hoomd.filter.All(), seed=1, rotation_diff=0.01
+            filter=hoomd.filter.All(), rotation_diff=0.01
             )
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
     """
 
-    def __init__(self, filter, seed, rotation_diff=0.1):
+    def __init__(self, filter, rotation_diff=0.1):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
-            seed=int(seed),
             rotation_diff=float(rotation_diff),
             constraint=OnlyTypes(
                 ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
@@ -372,7 +369,6 @@ class Active(Force):
             dict(
                 constraint=None,
                 rotation_diff=rotation_diff,
-                seed=seed,
                 filter=filter,
             )
         )
@@ -382,15 +378,25 @@ class Active(Force):
         active_force = TypeParameter(
             "active_force",
             type_kind="particle_types",
-            param_dict=TypeParameterDict((1, 0, 0), len_keys=1),
+            param_dict=TypeParameterDict((1.0, 0.0, 0.0), len_keys=1),
         )
         active_torque = TypeParameter(
             "active_torque",
             type_kind="particle_types",
-            param_dict=TypeParameterDict((0, 0, 0), len_keys=1),
+            param_dict=TypeParameterDict((0.0, 0.0, 0.0), len_keys=1),
         )
 
         self._extend_typeparam([active_force, active_torque])
+
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        Active forces use RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -402,7 +408,6 @@ class Active(Force):
         self._cpp_obj = my_class(
             self._simulation.state._cpp_sys_def,
             self._simulation.state._get_group(self.filter),
-            self.seed,
             self.rotation_diff,
             _hoomd.make_scalar3(0, 0, 0),
             0,

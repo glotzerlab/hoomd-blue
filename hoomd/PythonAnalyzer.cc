@@ -9,8 +9,9 @@ PythonAnalyzer::PythonAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
     setAnalyzer(analyzer);
     }
 
-void PythonAnalyzer::analyze(unsigned int timestep)
+void PythonAnalyzer::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     m_analyzer.attr("act")(timestep);
     }
 

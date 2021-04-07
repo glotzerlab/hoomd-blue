@@ -792,7 +792,7 @@ unsigned int ParticleGroup::intersectionSize(std::shared_ptr<ParticleGroup> othe
     return n;
     }
 
-void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsigned int timestep)
+void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
     {
     unsigned int group_size = this->getNumMembers();
 
@@ -828,7 +828,10 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, unsigned int seed, unsi
         unsigned int ptag = h_tag.data[j];
 
         // Seed the RNG
-        hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ParticleGroupThermalize, seed, ptag, timestep);
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ParticleGroupThermalize,
+                                               timestep,
+                                               m_sysdef->getSeed()),
+                                   hoomd::Counter(ptag));
 
         // Generate a random velocity
         Scalar mass =  h_vel.data[j].w;

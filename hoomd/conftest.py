@@ -36,7 +36,7 @@ def simulation_factory(device):
     TODO: duck type this to allow it to create state from GSD files as well
     """
 
-    def make_simulation(snapshot):
+    def make_simulation(snapshot=None):
         sim = Simulation(device)
 
         # reduce sorter grid to avoid Hilbert curve overhead in unit tests
@@ -44,7 +44,8 @@ def simulation_factory(device):
             if isinstance(tuner, hoomd.tune.ParticleSorter):
                 tuner.grid = 8
 
-        sim.create_state_from_snapshot(snapshot)
+        if (snapshot is not None):
+            sim.create_state_from_snapshot(snapshot)
         return sim
 
     return make_simulation

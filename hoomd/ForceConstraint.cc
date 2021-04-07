@@ -24,7 +24,7 @@ ForceConstraint::ForceConstraint(std::shared_ptr<SystemDefinition> sysdef)
 /*! Does nothing in the base class
     \param timestep Current timestep
 */
-void ForceConstraint::computeForces(unsigned int timestep)
+void ForceConstraint::computeForces(uint64_t timestep)
     {
     }
 

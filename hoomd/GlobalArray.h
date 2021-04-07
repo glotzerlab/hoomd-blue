@@ -39,6 +39,9 @@
 #include "GPUArray.h"
 #include "MemoryTraceback.h"
 
+#include <cxxabi.h>
+#include <utility>
+
 #include <type_traits>
 #include <string>
 #include <unistd.h>
@@ -154,6 +157,12 @@ class managed_deleter
             if (m_exec_conf->getMemoryTracer())
                 this->m_exec_conf->getMemoryTracer()->unregisterAllocation(reinterpret_cast<const void *>(ptr),
                     sizeof(T)*m_N);
+            }
+
+        std::pair<const void*, const void*> getAllocationRange() const
+            {
+            return std::make_pair(m_allocation_ptr,
+                reinterpret_cast<char *>(m_allocation_ptr)+sizeof(T)*m_allocation_bytes);
             }
 
     private:
@@ -520,6 +529,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             if (! this->m_exec_conf || ! m_is_managed)
                 {
                 m_fallback.resize(num_elements);
+                this->outputRepresentation();
                 return;
                 }
             #endif
@@ -558,6 +568,8 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             m_pitch = m_num_elements;
             m_height = 1;
+
+            outputRepresentation();
             }
 
         //! Resize a 2D GlobalArray
@@ -569,6 +581,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             if (! m_is_managed)
                 {
                 m_fallback.resize(width, height);
+                outputRepresentation();
                 return;
                 }
             #endif
@@ -613,6 +626,7 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
 
             m_height = height;
             m_pitch  = pitch;
+            outputRepresentation();
             }
 
         //! Set an optional tag for memory profiling
@@ -627,8 +641,59 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
                     sizeof(T)*m_num_elements, m_tag);
 
             // set tag on deleter so it can be displayed upon free
-            if (!isNull())
+            if (!isNull() && m_data)
                 m_data.get_deleter().setTag(tag);
+
+            // for debugging
+            this->outputRepresentation();
+            }
+
+        //! Return a string representation of this array
+        inline std::string getRepresentation() const
+            {
+            std::ostringstream o;
+            if (m_tag != "")
+                {
+                o << m_tag << ": ";
+                }
+            else
+                {
+                o << "anonymous: ";
+                }
+
+            #ifndef ALWAYS_USE_MANAGED_MEMORY
+            if (! m_is_managed)
+                {
+                o << m_fallback.getRepresentation();
+                }
+            else
+            #endif
+                {
+                if (! isNull())
+                    {
+                    const std::string type_name = typeid(T).name();
+                    int status;
+                    char *realname = abi::__cxa_demangle(type_name.c_str(), 0, 0, &status);
+                    if (status)
+                        throw std::runtime_error("Status "+std::to_string(status)+" while trying to demangle data type.");
+
+                    auto range = m_data.get_deleter().getAllocationRange();
+                    o << range.first << "-" << range.second;
+                    o << " [" << realname << "]";
+                    free(realname);
+                    }
+                else
+                    {
+                    o << "null";
+                    }
+                }
+            return o.str();
+            }
+
+        inline void outputRepresentation()
+            {
+            if (m_exec_conf)
+                m_exec_conf->msg->notice(9) << getRepresentation() << std::endl;
             }
 
     protected:
@@ -765,6 +830,10 @@ class GlobalArray : public GPUArrayBase<T, GlobalArray<T> >
             if (this->m_exec_conf && this->m_exec_conf->getMemoryTracer())
                 this->m_exec_conf->getMemoryTracer()->registerAllocation(reinterpret_cast<const void *>(m_data.get()),
                     sizeof(T)*m_num_elements, typeid(T).name(), m_tag);
+
+            // display representation for debugging
+            if (m_tag != "")
+                outputRepresentation();
             }
     };
 
@@ -813,7 +882,7 @@ inline ArrayHandleDispatch<T> GlobalArray<T>::acquire(const access_location::Enu
 
     if (m_acquired)
         {
-        throw std::runtime_error("Cannot acquire access to array in use.");
+        throw std::runtime_error("Cannot acquire access to array in use ["+this->m_tag+"]");
         }
     m_acquired = true;
 

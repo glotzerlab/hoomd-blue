@@ -17,8 +17,7 @@ namespace hpmc
 
 UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMC> mc,
-                             std::shared_ptr<Variant> P,
-                             const unsigned int seed)
+                             std::shared_ptr<Variant> P)
         : Updater(sysdef),
           m_mc(mc),
           m_beta_P(P),
@@ -35,16 +34,9 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_shear_weight(0.0),
           m_shear_reduce(0.0),
           m_aspect_delta(0.0),
-          m_aspect_weight(0.0),
-          m_seed(seed)
+          m_aspect_weight(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
-
-    // broadcast the seed from rank 0 to all other ranks.
-    #ifdef ENABLE_MPI
-        if(this->m_pdata->getDomainDecomposition())
-            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-    #endif
 
     // initialize logger and stats
     resetStats();
@@ -95,7 +87,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     \param timestep Current time step of the simulation
     \returns the requested log quantity.
 */
-Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     hpmc_boxmc_counters_t counters = getCounters(1);
 
@@ -313,7 +305,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar xy,
                                           Scalar xz,
                                           Scalar yz,
-                                          unsigned int timestep,
+                                          uint64_t timestep,
                                           Scalar deltaE,
                                           hoomd::RandomGenerator& rng
                                           )
@@ -405,14 +397,16 @@ inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndi
 /*! Perform Metropolis Monte Carlo box resizes and shearing
     \param timestep Current time step of the simulation
 */
-void UpdaterBoxMC::update(unsigned int timestep)
+void UpdaterBoxMC::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("UpdaterBoxMC");
     m_count_step_start = m_count_total;
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterBoxMC, m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterBoxMC, timestep, m_sysdef->getSeed()),
+                               hoomd::Counter(m_instance));
 
     // Choose a move type
     auto const weight_total = m_weight_partial_sums.back();
@@ -484,7 +478,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_L(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
@@ -574,7 +568,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::RandomGenerator& rng)
     }
 
 //! Update the box volume in logarithmic steps
-void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
     // Get updater parameters for current timestep
@@ -658,7 +652,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_V(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
@@ -747,7 +741,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::RandomGenerator& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_shear(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
@@ -798,7 +792,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::RandomGenerator& r
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng)
+void UpdaterBoxMC::update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
@@ -890,15 +884,14 @@ void export_UpdaterBoxMC(py::module& m)
    py::class_< UpdaterBoxMC, Updater, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<IntegratorHPMC>,
-                         std::shared_ptr<Variant>,
-                         const unsigned int >())
+                         std::shared_ptr<Variant> >())
     .def_property("volume", &UpdaterBoxMC::getVolumeParams, &UpdaterBoxMC::setVolumeParams)
     .def_property("length", &UpdaterBoxMC::getLengthParams, &UpdaterBoxMC::setLengthParams)
     .def_property("shear", &UpdaterBoxMC::getShearParams, &UpdaterBoxMC::setShearParams)
     .def_property("aspect", &UpdaterBoxMC::getAspectParams, &UpdaterBoxMC::setAspectParams)
     .def_property("betaP", &UpdaterBoxMC::getBetaP, &UpdaterBoxMC::setBetaP)
-    .def_property_readonly("seed", &UpdaterBoxMC::getSeed)
     .def("getCounters", &UpdaterBoxMC::getCounters)
+    .def_property("instance", &UpdaterBoxMC::getInstance, &UpdaterBoxMC::setInstance)
     ;
 
    py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")

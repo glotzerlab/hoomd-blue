@@ -59,8 +59,9 @@ LoadBalancer::~LoadBalancer()
  * Computes the load imbalance along each slice and adjusts the domain boundaries. This process is repeated iteratively
  * in each dimension taking into account the adjusted boundaries each time.
  */
-void LoadBalancer::update(unsigned int timestep)
+void LoadBalancer::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
 

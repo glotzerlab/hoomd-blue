@@ -128,7 +128,7 @@ class PotentialPair : public ForceCompute
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -191,7 +191,7 @@ class PotentialPair : public ForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Calculates the energy between two lists of particles.
@@ -252,7 +252,7 @@ class PotentialPair : public ForceCompute
         std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -581,7 +581,7 @@ std::vector< std::string > PotentialPair< evaluator, alchemy >::getProvidedLogQu
     \param timestep Current timestep of the simulation
 */
 template < class evaluator, bool alchemy >
-Scalar PotentialPair< evaluator, alchemy >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialPair< evaluator, alchemy >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -602,7 +602,7 @@ Scalar PotentialPair< evaluator, alchemy >::getLogValue(const std::string& quant
     \param timestep specifies the current time step of the simulation
 */
 template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::computeForces(unsigned int timestep)
+void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -874,7 +874,7 @@ void PotentialPair< evaluator, alchemy >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator, bool alchemy>
-CommFlags PotentialPair< evaluator, alchemy >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialPair< evaluator, alchemy >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

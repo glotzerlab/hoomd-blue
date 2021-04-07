@@ -55,7 +55,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.4.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.5.tar.gz
 
 Or clone using Git:
 
@@ -74,9 +74,8 @@ Install prerequisites
 
 **General requirements**
 
-- C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
-  8, 9, ``clang`` 5, 6, 7, 8)
-- Python >= 3.5
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10 / ``clang`` 6, 7, 8, 9, 10, 11)
+- Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
 - Eigen >= 3.2
@@ -116,7 +115,7 @@ Install prerequisites
 
 **For runtime code generation** (required when ``BUILD_JIT=on``)
 
-- LLVM >= 5.0
+- LLVM >= 6.0
 
 **To build documentation**
 

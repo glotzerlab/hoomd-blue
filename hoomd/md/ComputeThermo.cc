@@ -80,8 +80,9 @@ ComputeThermo::~ComputeThermo()
 /*! Calls computeProperties if the properties need updating
     \param timestep Current time step of the simulation
 */
-void ComputeThermo::compute(unsigned int timestep)
+void ComputeThermo::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (shouldCompute(timestep))
         {
         computeProperties();
@@ -101,7 +102,7 @@ std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
         }
     }
 
-Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar ComputeThermo::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     compute(timestep);
     if (quantity == m_logname_list[0])

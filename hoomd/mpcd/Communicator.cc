@@ -185,7 +185,7 @@ void mpcd::Communicator::initializeNeighborArrays()
 /*!
  * \param timestep Current timestep for communication
  */
-void mpcd::Communicator::communicate(unsigned int timestep)
+void mpcd::Communicator::communicate(uint64_t timestep)
     {
     if (m_is_communicating)
         {
@@ -256,7 +256,7 @@ class MigratePartitionOp
 }
 }
 
-void mpcd::Communicator::migrateParticles(unsigned int timestep)
+void mpcd::Communicator::migrateParticles(uint64_t timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
