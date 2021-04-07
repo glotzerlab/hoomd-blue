@@ -309,3 +309,16 @@ def test_from_gsd_snapshot_populated(s, device):
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+
+
+def test_invalid_particle_types(simulation_factory, lattice_snapshot_factory):
+    """Test that using invalid particle types raises an error."""
+
+    snap = lattice_snapshot_factory(particle_types=['A', 'B'])
+
+    # assign invalid type ids
+    if snap.exists:
+        snap.particles.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
