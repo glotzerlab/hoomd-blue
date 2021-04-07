@@ -847,6 +847,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
     // global number of particles
     unsigned int nglobal = 0;
+    unsigned int max_typeid = 0;
 
 #ifdef ENABLE_MPI
     if (m_decomposition)
@@ -987,6 +988,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 inertia_proc[rank].push_back(vec_to_scalar3(snapshot.inertia[snap_idx]));
                 tag_proc[rank].push_back(nglobal++);
                 N_proc[rank]++;
+
+                // determine max typeid on root rank
+                max_typeid = std::max(max_typeid, snapshot.type[snap_idx]);
                 }
 
             }
@@ -1137,6 +1141,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
                 continue;
                 }
 
+            max_typeid = std::max(max_typeid, snapshot.type[snap_idx]);
+
             h_pos.data[nglobal] = make_scalar4(snapshot.pos[snap_idx].x,
                                            snapshot.pos[snap_idx].y,
                                            snapshot.pos[snap_idx].z,
@@ -1188,6 +1194,24 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
     // notify listeners that number of types has changed
     m_num_types_signal.emit();
+
+    // Raise an exception if there are any invalid type ids. This is done here (instead of in the
+    // loops above) to avoid MPI communication deadlocks when only some ranks have invalid types.
+    // As a convenience, broadcast the value so that all ranks throw the exception.
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        bcast(max_typeid, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    if (max_typeid >= m_type_mapping.size())
+        {
+        std::ostringstream s;
+        s << "Particle typeid " << max_typeid << " is invalid in a system with "
+          << m_type_mapping.size() << " types.";
+        throw std::runtime_error(s.str());
+        }
     }
 
 //! take a particle data snapshot
