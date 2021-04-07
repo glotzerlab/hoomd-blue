@@ -103,6 +103,9 @@ class ManifoldSphere
             return v;
         }
 
+        Scalar getR(){ return sqrt(R_sq);};
+
+        pybind11::tuple getP(){ return pybind11::make_tuple(Px, Py, Pz);}
 
         static unsigned int dimension()
             {

@@ -81,6 +81,15 @@ class Cylinder(Manifold):
         self._param_dict.update(param_dict)
         # set defaults
 
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Cylinder)
+            and self.r == other.r
+            and self.P == other.P
+        )
+
     def _attach(self):
         self._cpp_obj = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
@@ -132,6 +141,15 @@ class Diamond(Manifold):
         param_dict.update(
             dict(N=N))
         self._param_dict.update(param_dict)
+
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Diamond)
+            and self.N == other.N
+            and self.epsilon == other.epsilon
+        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
@@ -185,6 +203,17 @@ class Ellipsoid(Manifold):
 
         self._param_dict.update(param_dict)
 
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Ellipsoid)
+            and self.a == other.a
+            and self.b == other.b
+            and self.c == other.c
+            and self.P == other.P
+        )
+
     def _attach(self):
         self._cpp_obj = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
@@ -237,6 +266,15 @@ class Gyroid(Manifold):
             dict(N=N))
         self._param_dict.update(param_dict)
 
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Gyroid)
+            and self.N == other.N
+            and self.epsilon == other.epsilon
+        )
+
     def _attach(self):
         self._cpp_obj = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
 
@@ -281,6 +319,14 @@ class Plane(Manifold):
 
         self._param_dict.update(param_dict)
         # set defaults
+
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Plane)
+            and self.shift == other.shift
+        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldPlane(self.shift);
@@ -334,6 +380,15 @@ class Primitive(Manifold):
             dict(N=N))
         self._param_dict.update(param_dict)
 
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Primitive)
+            and self.N == other.N
+            and self.epsilon == other.epsilon
+        )
+
     def _attach(self):
         self._cpp_obj = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
 
@@ -383,6 +438,15 @@ class Sphere(Manifold):
 
         self._param_dict.update(param_dict)
         # set defaults
+
+    def __eq__(self, other):
+        """Return a Boolean indicating whether the two manifolds are equivalent.
+        """
+        return (
+            isinstance(other, Sphere)
+            and self.r == other.r
+            and self.P == other.P
+        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );

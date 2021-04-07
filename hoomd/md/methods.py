@@ -51,23 +51,24 @@ class _MethodRATTLE(_Method):
 
     """
     def __init__(self, manifold_constraint, eta):
-        self._manifold_constraint = OnlyTypes(Manifold, allow_none=True)(manifold_constraint)
         param_dict = ParameterDict(
+            manifold_constraint = OnlyTypes(Manifold, allow_none=True),
             eta=float(eta)
             )
+        param_dict.update(dict(manifold_constraint=manifold_constraint))
         # set defaults
         self._param_dict.update(param_dict)
 
 
     def _attach_constraint(self,sim):
-        if not self._manifold_constraint._added:
-            self._manifold_constraint._add(sim)
+        if not self.manifold_constraint._added:
+            self.manifold_constraint._add(sim)
         else:
-            if sim != self._manifold_constraint._simulation:
+            if sim != self.manifold_constraint._simulation:
                 raise RuntimeError("{} object's manifold_constraint is used in a "
                                     "different simulation.".format(type(self)))
-        if not self._manifold_constraint._attached:
-            self._manifold_constraint._attach()
+        if not self.manifold_constraint._attached:
+            self.manifold_constraint._attach()
 
     #def _getattr_param(self, attr):
     #    if self._attached:
@@ -78,16 +79,16 @@ class _MethodRATTLE(_Method):
     #    else:
     #        return self._param_dict[attr]
 
-    @property
-    def manifold_constraint(self):
-        return self._manifold_constraint
+    #@property
+    #def manifold_constraint(self):
+    #    return self._manifold_constraint
 
-    @manifold_constraint.setter
-    def manifold_constraint(self, value):
-        if self._attached:
-            raise AttributeError("manifold cannot be set after scheduling.")
-        else:
-            self._manifold_constraint = OnlyTypes(Manifold, allow_none=True)(value)
+    #@manifold_constraint.setter
+    #def manifold_constraint(self, value):
+    #    if self._attached:
+    #        raise AttributeError("manifold cannot be set after scheduling.")
+    #    else:
+    #        self._manifold_constraint = OnlyTypes(Manifold, allow_none=True)(value)
 
 
 
