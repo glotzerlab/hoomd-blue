@@ -144,7 +144,7 @@ class Diamond(Manifold):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
-                    "Expected a single int or six.")
+                    "Expected a single int or tuple.")
             return tuple(value)
         else:
             return (value,value,value)

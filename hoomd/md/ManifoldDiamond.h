@@ -95,6 +95,14 @@ class ManifoldDiamond
             return true; //Diamond surface is adjusted to box and, therefore, is always accepted
         }
 
+        pybind11::dict getDict()
+        {
+            pybind11::dict v;
+            v["N"] = pybind11::make_tuple(Nx, Ny, Nz);
+            v["epsilon"] = epsilon;
+            return v;
+        }
+
         static unsigned int dimension()
             {
             return 2;

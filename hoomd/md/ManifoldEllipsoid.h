@@ -102,6 +102,16 @@ class ManifoldEllipsoid
                 }
         }
 
+        pybind11::dict getDict()
+        {
+            pybind11::dict v;
+            v["a"] = sqrt(1.0/inv_a2);
+            v["b"] = sqrt(1.0/inv_b2);
+            v["c"] = sqrt(1.0/inv_c2);
+            v["P"] = pybind11::make_tuple(Px, Py, Pz);
+            return v;
+        }
+
         static unsigned int dimension()
             {
             return 2;

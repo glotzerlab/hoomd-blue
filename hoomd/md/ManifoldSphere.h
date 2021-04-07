@@ -95,6 +95,15 @@ class ManifoldSphere
                 }
         }
 
+        pybind11::dict getDict()
+        {
+            pybind11::dict v;
+            v["r"] = sqrt(R_sq);
+            v["P"] = pybind11::make_tuple(Px, Py, Pz);
+            return v;
+        }
+
+
         static unsigned int dimension()
             {
             return 2;

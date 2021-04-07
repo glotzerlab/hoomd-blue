@@ -113,6 +113,9 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         /// Gets alpha
         Scalar getEta(){ return m_eta; };
 
+        /// Gets manifold parameter
+	pybind11::dict getManifold(){ return m_manifold.getDict(); };
+
     protected:
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the system is coupled to.
@@ -700,6 +703,7 @@ void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
                                                 &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)
         .def_property("eta", &TwoStepRATTLELangevin<Manifold>::getEta,
                             &TwoStepRATTLELangevin<Manifold>::setEta)
+        .def_property_readonly("manifold_constraint", &TwoStepRATTLELangevin<Manifold>::getManifold)
         ;
     }
 

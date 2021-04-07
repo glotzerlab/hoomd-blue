@@ -85,6 +85,13 @@ class ManifoldPlane
             }
         }
 
+        pybind11::dict getDict()
+        {
+            pybind11::dict v;
+            v["shift"] = shift;
+            return v;
+        }
+
         static unsigned int dimension()
             {
             return 2;

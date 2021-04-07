@@ -77,6 +77,9 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         /// Gets eta
         Scalar getEta(){ return m_eta; };
 
+        /// Gets manifold parameter
+	pybind11::dict getManifold(){ return m_manifold.getDict(); };
+
     protected:
 
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
@@ -496,6 +499,7 @@ void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
 			    Scalar>())
     .def_property("eta", &TwoStepRATTLEBD<Manifold>::getEta,
                             &TwoStepRATTLEBD<Manifold>::setEta)
+    .def_property_readonly("manifold_constraint", &TwoStepRATTLEBD<Manifold>::getManifold)
         ;
     }
 

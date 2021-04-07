@@ -69,6 +69,15 @@ class _MethodRATTLE(_Method):
         if not self._manifold_constraint._attached:
             self._manifold_constraint._attach()
 
+    #def _getattr_param(self, attr):
+    #    if self._attached:
+    #        if attr == "manifold_constraint":
+
+    #        else:
+    #            return getattr(self._cpp_obj, attr)
+    #    else:
+    #        return self._param_dict[attr]
+
     @property
     def manifold_constraint(self):
         return self._manifold_constraint
