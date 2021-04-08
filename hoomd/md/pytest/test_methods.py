@@ -215,7 +215,7 @@ def test_rattle_attributes(method_base_params):
         pass
     else:
         assert integrator.filter is all_
-        assert integrator.manifold_constraint is gyroid
+        assert integrator.manifold_constraint == gyroid
         assert integrator.eta == 1e-6
 
         for parameter in method_base_params.setup_params:
@@ -232,7 +232,7 @@ def test_rattle_attributes(method_base_params):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         integrator.manifold_constraint = sphere
-        assert integrator.manifold_constraint is sphere
+        assert integrator.manifold_constraint == sphere
 
         integrator.eta = 1e-5
         assert integrator.eta == 1e-5
@@ -263,7 +263,7 @@ def test_rattle_attributes_attached(simulation_factory,
         sim.run(0)
 
         assert integrator.filter is all_
-        assert integrator.manifold_constraint is gyroid
+        assert integrator.manifold_constraint == gyroid
         assert integrator.eta == 1e-6
 
         for parameter in method_base_params.setup_params:
@@ -283,7 +283,7 @@ def test_rattle_attributes_attached(simulation_factory,
         with pytest.raises(AttributeError):
             # manifold cannot be set after scheduling
             integrator.manifold_constraint = sphere
-        assert integrator.manifold_constraint is gyroid
+        assert integrator.manifold_constraint == gyroid
         
         integrator.eta = 1e-5
         assert integrator.eta == 1e-5

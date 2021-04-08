@@ -44,6 +44,15 @@ class Manifold(_HOOMDBaseObject):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
+    def _preprocess_unitcell(self,value):
+        if isinstance(value, Sequence):
+            if len(value) != 3:
+                raise ValueError(
+                    "Expected a single int or six.")
+            return tuple(value)
+        else:
+            return (value,value,value)
+
 
 class Cylinder(Manifold):
     R""" Cylinder manifold.
@@ -157,15 +166,6 @@ class Diamond(Manifold):
         self.name = "Diamond"
 
         super()._attach()
-
-    def _preprocess_unitcell(self,value):
-        if isinstance(value, Sequence):
-            if len(value) != 3:
-                raise ValueError(
-                    "Expected a single int or tuple.")
-            return tuple(value)
-        else:
-            return (value,value,value)
 
 class Ellipsoid(Manifold):
     """ Ellipsoid manifold.
@@ -282,14 +282,6 @@ class Gyroid(Manifold):
 
         super()._attach()
 
-    def _preprocess_unitcell(self,value):
-        if isinstance(value, Sequence):
-            if len(value) != 3:
-                raise ValueError(
-                    "Expected a single int or six.")
-            return tuple(value)
-        else:
-            return (value,value,value)
 
 class Plane(Manifold):
     R""" Plane manifold.
@@ -395,16 +387,6 @@ class Primitive(Manifold):
         self.name = "Primitive"
 
         super()._attach()
-
-    def _preprocess_unitcell(self,value):
-        if isinstance(value, Sequence):
-            if len(value) != 3:
-                raise ValueError(
-                    "Expected a single int or six.")
-            return tuple(value)
-        else:
-            return (value,value,value)
-
 
 class Sphere(Manifold):
     """ Sphere manifold.
