@@ -70,26 +70,15 @@ class _MethodRATTLE(_Method):
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
-    #def _getattr_param(self, attr):
-    #    if self._attached:
-    #        if attr == "manifold_constraint":
-
-    #        else:
-    #            return getattr(self._cpp_obj, attr)
-    #    else:
-    #        return self._param_dict[attr]
-
-    #@property
-    #def manifold_constraint(self):
-    #    return self._manifold_constraint
-
-    #@manifold_constraint.setter
-    #def manifold_constraint(self, value):
-    #    if self._attached:
-    #        raise AttributeError("manifold cannot be set after scheduling.")
-    #    else:
-    #        self._manifold_constraint = OnlyTypes(Manifold, allow_none=True)(value)
-
+    def _getattr_param(self, attr):
+        if self._attached:
+            parameter = getattr(self._cpp_obj, attr)
+            if attr == "manifold_constraint":
+                return self._param_dict[attr].__class__(**parameter)
+            else:
+                return parameter
+        else:
+            return self._param_dict[attr]
 
 
 class NVT(_Method):
