@@ -92,6 +92,8 @@ class ManifoldPlane
             return v;
         }
 
+        Scalar getShift(){ return shift;};
+
         static unsigned int dimension()
             {
             return 2;

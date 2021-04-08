@@ -12,6 +12,10 @@ void export_ManifoldEllipsoid(pybind11::module& m)
     {
     pybind11::class_< ManifoldEllipsoid, std::shared_ptr<ManifoldEllipsoid> >(m, "ManifoldEllipsoid")
     .def(pybind11::init<Scalar, Scalar, Scalar, Scalar3 >())
+    .def_property_readonly("a", &ManifoldEllipsoid::getA)
+    .def_property_readonly("b", &ManifoldEllipsoid::getB)
+    .def_property_readonly("c", &ManifoldEllipsoid::getC)
+    .def_property_readonly("P", &ManifoldEllipsoid::getP)
     ;
     }
 

@@ -14,5 +14,6 @@ void export_ManifoldPlane(pybind11::module& m)
     {
     pybind11::class_< ManifoldPlane, std::shared_ptr<ManifoldPlane> >(m, "ManifoldPlane")
     .def(pybind11::init<Scalar >())
+    .def_property_readonly("shift", &ManifoldPlane::getShift)
     ;
     }

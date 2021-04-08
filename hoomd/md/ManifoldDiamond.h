@@ -103,6 +103,10 @@ class ManifoldDiamond
             return v;
         }
 
+        pybind11::tuple getN(){ return pybind11::make_tuple(Nx, Ny, Nz);}
+
+        Scalar getEpsilon(){ return epsilon;};
+
         static unsigned int dimension()
             {
             return 2;

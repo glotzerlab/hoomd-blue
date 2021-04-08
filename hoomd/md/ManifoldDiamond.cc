@@ -12,6 +12,8 @@ void export_ManifoldDiamond(pybind11::module& m)
     {
     pybind11::class_< ManifoldDiamond, std::shared_ptr<ManifoldDiamond> >(m, "ManifoldDiamond")
     .def(pybind11::init<int, int, int, Scalar >())
+    .def_property_readonly("N", &ManifoldDiamond::getN)
+    .def_property_readonly("epsilon", &ManifoldDiamond::getEpsilon)
     ;
     }
 

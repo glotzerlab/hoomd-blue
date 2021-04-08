@@ -13,5 +13,7 @@ void export_ManifoldCylinder(pybind11::module& m)
     {
     pybind11::class_< ManifoldCylinder, std::shared_ptr<ManifoldCylinder> >(m, "ManifoldCylinder")
     .def(pybind11::init<Scalar, Scalar3 >())
+    .def_property_readonly("r", &ManifoldCylinder::getR)
+    .def_property_readonly("P", &ManifoldCylinder::getP)
     ;
     }

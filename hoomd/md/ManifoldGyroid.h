@@ -108,6 +108,10 @@ class ManifoldGyroid
             return 2;
             }
 
+        pybind11::tuple getN(){ return pybind11::make_tuple(Nx, Ny, Nz);}
+
+        Scalar getEpsilon(){ return epsilon;};
+
     protected:
         int Nx;
         int Ny;

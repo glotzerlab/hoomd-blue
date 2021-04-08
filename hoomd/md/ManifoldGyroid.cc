@@ -12,5 +12,7 @@ void export_ManifoldGyroid(pybind11::module& m)
     {
     pybind11::class_< ManifoldGyroid, std::shared_ptr<ManifoldGyroid> >(m, "ManifoldGyroid")
     .def(pybind11::init<int, int, int, Scalar >())
+    .def_property_readonly("N", &ManifoldGyroid::getN)
+    .def_property_readonly("epsilon", &ManifoldGyroid::getEpsilon)
     ;
     }

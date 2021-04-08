@@ -112,6 +112,14 @@ class ManifoldEllipsoid
             return v;
         }
 
+        Scalar getA(){ return sqrt(1.0/inv_a2);};
+
+        Scalar getB(){ return sqrt(1.0/inv_b2);};
+
+        Scalar getC(){ return sqrt(1.0/inv_c2);};
+
+        pybind11::tuple getP(){ return pybind11::make_tuple(Px, Py, Pz);}
+
         static unsigned int dimension()
             {
             return 2;
