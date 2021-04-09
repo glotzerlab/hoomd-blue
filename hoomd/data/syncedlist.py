@@ -37,8 +37,7 @@ class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
     This class ensures that standard list operations affect both
-    Python and C++. Also guarantees that lists remain in same order when using
-    the public API.
+    Python and C++.
 
     Args:
         validation (callable or class): A callable that takes one argument
@@ -55,8 +54,9 @@ class SyncedList(MutableSequence):
             SyncedList to start with an empty list.
         callable_class (bool, optional): If a class is passed as validation and this is
         `True` (defaults to `False`), then the class will be treated as a
-        callable and not used for isinstance checking.
+        callable and not used for type checking.
     """
+    # Also guarantees that lists remain in same order when using the public API.
 
     def __init__(self, validation,
                  to_synced_list=None,
