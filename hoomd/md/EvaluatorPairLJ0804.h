@@ -2,7 +2,6 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: joaander
 
 #ifndef __PAIR_EVALUATOR_LJ0804_H__
 #define __PAIR_EVALUATOR_LJ0804_H__
