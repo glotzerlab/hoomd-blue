@@ -283,6 +283,7 @@ class _TableInternal(_InternalAction):
         # This is to handle when the output specified is just stdout. By default
         # file objects like this are not picklable, so we need to handle it
         # differently. We let `None` represent stdout in the state dictionary.
+        # Most other file like objects will simply fail to be pickled here.
         if self.output == stdout:
             param_dict = ParameterDict()
             param_dict.update(state['_param_dict'])
