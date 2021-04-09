@@ -69,12 +69,6 @@ class EvaluatorPairLJ0804
                 lj2 = 4.0 * epsilon * fast::pow(sigma, 4.0);
                 }
 
-            // this constructor facilitates unit testing
-            param_type(Scalar sigma, Scalar epsilon)
-                {
-                lj1 = 4.0 * epsilon * fast::pow(sigma, 8.0);
-                lj2 = 4.0 * epsilon * fast::pow(sigma, 4.0);
-                }
 
             pybind11::dict asDict()
                 {
