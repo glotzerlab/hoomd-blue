@@ -100,7 +100,7 @@ class _HOOMDGetSetAttrBase:
             return NotImplemented
         return (self._param_dict == other._param_dict
                 and all(
-                    self._typeparam_dict.keys() == other._typeparam_dict.keys()
+                    set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys())
                     and self._typeparam_dict[k] == other._typeparam_dict[k]
                     for k in self._typeparam_dict)
                 )
@@ -215,10 +215,9 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
         for key in self.__dict__.keys():
             if key in self._skip_for_equality:
                 continue
-            else:
-                if key not in other_keys \
-                        or self.__dict__[key] != other.__dict__[key]:
-                    return False
+            elif (key not in other_keys
+                    or self.__dict__[key] != other.__dict__[key]):
+                return False
         return super().__eq__(other)
 
     def _detach(self):
