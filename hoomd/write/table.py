@@ -39,7 +39,7 @@ class _OutputWriter(metaclass=ABCMeta):
             return NotImplemented
 
 
-def _writable(fh):
+def _ensure_writable(fh):
     if not fh.writable():
         raise ValueError("file-like object must be writable.")
     return fh
@@ -169,7 +169,7 @@ class _TableInternal(_InternalAction):
                                    pretty=bool,
                                    max_precision=int,
                                    output=OnlyTypes(_OutputWriter,
-                                                    postprocess=_writable),
+                                                    postprocess=_ensure_writable),
                                    logger=Logger)
 
         param_dict.update(
@@ -298,7 +298,7 @@ class _TableInternal(_InternalAction):
             del state['_param_dict']['output']
             state['_param_dict']['output'] = stdout
             state['_param_dict']._type_converter['output'] = OnlyTypes(
-                _OutputWriter, postprocess=_writable),
+                _OutputWriter, postprocess=_ensure_writable),
         self.__dict__ = state
 
 
