@@ -33,7 +33,7 @@
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{LJ}}}{\partial r} = r^{-2} \cdot r^{-4} \cdot
             \left( 8 \cdot 4 \varepsilon \sigma^{8} \cdot r^{-4} - 4 \cdot 4 \varepsilon \sigma^{4} \right) \f]
 
-    The LJ potential does not need diameter or charge. Two parameters are specified and stored in a Scalar2. \a lj1 is
+    The LJ potential does not need diameter or charge. \a lj1 is
     placed in \a params.x and \a lj2 is in \a params.y.
 
     These are related to the standard lj parameters sigma and epsilon by:
