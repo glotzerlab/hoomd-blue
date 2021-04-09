@@ -287,8 +287,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         snap.particles.mass[:] = N_particles * [0.8]
         snap.particles.diameter[:] = N_particles * [0.2]
         snap.particles.charge[:] = N_particles * [0]
+        sim.state.snapshot = snap
 
-    sim.state.snapshot = snap
     sim.operations.writers.clear()
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -322,8 +322,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         snap.bonds.typeid[2] = 0
         snap.bonds.group[2] = [10, 11]
         snap.angles.types = ['a3', 'a4']
+        sim.state.snapshot = snap
 
-    sim.state.snapshot = snap
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
                                  mode='ab', dynamic=['topology'])
