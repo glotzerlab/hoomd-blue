@@ -206,7 +206,8 @@ class Operations(Collection):
 
     def _unschedule(self):
         """Undo the effects of `Operations._schedule`."""
-        self._integrator._detach()
+        if self.integrator is not None:
+            self._integrator._detach()
         self._writers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()
