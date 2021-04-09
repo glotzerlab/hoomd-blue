@@ -13,56 +13,56 @@ from hoomd.pytest.test_snapshot import assert_equivalent_snapshots
 def hoomd_snapshot(lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['t1', 't2'],
                                     n=10, a=2.0)
+    if snap.exists:
+        typeid_list = [0] * int(snap.particles.N / 2)
+        typeid_list.extend([1] * int(snap.particles.N / 2))
+        snap.particles.typeid[:] = typeid_list[:]
+        snap.particles.velocity[:] = np.tile(np.linspace(1, 2, 3),
+                                            (snap.particles.N, 1))
+        snap.particles.acceleration[:] = np.tile(np.linspace(1, 2, 3),
+                                                (snap.particles.N, 1))
+        snap.particles.mass[:] = snap.particles.N * [1]
+        snap.particles.charge[:] = snap.particles.N * [2]
+        snap.particles.diameter[:] = snap.particles.N * [0.5]
+        snap.particles.angmom[:] = snap.particles.N * [[0, 0, 0, 1]]
 
-    typeid_list = [0] * int(snap.particles.N / 2)
-    typeid_list.extend([1] * int(snap.particles.N / 2))
-    snap.particles.typeid[:] = typeid_list[:]
-    snap.particles.velocity[:] = np.tile(np.linspace(1, 2, 3),
-                                         (snap.particles.N, 1))
-    snap.particles.acceleration[:] = np.tile(np.linspace(1, 2, 3),
-                                             (snap.particles.N, 1))
-    snap.particles.mass[:] = snap.particles.N * [1]
-    snap.particles.charge[:] = snap.particles.N * [2]
-    snap.particles.diameter[:] = snap.particles.N * [0.5]
-    snap.particles.angmom[:] = snap.particles.N * [[0, 0, 0, 1]]
+        # bonds
+        snap.bonds.types = ['b1', 'b2']
+        snap.bonds.N = 2
+        snap.bonds.typeid[:] = [0, 1]
+        snap.bonds.group[0] = [0, 1]
+        snap.bonds.group[1] = [2, 3]
 
-    # bonds
-    snap.bonds.types = ['b1', 'b2']
-    snap.bonds.N = 2
-    snap.bonds.typeid[:] = [0, 1]
-    snap.bonds.group[0] = [0, 1]
-    snap.bonds.group[1] = [2, 3]
+        # angles
+        snap.angles.types = ['a1', 'a2']
+        snap.angles.N = 2
+        snap.angles.typeid[:] = [1, 0]
+        snap.angles.group[0] = [0, 1, 2]
+        snap.angles.group[1] = [2, 3, 0]
 
-    # angles
-    snap.angles.types = ['a1', 'a2']
-    snap.angles.N = 2
-    snap.angles.typeid[:] = [1, 0]
-    snap.angles.group[0] = [0, 1, 2]
-    snap.angles.group[1] = [2, 3, 0]
+        # dihedrals
+        snap.dihedrals.types = ['d1']
+        snap.dihedrals.N = 1
+        snap.dihedrals.typeid[:] = [0]
+        snap.dihedrals.group[0] = [0, 1, 2, 3]
 
-    # dihedrals
-    snap.dihedrals.types = ['d1']
-    snap.dihedrals.N = 1
-    snap.dihedrals.typeid[:] = [0]
-    snap.dihedrals.group[0] = [0, 1, 2, 3]
+        # impropers
+        snap.impropers.types = ['i1']
+        snap.impropers.N = 1
+        snap.impropers.typeid[:] = [0]
+        snap.impropers.group[0] = [3, 2, 1, 0]
 
-    # impropers
-    snap.impropers.types = ['i1']
-    snap.impropers.N = 1
-    snap.impropers.typeid[:] = [0]
-    snap.impropers.group[0] = [3, 2, 1, 0]
+        # constraints
+        snap.constraints.N = 1
+        snap.constraints.group[0] = [0, 1]
+        snap.constraints.value[0] = 2.5
 
-    # constraints
-    snap.constraints.N = 1
-    snap.constraints.group[0] = [0, 1]
-    snap.constraints.value[0] = 2.5
-
-    # special pairs
-    snap.pairs.types = ['p1', 'p2']
-    snap.pairs.N = 2
-    snap.pairs.typeid[:] = [0, 1]
-    snap.pairs.group[0] = [0, 1]
-    snap.pairs.group[1] = [2, 3]
+        # special pairs
+        snap.pairs.types = ['p1', 'p2']
+        snap.pairs.N = 2
+        snap.pairs.typeid[:] = [0, 1]
+        snap.pairs.group[0] = [0, 1]
+        snap.pairs.group[1] = [2, 3]
 
     return snap
 
@@ -80,20 +80,18 @@ def lj_integrator():
 
 @pytest.fixture(scope='function')
 def create_md_sim(simulation_factory, device, hoomd_snapshot):
-    if hoomd_snapshot.exists:
-        sim = simulation_factory(hoomd_snapshot)
-        sim.operations.integrator = lj_integrator()
+    sim = simulation_factory(hoomd_snapshot)
+    sim.operations.integrator = lj_integrator()
 
     return sim
 
 
 def test_write(simulation_factory, hoomd_snapshot, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
+    sim = simulation_factory(hoomd_snapshot)
+    hoomd.write.GSD.write(state=sim.state, mode='wb',
+                            filename=str(filename))
     if hoomd_snapshot.exists:
-        sim = simulation_factory(hoomd_snapshot)
-        hoomd.write.GSD.write(state=sim.state, mode='wb',
-                              filename=str(filename))
-
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert len(traj) == 1
             assert_equivalent_snapshots(traj[0], hoomd_snapshot)
@@ -131,7 +129,9 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
     snapshot_list = []
     for _ in range(5):
         sim.run(1)
-        snapshot_list.append(sim.state.snapshot)
+        snap = sim.state.snapshot
+        if snap.exists:
+            snapshot_list.append(snap)
 
     # test mode=ab
     sim.operations.writers.clear()
@@ -144,7 +144,9 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
     snap_list = []
     for _ in range(5):
         sim.run(1)
-        snap_list.append(sim.state.snapshot)
+        snap = sim.state.snapshot
+        if snap.exists:
+            snap_list.append(snap)
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
         for gsd_snap, hoomd_snap in zip(traj[5:], snap_list):
@@ -162,21 +164,20 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
 
     # test mode=xb creates a new file
     filename_xb = tmp_path / "new_temporary_test_file.gsd"
-    if hoomd_snapshot.exists:
-        sim = simulation_factory(hoomd_snapshot)
-        sim.operations.integrator = lj_integrator()
+    sim = simulation_factory(hoomd_snapshot)
+    sim.operations.integrator = lj_integrator()
 
-        gsd_writer = hoomd.write.GSD(filename=filename_xb,
-                                     trigger=hoomd.trigger.Periodic(1),
-                                     mode='xb', dynamic=['momentum'])
-        sim.operations.writers.append(gsd_writer)
+    gsd_writer = hoomd.write.GSD(filename=filename_xb,
+                                    trigger=hoomd.trigger.Periodic(1),
+                                    mode='xb', dynamic=['momentum'])
+    sim.operations.writers.append(gsd_writer)
 
-        sim.run(5)
+    sim.run(5)
 
-        with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
-            assert len(traj) == len(snapshot_list)
-            for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
-                assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+    with gsd.hoomd.open(name=filename_xb, mode='rb') as traj:
+        assert len(traj) == len(snapshot_list)
+        for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
+            assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
 def test_write_gsd_filter(create_md_sim, tmp_path):
@@ -235,9 +236,10 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     for _ in range(5):
         sim.run(1)
         snap = sim.state.snapshot
-        position_list.append(snap.particles.position)
-        velocity_list.append(snap.particles.velocity)
-    N_particles = snap.particles.N
+        if snap.exists:
+            position_list.append(snap.particles.position)
+            velocity_list.append(snap.particles.velocity)
+    N_particles = sim.state.N_particles
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
         for step in range(5):
             np.testing.assert_allclose(traj[step].particles.position,
@@ -262,8 +264,9 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     for _ in range(5):
         sim.run(1)
         snap = sim.state.snapshot
-        velocity_list.append(snap.particles.velocity)
-        angmom_list.append(snap.particles.angmom)
+        if snap.exists:
+            velocity_list.append(snap.particles.velocity)
+            angmom_list.append(snap.particles.angmom)
 
     with gsd.hoomd.open(name=filename, mode='rb') as traj:
         for step in range(5):
@@ -327,10 +330,9 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
     sim.run(1)
 
-    if snap.exists:
-        with gsd.hoomd.open(name=filename, mode='rb') as traj:
-            assert traj[-1].bonds.N == 3
-            assert traj[-1].angles.types == ['a3', 'a4']
+    with gsd.hoomd.open(name=filename, mode='rb') as traj:
+        assert traj[-1].bonds.N == 3
+        assert traj[-1].angles.types == ['a3', 'a4']
 
 
 def test_write_gsd_log(create_md_sim, tmp_path):
