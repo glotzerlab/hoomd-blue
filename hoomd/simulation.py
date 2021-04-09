@@ -241,7 +241,7 @@ class Simulation(metaclass=Loggable):
                 self._operations._simulation = None
                 operations._simulation = self
                 self._operations = operations
-                # This _schedule method must be called  after setting
+                # This _schedule method must be called after setting
                 # _operations so that self.state.update_group_dof runs without
                 # errors. This is called by the integrator when it attaches and
                 # requires that the state have access to the current integrator,

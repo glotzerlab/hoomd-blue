@@ -34,26 +34,26 @@ def identity(obj):
 
 
 class SyncedList(MutableSequence):
-    """Provides syncing and validation for a python and cpp list.
+    """Provides syncing and validation for a Python and C++ list.
 
-    Used to ensure once synced that standard list operations effect both
-    python and cpp. Also guarentees that list remain in same order when using
+    This class ensures that standard list operations affect both
+    Python and C++. Also guarantees that lists remain in same order when using
     the public API.
 
     Args:
-        validation (function or class): A function that takes one argument
+        validation (callable or class): A callable that takes one argument
             and returns a boolean based on whether the value is appropriate for
             the list. Can raise ValueError for helpful diagnosis of the problem
             with validation. Alternatively validation can be a class which
             indicates the expected type of items of the list.
-        to_synced_list (function, optional): A function that takes one
-            argument (a valid SyncedList python value) and does necessary
-            conversion before adding to the cpp list. Defaults to a function
-            that grabs the ``_cpp_obj`` attribute from the value.
+        to_synced_list (callable, optional): A callable that takes one
+            argument (a Python SyncedList) and does necessary
+            conversion before adding to the C++ list. Defaults to a function
+            that reads the ``_cpp_obj`` attribute from the provided value.
         iterable (iterable, optional): An iterable whose members are valid
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
-        callable_class (bool): If a class is passed as validation and this is
+        callable_class (bool, optional): If a class is passed as validation and this is
         `True` (defaults to `False`), then the class will be treated as a
         callable and not used for isinstance checking.
     """

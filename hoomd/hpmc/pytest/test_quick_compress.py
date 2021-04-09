@@ -174,7 +174,7 @@ def test_disk_compression(phi, simulation_factory, lattice_snapshot_factory):
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
-    """Test that QuickCompress objects are pickable."""
+    """Test that QuickCompress objects are picklable."""
     qc = hoomd.hpmc.update.QuickCompress(trigger=hoomd.trigger.Periodic(10),
                                          target_box=hoomd.Box.square(10.))
 

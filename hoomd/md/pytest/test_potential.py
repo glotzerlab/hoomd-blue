@@ -999,6 +999,4 @@ def test_pickling(simulation_factory,
     integrator = hoomd.md.Integrator(0.05, forces=[pot])
     sim.operations.integrator = integrator
     sim.run(0)
-    # if isinstance(pot, hoomd.md.pair.SLJ):
-    #     breakpoint()
     pickling_check(pot)
