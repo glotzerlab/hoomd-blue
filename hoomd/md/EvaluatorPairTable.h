@@ -77,12 +77,15 @@ class EvaluatorPairTable
                 auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
                 if (V_py.size() != F_py.size())
                     {throw std::runtime_error("The length of V and F arrays must be equal");}
-                width = V_py.size().cast<unsigned int>();
+                width = (unsigned int)V_py.size();
                 rmin = v["r_min"].cast<Scalar>();
                 V_table = ManagedArray<Scalar>(width, false, 32);
                 F_table = ManagedArray<Scalar>(width, false, 32);
-                std::copy(V_py.begin(), V_py.end(), V_table.begin());
-                std::copy(F_py.begin(), F_py.end(), F_table.begin());
+                for (unsigned int i = 0; i < width; i++)
+                    {
+                    V_table[i] = V_py[i];
+                    F_table[i] = F_py[i];
+                    }
                 }
 
             pybind11::dict asDict()
