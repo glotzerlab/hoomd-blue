@@ -23,6 +23,6 @@ from .pair import (
     LJ1208,
     Fourier,
     OPP,
-    TWF,
-    Table
+    Table,
+    TWF
 )
