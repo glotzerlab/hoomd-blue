@@ -183,9 +183,9 @@ class EvaluatorPairTable
                 unsigned int value_i = (unsigned int)floor(value_f);
                 // unpack the data
                 Scalar V0 = V_table[value_i];
-                Scalar V1 = V_table[value_i + 1];
-                Scalar F0 = F_table[value_i];
-                Scalar F1 = F_table[value_i + 1];
+                Scalar V1 = 0;
+                if (value_i + 1 < width)
+                    V1 = V_table[value_i + 1];
 
                 // compute the linear interpolation coefficient
                 Scalar f = value_f - Scalar(value_i);
