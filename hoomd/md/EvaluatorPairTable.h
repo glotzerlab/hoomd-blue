@@ -32,16 +32,16 @@
 /*! \b Overview
     Pair potentials and forces are evaluated for all particle pairs in the system within the given cutoff distances.
     Both the potentials and forces** are provided the tables V(r) and F(r) at discreet \a r values between \a rmin and
-    \a rmax. Evaluations are performed by simple linear interpolation, thus why F(r) must be explicitly specified to
+    \a rcut. Evaluations are performed by simple linear interpolation, thus why F(r) must be explicitly specified to
     avoid large errors resulting from the numerical derivative. Note that F(r) should store - dV/dr.
 
     \b Table memory layout
 
     V(r) and F(r) are specified for each unique particle type pair. Three parameters need to be stored for each 
-    potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing between r values in the table respectively. 
-    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where i is chosen such that r >= rmin
-    and r <= rmax. V(r) for r < rmin and > rmax is 0. The same goes for F. Thus V and F are defined between the region
-    [rmin,rmax], inclusive.
+    potential: rmin, rmax, and dr, the minimum r, maximum r, and spacing between r values in the table respectively.
+    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr*i where i is chosen 
+    such that r >= rmin and r < rmax. V(r) for r < rmin and >= rmax is 0. The same goes for F. Thus V and F are defined 
+    between the region [rmin, rmax).
 
     \b Interpolation
     Values are interpolated linearly between two points straddling the given r. For a given r, the first point needed, i
