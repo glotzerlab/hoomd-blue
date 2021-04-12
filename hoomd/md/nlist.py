@@ -161,9 +161,7 @@ class Cell(NList):
             nlist_cls = _md.NeighborListBinned
         else:
             nlist_cls = _md.NeighborListGPUBinned
-        # TODO remove 0.0 (r_cut) from constructor
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach()
 
 
@@ -233,9 +231,7 @@ class Stencil(NList):
             nlist_cls = _md.NeighborListStencil
         else:
             nlist_cls = _md.NeighborListGPUStencil
-        # TODO remove 0.0 r_cut from constructor
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach()
 
 
@@ -284,7 +280,5 @@ class Tree(NList):
             nlist_cls = _md.NeighborListTree
         else:
             nlist_cls = _md.NeighborListGPUTree
-        # TODO remove 0.0 (r_cut) from constructor
-        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, 0.0,
-                                  self.buffer)
+        self._cpp_obj = nlist_cls(self._simulation.state._cpp_sys_def, self.buffer)
         super()._attach()

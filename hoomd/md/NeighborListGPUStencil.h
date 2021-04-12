@@ -34,7 +34,6 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     public:
         //! Constructs the compute
         NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
-                               Scalar r_cut,
                                Scalar r_buff);
 
         //! Destructor

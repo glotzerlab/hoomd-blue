@@ -30,7 +30,6 @@ class PYBIND11_EXPORT NeighborListBinned : public NeighborList
     public:
         //! Constructs the compute
         NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
-                           Scalar r_cut,
                            Scalar r_buff);
 
         //! Destructor

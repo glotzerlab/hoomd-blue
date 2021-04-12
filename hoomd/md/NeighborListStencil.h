@@ -31,8 +31,7 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                Scalar r_cut, Scalar r_buff);
+        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListStencil();

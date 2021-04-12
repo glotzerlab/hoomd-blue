@@ -27,9 +27,8 @@ namespace py = pybind11;
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
 NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
-                                               Scalar r_cut,
                                                Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff),
+    : NeighborListGPU(sysdef, r_buff),
     m_cl(std::make_shared<CellList>(sysdef)),
     m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
     m_needs_resort(true)
@@ -297,6 +296,6 @@ void NeighborListGPUStencil::buildNlist(uint64_t timestep)
 void export_NeighborListGPUStencil(py::module& m)
     {
     py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

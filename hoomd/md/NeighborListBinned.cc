@@ -19,9 +19,8 @@ using namespace std;
 namespace py = pybind11;
 
 NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(std::make_shared<CellList>(sysdef))
+    : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef))
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
 
@@ -192,7 +191,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 void export_NeighborListBinned(py::module& m)
     {
     py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def_property("deterministic", &NeighborListBinned::getDeterministic, &NeighborListBinned::setDeterministic)
         ;
     }

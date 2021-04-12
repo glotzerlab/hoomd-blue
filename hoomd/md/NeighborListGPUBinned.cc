@@ -18,9 +18,8 @@ namespace py = pybind11;
 #endif
 
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
-                                             Scalar r_cut,
                                              Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(std::make_shared<CellList>(sysdef)), m_param(0)
+    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef)), m_param(0)
     {
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();
@@ -183,7 +182,7 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
 void export_NeighborListGPUBinned(py::module& m)
     {
     py::class_<NeighborListGPUBinned, NeighborListGPU, std::shared_ptr<NeighborListGPUBinned> >(m, "NeighborListGPUBinned")
-                    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+                    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
                     .def("setTuningParam", &NeighborListGPUBinned::setTuningParam)
                     .def_property("deterministic", &NeighborListGPUBinned::getDeterministic, &NeighborListGPUBinned::setDeterministic)
                      ;
