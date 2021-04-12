@@ -73,16 +73,16 @@ class EvaluatorPairTable
 
             param_type(pybind11::dict v)
                 {
-                width = v["width"].cast<unsigned int>();
+                auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
+                if (V_py.size() != F_py.size())
+                    {throw std::runtime_error("The length of V and F arrays must be equal");}
+                width = V_py.size().cast<unsigned int>();
                 rmin = v["r_min"].cast<Scalar>();
                 unsigned int align_size = 8; //for AVX
                 unsigned int N_align =((width + align_size - 1)/align_size)*align_size;
                 V_table = ManagedArray<Scalar>(N_align, false, 32); // 32byte alignment for AVX
                 F_table = ManagedArray<Scalar>(N_align, false, 32);
-                auto V_py = v["V"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
-                auto F_py = v["F"].cast<pybind11::array_t<Scalar>>().unchecked<1>();
-                if (V_py.size() != F_py.size())
-                    {throw std::runtime_error("The length of V and F arrays must be equal");}
                 for (unsigned int i = 0; i < width; i++)
                     {
                     V_table[i] = V_py[i];
@@ -120,7 +120,6 @@ class EvaluatorPairTable
                                                    pybind11::array::StridesContainer({sizeof(Scalar),}),
                                                    F,
                                                    free_F);
-                v["width"] = width;
                 v["r_min"] = rmin;
                 return v;
                 }
