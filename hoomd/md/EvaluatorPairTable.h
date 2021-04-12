@@ -201,7 +201,7 @@ class EvaluatorPairTable
                 // convert to standard variables used by the other pair computes in HOOMD-blue
                 if (rsq > Scalar(0.0))
                     force_divr = F / r;
-                pair_eng = Scalar(0.5) * V;
+                pair_eng = V;
                 return true;
                 }
             else
