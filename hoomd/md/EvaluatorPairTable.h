@@ -179,7 +179,7 @@ class EvaluatorPairTable
                 {
                 Scalar delta_r = (rcut - rmin) / width;
                 // precomputed term
-                Scalar value_f = (rcut - r) / delta_r;
+                Scalar value_f = (r - rmin) / delta_r
 
                 // compute index into the table and read in values
                 unsigned int value_i = (unsigned int)floor(value_f);
