@@ -81,11 +81,8 @@ class EvaluatorPairTable
                 rmin = v["r_min"].cast<Scalar>();
                 V_table = ManagedArray<Scalar>(width, false, 32);
                 F_table = ManagedArray<Scalar>(width, false, 32);
-                for (unsigned int i = 0; i < width; i++)
-                    {
-                    V_table[i] = V_py[i];
-                    F_table[i] = F_py[i];
-                    }
+                std::copy(V_py.begin(), V_py.end(), V_table.begin());
+                std::copy(F_py.begin(), F_py.end(), F_table.begin());
                 }
 
             pybind11::dict asDict()
