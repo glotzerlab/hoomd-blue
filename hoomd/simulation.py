@@ -239,7 +239,7 @@ class Simulation(metaclass=Loggable):
             reschedule = False
             if self._operations._scheduled:
                 self._operations._unschedule()
-                reschedule = False
+                reschedule = True
 
             self._operations._simulation = None
             operations._simulation = self
