@@ -10,9 +10,6 @@
 #include "hoomd/ManagedArray.h"
 #include <memory>
 
-/*! \file TablePotential.h
-    \brief Declares the TablePotential class
-*/
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
