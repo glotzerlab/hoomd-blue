@@ -107,3 +107,98 @@ class FreeVolume(Compute):
             return self._cpp_obj.free_volume
         else:
             return None
+
+
+class SDF(_analyzer):
+    R""" Compute the scale distribution function.
+
+    Args:
+        xmax (float): Maximum *x* value at the right hand side of the rightmost bin (distance units).
+        dx (float): Bin width (distance units).
+
+    :py:class:`sdf` computes a distribution function of scale parameters :math:`x`. For each particle, it finds the smallest
+    scale factor :math:`1+x` that would cause the particle to touch one of its neighbors and records that in the histogram
+    :math:`s(x)`. The histogram is discrete and :math:`s(x_i) = s[i]` where :math:`x_i = i \cdot dx + dx/2`.
+
+    In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related to the pressure.
+
+    .. math::
+        \frac{P}{kT} = \rho \left(1 + \frac{s(0+)}{2d} \right)
+
+    where :math:`d` is the dimensionality of the system and :math:`\rho` is the number density.
+
+    Extrapolating :math:`s(0+)` is not trivial. Here are some suggested parameters, but they may not work in all cases.
+
+      * *xmax* = 0.02
+      * *dx* = 1e-4
+      * Polynomial curve fit of degree 5.
+
+    In systems near densest packings, ``dx=1e-5`` may be needed along with either a smaller xmax or a smaller region to fit.
+    A good rule of thumb might be to fit a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5 - but this needs further testing to
+    confirm.
+
+    :py:class:`sdf` averages *navg* histograms together before writing them out to a
+    text file in a plain format: "timestep bin_0 bin_1 bin_2 .... bin_n".
+
+    :py:class:`sdf` works well with restartable jobs. Ensure that ``navg*period`` is an integer fraction :math:`1/k` of the
+    restart period. Then :py:class:`sdf` will have written the final output to its file just before the restart gets
+    written. The new data needed for the next line of values is entirely collected after the restart.
+
+    Warning:
+        :py:class:`sdf` does not compute correct pressures for simulations with concave particles.
+
+    Numpy extrapolation code::
+
+        def extrapolate(s, dx, xmax, degree=5):
+          # determine the number of values to fit
+          n_fit = int(math.ceil(xmax/dx));
+          s_fit = s[0:n_fit];
+          # construct the x coordinates
+          x_fit = numpy.arange(0,xmax,dx)
+          x_fit += dx/2;
+          # perform the fit and extrapolation
+          p = numpy.polyfit(x_fit, s_fit, degree);
+          return numpy.polyval(p, 0.0);
+
+    Examples::
+
+        mc = hpmc.integrate.sphere(seed=415236)
+        analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.02, dx=1e-4, navg=100, period=100)
+        analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
+    """
+    def __init__(self, xmax, dx):
+        # store metadata
+        param_dict = ParameterDict(xmax=float(xmax), dx=float(dx))
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be an HPMC integrator.")
+
+        # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
+        integrator_name = integrator.__class__.__name__
+        try:
+            if isinstance(self._simulation.device, hoomd.device.CPU):
+                cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
+            else:
+                raise RuntimeError("SDF currently unsupported on GPU")
+
+        except AttributeError:
+            raise RuntimeError("Unsupported integrator.")
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                integrator._cpp_obj,
+                                xmax,
+                                dx)
+
+        super()._attach()
+
+    @log
+    def free_volume(self):
+        """Free volume available to the test particle."""
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.sdf
+        else:
+            return None
