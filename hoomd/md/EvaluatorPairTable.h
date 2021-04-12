@@ -79,10 +79,8 @@ class EvaluatorPairTable
                     {throw std::runtime_error("The length of V and F arrays must be equal");}
                 width = V_py.size().cast<unsigned int>();
                 rmin = v["r_min"].cast<Scalar>();
-                unsigned int align_size = 8; //for AVX
-                unsigned int N_align =((width + align_size - 1)/align_size)*align_size;
-                V_table = ManagedArray<Scalar>(N_align, false, 32); // 32byte alignment for AVX
-                F_table = ManagedArray<Scalar>(N_align, false, 32);
+                V_table = ManagedArray<Scalar>(width, false, 32);
+                F_table = ManagedArray<Scalar>(width, false, 32);
                 for (unsigned int i = 0; i < width; i++)
                     {
                     V_table[i] = V_py[i];
