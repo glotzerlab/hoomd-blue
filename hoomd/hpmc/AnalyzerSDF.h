@@ -127,7 +127,7 @@ class AnalyzerSDF : public Analyzer
 
 
         //! Analyze the system configuration on the given time step
-        virtual void analyze(unsigned int timestep);
+        virtual void analyze(uint64_t timestep);
 
     protected:
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The integrator
@@ -148,13 +148,13 @@ class AnalyzerSDF : public Analyzer
         void openOutputFile();
 
         //! Write current histogram to the file
-        void writeOutput(unsigned int timestep);
+        void writeOutput(uint64_t timestep);
 
         //! Zero the histogram counts
         void zeroHistogram();
 
         //! Add to histogram counts
-        void countHistogram(unsigned int timestep);
+        void countHistogram(uint64_t timestep);
 
         //! Determine the s bin of a given particle pair
         size_t computeBin(const vec3<Scalar>& r_ij,
@@ -202,8 +202,9 @@ AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
     Main analysis driver. Manages the state and calls the appropriate helper functions.
 */
 template < class Shape >
-void AnalyzerSDF<Shape>::analyze(unsigned int timestep)
+void AnalyzerSDF<Shape>::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     m_exec_conf->msg->notice(8) << "Analyzing sdf at step " << timestep << std::endl;
 
     // kludge to update the max diameter dynamically if it changes
@@ -276,7 +277,7 @@ void AnalyzerSDF<Shape>::openOutputFile()
     Write the output to the file.
 */
 template < class Shape >
-void AnalyzerSDF<Shape>::writeOutput(unsigned int timestep)
+void AnalyzerSDF<Shape>::writeOutput(uint64_t timestep)
     {
     std::vector<unsigned int> hist_total(m_hist);
 
@@ -328,7 +329,7 @@ void AnalyzerSDF<Shape>::zeroHistogram()
       - Only on writeOutput() do we need to sum the per-rank histograms into a global histogram
 */
 template < class Shape >
-void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
+void AnalyzerSDF<Shape>::countHistogram(uint64_t timestep)
     {
     // update the aabb tree
     const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();

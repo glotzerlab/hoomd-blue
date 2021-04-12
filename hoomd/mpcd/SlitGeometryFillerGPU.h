@@ -31,7 +31,6 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
                               Scalar density,
                               unsigned int type,
                               std::shared_ptr<::Variant> T,
-                              unsigned int seed,
                               std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
         //! Set autotuner parameters
@@ -48,7 +47,7 @@ class PYBIND11_EXPORT SlitGeometryFillerGPU : public mpcd::SlitGeometryFiller
 
     protected:
         //! Draw particles within the fill volume on the GPU
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
 
     private:
         std::unique_ptr<::Autotuner> m_tuner;   //!< Autotuner for drawing particles

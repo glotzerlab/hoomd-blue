@@ -36,7 +36,7 @@ class UpdaterShape  : public Updater
         //! Calculates the requested log value and returns it
         Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-        void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         void initialize();
 
@@ -252,7 +252,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 \param timestep Current time step of the simulation
 */
 template < class Shape >
-void UpdaterShape<Shape>::update(unsigned int timestep)
+void UpdaterShape<Shape>::update(uint64_t timestep)
     {
     typedef std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > param_vector;
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep << ", initialized: "
@@ -267,7 +267,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     	return;
         }
 
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterShapeUpdate, m_move_ratio, m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, m_seed),
+                               hoomd::Counter(m_exec_conf->getRank(), m_move_ratio));
     unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
     bool move = (move_type_select < m_move_ratio);
     if (!move)
@@ -282,7 +283,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         // TODO: should these be better random numbers?
-        m_update_order.setRandomDirection(timestep+40591); // order of the list doesn't matter the probability of each combination is the same.
+        m_update_order.shuffle(timestep+40591, m_seed); // order of the list doesn't matter the probability of each combination is the same.
         if (this->m_prof)
             this->m_prof->pop();
 
@@ -327,7 +328,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-            hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterShapeConstruct, m_seed, timestep, typ_i, sweep);
+            hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::UpdaterShapeConstruct, timestep, m_seed),
+                                         hoomd::Counter(m_exec_conf->getRank(), sweep));
             m_move_function->construct(timestep, typ_i, param, rng_i);
             h_det.data[typ_i] = m_move_function->getDetInertiaTensor(); // new determinant
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;

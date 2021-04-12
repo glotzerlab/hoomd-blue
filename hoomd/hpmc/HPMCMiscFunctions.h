@@ -66,6 +66,10 @@ namespace detail
         a = b;
         b = c;
         }
+
+    //! A conversion to help unroll function template loops
+    template<unsigned int> struct int2type{};
+
     }
 
 } // end namespace hpmc

@@ -45,8 +45,9 @@ ConstraintEllipsoid::~ConstraintEllipsoid()
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintEllipsoid::update(unsigned int timestep)
+void ConstraintEllipsoid::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;

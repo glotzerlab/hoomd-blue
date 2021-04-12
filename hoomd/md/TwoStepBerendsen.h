@@ -42,6 +42,12 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        //! Get the temperature
+        virtual std::shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
         //! Update the tau value
         //! \param tau New time constant to set
         virtual void setTau(Scalar tau)
@@ -49,11 +55,30 @@ class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
             m_tau = tau;
             }
 
+        //! Get the tau value
+        virtual Scalar getTau()
+            {
+            return m_tau;
+            }
+
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
+
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            IntegrationMethodTwoStep::setCommunicator(comm);
+
+            // set the communicator on the internal thermo
+            m_thermo->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
         const std::shared_ptr<ComputeThermo> m_thermo; //!< compute for thermodynamic quantities

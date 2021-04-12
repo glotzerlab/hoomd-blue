@@ -56,9 +56,23 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_cl->setNominalWidth(cell_width);
             }
 
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            m_cls->setCommunicator(comm);
+            }
+
+        #endif
+
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
         std::shared_ptr<CellList> m_cl;           //!< The cell list

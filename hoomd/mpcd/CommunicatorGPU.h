@@ -57,7 +57,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
         //@{
 
         //! Migrate particle data to local domain
-        virtual void migrateParticles(unsigned int timestep);
+        virtual void migrateParticles(uint64_t timestep);
         //@}
 
         //! Set maximum number of communication stages

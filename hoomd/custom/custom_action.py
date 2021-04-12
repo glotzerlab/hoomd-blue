@@ -68,7 +68,7 @@ class Action(metaclass=_AbstractLoggable):
 
         class ExampleAction(Action):
             def act(self, timestep):
-                self.com = self.snapshot.particles.position.mean(axis=0)
+                self.com = self._state.snapshot.particles.position.mean(axis=0)
 
 
     Attributes:
@@ -125,7 +125,7 @@ class Action(metaclass=_AbstractLoggable):
             A `hoomd.State` is not given here. This means that if the default
             `attach` method is overwritten, there is no way to query or change
             the state when called. By default, the state is accessible through
-            ``self.state`` after attaching.
+            ``self._state`` after attaching.
         """
         pass
 

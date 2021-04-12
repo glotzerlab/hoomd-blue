@@ -1,14 +1,12 @@
 import pytest
-from hoomd.filter.type_ import Type
-from hoomd.filter.tags import Tags
-from hoomd.filter.set_ import SetDifference, Union, Intersection
-from hoomd.filter.all_ import All
-from hoomd.filter import Null
+from hoomd.filter import (
+    Type, Tags, SetDifference, Union, Intersection, All, Null, CustomFilter)
 from hoomd.snapshot import Snapshot
+import hoomd.md as md
 from copy import deepcopy
 from itertools import combinations
 import pickle
-import numpy
+import numpy as np
 
 
 @pytest.fixture(scope="function")
@@ -18,7 +16,7 @@ def make_filter_snapshot(device):
         if s.exists:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
-            s.particles.position[:] = numpy.random.uniform(-10, 10, size=(n, 3))
+            s.particles.position[:] = np.random.uniform(-10, 10, size=(n, 3))
             s.particles.types = particle_types
         return s
     return filter_snapshot
@@ -226,3 +224,58 @@ def test_pickling(constructor, args):
     pkled_filter = pickle.loads(pickle.dumps(filter_))
     assert pkled_filter == filter_
     assert hash(pkled_filter) == hash(filter_)
+
+
+def test_custom_filter(make_filter_snapshot, simulation_factory):
+    """Tests that custom particle filters work on simulations.
+
+    Specifically we test that using the Langevin integrator method, that only
+    particles selected by the custom filter move. Since the Langevin method uses
+    random movements we don't need to initialize velocities or have any forces
+    to test this.
+    """
+    class NegativeCharge(CustomFilter):
+        """Grab all particles with a negative charge."""
+        def __call__(self, state):
+            with state.cpu_local_snapshot as snap:
+                return snap.particles.tag[snap.particles.charge < 0]
+
+        def __hash__(self):
+            return hash(self.__class__.__name__)
+
+        def __eq__(self, other):
+            return isinstance(other, self.__class__)
+
+    charge_filter = NegativeCharge()
+    sim = simulation_factory(make_filter_snapshot())
+    # grabs tags on individual MPI ranks
+    with sim.state.cpu_local_snapshot as snap:
+        # Grab half of all particles on an MPI rank, 1 particle, or no particles
+        # depending on how many particles are local to the MPI ranks.
+        local_Np = snap.particles.charge.shape[0]
+        N_negative_charge = max(0, max(1, int(local_Np * 0.5)))
+        negative_charge_ind = np.random.choice(
+            local_Np, N_negative_charge, replace=False)
+        # Get the expected tags returned by the custom filter and the positions
+        # that should vary and remain static for testing after running.
+        snap.particles.charge[negative_charge_ind] = -1.0
+        expected_tags = snap.particles.tag[negative_charge_ind]
+        positive_charge_tags = snap.particles.tag[snap.particles.charge > 0]
+        positive_charge_ind = snap.particles.rtag[positive_charge_tags]
+        original_positions = snap.particles.position[negative_charge_ind]
+        static_positions = snap.particles.position[positive_charge_ind]
+
+    # Test that the filter merely works as expected and that tags are correctly
+    # grabbed on local MPI ranks
+    assert all(np.sort(charge_filter(sim.state)) == np.sort(expected_tags))
+
+    # Test that the filter works when used in a simulation
+    langevin = md.methods.Langevin(charge_filter, 1.0)
+    sim.operations += md.Integrator(0.005, methods=[langevin])
+    sim.run(100)
+    snap = sim.state.snapshot
+    if snap.exists:
+        assert not np.allclose(snap.particles.position[negative_charge_ind],
+                               original_positions)
+        assert np.allclose(snap.particles.position[positive_charge_tags],
+                           static_positions)

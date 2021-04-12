@@ -53,11 +53,11 @@ class PotentialBond : public ForceCompute
         virtual void validateType(unsigned int type, std::string action);
 
         //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
@@ -67,7 +67,7 @@ class PotentialBond : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
@@ -169,7 +169,7 @@ std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities(
     \param timestep Current timestep of the simulation
 */
 template< class evaluator >
-Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -187,7 +187,7 @@ Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsi
     \param timestep Current time step
  */
 template< class evaluator >
-void PotentialBond< evaluator >::computeForces(unsigned int timestep)
+void PotentialBond< evaluator >::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_prof_name);
 
@@ -352,7 +352,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialBond< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 

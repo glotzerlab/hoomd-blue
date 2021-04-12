@@ -111,12 +111,12 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Abstract method that performs the first step of the integration
         /*! \param timestep Current time step
         */
-        virtual void integrateStepOne(unsigned int timestep) {}
+        virtual void integrateStepOne(uint64_t timestep) {}
 
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
         */
-        virtual void integrateStepTwo(unsigned int timestep)
+        virtual void integrateStepTwo(uint64_t timestep)
             {
             }
 
@@ -156,7 +156,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
 
             See Logger for more information on what this is about.
         */
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep,  bool &my_quantity_flag)
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep,  bool &my_quantity_flag)
             {
             return Scalar(0.0);
             }
@@ -189,7 +189,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(std::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             assert(comm);
             m_comm = comm;

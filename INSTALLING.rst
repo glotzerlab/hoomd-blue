@@ -37,7 +37,7 @@ from the ``conda-forge`` channel::
 
 Install the v3.0.0-beta release with::
 
-    $ conda install -c conda-forge/label/hoomd_dev hoomd
+    $ conda install -c conda-forge/label/hoomd_dev -c conda-forge hoomd
 
 A build of HOOMD with support for NVIDIA GPUs is also available from the
 ``conda-forge`` channel::
@@ -55,7 +55,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.3.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.5.tar.gz
 
 Or clone using Git:
 
@@ -74,9 +74,8 @@ Install prerequisites
 
 **General requirements**
 
-- C++11 capable compiler (tested with ``gcc`` 4.8, 5.5, 6.4, 7,
-  8, 9, ``clang`` 5, 6, 7, 8)
-- Python >= 3.5
+- C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10 / ``clang`` 6, 7, 8, 9, 10, 11)
+- Python >= 3.6
 - NumPy >= 1.7
 - pybind11 >= 2.2
 - Eigen >= 3.2
@@ -116,7 +115,7 @@ Install prerequisites
 
 **For runtime code generation** (required when ``BUILD_JIT=on``)
 
-- LLVM >= 5.0
+- LLVM >= 6.0
 
 **To build documentation**
 
@@ -153,7 +152,7 @@ You can install numpy and other python packages into your virtual environment us
 Note that other types of virtual environments
 (such as *conda*) may work, but are not thoroughly tested. ::
 
-    $ python3 -m venv /path/to/environment --system-site-packages
+    $ python3 -m venv /path/to/environment
 
 
 Compile HOOMD-blue

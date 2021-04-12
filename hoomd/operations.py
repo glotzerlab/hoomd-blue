@@ -12,7 +12,7 @@ from collections.abc import Collection
 from itertools import chain
 import hoomd.integrate
 from hoomd.data.syncedlist import SyncedList
-from hoomd.data.typeconverter import OnlyType
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
 
@@ -64,12 +64,12 @@ class Operations(Collection):
     def __init__(self):
         self._compute = list()
         self._scheduled = False
-        self._updaters = SyncedList(OnlyType(Updater),
+        self._updaters = SyncedList(OnlyTypes(Updater),
                                     _triggered_op_conversion)
-        self._writers = SyncedList(OnlyType(Writer),
+        self._writers = SyncedList(OnlyTypes(Writer),
                                      _triggered_op_conversion)
-        self._tuners = SyncedList(OnlyType(Tuner), lambda x: x._cpp_obj)
-        self._computes = SyncedList(OnlyType(Compute), lambda x: x._cpp_obj)
+        self._tuners = SyncedList(OnlyTypes(Tuner), lambda x: x._cpp_obj)
+        self._computes = SyncedList(OnlyTypes(Compute), lambda x: x._cpp_obj)
         self._integrator = None
 
         self._tuners.append(ParticleSorter())
@@ -212,10 +212,6 @@ class Operations(Collection):
         self._tuners._unsync()
         self._computes._unsync()
         self._scheduled = False
-
-    def _store_reader(self, reader):
-        # TODO
-        pass
 
     def __contains__(self, operation):
         """Whether an operation is contained in this container.

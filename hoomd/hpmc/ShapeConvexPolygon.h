@@ -344,6 +344,9 @@ struct ShapeConvexPolygon
     /// Define the parameter type
     typedef detail::PolygonVertices param_type;
 
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
+
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)
         : orientation(_orientation), verts(_params)
@@ -574,9 +577,7 @@ template <>
 DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
                                                                        const ShapeConvexPolygon& a,
                                                                        const ShapeConvexPolygon& b,
-                                                                       unsigned int& err,
-                                                                       Scalar sweep_radius_a,
-                                                                       Scalar sweep_radius_b)
+                                                                       unsigned int& err)
     {
     vec2<OverlapReal> dr(OverlapReal(r_ab.x),OverlapReal(r_ab.y));
     #ifdef __HIPCC__
@@ -600,12 +601,20 @@ template<>
 inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     {
     std::ostringstream shapedef;
-    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
-    for (unsigned int i = 0; i < poly.verts.N-1; i++)
+    const auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+    if (verts.N != 0)
         {
-        shapedef << "[" << poly.verts.x[i] << ", " << poly.verts.y[i] << "], ";
+        for (unsigned int i = 0; i < verts.N-1; i++)
+            {
+            shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+            }
+        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
         }
-    shapedef << "[" << poly.verts.x[poly.verts.N-1] << ", " << poly.verts.y[poly.verts.N-1] << "]]}";
+    else
+        {
+        shapedef << "[0, 0]]}";
+        }
     return shapedef.str();
     }
 #endif
