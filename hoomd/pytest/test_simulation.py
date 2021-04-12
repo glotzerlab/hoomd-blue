@@ -334,7 +334,20 @@ def test_seed(simulation_factory, lattice_snapshot_factory):
 def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
     sim.create_state_from_snapshot(lattice_snapshot_factory())
-    old_operations = sim.operations
+
+    def check_operation_setting(sim, old_operations, new_operations):
+        assert sim.operations is not new_operations
+        assert new_operations._simulation is None
+        assert old_operations._simulation is sim
+        scheduled = old_operations._scheduled
+        sim.operations = new_operations
+        assert sim.operations is new_operations
+        assert new_operations._simulation is sim
+        assert old_operations._simulation is None
+        if scheduled:
+            assert new_operations._scheduled
+            assert not old_operations._scheduled
+
     operations = hoomd.Operations()
     # Add some operations to test the setting
     operations += hoomd.update.BoxResize(
@@ -346,14 +359,8 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     operations += hoomd.write.Table(
         10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
-    # Check before and after setting
-    assert sim.operations is not operations
-    assert operations._simulation is None
-    assert old_operations._simulation is sim
-    sim.operations = operations
-    assert sim.operations is operations
-    assert operations._simulation is sim
-    assert old_operations._simulation is None
+    # Check setting before scheduling
+    check_operation_setting(sim, sim.operations, operations)
 
     sim.run(0)
     # Check setting after scheduling
@@ -366,13 +373,4 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     new_operations += hoomd.write.GSD("bar.gsd", 20)
     new_operations += hoomd.write.Table(
         20, logger=hoomd.logging.Logger(['scalar']))
-
-    assert sim.operations is not new_operations
-    assert sim.operations._simulation is sim
-    assert new_operations._simulation is None
-    sim.operations = new_operations
-    assert sim.operations is new_operations
-    assert new_operations._simulation is sim
-    assert new_operations._scheduled
-    assert not operations._scheduled
-    assert operations._simulation is None
+    check_operation_setting(sim, sim.operations, new_operations)
