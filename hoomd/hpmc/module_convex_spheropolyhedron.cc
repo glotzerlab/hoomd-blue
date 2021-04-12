@@ -8,6 +8,7 @@
 
 #include "ShapeSpheropolyhedron.h"
 #include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
@@ -43,6 +44,7 @@ void export_convex_spheropolyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSpheropolyhedron >(m, "IntegratorHPMCMonoSpheropolyhedron");
     export_ComputeFreeVolume< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeSpheropolyhedron");
+    export_ComputeSDF< ShapeSpheropolyhedron >(m, "ComputeSDFSpheropolyhedron");
     export_AnalyzerSDF< ShapeSpheropolyhedron >(m, "AnalyzerSDFSpheropolyhedron");
     export_UpdaterMuVT< ShapeSpheropolyhedron >(m, "UpdaterMuVTConvexSpheropolyhedron");
     export_UpdaterClusters< ShapeSpheropolyhedron >(m, "UpdaterClustersConvexSpheropolyhedron");

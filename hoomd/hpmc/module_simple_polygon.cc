@@ -8,6 +8,7 @@
 
 #include "ShapeSimplePolygon.h"
 #include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
@@ -43,6 +44,7 @@ void export_simple_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygon");
     export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
+    export_ComputeSDF< ShapeSimplePolygon >(m, "ComputeSDFSimplePolygon");
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
