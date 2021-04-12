@@ -46,6 +46,7 @@ set(_hpmc_headers
     ComputeFreeVolumeGPU.cuh
     ComputeFreeVolumeGPU.h
     ComputeFreeVolume.h
+    ComputeSDF.h
     ExternalFieldComposite.h
     ExternalField.h
     ExternalFieldLattice.h
