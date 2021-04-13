@@ -62,9 +62,9 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
 
 /*! \param timesteps is the iteration number
 */
-void FIREEnergyMinimizerGPU::update(unsigned int timestep)
+void FIREEnergyMinimizerGPU::update(uint64_t timestep)
     {
-
+    Integrator::update(timestep);
     if (m_converged)
         return;
 

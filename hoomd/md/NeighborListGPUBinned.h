@@ -76,6 +76,19 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             return m_cl->getSortCellList();
             }
 
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            }
+
+        #endif
+
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU
@@ -88,7 +101,7 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
     };
 
 //! Exports NeighborListGPUBinned to python

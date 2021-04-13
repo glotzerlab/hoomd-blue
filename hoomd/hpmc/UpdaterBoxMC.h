@@ -36,23 +36,15 @@ class UpdaterBoxMC : public Updater
         /*! \param sysdef System definition
             \param mc HPMC integrator object
             \param P Pressure times thermodynamic beta to apply in isobaric ensembles
-            \param seed PRNG seed
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
         */
         UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<IntegratorHPMC> mc,
-                      std::shared_ptr<Variant> P,
-                      const unsigned int seed);
+                      std::shared_ptr<Variant> P);
 
         //! Destructor
         virtual ~UpdaterBoxMC();
-
-        //! Get the seed
-        unsigned int getSeed()
-            {
-            return m_seed;
-            }
 
         //! Get parameters for box volume moves as a dictionary
         /*! dict keys:
@@ -229,7 +221,7 @@ class UpdaterBoxMC : public Updater
         virtual std::vector< std::string > getProvidedLogQuantities();
 
         //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Reset statistics counters
         void resetStats()
@@ -249,7 +241,7 @@ class UpdaterBoxMC : public Updater
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         //! Get the current counter values
         hpmc_boxmc_counters_t getCounters(unsigned int mode=0);
@@ -258,36 +250,50 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_L(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_L(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_V(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_V(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform box update in NpT ln(V) distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_lnV(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_lnV(uint64_t timestep, hoomd::RandomGenerator& rng);
 
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_shear(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_shear(uint64_t timestep, hoomd::RandomGenerator& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
             \param rng pseudo random number generator instance
         */
-        void update_aspect(unsigned int timestep, hoomd::RandomGenerator& rng);
+        void update_aspect(uint64_t timestep, hoomd::RandomGenerator& rng);
+
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
 
     private:
         std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
         std::shared_ptr<Variant> m_beta_P;        //!< Reduced pressure in isobaric ensembles
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
 
         Scalar m_volume_delta;                    //!< Amount by which to change volume during box-change
         Scalar m_volume_weight;                    //!< relative weight of volume moves
@@ -313,8 +319,6 @@ class UpdaterBoxMC : public Updater
         hpmc_boxmc_counters_t m_count_run_start;   //!< Count saved at run() start
         hpmc_boxmc_counters_t m_count_step_start;  //!< Count saved at the start of the last step
 
-        unsigned int m_seed;                        //!< Seed for pseudo-random number generator
-
         std::vector<Scalar> m_weight_partial_sums;  //!< Partial sums of all weights used to select moves
 
         inline bool is_oversheared();               //!< detect oversheared box
@@ -333,7 +337,7 @@ class UpdaterBoxMC : public Updater
                                      Scalar xy,
                                      Scalar xz,
                                      Scalar yz,
-                                     unsigned int timestep,
+                                     uint64_t timestep,
                                      Scalar boltzmann,
                                      hoomd::RandomGenerator& rng
                                      );

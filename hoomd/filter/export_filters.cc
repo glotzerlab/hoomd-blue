@@ -7,6 +7,7 @@
 #include "ParticleFilterTags.h"
 #include "ParticleFilterType.h"
 #include "ParticleFilterUnion.h"
+#include "ParticleFilterCustom.h"
 
 #include <pybind11/pybind11.h>
 
@@ -53,4 +54,9 @@ void export_ParticleFilters(pybind11::module& m)
                     >(m,"ParticleFilterTags")
         .def(pybind11::init<pybind11::array_t<unsigned int,
                             pybind11::array::c_style> >());
+
+    pybind11::class_<ParticleFilterCustom, ParticleFilter,
+                     std::shared_ptr<ParticleFilterCustom>
+                    >(m, "ParticleFilterCustom")
+        .def(pybind11::init<pybind11::object, pybind11::object>());
     };

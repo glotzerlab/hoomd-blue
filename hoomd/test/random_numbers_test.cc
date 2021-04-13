@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
 #include "hoomd/ClockSource.h"
 
 #include <vector>
@@ -42,7 +43,8 @@ UP_TEST( sphere_point_test )
     const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
-    hoomd::RandomGenerator rng(7, 7, 91);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
     hoomd::SpherePointGenerator<double> gen;
 
     const unsigned int N = 500000;
@@ -125,7 +127,8 @@ void check_moments(GeneratorType& gen,
                    const double ref_tol,
                    bool test_kurtosis=true)
     {
-    hoomd::RandomGenerator rng(7, 7, 91);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // compute moments of the distribution
     // use Kahan summation to prevent errors when summing over many samples
@@ -200,7 +203,8 @@ void check_range(GeneratorType& gen,
                  const ValueType a,
                  const ValueType b)
     {
-    hoomd::RandomGenerator rng(1, 2, 3);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // check that every value generated is in the proper range
     for (unsigned int i=0; i < N; ++i)
@@ -419,6 +423,81 @@ UP_TEST( poisson_large_float_test )
 
     hoomd::PoissonDistribution<float> gen(m);
     check_moments(gen, 4000000, mean, var, skew, exkurtosis, 0.03, false);
+    }
+
+//! Test that Seed initializes correctly
+UP_TEST( seed_fromIDStepSeed )
+    {
+    auto s = hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, 0xabcdef1234567890, 0x5eed);
+
+    UP_ASSERT_EQUAL(s.getKey()[0], 0x015eed12);
+    UP_ASSERT_EQUAL(s.getKey()[1], 0x34567890);
+    }
+
+//! Test that Counter initializes correctly
+UP_TEST( counter )
+    {
+    auto a = hoomd::Counter();
+
+    UP_ASSERT_EQUAL(a.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[2], 0);
+    UP_ASSERT_EQUAL(a.getCounter()[3], 0);
+
+    auto b = hoomd::Counter(0xabcdef12);
+
+    UP_ASSERT_EQUAL(b.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[2], 0);
+    UP_ASSERT_EQUAL(b.getCounter()[3], 0xabcdef12);
+
+    auto c = hoomd::Counter(0x1234, 0x5678);
+
+    UP_ASSERT_EQUAL(c.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(c.getCounter()[1], 0);
+    UP_ASSERT_EQUAL(c.getCounter()[2], 0x5678);
+    UP_ASSERT_EQUAL(c.getCounter()[3], 0x1234);
+
+    auto d = hoomd::Counter(0xabcd, 0xef123, 0x4567);
+
+    UP_ASSERT_EQUAL(d.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(d.getCounter()[1], 0x4567);
+    UP_ASSERT_EQUAL(d.getCounter()[2], 0xef123);
+    UP_ASSERT_EQUAL(d.getCounter()[3], 0xabcd);
+
+    auto e = hoomd::Counter(0xabcd, 0xef123, 0x4567, 0x1234);
+
+    UP_ASSERT_EQUAL(e.getCounter()[0], 0x12340000);
+    UP_ASSERT_EQUAL(e.getCounter()[1], 0x4567);
+    UP_ASSERT_EQUAL(e.getCounter()[2], 0xef123);
+    UP_ASSERT_EQUAL(e.getCounter()[3], 0xabcd);
+    }
+
+UP_TEST( rng_seeding )
+    {
+    auto s = hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoShuffle, 0xabcdef1234567890, 0x5eed);
+    auto c = hoomd::Counter(0x9876, 0x5432, 0x10fe);
+
+    auto g = hoomd::RandomGenerator(s, c);
+    UP_ASSERT_EQUAL(g.getKey()[0], 0x015eed12);
+    UP_ASSERT_EQUAL(g.getKey()[1], 0x34567890);
+
+    UP_ASSERT_EQUAL(g.getCounter()[0], 0);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
+
+    g();
+    UP_ASSERT_EQUAL(g.getCounter()[0], 1);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
+
+    g();
+    UP_ASSERT_EQUAL(g.getCounter()[0], 2);
+    UP_ASSERT_EQUAL(g.getCounter()[1], 0x10fe);
+    UP_ASSERT_EQUAL(g.getCounter()[2], 0x5432);
+    UP_ASSERT_EQUAL(g.getCounter()[3], 0x9876);
     }
 
 // //! Find performance crossover

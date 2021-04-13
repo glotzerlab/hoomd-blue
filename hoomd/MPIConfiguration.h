@@ -45,6 +45,11 @@ class PYBIND11_EXPORT MPIConfiguration
         virtual ~MPIConfiguration() {};
 
 #ifdef ENABLE_MPI
+        MPI_Comm operator()() const
+            {
+            return getCommunicator();
+            }
+
         //! Returns the MPI communicator
         MPI_Comm getCommunicator() const
             {

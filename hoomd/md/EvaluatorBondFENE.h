@@ -42,17 +42,20 @@ struct fene_params
         {
         k = v["k"].cast<Scalar>();
         r_0 = v["r0"].cast<Scalar>();
-        lj1 = v["lj1"].cast<Scalar>();
-        lj2 = v["lj2"].cast<Scalar>();
+        Scalar epsilon = v["epsilon"].cast<Scalar>();
+        Scalar sigma = v["sigma"].cast<Scalar>();
+        lj1 = 4.0 * epsilon * std::pow(sigma, 12.0);
+        lj2 = 4.0 * epsilon * std::pow(sigma, 6.0);
         }
 
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        v["r0"] = r_0;
-        v["lj1"] = lj1;
-        v["lj2"] = lj2;
         v["k"] = k;
+        v["r0"] = r_0;
+        Scalar sigma = std::pow(lj1 / lj2, 1.0 / 6.0);
+        v["sigma"] = sigma;
+        v["epsilon"] = lj1 / 4.0 / std::pow(sigma, 12.0);
         return v;
         }
     #endif

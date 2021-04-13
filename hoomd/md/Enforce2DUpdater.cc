@@ -41,8 +41,9 @@ Enforce2DUpdater::~Enforce2DUpdater()
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation
 */
-void Enforce2DUpdater::update(unsigned int timestep)
+void Enforce2DUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("Enforce2D");
 
     assert(m_pdata);

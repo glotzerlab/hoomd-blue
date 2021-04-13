@@ -45,7 +45,6 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                              std::shared_ptr<CellList> cl,
-                             unsigned int seed,
                              std::string suffix);
         //! Destructor
         virtual ~ComputeFreeVolumeGPU();
@@ -65,7 +64,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
             }
 
         //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(unsigned int timestep);
+        virtual void computeFreeVolume(uint64_t timestep);
 
     protected:
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -86,9 +85,8 @@ template< class Shape >
 ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                                                     std::shared_ptr<CellList> cl,
-                                                    unsigned int seed,
                                                     std::string suffix)
-    : ComputeFreeVolume<Shape>(sysdef,mc,cl, seed,suffix)
+    : ComputeFreeVolume<Shape>(sysdef,mc,cl,suffix)
     {
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
@@ -136,19 +134,12 @@ ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
 /*! \return the current free volume (by MC integration)
 */
 template<class Shape>
-void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
+void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64_t timestep)
     {
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
     // set nominal width
     Scalar nominal_width = this->m_mc->getMaxCoreDiameter();
-        {
-        // add range of test particle
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
-        quat<Scalar> o;
-        Shape tmp(o, params[this->m_type]);
-        nominal_width += tmp.getCircumsphereDiameter();
-        }
 
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);
@@ -253,7 +244,7 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getDim(),
                                                    this->m_pdata->getN(),
                                                    this->m_pdata->getNTypes(),
-                                                   this->m_seed,
+                                                   this->m_sysdef->getSeed(),
                                                    this->m_exec_conf->getRank(),
                                                    0,
                                                    timestep,
@@ -318,7 +309,6 @@ template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, c
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,
-                unsigned int,
                 std::string >())
         ;
     }

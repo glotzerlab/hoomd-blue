@@ -23,6 +23,7 @@
 #ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 
@@ -56,6 +57,7 @@ void export_faceted_ellipsoid(py::module& m)
     #ifdef ENABLE_HIP
     export_IntegratorHPMCMonoGPU< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoFacetedEllipsoidGPU");
     export_ComputeFreeVolumeGPU< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeFacetedEllipsoidGPU");
+    export_UpdaterClustersGPU< ShapeFacetedEllipsoid >(m, "UpdaterClustersFacetedEllipsoidGPU");
     #endif
     }
 

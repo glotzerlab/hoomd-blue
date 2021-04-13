@@ -10,19 +10,12 @@ UpdaterQuickCompress::UpdaterQuickCompress(std::shared_ptr<SystemDefinition> sys
                                            std::shared_ptr<IntegratorHPMC> mc,
                                            double max_overlaps_per_particle,
                                            double min_scale,
-                                           pybind11::object target_box,
-                                           const unsigned int seed)
+                                           pybind11::object target_box)
     : Updater(sysdef), m_mc(mc), m_max_overlaps_per_particle(max_overlaps_per_particle),
-      m_target_box(target_box), m_seed(seed)
+      m_target_box(target_box)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterQuickCompress" << std::endl;
     setMinScale(min_scale);
-
-// broadcast the seed from rank 0 to all other ranks.
-#ifdef ENABLE_MPI
-    if (this->m_pdata->getDomainDecomposition())
-        bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
-#endif
 
     // allocate memory for m_pos_backup
     unsigned int MaxN = m_pdata->getMaxN();
@@ -42,8 +35,9 @@ UpdaterQuickCompress::~UpdaterQuickCompress()
         .disconnect<UpdaterQuickCompress, &UpdaterQuickCompress::slotMaxNChange>(this);
     }
 
-void UpdaterQuickCompress::update(unsigned int timestep)
+void UpdaterQuickCompress::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof)
         m_prof->push("UpdaterQuickCompress");
     m_exec_conf->msg->notice(10) << "UpdaterQuickCompress: " << timestep << std::endl;
@@ -70,7 +64,7 @@ void UpdaterQuickCompress::update(unsigned int timestep)
         m_is_complete = false;
     }
 
-void UpdaterQuickCompress::performBoxScale(unsigned int timestep)
+void UpdaterQuickCompress::performBoxScale(uint64_t timestep)
     {
     auto new_box = getNewBox(timestep);
     auto old_box = m_pdata->getGlobalBox();
@@ -130,7 +124,7 @@ static inline double scaleValue(double current, double target, double s)
         }
     }
 
-BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
+BoxDim UpdaterQuickCompress::getNewBox(uint64_t timestep)
     {
     // compute the current MC translate acceptance ratio
     auto current_counters = m_mc->getCounters();
@@ -155,7 +149,8 @@ BoxDim UpdaterQuickCompress::getNewBox(unsigned int timestep)
     double min_scale = std::max(m_min_scale, 1.0 - min_move_size / max_diameter);
 
     // Create a prng instance for this timestep
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterQuickCompress, m_seed, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterQuickCompress, timestep, m_sysdef->getSeed()),
+                               hoomd::Counter(m_instance));
 
     // choose a scale randomly between min_scale and 1.0
     hoomd::UniformDistribution<double> uniform(min_scale, 1.0);
@@ -204,8 +199,7 @@ void export_UpdaterQuickCompress(pybind11::module& m)
                             std::shared_ptr<IntegratorHPMC>,
                             double,
                             double,
-                            pybind11::object,
-                            const unsigned int>())
+                            pybind11::object>())
         .def("isComplete", &UpdaterQuickCompress::isComplete)
         .def_property("max_overlaps_per_particle",
                       &UpdaterQuickCompress::getMaxOverlapsPerParticle,
@@ -216,7 +210,10 @@ void export_UpdaterQuickCompress(pybind11::module& m)
         .def_property("target_box",
                       &UpdaterQuickCompress::getTargetBox,
                       &UpdaterQuickCompress::setTargetBox)
-        .def_property_readonly("seed", &UpdaterQuickCompress::getSeed);
+        .def_property("instance",
+                      &UpdaterQuickCompress::getInstance,
+                      &UpdaterQuickCompress::setInstance)
+        ;
     }
 
     } // end namespace hpmc

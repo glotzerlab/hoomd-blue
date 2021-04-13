@@ -60,8 +60,9 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
  *       state variables forward to \a timestep+1.
  * \post Internally, all forces added via Integrator::addForceCompute are evaluated at \a timestep+1
  */
-void mpcd::Integrator::update(unsigned int timestep)
+void mpcd::Integrator::update(uint64_t timestep)
     {
+    IntegratorTwoStep::update(timestep);
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
         {
@@ -153,7 +154,7 @@ void mpcd::Integrator::setDeltaT(Scalar deltaT)
  * If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
  * are available for the logger. This solves ticket #393
 */
-void mpcd::Integrator::prepRun(unsigned int timestep)
+void mpcd::Integrator::prepRun(uint64_t timestep)
     {
     IntegratorTwoStep::prepRun(timestep);
 

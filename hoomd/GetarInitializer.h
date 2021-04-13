@@ -43,7 +43,7 @@ namespace getardump{
 
             /// Grab the greatest timestep from the most recent
             /// restoration or initialization stage
-            unsigned int getTimestep() const;
+            uint64_t getTimestep() const;
 
         private:
             /// Return true if the Record indicates a property we know how
@@ -91,7 +91,7 @@ namespace getardump{
             /// Set of known records we found in the current trajectory archive
             std::vector<gtar::Record> m_knownRecords;
             /// Cached timestep
-            unsigned int m_timestep;
+            uint64_t m_timestep;
         };
 
 #ifndef __HIPCC__

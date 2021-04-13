@@ -68,8 +68,9 @@ SFCPackTuner::~SFCPackTuner()
 
     \param timestep Current timestep of the simulation
  */
-void SFCPackTuner::update(unsigned int timestep)
+void SFCPackTuner::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     m_exec_conf->msg->notice(6) << "SFCPackTuner: particle sort" << std::endl;
 
     #ifdef ENABLE_MPI
