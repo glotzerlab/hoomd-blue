@@ -11,9 +11,6 @@ from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from collections.abc import Sequence
 
-## \internal
-# \brief Base class for manifold
-#
 # A manifold in hoomd reflects a Manifold in c++. It is responsible to define the manifold 
 # used for RATTLE integrators and the active force constraints.
 class Manifold(_HOOMDBaseObject):
@@ -34,12 +31,6 @@ class Manifold(_HOOMDBaseObject):
         Only one manifold can be applied to the methods/active forces.
 
     """
-    def __init__(self):
-
-        self._cpp_obj = None
-
-        self.name = None
-
     def _attach(self):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
@@ -52,6 +43,12 @@ class Manifold(_HOOMDBaseObject):
             return tuple(value)
         else:
             return (value,value,value)
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return all(getattr(self, attr) == getattr(other, attr) for attr in self._param_dict)
+
 
 
 class Cylinder(Manifold):
@@ -79,13 +76,11 @@ class Cylinder(Manifold):
     """
     def __init__(self,r, P=(0,0,0) ):
         # initialize the base class
-        super().__init__();
         param_dict = ParameterDict(
             r=float(r),
             P=(float, float,float),
         )
-        param_dict.update(
-            dict(P=(P[0], P[1], P[2])))
+        param_dict['P']= P
 
         self._param_dict.update(param_dict)
         # set defaults
@@ -130,8 +125,10 @@ class Diamond(Manifold):
     .. math::
         F(x,y,z) = \cos{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} - \sin{\frac{2 \pi}{L_x} x}\cdot\sin{\frac{2 \pi}{L_y} y}\cdot\sin{\frac{2 \pi}{L_z} z}
 
-    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]` 
+    is the periodicity length in the x, y and z direction. The periodicity length 
+    L is defined by the current box size B and the number of unit cells N. 
+    :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -140,25 +137,13 @@ class Diamond(Manifold):
     """
     def __init__(self,N,epsilon=0):
 
-        # initialize the base class
-        super().__init__();
         # store metadata
         param_dict = ParameterDict(
             N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
-        param_dict.update(
-            dict(N=N))
+        param_dict['N'] = N
         self._param_dict.update(param_dict)
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Diamond)
-            and self.N == other.N
-            and self.epsilon == other.epsilon
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
@@ -189,8 +174,6 @@ class Ellipsoid(Manifold):
         ellipsoid2 = manifold.Ellipsoid(a=5,b=10,c=10,P=(1,0.5,1))
     """
     def __init__(self,a,b,c, P=(0,0,0) ):
-        # initialize the base class
-        super().__init__();
         # store metadata
         param_dict = ParameterDict(
             a=float(a),
@@ -198,21 +181,9 @@ class Ellipsoid(Manifold):
             c=float(c),
             P=(float, float,float),
         )
-        param_dict.update(
-            dict(P=(P[0], P[1], P[2])))
+        param_dict['P'] = P
 
         self._param_dict.update(param_dict)
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Ellipsoid)
-            and self.a == other.a
-            and self.b == other.b
-            and self.c == other.c
-            and self.P == other.P
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
@@ -245,8 +216,10 @@ class Gyroid(Manifold):
     .. math::
         F(x,y,z) = \sin{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y} + \sin{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} + \sin{\frac{2 \pi}{L_z} z}\cdot\cos{\frac{2 \pi}{L_x} x}
     
-    is the nodal approximation of the gyroid surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]` 
+    is the periodicity length in the x, y and z direction. The periodicity length 
+    L is defined by the current box size B and the number of unit cells N. 
+    :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -262,18 +235,8 @@ class Gyroid(Manifold):
             N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
-        param_dict.update(
-            dict(N=N))
+        param_dict['N'] = N
         self._param_dict.update(param_dict)
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Gyroid)
-            and self.N == other.N
-            and self.epsilon == other.epsilon
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
@@ -303,8 +266,6 @@ class Plane(Manifold):
         plane2 = manifold.Plane(shift=0.8)
     """
     def __init__(self,shift=0):
-        # initialize the base class
-        super().__init__();
         param_dict = ParameterDict(
             shift=float(shift),
         )
@@ -351,8 +312,10 @@ class Primitive(Manifold):
     .. math::
         F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} + \cos{\frac{2 \pi}{L_y} y} + \cos{\frac{2 \pi}{L_z} z}
 
-    is the nodal approximation of the primitive surface where :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
-    The periodicity length L is defined by the current box size B and the number of unit cells N. :math:`L=\frac{B}{N}`
+    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]` 
+    is the periodicity length in the x, y and z direction. The periodicity length 
+    L is defined by the current box size B and the number of unit cells N. 
+    :math:`L=\frac{B}{N}`
     
     Example::
     
@@ -361,25 +324,13 @@ class Primitive(Manifold):
     """
     def __init__(self,N,epsilon=0):
 
-        # initialize the base class
-        super().__init__();
         # store metadata
         param_dict = ParameterDict(
             N=OnlyIf(to_type_converter((int,)*3), preprocess=self._preprocess_unitcell),
             epsilon=float(epsilon),
         )
-        param_dict.update(
-            dict(N=N))
+        param_dict['N'] = N
         self._param_dict.update(param_dict)
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Primitive)
-            and self.N == other.N
-            and self.epsilon == other.epsilon
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
@@ -415,20 +366,10 @@ class Sphere(Manifold):
             r=float(r),
             P=(float, float,float),
         )
-        param_dict.update(
-            dict(P=(P[0], P[1], P[2])))
+        param_dict['P'] = P
 
         self._param_dict.update(param_dict)
         # set defaults
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Sphere)
-            and self.r == other.r
-            and self.P == other.P
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );

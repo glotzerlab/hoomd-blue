@@ -26,7 +26,7 @@ class _Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `_Method` directly.
     """
 
-class _MethodRATTLE(_Method):
+class MethodRATTLE(_Method):
     """Base class rattle integration method.
 
     Provides common methods for all subclasses which are compatible with the RATTLE
@@ -55,7 +55,7 @@ class _MethodRATTLE(_Method):
             manifold_constraint = OnlyTypes(Manifold, allow_none=True),
             eta=float(eta)
             )
-        param_dict.update(dict(manifold_constraint=manifold_constraint))
+        param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -65,18 +65,19 @@ class _MethodRATTLE(_Method):
             self.manifold_constraint._add(sim)
         else:
             if sim != self.manifold_constraint._simulation:
-                raise RuntimeError("{} object's manifold_constraint is used in a "
-                                    "different simulation.".format(type(self)))
+                raise RuntimeError(f"{type(self)} object's manifold_constraint is used in a "
+                                    "different simulation.")
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
     def _getattr_param(self, attr):
         if self._attached:
             parameter = getattr(self._cpp_obj, attr)
+            # "manifold_constraint" returns a dict rather than an Manifold object
+            # so we convert it before returning it to the user.
             if attr == "manifold_constraint":
                 return self._param_dict[attr].__class__(**parameter)
-            else:
-                return parameter
+            return parameter
         else:
             return self._param_dict[attr]
 
@@ -401,10 +402,10 @@ class NPT(_Method):
             filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
+            S=OnlyIf(to_type_converter([Variant,]*6), preprocess=self._preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
-            box_dof=(bool,)*6,
+            box_dof=[bool,]*6,
             rescale_all=bool(rescale_all),
             gamma=float(gamma),
             translational_thermostat_dof=(float, float),
@@ -668,7 +669,7 @@ class NPH(_Method):
             self._simulation.timestep)
 
 
-class NVE(_MethodRATTLE):
+class NVE(MethodRATTLE):
     R""" NVE Integration via Velocity-Verlet with or without RATTLE
 
     Args:
@@ -766,7 +767,7 @@ class NVE(_MethodRATTLE):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Langevin(_MethodRATTLE):
+class Langevin(MethodRATTLE):
     R""" Langevin dynamics with or without RATTLE
 
     Args:
@@ -960,7 +961,7 @@ class Langevin(_MethodRATTLE):
             # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Brownian(_MethodRATTLE):
+class Brownian(MethodRATTLE):
     R""" Brownian dynamics with and without RATTLE.
 
     Args:
