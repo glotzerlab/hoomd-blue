@@ -36,6 +36,11 @@ def identity(obj):
 class SyncedList(MutableSequence):
     """Provides syncing and validation for a Python and C++ list.
 
+    Warning:
+        This class should not be instantiated by users, and this documentation
+        is mostly for developers of HOOMD-blue. The class is documentated to
+        highlight the object's API which is that of a `MutableSequence`.
+
     This class ensures that standard list operations affect both
     Python and C++.
 
@@ -47,14 +52,14 @@ class SyncedList(MutableSequence):
             indicates the expected type of items of the list.
         to_synced_list (callable, optional): A callable that takes one
             argument (a Python SyncedList) and does necessary
-            conversion before adding to the C++ list. Defaults to a function
-            that reads the ``_cpp_obj`` attribute from the provided value.
+            conversion before adding to the C++ list. Defaults to simply passing
+            the object to C++.
         iterable (iterable, optional): An iterable whose members are valid
             members of the SyncedList instance. Defaults to None which causes
             SyncedList to start with an empty list.
-        callable_class (bool, optional): If a class is passed as validation and this is
-        `True` (defaults to `False`), then the class will be treated as a
-        callable and not used for type checking.
+        callable_class (bool, optional): If a class is passed as validation and
+        this is `True` (defaults to `False`), then the class will be treated as
+        a callable and not used for type checking.
     """
     # Also guarantees that lists remain in same order when using the public API.
 
