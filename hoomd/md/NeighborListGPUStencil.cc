@@ -29,7 +29,7 @@ namespace py = pybind11;
 NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                                Scalar r_buff)
     : NeighborListGPU(sysdef, r_buff),
-    m_cl(std::make_shared<CellList>(sysdef)),
+    m_cl(std::make_shared<CellListGPU>(sysdef)),
     m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
     m_needs_resort(true)
     {

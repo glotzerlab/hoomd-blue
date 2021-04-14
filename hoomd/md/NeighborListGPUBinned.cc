@@ -19,7 +19,7 @@ namespace py = pybind11;
 
 NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                                              Scalar r_buff)
-    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef)), m_param(0)
+    : NeighborListGPU(sysdef, r_buff), m_cl(std::make_shared<CellListGPU>(sysdef)), m_param(0)
     {
     // with multiple GPUs, use indirect access via particle data arrays
     m_use_index = m_exec_conf->allConcurrentManagedAccess();

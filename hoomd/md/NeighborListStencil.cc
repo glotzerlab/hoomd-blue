@@ -30,7 +30,6 @@ NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysde
     : NeighborList(sysdef, r_buff),
     m_cl(std::make_shared<CellList>(sysdef)),
     m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
-    m_override_cell_width(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
 
