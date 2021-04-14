@@ -21,13 +21,26 @@ taken into account when computing the temperature.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force
 from hoomd.md.force import ConstraintForce
-from hoomd.data.parameterdicts import ParameterDict
 import hoomd
+from hoomd.operation import _HOOMDBaseObject
 
 
-class distance(ConstraintForce):
+class Constraint(_HOOMDBaseObject):
+    """A constraint force that acts on the system."""
+    def _attach(self):
+        """Create the c++ mirror class."""
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            cpp_cls = getattr(_md, self._cpp_class_name)
+        else:
+            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
+
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
+
+        super()._attach()
+
+
+class distance(Constraint):
     R"""Constrain pairwise particle distances.
 
     :py:class:`distance` specifies that forces will be applied to all particles
@@ -98,7 +111,7 @@ class distance(ConstraintForce):
             self.cpp_force.setRelativeTolerance(float(rel_tol))
 
 
-class Rigid(ConstraintForce):
+class Rigid(Constraint):
     R"""Constrain particles in rigid bodies.
 
     .. rubric:: Overview

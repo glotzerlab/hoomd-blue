@@ -485,18 +485,3 @@ class dipole(Force):
     # ExternalFieldDipoleForceCompute
     def update_coeffs(self):
         pass
-
-
-class ConstraintForce(Force):
-    """Constructs the constraint force."""
-    def _attach(self):
-        """Create the c++ mirror class."""
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            cpp_cls = getattr(_md, self._cpp_class_name)
-        else:
-            cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
-
-        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
-
-        super()._attach()
-
