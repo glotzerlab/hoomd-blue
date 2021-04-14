@@ -73,13 +73,13 @@ class NList(_HOOMDBaseObject):
 
     Attributes:
         buffer (float): Buffer width.
-        check_dist (bool): Flag to enable / disable distance checking.
-        diameter_shift (bool): Flag to enable / disable diameter shifting.
-        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
-            excludes them from the pair potential calculation.
-        max_diameter (float): The maximum diameter a particle will achieve.
+        exclusions (tuple[str]): Defines which particles to exlclude from the
+            neighbor list, see more details above.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
+        diameter_shift (bool): Flag to enable / disable diameter shifting.
+        check_dist (bool): Flag to enable / disable distance checking.
+        max_diameter (float): The maximum diameter a particle will achieve.
     """
 
     def __init__(self, buffer, exclusions, rebuild_check_delay,
@@ -120,8 +120,8 @@ class Cell(NList):
 
     Args:
         buffer (float): Buffer width.
-        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
-            excludes them from the pair potential calculation.
+        exclusions (tuple[str]): Defines which particles to exlclude from the
+            neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
@@ -171,8 +171,8 @@ class Stencil(NList):
     Args:
         cell_width (float): The underlying stencil bin width for the cell list.
         buffer (float): Buffer width.
-        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
-            excludes them from the pair potential calculation.
+        exclusions (tuple[str]): Defines which particles to exlclude from the
+            neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
@@ -240,8 +240,8 @@ class Tree(NList):
 
     Args:
         buffer (float): Buffer width.
-        exclusions (tuple[str]): Excludes pairs from the neighbor list, which
-            excludes them from the pair potential calculation.
+        exclusions (tuple[str]): Defines which particles to exlclude from the
+            neighbor list, see more details in `NList`.
         rebuild_check_delay (int): How often to attempt to rebuild the neighbor
             list.
         diameter_shift (bool): Flag to enable / disable diameter shifting.
