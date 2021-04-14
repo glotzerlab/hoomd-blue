@@ -237,8 +237,6 @@ class Rigid(Constraint):
     """
 
     _cpp_class_name = "ForceComposite"
-    def __init__(self):
-        pass
 
     def set_params(
             self,
@@ -365,4 +363,3 @@ class Rigid(Constraint):
         simulation run.
         """
         self._cpp_obj.validateRigidBodies(False)
-
