@@ -35,7 +35,8 @@ class Manifold(_HOOMDBaseObject):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
-    def _preprocess_unitcell(self,value):
+    @staticmethod
+    def _preprocess_unitcell(value):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
@@ -97,8 +98,6 @@ class Cylinder(Manifold):
     def _attach(self):
         self._cpp_obj = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
-        self.name = "Cylinder"
-
         super()._attach()
 
 class Diamond(Manifold):
@@ -148,8 +147,6 @@ class Diamond(Manifold):
     def _attach(self):
         self._cpp_obj = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
 
-        self.name = "Diamond"
-
         super()._attach()
 
 class Ellipsoid(Manifold):
@@ -187,8 +184,6 @@ class Ellipsoid(Manifold):
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldEllipsoid(self.a, self.b, self.c,  _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
-
-        self.name = "Ellipsoid"
 
         super()._attach()
 
@@ -241,8 +236,6 @@ class Gyroid(Manifold):
     def _attach(self):
         self._cpp_obj = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
 
-        self.name = "Gyroid"
-
         super()._attach()
 
 
@@ -283,8 +276,6 @@ class Plane(Manifold):
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldPlane(self.shift);
-
-        self.name = "Plane"
 
         super()._attach()
 
@@ -335,8 +326,6 @@ class Primitive(Manifold):
     def _attach(self):
         self._cpp_obj = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
 
-        self.name = "Primitive"
-
         super()._attach()
 
 class Sphere(Manifold):
@@ -373,8 +362,6 @@ class Sphere(Manifold):
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
-
-        self.name = "Sphere"
 
         super()._attach()
 

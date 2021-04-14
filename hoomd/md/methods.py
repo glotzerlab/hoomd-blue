@@ -756,9 +756,9 @@ class NVE(MethodRATTLE):
 
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.name)
+                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.name + 'GPU')
+                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                      self._simulation.state._get_group(self.filter),
@@ -949,9 +949,9 @@ class Langevin(MethodRATTLE):
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.name)
+                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.name + 'GPU')
+                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
@@ -1140,9 +1140,9 @@ class Brownian(MethodRATTLE):
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.name)
+                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.name + 'GPU')
+                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
