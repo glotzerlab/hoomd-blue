@@ -85,7 +85,7 @@ def create_md_sim(simulation_factory, device, hoomd_snapshot):
 
     return sim
 
-
+@pytest.mark.serial
 def test_write(simulation_factory, hoomd_snapshot, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
     sim = simulation_factory(hoomd_snapshot)
@@ -96,7 +96,7 @@ def test_write(simulation_factory, hoomd_snapshot, tmp_path):
             assert len(traj) == 1
             assert_equivalent_snapshots(traj[0], hoomd_snapshot)
 
-
+@pytest.mark.serial
 def test_write_gsd_trigger(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -114,7 +114,7 @@ def test_write_gsd_trigger(create_md_sim, tmp_path):
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert [frame.configuration.step for frame in traj] == [5, 15, 25]
 
-
+@pytest.mark.serial
 def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
                         tmp_path, simulation_factory):
 
@@ -181,7 +181,7 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
             for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
                 assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
-
+@pytest.mark.serial
 def test_write_gsd_filter(create_md_sim, tmp_path):
 
     # test Null filter
@@ -201,7 +201,7 @@ def test_write_gsd_filter(create_md_sim, tmp_path):
             for frame in traj:
                 assert frame.particles.N == 0
 
-
+@pytest.mark.serial
 def test_write_gsd_truncate(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -222,7 +222,7 @@ def test_write_gsd_truncate(create_md_sim, tmp_path):
             for gsd_snap in traj:
                 assert_equivalent_snapshots(gsd_snap, snapshot)
 
-
+@pytest.mark.serial
 def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -290,7 +290,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         snap.particles.mass[:] = N_particles * [0.8]
         snap.particles.diameter[:] = N_particles * [0.2]
         snap.particles.charge[:] = N_particles * [0]
-        sim.state.snapshot = snap
+
+    sim.state.snapshot = snap
 
     sim.operations.writers.clear()
     gsd_writer = hoomd.write.GSD(filename=filename,
@@ -325,7 +326,8 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         snap.bonds.typeid[2] = 0
         snap.bonds.group[2] = [10, 11]
         snap.angles.types = ['a3', 'a4']
-        sim.state.snapshot = snap
+
+    sim.state.snapshot = snap
 
     gsd_writer = hoomd.write.GSD(filename=filename,
                                  trigger=hoomd.trigger.Periodic(1),
@@ -337,7 +339,7 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
         assert traj[-1].bonds.N == 3
         assert traj[-1].angles.types == ['a3', 'a4']
 
-
+@pytest.mark.serial
 def test_write_gsd_log(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
