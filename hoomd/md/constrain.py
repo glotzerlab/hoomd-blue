@@ -240,116 +240,22 @@ class Rigid(Constraint):
 
     _cpp_class_name = "ForceComposite"
 
-    def set_params(
-            self,
-            type_name,
-            types,
-            positions,
-            orientations=None,
-            charges=None,
-            diameters=None,
-            ):
-        # get a list of types from the particle data
-        ntypes = (
-            self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
+    def __init__(self):
+        body = TypeParameter(
+            "body", "particle_types", TypeParameterDict(
+                OnlyIf(to_type_converter(
+                    {'constituent_types': [str],
+                     'positions': [(float,) * 3],
+                     'orientations': [(float,) * 4],
+                     'charges': [float],
+                     'diameters': [float]
+                     }),
+                    allow_none=True),
+                len_keys=1
+            )
         )
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(
-                self._simulation.state._cpp_sys_def.getParticleData()
-                .getNameByType(i)
-            )
-
-        if type_name not in type_list:
-            self._simulation.device._cpp_msg.error(
-                "Type " "{}" " not found.\n".format(type_name)
-            )
-            raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
-            )
-
-        type_id = type_list.index(type_name)
-
-        if not isinstance(types, list):
-            self._simulation.device._cpp_msg.error(
-                "Expecting list of particle types.\n"
-            )
-            raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
-            )
-
-        type_vec = _hoomd.std_vector_uint()
-        for t in types:
-            if t not in type_list:
-                self._simulation.device._cpp_msg.error(
-                    "Type " "{}" " not found.\n".format(t)
-                )
-                raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
-                )
-            constituent_type_id = type_list.index(t)
-
-            type_vec.append(constituent_type_id)
-
-        pos_vec = _hoomd.std_vector_scalar3()
-        positions_list = list(positions)
-        for p in positions_list:
-            p = tuple(p)
-            if len(p) != 3:
-                self._simulation.device._cpp_msg.error(
-                    "Particle position is not a coordinate triple.\n"
-                )
-                raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
-                )
-            pos_vec.append(_hoomd.make_scalar3(p[0], p[1], p[2]))
-
-        orientation_vec = _hoomd.std_vector_scalar4()
-        if orientations is not None:
-            orientations_list = list(orientations)
-            for o in orientations_list:
-                o = tuple(o)
-                if len(o) != 4:
-                    self._simulation.device._cpp_msg.error(
-                        "Particle orientation is not a 4-tuple.\n"
-                    )
-                    raise RuntimeError(
-                        "Error setting up parameters for constrain.rigid()"
-                    )
-                orientation_vec.append(
-                    _hoomd.make_scalar4(o[0], o[1], o[2], o[3])
-                )
-        else:
-            for p in positions:
-                orientation_vec.append(_hoomd.make_scalar4(1, 0, 0, 0))
-
-        charge_vec = _hoomd.std_vector_scalar()
-        if charges is not None:
-            charges_list = list(charges)
-            for c in charges_list:
-                charge_vec.append(float(c))
-        else:
-            for p in positions:
-                charge_vec.append(0.0)
-
-        diameter_vec = _hoomd.std_vector_scalar()
-        if diameters is not None:
-            diameters_list = list(diameters)
-            for d in diameters_list:
-                diameter_vec.append(float(d))
-        else:
-            for p in positions:
-                diameter_vec.append(1.0)
-
-        # set parameters in C++ force
-        self._cpp_obj.setParam(
-            type_id,
-            type_vec,
-            pos_vec,
-            orientation_vec,
-            charge_vec,
-            diameter_vec,
-        )
+        self._add_typeparam(body)
+        self.body.default = None
 
     def create_bodies(self, create=True):
         R"""Create copies of rigid bodies.
