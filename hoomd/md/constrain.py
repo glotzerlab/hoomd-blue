@@ -21,7 +21,9 @@ taken into account when computing the temperature.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md.force import ConstraintForce
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
+from hoomd.data.typeconverter import OnlyIf, to_type_converter
 import hoomd
 from hoomd.operation import _HOOMDBaseObject
 

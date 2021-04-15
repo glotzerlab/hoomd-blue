@@ -10,12 +10,12 @@
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom, OnlyType
+from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
-from hoomd.md.force import Force, ConstraintForce
-from hoomd.md.constrain import Rigid
+from hoomd.md.force import Force
+from hoomd.md.constrain import Constraint, Rigid
 import itertools
 
 
@@ -38,13 +38,12 @@ class _DynamicIntegrator(BaseIntegrator):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, Force) and
-                                  not isinstance(x, ConstraintForce),
+        self._forces = SyncedList(lambda x: isinstance(x, Force),
                                   to_synced_list=lambda x: x._cpp_obj,
                                   iterable=forces)
 
         self._constraints = SyncedList(lambda x: isinstance(x,
-                                                            ConstraintForce),
+                                                            Constraint),
                                        to_synced_list=lambda x: x._cpp_obj,
                                        iterable=constraints)
 
@@ -114,7 +113,7 @@ class Integrator(_DynamicIntegrator):
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
-        constraints (Sequence[hoomd.md.force.ConstraintForce]): Sequence of
+        constraints (Sequence[hoomd.md.force.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
             The default value of ``None`` initializes an empty list.
 
@@ -167,7 +166,7 @@ class Integrator(_DynamicIntegrator):
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.force.ConstraintForce]): List of
+        constraints (List[hoomd.md.force.Constraint]): List of
             constraint forces applied to the particles in the system.
     """
 

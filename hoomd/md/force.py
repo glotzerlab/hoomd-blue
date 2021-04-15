@@ -360,7 +360,7 @@ class Active(Force):
             filter=ParticleFilter,
             rotation_diff=float(rotation_diff),
             constraint=OnlyTypes(
-                ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
+                Constraint, allow_none=True, preprocess=ellip_preprocessing
             ),
         )
         param_dict.update(
