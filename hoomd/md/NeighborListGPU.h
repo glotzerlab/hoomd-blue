@@ -34,8 +34,8 @@ class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-            : NeighborList(sysdef, r_cut, r_buff)
+        NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
+            : NeighborList(sysdef, r_buff)
             {
             m_exec_conf->msg->notice(5) << "Constructing NeighborlistGPU" << std::endl;
 
