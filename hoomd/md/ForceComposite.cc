@@ -153,14 +153,10 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
-                if (type[i] != h_body_type.data[m_body_idx(body_typeid,i)] ||
-                    pos[i].x != h_body_pos.data[m_body_idx(body_typeid,i)].x ||
-                    pos[i].y != h_body_pos.data[m_body_idx(body_typeid,i)].y ||
-                    pos[i].x != h_body_pos.data[m_body_idx(body_typeid,i)].z ||
-                    orientation[i].x != h_body_orientation.data[m_body_idx(body_typeid,i)].x ||
-                    orientation[i].y != h_body_orientation.data[m_body_idx(body_typeid,i)].y ||
-                    orientation[i].z != h_body_orientation.data[m_body_idx(body_typeid,i)].z ||
-                    orientation[i].w != h_body_orientation.data[m_body_idx(body_typeid,i)].w)
+                auto body_index = m_body_idx(body_typeid, i);
+                if (type[i] != h_body_type.data[body_index] ||
+                    pos[i] != h_body_pos.data[body_index] ||
+                    orientation[i] != h_body_orientation.data[body_index])
                     {
                     body_updated = true;
                     }
