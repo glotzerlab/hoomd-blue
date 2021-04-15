@@ -696,10 +696,9 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (auto& constraint_force : m_constraint_forces)
         {
-        force_constraint->compute(timestep);
+        constraint_force->compute(timestep);
         }
 
     if (m_prof)
@@ -891,7 +890,6 @@ CommFlags Integrator::determineFlags(uint64_t timestep)
         }
 
     // query all constraints
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (const auto& constraint_force : m_constraint_forces)
         {
         flags |= constraint_force->getRequestedCommFlags(timestep);
