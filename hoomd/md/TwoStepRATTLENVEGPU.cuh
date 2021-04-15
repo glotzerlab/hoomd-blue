@@ -23,15 +23,6 @@
 #include <assert.h>
 #include <type_traits>
 
-//inline __device__ Scalar maxNormGPU(Scalar3 vec, Scalar resid)
-//    {
-//    Scalar vec_norm = sqrt(dot(vec,vec));
-//    Scalar abs_resid = fabs(resid);
-//    if ( vec_norm > abs_resid) return vec_norm;
-//    else return abs_resid;
-//    }
-
-
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_CUH__
 #define __TWO_STEP_RATTLE_NVE_GPU_CUH__
 
@@ -161,7 +152,6 @@ __global__ void gpu_rattle_nve_step_two_kernel(
             accel.z /= mass;
             }
 
-        unsigned int maxiteration = 10;
 
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 
@@ -185,6 +175,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
         Scalar resid;
         Scalar3 vel_dot;
    
+        unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {
@@ -210,7 +201,6 @@ __global__ void gpu_rattle_nve_step_two_kernel(
             Scalar vec_norm = sqrt(dot(residual,residual));
             if ( vec_norm > resid) resid =  vec_norm;
 
-	    //} while (maxNormGPU(residual,resid)*mass > eta && iteration < maxiteration );
 	    } while (resid*mass > eta && iteration < maxiteration );
 	
 
@@ -325,7 +315,6 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
 
         const unsigned int group_idx = work_idx + offset;
         unsigned int idx = d_group_members[group_idx];
-        unsigned int maxiteration = 10;
 
         // do velocity verlet update
         // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
@@ -367,7 +356,7 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
 	    Scalar resid;
 	    Scalar3 half_vel;
 
-
+            unsigned int maxiteration = 10;
 	    unsigned int iteration = 0;
 	    do
 	        {
@@ -389,7 +378,6 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
                 Scalar vec_norm = sqrt(dot(residual,residual));
                 if ( vec_norm > resid) resid =  vec_norm;
 
-	        //} while (maxNormGPU(residual,resid) > eta && iteration < maxiteration );
 	        } while (resid > eta && iteration < maxiteration );
 
         accel -= lambda*normal;

@@ -12,7 +12,7 @@
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldPlane.h
-    \brief Defines the manifold class for the Plane minimal surface
+    \brief Defines the manifold class for the Plane surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -23,7 +23,7 @@
 #define DEVICE
 #endif
 
-//! Class for constructing the Plane minimal surface
+//! Class for constructing the Plane surface
 /*! <b>General Overview</b>
 
     ManifoldPlane is a low level computation class that computes the distance and normal vector to the xy surface.
@@ -71,7 +71,7 @@ class ManifoldPlane
             return make_scalar3(0,0,1);
         }
 
-        DEVICE bool adjust_to_box(const BoxDim& box)
+        DEVICE bool check_fit_to_box(const BoxDim& box)
         {
         Scalar3 lo = box.getLo();
         Scalar3 hi = box.getHi();

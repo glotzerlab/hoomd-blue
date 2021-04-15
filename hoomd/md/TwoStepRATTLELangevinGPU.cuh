@@ -251,7 +251,6 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         next_vel.z = vel.z + Scalar(1.0/2.0)*deltaT*accel.z;
 
         Scalar mu = 0;
-        Scalar maxiteration = 10;
         Scalar inv_alpha = -Scalar(1.0/2.0)*deltaT;
 	inv_alpha = Scalar(1.0)/inv_alpha;
 
@@ -259,6 +258,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         Scalar resid;
         Scalar3 vel_dot;
 
+        unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {
@@ -283,7 +283,6 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
             Scalar vec_norm = sqrt(dot(residual,residual));
             if ( vec_norm > resid) resid =  vec_norm;
 
-	    //} while (maxNormGPU(residual,resid)*mass > eta && iteration < maxiteration );
 	    } while (resid*mass > eta && iteration < maxiteration );
 
 

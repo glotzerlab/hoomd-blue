@@ -27,7 +27,6 @@ using namespace hoomd;
 
 #include <pybind11/pybind11.h>
 
-
 //! Integrates part of the system forward in two steps with Brownian dynamics
 /*! Implements RATTLE applied on Brownian dynamics.
 
@@ -116,9 +115,9 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
+    bool manifold_fits = m_manifold.check_fit_to_box(m_pdata->getBox());
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -161,9 +160,9 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+    bool manifold_fits = m_manifold.check_fit_to_box(m_pdata->getBox());
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -363,7 +362,6 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 
     size_t net_virial_pitch = net_virial.getPitch();
 
-    unsigned int maxiteration = 10;
 
     uint16_t seed = m_sysdef->getSeed();
 
@@ -444,8 +442,9 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 
 	Scalar3 residual;
 	Scalar resid;
+        
+	unsigned int maxiteration = 10;
 	unsigned int iteration = 0;
-
 	do
 	{
 	    iteration++;

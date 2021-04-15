@@ -149,9 +149,9 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
-    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
+    bool manifold_fits = m_manifold.check_fit_to_box(m_pdata->getBox());
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -183,9 +183,9 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
     
-    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+    bool manifold_fits = m_manifold.check_fit_to_box(box);
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -365,7 +365,6 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
 
-    unsigned int maxiteration = 10;
 
     uint16_t seed = m_sysdef->getSeed();
 
@@ -452,6 +451,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
         Scalar resid;
         Scalar3 vel_dot;
 
+        unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {
@@ -610,7 +610,6 @@ void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(uint64_t timestep)
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
 
     size_t net_virial_pitch = net_virial.getPitch();
-    unsigned int maxiteration = 10;
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-alpha*n_manifold(x(t))/m)
@@ -640,6 +639,7 @@ void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(uint64_t timestep)
 	Scalar resid;
 	Scalar3 half_vel;
 
+        unsigned int maxiteration = 10;
 	unsigned int iteration = 0;
 	do
 	    {

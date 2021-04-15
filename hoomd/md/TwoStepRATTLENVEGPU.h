@@ -20,9 +20,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#pragma once
-
-
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
@@ -75,8 +72,6 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 		std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
 		std::unique_ptr<Autotuner> m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
 		std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
-	
-	protected:
 };
 
 /*! \file TwoStepRATTLENVEGPU.h
@@ -90,7 +85,6 @@ template<class Manifold>
 TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar eta)
     : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, eta)
     {
-    // only one GPU is supported
     if (!this->m_exec_conf->isCUDAEnabled())
         {
         this->m_exec_conf->msg->error() << "Creating a TwoStepRATTLENVEGPU when CUDA is disabled" << endl;
@@ -126,9 +120,9 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
 
     BoxDim box = this->m_pdata->getBox();
 
-    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+    bool manifold_fits = this->m_manifold.check_fit_to_box(box);
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 

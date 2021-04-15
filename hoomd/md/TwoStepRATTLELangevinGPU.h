@@ -16,8 +16,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#pragma once
-
 
 #ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
@@ -122,9 +120,9 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     // access all the needed data
     BoxDim box = this->m_pdata->getBox();
 
-    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+    bool manifold_fits = this->m_manifold.check_fit_to_box(box);
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 

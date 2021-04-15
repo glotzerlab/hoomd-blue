@@ -45,13 +45,11 @@ class ManifoldGyroid
     {
     public:
         //! Constructs the manifold class
-         /* \param _Nx The number of unitcells in x-direction
-            \param _Ny The number of unitcells in y-direction
-            \param _Nz The number of unitcells in z-direction
+         /* \param _N vector determining the number of unitcells in x-, y-, and z-direction
             \param _epsilon Defines the specific constant mean curvture companion
         */
-        DEVICE ManifoldGyroid(const int _Nx, const int _Ny, const int _Nz, const Scalar _epsilon)
-            : Nx(_Nx), Ny(_Ny), Nz(_Nz), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
+        DEVICE ManifoldGyroid(const int3 _N, const Scalar _epsilon)
+            : Nx(_N.x), Ny(_N.y), Nz(_N.z), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
             {
             }
 
@@ -84,7 +82,7 @@ class ManifoldGyroid
             return make_scalar3(Lx*(cx*cy - sz*sx),Ly*(cy*cz - sx*sy), Lz*(cz*cx - sy*sz));
         }
 
-        DEVICE bool adjust_to_box(const BoxDim& box)
+        DEVICE bool check_fit_to_box(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
 
@@ -92,7 +90,7 @@ class ManifoldGyroid
             Ly = 2*M_PI*Ny/box_length.y;
             Lz = 2*M_PI*Nz/box_length.z;
 
-            return true; //Gyroid surface is adjusted to box and, therefore, is always accepted
+            return true; //Gyroid surface is adjusted to box automatically and, therefore, is always accepted
         }
 
         pybind11::dict getDict()

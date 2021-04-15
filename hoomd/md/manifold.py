@@ -3,7 +3,7 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-import hoomd;
+import hoomd
 from hoomd.md import _md
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
@@ -21,11 +21,11 @@ class Manifold(_HOOMDBaseObject):
     the system by constraints are correctly taken into account, i.e. when computing temperature 
     for thermostatting and/or logging.
 
-    Sphere, Ellipsoid, Plane, Cylinder, Gyroid, Diamond and Primitive are subclasses of this class. All
-    manifolds are described by implicit functions.
+    All manifolds are described by implicit functions.
 
-    Attention:
-        Users should not instantiate :py:class:`Manifold` directly.
+    Note:
+        Users should not instantiate :py:class:`Manifold` directly, but should instead instantiate
+        one of its subclasses defining a specific manifold geometry.
 
     Warning:
         Only one manifold can be applied to the methods/active forces.
@@ -40,7 +40,7 @@ class Manifold(_HOOMDBaseObject):
         if isinstance(value, Sequence):
             if len(value) != 3:
                 raise ValueError(
-                    "Expected a single int or six.")
+                    "Expected a single int or a sequence of three ints.")
             return tuple(value)
         else:
             return (value,value,value)
@@ -84,7 +84,6 @@ class Cylinder(Manifold):
         param_dict['P']= P
 
         self._param_dict.update(param_dict)
-        # set defaults
 
     def __eq__(self, other):
         """Return a Boolean indicating whether the two manifolds are equivalent.
@@ -145,7 +144,7 @@ class Diamond(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_obj = _md.ManifoldDiamond(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldDiamond( _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon );
 
         super()._attach()
 
@@ -234,7 +233,7 @@ class Gyroid(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_obj = _md.ManifoldGyroid(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldGyroid( _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon );
 
         super()._attach()
 
@@ -264,7 +263,6 @@ class Plane(Manifold):
         )
 
         self._param_dict.update(param_dict)
-        # set defaults
 
     def __eq__(self, other):
         """Return a Boolean indicating whether the two manifolds are equivalent.
@@ -324,7 +322,7 @@ class Primitive(Manifold):
         self._param_dict.update(param_dict)
 
     def _attach(self):
-        self._cpp_obj = _md.ManifoldPrimitive(self.N[0], self.N[1], self.N[2], self.epsilon );
+        self._cpp_obj = _md.ManifoldPrimitive( _hoomd.make_int3(self.N[0], self.N[1], self.N[2]), self.epsilon );
 
         super()._attach()
 
@@ -358,7 +356,6 @@ class Sphere(Manifold):
         param_dict['P'] = P
 
         self._param_dict.update(param_dict)
-        # set defaults
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );

@@ -12,7 +12,7 @@
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldCylinder.h
-    \brief Defines the manifold class for the Cylinder minimal surface
+    \brief Defines the manifold class for the Cylinder surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -23,7 +23,7 @@
 #define DEVICE
 #endif
 
-//! Class for constructing the Cylinder minimal surface
+//! Class for constructing the Cylinder surface
 /*! <b>General Overview</b>
 
     ManifoldCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
@@ -46,9 +46,7 @@ class ManifoldCylinder
     public:
 
         //! Constructs the manifold class
-        /*! \param _Px center position in x-direction
-            \param _Py center position in y-direction
-            \param _Pz center position in z-direction
+        /*! \param _P center position in x-y-z coordinates
             \param _R radius
         */
         DEVICE ManifoldCylinder(const Scalar _R, const Scalar3 _P)
@@ -78,7 +76,7 @@ class ManifoldCylinder
             return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 0);
         }
 
-        DEVICE bool adjust_to_box(const BoxDim& box)
+        DEVICE bool check_fit_to_box(const BoxDim& box)
         {
          Scalar3 lo = box.getLo();
          Scalar3 hi = box.getHi();

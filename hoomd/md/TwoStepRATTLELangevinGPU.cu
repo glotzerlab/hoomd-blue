@@ -84,11 +84,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
             vec3<Scalar> t(d_net_torque[idx]);
             vec3<Scalar> I(d_inertia[idx]);
 
-            vec3<Scalar> s;
-            s = (Scalar(1./2.) * conj(q) * p).v;
-
-            // first calculate in the body frame random and damping torque imposed by the dynamics
-            vec3<Scalar> bf_torque;
+            vec3<Scalar> s = (Scalar(1./2.) * conj(q) * p).v;
 
             // original Gaussian random torque
             // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
@@ -107,6 +103,8 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
             bool x_zero, y_zero, z_zero;
             x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
 
+            // first calculate in the body frame random and damping torque imposed by the dynamics
+            vec3<Scalar> bf_torque;
             bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
             bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
             bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
@@ -138,8 +136,9 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
         t = rotate(conj(q),t);
 
         // check for zero moment of inertia
-        bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+        bool x_zero = (I.x < Scalar(EPSILON)); 
+	bool y_zero = (I.y < Scalar(EPSILON)); 
+	bool z_zero = (I.z < Scalar(EPSILON));
 
         // ignore torque component along an axis for which the moment of inertia zero
         if (x_zero) t.x = Scalar(0.0);

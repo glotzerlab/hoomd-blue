@@ -42,7 +42,7 @@ class MethodRATTLE(_Method):
         automatically, the mapping can lead to small inter-particle distances and,
         hence, large forces between particles!
 
-    For the MTK equations of motion, see:
+    For the equations of motion, see:
 
     * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 

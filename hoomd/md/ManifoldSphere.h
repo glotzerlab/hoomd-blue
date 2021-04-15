@@ -12,7 +12,7 @@
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldSphere.h
-    \brief Defines the manifold class for the Sphere minimal surface
+    \brief Defines the manifold class for the Sphere surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -23,7 +23,7 @@
 #define DEVICE
 #endif
 
-//! Class for constructing the Sphere minimal surface
+//! Class for constructing the Sphere surface
 /*! <b>General Overview</b>
 
     ManifoldSphere is a low level computation class that computes the distance and normal vector to the Sphere surface.
@@ -78,7 +78,7 @@ class ManifoldSphere
         }
 
 
-        DEVICE bool adjust_to_box(const BoxDim& box)
+        DEVICE bool check_fit_to_box(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();

@@ -12,7 +12,7 @@
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldEllipsoid.h
-    \brief Defines the manifold class for the Ellipsoid minimal surface
+    \brief Defines the manifold class for the Ellipsoid surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -23,7 +23,7 @@
 #define DEVICE
 #endif
 
-//! Class for constructing the Ellipsoid minimal surface
+//! Class for constructing the Ellipsoid surface
 /*! <b>General Overview</b>
 
     ManifoldEllipsoid is a low level computation class that computes the distance and normal vector to the Ellipsoid surface.
@@ -56,7 +56,7 @@ class ManifoldEllipsoid
             \param _c z-axis
         */
         DEVICE ManifoldEllipsoid(Scalar _a, Scalar _b, Scalar _c, Scalar3 _P)
-            : Px(_P.x), Py(_P.y), Pz(_P.z), inv_a2(Scalar(1.0)/(_a*_a)), inv_b2(Scalar(1.0)/(_b*_b)), inv_c2(Scalar(1.0)/(_c*_c))
+            : Px(_P.x), Py(_P.y), Pz(_P.z), a(_a), b(_b), c(_c), inv_a2(Scalar(1.0)/(_a*_a)), inv_b2(Scalar(1.0)/(_b*_b)), inv_c2(Scalar(1.0)/(_c*_c))
             {
             }
 
@@ -82,17 +82,14 @@ class ManifoldEllipsoid
             return make_scalar3(2*inv_a2*(point.x - Px), 2*inv_b2*(point.y - Py), 2*inv_c2*(point.z - Pz));
         }
 
-        DEVICE bool adjust_to_box(const BoxDim& box)
+        DEVICE bool check_fit_to_box(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
-            Scalar ia = Scalar(1.0)/fast::sqrt(inv_a2);
-            Scalar ib = Scalar(1.0)/fast::sqrt(inv_b2);
-            Scalar ic = Scalar(1.0)/fast::sqrt(inv_c2);
             
-            if (Px + ia > hi.x || Px - ia < lo.x ||
-                Py + ib > hi.y || Py - ib < lo.y ||
-                Pz + ic > hi.z || Pz - ic < lo.z)
+            if (Px + a > hi.x || Px - a < lo.x ||
+                Py + b > hi.y || Py - b < lo.y ||
+                Pz + c > hi.z || Pz - c < lo.z)
                 {
                 return false; // Ellipsoid does not fit inside box
                 }
@@ -105,18 +102,18 @@ class ManifoldEllipsoid
         pybind11::dict getDict()
         {
             pybind11::dict v;
-            v["a"] = sqrt(1.0/inv_a2);
-            v["b"] = sqrt(1.0/inv_b2);
-            v["c"] = sqrt(1.0/inv_c2);
+            v["a"] = a;
+            v["b"] = b;
+            v["c"] = c;
             v["P"] = pybind11::make_tuple(Px, Py, Pz);
             return v;
         }
 
-        Scalar getA(){ return sqrt(1.0/inv_a2);};
+        Scalar getA(){ return a;};
 
-        Scalar getB(){ return sqrt(1.0/inv_b2);};
+        Scalar getB(){ return b;};
 
-        Scalar getC(){ return sqrt(1.0/inv_c2);};
+        Scalar getC(){ return c;};
 
         pybind11::tuple getP(){ return pybind11::make_tuple(Px, Py, Pz);}
 
@@ -129,6 +126,9 @@ class ManifoldEllipsoid
         Scalar Px;
         Scalar Py;
         Scalar Pz;
+        Scalar a;
+        Scalar b;
+        Scalar c;
         Scalar inv_a2;
         Scalar inv_b2;
         Scalar inv_c2;

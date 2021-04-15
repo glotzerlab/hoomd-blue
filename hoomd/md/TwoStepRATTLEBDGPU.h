@@ -13,8 +13,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#pragma once
-
 #include "hoomd/Autotuner.h"
 
 #include <pybind11/pybind11.h>
@@ -89,9 +87,9 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
 
     BoxDim box = this->m_pdata->getBox();
     
-    bool manifold_adjusted = this->m_manifold.adjust_to_box(box);
+    bool manifold_fits = this->m_manifold.check_fit_to_box(box);
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 

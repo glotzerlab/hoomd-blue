@@ -27,7 +27,6 @@ using namespace hoomd;
 #include <assert.h>
 #include <type_traits>
 
-
 #ifndef __TWO_STEP_RATTLE_BD_GPU_CUH__
 #define __TWO_STEP_RATTLE_BD_GPU_CUH__
 
@@ -524,12 +523,12 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 
 	    Scalar mu = 0;
 
-            unsigned int maxiteration = 10;
 	    Scalar inv_alpha = -deltaT_gamma;
 	    inv_alpha = Scalar(1.0)/inv_alpha;
 
 	    Scalar3 residual;
 	    Scalar resid;
+            unsigned int maxiteration = 10;
 	    unsigned int iteration = 0;
 
 	    do
@@ -556,7 +555,6 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                 Scalar vec_norm = sqrt(dot(residual,residual));
                 if ( vec_norm > resid) resid =  vec_norm;
 
-	    //} while (maxNormGPU(residual,resid) > eta && iteration < maxiteration );
 	    } while (resid > eta && iteration < maxiteration );
 
             net_force.x -= mu*normal.x;

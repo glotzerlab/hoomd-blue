@@ -126,9 +126,9 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
 
-    bool manifold_adjusted = m_manifold.adjust_to_box(m_pdata->getBox());
+    bool manifold_fits = m_manifold.check_fit_to_box(m_pdata->getBox());
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -170,9 +170,9 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_adjusted = m_manifold.adjust_to_box(box);
+    bool manifold_fits = m_manifold.check_fit_to_box(box);
 
-    if( !manifold_adjusted){
+    if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
 
@@ -361,7 +361,6 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    unsigned int maxiteration = 10;
 
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     // iterative: v(t+deltaT) = v(t+deltaT/2) - J^(-1)*residual
@@ -401,6 +400,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
            Scalar resid;
            Scalar3 vel_dot;
 
+           unsigned int maxiteration = 10;
            unsigned int iteration = 0;
            do
                {
@@ -506,7 +506,6 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
 
     size_t net_virial_pitch = net_virial.getPitch();
-    unsigned int maxiteration = 10;
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-lambda*n_manifold(x(t))/m)
@@ -538,6 +537,7 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
 	Scalar3 half_vel;
 
 
+        unsigned int maxiteration = 10;
 	unsigned int iteration = 0;
 	do
 	{

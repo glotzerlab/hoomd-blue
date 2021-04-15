@@ -10,7 +10,7 @@
 void export_ManifoldPrimitive(pybind11::module& m)
     {
     pybind11::class_< ManifoldPrimitive, std::shared_ptr<ManifoldPrimitive> >(m, "ManifoldPrimitive")
-    .def(pybind11::init<int, int, int, Scalar >())
+    .def(pybind11::init<int3, Scalar >())
     .def_property_readonly("N", &ManifoldPrimitive::getN)
     .def_property_readonly("epsilon", &ManifoldPrimitive::getEpsilon)
     ;
