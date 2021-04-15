@@ -286,7 +286,7 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     # test dynamic=['attribute']
     if snap.exists:
         snap.particles.types = ['t3', 't4']
-        snap.particles.typeid[:] = N_particles * [3]
+        snap.particles.typeid[:] = N_particles * [1]
         snap.particles.mass[:] = N_particles * [0.8]
         snap.particles.diameter[:] = N_particles * [0.2]
         snap.particles.charge[:] = N_particles * [0]
