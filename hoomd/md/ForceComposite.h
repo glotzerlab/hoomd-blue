@@ -73,52 +73,117 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
          */
         virtual void validateRigidBodies(bool create=false);
 
-        
         /// Construct from a Python dictionary
         void setBody(std::string typ, pybind11::object v)
-            {   
-            pybind11::list types = v["types"];
+            {
+            if (v.is_none())
+                {
+                return;
+                }
+            pybind11::list types = v["constituent_types"];
             pybind11::list positions = v["positions"];
             pybind11::list orientations = v["orientations"];
             pybind11::list charges = v["charges"];
             pybind11::list diameters = v["diameters"];
-            int N = (unsigned int)len(positions);
+            auto N = pybind11::len(positions);
+            // Ensure proper list lengths
+            for (auto list: {types, orientations, charges, diameters})
+                {
+                if (pybind11::len(list) != N)
+                    {
+                    throw std::runtime_error(
+                        "All attributes of a rigid body must be the same length."
+                        );
+                    }
+                }
 
-            // extract the positions from the python list
-            std::vector<vec3<Scalar>> pos_vector;
-            for (unsigned int i = 0; i < N; i++)
-                {   
-                pybind11::list pos_i = positions[i];
-                if (len(pos_i) != 3)
-                    throw std::runtime_error("Each position must have 3 coordinates");
-                vec3<Scalar> pos = vec3<Scalar>(pybind11::cast<Scalar>(pos_i[0]),
-                                                pybind11::cast<Scalar>(pos_i[1]),
-                                                pybind11::cast<Scalar>(pos_i[2]));
-                pos_vector.push_back(pos);
-                }   
+            // extract the data from the python lists
+            std::vector<Scalar3> pos_vector;
+            std::vector<Scalar4> orientation_vector;
+            std::vector<Scalar> charge_vector;
+            std::vector<Scalar> diameter_vector;
+            std::vector<unsigned int> type_vector;
 
-            }   
+            for (size_t i(0); i < N; ++i)
+                {
+                pybind11::tuple position_i(positions[i]);
+                pos_vector.emplace_back(make_scalar3(
+                    position_i[0].cast<Scalar>(),
+                    position_i[1].cast<Scalar>(),
+                    position_i[2].cast<Scalar>())
+                    );
+
+                pybind11::tuple orientation_i(orientations[i]);
+                orientation_vector.emplace_back(make_scalar4(
+                    orientation_i[0].cast<Scalar>(),
+                    orientation_i[1].cast<Scalar>(),
+                    orientation_i[2].cast<Scalar>(),
+                    orientation_i[3].cast<Scalar>())
+                    );
+
+                charge_vector.emplace_back(charges[i].cast<Scalar>());
+                diameter_vector.emplace_back(diameters[i].cast<Scalar>());
+                type_vector.emplace_back(
+                    m_pdata->getTypeByName(types[i].cast<std::string>()));
+                }
+
+            setParam(
+                m_pdata->getTypeByName(typ),
+                type_vector,
+                pos_vector,
+                orientation_vector,
+                charge_vector,
+                diameter_vector);
+            }
 
         /// Convert parameters to a python dictionary
-        pybind11::dict getBody(std::string body_type_id)
+        pybind11::object getBody(std::string body_type)
             {
-            pybind11::dict v;
-            pybind11::list types;
-            pybind11::list positions;
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+            auto body_type_id = m_pdata->getTypeByName(body_type);
+            ArrayHandle<unsigned int> h_body_len(
+                m_body_len, access_location::host, access_mode::readwrite);
             unsigned int N = h_body_len.data[body_type_id];
+            if (N == 0)
+                {
+                return pybind11::none();
+                }
+            ArrayHandle<Scalar3> h_body_pos(
+                m_body_pos, access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_body_orientation(
+                m_body_orientation, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_body_types(
+                m_body_types, access_location::host, access_mode::read);
+
+            pybind11::list positions;
+            pybind11::list orientations;
+            pybind11::list types;
+            pybind11::list charges;
+            pybind11::list diameters;
+
             for(unsigned int i = 0; i < N; i++)
                 {
-                ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-                pybind11::list pos;
-                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].x);
-                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].y);
-                pos.append(h_body_pos.data[m_body_idx(body_type_id,i)].z);
-                pybind11::tuple pos_tuple = pybind11::tuple(pos);
-                positions.append(pos_tuple);
+                auto index = m_body_idx(body_type_id, i);
+                positions.append(pybind11::make_tuple(
+                    h_body_pos.data[index].x,
+                    h_body_pos.data[index].y,
+                    h_body_pos.data[index].z)
+                    );
+                orientations.append(pybind11::make_tuple(
+                    h_body_orientation.data[index].x,
+                    h_body_orientation.data[index].y,
+                    h_body_orientation.data[index].z,
+                    h_body_orientation.data[index].w)
+                    );
+                types.append(m_pdata->getNameByType(h_body_types.data[index]));
+                charges.append(m_body_charge[body_type_id][i]);
+                diameters.append(m_body_diameter[body_type_id][i]);
                 }
-            v["types"] = types;
+            pybind11::dict v;
+            v["constituent_types"] = types;
             v["positions"] = positions;
+            v["orientations"] = orientations;
+            v["charges"] = charges;
+            v["diameters"] = diameters;
             return v;
             }
 

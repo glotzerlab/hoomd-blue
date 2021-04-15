@@ -1036,7 +1036,8 @@ void export_ForceComposite(py::module& m)
     {
     py::class_< ForceComposite, MolecularForceCompute, std::shared_ptr<ForceComposite> >(m, "ForceComposite")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
-        .def("setParam", &ForceComposite::setParam)
+        .def("setBody", &ForceComposite::setBody)
+        .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;
     }
