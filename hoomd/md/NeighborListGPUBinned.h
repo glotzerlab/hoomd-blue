@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #include "NeighborListGPU.h"
-#include "hoomd/CellList.h"
+#include "hoomd/CellListGPU.h"
 #include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPUBinned.h

@@ -5,7 +5,7 @@
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
-#include "hoomd/CellList.h"
+#include "hoomd/CellListGPU.h"
 #include "hoomd/CellListStencil.h"
 #include "hoomd/Autotuner.h"
 
