@@ -265,9 +265,3 @@ class Rigid(Constraint):
                 existing ones.
         """
         self._cpp_obj.validateRigidBodies(create)
-
-    def validate_bodies(self):
-        R"""Validate that bodies are well defined and prepare for the
-        simulation run.
-        """
-        self._cpp_obj.validateRigidBodies(False)
