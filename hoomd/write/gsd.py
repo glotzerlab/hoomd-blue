@@ -201,7 +201,8 @@ class GSD(Writer):
         writer = _hoomd.GSDDumpWriter(state._cpp_sys_def, filename,
                                       state._get_group(filter), mode, False)
 
-        writer.setCommunicator(state._simulation._system_communicator)
+        if state._simulation._system_communicator is not None:
+            writer.setCommunicator(state._simulation._system_communicator)
 
         if log is not None:
             writer.log_writer = _GSDLogWriter(log)
