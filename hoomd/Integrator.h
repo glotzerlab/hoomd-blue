@@ -10,6 +10,7 @@
 #include "Updater.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
+#include "md/ForceComposite.h"
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include <string>
