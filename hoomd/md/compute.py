@@ -289,8 +289,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
-        kT (float): Temperature of the integrator methods applied
-            to the particle group.
+        kT (float): Temperature of the system.
         harmonic_pressure (float): Harmonic contribution to the pressure.
             If ommitted, the HMA pressure can still be computed, but will be
             similar in precision to the conventional pressure.
@@ -319,8 +318,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         filter (hoomd.filter.ParticleFilter): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the integrator methods
-            applied to the particle group.
+        kT (hoomd.variant.Variant): Temperature of the system.
 
         harmonic_pressure (float): Harmonic contribution to the pressure.
     """
