@@ -85,7 +85,6 @@ def create_md_sim(simulation_factory, device, hoomd_snapshot):
 
     return sim
 
-@pytest.mark.serial
 def test_write(simulation_factory, hoomd_snapshot, tmp_path):
     filename = tmp_path / "temporary_test_file.gsd"
     sim = simulation_factory(hoomd_snapshot)
@@ -96,7 +95,6 @@ def test_write(simulation_factory, hoomd_snapshot, tmp_path):
             assert len(traj) == 1
             assert_equivalent_snapshots(traj[0], hoomd_snapshot)
 
-@pytest.mark.serial
 def test_write_gsd_trigger(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -114,7 +112,6 @@ def test_write_gsd_trigger(create_md_sim, tmp_path):
         with gsd.hoomd.open(name=filename, mode='rb') as traj:
             assert [frame.configuration.step for frame in traj] == [5, 15, 25]
 
-@pytest.mark.serial
 def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
                         tmp_path, simulation_factory):
 
@@ -156,12 +153,13 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
     # test mode=xb raises an exception when the file exists
     sim.operations.writers.clear()
 
-    gsd_writer = hoomd.write.GSD(filename=filename,
-                                 trigger=hoomd.trigger.Periodic(1),
-                                 mode='xb', dynamic=['momentum'])
-    sim.operations.writers.append(gsd_writer)
-    with pytest.raises(Exception):
-        sim.run(1)
+    if sim.device.communicator.num_ranks == 1:
+        gsd_writer = hoomd.write.GSD(filename=filename,
+                                    trigger=hoomd.trigger.Periodic(1),
+                                    mode='xb', dynamic=['momentum'])
+        sim.operations.writers.append(gsd_writer)
+        with pytest.raises(Exception):
+            sim.run(1)
 
     # test mode=xb creates a new file
     filename_xb = tmp_path / "new_temporary_test_file.gsd"
@@ -181,7 +179,6 @@ def test_write_gsd_mode(create_md_sim, hoomd_snapshot,
             for gsd_snap, hoomd_snap in zip(traj, snapshot_list):
                 assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
-@pytest.mark.serial
 def test_write_gsd_filter(create_md_sim, tmp_path):
 
     # test Null filter
@@ -201,7 +198,6 @@ def test_write_gsd_filter(create_md_sim, tmp_path):
             for frame in traj:
                 assert frame.particles.N == 0
 
-@pytest.mark.serial
 def test_write_gsd_truncate(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -222,7 +218,6 @@ def test_write_gsd_truncate(create_md_sim, tmp_path):
             for gsd_snap in traj:
                 assert_equivalent_snapshots(gsd_snap, snapshot)
 
-@pytest.mark.serial
 def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"
@@ -243,17 +238,19 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
             position_list.append(snap.particles.position)
             velocity_list.append(snap.particles.velocity)
     N_particles = sim.state.N_particles
-    with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5):
-            np.testing.assert_allclose(traj[step].particles.position,
-                                       position_list[step],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.orientation,
-                                       N_particles * [[1, 0, 0, 0]],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.velocity,
-                                       velocity_list[0],
-                                       rtol=1e-07, atol=1.5e-07)
+
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+            for step in range(5):
+                np.testing.assert_allclose(traj[step].particles.position,
+                                        position_list[step],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.orientation,
+                                        N_particles * [[1, 0, 0, 0]],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.velocity,
+                                        velocity_list[0],
+                                        rtol=1e-07, atol=1.5e-07)
 
     # test dynamic=['momentum']
     sim.operations.writers.clear()
@@ -271,17 +268,18 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
             velocity_list.append(snap.particles.velocity)
             angmom_list.append(snap.particles.angmom)
 
-    with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5):
-            np.testing.assert_allclose(traj[step].particles.velocity,
-                                       velocity_list[step],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.angmom,
-                                       angmom_list[step],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.image,
-                                       N_particles * [[0, 0, 0]],
-                                       rtol=1e-07, atol=1.5e-07)
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+            for step in range(5):
+                np.testing.assert_allclose(traj[step].particles.velocity,
+                                        velocity_list[step],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.angmom,
+                                        angmom_list[step],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.image,
+                                        N_particles * [[0, 0, 0]],
+                                        rtol=1e-07, atol=1.5e-07)
 
     # test dynamic=['attribute']
     if snap.exists:
@@ -300,24 +298,25 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
     sim.run(5)
 
-    with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        for step in range(5, 10):
-            assert traj[step].particles.types == ['t3', 't4']
-            np.testing.assert_allclose(traj[step].particles.mass,
-                                       N_particles * [0.8],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.charge,
-                                       N_particles * [0],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.diameter,
-                                       N_particles * [0.2],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.body,
-                                       N_particles * [-1],
-                                       rtol=1e-07, atol=1.5e-07)
-            np.testing.assert_allclose(traj[step].particles.moment_inertia,
-                                       N_particles * [[0, 0, 0]],
-                                       rtol=1e-07, atol=1.5e-07)
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+            for step in range(5, 10):
+                assert traj[step].particles.types == ['t3', 't4']
+                np.testing.assert_allclose(traj[step].particles.mass,
+                                        N_particles * [0.8],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.charge,
+                                        N_particles * [0],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.diameter,
+                                        N_particles * [0.2],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.body,
+                                        N_particles * [-1],
+                                        rtol=1e-07, atol=1.5e-07)
+                np.testing.assert_allclose(traj[step].particles.moment_inertia,
+                                        N_particles * [[0, 0, 0]],
+                                        rtol=1e-07, atol=1.5e-07)
 
     # test dynamic=['topology']
     snap = sim.state.snapshot
@@ -335,11 +334,11 @@ def test_write_gsd_dynamic(simulation_factory, create_md_sim, tmp_path):
     sim.operations.writers.append(gsd_writer)
     sim.run(1)
 
-    with gsd.hoomd.open(name=filename, mode='rb') as traj:
-        assert traj[-1].bonds.N == 3
-        assert traj[-1].angles.types == ['a3', 'a4']
+    if sim.device.communicator.rank == 0:
+        with gsd.hoomd.open(name=filename, mode='rb') as traj:
+            assert traj[-1].bonds.N == 3
+            assert traj[-1].angles.types == ['a3', 'a4']
 
-@pytest.mark.serial
 def test_write_gsd_log(create_md_sim, tmp_path):
 
     filename = tmp_path / "temporary_test_file.gsd"

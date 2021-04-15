@@ -11,6 +11,7 @@ set(files __init__.py
     forces_and_energies.json
     test_write_debug_data_md.py
     test_zero_momentum.py
+    test_gsd.py
     )
 
 install(FILES ${files}
