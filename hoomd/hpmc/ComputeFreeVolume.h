@@ -45,18 +45,44 @@ class ComputeFreeVolume : public Compute
         //! Destructor
         virtual ~ComputeFreeVolume() { };
 
+        //! Get the number of MC samples to perform
+        unsigned int getNumSamples()
+            {
+            return m_n_sample;
+            }
+
         //! Set the number of MC samples to perform
+        //! \param n_sample number of MC steps to sample
         void setNumSamples(unsigned int n_sample)
             {
             m_n_sample = n_sample;
             }
 
-        //! Set the type of depletant particle
-        void setTestParticleType(unsigned int type)
+        //! Get the type of depletant particle
+        std::string getTestParticleType()
             {
-            assert(type < m_pdata->getNTypes());
-            m_type = type;
+            std::string type = m_sysdef->getParticleData()->getNameByType(m_type);
+            return type;
             }
+
+        //! Set the type of depletant particle
+        //! \param type particle type to set test particle to
+        void setTestParticleType(std::string type)
+            {
+            unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
+            m_type = type_int;
+            }
+
+#ifdef ENABLE_MPI
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            Compute::setCommunicator(comm);
+
+            // set the communicator on the internal cell list
+            m_cl->setCommunicator(comm);
+            }
+#endif
 
         /* \returns a list of provided quantities
         */
@@ -71,11 +97,11 @@ class ComputeFreeVolume : public Compute
         //! Get the value of a logged quantity
         virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
-        //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(uint64_t timestep);
-
         //! Analyze the current configuration
         virtual void compute(uint64_t timestep);
+
+        //! Return an estimate of the overlap volume
+        virtual Scalar getFreeVolume();
 
     protected:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
@@ -86,6 +112,9 @@ class ComputeFreeVolume : public Compute
         const std::string m_suffix;                              //!< Log suffix
 
         GPUArray<unsigned int> m_n_overlap_all;                  //!< Number of overlap volume particles in box
+
+        //! Return an estimate of the overlap volume
+        virtual void computeFreeVolume(uint64_t timestep);
     };
 
 
@@ -111,6 +140,7 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
 template<class Shape>
 void ComputeFreeVolume<Shape>::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (!shouldCompute(timestep))
         return;
 
@@ -297,9 +327,33 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, uint64
     throw std::runtime_error("Undefined log quantity");
     }
 
+// \return the free volume.
+template<class Shape>
+Scalar ComputeFreeVolume<Shape>::getFreeVolume()
+    {
+    // access counters
+    ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::read);
+
+    // generate n_sample random test depletants in the global box
+    unsigned int n_sample = m_n_sample;
+
+    #ifdef ENABLE_MPI
+    // in MPI, for small n_sample we can encounter round-off issues
+    unsigned int n_ranks = this->m_exec_conf->getNRanks();
+    n_sample = (n_sample/n_ranks)*n_ranks;
+    #endif
+
+
+    // total free volume
+    const BoxDim& global_box = this->m_pdata->getGlobalBox();
+    Scalar V_free = (Scalar)(n_sample-*h_n_overlap_all.data)/(Scalar)n_sample*global_box.getVolume();
+
+    return V_free;
+    }
+
 //! Export this hpmc analyzer to python
 /*! \param name Name of the class in the exported python module
-    \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
+    \tparam Shape An instantiation of ComputeFreeVolume<Shape> will be exported
 */
 template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, const std::string& name)
     {
@@ -308,8 +362,9 @@ template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, cons
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
                 std::shared_ptr<CellList>,
                 std::string >())
-        .def("setNumSamples", &ComputeFreeVolume<Shape>::setNumSamples)
-        .def("setTestParticleType", &ComputeFreeVolume<Shape>::setTestParticleType)
+        .def_property("num_samples", &ComputeFreeVolume<Shape>::getNumSamples, &ComputeFreeVolume<Shape>::setNumSamples)
+        .def_property("test_particle_type", &ComputeFreeVolume<Shape>::getTestParticleType, &ComputeFreeVolume<Shape>::setTestParticleType)
+        .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume)
         ;
     }
 

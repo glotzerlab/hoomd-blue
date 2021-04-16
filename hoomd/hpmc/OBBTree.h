@@ -310,29 +310,32 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
     {
     // merge all the OBBs into one, as tightly as possible
     OBB my_obb = obbs[start];
-    std::vector<vec3<OverlapReal> > merge_internal_coordinates;
-    std::vector<OverlapReal > merge_vertex_radii;
 
-    for (unsigned int i = start; i < start+len; ++i)
+    if (len > 1)
         {
-        for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
+        std::vector<vec3<OverlapReal> > merge_internal_coordinates;
+        std::vector<OverlapReal > merge_vertex_radii;
+
+        for (unsigned int i = start; i < start+len; ++i)
             {
-            merge_internal_coordinates.push_back(internal_coordinates[i][j]);
-            merge_vertex_radii.push_back(vertex_radii[i][j]);
+            for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
+                {
+                merge_internal_coordinates.push_back(internal_coordinates[i][j]);
+                merge_vertex_radii.push_back(vertex_radii[i][j]);
+                }
             }
+
+        // combine masks
+        unsigned int mask = 0;
+
+        for (unsigned int i = start; i < start+len; ++i)
+            {
+            mask |= obbs[i].mask;
+            }
+
+        my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radii, sphere_tree);
+        my_obb.mask = mask;
         }
-
-    // combine masks
-    unsigned int mask = 0;
-
-    for (unsigned int i = start; i < start+len; ++i)
-        {
-        mask |= obbs[i].mask;
-        }
-
-    // merge internal coordinates
-    my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radii, sphere_tree);
-    my_obb.mask = mask;
 
     // handle the case of a leaf node creation
     if (len <= m_leaf_capacity)

@@ -11,6 +11,7 @@ PythonUpdater::PythonUpdater(std::shared_ptr<SystemDefinition> sysdef,
 
 void PythonUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     m_updater.attr("act")(timestep);
     }
 

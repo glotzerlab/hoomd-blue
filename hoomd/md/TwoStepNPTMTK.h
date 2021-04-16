@@ -232,6 +232,20 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         /// Set the barostat degrees of freedom
         void setBarostatDOF(pybind11::tuple v);
 
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            IntegrationMethodTwoStep::setCommunicator(comm);
+
+            // set the communicator on the internal thermo
+            m_thermo_half_step->setCommunicator(comm);
+            m_thermo_full_step->setCommunicator(comm);
+            }
+
+        #endif
+
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2
         std::shared_ptr<ComputeThermo> m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t

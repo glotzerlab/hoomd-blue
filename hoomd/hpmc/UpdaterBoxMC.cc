@@ -399,6 +399,7 @@ inline bool UpdaterBoxMC::safe_box(const Scalar newL[3], const unsigned int& Ndi
 */
 void UpdaterBoxMC::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("UpdaterBoxMC");
     m_count_step_start = m_count_total;
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;

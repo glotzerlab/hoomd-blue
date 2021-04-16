@@ -109,7 +109,10 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             mc.set_params(d=0, a=0); # test cluster moves alone
 
         # Sample
-        run(1000,callback=accumulate_energy, callback_period=10)
+        if use_clusters:
+            run(5000,callback=accumulate_energy, callback_period=10)
+        else:
+            run(1000,callback=accumulate_energy, callback_period=10)
 
         block = BlockAverage.BlockAverage(energy_val)
         mean_U = np.mean(energy_val)

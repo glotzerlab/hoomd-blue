@@ -196,7 +196,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(std::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             assert(comm);
             m_comm = comm;

@@ -81,6 +81,7 @@ ComputeThermoHMA::~ComputeThermoHMA()
 */
 void ComputeThermoHMA::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (!shouldCompute(timestep))
         return;
 

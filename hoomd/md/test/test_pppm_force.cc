@@ -55,7 +55,11 @@ void pppm_force_particle_test(pppmforce_creator pppm_creator, std::shared_ptr<Ex
     std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 1.0;
+    nlist_2->addRCutMatrix(r_cut);
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
@@ -132,7 +136,11 @@ void pppm_force_particle_test_triclinic(pppmforce_creator pppm_creator, std::sha
     std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
-    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0), Scalar(1.0)));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(1.0)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 1.0;
+    nlist_2->addRCutMatrix(r_cut);
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTags(std::vector<unsigned int>({0, 1})));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_2, selector_all));
 
