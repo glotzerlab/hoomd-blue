@@ -62,9 +62,9 @@ class ShapeMoveBase
             }
 
         //! Get the stepsize for \param type_id
-        Scalar getStepSize(const unsigned int& type_id) const
+        pybind11::list getStepsize()
             {
-            return m_step_size[type_id];
+            return m_step_size;
             }
 
         //! Get all of the stepsizes
@@ -74,9 +74,9 @@ class ShapeMoveBase
             }
 
         //! Set the step size for the \param type_id to \param stepsize
-        void setStepSize(const unsigned int& type_id, const Scalar& stepsize)
+        void setStepsize(std::vector<Scalar>)
             {
-            m_step_size[type_id] = stepsize;
+            m_step_size = stepsize;
             }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -251,6 +251,36 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
                 }
             return 0.0;
             }
+
+    pybind11::list getParams()
+        {
+        return m_params;
+        }
+
+    void setParams(std::vector< std::vector<Scalar> > params)
+        {
+        m_params = params;
+        }
+
+    Scalar getParamRatio()
+        {
+        return m_select_ratio;
+        }
+
+    void setParamRatio(Scalar select_ratio)
+        {
+        m_select_ratio = select_ratio
+        }
+
+    pybind11::object getCallback()
+        {
+        return m_python_callback;
+        }
+
+    void setCallback(pybind11::object python_callback)
+        {
+        m_python_callback = python_callback;
+        }
 
     private:
         std::vector<Scalar>                     m_step_size_backup; // maximum step size
