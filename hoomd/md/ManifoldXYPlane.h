@@ -4,15 +4,15 @@
 
 // Maintainer: pschoenhoefer
 
-#ifndef __MANIFOLD_CLASS_PLANE_H__
-#define __MANIFOLD_CLASS_PLANE_H__
+#ifndef __MANIFOLD_CLASS_XY_PLANE_H__
+#define __MANIFOLD_CLASS_XY_PLANE_H__
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-/*! \file ManifoldPlane.h
-    \brief Defines the manifold class for the Plane surface
+/*! \file ManifoldXYPlane.h
+    \brief Defines the manifold class for the XYPlane surface
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
@@ -23,14 +23,14 @@
 #define DEVICE
 #endif
 
-//! Class for constructing the Plane surface
+//! Class for constructing the XYPlane surface
 /*! <b>General Overview</b>
 
-    ManifoldPlane is a low level computation class that computes the distance and normal vector to the xy surface.
+    ManifoldXYPlane is a low level computation class that computes the distance and normal vector to the xy surface.
 
-    <b>Plane specifics</b>
+    <b>XYPlane specifics</b>
 
-    ManifoldPlane constructs the surface:
+    ManifoldXYPlane constructs the surface:
     shift = z
 
     These are the parameters:
@@ -38,13 +38,13 @@
 
 */
 
-class ManifoldPlane
+class ManifoldXYPlane
     {
     public:
         //! Constructs the manifold class
         /*! \param _shift in z direction
         */
-        DEVICE ManifoldPlane(const Scalar _shift)
+        DEVICE ManifoldXYPlane(const Scalar _shift)
             : shift(_shift)
             {
             }
@@ -63,7 +63,7 @@ class ManifoldPlane
         //! Evaluate deriviative of implicit function
         /*! \param point Point at surface is calculated
 
-            \return normal of the Plane surface at input point
+            \return normal of the XYPlane surface at input point
         */
 
         DEVICE Scalar3 derivative(const Scalar3& point)
@@ -77,7 +77,7 @@ class ManifoldPlane
         Scalar3 hi = box.getHi();
         if (shift > hi.z || shift < lo.z)
             {
-            return false; // Plane does not fit inside box
+            return false; // XYPlane does not fit inside box
             }
             else
             {
@@ -103,7 +103,7 @@ class ManifoldPlane
         Scalar shift;
     };
 
-//! Exports the Plane manifold class to python
-void export_ManifoldPlane(pybind11::module& m);
+//! Exports the XYPlane manifold class to python
+void export_ManifoldXYPlane(pybind11::module& m);
 
-#endif // __MANIFOLD_CLASS_PLANE_H__
+#endif // __MANIFOLD_CLASS_XY_PLANE_H__

@@ -24,7 +24,7 @@ set(_md_sources module-md.cc
                    ManifoldDiamond.cc
                    ManifoldEllipsoid.cc
                    ManifoldGyroid.cc
-                   ManifoldPlane.cc
+                   ManifoldXYPlane.cc
                    ManifoldPrimitive.cc
                    ManifoldSphere.cc
                    MolecularForceCompute.cc
@@ -130,7 +130,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
                 ManifoldGyroid.h
-                ManifoldPlane.h
+                ManifoldXYPlane.h
                 ManifoldPrimitive.h
                 ManifoldSphere.h
                 MolecularForceCompute.cuh
@@ -297,7 +297,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
 		      all_kernels_diamond_manifold.cu
 		      all_kernels_ellipsoid_manifold.cu
 		      all_kernels_gyroid_manifold.cu
-		      all_kernels_plane_manifold.cu
+		      all_kernels_xyplane_manifold.cu
 		      all_kernels_primitive_manifold.cu
 		      all_kernels_sphere_manifold.cu
                       )

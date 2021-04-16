@@ -273,7 +273,7 @@ class Plane(Manifold):
         )
 
     def _attach(self):
-        self._cpp_obj = _md.ManifoldPlane(self.shift);
+        self._cpp_obj = _md.ManifoldXYPlane(self.shift);
 
         super()._attach()
 

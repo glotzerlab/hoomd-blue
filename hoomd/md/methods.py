@@ -1047,7 +1047,7 @@ class Brownian(MethodRATTLE):
 
         sphere = hoomd.md.manifold.Sphere(r=10)
         brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(),
-        kT=0.2, manifold=sphere, seed=1, alpha=1.0)
+        kT=0.2, manifold_constraint=sphere, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
         forces=[lj])
 
@@ -1065,7 +1065,7 @@ class Brownian(MethodRATTLE):
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
-        manifold (hoomd.md.manifold.Manifold): Manifold constraint which is
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
             used by the RATTLE algorithm of this method.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag

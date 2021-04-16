@@ -66,7 +66,7 @@
 #include "ManifoldDiamond.h"
 #include "ManifoldEllipsoid.h"
 #include "ManifoldGyroid.h"
-#include "ManifoldPlane.h"
+#include "ManifoldXYPlane.h"
 #include "ManifoldPrimitive.h"
 #include "ManifoldSphere.h"
 
@@ -379,7 +379,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLEBD<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamond");
     export_TwoStepRATTLEBD<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoid");
     export_TwoStepRATTLEBD<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroid");
-    export_TwoStepRATTLEBD<ManifoldPlane>(m,"TwoStepRATTLEBDPlane");
+    export_TwoStepRATTLEBD<ManifoldXYPlane>(m,"TwoStepRATTLEBDPlane");
     export_TwoStepRATTLEBD<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitive");
     export_TwoStepRATTLEBD<ManifoldSphere>(m,"TwoStepRATTLEBDSphere");
 
@@ -387,7 +387,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevin<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamond");
     export_TwoStepRATTLELangevin<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoid");
     export_TwoStepRATTLELangevin<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroid");
-    export_TwoStepRATTLELangevin<ManifoldPlane>(m,"TwoStepRATTLELangevinPlane");
+    export_TwoStepRATTLELangevin<ManifoldXYPlane>(m,"TwoStepRATTLELangevinPlane");
     export_TwoStepRATTLELangevin<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitive");
     export_TwoStepRATTLELangevin<ManifoldSphere>(m,"TwoStepRATTLELangevinSphere");
 
@@ -395,7 +395,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVE<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamond");
     export_TwoStepRATTLENVE<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
     export_TwoStepRATTLENVE<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroid");
-    export_TwoStepRATTLENVE<ManifoldPlane>(m,"TwoStepRATTLENVEPlane");
+    export_TwoStepRATTLENVE<ManifoldXYPlane>(m,"TwoStepRATTLENVEPlane");
     export_TwoStepRATTLENVE<ManifoldPrimitive>(m,"TwoStepRATTLENVEPrimitive");
     export_TwoStepRATTLENVE<ManifoldSphere>(m,"TwoStepRATTLENVESphere");
 
@@ -415,7 +415,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLEBDGPU<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamondGPU");
     export_TwoStepRATTLEBDGPU<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoidGPU");
     export_TwoStepRATTLEBDGPU<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroidGPU");
-    export_TwoStepRATTLEBDGPU<ManifoldPlane>(m,"TwoStepRATTLEBDPlaneGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldXYPlane>(m,"TwoStepRATTLEBDPlaneGPU");
     export_TwoStepRATTLEBDGPU<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitiveGPU");
     export_TwoStepRATTLEBDGPU<ManifoldSphere>(m,"TwoStepRATTLEBDSphereGPU");
 
@@ -423,7 +423,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevinGPU<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamondGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoidGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroidGPU");
-    export_TwoStepRATTLELangevinGPU<ManifoldPlane>(m,"TwoStepRATTLELangevinPlaneGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldXYPlane>(m,"TwoStepRATTLELangevinPlaneGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitiveGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldSphere>(m,"TwoStepRATTLELangevinSphereGPU");
 
@@ -431,7 +431,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamondGPU");
     export_TwoStepRATTLENVEGPU<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoidGPU");
     export_TwoStepRATTLENVEGPU<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroidGPU");
-    export_TwoStepRATTLENVEGPU<ManifoldPlane>(m,"TwoStepRATTLENVEPlaneGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m,"TwoStepRATTLENVEPlaneGPU");
     export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m,"TwoStepRATTLENVEPrimitiveGPU");
     export_TwoStepRATTLENVEGPU<ManifoldSphere>(m,"TwoStepRATTLENVESphereGPU");
 #endif
@@ -441,7 +441,7 @@ PYBIND11_MODULE(_md, m)
     export_ManifoldDiamond(m);
     export_ManifoldEllipsoid(m);
     export_ManifoldGyroid(m);
-    export_ManifoldPlane(m);
+    export_ManifoldXYPlane(m);
     export_ManifoldPrimitive(m);
     export_ManifoldSphere(m);
 
