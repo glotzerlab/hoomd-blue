@@ -385,14 +385,18 @@ void Integrator::computeNetForce(uint64_t timestep)
                 }
 
             for (unsigned int k = 0; k < 6; k++)
+                {
                 external_virial[k] += force->getExternalVirial(k);
+                }
 
             external_energy += force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -443,8 +447,8 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6*nparticles <= net_virial.getNumElements());
         for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array =constraint_force->getForceArray();
-            GlobalArray<Scalar>& h_virial_array =constraint_force->getVirialArray();
+            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
             GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
@@ -468,17 +472,23 @@ void Integrator::computeNetForce(uint64_t timestep)
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
                 for (unsigned int k = 0; k < 6; k++)
+                    {
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
+                    }
                 }
             for (unsigned int k = 0; k < 6; k++)
+                {
                 external_virial[k] += constraint_force->getExternalVirial(k);
+                }
 
             external_energy += constraint_force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -834,7 +844,9 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     for (const auto& constraint_force : m_constraint_forces)
         {
         for (unsigned int k = 0; k < 6; k++)
+            {
             external_virial[k] += constraint_force->getExternalVirial(k);
+            }
         external_energy += constraint_force->getExternalEnergy();
         }
 
@@ -926,11 +938,11 @@ void Integrator::computeCallback(uint64_t timestep)
     }
 #endif
 
-/// Check if any forces introduce anisotrpic degrees of freedom
 bool Integrator::getAnisotropic()
     {
     bool aniso = false;
-    for (const auto& force : m_forces)
+    // pre-compute all active forces
+    for (auto& force : m_forces)
         {
         aniso |= force->isAnisotropic();
         }
