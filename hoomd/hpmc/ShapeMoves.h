@@ -895,7 +895,19 @@ template<class Shape>
 void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
 
 template<class Shape>
-void export_PythonShapeMove(pybind11::module& m, const std::string& name);
+void export_PythonShapeMove(pybind11::module& m, const std::string& name)
+    {
+    .def(pybind11::init<unsigned int,
+                        pybind11::object,
+                        std::vector< std::vector<Scalar> >,
+                        std::vector<Scalar>,
+                        Scalar)
+    .def_property("params", &PythonShapeMove<Shape>::getParams, &PythonShapeMove<Shape>::setParams)
+    .def_property("stepsize", &PythonShapeMove<Shape>::getStepsize, &PythonShapeMove<Shape>::setStepsize)
+    .def_property("param_ratio", &PythonShapeMove<Shape>::getParamRatio, &PythonShapeMove<Shape>::setParamRatio)
+    .def_property("callback", &PythonShapeMove<Shape>::getCallback, &PythonShapeMove<Shape>::setCallback)
+    ;
+    }
 
 template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
