@@ -1,0 +1,12 @@
+# CMake test files
+./CMake
+
+# external code
+./hoomd/extern
+
+# clang-format hangs on these files
+./hoomd/hpmc/UpdaterClusters.h
+./hoomd/hpmc/IntegratorHPMCMono.h
+
+# misc files
+./doc/dev
