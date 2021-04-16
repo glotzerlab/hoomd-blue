@@ -15,9 +15,6 @@ jobs:
 
   pre-commit-cpp:
     runs-on: ubuntu-latest
-    container:
-      image: glotzerlab/ci:2021.03-clang10_py38
-      options: -u 0
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
