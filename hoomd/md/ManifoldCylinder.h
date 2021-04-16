@@ -60,7 +60,7 @@ class ManifoldCylinder
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3& point)
+        DEVICE Scalar implicitFunction(const Scalar3& point)
         {
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R_sq;
         }
@@ -76,7 +76,7 @@ class ManifoldCylinder
             return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 0);
         }
 
-        DEVICE bool check_fit_to_box(const BoxDim& box)
+        DEVICE bool fitToBox(const BoxDim& box)
         {
          Scalar3 lo = box.getLo();
          Scalar3 hi = box.getHi();

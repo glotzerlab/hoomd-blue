@@ -537,7 +537,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 	        residual.x = postype.x - next_pos.x + (net_force.x + brownian_force.x - mu*normal.x) * deltaT_gamma;
 	        residual.y = postype.y - next_pos.y + (net_force.y + brownian_force.y - mu*normal.y) * deltaT_gamma;
 	        residual.z = postype.z - next_pos.z + (net_force.z + brownian_force.z - mu*normal.z) * deltaT_gamma;
-	        resid = manifold.implicit_function(next_pos);
+	        resid = manifold.implicitFunction(next_pos);
 
                 Scalar3 next_normal =  manifold.derivative(next_pos);
 

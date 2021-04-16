@@ -61,7 +61,7 @@ class ManifoldSphere
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3& point)
+        DEVICE Scalar implicitFunction(const Scalar3& point)
         {
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R_sq;
         }
@@ -78,7 +78,7 @@ class ManifoldSphere
         }
 
 
-        DEVICE bool check_fit_to_box(const BoxDim& box)
+        DEVICE bool fitToBox(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();

@@ -59,7 +59,7 @@ class ManifoldGyroid
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3& point)
+        DEVICE Scalar implicitFunction(const Scalar3& point)
         {
             return fast::sin(Lx*point.x)*fast::cos(Ly*point.y) + fast::sin(Ly*point.y)*fast::cos(Lz*point.z) + fast::sin(Lz*point.z)*fast::cos(Lx*point.x) - epsilon;
         }
@@ -82,7 +82,7 @@ class ManifoldGyroid
             return make_scalar3(Lx*(cx*cy - sz*sx),Ly*(cy*cz - sx*sy), Lz*(cz*cx - sy*sz));
         }
 
-        DEVICE bool check_fit_to_box(const BoxDim& box)
+        DEVICE bool fitToBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
 

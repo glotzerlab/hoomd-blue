@@ -66,7 +66,7 @@ class ManifoldEllipsoid
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3& point)
+        DEVICE Scalar implicitFunction(const Scalar3& point)
         {
             return inv_a2*(point.x - Px)*(point.x - Px) + inv_b2*(point.y - Py)*(point.y - Py) + inv_c2*(point.z - Pz)*(point.z - Pz) - 1;
         }
@@ -82,7 +82,7 @@ class ManifoldEllipsoid
             return make_scalar3(2*inv_a2*(point.x - Px), 2*inv_b2*(point.y - Py), 2*inv_c2*(point.z - Pz));
         }
 
-        DEVICE bool check_fit_to_box(const BoxDim& box)
+        DEVICE bool fitToBox(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();

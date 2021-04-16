@@ -126,7 +126,7 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
 
-    bool manifold_fits = m_manifold.check_fit_to_box(m_pdata->getBox());
+    bool manifold_fits = m_manifold.fitToBox(m_pdata->getBox());
 
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
@@ -170,7 +170,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_fits = m_manifold.check_fit_to_box(box);
+    bool manifold_fits = m_manifold.fitToBox(box);
 
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
@@ -549,7 +549,7 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
 	    residual.x = h_pos.data[j].x - next_pos.x + m_deltaT*half_vel.x;
 	    residual.y = h_pos.data[j].y - next_pos.y + m_deltaT*half_vel.y;
 	    residual.z = h_pos.data[j].z - next_pos.z + m_deltaT*half_vel.z;
-	    resid = m_manifold.implicit_function(next_pos);
+	    resid = m_manifold.implicitFunction(next_pos);
 
             Scalar3 next_normal =  m_manifold.derivative(next_pos);
 	    Scalar nndotr = dot(next_normal,residual);

@@ -59,7 +59,7 @@ class ManifoldPrimitive
             \return result of the nodal function at input point
         */
 
-        DEVICE Scalar implicit_function(const Scalar3& point)
+        DEVICE Scalar implicitFunction(const Scalar3& point)
         {
             return  fast::cos(Lx*point.x) + fast::cos(Ly*point.y) + fast::cos(Lz*point.z) - epsilon;
         }
@@ -75,7 +75,7 @@ class ManifoldPrimitive
             return make_scalar3(-Lx*fast::sin(Lx*point.x),-Ly*fast::sin(Ly*point.y), -Lz*fast::sin(Lz*point.z));
         }
 
-        DEVICE bool check_fit_to_box(const BoxDim& box)
+        DEVICE bool fitToBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
         

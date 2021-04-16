@@ -364,7 +364,7 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
                 half_vel = vel + deltaT_half*accel-deltaT_half*inv_mass*lambda*normal;
 
 	        residual = pos - next_pos + deltaT*half_vel;
-	        resid = manifold.implicit_function(next_pos);
+	        resid = manifold.implicitFunction(next_pos);
 
                 Scalar3 next_normal =  manifold.derivative(next_pos);
 	        Scalar nndotr = dot(next_normal,residual);
