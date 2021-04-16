@@ -22,6 +22,7 @@ jobs:
       image: glotzerlab/ci:2021.03-clang10_py38
       options: -u 0
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: clang_format
