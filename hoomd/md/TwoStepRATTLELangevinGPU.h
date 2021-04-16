@@ -37,7 +37,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevinGPU : public TwoStepRATTLELangevin<Ma
                            std::shared_ptr<ParticleGroup> group,
                      	   Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           Scalar eta);
+                           Scalar tolerance);
 
 
         virtual ~TwoStepRATTLELangevinGPU() {};
@@ -86,8 +86,8 @@ TwoStepRATTLELangevinGPU<Manifold>::TwoStepRATTLELangevinGPU(std::shared_ptr<Sys
                    std::shared_ptr<ParticleGroup> group,
              	   Manifold manifold,
                    std::shared_ptr<Variant> T,
-                   Scalar eta)
-: TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, eta)
+                   Scalar tolerance)
+: TwoStepRATTLELangevin<Manifold>(sysdef, group, manifold, T, tolerance)
 {
 if (!this->m_exec_conf->isCUDAEnabled())
     {
@@ -225,7 +225,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepTwo(unsigned int timestep)
         args.use_alpha = this->m_use_alpha;
         args.alpha = this->m_alpha;
         args.T = (*this->m_T)(timestep);
-        args.eta = this->m_eta;
+        args.tolerance = this->m_tolerance;
         args.timestep = timestep;
         args.seed = this->m_sysdef->getSeed();
         args.d_sum_bdenergy = d_sumBD.data;
@@ -331,7 +331,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::includeRATTLEForce(unsigned int timeste
                      this->m_group->getGPUPartition(),
                      net_virial_pitch,
                      this->m_manifold,
-                     this->m_eta,
+                     this->m_tolerance,
                      this->m_deltaT,
                      false,
                      m_tuner_one->getParam());

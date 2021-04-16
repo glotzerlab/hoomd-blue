@@ -45,7 +45,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     Scalar eta = 0.000001);
+                     Scalar tolerance = 0.000001);
         virtual ~TwoStepRATTLELangevin()
         {
         m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLELangevin" << endl;
@@ -107,11 +107,11 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         return Manifold::dimension() * intersect_size;
         }
 
-        /// Sets eta
-        void setEta(Scalar eta){ m_eta = eta; };
+        /// Sets tolerance
+        void setTolerance(Scalar tolerance){ m_tolerance = tolerance; };
 
-        /// Gets alpha
-        Scalar getEta(){ return m_eta; };
+        /// Gets tolerance
+        Scalar getTolerance(){ return m_tolerance; };
 
         /// Gets manifold parameter
 	pybind11::dict getManifold(){ return m_manifold.getDict(); };
@@ -124,7 +124,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         std::string m_log_name;            //!< Name of the reservoir quantity that we log
         bool m_noiseless_t;                //!< If set true, there will be no translational noise (random force)
         bool m_noiseless_r;                //!< If set true, there will be no rotational noise (random torque)
-        Scalar m_eta;                      //!< The eta value of the RATTLE algorithm, setting the tolerance to the manifold
+        Scalar m_tolerance;                      //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
     };
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
@@ -135,7 +135,7 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
     \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
-    \param eta Tolerance for the RATTLE iteration algorithm
+    \param tolerance Tolerance for the RATTLE iteration algorithm
 
 */
 template<class Manifold>
@@ -143,9 +143,9 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
                            std::shared_ptr<ParticleGroup> group,
                            Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           Scalar eta)
+                           Scalar tolerance)
     : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0),
-      m_tally(false), m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
+      m_tally(false), m_noiseless_t(false), m_noiseless_r(false), m_tolerance(tolerance)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLELangevin" << endl;
 
@@ -473,7 +473,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
             next_vel.z = next_vel.z - normal.z*beta + residual.z;
             mu =  mu - mass*beta*inv_alpha;
 
-	    } while (maxNorm(residual,resid)*mass > m_eta && iteration < maxiteration );
+	    } while (maxNorm(residual,resid)*mass > m_tolerance && iteration < maxiteration );
 
 	if(iteration == maxiteration)
 	{
@@ -663,7 +663,7 @@ void TwoStepRATTLELangevin<Manifold>::includeRATTLEForce(uint64_t timestep)
             next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	    alpha = alpha - beta*inv_alpha;
 
-	    } while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	    } while (maxNorm(residual,resid) > m_tolerance && iteration < maxiteration );
 
 
 	if(iteration == maxiteration)
@@ -701,8 +701,8 @@ void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
 			                Scalar>())
         .def_property("tally_reservoir_energy", &TwoStepRATTLELangevin<Manifold>::getTallyReservoirEnergy,
                                                 &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)
-        .def_property("eta", &TwoStepRATTLELangevin<Manifold>::getEta,
-                            &TwoStepRATTLELangevin<Manifold>::setEta)
+        .def_property("tolerance", &TwoStepRATTLELangevin<Manifold>::getTolerance,
+                            &TwoStepRATTLELangevin<Manifold>::setTolerance)
         .def_property_readonly("manifold_constraint", &TwoStepRATTLELangevin<Manifold>::getManifold)
         ;
     }

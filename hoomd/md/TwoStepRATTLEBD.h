@@ -44,7 +44,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
-                    Scalar eta = 0.000001
+                    Scalar tolerance = 0.000001
                     );
 
         virtual ~TwoStepRATTLEBD()
@@ -70,11 +70,11 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         return Manifold::dimension() * intersect_size;
         }
 
-        /// Sets eta
-        void setEta(Scalar eta){ m_eta = eta; };
+        /// Sets tolerance
+        void setTolerance(Scalar tolerance){ m_tolerance = tolerance; };
 
-        /// Gets eta
-        Scalar getEta(){ return m_eta; };
+        /// Gets tolerance
+        Scalar getTolerance(){ return m_tolerance; };
 
         /// Gets manifold parameter
 	pybind11::dict getManifold(){ return m_manifold.getDict(); };
@@ -84,7 +84,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         bool m_noiseless_t;
         bool m_noiseless_r;
-        Scalar m_eta;                      //!< The eta value of the RATTLE algorithm, setting the tolerance to the manifold
+        Scalar m_tolerance;                      //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
     };
 
 
@@ -101,17 +101,17 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
     \param alpha Scale factor to convert diameter to gamma
     \param noiseless_t If set true, there will be no translational noise (random force)
     \param noiseless_r If set true, there will be no rotational noise (random torque)
-    \param eta Tolerance for the RATTLE iteration algorithm
+    \param tolerance Tolerance for the RATTLE iteration algorithm
 */
 template< class Manifold>
 TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
                            Manifold manifold,
                            std::shared_ptr<Variant> T,
-                           Scalar eta
+                           Scalar tolerance
                            )
   : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold),
-    m_noiseless_t(false), m_noiseless_r(false), m_eta(eta)
+    m_noiseless_t(false), m_noiseless_r(false), m_tolerance(tolerance)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
@@ -464,7 +464,7 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 	    next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	    mu = mu - beta*inv_alpha;
 
-	} while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	} while (maxNorm(residual,resid) > m_tolerance && iteration < maxiteration );
 
 	if(iteration == maxiteration)
 	{
@@ -496,8 +496,8 @@ void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
 			    Manifold,
                             std::shared_ptr<Variant>,
 			    Scalar>())
-    .def_property("eta", &TwoStepRATTLEBD<Manifold>::getEta,
-                            &TwoStepRATTLEBD<Manifold>::setEta)
+    .def_property("tolerance", &TwoStepRATTLEBD<Manifold>::getTolerance,
+                            &TwoStepRATTLEBD<Manifold>::setTolerance)
     .def_property_readonly("manifold_constraint", &TwoStepRATTLEBD<Manifold>::getManifold)
         ;
     }

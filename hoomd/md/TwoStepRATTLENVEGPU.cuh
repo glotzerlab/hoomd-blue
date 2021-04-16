@@ -56,7 +56,7 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
                              const GPUPartition& gpu_partition,
                              Scalar4 *d_net_force,
                              Manifold manifold,
-                             Scalar eta,
+                             Scalar tolerance,
                              Scalar deltaT,
                              bool limit,
                              Scalar limit_val,
@@ -84,7 +84,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
                              const GPUPartition& gpu_partition,
                              size_t net_virial_pitch,
 			     Manifold manifold,
-                             Scalar eta,
+                             Scalar tolerance,
                              Scalar deltaT,
                              bool zero_force,
                              unsigned int block_size);
@@ -119,7 +119,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
                             const unsigned int offset,
                             Scalar4 *d_net_force,
 			    Manifold manifold,
-                            Scalar eta,
+                            Scalar tolerance,
                             Scalar deltaT,
                             bool limit,
                             Scalar limit_val,
@@ -201,7 +201,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
             Scalar vec_norm = sqrt(dot(residual,residual));
             if ( vec_norm > resid) resid =  vec_norm;
 
-	    } while (resid*mass > eta && iteration < maxiteration );
+	    } while (resid*mass > tolerance && iteration < maxiteration );
 	
 
         vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * inv_mass * normal.x) * deltaT;
@@ -246,7 +246,7 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
                              const GPUPartition& gpu_partition,
                              Scalar4 *d_net_force,
                              Manifold manifold,
-                             Scalar eta,
+                             Scalar tolerance,
                              Scalar deltaT,
                              bool limit,
                              Scalar limit_val,
@@ -283,7 +283,7 @@ hipError_t gpu_rattle_nve_step_two(Scalar4 *d_pos,
                                                      range.first,
                                                      d_net_force,
                                                      manifold,
-                                                     eta,
+                                                     tolerance,
                                                      deltaT,
                                                      limit,
                                                      limit_val,
@@ -303,7 +303,7 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
                              const unsigned int offset,
                              size_t net_virial_pitch,
 			     Manifold manifold,
-                             Scalar eta,
+                             Scalar tolerance,
                              Scalar deltaT,
                              bool zero_force)
     {
@@ -378,7 +378,7 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
                 Scalar vec_norm = sqrt(dot(residual,residual));
                 if ( vec_norm > resid) resid =  vec_norm;
 
-	        } while (resid > eta && iteration < maxiteration );
+	        } while (resid > tolerance && iteration < maxiteration );
 
         accel -= lambda*normal;
 
@@ -413,7 +413,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
                              const GPUPartition& gpu_partition,
                              size_t net_virial_pitch,
 			     Manifold manifold,
-                             Scalar eta,
+                             Scalar tolerance,
                              Scalar deltaT,
                              bool zero_force,
                              unsigned int block_size)
@@ -440,7 +440,7 @@ hipError_t gpu_include_rattle_force_nve(const Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        hipLaunchKernelGGL((gpu_include_rattle_force_nve_kernel<Manifold>), dim3(grid), dim3(threads), 0, 0, d_pos, d_vel, d_accel, d_net_force, d_net_virial, d_group_members, nwork, range.first, net_virial_pitch, manifold, eta, deltaT, zero_force);
+        hipLaunchKernelGGL((gpu_include_rattle_force_nve_kernel<Manifold>), dim3(grid), dim3(threads), 0, 0, d_pos, d_vel, d_accel, d_net_force, d_net_virial, d_group_members, nwork, range.first, net_virial_pitch, manifold, tolerance, deltaT, zero_force);
         }
 
     return hipSuccess;

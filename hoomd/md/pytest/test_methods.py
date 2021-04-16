@@ -159,14 +159,14 @@ def test_rattle_attributes(method_base_params):
     gyroid = hoomd.md.manifold.Gyroid(N=1)
     integrator = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
     assert integrator.manifold_constraint == gyroid
-    assert integrator.eta == 1e-6
+    assert integrator.tolerance == 1e-6
 
     sphere = hoomd.md.manifold.Sphere(r=10)
     integrator.manifold_constraint = sphere
     assert integrator.manifold_constraint == sphere
 
-    integrator.eta = 1e-5
-    assert integrator.eta == 1e-5
+    integrator.tolerance = 1e-5
+    assert integrator.tolerance == 1e-5
 
 def test_rattle_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -185,7 +185,7 @@ def test_rattle_attributes_attached(simulation_factory,
 
     assert integrator.filter is all_
     assert integrator.manifold_constraint == gyroid
-    assert integrator.eta == 1e-6
+    assert integrator.tolerance == 1e-6
 
     check_instance_attrs(integrator,method_base_params.setup_params)
     check_instance_attrs(integrator,method_base_params.extra_params)
@@ -201,8 +201,8 @@ def test_rattle_attributes_attached(simulation_factory,
         integrator.manifold_constraint = sphere
     assert integrator.manifold_constraint == gyroid
     
-    integrator.eta = 1e-5
-    assert integrator.eta == 1e-5
+    integrator.tolerance = 1e-5
+    assert integrator.tolerance == 1e-5
 
     check_instance_attrs(integrator,method_base_params.changed_params,True)
 

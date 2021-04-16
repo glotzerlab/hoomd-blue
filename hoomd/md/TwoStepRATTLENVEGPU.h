@@ -37,7 +37,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 {
 	public:
 	//! Constructs the integration method and associates it with the system
-	TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar eta);
+	TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar tolerance);
 	
 	virtual ~TwoStepRATTLENVEGPU(){};
 	
@@ -82,8 +82,8 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
     \param group The group of particles this integration method is to work on
 */
 template<class Manifold> 
-TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar eta)
-    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, eta)
+TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar tolerance)
+    : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -212,7 +212,7 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(unsigned int timestep)
                      this->m_group->getGPUPartition(),
                      d_net_force.data,
                      this->m_manifold,
-                     this->m_eta,
+                     this->m_tolerance,
                      this->m_deltaT,
                      this->m_limit,
                      this->m_limit_val,
@@ -288,7 +288,7 @@ void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
 		     this->m_group->getGPUPartition(),
 		     net_virial_pitch,
 		     this->m_manifold,
-		     this->m_eta,
+		     this->m_tolerance,
 		     this->m_deltaT,
 		     this->m_zero_force,
 		     m_tuner_one->getParam());

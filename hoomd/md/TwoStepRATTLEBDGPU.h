@@ -39,7 +39,7 @@ class PYBIND11_EXPORT TwoStepRATTLEBDGPU : public TwoStepRATTLEBD<Manifold>
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     Scalar eta);
+                     Scalar tolerance);
 
         virtual ~TwoStepRATTLEBDGPU() {};
 
@@ -65,8 +65,8 @@ TwoStepRATTLEBDGPU<Manifold>::TwoStepRATTLEBDGPU(std::shared_ptr<SystemDefinitio
                      std::shared_ptr<ParticleGroup> group,
                      Manifold manifold,
                      std::shared_ptr<Variant> T,
-                     Scalar eta)
-    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, eta)
+                     Scalar tolerance)
+    : TwoStepRATTLEBD<Manifold>(sysdef, group, manifold,T, tolerance)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -122,7 +122,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     args.use_alpha = this->m_use_alpha;
     args.alpha = this->m_alpha;
     args.T = (*this->m_T)(timestep);
-    args.eta = this->m_eta;
+    args.tolerance = this->m_tolerance;
     args.timestep = timestep;
     args.seed = this->m_sysdef->getSeed();
 
@@ -209,7 +209,7 @@ void TwoStepRATTLEBDGPU<Manifold>::includeRATTLEForce(uint64_t timestep)
     args.use_alpha = this->m_use_alpha;
     args.alpha = this->m_alpha;
     args.T = (*this->m_T)(timestep);
-    args.eta = this->m_eta;
+    args.tolerance = this->m_tolerance;
     args.timestep = timestep;
     args.seed = this->m_sysdef->getSeed();
 

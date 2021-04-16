@@ -38,7 +38,7 @@ struct rattle_bd_step_one_args
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
-    Scalar eta;
+    Scalar tolerance;
     uint64_t timestep;    //!< Current timestep
     uint16_t seed;            //!< User chosen random number seed
     };
@@ -408,7 +408,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                                   const uint64_t timestep,
                                   const uint16_t seed,
                                   const Scalar T,
-                                  const Scalar eta,
+                                  const Scalar tolerance,
                                   Manifold manifold,
                                   size_t net_virial_pitch,
                                   const Scalar deltaT,
@@ -555,7 +555,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
                 Scalar vec_norm = sqrt(dot(residual,residual));
                 if ( vec_norm > resid) resid =  vec_norm;
 
-	    } while (resid > eta && iteration < maxiteration );
+	    } while (resid > tolerance && iteration < maxiteration );
 
             net_force.x -= mu*normal.x;
             net_force.y -= mu*normal.y;
@@ -623,7 +623,7 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4 *d_pos,
                                      rattle_bd_args.timestep,
                                      rattle_bd_args.seed,
                                      rattle_bd_args.T,
-                                     rattle_bd_args.eta,
+                                     rattle_bd_args.tolerance,
 				     manifold,
                                      net_virial_pitch,
                                      deltaT,

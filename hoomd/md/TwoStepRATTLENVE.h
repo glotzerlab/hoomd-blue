@@ -45,7 +45,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
                    std::shared_ptr<ParticleGroup> group,
                    Manifold manifold,
                    bool skip_restart,
-                   Scalar eta);
+                   Scalar tolerance);
 
         virtual ~TwoStepRATTLENVE()
         {
@@ -89,11 +89,11 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         return Manifold::dimension() * intersect_size;
         }
 
-        /// Sets eta
-        void setEta(Scalar eta){ m_eta = eta; };
+        /// Sets tolerance
+        void setTolerance(Scalar tolerance){ m_tolerance = tolerance; };
 
-        /// Gets alpha
-        Scalar getEta(){ return m_eta; };
+        /// Gets tolerance
+        Scalar getTolerance(){ return m_tolerance; };
 
         /// Gets manifold parameter
 	pybind11::dict getManifold(){ return m_manifold.getDict(); };
@@ -102,7 +102,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         bool m_limit;       //!< True if we should limit the distance a particle moves in one step
         Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
-        Scalar m_eta; //!< The eta value of the RATTLE algorithm, setting the tolerance to the manifold
+        Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
         bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
@@ -114,15 +114,15 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
     \param group The group of particles this integration method is to work on
     \param manifold The manifold describing the constraint during the RATTLE integration method
     \param skip_restart Skip initialization of the restart information
-    \param eta Tolerance for the RATTLE iteration algorithm
+    \param tolerance Tolerance for the RATTLE iteration algorithm
 */
 template < class Manifold>
 TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        Manifold manifold,
                        bool skip_restart,
-                       Scalar eta)
-    : IntegrationMethodTwoStep(sysdef, group), m_manifold(manifold), m_limit(false), m_limit_val(1.0), m_eta(eta), m_zero_force(false)
+                       Scalar tolerance)
+    : IntegrationMethodTwoStep(sysdef, group), m_manifold(manifold), m_limit(false), m_limit_val(1.0), m_tolerance(tolerance), m_zero_force(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
 
@@ -422,7 +422,7 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
                next_vel.z = next_vel.z - normal.z*beta + residual.z;
                mu =  mu - mass*beta*inv_alpha;
 
-	       } while (maxNorm(residual,resid)*mass > m_eta && iteration < maxiteration );
+	       } while (maxNorm(residual,resid)*mass > m_tolerance && iteration < maxiteration );
 
 	if(iteration == maxiteration)
 	{
@@ -561,7 +561,7 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
             next_pos.z = next_pos.z - beta*normal.z + residual.z;
 	    lambda = lambda - beta*inv_alpha;
 
-	} while (maxNorm(residual,resid) > m_eta && iteration < maxiteration );
+	} while (maxNorm(residual,resid) > m_tolerance && iteration < maxiteration );
 
 	if(iteration == maxiteration)
 	{
@@ -597,8 +597,8 @@ void export_TwoStepRATTLENVE(py::module& m, const std::string& name)
         .def("setLimit", &TwoStepRATTLENVE<Manifold>::setLimit)
         .def("removeLimit", &TwoStepRATTLENVE<Manifold>::removeLimit)
         .def("setZeroForce", &TwoStepRATTLENVE<Manifold>::setZeroForce)
-        .def_property("eta", &TwoStepRATTLENVE<Manifold>::getEta,
-                            &TwoStepRATTLENVE<Manifold>::setEta)
+        .def_property("tolerance", &TwoStepRATTLENVE<Manifold>::getTolerance,
+                            &TwoStepRATTLENVE<Manifold>::setTolerance)
         .def_property_readonly("manifold_constraint", &TwoStepRATTLENVE<Manifold>::getManifold)
         ;
     }

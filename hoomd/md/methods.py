@@ -50,10 +50,10 @@ class MethodRATTLE(_Method):
         Users should use the subclasses and not instantiate `_MethodRATTLE` directly.
 
     """
-    def __init__(self, manifold_constraint, eta):
+    def __init__(self, manifold_constraint, tolerance):
         param_dict = ParameterDict(
             manifold_constraint = OnlyTypes(Manifold, allow_none=True),
-            eta=float(eta)
+            tolerance=float(tolerance)
             )
         param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
@@ -682,9 +682,9 @@ class NVE(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. This is only
-            used if RATTLE algorithm is triggered. Defaults to 1e-5
+        tolerance (`float`): Defines the tolerated error particles are 
+            allowed to deviate from the manifold in terms of the implicit function. 
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-5
 
     `NVE` performs constant volume, constant energy simulations using
     the standard Velocity-Verlet method. If a manifold constraint is set,
@@ -720,12 +720,12 @@ class NVE(MethodRATTLE):
             used by and as a trigger for the RATTLE algorithm of this method.
             Defaults to None
 
-        eta (float): Defines the error particles are allowed to deviate
+        tolerance (float): Defines the tolerated error particles are allowed to deviate
             from the manifold in terms of the implicit function. Defaults to 1e-5
 
     """
 
-    def __init__(self, filter, limit=None, manifold_constraint=None, eta=0.000001):
+    def __init__(self, filter, limit=None, manifold_constraint=None, tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
@@ -738,7 +738,7 @@ class NVE(MethodRATTLE):
         # set defaults
         self._param_dict.update(param_dict)
 
-        super().__init__(manifold_constraint,eta)
+        super().__init__(manifold_constraint,tolerance)
 
     def _attach(self):
 
@@ -762,7 +762,7 @@ class NVE(MethodRATTLE):
 
             self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
                                      self._simulation.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj, False, self.eta)
+                                     self.manifold_constraint._cpp_obj, False, self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -790,9 +790,9 @@ class Langevin(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. This is only
-            used if RATTLE algorithm is triggered. Defaults to 1e-5
+        tolerance (`float`): Defines the tolerated error particles are allowed 
+            to deviate from the manifold in terms of the implicit function. 
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-5
 
     .. rubric:: Translational degrees of freedom
 
@@ -880,7 +880,7 @@ class Langevin(MethodRATTLE):
             used by and as a trigger for the RATTLE algorithm of this method.
             Defaults to None
 
-        eta (float): Defines the error particles are allowed to deviate
+        tolerance (float): Defines the tolerated error particles are allowed to deviate
             from the manifold in terms of the implicit function. Defaults to 1e-5
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
@@ -897,7 +897,7 @@ class Langevin(MethodRATTLE):
 
     def __init__(self, filter, kT, alpha=None,
                  tally_reservoir_energy=False, manifold_constraint=None,
-                 eta=0.000001):
+                 tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
@@ -921,7 +921,7 @@ class Langevin(MethodRATTLE):
 
         self._extend_typeparam([gamma,gamma_r])
 
-        super().__init__(manifold_constraint,eta)
+        super().__init__(manifold_constraint,tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -956,7 +956,7 @@ class Langevin(MethodRATTLE):
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
                                      self.manifold_constraint._cpp_obj,
-                                     self.kT, self.eta)
+                                     self.kT, self.tolerance)
 
             # Attach param_dict and typeparam_dict
         super()._attach()
@@ -978,9 +978,9 @@ class Brownian(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        eta (`float`): Defines the error particles are allowed to deviate
-            from the manifold in terms of the implicit function. This is only
-            used if RATTLE algorithm is triggered. Defaults to 1e-5
+        tolerance (`float`): Defines the toleraated error particles are allowed 
+            to deviate from the manifold in terms of the implicit function. This
+            is only used if RATTLE algorithm is triggered. Defaults to 1e-5
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics, or the
@@ -1076,7 +1076,7 @@ class Brownian(MethodRATTLE):
             used by and as a trigger for the RATTLE algorithm of this method.
             Defaults to None
 
-        eta (float): Defines the error particles are allowed to deviate
+        tolerance (float): Defines the tolerated error particles are allowed to deviate
             from the manifold in terms of the implicit function. Defaults to 1e-5
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
@@ -1090,7 +1090,7 @@ class Brownian(MethodRATTLE):
             tuple is either positive float or zero.
     """
 
-    def __init__(self, filter, kT, manifold_constraint=None, eta=0.000001, alpha=None):
+    def __init__(self, filter, kT, manifold_constraint=None, tolerance=0.000001, alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
@@ -1112,7 +1112,7 @@ class Brownian(MethodRATTLE):
                                 )
         self._extend_typeparam([gamma,gamma_r])
 
-        super().__init__(manifold_constraint,eta)
+        super().__init__(manifold_constraint,tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -1147,7 +1147,7 @@ class Brownian(MethodRATTLE):
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
                                      self.manifold_constraint._cpp_obj,
-                                     self.kT, self.eta)
+                                     self.kT, self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()

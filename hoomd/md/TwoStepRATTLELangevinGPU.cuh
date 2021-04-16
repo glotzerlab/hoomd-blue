@@ -31,7 +31,7 @@ struct rattle_langevin_step_two_args
     bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
     Scalar alpha;            //!< Scale factor to convert diameter to alpha
     Scalar T;                 //!< Current temperature
-    Scalar eta;
+    Scalar tolerance;
     uint64_t timestep;    //!< Current timestep
     uint16_t seed;        //!< User chosen random number seed
     Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
@@ -130,7 +130,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  uint64_t timestep,
                                  uint16_t seed,
                                  Scalar T,
-                                 Scalar eta,
+                                 Scalar tolerance,
                                  bool noiseless_t,
                                  Manifold manifold,
                                  Scalar deltaT,
@@ -283,7 +283,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
             Scalar vec_norm = sqrt(dot(residual,residual));
             if ( vec_norm > resid) resid =  vec_norm;
 
-	    } while (resid*mass > eta && iteration < maxiteration );
+	    } while (resid*mass > tolerance && iteration < maxiteration );
 
 
         vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * minv * normal.x) * deltaT;
@@ -380,7 +380,7 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
                                  rattle_langevin_args.timestep,
                                  rattle_langevin_args.seed,
                                  rattle_langevin_args.T,
-                                 rattle_langevin_args.eta,
+                                 rattle_langevin_args.tolerance,
                                  rattle_langevin_args.noiseless_t,
                                  manifold,
                                  deltaT,
