@@ -33,8 +33,6 @@ jobs:
             command: yapf -d -r .
     steps:
       - uses: actions/checkout@v2.3.4
-      - name: Configure
-        run: cmake -B build
       - name: Execute ${{ matrix.name }}
         run: ${{ matrix.command }}
 
