@@ -564,39 +564,22 @@ class ShapeUpdater(Updater):
 
         num_phase (int): How many boxes are simulated at the same time, now support 2 and 3.
     """
-    def __init__(   self,
-                    mc,
-                    move_ratio,
-                    seed,
-                    trigger=hoomd.trigger.Periodic(1),
-                    pretend=False,
-                    nselect=1,
-                    nsweeps=1,
-                    multi_phase=False,
-                    num_phase=1):
-
+    def __init__(self,
+                 move_ratio,
+                 trigger=hoomd.trigger.Periodic(1),
+                 pretend=False,
+                 nselect=1,
+                 nsweeps=1,
+                 multi_phase=False,
+                 num_phase=1):
         super().__init__(trigger)
-
-        param_dict = ParameterDict(mc=hoomd.hpmc.integrate.HPMCIntegrator,
-                                   move_ratio=float,
-                                   seed=int,
-                                   pretend=bool,
-                                   nselect=int,
-                                   nsweeps=int,
-                                   multi_phase=bool,
-                                   num_phase=int)
-        param_dict['mc'] = mc
-        param_dict['move_ratio'] = move_ratio
-        param_dict['seed'] = seed
-        param_dict['pretend'] = pretend
-        param_dict['nselect'] = nselect
-        param_dict['nsweeps'] = nsweeps
-        param_dict['multi_phase'] = multi_phase
-        param_dict['num_phase'] = num_phase
-
+        param_dict = ParameterDict(move_ratio=float(move_ratio),
+                                   pretend=bool(pretend),
+                                   nselect=int(nselect),
+                                   nsweeps=int(nsweeps),
+                                   multi_phase=bool(multi_phase),
+                                   num_phase=int(num_phase))
         self._param_dict.update(param_dict)
-        self._cpp_obj = None
-        self.move_cpp = None
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -606,29 +589,29 @@ class ShapeUpdater(Updater):
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        cls = None
-        if isinstance(self.mc, integrate.Sphere):
-            cls = _hpmc.UpdaterShapeSphere
-        elif isinstance(self.mc, integrate.ConvexPolygon):
-            cls = _hpmc.UpdaterShapeConvexPolygon
-        elif isinstance(self.mc, integrate.SimplePolygon):
-            cls = _hpmc.UpdaterShapeSimplePolygon
-        elif isinstance(self.mc, integrate.ConvexPolyhedron):
-            cls = _hpmc.UpdaterShapeConvexPolyhedron
-        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
-            cls = _hpmc.UpdaterShapeSpheropolyhedron
-        elif isinstance(self.mc, integrate.Ellipsoid):
-            cls = _hpmc.UpdaterShapeEllipsoid
-        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
-            cls = _hpmc.UpdaterShapeSpheropolygon
-        elif isinstance(self.mc, integrate.Polyhedron):
-            cls = _hpmc.UpdaterShapePolyhedron
-        elif isinstance(self.mc, integrate.Sphinx):
-            cls = _hpmc.UpdaterShapeSphinx
-        elif isinstance(self.mc, integrate.SphereUnion):
-            cls = _hpmc.UpdaterShapeSphereUnion
+        updater_cls = None
+        if isinstance(integrator, integrate.Sphere):
+            updater_cls = _hpmc.UpdaterShapeSphere
+        elif isinstance(integrator, integrate.ConvexPolygon):
+            updater_cls = _hpmc.UpdaterShapeConvexPolygon
+        elif isinstance(integrator, integrate.SimplePolygon):
+            updater_cls = _hpmc.UpdaterShapeSimplePolygon
+        elif isinstance(integrator, integrate.ConvexPolyhedron):
+            updater_cls = _hpmc.UpdaterShapeConvexPolyhedron
+        elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
+            updater_cls = _hpmc.UpdaterShapeSpheropolyhedron
+        elif isinstance(integrator, integrate.Ellipsoid):
+            updater_cls = _hpmc.UpdaterShapeEllipsoid
+        elif isinstance(integrator, integrate.ConvexSpheropolygon):
+            updater_cls = _hpmc.UpdaterShapeSpheropolygon
+        elif isinstance(integrator, integrate.Polyhedron):
+            updater_cls = _hpmc.UpdaterShapePolyhedron
+        elif isinstance(integrator, integrate.Sphinx):
+            updater_cls = _hpmc.UpdaterShapeSphinx
+        elif isinstance(integrator, integrate.SphereUnion):
+            updater_cls = _hpmc.UpdaterShapeSphereUnion
         else:
-            raise RuntimeError("Error initializing update.shape_update")
+            raise RuntimeError("Integrator not supported")
         # TODO: Make this possible
         # Currently computing the moments of inertia for spheropolyhedra is not implemented
         # In order to prevent improper usage, we throw an error here. The use of this
@@ -637,96 +620,85 @@ class ShapeUpdater(Updater):
         if isinstance(self.mc, integrate.ConvexSpheropolyhedron):
             for typ in self.mc.type_shapes:
                 if typ['sweep_radius'] != 0 and len(typ['vertices']) > 1:
-                    raise RuntimeError("Currently alchemical moves with integrate.convex_spheropolyhedron \
-are only enabled for polyhedral and spherical particles.")
-        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
-                            integrator._cpp_obj,
-                            self.move_ratio,
-                            self.seed,
-                            self.nselect,
-                            self.nsweeps,
-                            self.pretend,
-                            self.multi_phase,
-                            self.num_phase)
-        self._cpp_obj.registerLogBoltzmannFunction(self.boltzmann_function)
-        self._cpp_obj.registerShapeMove(self.move_cpp)
+                    raise RuntimeError("Currently alchemical moves with integrate.convex_spheropolyhedron are only enabled for polyhedral and spherical particles.")
+        self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
+                                    integrator._cpp_obj,
+                                    self.move_ratio,
+                                    self._simulation.seed,
+                                    self.nselect,
+                                    self.nsweeps,
+                                    self.pretend,
+                                    self.multi_phase,
+                                    self.num_phase)
+        self._cpp_obj.registerLogBoltzmannFunction(self._boltzmann_function)
+        self._cpp_obj.registerShapeMove(self._shape_move)
         super()._attach()
 
-    def python_shape_move(self, callback, params, stepsize, param_ratio):
-        R"""Enable python shape move and set parameters.
-        All python shape moves must be callable object that take a single list
-        of parameters between 0 and 1 as the call arguments and returns a
-        shape parameter definition.
+    @property
+    def total_count(self):
+        """Total number of shape moves attempted
+        """
+        return sum([self._cpp_obj.getTotalCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+
+    @property
+    def accepted_count(self):
+        """Total number of shape moves accepted
+        """
+        return sum([self._cpp_obj.getAcceptedCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+
+    @log(category='scalar')
+    def shape_move_acceptance_ratio(self):
+        """float: Returns the shape move acceptance ratio for all particle types
+
+        Returns:
+            The combined shape move acceptance ratio for all particle types
+        """
+        acc = 0.0
+        if self.total_count > 0:
+            acc = float(self.accepted_count) / float(self.total_count)
+        return acc
+
+    @log(category='scalar')
+    def shape_move_particle_volume(self):
+        """float: Returns the total volume being occupied by particles.
+
+        Returns:
+            The current value of the total volume occupied by particles
+        """
+        return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+
+    def get_step_size(self, typeid=0):
+        R""" Get the shape move stepsize for a particle type
 
         Args:
-            callback (callable): The python function that will be called each update.
-            params (dict): Dictionary of types and the corresponding list parameters (ex: {'A' : [1.0], 'B': [0.0]})
-            stepsize (float): Step size in parameter space.
-            param_ratio (float): Average fraction of parameters to change each update
-
-        Note:
-            Parameters must be given for every particle type. Callback should rescale the particle to have constant
-            volume if necessary/desired.
+            typeid (int): The typeid of the particle type
+        Returns:
+            The shape move stepsize for a particle type
 
         Example::
 
-            # example callback
-            class convex_polyhedron_callback:
-                def __init__(self, mc):
-                    self.mc = mc;
-                def __call__(self, params):
-                    # do something with params and define verts
-                    return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
             mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
             mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
                                            (-1, 1, -1)])
-
-            # now set up the updater
-            shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            shape_up.python_shape_move(callback=convex_polyhedron_callback(mc), params={'A': [0.5]}, stepsize=0.001, param_ratio=0.5)
+            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
+            stepsize = shape_updater.get_step_size(0)
 
         """
-        if self.move_cpp is not None:
-            raise RuntimeError("Error initializing update.shape_update")
-        move_cls = None
-        if isinstance(self.mc, integrate.Sphere):
-            move_cls = _hpmc.PythonShapeMoveSphere
-        elif isinstance(self.mc, integrate.ConvexPolygon):
-            move_cls = _hpmc.PythonShapeMoveConvexPolygon
-        elif isinstance(self.mc, integrate.SimplePolygon):
-            move_cls = _hpmc.PythonShapeMoveSimplePolygon
-        elif isinstance(self.mc, integrate.ConvexPolyhedron):
-            move_cls = _hpmc.PythonShapeMoveConvexPolyhedron
-        elif isinstance(self.mc, integrate.ConvexSpheropolyhedron):
-            move_cls = _hpmc.PythonShapeMoveSpheropolyhedron
-        elif isinstance(self.mc, integrate.Ellipsoid):
-            move_cls = _hpmc.PythonShapeMoveEllipsoid
-        elif isinstance(self.mc, integrate.ConvexSpheropolygon):
-            move_cls = _hpmc.PythonShapeMoveConvexSphereopolygon
-        elif isinstance(self.mc, integrate.Polyhedron):
-            move_cls = _hpmc.PythonShapeMovePolyhedron
-        elif isinstance(self.mc, integrate.Sphinx):
-            move_cls = _hpmc.PythonShapeMoveSphinx
-        elif isinstance(self.mc, integrate.SphereUnion):
-            move_cls = _hpmc.PythonShapeMoveSphereUnion
-        else:
-            raise RuntimeError("Error initializing update.shape_update")
+        return self._cpp_obj.getStepSize(typeid)
 
-        if not move_cls:
-            raise RuntimeError("Error initializing update.shape_update")
+    def reset_statistics(self):
+        R""" Reset the acceptance statistics for the updater
 
-        param_list = []
-        types = list(self.mc.state["shape"].keys())
-        ntypes = len(types) - 1
-        for i in range(ntypes):
-            if types[i] != '__default__':
-                param_list.append(params[types[i]])
+        Example::
 
-        if isinstance(stepsize, float) or isinstance(stepsize, int):
-            stepsize_list = [float(stepsize) for i in range(ntypes)]
-        else:
-            stepsize_list = self.mc.shape_class.ensure_list(stepsize)
-        self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio))
+            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
+                                           (-1, 1, -1)])
+            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
+            stepsize = shape_updater.reset_statistics()
+        """
+
+        self._cpp_obj.resetStatistics()
 
     def vertex_shape_move(self, stepsize, param_ratio, volume=1.0):
         R"""
@@ -879,132 +851,6 @@ are only enabled for polyhedral and spherical particles.")
 
         ntypes = len(self.mc.state["shape"].keys()) - 1
         self.move_cpp = move_cls(ntypes, stepsize, param_ratio)
-
-    def get_tuner(self, target, trigger, max_scale=2., gamma=1., tol=1e-2):
-        R""" Returns a :py:mod:`hoomd.tune.CustomTuner` object set to tune the step size of the shape move.
-        Args:
-            target (float): Target shape move acceptance ratio
-            trigger (Trigger): Call the updater on triggered time steps.
-            max_scale (float): The maximum amount to scale the
-                current step size value with
-            gamma (float): nonnegative real number used to dampen
-                or increase the rate of change in step size. ``gamma`` is added to the
-                numerator and denominator of the ``acceptance_ratio / target`` ratio. Larger values
-                of ``gamma`` lead to smaller changes while a ``gamma`` of 0 leads to
-                scaling step size by exactly the ``acceptance_ratio / target`` ratio.
-            tol (float): The absolute tolerance for convergence of acceptance_ratio
-
-        Example::
-
-            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                           (-1, 1, -1)])
-            shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            shape_up.vertex_shape_move(stepsize=0.001, param_ratio=0.25, volume=1.0)
-            tuner = shape_up.get_tuner(0.25, hoomd.trigger.Periodic(1))
-        """
-
-        def get_y():
-            acc = 0.0
-            if self.total_count > 0:
-                acc = float(self.accepted_count) / float(self.total_count)
-            return acc
-
-        def get_x():
-            return self._cpp_obj.getStepSize(0)
-
-        def set_x(stepsize):
-            return self._cpp_obj.setStepSize(0, stepsize)
-
-        tuneables = [hoomd.tune.ManualTuneDefinition(get_y, target, get_x, set_x)]
-        tuneables[0].domain = (0.0, 0.5)
-        solver = hoomd.tune.attr_tuner.ScaleSolver(max_scale, gamma, 'negative', tol)
-
-        class TuneAction(Action):
-            def __init__(cls, tuneables):
-                cls.tuneables = tuneables
-                cls.tuned = None
-            def act(cls, timestep):
-                cls.tuned = solver.solve(cls.tuneables)
-        tuner = hoomd.tune.CustomTuner(TuneAction(tuneables), trigger)
-        return tuner
-
-    @property
-    def total_count(self):
-        """Total number of shape moves attempted
-        """
-        return sum([self._cpp_obj.getTotalCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
-
-    @property
-    def accepted_count(self):
-        """Total number of shape moves accepted
-        """
-        return sum([self._cpp_obj.getAcceptedCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
-
-    @log(category='scalar')
-    def shape_move_acceptance_ratio(self):
-        """float: Returns the shape move acceptance ratio for all particle types
-
-        Returns:
-            The combined shape move acceptance ratio for all particle types
-        """
-        acc = 0.0
-        if self.total_count > 0:
-            acc = float(self.accepted_count) / float(self.total_count)
-        return acc
-
-    @log(category='scalar')
-    def shape_move_particle_volume(self):
-        """float: Returns the total volume being occupied by particles.
-
-        Returns:
-            The current value of the total volume occupied by particles
-        """
-        return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
-
-    @log(category='scalar')
-    def shape_param(self):
-        """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
-
-        Returns:
-            The current value of the shape parameter in the user-specified callback
-        """
-        if 'Python' in str(self.move_cpp):
-            return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
-        return 0.0
-
-    def get_step_size(self, typeid=0):
-        R""" Get the shape move stepsize for a particle type
-
-        Args:
-            typeid (int): The typeid of the particle type
-        Returns:
-            The shape move stepsize for a particle type
-
-        Example::
-
-            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                           (-1, 1, -1)])
-            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            stepsize = shape_updater.get_step_size(0)
-
-        """
-        return self._cpp_obj.getStepSize(typeid)
-
-    def reset_statistics(self):
-        R""" Reset the acceptance statistics for the updater
-
-        Example::
-
-            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                           (-1, 1, -1)])
-            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            stepsize = shape_updater.reset_statistics()
-        """
-
-        self._cpp_obj.resetStatistics()
 
 
 class Alchemy(ShapeUpdater):
