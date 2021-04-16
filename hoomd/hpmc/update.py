@@ -700,6 +700,115 @@ class ShapeUpdater(Updater):
 
         self._cpp_obj.resetStatistics()
 
+class PythonShapeUpdater(ShapeUpdater):
+        R"""Enable python shape move and) set parameters.
+        All python shape moves must be callable object that take a single list
+        of parameters between 0 and 1 as the call arguments and returns a
+        shape parameter definition.
+
+        Args:
+            callback (callable): The python function that will be called each update.
+            params (dict): Dictionary of types and the corresponding list parameters (ex: {'A' : [1.0], 'B': [0.0]})
+            stepsize (float): Step size in parameter space.
+            param_ratio (float): Average fraction of parameters to change each update
+
+        Note:
+            Parameters must be given for every particle type. Callback should rescale the particle to have constant
+            volume if necessary/desired.
+
+        Example::
+
+            # example callback
+            class convex_polyhedron_callback:
+                def __init__(self, mc):
+                    self.mc = mc;
+                def __call__(self, params):
+                    # do something with params and define verts
+                    return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
+            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
+                                           (-1, 1, -1)])
+
+            # now set up the updater
+            shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
+            shape_up.python_shape_move(callback=convex_polyhedron_callback(mc), params={'A': [0.5]}, stepsize=0.001, param_ratio=0.5)
+
+        """
+    def __init__(self,
+                 callback,
+                 params,
+                 stepsize,
+                 param_ratio,
+                 move_ratio,
+                 trigger=hoomd.trigger.Periodic(1),
+                 pretend=False,
+                 nselect=1,
+                 nsweeps=1,
+                 multi_phase=False,
+                 num_phase=1):
+        super.__init__(move_ratio, trigger, pretend, nselect, nsweeps, multi_phase, num_phase)
+        param_dict = ParameterDict(callback=callable,
+                                   params=list(params),
+                                   stepsize=list(stepsize),
+                                   param_ratio=float(param_ratio))
+        param_dict["callback"] = callback
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        move_cls = None
+        boltzmann_cls = None
+        if isinstance(integrator, integrate.Sphere):
+            move_cls = _hpmc.PythonShapeMoveSphere
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphere
+        elif isinstance(integrator, integrate.ConvexPolygon):
+            move_cls = _hpmc.PythonShapeMoveConvexPolygon
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolygon
+        elif isinstance(integrator, integrate.SimplePolygon):
+            move_cls = _hpmc.PythonShapeMoveSimplePolygon
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon
+        elif isinstance(integrator, integrate.ConvexPolyhedron):
+            move_cls = _hpmc.PythonShapeMoveConvexPolyhedron
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron
+        elif isinstance(integrator, integrate.ConvexSpheropolyhedron):
+            move_cls = _hpmc.PythonShapeMoveSpheropolyhedron
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheropolyhedron
+        elif isinstance(integrator, integrate.Ellipsoid):
+            move_cls = _hpmc.PythonShapeMoveEllipsoid
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid
+        elif isinstance(integrator, integrate.ConvexSpheropolygon):
+            move_cls = _hpmc.PythonShapeMoveConvexSphereopolygon
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheropolygon
+        elif isinstance(integrator, integrate.Polyhedron):
+            move_cls = _hpmc.PythonShapeMovePolyhedron
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannPolyhedron
+        elif isinstance(integrator, integrate.Sphinx):
+            move_cls = _hpmc.PythonShapeMoveSphinx
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphinx
+        elif isinstance(integrator, integrate.SphereUnion):
+            move_cls = _hpmc.PythonShapeMoveSphereUnion
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphereUnion
+        else:
+            raise RuntimeError("Integrator not supported")
+
+        self._shape_move = move_cls(ntypes, self.callback, self.params, self.stepsize, self.param_ratio)
+        self._boltzmann_function = boltzmann_cls()
+        super()._attach()
+
+    @log(category='scalar')
+    def shape_param(self):
+        """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
+
+        Returns:
+            The current value of the shape parameter in the user-specified callback
+        """
+        return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
+
     def vertex_shape_move(self, stepsize, param_ratio, volume=1.0):
         R"""
         Enable vertex shape move and set parameters. Changes a particle shape by
