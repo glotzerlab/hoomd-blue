@@ -226,6 +226,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ForceShiftedLJDriverPotentialPairGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
+                      LJGaussDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu

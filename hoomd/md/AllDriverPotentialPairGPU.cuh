@@ -34,6 +34,7 @@
 #include "EvaluatorPairDLVO.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairTWF.h"
+#include "EvaluatorPairLJGauss.h"
 
 //! Compute lj pair forces on the GPU with PairEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
@@ -144,4 +145,9 @@ gpu_compute_opp_forces(const pair_args_t & pair_args,
 hipError_t __attribute__((visibility("default")))
 gpu_compute_twf_forces(const pair_args_t & pair_args,
                        const EvaluatorPairTWF::param_type *d_params);
+//! Compute lj gauss potential pair forces on the GPU with EvaluatorLJGauss
+hipError_t __attribute__((visibility("default")))
+gpu_compute_lj_gauss_forces(const pair_args_t & pair_args,
+                            const EvaluatorLJGauss::param_type *d_params);
+
 #endif

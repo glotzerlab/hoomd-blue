@@ -248,6 +248,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairFourier>(m, "PotentialPairFourier");
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
+    export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");  
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -302,6 +303,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(m, "PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
+    export_PotentialPairGPU<PotentialPairLJGaussGPU, PotentialPairLJGauss>(m, "PotentialPairLJGaussGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
     export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
     export_PotentialTersoffGPU<PotentialTripletRevCrossGPU, PotentialTripletRevCross> (m, "PotentialRevCrossGPU");

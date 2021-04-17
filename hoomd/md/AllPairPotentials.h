@@ -29,12 +29,9 @@
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairTWF.h"
-
+#include "EvaluatorPairLJGauss.h"
 #ifdef ENABLE_HIP
-#include "PotentialPairGPU.h"
-#include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
-#include "AllDriverPotentialPairGPU.cuh"
 #endif
 
 /*! \file AllPairPotentials.h
@@ -90,6 +87,8 @@ typedef PotentialPair<EvaluatorPairOPP> PotentialPairOPP;
 /// Pair potential force compute for Ten wolde and Frenkels globular protein
 /// model
 typedef PotentialPair<EvaluatorPairTWF> PotentialPairTWF;
+//! Pair potential force compute for lj-gauss pair potential
+typedef PotentialPair<EvaluatorPairLJGauss> PotentialPairLJGauss;
 
 #ifdef ENABLE_HIP
 //! Pair potential force compute for lj forces on the GPU
@@ -141,6 +140,8 @@ typedef PotentialPairGPU<EvaluatorPairOPP,
 typedef PotentialPairGPU<EvaluatorPairTWF,
                          gpu_compute_twf_forces> PotentialPairTWFGPU;
 
+//! Pair potential force compute for lj-gauss pair potential
+typedef PotentialPairGPU<EvaluatorPairLJGauss, gpu_compute_lj_gauss_forces > PotentialPairLJGaussGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__
