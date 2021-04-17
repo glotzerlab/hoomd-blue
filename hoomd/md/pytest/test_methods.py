@@ -112,61 +112,61 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
 def test_attributes(method_base_params):
 
     all_ = hoomd.filter.All()
-    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_)
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
-    assert integrator.filter is all_
+    assert method.filter is all_
 
-    check_instance_attrs(integrator,method_base_params.setup_params)
-    check_instance_attrs(integrator,method_base_params.extra_params)
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
-    integrator.filter = type_A
-    assert integrator.filter is type_A
+    method.filter = type_A
+    assert method.filter is type_A
 
-    check_instance_attrs(integrator,method_base_params.changed_params,True)
+    check_instance_attrs(method,method_base_params.changed_params,True)
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
                                 method_base_params):
 
     all_ = hoomd.filter.All()
-    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_)
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
     sim.run(0)
 
-    assert integrator.filter is all_
+    assert method.filter is all_
 
-    check_instance_attrs(integrator,method_base_params.setup_params)
-    check_instance_attrs(integrator,method_base_params.extra_params)
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
-        integrator.filter = type_A
+        method.filter = type_A
 
-    check_instance_attrs(integrator,method_base_params.changed_params,True)
+    check_instance_attrs(method,method_base_params.changed_params,True)
 
 
 def test_rattle_attributes(method_base_params):
 
 
     if not method_base_params.has_rattle:
-        pytest.skip("RATTLE integrator is not implemented for this method") 
+        pytest.skip("RATTLE method is not implemented for this method") 
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
-    assert integrator.manifold_constraint == gyroid
-    assert integrator.tolerance == 1e-6
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    assert method.manifold_constraint == gyroid
+    assert method.tolerance == 1e-6
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    integrator.manifold_constraint = sphere
-    assert integrator.manifold_constraint == sphere
+    method.manifold_constraint = sphere
+    assert method.manifold_constraint == sphere
 
-    integrator.tolerance = 1e-5
-    assert integrator.tolerance == 1e-5
+    method.tolerance = 1e-5
+    assert method.tolerance == 1e-5
 
 def test_rattle_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -177,34 +177,34 @@ def test_rattle_attributes_attached(simulation_factory,
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    integrator = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[integrator])
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
     sim.run(0)
 
-    assert integrator.filter is all_
-    assert integrator.manifold_constraint == gyroid
-    assert integrator.tolerance == 1e-6
+    assert method.filter is all_
+    assert method.manifold_constraint == gyroid
+    assert method.tolerance == 1e-6
 
-    check_instance_attrs(integrator,method_base_params.setup_params)
-    check_instance_attrs(integrator,method_base_params.extra_params)
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
-        integrator.filter = type_A
+        method.filter = type_A
 
     sphere = hoomd.md.manifold.Sphere(r=10)
     with pytest.raises(AttributeError):
         # manifold cannot be set after scheduling
-        integrator.manifold_constraint = sphere
-    assert integrator.manifold_constraint == gyroid
+        method.manifold_constraint = sphere
+    assert method.manifold_constraint == gyroid
     
-    integrator.tolerance = 1e-5
-    assert integrator.tolerance == 1e-5
+    method.tolerance = 1e-5
+    assert method.tolerance == 1e-5
 
-    check_instance_attrs(integrator,method_base_params.changed_params,True)
+    check_instance_attrs(method,method_base_params.changed_params,True)
 
 def test_nph_attributes_attached_3d(simulation_factory,
                                     two_particle_snapshot_factory):
