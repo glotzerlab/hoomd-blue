@@ -451,7 +451,6 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepTwo(uint64_t timestep)
         Scalar resid;
         Scalar3 vel_dot;
 
-        unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {

@@ -443,7 +443,6 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 	Scalar3 residual;
 	Scalar resid;
         
-	unsigned int maxiteration = 10;
 	unsigned int iteration = 0;
 	do
 	{

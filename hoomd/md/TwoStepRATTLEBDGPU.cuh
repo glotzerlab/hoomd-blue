@@ -19,7 +19,6 @@
 
 #include "hoomd/GPUPartition.cuh"
 
-
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 using namespace hoomd;
@@ -528,8 +527,8 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4 *d_pos,
 
 	    Scalar3 residual;
 	    Scalar resid;
-            unsigned int maxiteration = 10;
 	    unsigned int iteration = 0;
+	    const unsigned int maxiteration = 10;
 
 	    do
 	    {

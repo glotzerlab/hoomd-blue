@@ -61,7 +61,13 @@ class ManifoldGyroid
 
         DEVICE Scalar implicitFunction(const Scalar3& point)
         {
-            return fast::sin(Lx*point.x)*fast::cos(Ly*point.y) + fast::sin(Ly*point.y)*fast::cos(Lz*point.z) + fast::sin(Lz*point.z)*fast::cos(Lx*point.x) - epsilon;
+            Scalar cx,sx;
+            fast::sincos(Lx*point.x,sx,cx);
+            Scalar cy,sy;
+            fast::sincos(Ly*point.y,sy,cy);
+            Scalar cz,sz;
+            fast::sincos(Lz*point.z,sz,cz);
+            return sx*cy + sy*cz + sz*cx - epsilon;
         }
 
         //! Evaluate deriviative of implicit function
@@ -78,7 +84,6 @@ class ManifoldGyroid
             fast::sincos(Ly*point.y,sy,cy);
             Scalar cz,sz;
             fast::sincos(Lz*point.z,sz,cz);
-
             return make_scalar3(Lx*(cx*cy - sz*sx),Ly*(cy*cz - sx*sy), Lz*(cz*cx - sy*sz));
         }
 

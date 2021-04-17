@@ -26,7 +26,7 @@ class _Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `_Method` directly.
     """
 
-class MethodRATTLE(_Method):
+class _MethodRATTLE(_Method):
     """Base class rattle integration method.
 
     Provides common methods for all subclasses which are compatible with the RATTLE
@@ -669,7 +669,7 @@ class NPH(_Method):
             self._simulation.timestep)
 
 
-class NVE(MethodRATTLE):
+class NVE(_MethodRATTLE):
     R""" NVE Integration via Velocity-Verlet with or without RATTLE
 
     Args:
@@ -767,7 +767,7 @@ class NVE(MethodRATTLE):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Langevin(MethodRATTLE):
+class Langevin(_MethodRATTLE):
     R""" Langevin dynamics with or without RATTLE
 
     Args:
@@ -961,7 +961,7 @@ class Langevin(MethodRATTLE):
             # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Brownian(MethodRATTLE):
+class Brownian(_MethodRATTLE):
     R""" Brownian dynamics with and without RATTLE.
 
     Args:

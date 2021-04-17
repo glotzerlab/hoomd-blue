@@ -175,7 +175,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
         Scalar resid;
         Scalar3 vel_dot;
    
-        unsigned int maxiteration = 10;
+        const unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {
@@ -356,7 +356,7 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
 	    Scalar resid;
 	    Scalar3 half_vel;
 
-            unsigned int maxiteration = 10;
+            const unsigned int maxiteration = 10;
 	    unsigned int iteration = 0;
 	    do
 	        {

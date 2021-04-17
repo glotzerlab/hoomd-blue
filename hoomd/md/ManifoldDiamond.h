@@ -60,7 +60,13 @@ class ManifoldDiamond
 
         DEVICE Scalar implicitFunction(const Scalar3& point)
         {
-            return fast::cos(Lx*point.x)*fast::cos(Ly*point.y)*fast::cos(Lz*point.z) - fast::sin(Lx*point.x)*fast::sin(Ly*point.y)*fast::sin(Lz*point.z) - epsilon;
+            Scalar cx,sx;
+            fast::sincos(Lx*point.x,sx,cx);
+            Scalar cy,sy;
+            fast::sincos(Ly*point.y,sy,cy);
+            Scalar cz,sz;
+            fast::sincos(Lz*point.z,sz,cz);
+            return cx*cy*cz - sx*sy*sz - epsilon;
         }
 
         //! Evaluate deriviative of implicit function

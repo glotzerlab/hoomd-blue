@@ -258,7 +258,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         Scalar resid;
         Scalar3 vel_dot;
 
-        unsigned int maxiteration = 10;
+        const unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
             {

@@ -20,6 +20,7 @@
 #include <pybind11/pybind11.h>
 #include "hoomd/VectorMath.h"
 
+constexpr unsigned int maxiteration = 10;
 
 inline Scalar maxNorm(Scalar3 vec, Scalar resid)
     {
@@ -104,6 +105,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
         Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
         bool m_zero_force;  //!< True if the integration step should ignore computed forces
+
     };
 
 /*! \file TwoStepRATTLENVE.h
@@ -400,7 +402,6 @@ void TwoStepRATTLENVE<Manifold>::integrateStepTwo(uint64_t timestep)
            Scalar resid;
            Scalar3 vel_dot;
 
-           unsigned int maxiteration = 10;
            unsigned int iteration = 0;
            do
                {
@@ -537,7 +538,6 @@ void TwoStepRATTLENVE<Manifold>::includeRATTLEForce(uint64_t timestep)
 	Scalar3 half_vel;
 
 
-        unsigned int maxiteration = 10;
 	unsigned int iteration = 0;
 	do
 	{
