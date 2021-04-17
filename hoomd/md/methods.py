@@ -1065,9 +1065,6 @@ class Brownian(_MethodRATTLE):
         kT (hoomd.variant.Variant): Temperature of the
             simulation (in energy units).
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by the RATTLE algorithm of this method.
-
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
