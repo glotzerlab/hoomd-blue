@@ -303,28 +303,9 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             return m_properties;
             }
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
-        //! Control the enable_logging flag
-        /*! Set this flag to false to prevent this compute from providing logged quantities.
-            This is useful for internal computes that should not appear in the logs.
-
-            \param enable Flag to set
-        */
-        void setLoggingEnabled(bool enable)
-            {
-            m_logging_enabled = enable;
-            }
-
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GlobalArray<Scalar> m_properties;  //!< Stores the computed properties
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
-        bool m_logging_enabled;         //!< Set to false to disable communication with the logger
 
         /// Store the particle data flags used during the last computation
         PDataFlags m_computed_flags;

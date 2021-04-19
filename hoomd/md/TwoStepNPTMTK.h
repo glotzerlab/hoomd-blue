@@ -195,12 +195,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             return flags;
             }
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
-
         //! Initialize integrator variables
         virtual void initializeIntegratorVariables()
             {

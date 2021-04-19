@@ -655,14 +655,12 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             {
             m_Spheres.push_back(wall);
             size_t wall_ind = m_Spheres.size()-1;
-            m_SphereLogQuantities.push_back(getSphWallParamName(wall_ind));
             }
 
         void AddCylinderWall(const CylinderWall& wall)
             {
             m_Cylinders.push_back(wall);
             size_t wall_ind = m_Cylinders.size()-1;
-            m_CylinderLogQuantities.push_back(getCylWallParamName(wall_ind));
             }
 
         void AddPlaneWall(const PlaneWall& wall)
@@ -674,52 +672,16 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         void RemoveSphereWall(size_t index)
             {
             m_Spheres.erase(m_Spheres.begin()+index);
-            m_SphereLogQuantities.erase(m_SphereLogQuantities.begin()+index);
             }
 
         void RemoveCylinderWall(size_t index)
             {
             m_Cylinders.erase(m_Cylinders.begin()+index);
-            m_CylinderLogQuantities.erase(m_CylinderLogQuantities.begin()+index);
             }
 
         void RemovePlaneWall(size_t index)
             {
             m_Planes.erase(m_Planes.begin()+index);
-            }
-
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector<std::string> m_WallLogQuantities;
-            m_WallLogQuantities.reserve(m_SphereLogQuantities.size() + m_CylinderLogQuantities.size());
-            m_WallLogQuantities.insert(m_WallLogQuantities.end(), m_SphereLogQuantities.begin(), m_SphereLogQuantities.end());
-            m_WallLogQuantities.insert(m_WallLogQuantities.end(), m_CylinderLogQuantities.begin(), m_CylinderLogQuantities.end());
-            m_WallLogQuantities.push_back("hpmc_wall_volume");
-            return m_WallLogQuantities;
-            }
-
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
-            {
-            for (size_t i = 0; i < m_Spheres.size(); i++)
-              {
-              if (quantity == getSphWallParamName(i))
-                {
-                return m_Spheres[i].rsq;
-                }
-              }
-            for (size_t i = 0; i < m_Cylinders.size(); i++)
-              {
-              if (quantity == getCylWallParamName(i))
-                {
-                return m_Cylinders[i].rsq;
-                }
-              }
-            if (quantity == "hpmc_wall_volume")
-            {
-              return m_Volume;
-            }
-            this->m_exec_conf->msg->error() << "compute.wall: " << quantity << " is not a valid log quantity." << std::endl;
-            throw std::runtime_error("Error getting log value");
             }
 
         bool wall_overlap(const unsigned int& index, const vec3<Scalar>& position_old,
@@ -829,8 +791,6 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         std::vector<SphereWall>     m_Spheres;
         std::vector<CylinderWall>   m_Cylinders;
         std::vector<PlaneWall>      m_Planes;
-        std::vector<std::string>    m_SphereLogQuantities;
-        std::vector<std::string>    m_CylinderLogQuantities;
         Scalar                      m_Volume;
     private:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator

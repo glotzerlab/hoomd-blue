@@ -53,7 +53,6 @@
      - The energy can be globally shifted to 0 at the cutoff
      - XPLOR switching can be enabled
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     A note on the design of XPLOR switching:
@@ -123,11 +122,6 @@ class PotentialPair : public ForceCompute
                                    std::string action);
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -542,37 +536,6 @@ int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
-    }
-
-/*! PotentialPair provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with evaluator::getName()
-*/
-template< class evaluator >
-std::vector< std::string > PotentialPair< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                  << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure

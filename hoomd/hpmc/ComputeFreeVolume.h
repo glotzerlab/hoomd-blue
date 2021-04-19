@@ -84,19 +84,6 @@ class ComputeFreeVolume : public Compute
             }
 #endif
 
-        /* \returns a list of provided quantities
-        */
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector< std::string> result;
-            result.push_back("hpmc_free_volume"+m_suffix);
-
-            return result;
-            }
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Analyze the current configuration
         virtual void compute(uint64_t timestep);
 
@@ -291,40 +278,6 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t timestep)
 
     ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::overwrite);
     *h_n_overlap_all.data = overlap_count;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \return the requested log quantity.
-*/
-template<class Shape>
-Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == "hpmc_free_volume"+m_suffix)
-        {
-        // perform MC integration
-        compute(timestep);
-
-        // access counters
-        ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::read);
-
-        // generate n_sample random test depletants in the global box
-        unsigned int n_sample = m_n_sample;
-
-        #ifdef ENABLE_MPI
-        // in MPI, for small n_sample we can encounter round-off issues
-        unsigned int n_ranks = this->m_exec_conf->getNRanks();
-        n_sample = (n_sample/n_ranks)*n_ranks;
-        #endif
-
-
-        // total free volume
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
-        Scalar V_free = (Scalar)(n_sample-*h_n_overlap_all.data)/(Scalar)n_sample*global_box.getVolume();
-
-        return V_free;
-        }
-    throw std::runtime_error("Undefined log quantity");
     }
 
 // \return the free volume.

@@ -1597,27 +1597,6 @@ void PPPMForceCompute::fixExclusions()
     if (m_prof) m_prof->pop();
     }
 
-Scalar PPPMForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_names[0])
-        {
-        // make sure values are current
-        compute(timestep);
-
-        Scalar result = computePE();
-
-        if(m_nlist->getExclusionsSet())
-            {
-            result += calcEnergySum();
-            }
-
-        return result;
-        }
-
-    // nothing found? return base class value
-    return ForceCompute::getLogValue(quantity, timestep);
-    }
-
 Scalar PPPMForceCompute::getQSum()
     {
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);

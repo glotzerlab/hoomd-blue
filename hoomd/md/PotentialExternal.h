@@ -42,12 +42,6 @@ class PotentialExternal: public ForceCompute
         void setParams(unsigned int type, param_type params);
         void setField(field_type field);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
     protected:
 
         GPUArray<param_type>    m_params;        //!< Array of per-type parameters
@@ -99,35 +93,6 @@ template<class evaluator>
 PotentialExternal<evaluator>::~PotentialExternal()
     {
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
-    }
-
-/*! PotentialExternal provides
-    - \c external_"name"_energy
-*/
-template<class evaluator>
-std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template<class evaluator>
-Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "external." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Computes the specified constraint forces

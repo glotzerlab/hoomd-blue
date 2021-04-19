@@ -33,7 +33,6 @@
     PotentialPairDPDThermo handles most of the gory internal details common to all standard pair potentials.
      - A cutoff radius to be specified per particle type pair for the conservative and stochastic potential
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     \sa export_PotentialPairDPDThermo()

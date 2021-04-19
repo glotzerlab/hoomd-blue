@@ -68,12 +68,6 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
                               const std::vector<Scalar> &T
                               );
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step

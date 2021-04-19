@@ -50,12 +50,6 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
             return m_reservoir_energy;
             }
 
-        /// Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        /// Returns logged values
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
-
         /// Performs the second step of the integration
         virtual void integrateStepOne(uint64_t timestep);
 

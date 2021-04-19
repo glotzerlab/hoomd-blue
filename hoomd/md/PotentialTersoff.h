@@ -41,7 +41,6 @@
     PotentialTersoff handles most of the internal details common to all standard three-body potentials.
      - A cutoff radius to be specified per particle type-pair
      - Per type-pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - All the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     <b>Implementation details</b>
@@ -97,10 +96,6 @@ class PotentialTersoff : public ForceCompute
         /// Validate that types are within Ntypes
         virtual void validateTypes(unsigned int typ1, unsigned int typ2,
                                    std::string action);
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         virtual void notifyDetach()
             {
@@ -337,37 +332,6 @@ Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-/*! PotentialTersoff provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with evaluator::getName()
-*/
-template< class evaluator >
-std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                                        << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The forces are computed for the given timestep. The neighborlist's compute method is called to ensure

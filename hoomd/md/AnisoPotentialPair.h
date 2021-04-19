@@ -47,7 +47,6 @@
      - A cutoff radius to be specified per particle type pair
      - The energy can be globally shifted to 0 at the cutoff
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     \note XPLOR switching is not supported
@@ -120,11 +119,6 @@ class AnisoPotentialPair : public ForceCompute
         //! Set the shape parameters for a single type through Python
         virtual void setShapePython(std::string typ,
                                     const pybind11::object shape_param);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params, const GlobalArray<shape_type> &shape_params) const
             {
@@ -559,36 +553,6 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getRCut(pybind11::tuple types)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-/*! AnisoPotentialPair provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with aniso_evaluator::getName()
-*/
-template< class aniso_evaluator >
-std::vector< std::string > AnisoPotentialPair< aniso_evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class aniso_evaluator >
-Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair"
-                                  << std::endl << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure

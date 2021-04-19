@@ -58,12 +58,6 @@ class PotentialSpecialPair : public ForceCompute
         /// Get the parameters for a specific type
         virtual pybind11::dict getParams(std::string type);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         virtual CommFlags getRequestedCommFlags(uint64_t timestep);
@@ -190,36 +184,6 @@ Scalar PotentialSpecialPair< evaluator >::getRCut(std::string type)
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
     return sqrt(h_params.data[typ].r_cutsq);
-    }
-
-
-/*! PotentialSpecialPair provides
-    - \c special_pair_"name"_energy
-*/
-template< class evaluator >
-std::vector< std::string > PotentialSpecialPair< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialSpecialPair< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Actually perform the force computation

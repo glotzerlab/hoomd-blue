@@ -119,30 +119,6 @@ void BondTablePotential::setTable(unsigned int type,
         }
     }
 
-/*! BondTablePotential provides
-    - \c bond_table_energy
-*/
-std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar BondTablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "bond.table: " << quantity << " is not a valid log quantity for BondTablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */

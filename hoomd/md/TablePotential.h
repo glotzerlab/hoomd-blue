@@ -78,12 +78,6 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
                               Scalar rmin,
                               Scalar rmax);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         virtual void notifyDetach()
             {
             if (m_attached)

@@ -46,14 +46,8 @@ class PotentialBond : public ForceCompute
         /// Get the parameters
         pybind11::dict getParams(std::string type);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
         /// Validate bond type
         virtual void validateType(unsigned int type, std::string action);
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -152,35 +146,6 @@ pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
     return h_params.data[itype].asDict();
-    }
-
-/*! PotentialBond provides
-    - \c bond_"name"_energy
-*/
-template< class evaluator >
-std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Actually perform the force computation

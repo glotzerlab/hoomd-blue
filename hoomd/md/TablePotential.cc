@@ -239,30 +239,6 @@ void TablePotential::setTable(unsigned int typ1,
     m_nlist->notifyRCutMatrixChange();
     }
 
-/*! TablePotential provides
-    - \c pair_table_energy
-*/
-std::vector< std::string > TablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar TablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.table: " << quantity << " is not a valid log quantity for TablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep. The neighborlist's
 compute method is called to ensure that it is up to date.
 

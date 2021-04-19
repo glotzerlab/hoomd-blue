@@ -167,32 +167,6 @@ void DEM2DForceCompute<Real, Real4, Potential>::setParams(
     m_shapes[type] = points;
     }
 
-/*! DEM2DForceCompute provides
-  - \c pair_dem_energy
-*/
-template<typename Real, typename Real4, typename Potential>
-std::vector< std::string > DEM2DForceCompute<Real, Real4, Potential>::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back("pair_dem_energy");
-    return list;
-    }
-
-template<typename Real, typename Real4, typename Potential>
-Real DEM2DForceCompute<Real, Real4, Potential>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == string("pair_dem_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "dem: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The DEM2D forces are computed for the given timestep. The neighborlist's
   compute method is called to ensure that it is up to date.
 

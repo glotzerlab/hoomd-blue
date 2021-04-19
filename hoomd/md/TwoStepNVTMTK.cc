@@ -59,45 +59,6 @@ TwoStepNVTMTK::~TwoStepNVTMTK()
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTMTK" << endl;
     }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > TwoStepNVTMTK::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    result.push_back(m_log_name);
-    return result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quantity logged here
-*/
-
-Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
-    {
-    if (quantity == m_log_name)
-        {
-        my_quantity_flag = true;
-        Scalar g = m_group->getTranslationalDOF();
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar& xi = v.variable[0];
-        Scalar& eta = v.variable[1];
-        Scalar thermostat_energy = (Scalar) g * (*m_T)(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
-
-        if (m_aniso)
-            {
-            Scalar& xi_rot = v.variable[2];
-            Scalar& eta_rot = v.variable[3];
-            thermostat_energy += (Scalar)m_group->getRotationalDOF()* (*m_T)(timestep)
-                                   *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
-            }
-
-        return thermostat_energy;
-        }
-    else
-        return Scalar(0);
-    }
-
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.

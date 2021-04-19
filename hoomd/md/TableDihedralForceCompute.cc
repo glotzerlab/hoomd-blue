@@ -99,30 +99,6 @@ void TableDihedralForceCompute::setTable(unsigned int type,
         }
     }
 
-/*! TableDihedralForceCompute provides
-    - \c dihedral_table_energy
-*/
-std::vector< std::string > TableDihedralForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar TableDihedralForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "dihedral.table: " << quantity << " is not a valid log quantity for TableDihedralForceCompute" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */

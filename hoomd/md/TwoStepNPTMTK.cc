@@ -506,63 +506,6 @@ void TwoStepNPTMTK::integrateStepTwo(uint64_t timestep)
         m_prof->pop();
     }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > TwoStepNPTMTK::getProvidedLogQuantities()
-    {
-    return m_log_names;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quantity logged here
-*/
-Scalar TwoStepNPTMTK::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
-    {
-    if (quantity == m_log_names[0])
-        {
-        my_quantity_flag = true;
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar eta = v.variable[0];
-        Scalar xi = v.variable[1];
-
-        Scalar thermostat_energy = m_group->getTranslationalDOF()*(*m_T)(timestep)
-                                   *(eta + m_tau*m_tau*xi*xi/Scalar(2.0));
-
-        if (m_aniso)
-            {
-            Scalar xi_rot = v.variable[8];
-            Scalar eta_rot = v.variable[9];
-            thermostat_energy += m_group->getRotationalDOF()*(*m_T)(timestep)
-                                   *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
-            }
-
-        return thermostat_energy;
-        }
-    else if (quantity == m_log_names[1])
-        {
-        my_quantity_flag = true;
-        IntegratorVariables v = getIntegratorVariables();
-
-        Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
-        Scalar nuxy = v.variable[3];  // Barostat tensor, xy component
-        Scalar nuxz = v.variable[4];  // Barostat tensor, xz component
-        Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
-        Scalar nuyz = v.variable[6];  // Barostat tensor, yz component
-        Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
-
-        unsigned int d = m_sysdef->getNDimensions();
-        Scalar W = (Scalar)(m_ndof+d)/(Scalar)d*(*m_T)(timestep)*m_tauS*m_tauS;
-        Scalar barostat_energy = W*(nuxx*nuxx+nuyy*nuyy+nuzz*nuzz+nuxy*nuxy+nuxz*nuxz+nuyz*nuyz) / Scalar(2.0);
-
-        return barostat_energy;
-        }
-    else
-        {
-        return Scalar(0);
-        }
-    }
-
 /*! \param nuxx Barostat matrix, xx element
     \param nuxy xy element
     \param nuxz xz element
