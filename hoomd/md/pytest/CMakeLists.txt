@@ -6,6 +6,7 @@ set(files __init__.py
     test_bond_FENE.py
     test_flags.py
     test_potential.py
+    test_manifolds.py
     test_methods.py
     test_thermo.py
     forces_and_energies.json
