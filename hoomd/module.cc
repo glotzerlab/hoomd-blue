@@ -158,15 +158,6 @@ std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConf
     #endif
     }
 
-// Added to fix python recursion error when appending to _hoomd_std_vectors
-PYBIND11_MAKE_OPAQUE(std::vector<Scalar>);
-PYBIND11_MAKE_OPAQUE(std::vector<string>);
-PYBIND11_MAKE_OPAQUE(std::vector<unsigned int>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::pair<unsigned int, unsigned int> >);
-PYBIND11_MAKE_OPAQUE(std::vector<int>);
-PYBIND11_MAKE_OPAQUE(std::vector<Scalar3>);
-PYBIND11_MAKE_OPAQUE(std::vector<Scalar4>);
-
 //! Create the python module
 /*! each class sets up its own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
