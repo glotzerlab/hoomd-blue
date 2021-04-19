@@ -42,7 +42,6 @@ class PYBIND11_EXPORT NeighborListTree : public NeighborList
     public:
         //! Constructs the compute
         NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
-                           Scalar r_cut,
                            Scalar r_buff);
 
         //! Destructor

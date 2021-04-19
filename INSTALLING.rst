@@ -152,7 +152,7 @@ You can install numpy and other python packages into your virtual environment us
 Note that other types of virtual environments
 (such as *conda*) may work, but are not thoroughly tested. ::
 
-    $ python3 -m venv /path/to/environment --system-site-packages
+    $ python3 -m venv /path/to/environment
 
 
 Compile HOOMD-blue

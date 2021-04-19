@@ -1696,6 +1696,63 @@ class LJ1208(Pair):
         self._add_typeparam(params)
 
 
+class LJ0804(Pair):
+    """Lennard-Jones 8-4 pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode
+
+    `LJ0804` specifies that a Lennard-Jones 8-4 pair potential should be
+    applied between every non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V_{\\mathrm{LJ}}(r)
+          = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{8} -
+          \\left( \\frac{\\sigma}{r} \\right)^{4} \\right]
+          & r < r_{\\mathrm{cut}} \\\\
+          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    See `Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use the `params` dictionary
+    to set potential coefficients. The coefficients must be set per
+    unique pair of particle types.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The LJ potential parameters. The dictionary has the following keys:
+
+            * ``epsilon`` (`float`, **required**) -
+              energy parameter :math:`\\varepsilon` (in energy units)
+
+            * ``sigma`` (`float`, **required**) -
+              particle size :math:`\\sigma` (in distance units)
+
+    Example::
+
+        nl = nlist.Cell()
+        lj0804 = pair.LJ0804(nl, r_cut=3.0)
+        lj0804.params[('A', 'A')] = {'sigma': 1.0, 'epsilon': 1.0}
+        lj0804.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0)
+        lj0804.r_cut[('A', 'B')] = 3.0
+    """
+    _cpp_class_name = "PotentialPairLJ0804"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 len_keys=2))
+        self._add_typeparam(params)
+
+
 class Fourier(Pair):
     """Fourier pair potential.
 
@@ -1889,4 +1946,64 @@ class TWF(Pair):
                                TypeParameterDict(epsilon=float, sigma=float,
                                                  alpha=float, len_keys=2)
                                )
+        self._add_typeparam(params)
+
+class LJGauss(Pair):
+    R""" Lennard-Jones-Gauss pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mod
+
+    :py:class:`LJGauss` specifies that a Lennard-Jones-Gauss pair potential should be added to every
+    non-excluded particle pair in the simulation.
+
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V_{\\mathrm{LJGauss}}(r) = \\frac{1}{r^{12}} - \\frac{2}{r^{6}} - \\epsilon e^{- \\frac{\\left(r - r_{0}\\right)^{2}}{2 \\sigma^{2}}} \\\\
+                           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+
+    See `Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.  Use the `params` dictionary
+    to set potential coefficients. The coefficients must be set per
+    unique pair of particle types.
+
+    Attributes:
+        params (`TypeParameter` [\
+            `tuple` [``particle_type``, ``particle_type``],\
+            `dict`]):
+            The LJGauss potential parameters. The dictionary has the following
+            keys:
+            
+            * ``epsilon`` (`float`, **required**) - energy parameter :math:`\\varepsilon` (in energy units)
+
+            * ``sigma2`` (`float`, **required**) -
+              Gaussian variance/well spread  :math:`\\sigma^2` (in squared distance units)
+
+
+            * ``r0`` (`float`, **required**) -
+              Gaussian well center :math:`\\r_0` (in distance units)
+
+
+    Example::
+
+        nl = nlist.cell()
+        ljg = pair.LJGauss(nl, r_cut=3.0)
+        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma2=0.02, r0=1.6)
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma2' : 0.02, 'r0' : 1.6}
+    """
+    _cpp_class_name = "PotentialPairLJGauss"
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+        super().__init__(nlist, r_cut, r_on, mode);
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma2=float, r0=float,
+                                                 len_keys=2))
         self._add_typeparam(params)
