@@ -93,14 +93,6 @@ class ManifoldCylinder
             }
         }
 
-        pybind11::dict getDict()
-        {
-            pybind11::dict v;
-            v["r"] = sqrt(R_sq);
-            v["P"] = pybind11::make_tuple(Px, Py, Pz);
-            return v;
-        }
-
         Scalar getR(){ return sqrt(R_sq);};
 
         pybind11::tuple getP(){ return pybind11::make_tuple(Px, Py, Pz);}

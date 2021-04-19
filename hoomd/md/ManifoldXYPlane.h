@@ -85,13 +85,6 @@ class ManifoldXYPlane
             }
         }
 
-        pybind11::dict getDict()
-        {
-            pybind11::dict v;
-            v["shift"] = shift;
-            return v;
-        }
-
         Scalar getShift(){ return shift;};
 
         static unsigned int dimension()

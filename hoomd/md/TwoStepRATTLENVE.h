@@ -96,9 +96,6 @@ class PYBIND11_EXPORT TwoStepRATTLENVE : public IntegrationMethodTwoStep
         /// Gets tolerance
         Scalar getTolerance(){ return m_tolerance; };
 
-        /// Gets manifold parameter
-	pybind11::dict getManifold(){ return m_manifold.getDict(); };
-
     protected:
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         bool m_limit;       //!< True if we should limit the distance a particle moves in one step
@@ -599,7 +596,6 @@ void export_TwoStepRATTLENVE(py::module& m, const std::string& name)
         .def("setZeroForce", &TwoStepRATTLENVE<Manifold>::setZeroForce)
         .def_property("tolerance", &TwoStepRATTLENVE<Manifold>::getTolerance,
                             &TwoStepRATTLENVE<Manifold>::setTolerance)
-        .def_property_readonly("manifold_constraint", &TwoStepRATTLENVE<Manifold>::getManifold)
         ;
     }
 

@@ -113,9 +113,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         /// Gets tolerance
         Scalar getTolerance(){ return m_tolerance; };
 
-        /// Gets manifold parameter
-	pybind11::dict getManifold(){ return m_manifold.getDict(); };
-
     protected:
         Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the system is coupled to.
@@ -702,7 +699,6 @@ void export_TwoStepRATTLELangevin(py::module& m, const std::string& name)
                                                 &TwoStepRATTLELangevin<Manifold>::setTallyReservoirEnergy)
         .def_property("tolerance", &TwoStepRATTLELangevin<Manifold>::getTolerance,
                             &TwoStepRATTLELangevin<Manifold>::setTolerance)
-        .def_property_readonly("manifold_constraint", &TwoStepRATTLELangevin<Manifold>::getManifold)
         ;
     }
 

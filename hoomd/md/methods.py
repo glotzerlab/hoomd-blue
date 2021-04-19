@@ -72,11 +72,11 @@ class _MethodRATTLE(_Method):
 
     def _getattr_param(self, attr):
         if self._attached:
-            parameter = getattr(self._cpp_obj, attr)
             # "manifold_constraint" returns a dict rather than an Manifold object
             # so we convert it before returning it to the user.
             if attr == "manifold_constraint":
-                return self._param_dict[attr].__class__(**parameter)
+                return self._param_dict["manifold_constraint"]
+            parameter = getattr(self._cpp_obj, attr)
             return parameter
         else:
             return self._param_dict[attr]

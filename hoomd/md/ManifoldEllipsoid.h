@@ -99,16 +99,6 @@ class ManifoldEllipsoid
                 }
         }
 
-        pybind11::dict getDict()
-        {
-            pybind11::dict v;
-            v["a"] = a;
-            v["b"] = b;
-            v["c"] = c;
-            v["P"] = pybind11::make_tuple(Px, Py, Pz);
-            return v;
-        }
-
         Scalar getA(){ return a;};
 
         Scalar getB(){ return b;};

@@ -86,14 +86,6 @@ class ManifoldPrimitive
             return true; //Primitive surface is adjusted to box automatically and, therefore, is always accepted
         }
 
-        pybind11::dict getDict()
-        {
-            pybind11::dict v;
-            v["N"] = pybind11::make_tuple(Nx, Ny, Nz);
-            v["epsilon"] = epsilon;
-            return v;
-        }
-
         pybind11::tuple getN(){ return pybind11::make_tuple(Nx, Ny, Nz);}
 
         Scalar getEpsilon(){ return epsilon;};
