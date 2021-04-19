@@ -265,3 +265,7 @@ class Rigid(Constraint):
                 existing ones.
         """
         self._cpp_obj.validateRigidBodies(create)
+
+    def _attach(self):
+        super()._attach()
+        self._cpp_obj.validateRigidBodies(False)
