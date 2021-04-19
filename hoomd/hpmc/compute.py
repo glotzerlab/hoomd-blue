@@ -109,7 +109,7 @@ class FreeVolume(Compute):
             return None
 
 
-class SDF(_analyzer):
+class SDF(Compute):
     R""" Compute the scale distribution function.
 
     Args:
@@ -189,13 +189,13 @@ class SDF(_analyzer):
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
-                                xmax,
-                                dx)
+                                self.xmax,
+                                self.dx)
 
         super()._attach()
 
     @log
-    def free_volume(self):
+    def sdf(self):
         """Free volume available to the test particle."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
