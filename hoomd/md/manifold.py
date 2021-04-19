@@ -50,6 +50,9 @@ class Manifold(_HOOMDBaseObject):
             return NotImplemented
         return all(getattr(self, attr) == getattr(other, attr) for attr in self._param_dict)
 
+    def _setattr_param(self, attr, value):
+        raise AttributeError("Manilfolds are immutable and {} cannot be set "
+                            "after initialization".format(attr))
 
 
 class Cylinder(Manifold):
