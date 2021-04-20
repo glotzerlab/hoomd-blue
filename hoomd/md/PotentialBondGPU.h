@@ -166,7 +166,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(uint64_t timestep)
     \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m)
+template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
      pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
