@@ -23,11 +23,9 @@ using namespace std;
 
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
-    \param suffix Suffix to append to all logged quantity names
 */
 ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
-                             std::shared_ptr<ParticleGroup> group,
-                             const std::string& suffix)
+                             std::shared_ptr<ParticleGroup> group)
     : Compute(sysdef), m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
@@ -301,7 +299,7 @@ void ComputeThermo::reduceProperties()
 void export_ComputeThermo(py::module& m)
     {
     py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>>())
     .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
     .def_property_readonly("pressure", &ComputeThermo::getPressure)
     .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)

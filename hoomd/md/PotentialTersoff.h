@@ -61,9 +61,8 @@
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, PotentialTersoff needs to know the name of the potential. For now, that will be queried from
-    the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independently.
+    For profiling PotentialTersoff needs to know the name of the potential. For
+    now, that will be queried from the evaluator.
 
     \sa export_PotentialTersoff()
 */
@@ -76,8 +75,7 @@ class PotentialTersoff : public ForceCompute
 
         //! Construct the potential
         PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
-                         const std::string& log_suffix="");
+                         std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialTersoff();
 
@@ -117,7 +115,6 @@ class PotentialTersoff : public ForceCompute
         GPUArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
-        std::string m_log_name;                     //!< Cached log name
 
         // track whether we are attached to the simulation
         bool m_attached = true;
@@ -196,12 +193,10 @@ class PotentialTersoff : public ForceCompute
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
+                                                std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
@@ -220,7 +215,6 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
-    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().template connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
@@ -1007,7 +1001,7 @@ CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(uint64_t timestep
 template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
     .def("setParams", &T::setParamsPython)
     .def("getParams", &T::getParams)
     .def("setRCut", &T::setRCutPython)

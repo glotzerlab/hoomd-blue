@@ -46,8 +46,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
 
         //! Construct the pair potential
         PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
-                      const std::string& log_suffix="");
+                               std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPairDPDThermo() { };
 
@@ -72,13 +71,11 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
-    : PotentialPair<evaluator>(sysdef,nlist, log_suffix)
+                                                            std::shared_ptr<NeighborList> nlist)
+    : PotentialPair<evaluator>(sysdef,nlist)
     {
     }
 
@@ -292,7 +289,7 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(uint64_t ti
 template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def_property("kT", &T::getT, &T::setT)
               ;
     }

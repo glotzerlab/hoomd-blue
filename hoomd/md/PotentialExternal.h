@@ -30,8 +30,7 @@ class PotentialExternal: public ForceCompute
     {
     public:
         //! Constructs the compute
-        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef,
-                                     const std::string& log_suffix="");
+        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~PotentialExternal<evaluator>();
 
         //! type of external potential parameters
@@ -45,7 +44,6 @@ class PotentialExternal: public ForceCompute
     protected:
 
         GPUArray<param_type>    m_params;        //!< Array of per-type parameters
-        std::string             m_log_name;               //!< Cached log name
         GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
@@ -68,14 +66,11 @@ class PotentialExternal: public ForceCompute
 
 /*! Constructor
     \param sysdef system definition
-    \param log_suffix Name given to this instance of the force
 */
 template<class evaluator>
-PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef,
-                         const std::string& log_suffix)
+PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
-    m_log_name = std::string("external_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -212,7 +207,7 @@ template < class T >
 void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-                  .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+                  .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;

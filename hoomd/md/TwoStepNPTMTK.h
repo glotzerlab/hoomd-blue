@@ -262,8 +262,6 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
         Scalar m_gamma;                 //!< Optional damping factor for box degrees of freedom
 
-        std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
-
         //! Helper function to advance the barostat parameters
         void advanceBarostat(uint64_t timestep);
 

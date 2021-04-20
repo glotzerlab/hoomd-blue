@@ -25,14 +25,12 @@ namespace py = pybind11;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        std::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
-                       std::shared_ptr<Variant> T,
-                       const std::string& suffix)
+                       std::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T), m_exp_thermo_fac(1.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTMTK" << endl;
@@ -50,8 +48,6 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
         {
         setValidRestart(true);
         }
-
-    m_log_name = string("nvt_mtk_reservoir_energy") + suffix;
     }
 
 TwoStepNVTMTK::~TwoStepNVTMTK()
@@ -530,9 +526,7 @@ void export_TwoStepNVTMTK(py::module& m)
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,
                        Scalar,
-                       std::shared_ptr<Variant>,
-                       const std::string&
-                       >())
+                       std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)

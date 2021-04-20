@@ -21,8 +21,6 @@ TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
-
-    m_log_name = string("langevin_reservoir_energy");
     }
 
 TwoStepLangevin::~TwoStepLangevin()

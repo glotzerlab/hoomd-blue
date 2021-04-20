@@ -26,11 +26,10 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
     \param harmonicPressure The contribution to the pressure from harmonic fluctuations
-    \param suffix Suffix to append to all logged quantity names
 */
 ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group, const double temperature,
-                             const double harmonicPressure, const std::string& suffix)
+                             const double harmonicPressure)
     : Compute(sysdef), m_group(group), m_harmonicPressure(harmonicPressure)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermoHMA" << endl;
@@ -38,9 +37,6 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     assert(m_pdata);
     GPUArray< Scalar > properties(thermoHMA_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
-
-    m_logname_list.push_back(string("potential_energyHMA") + suffix);
-    m_logname_list.push_back(string("pressureHMA") + suffix);
 
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
@@ -181,7 +177,7 @@ void ComputeThermoHMA::reduceProperties()
 void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA")
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double,const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double>())
     .def("getPotentialEnergyHMA", &ComputeThermoHMA::getPotentialEnergyHMA)
     .def("getPressureHMA", &ComputeThermoHMA::getPressureHMA)
     ;

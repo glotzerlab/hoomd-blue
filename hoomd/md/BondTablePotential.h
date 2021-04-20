@@ -55,8 +55,7 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
     public:
         //! Constructs the compute
         BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int table_width,
-                       const std::string& log_suffix="");
+                       unsigned int table_width);
 
         //! Destructor
         virtual ~BondTablePotential();
@@ -87,7 +86,6 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         Index2D m_table_value;                      //!< Index table helper
-        std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);

@@ -767,7 +767,7 @@ void Integrator::update(uint64_t timestep)
     simulation is defined. It allows the integrator to perform any one-off setup tasks and update net_force and
     net_virial, if needed.
 
-    Specifically, updated net_force and net_virial in this call is a must for logged quantities to properly carry
+    Specifically, updated net_force and net_virial in this call is a must to properly carry
     over in restarted jobs.
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.

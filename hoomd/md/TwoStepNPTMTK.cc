@@ -87,10 +87,6 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
         {
         setValidRestart(true);
         }
-
-    m_log_names.resize(2);
-    m_log_names[0] = "npt_thermostat_energy";
-    m_log_names[1] = "npt_barostat_energy";
     }
 
 

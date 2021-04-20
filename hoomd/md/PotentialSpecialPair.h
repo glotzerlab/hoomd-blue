@@ -35,8 +35,7 @@ class PotentialSpecialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix="");
+        PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~PotentialSpecialPair();
@@ -66,7 +65,6 @@ class PotentialSpecialPair : public ForceCompute
     protected:
         GPUArray<param_type> m_params;              //!< SpecialPair parameters per type
         std::shared_ptr<PairData> m_pair_data;    //!< Data to use in computing particle pairs
-        std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
@@ -74,11 +72,9 @@ class PotentialSpecialPair : public ForceCompute
     };
 
 /*! \param sysdef System to compute forces on
-    \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix)
+PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialSpecialPair<" << evaluator::getName() << ">" << std::endl;
@@ -86,7 +82,6 @@ PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDe
 
     // access the pair data for later use
     m_pair_data = m_sysdef->getPairData();
-    m_log_name = std::string("special_pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Special pair ") + evaluator::getName();
 
     // allocate the parameters
@@ -382,7 +377,7 @@ CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(uint64_t time
 template < class T > void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         .def("setRCut", &T::setRCut)

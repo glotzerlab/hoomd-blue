@@ -192,7 +192,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 m_symmetry.push_back(identity);
                 }
-            reset(0); // initializes all of the energy logging parameters.
+            reset(0); // initializes all of the energy parameters.
             }
 
         ~ExternalFieldLattice()

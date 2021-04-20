@@ -654,13 +654,11 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         void AddSphereWall(const SphereWall& wall)
             {
             m_Spheres.push_back(wall);
-            size_t wall_ind = m_Spheres.size()-1;
             }
 
         void AddCylinderWall(const CylinderWall& wall)
             {
             m_Cylinders.push_back(wall);
-            size_t wall_ind = m_Cylinders.size()-1;
             }
 
         void AddPlaneWall(const PlaneWall& wall)

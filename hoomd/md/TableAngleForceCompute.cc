@@ -24,11 +24,9 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TableAngleForceCompute" << endl;
@@ -64,7 +62,6 @@ TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition>
     Index2D table_value((unsigned int)m_tables.getPitch(), (unsigned int)m_angle_data->getNTypes());
     m_table_value = table_value;
 
-    m_log_name = std::string("angle_table_energy") + log_suffix;
     }
 
 TableAngleForceCompute::~TableAngleForceCompute()
@@ -307,7 +304,7 @@ void TableAngleForceCompute::computeForces(uint64_t timestep)
 void export_TableAngleForceCompute(py::module& m)
     {
     py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
     .def("setTable", &TableAngleForceCompute::setTable)
     ;
     }

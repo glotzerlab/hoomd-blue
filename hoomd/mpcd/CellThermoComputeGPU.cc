@@ -15,9 +15,8 @@
  * \param sysdef System definition
  * \param cl MPCD cell list
  */
-mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                                                 const std::string& suffix)
-    : mpcd::CellThermoCompute(sysdata, suffix), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
+mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata)
+    : mpcd::CellThermoCompute(sysdata), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
     {
     // construct a range of valid tuner parameters using the block size and number of threads per particle
     std::vector<unsigned int> valid_params;

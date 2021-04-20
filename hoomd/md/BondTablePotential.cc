@@ -19,11 +19,9 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotential" << endl;
@@ -57,7 +55,6 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
 
 
 
-    m_log_name = std::string("bond_table_energy") + log_suffix;
     }
 
 BondTablePotential::~BondTablePotential()
@@ -270,7 +267,7 @@ void BondTablePotential::computeForces(uint64_t timestep)
 void export_BondTablePotential(py::module& m)
     {
     py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential")
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
     .def("setTable", &BondTablePotential::setTable)
     ;
     }

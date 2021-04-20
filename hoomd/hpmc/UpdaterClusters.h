@@ -424,7 +424,7 @@ UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef
     m_G.setTaskArena(sysdef->getParticleData()->getExecConf()->getTaskArena());
     #endif
 
-    // initialize logger and stats
+    // initialize stats
     resetStats();
 
     // initialize memory

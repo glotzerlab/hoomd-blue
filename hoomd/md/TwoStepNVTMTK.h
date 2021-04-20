@@ -44,8 +44,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
                    std::shared_ptr<ParticleGroup> group,
                    std::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   std::shared_ptr<Variant> T,
-                   const std::string& suffix = std::string(""));
+                   std::shared_ptr<Variant> T);
         virtual ~TwoStepNVTMTK();
 
         //! Update the temperature
@@ -148,7 +147,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         std::shared_ptr<Variant> m_T; //!< Temperature set point
-        std::string m_log_name;         //!< Name of the reservoir quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
 

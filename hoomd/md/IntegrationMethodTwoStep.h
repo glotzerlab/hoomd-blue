@@ -91,13 +91,6 @@ class Communicator;
        forward for the second half step
     -# each integration method only applies these operations to the particles contained within its group (exceptions
        are allowed when box rescaling is needed)
-
-    <b>Design items still left to do:</b>
-
-    Interaction with logger: perhaps the integrator should forward log value queries on to the integration method?
-    each method could be given a user name so that they are logged in user-controlled columns. This provides a window
-    into the internally computed state variables logging per method.
-
     \ingroup updaters
 */
 class PYBIND11_EXPORT IntegrationMethodTwoStep

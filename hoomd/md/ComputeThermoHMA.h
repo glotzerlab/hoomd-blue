@@ -26,7 +26,7 @@
 #define __COMPUTE_THERMO_HMA_H__
 
 //! Computes thermodynamic properties of a group of particles
-/*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for the logger.
+/*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for Python.
     All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
     Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience
     functions are provided for accessing the values on the CPU.
@@ -35,9 +35,7 @@
      - pressure (valid for the all group)
      - potential energy
 
-    All quantities are made available for the logger. ComputeThermo can be given a suffix which it will append
-    to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
-    of different groups can be logged seperately (e.g. pressureHMA_group1 and pressureHMA_group2).
+    All quantities are made available in Python as properties.
 
     \ingroup computes
 */
@@ -47,7 +45,7 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
         //! Constructs the compute
         ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr<ParticleGroup> group, const double temperature,
-                      const double harmonicPressure, const std::string& suffix = std::string(""));
+                      const double harmonicPressure);
 
         //! Destructor
         virtual ~ComputeThermoHMA();
@@ -109,7 +107,6 @@ class PYBIND11_EXPORT ComputeThermoHMA : public Compute
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
 
         //! Does the actual computation
         virtual void computeProperties();

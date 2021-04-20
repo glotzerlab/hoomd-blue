@@ -13,10 +13,8 @@
 
 /*!
  * \param sysdata MPCD system data
- * \param suffix Suffix for logged quantities
  */
-mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
-                                           const std::string& suffix)
+mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata)
         : Compute(sysdata->getSystemDefinition()),
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),

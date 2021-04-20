@@ -44,8 +44,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         //! Construct the integrator
         ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             std::shared_ptr<CellList> cl,
-                             std::string suffix);
+                             std::shared_ptr<CellList> cl);
         //! Destructor
         virtual ~ComputeFreeVolumeGPU();
 
@@ -84,9 +83,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
 template< class Shape >
 ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    std::shared_ptr<CellList> cl,
-                                                    std::string suffix)
-    : ComputeFreeVolume<Shape>(sysdef,mc,cl,suffix)
+                                                    std::shared_ptr<CellList> cl)
+    : ComputeFreeVolume<Shape>(sysdef,mc,cl)
     {
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,

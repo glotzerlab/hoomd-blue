@@ -66,9 +66,6 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
         /// If true, changes to the energy of the reservoir are calculated
         bool m_tally;
 
-        /// Name of the reservoir quantity that we log
-        std::string m_log_name;
-
         /// If set true, there will be no translational noise (random force)
         bool m_noiseless_t;
 

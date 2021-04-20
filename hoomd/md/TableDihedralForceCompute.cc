@@ -25,11 +25,9 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableDihedralForceCompute::TableDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TableDihedralForceCompute" << endl;
@@ -56,7 +54,6 @@ TableDihedralForceCompute::TableDihedralForceCompute(std::shared_ptr<SystemDefin
                         (unsigned int)m_dihedral_data->getNTypes());
     m_table_value = table_value;
 
-    m_log_name = std::string("dihedral_table_energy") + log_suffix;
     }
 
 TableDihedralForceCompute::~TableDihedralForceCompute()
@@ -333,7 +330,7 @@ void TableDihedralForceCompute::computeForces(uint64_t timestep)
 void export_TableDihedralForceCompute(py::module& m)
     {
     py::class_<TableDihedralForceCompute, ForceCompute, std::shared_ptr<TableDihedralForceCompute> >(m, "TableDihedralForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
     .def("setTable", &TableDihedralForceCompute::setTable)
     .def("getEntry", &TableDihedralForceCompute::getEntry)
     ;

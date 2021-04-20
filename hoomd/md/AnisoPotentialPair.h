@@ -60,7 +60,7 @@
     potential aniso_evaluator class passed in. See the appropriate documentation for the aniso_evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
+    For profiling AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
     the aniso_evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
     independently.
 
@@ -79,8 +79,7 @@ class AnisoPotentialPair : public ForceCompute
 
         //! Construct the pair potential
         AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
-                      const std::string& log_suffix="");
+                      std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~AnisoPotentialPair();
 
@@ -220,7 +219,6 @@ class AnisoPotentialPair : public ForceCompute
         GlobalArray<param_type> m_params;   //!< Pair parameters per type pair
         GlobalArray<shape_type> m_shape_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
-        std::string m_log_name;                     //!< Cached log name
 
         /// Track whether we have attached to the Simulation object
         bool m_attached = true;
@@ -340,12 +338,11 @@ int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handl
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class aniso_evaluator >
-AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
+AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(
+        std::shared_ptr<SystemDefinition> sysdef,
+        std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
     m_exec_conf->msg->notice(5) << "Constructing AnisoPotentialPair<" << aniso_evaluator::getName() << ">" << std::endl;
@@ -386,7 +383,6 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
 
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
-    m_log_name = std::string("aniso_pair_") + aniso_evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().template connect<AnisoPotentialPair<aniso_evaluator>,
@@ -800,7 +796,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(uint64_t 
 template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > anisopotentialpair(m, name.c_str());
-    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParamsPython)
         .def("setShape", &T::setShapePython)

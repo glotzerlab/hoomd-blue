@@ -38,7 +38,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
 
-    // initialize logger and stats
+    // initialize stats
     resetStats();
 
     // allocate memory for m_pos_backup
