@@ -8,7 +8,7 @@ repos:
         name: clang-format
         entry: clang-format -i
         language: system
-        types: [c++]
+        types_or: [c++, cuda, inc]
         # Exclude specific files.
         exclude: |
           (?x)(
