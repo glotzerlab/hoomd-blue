@@ -684,7 +684,7 @@ class NVE(_MethodRATTLE):
 
         tolerance (`float`): Defines the tolerated error particles are 
             allowed to deviate from the manifold in terms of the implicit function. 
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-5
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations using
     the standard Velocity-Verlet method. If a manifold constraint is set,
@@ -721,7 +721,7 @@ class NVE(_MethodRATTLE):
             Defaults to None
 
         tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
+            from the manifold in terms of the implicit function. Defaults to 1e-6
 
     """
 
@@ -792,7 +792,7 @@ class Langevin(_MethodRATTLE):
 
         tolerance (`float`): Defines the tolerated error particles are allowed 
             to deviate from the manifold in terms of the implicit function. 
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-5
+            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     .. rubric:: Translational degrees of freedom
 
@@ -881,7 +881,7 @@ class Langevin(_MethodRATTLE):
             Defaults to None
 
         tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
+            from the manifold in terms of the implicit function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
@@ -980,7 +980,7 @@ class Brownian(_MethodRATTLE):
 
         tolerance (`float`): Defines the toleraated error particles are allowed 
             to deviate from the manifold in terms of the implicit function. This
-            is only used if RATTLE algorithm is triggered. Defaults to 1e-5
+            is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     `Brownian` integrates particles forward in time according to the overdamped
     Langevin equations of motion, sometimes called Brownian dynamics, or the
@@ -1074,7 +1074,7 @@ class Brownian(_MethodRATTLE):
             Defaults to None
 
         tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-5
+            from the manifold in terms of the implicit function. Defaults to 1e-6
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle

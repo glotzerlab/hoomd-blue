@@ -60,7 +60,7 @@ class Cylinder(Manifold):
 
     Args:
         r (`float`): radius of the cylinder constraint (in distance units).
-        P (`tuple`[ `float`, `float`, `float`]): point defining position of the cylinder axis (default origin).
+        P (`tuple` [ `float`, `float`, `float` ] ): point defining position of the cylinder axis (default origin).
 
     :py:class:`Cylinder` specifies that a cylindric manifold is defined as
     a constraint.
@@ -107,7 +107,7 @@ class Diamond(Manifold):
     R""" Triply periodic diamond manifold.
 
     Args:
-        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
+        N (`tuple` [ `int`, `int`, `int` ] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Diamond surface (default 0) 
@@ -158,7 +158,7 @@ class Ellipsoid(Manifold):
         a (`float`): length of the a-axis of the ellipsoidal constraint (in distance units).
         b (`float`): length of the b-axis of the ellipsoidal constraint (in distance units).
         c (`float`): length of the c-axis of the ellipsoidal constraint (in distance units).
-        P (`tuple`[ `float`, `float`, `float`]): center of the ellipsoidal constraint (default origin).
+        P (`tuple` [ `float`, `float`, `float` ] ): center of the ellipsoidal constraint (default origin).
     
     :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a constraint. 
     
@@ -194,7 +194,7 @@ class Gyroid(Manifold):
     R""" Triply periodic gyroid manifold.
 
     Args:
-        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
+        N (`tuple` [ `int`, `int`, `int` ] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Gyroid surface (default 0) 
@@ -285,7 +285,7 @@ class Primitive(Manifold):
     R""" Triply periodic primitive manifold.
 
     Args:
-        N (`tuple`[`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
+        N (`tuple` [ `int`, `int`, `int` ] or `int`): number of unit cells in all 3 directions.
             :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
             direction the same (:math:`[u, u, u]`), use ``N = u``.
         epsilon (`float`): defines CMC companion of the Primitive surface (default 0) 
@@ -334,7 +334,7 @@ class Sphere(Manifold):
 
     Args:
         r (`float`): raduis of the a-axis of the spherical constraint (in distance units).
-        P (`tuple`[ `float`, `float`, `float`]): center of the spherical constraint (default origin).
+        P (`tuple` [ `float`, `float`, `float` ] ): center of the spherical constraint (default origin).
 
     :py:class:`Sphere` specifies that a spherical manifold is defined as 
     a constraint. 
