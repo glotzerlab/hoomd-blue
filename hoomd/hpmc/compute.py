@@ -116,7 +116,7 @@ class SDF(Compute):
         xmax (float): Maximum *x* value at the right hand side of the rightmost bin (distance units).
         dx (float): Bin width (distance units).
 
-    :py:class:`sdf` computes a distribution function of scale parameters :math:`x`. For each particle, it finds the smallest
+    :py:class:`SDF` computes a distribution function of scale parameters :math:`x`. For each particle, it finds the smallest
     scale factor :math:`1+x` that would cause the particle to touch one of its neighbors and records that in the histogram
     :math:`s(x)`. The histogram is discrete and :math:`s(x_i) = s[i]` where :math:`x_i = i \cdot dx + dx/2`.
 
@@ -137,15 +137,12 @@ class SDF(Compute):
     A good rule of thumb might be to fit a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5 - but this needs further testing to
     confirm.
 
-    :py:class:`sdf` averages *navg* histograms together before writing them out to a
-    text file in a plain format: "timestep bin_0 bin_1 bin_2 .... bin_n".
-
-    :py:class:`sdf` works well with restartable jobs. Ensure that ``navg*period`` is an integer fraction :math:`1/k` of the
-    restart period. Then :py:class:`sdf` will have written the final output to its file just before the restart gets
+    :py:class:`SDF` works well with restartable jobs. Ensure that `period` is an integer fraction :math:`1/k` of the
+    restart period. Then :py:class:`SDF` will have written the final output to its file just before the restart gets
     written. The new data needed for the next line of values is entirely collected after the restart.
 
     Warning:
-        :py:class:`sdf` does not compute correct pressures for simulations with concave particles.
+        :py:class:`SDF` does not compute correct pressures for simulations with concave particles.
 
     Numpy extrapolation code::
 
@@ -162,9 +159,14 @@ class SDF(Compute):
 
     Examples::
 
-        mc = hpmc.integrate.sphere(seed=415236)
-        analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.02, dx=1e-4, navg=100, period=100)
-        analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
+        sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
+
+
+    Attributes:
+        xmax (float): Maximum *x* value at the right hand side of the rightmost bin.
+
+        dx (float): Bin width.
+
     """
     def __init__(self, xmax, dx):
         # store metadata
