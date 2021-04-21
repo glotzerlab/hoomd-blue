@@ -76,8 +76,7 @@ class Triplet(Force):
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
         self._cpp_obj = cls(
-            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
-            '')  # TODO remove name string arg
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
 
         super()._attach()
 

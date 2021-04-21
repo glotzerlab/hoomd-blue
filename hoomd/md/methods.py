@@ -127,13 +127,12 @@ class NVT(_Method):
 
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        thermo = thermo_cls(cpp_sys_def, group, "")
+        thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def,
                                  group,
                                  thermo,
                                  self.tau,
-                                 self.kT,
-                                 "")
+                                 self.kT)
         super()._attach()
 
     def thermalize_thermostat_dof(self):
@@ -383,13 +382,9 @@ class NPT(_Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def,
-                            thermo_group,
-                            "")
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        thermo_full_step = thermo_cls(cpp_sys_def,
-                              thermo_group,
-                              "")
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         self._cpp_obj = cpp_cls(cpp_sys_def,
                                  thermo_group,
@@ -569,9 +564,9 @@ class NPH(_Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group, "")
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group, "")
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
                                 thermo_full_step, 1.0, self.tauS, self.kT,
@@ -1053,7 +1048,7 @@ class Berendsen(_Method):
             thermo_cls = _md.ComputeThermoGPU
         self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
                                    group,
-                                   thermo_cls(sim.state._cpp_sys_def, group, ""),
+                                   thermo_cls(sim.state._cpp_sys_def, group),
                                    self.tau,
                                    self.kT)
         super()._attach()
