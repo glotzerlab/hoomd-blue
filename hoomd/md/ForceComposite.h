@@ -13,7 +13,7 @@
     Rigid body data is stored per type. Every rigid body is defined by a unique central particle of
     the rigid body type. A rigid body can only have one particle of that type.
 
-    Nested rigid bodies are not supported, i.e. when a rigid body contains a rigid body ptl of another type.
+    Nested rigid bodies are not supported, i.e. when a rigid body contains a rigid body particle of another type.
 
     The particle data body tag is equal to the tag of central particle, and therefore not-contiguous.
     The molecule/body id can therefore be used to look up the central particle easily.
@@ -189,15 +189,15 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
     protected:
         bool m_bodies_changed;          //!< True if constituent particles have changed
-        bool m_ptls_added_removed;      //!< True if particles have been added or removed
+        bool m_particles_added_removed;      //!< True if particles have been added or removed
 
-        GlobalArray<unsigned int> m_body_types;    //!< Constituent ptl types per type id (2D)
-        GlobalArray<Scalar3> m_body_pos;           //!< Constituent ptl offsets per type id (2D)
-        GlobalArray<Scalar4> m_body_orientation;   //!< Constituent ptl orientations per type id (2D)
+        GlobalArray<unsigned int> m_body_types;    //!< Constituent particle types per type id (2D)
+        GlobalArray<Scalar3> m_body_pos;           //!< Constituent particle offsets per type id (2D)
+        GlobalArray<Scalar4> m_body_orientation;   //!< Constituent particle orientations per type id (2D)
         GlobalArray<unsigned int> m_body_len;      //!< Length of body per type id
 
-        std::vector<std::vector<Scalar> > m_body_charge;      //!< Constituent ptl charges
-        std::vector<std::vector<Scalar> > m_body_diameter;    //!< Constituent ptl diameters
+        std::vector<std::vector<Scalar> > m_body_charge;      //!< Constituent particle charges
+        std::vector<std::vector<Scalar> > m_body_diameter;    //!< Constituent particle diameters
         Index2D m_body_idx;                     //!< Indexer for body parameters
 
         std::vector<Scalar> m_d_max;                              //!< Maximum body diameter per constituent particle type
@@ -210,7 +210,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         //! Method to be called when particles are added or removed
         void slotPtlsAddedRemoved()
             {
-            m_ptls_added_removed = true;
+            m_particles_added_removed = true;
             }
 
         //! Returns the maximum diameter over all rigid bodies
