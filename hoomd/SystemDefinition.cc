@@ -140,14 +140,6 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot()
     m_constraint_data->takeSnapshot(snap->constraint_data);
     m_pair_data->takeSnapshot(snap->pair_data);
 
-    if (alchemy)
-        {
-        // TODO: integrate alchemy into snapshots
-        snap->has_alchemy_data = true;
-        }
-    else
-        snap->has_alchemy_data = false;
-
     return snap;
     }
 
@@ -165,10 +157,6 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
         bcast(m_n_dimensions, 0,exec_conf->getMPICommunicator());
     #endif
 
-    // TODO: alchemy, update this
-    // if (snapshot->has_alchemy_data)
-    // // TODO: is this enough? Or needs to mirror integrator data checks?
-    //     has_alchemy_data->initializeFromSnapshot(snapshot->alchemical_data);
     m_particle_data->setGlobalBox(snapshot->global_box);
     m_particle_data->initializeFromSnapshot(snapshot->particle_data);
     m_bond_data->initializeFromSnapshot(snapshot->bond_data);

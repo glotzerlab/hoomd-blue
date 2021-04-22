@@ -54,11 +54,6 @@ struct SnapshotSystemData {
     ConstraintData::Snapshot constraint_data;//!< The constraint data
     PairData::Snapshot pair_data;            //!< The pair data
 
-    // TOOD: alchemy, replace this with the new setup
-    std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
-    std::vector<AlchemyParticles> alchemy_data;  //!< The alchemical data
-    bool has_alchemy_data;              //!< True if snapshot contains integrator data
-
     //! Constructor
     SnapshotSystemData()
         {
