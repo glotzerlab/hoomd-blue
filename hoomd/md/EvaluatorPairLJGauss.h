@@ -151,7 +151,7 @@ class EvaluatorPairLJGauss
             r0 *= alphas[2];
             }
 
-        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas, Scalar* alchem_ext_energy)
+        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas)
             {
                 {
                     

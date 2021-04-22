@@ -42,6 +42,7 @@
 #include "PotentialExternal.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPair.h"
+#include "AlchemicalPotentialPair.h"
 #include "PotentialTersoff.h"
 #include "PPPMForceCompute.h"
 #include "QuaternionMath.h"
@@ -249,6 +250,8 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
+    export_AlchemicalPotentialPair<PotentialPairLJGauss>(m, "AlchemicalPotentialPairLJGauss");
+    export_AlchemicalPotentialPair<PotentialPairOPP>(m, "AlchemicalPotentialPairLJGauss");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");

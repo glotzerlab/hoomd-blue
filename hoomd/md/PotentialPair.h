@@ -234,9 +234,9 @@ class PotentialPair : public ForceCompute
         virtual void computeForces(uint64_t timestep);
 
         // Extra steps to insert (used for alchemy)
-        inline void extraPreparation() {}
+        inline void extraPreparation(uint64_t timestep) {}
         inline void extraPerParticle() {}
-        inline void extraPerNeighbor() {}
+        inline void extraPerNeighbor(evaluator eval) {}
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -626,7 +626,7 @@ void PotentialPair< evaluator >::computeForces(uint64_t timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    extraPreparation();
+    extraPreparation(timestep);
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -718,7 +718,7 @@ void PotentialPair< evaluator >::computeForces(uint64_t timestep)
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            extraPerNeighbor();
+            extraPerNeighbor(eval);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -952,7 +952,7 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            extraPerNeighbor();
+            extraPerNeighbor(eval);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 

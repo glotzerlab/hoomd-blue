@@ -175,7 +175,7 @@ class EvaluatorPairOPP
             params.phi *= alphas[1];
             }
 
-        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas, Scalar* alchem_ext_energy)
+        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas)
             {   // OPP without any modification at this point
                 {
 
