@@ -125,10 +125,14 @@ void ForceComposite::setParam(unsigned int body_typeid,
     // detect if bodies have changed
 
         {
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_body_type(
+            m_body_types, access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_body_pos(
+            m_body_pos, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_body_orientation(
+            m_body_orientation, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_len(
+            m_body_len, access_location::host, access_mode::readwrite);
 
         assert(body_typeid < m_body_len.getNumElements());
         if (type.size() != h_body_len.data[body_typeid])
@@ -391,7 +395,7 @@ void ForceComposite::validateRigidBodies(bool create)
         ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
 
         typedef std::map<unsigned int, unsigned int> map_t;
-        map_t count_body_ptls;
+        map_t body_particle_count;
 
         // count number of constituent particles to add
         for (unsigned i = 0; i < snap.size; ++i)
@@ -430,7 +434,7 @@ void ForceComposite::validateRigidBodies(bool create)
                         throw std::runtime_error("Error validating rigid bodies\n");
                         }
 
-                    count_body_ptls.insert(std::make_pair(i,0));
+                    body_particle_count.insert(std::make_pair(i,0));
                     }
                 if (snap.body[i] < MIN_FLOPPY)
                     {
@@ -446,8 +450,8 @@ void ForceComposite::validateRigidBodies(bool create)
                         unsigned int central_ptl = snap.body[i];
                         unsigned int body_type = snap.type[central_ptl];
 
-                        map_t::iterator it = count_body_ptls.find(central_ptl);
-                        if (it == count_body_ptls.end())
+                        map_t::iterator it = body_particle_count.find(central_ptl);
+                        if (it == body_particle_count.end())
                             {
                             m_exec_conf->msg->error() << "constrain.rigid(): Central particle " << snap.body[i]
                                 << " does not precede particle with tag " << i << std::endl;
@@ -477,7 +481,7 @@ void ForceComposite::validateRigidBodies(bool create)
 
         if (! create)
             {
-            for (map_t::iterator it = count_body_ptls.begin(); it != count_body_ptls.end();++it)
+            for (map_t::iterator it = body_particle_count.begin(); it != body_particle_count.end();++it)
                 {
                 unsigned int central_ptl_type = snap.type[it->first];
                 if (it->second != h_body_len.data[central_ptl_type])
@@ -602,8 +606,8 @@ void ForceComposite::validateRigidBodies(bool create)
                     }
 
                 }
-            }
 
+            }
         m_exec_conf->msg->notice(2) << "constrain.rigid(): Creating " << nbodies << " rigid bodies (adding "
             << n_add_ptls << " particles)" << std::endl;
         }
@@ -614,51 +618,63 @@ void ForceComposite::validateRigidBodies(bool create)
             molecule_tag.resize(snap.size, NO_MOLECULE);
 
             typedef std::map<unsigned int, unsigned int> map_t;
-            map_t count_body_ptls;
+            map_t body_particle_count;
 
             // access body data
             ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
 
-            // assign contiguous molecule tags and update constituent particle positions and orientations
+            // assign contiguous molecule tags and update constituent particle positions and
+            // orientations
             for (unsigned i = 0; i < snap_out.size; ++i)
                 {
                 assert(snap_out.type[i] < ntypes);
 
-                if (snap_out.body[i] < MIN_FLOPPY)
+                if (snap_out.body[i] >= MIN_FLOPPY)
                     {
-                    if (snap_out.body[i] == i)
-                        {
-                        // central particle
-                        molecule_tag[i] = nbodies++;
-                        count_body_ptls.insert(std::make_pair(snap_out.body[i],0));
-                        }
-                    else
-                        {
-                        molecule_tag[i] = molecule_tag[snap_out.body[i]];
+                    continue;
+                    }
 
-                        // update position and orientation to ensure particles end up in correct domain
-                        vec3<Scalar> pos(snap_out.pos[snap_out.body[i]]);
-                        quat<Scalar> central_orientation(snap_out.orientation[snap_out.body[i]]);
-                        int3 central_img = snap_out.image[snap_out.body[i]];
+                if (snap_out.body[i] == i)
+                    {
+                    // central particle
+                    molecule_tag[i] = nbodies++;
+                    body_particle_count.insert(std::make_pair(snap_out.body[i], 0));
+                    }
+                else
+                    {
+                    molecule_tag[i] = molecule_tag[snap_out.body[i]];
 
-                        map_t::iterator it = count_body_ptls.find(snap_out.body[i]);
-                        unsigned int j = it->second;
-                        unsigned int body_type = snap_out.type[snap_out.body[i]];
-                        pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
-                        quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
 
-                        // wrap into box, allowing rigid bodies to span multiple images
-                        int3 img = global_box.getImage(vec_to_scalar3(pos));
-                        int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                        pos = global_box.shift(pos, negimg);
+                    // Get the current index for the particle in the body to use for indexing
+                    // into the rigid body definition. Then, increment the count for the next
+                    // particle in this body.
+                    map_t::iterator it = body_particle_count.find(snap_out.body[i]);
+                    unsigned int body_index = it->second;
 
-                        snap_out.pos[i] = pos;
-                        snap_out.image[i] = central_img + img;
-                        snap_out.orientation[i] = orientation;
+                    unsigned int central_type = snap_out.type[snap_out.body[i]];
+                    quat<Scalar> central_orientation(snap_out.orientation[snap_out.body[i]]);
 
-                        it->second++;
-                        }
+                    // Position constituent particle relative to central particles current
+                    // position and orientation.
+                    vec3<Scalar> pos(snap_out.pos[snap_out.body[i]]);
+                    pos += rotate(central_orientation, vec3<Scalar>(
+                        h_body_pos.data[m_body_idx(central_type, body_index)]));
+                    // wrap into box, allowing rigid bodies to span multiple images
+                    int3 img = global_box.getImage(vec_to_scalar3(pos));
+                    int3 negimg = make_int3(-img.x, -img.y, -img.z);
+                    pos = global_box.shift(pos, negimg);
+                    snap_out.pos[i] = pos;
+
+                    // Update image and orientation
+                    int3 central_img = snap_out.image[snap_out.body[i]];
+                    snap_out.image[i] = central_img + img;
+
+                    snap_out.orientation[i] = central_orientation * quat<Scalar>(
+                        h_body_orientation.data[m_body_idx(central_type, body_index)]);
+
+                    // Update index for next constituent particle in this body.
+                    it->second++;
                     }
                 }
             }
