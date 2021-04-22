@@ -204,9 +204,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         std::vector<bool> m_d_max_changed;                        //!< True if maximum body diameter changed (per type)
         std::vector<Scalar> m_body_max_diameter;                  //!< List of diameters for all body types
         Scalar m_global_max_d;                                    //!< Maximum over all body diameters
-
-        bool m_memory_initialized;                  //!< True if arrays are allocated
-
         //! Helper function to be called when the number of types changes
         void slotNumTypesChange();
 
@@ -219,8 +216,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         //! Returns the maximum diameter over all rigid bodies
         Scalar getMaxBodyDiameter()
             {
-            lazyInitMem();
-
             if (m_global_max_d_changed)
                 {
                 // find maximum diameter over all bodies
@@ -266,9 +261,6 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
         //! Helper method to calculate the body diameter
         Scalar getBodyDiameter(unsigned int body_type);
-
-        //! Initialize memory
-        virtual void lazyInitMem();
 
     private:
         #ifdef ENABLE_MPI

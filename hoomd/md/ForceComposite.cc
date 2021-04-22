@@ -20,7 +20,6 @@ namespace py = pybind11;
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
          m_global_max_d(0.0),
-         m_memory_initialized(false),
          #ifdef ENABLE_MPI
          m_comm_ghost_layer_connected(false),
          #endif
@@ -33,25 +32,6 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     // connect to box change signal
     m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-    }
-
-//! Destructor
-ForceComposite::~ForceComposite()
-    {
-    // disconnect from signal in ParticleData;
-    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
-    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-    m_pdata->getCompositeParticlesSignal().disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
-    #ifdef ENABLE_MPI
-    if (m_comm_ghost_layer_connected)
-        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
-    #endif
-    }
-
-void ForceComposite::lazyInitMem()
-    {
-    if (m_memory_initialized)
-        return;
 
     m_exec_conf->msg->notice(7) << "ForceComposite initialize memory" << std::endl;
 
@@ -85,8 +65,19 @@ void ForceComposite::lazyInitMem()
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
 
     m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
+    }
 
-    m_memory_initialized = true;
+//! Destructor
+ForceComposite::~ForceComposite()
+    {
+    // disconnect from signal in ParticleData;
+    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    m_pdata->getCompositeParticlesSignal().disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+    #endif
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -96,8 +87,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
     std::vector<Scalar>& charge,
     std::vector<Scalar>& diameter)
     {
-    lazyInitMem();
-
     assert(m_body_types.getPitch() >= m_pdata->getNTypes());
     assert(m_body_pos.getPitch() >= m_pdata->getNTypes());
     assert(m_body_orientation.getPitch() >= m_pdata->getNTypes());
@@ -175,9 +164,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
             m_body_idx = Index2D((unsigned int)m_body_types.getPitch(),
                                  (unsigned int)m_body_types.getHeight());
-
-            // set memory hints
-            lazyInitMem();
             }
         }
 
@@ -224,8 +210,6 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
 Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
     {
-    lazyInitMem();
-
     m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
 
     // get maximum pairwise distance
@@ -263,9 +247,6 @@ Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
 
 void ForceComposite::slotNumTypesChange()
     {
-    //! initial allocation if necessary
-    lazyInitMem();
-
     unsigned int old_ntypes = (unsigned int)m_body_len.getNumElements();
     unsigned int new_ntypes = m_pdata->getNTypes();
 
@@ -294,15 +275,10 @@ void ForceComposite::slotNumTypesChange()
     m_d_max_changed.resize(new_ntypes, false);
 
     m_body_max_diameter.resize(new_ntypes,0.0);
-
-    //! update memory hints, after re-allocation
-    lazyInitMem();
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
-    lazyInitMem();
-
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -371,8 +347,6 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
 
 void ForceComposite::validateRigidBodies(bool create)
     {
-    lazyInitMem();
-
     if (m_bodies_changed || m_ptls_added_removed)
         {
         // check validity of rigid body types: no nested rigid bodies
