@@ -1,0 +1,39 @@
+This file is used for logging design decisions and unimplmeneted choices in the alchMD branch so that they can be discussed as part of the pull request rather than making issues.
+
+# TODO
+[x] Write default PotentialPair match for signatures without alchemy bool
+[] Fail gracefully with XPLOR on
+[] generalize the extra functions in PotentialPair?
+[] Figure out array access with derived class specialized add-ins
+
+
+# Incomplete/Removed for Simplicity
+- Saving alchemical particle information as part of snapshot data/system definition.
+- Normalization protocall is currently not included
+
+# Ownership
+- Alchemical Force Computes
+    - M_alpha (max number of alchemical variables implemented)
+    - alchemy_used: Boolean array, shape M_alpha x M_types x M_types (should probably be renamed)
+    - Parameters original values
+    - 1D arrays matching number and order of trues in used, length matches 
+
+- Alchemical Particle
+    - Alchemical Position (currently implemented in dimensionless alpha space
+    - Alchemical Kinetic Variables
+        - Velocity
+        - Mass
+        - Alchemical Potential (mu_alpha)
+        - Net Alchemical Force (cheap to save and don't have to worry about recomputing if needed unexpectedly for loggin etc)
+    - Associated alchemical force compute
+    - Associated alchemostat (just to make sure we only are using one per particle)
+
+- Alchemostat
+    - Alchemical Temperature
+    - Alchemical Timestep
+    - List of alchemical forces to integrate
+
+# Future enhancements
+- External Biases
+- Dynamically update rcut
+- Helper functions 
