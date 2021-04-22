@@ -14,7 +14,7 @@ This file is used for logging design decisions and unimplmeneted choices in the 
 # Ownership
 - Alchemical Force Computes
     - M_alpha (max number of alchemical variables implemented)
-    - alchemy_used: Boolean array, shape M_alpha x M_types x M_types (should probably be renamed)
+    - alchemy_used: Boolean array, shape M_types x M_types x M_alpha (should probably be renamed)
     - Parameters original values
     - 1D arrays matching number and order of trues in used, length matches 
 

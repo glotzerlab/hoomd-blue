@@ -144,13 +144,13 @@ AlchemicalPotentialPair<evaluator>::AlchemicalPotentialPair(
     const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix)
     {
-    this->m_exec_conf->msg->notice(5) << "Constructing AlchemicalPotentialPair<" << evaluator::getName()
-                                << ">" << std::endl;
+    this->m_exec_conf->msg->notice(5)
+        << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
     }
 
 // TODO: constructor from base class
 
-template<class evaluator> 
+template<class evaluator>
 inline void AlchemicalPotentialPair<evaluator>::extraPreparation(uint64_t timestep)
     {
     // zero force
@@ -159,10 +159,11 @@ inline void AlchemicalPotentialPair<evaluator>::extraPreparation(uint64_t timest
         this->m_exec_conf->msg->notice(10)
             << "AlchemPotentialPair: Calculating alchemical forces" << std::endl;
         }
-        // TODO: actually zero forces using the memset syntax
+    // TODO: actually zero forces using the memset syntax
     }
 
-template<class evaluator> inline void AlchemicalPotentialPair<evaluator>::extraPerNeighbor(evaluator eval)
+template<class evaluator>
+inline void AlchemicalPotentialPair<evaluator>::extraPerNeighbor(evaluator eval)
     {
     Scalar alphas[evaluator::num_alchemical_parameters] = {1.0};
     Scalar d_alchemical[evaluator::num_alchemical_parameters] = {0.0};
@@ -178,6 +179,7 @@ template<class evaluator> inline void AlchemicalPotentialPair<evaluator>::extraP
 //     }
 // }
 
+// TODO: This is a literal copy paste, should be possible to improve
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.

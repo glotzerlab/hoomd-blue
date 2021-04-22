@@ -44,6 +44,7 @@ set(_md_sources module-md.cc
 
 set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceCompute.h
+                AlchemicalPotentialPair.h
                 AllAnisoPairPotentials.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
