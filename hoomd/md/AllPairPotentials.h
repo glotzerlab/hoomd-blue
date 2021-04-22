@@ -30,8 +30,12 @@
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairLJGauss.h"
+
 #ifdef ENABLE_HIP
+#include "PotentialPairGPU.h"
+#include "PotentialPairDPDThermoGPU.h"
 #include "PotentialPairDPDThermoGPU.cuh"
+#include "AllDriverPotentialPairGPU.cuh"
 #endif
 
 /*! \file AllPairPotentials.h

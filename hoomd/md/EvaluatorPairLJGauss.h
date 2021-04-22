@@ -106,6 +106,9 @@ class EvaluatorPairLJGauss
         */
         DEVICE void setCharge(Scalar qi, Scalar qj) { }
 
+        //! Get the number of alchemical parameters
+        static const unsigned int num_alchemical_parameters = 3;
+
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
@@ -140,6 +143,32 @@ class EvaluatorPairLJGauss
             else
                 return false;
             }
+
+        DEVICE void AlchemParams(Scalar* alphas)
+            {
+            epsilon *= alphas[0];
+            sigma2 *= alphas[1]*alphas[1];
+            r0 *= alphas[2];
+            }
+
+        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas, Scalar* alchem_ext_energy)
+            {
+                {
+                    
+                Scalar r = fast::sqrt(rsq);
+                // Scalar sigma = fast::sqrt(sigma2);
+                Scalar inva1  = 1.0/alphas[1];
+                Scalar invsiga1sq  = inva1*inva1*(1/sigma2);
+                Scalar rdiff  = r - alphas[2]*r0;
+                Scalar rdiffsq  = rdiff*rdiff;
+                Scalar exp_term  = fast::exp(-Scalar(0.5)*rdiffsq*invsiga1sq);
+                Scalar c = alphas[0] * epsilon * exp_term * invsiga1sq;
+                dalchem_pair_energy[0]=-epsilon * exp_term;
+                dalchem_pair_energy[1]=c*rdiffsq*inva1;
+                dalchem_pair_energy[2]=c*r0*rdiff;
+                }
+            }
+
 
         #ifndef __HIPCC__
         //! Get the name of this potential

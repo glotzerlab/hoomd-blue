@@ -85,7 +85,7 @@
 
     \sa export_PotentialPair()
 */
-template < class evaluator, bool alchemy >
+template < class evaluator >
 class PotentialPair : public ForceCompute
     {
     public:
@@ -105,7 +105,6 @@ class PotentialPair : public ForceCompute
         /// Get params for a single type pair using a tuple of strings
         virtual pybind11::dict getParams(pybind11::tuple typ);
         //! Set the rcut for a single type pair
-        // TODO: Look into the rcut handling with the nlist, can it be made dynamic easily
         virtual void setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut);
         /// Get the r_cut for a single type pair
         Scalar getRCut(pybind11::tuple types);
@@ -202,17 +201,6 @@ class PotentialPair : public ForceCompute
         //! Calculates the energy between two lists of particles.
         Scalar computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
                                                     pybind11::array_t<int, pybind11::array::c_style> tags2);
-        // alchemy related members
-        //! Returns the alchemical parameters array
-        pybind11::object getAlchemNP();  //TODO: look up what's right for this?
-
-        //! Returns specified alpha parameters external energy
-        Scalar getAlchemExtEnergy(unsigned int m);
-
-        void setNextAlchemStep(unsigned int next)
-            {
-            m_nextAlchemTimeStep = next;
-            }
 
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params) const
             {
@@ -236,15 +224,6 @@ class PotentialPair : public ForceCompute
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
 
-        // alchemy related members
-        // TODO: Alchemy: Update to v3 api
-        std::bitset<evaluator::num_alch_parameters> m_alch_param_flags;
-        bool pre_alch_step; //!< Flag for if alchemical forces need computing on this timestep
-        // TODO: alternatively could keep track of n and use with timestep?
-        // TODO: some reference to alchemical particles which are involved, size num_alch_params*types or dynamic reference?
-        Scalar m_alchem_ext_energy[evaluator::alpha_M];    //!< External Energy of Alchemical Parameters
-        unsigned int m_nextAlchemTimeStep;          //!< Next alchemical time step
-
         /// Track whether we have attached to the Simulation object
         bool m_attached = true;
 
@@ -253,6 +232,11 @@ class PotentialPair : public ForceCompute
 
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);
+
+        // Extra steps to insert (used for alchemy)
+        inline void extraPreparation() {}
+        inline void extraPerParticle() {}
+        inline void extraPerNeighbor() {}
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -355,8 +339,8 @@ class PotentialPair : public ForceCompute
     \param nlist Neighborlist to use for computing the forces
     \param log_suffix Name given to this instance of the force
 */
-template < class evaluator, bool alchemy >
-PotentialPair< evaluator, alchemy >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+template < class evaluator >
+PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
                                                 std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
@@ -405,12 +389,12 @@ PotentialPair< evaluator, alchemy >::PotentialPair(std::shared_ptr<SystemDefinit
     m_pdata->getNumTypesChangeSignal().template connect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
-template < class evaluator, bool alchemy >
-PotentialPair< evaluator, alchemy >::~PotentialPair()
+template< class evaluator >
+PotentialPair< evaluator >::~PotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
-    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialPair<evaluator, alchemy>, &PotentialPair<evaluator, alchemy>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     if (m_attached)
         {
         m_nlist->removeRCutMatrix(m_r_cut_nlist);
@@ -423,8 +407,8 @@ PotentialPair< evaluator, alchemy >::~PotentialPair()
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
+template< class evaluator >
+void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2, const param_type& param)
     {
     validateTypes(typ1, typ2, "setting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
@@ -471,8 +455,8 @@ void PotentialPair< evaluator >::validateTypes(unsigned int typ1,
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
+template< class evaluator >
+void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
     {
     validateTypes(typ1, typ2, "setting r_cut");
         {
@@ -517,8 +501,8 @@ Scalar PotentialPair< evaluator >::getRCut(pybind11::tuple types)
     \note When setting the value for (\a typ1, \a typ2), the parameter for (\a typ2, \a typ1) is automatically
           set.
 */
-template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
+template< class evaluator >
+void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Scalar ron)
     {
     validateTypes(typ1, typ2, "setting r_on");
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host,
@@ -527,7 +511,7 @@ void PotentialPair< evaluator, alchemy >::setRon(unsigned int typ1, unsigned int
     h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
 
-template < class evaluator, bool alchemy >
+template< class evaluator >
 Scalar PotentialPair< evaluator >::getROn(pybind11::tuple types)
     {
     auto typ1 = m_pdata->getTypeByName(types[0].cast<std::string>());
@@ -538,7 +522,7 @@ Scalar PotentialPair< evaluator >::getROn(pybind11::tuple types)
     return sqrt(h_ronsq.data[m_typpair_idx(typ1, typ2)]);
     }
 
-template < class evaluator, bool alchemy >
+template< class evaluator >
 void PotentialPair< evaluator >::setROnPython(pybind11::tuple types,
                                               Scalar r_on)
     {
@@ -547,17 +531,17 @@ void PotentialPair< evaluator >::setROnPython(pybind11::tuple types,
     setRon(typ1, typ2, r_on);
     }
 
-template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+template <class evaluator>
+void PotentialPair<evaluator>::connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&PotentialPair<evaluator, alchemy>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
+    auto func = std::bind(&PotentialPair<evaluator>::slotWriteGSDShapeSpec, this, std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
-template < class evaluator, bool alchemy >
-int PotentialPair< evaluator, alchemy >::slotWriteGSDShapeSpec(gsd_handle& handle) const
+template <class evaluator>
+int PotentialPair<evaluator>::slotWriteGSDShapeSpec(gsd_handle& handle) const
     {
     GSDShapeSpecWriter shapespec(m_exec_conf);
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
@@ -569,8 +553,8 @@ int PotentialPair< evaluator, alchemy >::slotWriteGSDShapeSpec(gsd_handle& handl
      - \c pair_"name"_energy
     where "name" is replaced with evaluator::getName()
 */
-template< class evaluator, bool alchemy>
-std::vector< std::string > PotentialPair< evaluator, alchemy >::getProvidedLogQuantities()
+template< class evaluator >
+std::vector< std::string > PotentialPair< evaluator >::getProvidedLogQuantities()
     {
     std::vector<std::string> list;
     list.push_back(m_log_name);
@@ -580,8 +564,8 @@ std::vector< std::string > PotentialPair< evaluator, alchemy >::getProvidedLogQu
 /*! \param quantity Name of the log value to get
     \param timestep Current timestep of the simulation
 */
-template < class evaluator, bool alchemy >
-Scalar PotentialPair< evaluator, alchemy >::getLogValue(const std::string& quantity, uint64_t timestep)
+template< class evaluator >
+Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
     {
     if (quantity == m_log_name)
         {
@@ -601,8 +585,8 @@ Scalar PotentialPair< evaluator, alchemy >::getLogValue(const std::string& quant
 
     \param timestep specifies the current time step of the simulation
 */
-template < class evaluator, bool alchemy >
-void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
+template< class evaluator >
+void PotentialPair< evaluator >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -642,17 +626,7 @@ void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
 
-    if (alchemy)
-        {
-        if (timestep == m_nextAlchemTimeStep)
-            {
-            m_exec_conf->msg->notice(10) << "AlchemPotentialPair: Calculating alchemical forces" << std::endl;
-            for (unsigned int m = 0; m < m_alchem_m; m++)
-                {
-                m_alchem_ext_energy[m] = Scalar(0.0);
-                }
-            }
-        }
+    extraPreparation();
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -663,20 +637,6 @@ void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
 
         // sanity check
         assert(typei < m_pdata->getNTypes());
-
-        if (alchemy)
-            {
-            Scalar alpha_ij [m_alchem_m];
-
-            if (timestep == m_nextAlchemTimeStep)
-                {
-                for (unsigned int m = 0; m < m_alchem_m; m++)
-                    {
-                    h_alpha.data[m*m_alchem_pitch+i].z = 0;
-                    // what is this?
-                    }
-                }
-            }
 
         // access diameter and charge (if needed)
         Scalar di = Scalar(0.0);
@@ -695,6 +655,8 @@ void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
         Scalar virialyyi = 0.0;
         Scalar virialyzi = 0.0;
         Scalar virialzzi = 0.0;
+
+        extraPerParticle();
 
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
@@ -747,41 +709,16 @@ void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
                     energy_shift = true;
                 }
 
-            if (alchemy)
-                {
-                // set up alchemical values for the pair
-                for (unsigned int m = 0; m < m_alchem_m; m++)
-                    {
-                    alpha_ij[m] = Scalar(0.5) * (h_alpha.data[m*m_alchem_pitch+i].x + h_alpha.data[m*m_alchem_pitch+j].x);
-                    }
-                }
-
             // compute the force and potential energy
             Scalar force_divr = Scalar(0.0);
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
-
-            if (alchemy)
-                {
-                if ((timestep == m_nextAlchemTimeStep) && (rsq < rcutsq))
-                    {
-                    // calculate and apply the alchemical derivaties
-                    Scalar alchem_pair_energy [evaluator::alpha_M];
-                    eval.evalDAlphaEnergy(alchem_pair_energy,alpha_ij,m_alchem_ext_energy);
-                    for (unsigned int m = 0; m < m_alchem_m; m++)
-                        {
-                        h_alpha.data[m*m_alchem_pitch+i].z += Scalar(0.5) * alchem_pair_energy[m];
-                        // change the size of the h_alpha to just be number of alphas?
-                        }
-                    }
-                // apply the current alchemical parameters
-                eval.AlchemParams(alpha_ij);
-                }
-
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
+
+            extraPerNeighbor();
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -873,8 +810,8 @@ void PotentialPair< evaluator, alchemy >::computeForces(uint64_t timestep)
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-template < class evaluator, bool alchemy>
-CommFlags PotentialPair< evaluator, alchemy >::getRequestedCommFlags(uint64_t timestep)
+template < class evaluator >
+CommFlags PotentialPair< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -894,9 +831,9 @@ CommFlags PotentialPair< evaluator, alchemy >::getRequestedCommFlags(uint64_t ti
 //! function to compute the energy between two lists of particles.
 //! strictly speaking tags1 and tags2 should be disjoint for the result to make any sense.
 //! \param energy is the sum of the energies between all particles in tags1 and tags2, U = \sum_{i \in tags1, j \in tags2} u_{ij}.
-template< class evaluator, bool alchemy>
+template< class evaluator >
 template< class InputIterator >
-inline void PotentialPair< evaluator, alchemy >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
+inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterator first1, InputIterator last1,
                                                                     InputIterator first2, InputIterator last2,
                                                                     Scalar& energy )
     {
@@ -1015,6 +952,8 @@ inline void PotentialPair< evaluator, alchemy >::computeEnergyBetweenSets(   Inp
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
+            extraPerNeighbor();
+
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
             if (evaluated)
@@ -1059,8 +998,8 @@ inline void PotentialPair< evaluator, alchemy >::computeEnergyBetweenSets(   Inp
     }
 
 //! Calculates the energy between two lists of particles.
-template < class evaluator, bool alchemy >
-Scalar PotentialPair< evaluator, alchemy >::computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
+template < class evaluator >
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11::array_t<int, pybind11::array::c_style> tags1,
                                                                         pybind11::array_t<int, pybind11::array::c_style> tags2 )
     {
     Scalar eng = 0.0;
@@ -1076,33 +1015,6 @@ Scalar PotentialPair< evaluator, alchemy >::computeEnergyBetweenSetsPythonList( 
                                 eng);
     return eng;
     }
-
-/*! \returns a numpy array that wraps the alchem data element.
-    The raw data is referenced by the numpy array, modifications to the numpy array will modify the information
-*/
-
-template < class evaluator, bool alchemy >
-pybind11::object PotentialPair< evaluator, alchemy >::getAlchemNP()
-    {
-    if (alchemy)
-        {
-        ArrayHandle<Scalar3> h_alchem(m_alchem, access_location::host, access_mode::readwrite);
-
-        std::vector<intp> dims(3);
-        dims[0] = m_pdata->getMaxN();
-        dims[1] = evaluator::alpha_M;
-        dims[2] = 3;
-        return pybind11::object(num_util::makeNumFromData((Scalar*)&h_alchem.data[0], dims),false);
-        }
-    else std::throw('')
-    }
-
-template < class evaluator, bool alchemy >
-Scalar PotentialPair< evaluator, alchemy >::getAlchemExtEnergy(unsigned int m)
-    {
-    return m_alchem_ext_energy[m]/m_pdata->getN();
-        }
-
 
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
@@ -1122,7 +1034,6 @@ template < class T > void export_PotentialPair(pybind11::module& m, const std::s
         .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
         .def("slotWriteGSDShapeSpec", &T::slotWriteGSDShapeSpec)
         .def("connectGSDShapeSpec", &T::connectGSDShapeSpec)
-        .def("getAlchemNP", &T::getAlchemNP) //how to add if here?
     ;
     }
 
