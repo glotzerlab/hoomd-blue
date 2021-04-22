@@ -889,8 +889,9 @@ void ForceComposite::computeForces(uint64_t timestep)
         }
     }
 
-/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of integration on the CPU
-    based on the body center of mass and particle relative position in each body frame.
+/* Set position and velocity of constituent particles in rigid bodies in the 1st or second half of
+ * integration on the CPU based on the body center of mass and particle relative position in each
+ * body frame.
 */
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
@@ -961,6 +962,10 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
 
         unsigned int body_len = h_body_len.data[type];
         unsigned int mol_idx = h_molecule_idx.data[iptl];
+        // Checks if the number of local particle in a molecule denoted by
+        // h_molecule_len.data[mol_inx] is equal to the number of particles in the rigid body
+        // definition `body_len`. If this is the case for a ghost particle this is fine, otherwise
+        // somehow we are in an invalid state for the body hence the inner condition.
         if (body_len != h_molecule_len.data[mol_idx] - 1)
             {
             if (iptl < m_pdata->getN())

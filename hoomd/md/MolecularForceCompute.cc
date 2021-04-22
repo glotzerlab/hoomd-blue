@@ -25,12 +25,13 @@ namespace py = pybind11;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0), m_dirty(true),
-      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
-      m_molecule_idx(m_exec_conf)
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+      m_rebuild_molecules(true), m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf),
+      m_molecule_order(m_exec_conf), m_molecule_idx(m_exec_conf)
     {
     // connect to the ParticleData to receive notifications when particles change order in memory
-    m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+    m_pdata->getParticleSortSignal().connect<
+        MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
 
     TAG_ALLOCATION(m_molecule_tag);
     TAG_ALLOCATION(m_molecule_list);
@@ -55,7 +56,7 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
 //! Destructor
 MolecularForceCompute::~MolecularForceCompute()
     {
-    m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+    m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
     }
 
 #ifdef ENABLE_HIP
@@ -222,7 +223,10 @@ void MolecularForceCompute::initMoleculesGPU()
 void MolecularForceCompute::initMolecules()
     {
     // return early if no molecules are defined
-    if (!m_n_molecules_global) return;
+    if (!m_n_molecules_global)
+        {
+        return;
+        }
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
@@ -249,39 +253,45 @@ void MolecularForceCompute::initMolecules()
 
     std::vector<unsigned int> local_molecule_idx(nptl_local, NO_MOLECULE);
 
-    // resize molecule lookup to size of local particle data
-    m_molecule_order.resize(m_pdata->getMaxN());
-
-    // keep track of particle with lowest tag
+    // keep track of particle with lowest tag within a molecule. This is assumed/required to be the
+    // central particle for the molecule.
     std::map<unsigned int, unsigned int> lowest_tag_by_molecule;
 
-    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
+    for (unsigned int particle_index = 0; particle_index < nptl_local; ++particle_index)
         {
-        unsigned int tag = h_tag.data[iptl];
+        unsigned int tag = h_tag.data[particle_index];
         assert(tag < m_molecule_tag.getNumElements());
 
         unsigned int mol_tag = h_molecule_tag.data[tag];
         if (mol_tag == NO_MOLECULE)
+            {
             continue;
+            }
 
         auto it = lowest_tag_by_molecule.find(mol_tag);
         unsigned int min_tag = tag;
         if (it != lowest_tag_by_molecule.end())
+            {
             min_tag = std::min(it->second, tag);
+            }
 
         lowest_tag_by_molecule[mol_tag] = min_tag;
         }
 
-    // sort local molecules by index of lowest tag, and inside the molecule by ptl tag
+    // sort local molecules by the index of the smallest particle tag in a molecule, and sort within
+    // the molecule by particle tag.
     std::map<unsigned int, std::set<unsigned int> > local_molecules_sorted;
 
-    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
+    for (unsigned int particle_index = 0; particle_index < nptl_local; ++particle_index)
         {
-        unsigned int tag = h_tag.data[iptl];
+        unsigned int tag = h_tag.data[particle_index];
         assert(tag < m_molecule_tag.getNumElements());
 
         unsigned int mol_tag = h_molecule_tag.data[tag];
-        if (mol_tag == NO_MOLECULE) continue;
+        if (mol_tag == NO_MOLECULE)
+            {
+            continue;
+            }
 
         unsigned int lowest_tag = lowest_tag_by_molecule[mol_tag];
         unsigned int lowest_idx = h_rtag.data[lowest_tag];
@@ -290,7 +300,7 @@ void MolecularForceCompute::initMolecules()
         local_molecules_sorted[lowest_idx].insert(tag);
         }
 
-    n_local_molecules = (unsigned int)local_molecules_sorted.size();
+    n_local_molecules = static_cast<unsigned int>(local_molecules_sorted.size());
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules" << std::endl;
 
@@ -333,9 +343,12 @@ void MolecularForceCompute::initMolecules()
         h_molecule_length.data[imol] = 0;
         }
 
-    // reset molecule order
+    // resize and reset molecule lookup to size of local particle data
+    m_molecule_order.resize(m_pdata->getMaxN());
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order, access_location::host, access_mode::overwrite);
-    memset(h_molecule_order.data, 0, sizeof(unsigned int)*(m_pdata->getN() + m_pdata->getNGhosts()));
+    memset(
+        h_molecule_order.data, 0, sizeof(unsigned int) * (m_pdata->getN() + m_pdata->getNGhosts())
+    );
 
     // resize reverse-lookup
     m_molecule_idx.resize(nptl_local);
@@ -353,11 +366,11 @@ void MolecularForceCompute::initMolecules()
         for (std::set<unsigned int>::iterator it_tag = it_mol->second.begin(); it_tag != it_mol->second.end(); ++it_tag)
             {
             unsigned int n = h_molecule_length.data[i_mol]++;
-            unsigned int ptl_idx = h_rtag.data[*it_tag];
-            assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
-            h_molecule_list.data[m_molecule_indexer(n, i_mol)] = ptl_idx;
-            h_molecule_idx.data[ptl_idx] = i_mol;
-            h_molecule_order.data[ptl_idx] = n;
+            unsigned int particle_index = h_rtag.data[*it_tag];
+            assert(particle_index < m_pdata->getN() + m_pdata->getNGhosts());
+            h_molecule_list.data[m_molecule_indexer(n, i_mol)] = particle_index;
+            h_molecule_idx.data[particle_index] = i_mol;
+            h_molecule_order.data[particle_index] = n;
             }
         i_mol ++;
         }
