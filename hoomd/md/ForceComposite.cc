@@ -708,6 +708,11 @@ void ForceComposite::validateRigidBodies(bool create)
         }
     #endif
 
+    if (m_n_molecules_global == 0)
+        {
+        throw std::runtime_error("Rigid bodies selected, but no rigid bodies were found.");
+        }
+
     // reset flags
     m_bodies_changed = false;
     m_particles_added_removed = false;
