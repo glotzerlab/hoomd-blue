@@ -311,8 +311,8 @@ def test_from_gsd_snapshot_populated(s, device):
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
 
 
-def test_invalid_particle_types(simulation_factory, lattice_snapshot_factory):
-    """Test that using invalid particle types raises an error."""
+def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
+    """Test that using invalid particle typeids raises an error."""
 
     snap = lattice_snapshot_factory(particle_types=['A', 'B'])
 
