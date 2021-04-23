@@ -118,9 +118,6 @@ class ComputeSDF : public Compute
             {
             // call base class method
             Compute::setCommunicator(comm);
-
-            // set the communicator on the internal cell list
-            m_cl->setCommunicator(comm);
             }
 #endif
 
