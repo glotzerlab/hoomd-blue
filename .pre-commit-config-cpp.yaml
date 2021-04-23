@@ -19,8 +19,3 @@ repos:
             ^doc/dev/
           )
         verbose: true
-        # Unclear if --style=file is necessary, it seems like clang-format uses
-        # .clang-format if found by default, at least for newer versions. I'll
-        # specify this here just in case.
-        args:
-        - --style=file
