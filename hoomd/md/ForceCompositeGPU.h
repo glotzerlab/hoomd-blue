@@ -68,17 +68,12 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         virtual void checkParticlesSorted()
             {
-            bool dirty = m_dirty;
-
             MolecularForceCompute::checkParticlesSorted();
 
-            if (dirty)
+            if (m_rebuld_molecules)
                 // identify center particles for use in GPU kernel
                 findRigidCenters();
             }
-
-        //! Update GPU Mappings
-        virtual void lazyInitMem();
 
         std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle

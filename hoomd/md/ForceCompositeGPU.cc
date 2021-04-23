@@ -56,6 +56,24 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
         ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::overwrite);
         *h_flag.data = make_uint2(0,0);
         }
+    GlobalVector<unsigned int> rigid_center(m_exec_conf);
+    m_rigid_center.swap(rigid_center);
+    TAG_ALLOCATION(m_rigid_center);
+
+    GlobalVector<unsigned int> lookup_center(m_exec_conf);
+    m_lookup_center.swap(lookup_center);
+    TAG_ALLOCATION(m_lookup_center);
+
+    #ifdef __HIP_PLATFORM_NVCC__
+    if (m_exec_conf->allConcurrentManagedAccess())
+        {
+        cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
     }
 
 ForceCompositeGPU::~ForceCompositeGPU()
@@ -391,36 +409,6 @@ void ForceCompositeGPU::findRigidCenters()
     // distribute rigid body centers over GPUs
     m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
     m_gpu_partition.setN(n_rigid);
-    }
-
-void ForceCompositeGPU::lazyInitMem()
-    {
-    bool initialized = m_memory_initialized;
-
-    // call base class method
-    ForceComposite::lazyInitMem();
-
-    if (!initialized)
-        {
-        GlobalVector<unsigned int> rigid_center(m_exec_conf);
-        m_rigid_center.swap(rigid_center);
-        TAG_ALLOCATION(m_rigid_center);
-
-        GlobalVector<unsigned int> lookup_center(m_exec_conf);
-        m_lookup_center.swap(lookup_center);
-        TAG_ALLOCATION(m_lookup_center);
-        }
-
-    #ifdef __HIP_PLATFORM_NVCC__
-    if (m_exec_conf->allConcurrentManagedAccess())
-        {
-        cudaMemAdvise(m_body_len.get(), sizeof(unsigned int)*m_body_len.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_body_orientation.get(), sizeof(Scalar4)*m_body_orientation.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_body_pos.get(), sizeof(Scalar3)*m_body_pos.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(m_body_types.get(), sizeof(unsigned int)*m_body_types.getNumElements(), cudaMemAdviseSetReadMostly, 0);
-        CHECK_CUDA_ERROR();
-        }
-    #endif
     }
 
 void export_ForceCompositeGPU(py::module& m)
