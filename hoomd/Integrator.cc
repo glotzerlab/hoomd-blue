@@ -88,13 +88,17 @@ void Integrator::setDeltaT(Scalar deltaT)
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
 
-    for (unsigned int i=0; i < m_forces.size(); i++)
-        m_forces[i]->setDeltaT(deltaT);
+    for (auto& force: m_forces)
+        {
+        force->setDeltaT(deltaT);
+        }
 
-    for (unsigned int i=0; i < m_constraint_forces.size(); i++)
-        m_constraint_forces[i]->setDeltaT(deltaT);
+    for (auto& constraint_force: m_constraint_forces)
+        {
+        constraint_force->setDeltaT(deltaT);
+        }
 
-     m_deltaT = deltaT;
+    m_deltaT = deltaT;
     }
 
 /** \return the timestep deltaT
@@ -112,11 +116,10 @@ Scalar Integrator::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     // start counting at 0
     Scalar n = 0;
 
-    // loop through all constraint forces
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
-    for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
-        n += (*force_compute)->getNDOFRemoved(query);
-
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        n += constraint_force->getNDOFRemoved(query);
+        }
     return n;
     }
 
@@ -307,9 +310,10 @@ Scalar Integrator::computeTotalMomentum(uint64_t timestep)
 */
 void Integrator::computeNetForce(uint64_t timestep)
     {
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -347,11 +351,11 @@ void Integrator::computeNetForce(uint64_t timestep)
         assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
 
-        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        for (const auto& force : m_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = (*force_compute)->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = (*force_compute)->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = (*force_compute)->getTorqueArray();
+            GlobalArray<Scalar4>& h_force_array = force->getForceArray();
+            GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
+            GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());
@@ -381,14 +385,18 @@ void Integrator::computeNetForce(uint64_t timestep)
                 }
 
             for (unsigned int k = 0; k < 6; k++)
-                external_virial[k] += (*force_compute)->getExternalVirial(k);
+                {
+                external_virial[k] += force->getExternalVirial(k);
+                }
 
-            external_energy += (*force_compute)->getExternalEnergy();
+            external_energy += force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -412,9 +420,10 @@ void Integrator::computeNetForce(uint64_t timestep)
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->compute(timestep);
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -436,11 +445,11 @@ void Integrator::computeNetForce(uint64_t timestep)
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
-            GlobalArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
+            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
@@ -463,17 +472,23 @@ void Integrator::computeNetForce(uint64_t timestep)
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
                 for (unsigned int k = 0; k < 6; k++)
+                    {
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
+                    }
                 }
             for (unsigned int k = 0; k < 6; k++)
-                external_virial[k] += (*force_constraint)->getExternalVirial(k);
+                {
+                external_virial[k] += constraint_force->getExternalVirial(k);
+                }
 
-            external_energy += (*force_constraint)->getExternalEnergy();
+            external_energy += constraint_force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -499,10 +514,10 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
 
     // compute all the normal forces first
 
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -660,11 +675,11 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         }
 
     // add up external virials and energies
-    for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
+    for (const auto& force : m_forces)
         {
         for (unsigned int k = 0; k < 6; k++)
-            external_virial[k] += m_forces[cur_force]->getExternalVirial(k);
-        external_energy += m_forces[cur_force]->getExternalEnergy();
+            external_virial[k] += force->getExternalVirial(k);
+        external_energy += force->getExternalEnergy();
         }
 
     for (unsigned int k = 0; k < 6; k++)
@@ -691,9 +706,10 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->compute(timestep);
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -825,11 +841,13 @@ void Integrator::computeNetForceGPU(uint64_t timestep)
         }
 
     // add up external virials
-    for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
+    for (const auto& constraint_force : m_constraint_forces)
         {
         for (unsigned int k = 0; k < 6; k++)
-            external_virial[k] += m_constraint_forces[cur_force]->getExternalVirial(k);
-        external_energy += m_constraint_forces[cur_force]->getExternalEnergy();
+            {
+            external_virial[k] += constraint_force->getExternalVirial(k);
+            }
+        external_energy += constraint_force->getExternalEnergy();
         }
 
     for (unsigned int k = 0; k < 6; k++)
@@ -878,14 +896,16 @@ CommFlags Integrator::determineFlags(uint64_t timestep)
     CommFlags flags(0);
 
     // query all forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        flags |= (*force_compute)->getRequestedCommFlags(timestep);
+    for (const auto& force : m_forces)
+        {
+        flags |= force->getRequestedCommFlags(timestep);
+        }
 
     // query all constraints
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        flags |= (*force_constraint)->getRequestedCommFlags(timestep);
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        flags |= constraint_force->getRequestedCommFlags(timestep);
+        }
 
     return flags;
     }
@@ -911,10 +931,10 @@ void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
 void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->preCompute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->preCompute(timestep);
+        }
     }
 #endif
 
@@ -922,15 +942,15 @@ bool Integrator::getAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (auto& force : m_forces)
+        {
+        aniso |= force->isAnisotropic();
+        }
 
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        aniso |= (*force_compute)->isAnisotropic();
-
-    // pre-compute all active constraint forces
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        aniso |= (*force_constraint)->isAnisotropic();
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        aniso |= constraint_force->isAnisotropic();
+        }
 
     return aniso;
     }
