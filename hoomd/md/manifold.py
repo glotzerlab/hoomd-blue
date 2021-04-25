@@ -51,7 +51,7 @@ class Manifold(_HOOMDBaseObject):
         return all(getattr(self, attr) == getattr(other, attr) for attr in self._param_dict)
 
     def _setattr_param(self, attr, value):
-        raise AttributeError("Manilfolds are immutable and {} cannot be set "
+        raise AttributeError("Manifolds are immutable and {} cannot be set "
                             "after initialization".format(attr))
 
 
@@ -347,4 +347,3 @@ class Sphere(Manifold):
         self._cpp_obj = _md.ManifoldSphere(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         super()._attach()
-
