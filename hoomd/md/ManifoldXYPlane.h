@@ -60,7 +60,7 @@ class ManifoldXYPlane
             return point.z - shift;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the XYPlane surface at input point
@@ -71,7 +71,7 @@ class ManifoldXYPlane
             return make_scalar3(0,0,1);
         }
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
         Scalar3 lo = box.getLo();
         Scalar3 hi = box.getHi();

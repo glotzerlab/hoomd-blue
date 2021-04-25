@@ -120,7 +120,7 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
 
     BoxDim box = this->m_pdata->getBox();
 
-    bool manifold_fits = this->m_manifold.fitToBox(box);
+    bool manifold_fits = this->m_manifold.fitsInsideBox(box);
 
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");

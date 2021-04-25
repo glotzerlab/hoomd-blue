@@ -62,7 +62,7 @@
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
-#include "ManifoldCylinder.h"
+#include "ManifoldZCylinder.h"
 #include "ManifoldDiamond.h"
 #include "ManifoldEllipsoid.h"
 #include "ManifoldGyroid.h"
@@ -377,7 +377,7 @@ PYBIND11_MODULE(_md, m)
     export_MuellerPlatheFlow(m);
 
     //RATTLE
-    export_TwoStepRATTLEBD<ManifoldCylinder>(m,"TwoStepRATTLEBDCylinder");
+    export_TwoStepRATTLEBD<ManifoldZCylinder>(m,"TwoStepRATTLEBDCylinder");
     export_TwoStepRATTLEBD<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamond");
     export_TwoStepRATTLEBD<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoid");
     export_TwoStepRATTLEBD<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroid");
@@ -385,7 +385,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLEBD<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitive");
     export_TwoStepRATTLEBD<ManifoldSphere>(m,"TwoStepRATTLEBDSphere");
 
-    export_TwoStepRATTLELangevin<ManifoldCylinder>(m,"TwoStepRATTLELangevinCylinder");
+    export_TwoStepRATTLELangevin<ManifoldZCylinder>(m,"TwoStepRATTLELangevinCylinder");
     export_TwoStepRATTLELangevin<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamond");
     export_TwoStepRATTLELangevin<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoid");
     export_TwoStepRATTLELangevin<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroid");
@@ -393,7 +393,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevin<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitive");
     export_TwoStepRATTLELangevin<ManifoldSphere>(m,"TwoStepRATTLELangevinSphere");
 
-    export_TwoStepRATTLENVE<ManifoldCylinder>(m,"TwoStepRATTLENVECylinder");
+    export_TwoStepRATTLENVE<ManifoldZCylinder>(m,"TwoStepRATTLENVECylinder");
     export_TwoStepRATTLENVE<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamond");
     export_TwoStepRATTLENVE<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
     export_TwoStepRATTLENVE<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroid");
@@ -413,7 +413,7 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
 
-    export_TwoStepRATTLEBDGPU<ManifoldCylinder>(m,"TwoStepRATTLEBDCylinderGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldZCylinder>(m,"TwoStepRATTLEBDCylinderGPU");
     export_TwoStepRATTLEBDGPU<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamondGPU");
     export_TwoStepRATTLEBDGPU<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoidGPU");
     export_TwoStepRATTLEBDGPU<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroidGPU");
@@ -421,7 +421,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLEBDGPU<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitiveGPU");
     export_TwoStepRATTLEBDGPU<ManifoldSphere>(m,"TwoStepRATTLEBDSphereGPU");
 
-    export_TwoStepRATTLELangevinGPU<ManifoldCylinder>(m,"TwoStepRATTLELangevinCylinderGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldZCylinder>(m,"TwoStepRATTLELangevinCylinderGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamondGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoidGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroidGPU");
@@ -429,7 +429,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLELangevinGPU<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitiveGPU");
     export_TwoStepRATTLELangevinGPU<ManifoldSphere>(m,"TwoStepRATTLELangevinSphereGPU");
 
-    export_TwoStepRATTLENVEGPU<ManifoldCylinder>(m,"TwoStepRATTLENVECylinderGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldZCylinder>(m,"TwoStepRATTLENVECylinderGPU");
     export_TwoStepRATTLENVEGPU<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamondGPU");
     export_TwoStepRATTLENVEGPU<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoidGPU");
     export_TwoStepRATTLENVEGPU<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroidGPU");
@@ -439,7 +439,7 @@ PYBIND11_MODULE(_md, m)
 #endif
 
     // manifolds 
-    export_ManifoldCylinder(m);
+    export_ManifoldZCylinder(m);
     export_ManifoldDiamond(m);
     export_ManifoldEllipsoid(m);
     export_ManifoldGyroid(m);

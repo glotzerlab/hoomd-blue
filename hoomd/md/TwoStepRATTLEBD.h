@@ -112,7 +112,7 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    bool manifold_fits = m_manifold.fitToBox(m_pdata->getBox());
+    bool manifold_fits = m_manifold.fitsInsideBox(m_pdata->getBox());
 
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
@@ -157,7 +157,7 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_fits = m_manifold.fitToBox(m_pdata->getBox());
+    bool manifold_fits = m_manifold.fitsInsideBox(m_pdata->getBox());
 
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");

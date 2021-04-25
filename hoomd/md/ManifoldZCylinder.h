@@ -4,14 +4,14 @@
 
 // Maintainer: pschoenhoefer
 
-#ifndef __MANIFOLD_CLASS_CYLINDER_H__
-#define __MANIFOLD_CLASS_CYLINDER_H__
+#ifndef __MANIFOLD_CLASS_Z_CYLINDER_H__
+#define __MANIFOLD_CLASS_Z_CYLINDER_H__
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include <pybind11/pybind11.h>
 
-/*! \file ManifoldCylinder.h
+/*! \file ManifoldZCylinder.h
     \brief Defines the manifold class for the Cylinder surface
 */
 
@@ -26,11 +26,11 @@
 //! Class for constructing the Cylinder surface
 /*! <b>General Overview</b>
 
-    ManifoldCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
+    ManifoldZCylinder is a low level computation class that computes the distance and normal vector to the Cylinder surface.
 
     <b>Cylinder specifics</b>
 
-    ManifoldCylinder constructs the surface:
+    ManifoldZCylinder constructs the surface:
     R^2 = (x-P_x)^2 + (y-P_y)^2
 
     These are the parameters:
@@ -41,7 +41,7 @@
 
 */
 
-class ManifoldCylinder
+class ManifoldZCylinder
     {
     public:
 
@@ -49,7 +49,7 @@ class ManifoldCylinder
         /*! \param _P center position in x-y-z coordinates
             \param _R radius
         */
-        DEVICE ManifoldCylinder(const Scalar _R, const Scalar3 _P)
+        DEVICE ManifoldZCylinder(const Scalar _R, const Scalar3 _P)
             : Px(_P.x), Py(_P.y), Pz(_P.z), R_sq(_R*_R)
             {
             }
@@ -65,7 +65,7 @@ class ManifoldCylinder
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R_sq;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Cylinder surface at input point
@@ -76,7 +76,7 @@ class ManifoldCylinder
             return make_scalar3(2*(point.x - Px), 2*(point.y - Py), 0);
         }
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
          Scalar3 lo = box.getLo();
          Scalar3 hi = box.getHi();
@@ -110,6 +110,6 @@ class ManifoldCylinder
     };
 
 //! Exports the Cylinder manifold class to python
-void export_ManifoldCylinder(pybind11::module& m);
+void export_ManifoldZCylinder(pybind11::module& m);
 
-#endif // __MANIFOLD_CLASS_CYLINDER_H__
+#endif // __MANIFOLD_CLASS_Z_CYLINDER_H__

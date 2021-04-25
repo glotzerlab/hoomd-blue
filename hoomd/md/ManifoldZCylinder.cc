@@ -4,16 +4,16 @@
 
 // Maintainer: pschoenhoefer
 
-#include "ManifoldCylinder.h"
+#include "ManifoldZCylinder.h"
 #include <pybind11/pybind11.h>
 
 
 //! Exports the Cylinder manifold class to python
-void export_ManifoldCylinder(pybind11::module& m)
+void export_ManifoldZCylinder(pybind11::module& m)
     {
-    pybind11::class_< ManifoldCylinder, std::shared_ptr<ManifoldCylinder> >(m, "ManifoldCylinder")
+    pybind11::class_< ManifoldZCylinder, std::shared_ptr<ManifoldZCylinder> >(m, "ManifoldZCylinder")
     .def(pybind11::init<Scalar, Scalar3 >())
-    .def_property_readonly("r", &ManifoldCylinder::getR)
-    .def_property_readonly("P", &ManifoldCylinder::getP)
+    .def_property_readonly("r", &ManifoldZCylinder::getR)
+    .def_property_readonly("P", &ManifoldZCylinder::getP)
     ;
     }

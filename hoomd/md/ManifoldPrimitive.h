@@ -64,7 +64,7 @@ class ManifoldPrimitive
             return  fast::cos(Lx*point.x) + fast::cos(Ly*point.y) + fast::cos(Lz*point.z) - epsilon;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Primitive surface at input point
@@ -75,7 +75,7 @@ class ManifoldPrimitive
             return make_scalar3(-Lx*fast::sin(Lx*point.x),-Ly*fast::sin(Ly*point.y), -Lz*fast::sin(Lz*point.z));
         }
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
         

@@ -66,7 +66,7 @@ class ManifoldSphere
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) + (point.z - Pz)*(point.z - Pz) - R_sq;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Sphere surface at input point
@@ -78,7 +78,7 @@ class ManifoldSphere
         }
 
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();

@@ -88,17 +88,8 @@ class Cylinder(Manifold):
 
         self._param_dict.update(param_dict)
 
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Cylinder)
-            and self.r == other.r
-            and self.P == other.P
-        )
-
     def _attach(self):
-        self._cpp_obj = _md.ManifoldCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
+        self._cpp_obj = _md.ManifoldZCylinder(self.r, _hoomd.make_scalar3( self.P[0], self.P[1], self.P[2]) );
 
         super()._attach()
 
@@ -266,14 +257,6 @@ class Plane(Manifold):
         )
 
         self._param_dict.update(param_dict)
-
-    def __eq__(self, other):
-        """Return a Boolean indicating whether the two manifolds are equivalent.
-        """
-        return (
-            isinstance(other, Plane)
-            and self.shift == other.shift
-        )
 
     def _attach(self):
         self._cpp_obj = _md.ManifoldXYPlane(self.shift);

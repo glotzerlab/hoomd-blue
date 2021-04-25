@@ -70,7 +70,7 @@ class ManifoldGyroid
             return sx*cy + sy*cz + sz*cx - epsilon;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Gyroid surface at input point
@@ -87,7 +87,7 @@ class ManifoldGyroid
             return make_scalar3(Lx*(cx*cy - sz*sx),Ly*(cy*cz - sx*sy), Lz*(cz*cx - sy*sz));
         }
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
 

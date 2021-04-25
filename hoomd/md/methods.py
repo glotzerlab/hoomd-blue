@@ -53,7 +53,7 @@ class _MethodRATTLE(_Method):
     def __init__(self, manifold_constraint, tolerance):
 
         if manifold_constraint == None and tolerance != 1e-6:
-            raise TypeError("The tolerance for RATTLE integration has been changed but"
+            raise TypeError("The tolerance for RATTLE integration has been changed but "
                                "manifold_constraint is not specified!")
         param_dict = ParameterDict(
             manifold_constraint = OnlyTypes(Manifold, allow_none=True),

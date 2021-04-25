@@ -71,7 +71,7 @@ class ManifoldEllipsoid
             return inv_a2*(point.x - Px)*(point.x - Px) + inv_b2*(point.y - Py)*(point.y - Py) + inv_c2*(point.z - Pz)*(point.z - Pz) - 1;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Ellipsoid surface at input point
@@ -82,7 +82,7 @@ class ManifoldEllipsoid
             return make_scalar3(2*inv_a2*(point.x - Px), 2*inv_b2*(point.y - Py), 2*inv_c2*(point.z - Pz));
         }
 
-        DEVICE bool fitToBox(const BoxDim& box)
+        DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
