@@ -71,7 +71,7 @@ class ManifoldEllipsoid
             return inv_a2*(point.x - Px)*(point.x - Px) + inv_b2*(point.y - Py)*(point.y - Py) + inv_c2*(point.z - Pz)*(point.z - Pz) - 1;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Ellipsoid surface at input point

@@ -69,7 +69,7 @@ class ManifoldDiamond
             return cx*cy*cz - sx*sy*sz - epsilon;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Diamond surface at input point

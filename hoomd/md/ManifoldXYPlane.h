@@ -60,7 +60,7 @@ class ManifoldXYPlane
             return point.z - shift;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the XYPlane surface at input point

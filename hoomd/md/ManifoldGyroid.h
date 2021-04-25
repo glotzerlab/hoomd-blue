@@ -70,7 +70,7 @@ class ManifoldGyroid
             return sx*cy + sy*cz + sz*cx - epsilon;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Gyroid surface at input point

@@ -65,7 +65,7 @@ class ManifoldCylinder
             return  (point.x - Px)*(point.x - Px) + (point.y - Py)*(point.y - Py) - R_sq;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Cylinder surface at input point

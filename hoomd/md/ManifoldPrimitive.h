@@ -64,7 +64,7 @@ class ManifoldPrimitive
             return  fast::cos(Lx*point.x) + fast::cos(Ly*point.y) + fast::cos(Lz*point.z) - epsilon;
         }
 
-        //! Evaluate deriviative of implicit function
+        //! Evaluate derivative of implicit function
         /*! \param point Point at surface is calculated
 
             \return normal of the Primitive surface at input point
