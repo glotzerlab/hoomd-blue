@@ -65,6 +65,8 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// Change the timestep
         virtual void setDeltaT(Scalar deltaT);
 
+        virtual void removeForceComputes();
+
         /// Add a new integration method to the list that will be run
         virtual void addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method);
 
@@ -95,12 +97,29 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
 
+        /// Count the total number of degrees of freedom removed by all constraint forces
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
+
+        /// helper function to compute net force/virial
+        virtual void computeNetForce(uint64_t timestep);
+
+#ifdef ENABLE_HIP
+        /// helper function to compute net force/virial on the GPU
+        virtual void computeNetForceGPU(uint64_t timestep);
+#endif
+
 #ifdef ENABLE_MPI
         /// Set the communicator to use
         /** \param comm The Communicator
          */
         virtual void setCommunicator(std::shared_ptr<Communicator> comm);
+
+        /// helper function to determine the ghost communication flags
+        virtual CommFlags determineFlags(uint64_t timestep);
 #endif
+
+        /// Check if any forces introduce anisotropic degrees of freedom
+        virtual bool getAnisotropic();
 
         /// Updates the rigid body constituent particles
         virtual void updateRigidBodies(uint64_t timestep);
@@ -111,11 +130,24 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// (Re-)initialize the integration method
         void initializeIntegrationMethods();
 
+        /// Getter and setter for accessing rigid body objects in Python
+        std::shared_ptr<ForceComposite> getRigid()
+            {
+            return m_rigid_bodies;
+            }
+
+        void setRigid(std::shared_ptr<ForceComposite> new_rigid)
+            {
+            m_rigid_bodies = new_rigid;
+            }
+
     protected:
         /// Helper method to test if all added methods have valid restart information
         bool isValidRestart();
 
         std::vector< std::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
+
+        std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
 
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added

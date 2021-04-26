@@ -10,7 +10,7 @@
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.integrate import BaseIntegrator
 from hoomd.data.syncedlist import SyncedList
 from hoomd.md.methods import _Method
@@ -34,7 +34,7 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
-    def __init__(self, forces, constraints, methods):
+    def __init__(self, forces, constraints, methods, rigid):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -50,11 +50,16 @@ class _DynamicIntegrator(BaseIntegrator):
         self._methods = SyncedList(lambda x: isinstance(x, _Method),
                                    to_synced_list=lambda x: x._cpp_obj,
                                    iterable=methods)
+        param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
+        param_dict["rigid"] = rigid
+        self._param_dict.update(param_dict)
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
+        self.rigid._add(self._simulation)
+        self.rigid._attach()
         super()._attach()
 
     @property
@@ -92,6 +97,27 @@ class _DynamicIntegrator(BaseIntegrator):
             children.extend(child._children)
 
         return children
+
+    def _getattr_param(self, attr):
+        if attr == "rigid":
+            return self._param_dict["rigid"]
+        return super()._getattr_param(attr)
+
+    def _setattr_param(self, attr, value):
+        if attr == "rigid" and self._attached:
+            self._set_rigid_attached(value)
+            return
+        super()._setattr_param(attr, value)
+        if attr == "rigid" and self._added:
+            self.rigid._add(self._simulation)
+
+    def _set_rigid_attached(self, rigid):
+        old_rigid = self.rigid
+        old_rigid._detach()
+        old_rigid._remove()
+        rigid._add(self._simulation)
+        rigid._attach()
+        self._cpp_obj.rigid = rigid._cpp_obj
 
 
 class Integrator(_DynamicIntegrator):
@@ -171,9 +197,9 @@ class Integrator(_DynamicIntegrator):
     """
 
     def __init__(self, dt, aniso='auto', forces=None, constraints=None,
-                 methods=None):
+                 methods=None, rigid=None):
 
-        super().__init__(forces, constraints, methods)
+        super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
                 ParameterDict(

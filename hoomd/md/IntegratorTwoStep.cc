@@ -172,7 +172,19 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
 
     // set deltaT on all methods already added
     for (auto& method : m_methods)
+        {
         method->setDeltaT(deltaT);
+        }
+    if (m_rigid_bodies)
+        {
+        m_rigid_bodies->setDeltaT(deltaT);
+        }
+    }
+
+void IntegratorTwoStep::removeForceComputes()
+    {
+    m_rigid_bodies.reset();
+    Integrator::removeForceComputes();
     }
 
 /*! \param new_method New integration method to add to the integrator
@@ -460,11 +472,9 @@ void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
 void IntegratorTwoStep::updateRigidBodies(uint64_t timestep)
     {
     // update the composite particle positions of any rigid bodies
-    for (auto& constraint_force : m_constraint_forces)
+    if (m_rigid_bodies)
         {
-        auto rigid = dynamic_pointer_cast<ForceComposite>(constraint_force);
-        if (rigid)
-            rigid->updateCompositeParticles(timestep);
+        m_rigid_bodies->updateCompositeParticles(timestep);
         }
     }
 
@@ -479,6 +489,72 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
             method->setAutotunerParams(enable, period);
     }
 
+/// helper function to compute net force/virial
+void IntegratorTwoStep::computeNetForce(uint64_t timestep)
+    {
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.push_back(m_rigid_bodies);
+        }
+    Integrator::computeNetForce(timestep);
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.pop_back();
+        }
+    }
+
+#ifdef ENABLE_HIP
+/// helper function to compute net force/virial on the GPU
+void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
+    {
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.push_back(m_rigid_bodies);
+        }
+    Integrator::computeNetForceGPU(timestep);
+    if (m_rigid_bodies)
+        {
+        m_constraint_forces.pop_back();
+        }
+    }
+#endif
+
+#ifdef ENABLE_MPI
+/// helper function to determine the ghost communication flags
+CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
+    {
+    auto flags = Integrator::determineFlags(timestep)
+    if (m_rigid_bodies)
+        {
+        flags |= m_rigid_bodies->getRequestedCommFlags(timestep);
+        }
+    return flags;
+    }
+#endif
+
+/// Count the total number of degrees of freedom removed by all constraint forces
+Scalar IntegratorTwoStep::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
+    {
+    auto number_degrees_of_freedom = Integrator::getNDOFRemoved(query);
+    if (m_rigid_bodies)
+        {
+        number_degrees_of_freedom += m_rigid_bodies->getNDOFRemoved(query);
+        }
+    return number_degrees_of_freedom;
+    }
+
+
+/// Check if any forces introduce anisotropic degrees of freedom
+bool IntegratorTwoStep::getAnisotropic()
+    {
+    auto is_anisotropic = Integrator::getAnisotropic();
+    if (m_rigid_bodies)
+        {
+        is_anisotropic |= m_rigid_bodies->isAnisotropic();
+        }
+    return is_anisotropic;
+    }
+
 void export_IntegratorTwoStep(py::module& m)
     {
 	py::bind_vector<std::vector< std::shared_ptr<IntegrationMethodTwoStep> > >(
@@ -487,6 +563,7 @@ void export_IntegratorTwoStep(py::module& m)
     py::class_<IntegratorTwoStep, Integrator, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep")
         .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def_property_readonly("methods", &IntegratorTwoStep::getIntegrationMethods)
+        .def_property("rigid", &IntegratorTwoStep::getRigid, &IntegratorTwoStep::setRigid)
         .def_property("aniso",
                       &IntegratorTwoStep::getAnisotropicMode,
                       &IntegratorTwoStep::setAnisotropicMode)

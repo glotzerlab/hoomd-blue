@@ -130,7 +130,7 @@ class PYBIND11_EXPORT Integrator : public Updater
             }
 
         /// Count the total number of degrees of freedom removed by all constraint forces
-        Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
         /// Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -171,20 +171,20 @@ class PYBIND11_EXPORT Integrator : public Updater
         void computeAccelerations(uint64_t timestep);
 
         /// helper function to compute net force/virial
-        void computeNetForce(uint64_t timestep);
+        virtual void computeNetForce(uint64_t timestep);
 
 #ifdef ENABLE_HIP
         /// helper function to compute net force/virial on the GPU
-        void computeNetForceGPU(uint64_t timestep);
+        virtual void computeNetForceGPU(uint64_t timestep);
 #endif
 
 #ifdef ENABLE_MPI
         /// helper function to determine the ghost communication flags
-        CommFlags determineFlags(uint64_t timestep);
+        virtual CommFlags determineFlags(uint64_t timestep);
 #endif
 
         /// Check if any forces introduce anisotropic degrees of freedom
-        bool getAnisotropic();
+        virtual bool getAnisotropic();
 
     private:
         #ifdef ENABLE_MPI
