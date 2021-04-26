@@ -39,7 +39,6 @@ class SpecialPair(Force):
             cpp_cls = getattr(_md, self._cpp_class_name)
         else:
             cpp_cls = getattr(_md, self._cpp_class_name + "GPU")
-        # TODO remove string name argument
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def)
         super()._attach()
 
