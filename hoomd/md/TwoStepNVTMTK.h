@@ -129,6 +129,8 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         /// Set the rotational thermostat degrees of freedom
         void setRotationalThermostatDOF(pybind11::tuple v);
 
+        Scalar getThermostatEnergy(uint64_t timestep);
+
         #ifdef ENABLE_MPI
 
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)

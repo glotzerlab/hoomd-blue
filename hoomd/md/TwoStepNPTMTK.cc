@@ -1108,6 +1108,26 @@ void TwoStepNPTMTK::setRotationalThermostatDOF(pybind11::tuple v)
     setIntegratorVariables(vars);
     }
 
+Scalar TwoStepNPTMTK::getThermostatEnergy(uint64_t timestep)
+    {
+    IntegratorVariables integrator_variables = getIntegratorVariables();
+    Scalar eta = integrator_variables.variable[0];
+    Scalar xi = integrator_variables.variable[1];
+
+    Scalar thermostat_energy = m_group->getTranslationalDOF()*(*m_T)(timestep)
+                                *(eta + m_tau*m_tau*xi*xi/Scalar(2.0));
+
+    if (m_aniso)
+        {
+        Scalar xi_rot = integrator_variables.variable[8];
+        Scalar eta_rot = integrator_variables.variable[9];
+        thermostat_energy += m_group->getRotationalDOF()*(*m_T)(timestep)
+                                *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
+        }
+
+    return thermostat_energy;
+    }
+
 pybind11::tuple TwoStepNPTMTK::getBarostatDOF()
     {
     pybind11::list result;
@@ -1136,6 +1156,29 @@ void TwoStepNPTMTK::setBarostatDOF(pybind11::tuple v)
         }
 
     setIntegratorVariables(vars);
+    }
+
+Scalar TwoStepNPTMTK::getBarostatEnergy(uint64_t timestep)
+    {
+    IntegratorVariables integrator_variables = getIntegratorVariables();
+
+    Scalar nu_xx = integrator_variables.variable[2];  // Barostat tensor, xx component
+    Scalar nu_xy = integrator_variables.variable[3];  // Barostat tensor, xy component
+    Scalar nu_xz = integrator_variables.variable[4];  // Barostat tensor, xz component
+    Scalar nu_yy = integrator_variables.variable[5];  // Barostat tensor, yy component
+    Scalar nu_yz = integrator_variables.variable[6];  // Barostat tensor, yz component
+    Scalar nu_zz = integrator_variables.variable[7];  // Barostat tensor, zz component
+
+    unsigned int d = m_sysdef->getNDimensions();
+    Scalar W = static_cast<Scalar>(m_ndof+d) / static_cast<Scalar>(d)
+        * (*m_T)(timestep) * m_tauS * m_tauS;
+
+    Scalar barostat_energy = W * (
+        nu_xx * nu_xx + nu_yy * nu_yy + nu_zz * nu_zz  // Normal
+        + nu_xy * nu_xy + nu_xz * nu_xz + nu_yz * nu_yz  // Shear
+        ) / Scalar(2.0);
+
+    return barostat_energy;
     }
 
 void export_TwoStepNPTMTK(py::module& m)

@@ -519,6 +519,26 @@ void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
     setIntegratorVariables(vars);
     }
 
+Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
+    {
+        Scalar translation_dof = m_group->getTranslationalDOF();
+        IntegratorVariables integrator_variables = getIntegratorVariables();
+        Scalar& xi = integrator_variables.variable[0];
+        Scalar& eta = integrator_variables.variable[1];
+        Scalar thermostat_energy = static_cast<Scalar>(translation_dof)
+            * (*m_T)(timestep) * ((xi * xi* m_tau * m_tau / Scalar(2.0)) + eta);
+
+        if (m_aniso)
+            {
+            Scalar& xi_rot = integrator_variables.variable[2];
+            Scalar& eta_rot = integrator_variables.variable[3];
+            thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF())
+                * (*m_T)(timestep) * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
+            }
+
+        return thermostat_energy;
+    }
+
 void export_TwoStepNVTMTK(py::module& m)
     {
     py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK")

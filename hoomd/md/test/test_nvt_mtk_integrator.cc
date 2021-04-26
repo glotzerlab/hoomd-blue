@@ -120,14 +120,14 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
 
     // equilibrate
     std::cout << "Equilibrating for 10,000 time steps..." << std::endl;
-    int i =0;
 
-    for (i=0; i< 10000; i++)
+    uint64_t timestep = 0;
+    for (timestep < 10000; timestep++)
         {
         // get conserved quantity
-        nvt_1->update(i);
-        if (i % 1000 == 0)
-            std::cout << i << std::endl;
+        nvt_1->update();
+        if (timestep % 1000 == 0)
+            std::cout << timestep << std::endl;
         }
 
     // 0.1 % tolerance for temperature
@@ -136,28 +136,28 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
     Scalar H_tol = 0.02;
 
     // conserved quantity
-    thermo_1->compute(i+1);
+    thermo_1->compute(timestep + 1);
     Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
     bool flag = false;
-    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
+    H_ini += nvt_1->getThermostatEnergy(timestep);
 
     std::cout << "Measuring temperature and conserved quantity for another 25,000 time steps..." << std::endl;
     Scalar avg_T(0.0);
     int n_measure_steps = 25000;
-    for (i=10000; i< 10000+n_measure_steps; i++)
+    for (timestep < 10000 + n_measure_steps; timestep++)
         {
         // get conserved quantity
-        nvt_1->update(i);
+        nvt_1->update(timestep);
 
-        if (i % 1000 == 0)
-            std::cout << i << std::endl;
+        if (timestep % 1000 == 0)
+            std::cout << timestep << std::endl;
 
-        thermo_1->compute(i+1);
+        thermo_1->compute(timestep + 1);
 
         avg_T += thermo_1->getTemperature();
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
-        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
+        H += nvt_1->getThermostatEnergy(timestep);
         MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
@@ -246,7 +246,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     // conserved quantity
     thermo_1->compute(i+1);
     Scalar H_ini = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
-    H_ini += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
+    H_ini += nvt_1->getThermostatEnergy(timestep);
 
     int n_measure_steps = 25000;
     std::cout << "Measuring temperature and conserved quantity for another " << n_measure_steps << " time steps..." << std::endl;
@@ -268,7 +268,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
         avg_T_rot += thermo_1->getRotationalTemperature();
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
-        H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
+        H += nvt_1->getThermostatEnergy(timestep);
         MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 

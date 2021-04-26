@@ -220,11 +220,15 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         /// Set the rotational thermostat degrees of freedom
         void setRotationalThermostatDOF(pybind11::tuple v);
 
+        Scalar getThermostatEnergy(uint64_t timestep);
+
         /// Get the barostat degrees of freedom
         pybind11::tuple getBarostatDOF();
 
         /// Set the barostat degrees of freedom
         void setBarostatDOF(pybind11::tuple v);
+
+        Scalar getBarostatEnergy(uint64_t timestep);
 
         #ifdef ENABLE_MPI
 
