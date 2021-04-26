@@ -844,7 +844,7 @@ void ForceComposite::computeForces(uint64_t timestep)
             if (central_idx < m_pdata->getN())
                 {
                 // if the central particle is local, the molecule should be complete
-                if (len != h_body_len.data[type] + 1)
+                if (h_molecule_length.data[ibody] != h_body_len.data[type] + 1)
                     {
                     m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
                                                       << central_tag << " incomplete" << std::endl << std::endl;

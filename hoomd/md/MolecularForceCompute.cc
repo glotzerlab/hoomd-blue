@@ -365,9 +365,11 @@ void MolecularForceCompute::initMolecules()
         {
         for (std::set<unsigned int>::iterator it_tag = it_mol->second.begin(); it_tag != it_mol->second.end(); ++it_tag)
             {
-            unsigned int n = h_molecule_length.data[i_mol]++;
             unsigned int particle_index = h_rtag.data[*it_tag];
             assert(particle_index < m_pdata->getN() + m_pdata->getNGhosts());
+            // Gets the current molecule index for the particle while incrementing the length of the
+            // molecule.
+            unsigned int n = h_molecule_length.data[i_mol]++;
             h_molecule_list.data[m_molecule_indexer(n, i_mol)] = particle_index;
             h_molecule_idx.data[particle_index] = i_mol;
             h_molecule_order.data[particle_index] = n;
