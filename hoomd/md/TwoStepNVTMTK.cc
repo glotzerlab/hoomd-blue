@@ -558,5 +558,6 @@ void export_TwoStepNVTMTK(py::module& m)
         .def_property("rotational_thermostat_dof",
                       &TwoStepNVTMTK::getRotationalThermostatDOF,
                       &TwoStepNVTMTK::setRotationalThermostatDOF)
+        .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy)
         ;
     }

@@ -1213,5 +1213,7 @@ void export_TwoStepNPTMTK(py::module& m)
         .def_property("barostat_dof",
                       &TwoStepNPTMTK::getBarostatDOF,
                       &TwoStepNPTMTK::setBarostatDOF)
+        .def("getThermostatEnergy", &TwoStepNPTMTK::getThermostatEnergy)
+        .def("getBarostatEnergy", &TwoStepNPTMTK::getBarostatEnergy)
         ;
     }

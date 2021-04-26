@@ -156,6 +156,13 @@ class NVT(_Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
+    @hoomd.logging.log
+    def thermostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+
 
 class NPT(_Method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -436,6 +443,20 @@ class NPT(_Method):
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
 
+    @hoomd.logging.log
+    def thermostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+
+    @hoomd.logging.log
+    def barostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+
 
 class NPH(_Method):
     r"""NPH Integration via MTK barostat-thermostat.
@@ -607,6 +628,13 @@ class NPH(_Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
+
+    @hoomd.logging.log
+    def barostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NVE(_Method):
