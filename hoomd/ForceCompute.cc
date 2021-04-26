@@ -172,10 +172,6 @@ ForceCompute::~ForceCompute()
 Scalar ForceCompute::calcEnergySum()
     {
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
-    // TODO: always perform the sum in double precision for better accuracy
-    // this is cheating and is really just a temporary hack to get logging up and running
-    // the potential accuracy loss in simulations needs to be evaluated here and a proper
-    // summation algorithm put in place
     double pe_total = 0.0;
     for (unsigned int i=0; i < m_pdata->getN(); i++)
         {
