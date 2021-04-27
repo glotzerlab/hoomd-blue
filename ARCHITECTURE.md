@@ -52,9 +52,9 @@ class's picklable.  For the implementation of the default pickling support for
 *Notice* that we do not implement a generic `__setstate__`. We rely on Python's
 default generally which is somewhat equivalent to `self.__dict__ =
 self.__getstate__()`. Added a custom `__setstate__` method is fine if necessary
-(see [hoomd/write/table.py][hoomd/write/table.py]).  However, using `__reduce__`
+(see [hoomd/write/table.py](hoomd/write/table.py)).  However, using `__reduce__`
 is an appropriate alternative if is significantly reduces code complexity or has
-demonstrable advantages; see [hoomd/filter/set\_.py][hoomd/filter/set_.py] for
+demonstrable advantages; see [hoomd/filter/set\_.py](hoomd/filter/set_.py) for
 an example of this approach.  _Note_ that `__reduce__` requires that a function
 be able to fully recreate the current state of the object (this means that often
 times the constructor will not work).
@@ -62,7 +62,7 @@ times the constructor will not work).
 **Testing**
 
 To test the pickling of objects see the helper methods in
-[hoomd/confest.py][hoomd/conftest.py], `pickling_check` and
+[hoomd/confest.py](hoomd/conftest.py), `pickling_check` and
 `operation_pickling_check`. All objects that are expected to be picklable and
 this is most objects in HOOMD-blue should have a pickling test.
 
@@ -74,7 +74,7 @@ https://pybind11.readthedocs.io/en/stable/advanced/classes.html#pickling-support
 is acceptable as well. Care just needs to be made that users are not exposed to
 C++ classes that "slip" out of their Python subclasses which can happen if no
 reference in Python remains to a unpickled object. See
-[hoomd/Trigger.cc][hoomd/Trigger.cc] for examples of using pybind11.
+[hoomd/Trigger.cc](hoomd/Trigger.cc) for examples of using pybind11.
 
 **Supporting Class Changes**
 
