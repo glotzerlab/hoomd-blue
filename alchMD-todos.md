@@ -6,10 +6,17 @@ This file is used for logging design decisions and unimplmeneted choices in the 
 [] generalize the extra functions in PotentialPair?
 [] Figure out array access with derived class specialized add-ins
 
+# Possible test/points of failure
+- Reallocating alchemical force arrays, possible to trigger with particle number change exactly on step n and use new junk forces?
+    - Can maybe avoid by communicating the timestep 
+
 
 # Incomplete/Removed for Simplicity
 - Saving alchemical particle information as part of snapshot data/system definition.
 - Normalization protocall is currently not included
+- MPI compatibility (lower priority, figure out how to disable for now)
+- GPU functionality
+- per particle access to alchemical forces
 
 # Ownership
 - Alchemical Force Computes

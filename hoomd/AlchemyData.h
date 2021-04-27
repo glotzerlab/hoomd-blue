@@ -22,11 +22,13 @@
 class AlchemicalParticle:
     {
     public:
+        
     protected:
         Scalar m_value; //!< Alpha space dimensionless position of the particle
         // TODO: decide if velocity or momentum would typically be better for numerical stability
         Scalar3 m_kineticValues; //!< x=mass, y=velocity/momentum, z=netForce
         std::shared_ptr<ForceCompute> //!< the associated Alchemical Force Compute
+        GlobalArray<Scalar> m_alchemical_forces; //!< Per particle alchemical forces
     }
 
 
