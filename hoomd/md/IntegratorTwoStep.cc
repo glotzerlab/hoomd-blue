@@ -343,8 +343,8 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
     }
 
 /*! Compute accelerations if needed for the first step.
-    If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
-    are available for the logger. This solves ticket #393
+    If acceleration is available in the restart file, then just call computeNetForce so that
+    net_force and net_virial are available in Python. This solves ticket #393
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {

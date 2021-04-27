@@ -122,7 +122,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
     std::cout << "Equilibrating for 10,000 time steps..." << std::endl;
 
     uint64_t timestep = 0;
-    for (timestep < 10000; timestep++)
+    for (;timestep < 10000; timestep++)
         {
         // get conserved quantity
         nvt_1->update();
@@ -144,7 +144,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
     std::cout << "Measuring temperature and conserved quantity for another 25,000 time steps..." << std::endl;
     Scalar avg_T(0.0);
     int n_measure_steps = 25000;
-    for (timestep < 10000 + n_measure_steps; timestep++)
+    for (;timestep < 10000 + n_measure_steps; timestep++)
         {
         // get conserved quantity
         nvt_1->update(timestep);

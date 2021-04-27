@@ -61,9 +61,7 @@
     element of the parameters.
 
     For profiling AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
-    the aniso_evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independently.
-
+    the aniso_evaluator.
     \sa export_AnisoAnisoPotentialPair()
 */
 

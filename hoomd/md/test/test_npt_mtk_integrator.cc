@@ -491,7 +491,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getThermostatEnergy(timestep);
+    barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
