@@ -306,6 +306,13 @@ class Operation(_HOOMDBaseObject):
     `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
     HOOMD-blue operations inherit from one of these five base classes. To find
     the purpose of each class see its documentation.
+
+    Note:
+        Developers or those contributing to HOOMD-blue, see our architecture
+        `file`_ for information on HOOMD-blue's architecture decisions regarding
+        operations.
+
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ARCHITECTURE.md
     """
     pass
 
