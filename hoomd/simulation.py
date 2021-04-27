@@ -236,20 +236,17 @@ class Simulation(metaclass=Loggable):
                     "Cannot add `hoomd.Operations` object that belongs to "
                     "another `hoomd.Simulation` object.")
             # Switch out `hoomd.Operations` objects.
-            elif self._operations._scheduled:
+            reschedule = False
+            if self._operations._scheduled:
                 self._operations._unschedule()
-                self._operations._simulation = None
-                operations._simulation = self
-                self._operations = operations
-                # This _schedule method must be called after setting
-                # _operations so that self.state.update_group_dof runs without
-                # errors. This is called by the integrator when it attaches and
-                # requires that the state have access to the current integrator,
-                # so if we do not add the correct operations object to the
-                # simulation first, the new integrator will call
-                # `state.update_group_dof` but the state will still point to the
-                # old integrator causing an error.
-                operations._schedule()
+                reschedule = True
+
+            self._operations._simulation = None
+            operations._simulation = self
+            self._operations = operations
+
+            if reschedule:
+                self._operations._schedule()
 
     @log
     def tps(self):

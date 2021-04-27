@@ -135,6 +135,7 @@ void FIREEnergyMinimizer::reset()
 */
 void FIREEnergyMinimizer::update(uint64_t timestep)
     {
+    Integrator::update(timestep);
     if (m_converged)
         return;
 

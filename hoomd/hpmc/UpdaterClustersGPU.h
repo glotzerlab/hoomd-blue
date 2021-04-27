@@ -308,6 +308,7 @@ UpdaterClustersGPU<Shape>::~UpdaterClustersGPU()
 template< class Shape >
 void UpdaterClustersGPU<Shape>::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // compute nominal cell width
     auto& params = this->m_mc->getParams();
     Scalar nominal_width = this->m_mc->getMaxCoreDiameter();

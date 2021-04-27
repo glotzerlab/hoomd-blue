@@ -133,6 +133,7 @@ IMDInterface::~IMDInterface()
 */
 void IMDInterface::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     if (m_prof)
         m_prof->push("IMD");
 

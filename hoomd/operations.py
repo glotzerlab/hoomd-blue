@@ -74,7 +74,6 @@ class Operations(Collection):
         self._computes = syncedlist.SyncedList(
             Compute, syncedlist._PartialGetAttr('_cpp_obj'))
         self._integrator = None
-
         self._tuners.append(ParticleSorter())
 
     def _get_proper_container(self, operation):
@@ -210,7 +209,8 @@ class Operations(Collection):
 
     def _unschedule(self):
         """Undo the effects of `Operations._schedule`."""
-        self._integrator._detach()
+        if self.integrator is not None:
+            self._integrator._detach()
         self._writers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()

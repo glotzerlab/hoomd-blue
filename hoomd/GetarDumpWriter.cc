@@ -339,6 +339,7 @@ namespace getardump{
 
     void GetarDumpWriter::analyze(uint64_t timestep)
         {
+        Analyzer::analyze(timestep);
         const uint64_t shiftedTimestep(timestep - m_offset);
         bool neededSnapshots[9] = {false, false, false, false, false,
                                    false, false, false, false};

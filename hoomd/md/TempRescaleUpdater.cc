@@ -45,6 +45,7 @@ TempRescaleUpdater::~TempRescaleUpdater()
 */
 void TempRescaleUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // find the current temperature
 
     assert(m_thermo);

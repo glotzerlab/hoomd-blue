@@ -54,7 +54,6 @@ class UpdaterMuVT : public Updater
          */
         std::shared_ptr<Variant> getFugacity(const std::string& typ)
             {
-            assert(type < m_pdata->getNTypes());
             unsigned int id = this->m_pdata->getTypeByName(typ);
             return m_fugacity[id];
             }
@@ -806,6 +805,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(uint64_t timestep, const BoxDim old_b
 template<class Shape>
 void UpdaterMuVT<Shape>::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     m_count_step_start = m_count_total;
     unsigned int ndim = this->m_sysdef->getNDimensions();
 

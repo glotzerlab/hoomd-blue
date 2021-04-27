@@ -204,6 +204,7 @@ AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
 template < class Shape >
 void AnalyzerSDF<Shape>::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     m_exec_conf->msg->notice(8) << "Analyzing sdf at step " << timestep << std::endl;
 
     // kludge to update the max diameter dynamically if it changes

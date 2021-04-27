@@ -4,8 +4,8 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.5 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.5 (2021-03-23)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -17,6 +17,7 @@ v3.0.0-beta.5 (not yet released)
 - ``hpmc.update.MuVT`` - Gibbs ensemble simulations with HPMC.
 - ``md.update.ZeroMomentum`` - Remove linear momentum from the system.
 - ``hpmc.compute.FreeVolume`` - Compute free volume available to test particles.
+- Custom action tutorials.
 
 *Changed*
 
@@ -39,15 +40,15 @@ v3.0.0-beta.5 (not yet released)
 - [breaking] Removed *seed* argument from ``hpmc.update.BoxMC``
 - [breaking] Removed *seed* argument from ``hpmc.update.QuickCompress``
 - Use latest version of getar library.
-- Documentation improvements.
+- Improve documentation.
 - Improve performance of ``md.pair.Mie``.
 - [breaking] ``hpmc.update.Clusters`` re-implemented with a rejection free, but not ergodic,
   algorithm for anisotropic particles. The new algorithm does not run in parallel over MPI ranks.
 - [breaking] HPMC depletion algorithm rewritten.
 - [breaking, temporary] HPMC depletant fugacity is now set for type pairs. This change will be
   reverted in a future release.
-
-
+- Tutorials require fresnel 0.13.
+- Support TBB 2021.
 
 *Fixed*
 
@@ -58,6 +59,8 @@ v3.0.0-beta.5 (not yet released)
 - Memory leak in PPPM force compute.
 - Segmentation fault that occurred when dumping GSD shapes for spheropolygons and spheropolyhedra
   with 0 vertices.
+- Incorrect MD neighbor lists in MPI simulations with more than 1 rank.
+- ``md.bond.FENE`` accepts parameters.
 
 *Removed*
 
@@ -244,6 +247,13 @@ functionality.
 
 v2.x
 ----
+
+v2.9.6 (2021-03-16)
+^^^^^^^^^^^^^^^^^^^
+
+*Bug fixes*
+
+* Support TBB 2021.
 
 v2.9.5 (2021-03-15)
 ^^^^^^^^^^^^^^^^^^^

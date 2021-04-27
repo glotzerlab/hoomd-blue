@@ -62,6 +62,7 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
  */
 void mpcd::Integrator::update(uint64_t timestep)
     {
+    IntegratorTwoStep::update(timestep);
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
         {
