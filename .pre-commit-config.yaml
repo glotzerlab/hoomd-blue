@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/google/yapf
+    rev: 'v0.31.0'
+    hooks:
+      - id: yapf
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: '3.9.1'
+    hooks:
+      - id: flake8
+        args:
+        - --show-source
+        additional_dependencies:
+          - pep8-naming
+          - flake8-docstrings
+          - flake8-rst-docstrings

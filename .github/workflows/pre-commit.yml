@@ -1,0 +1,31 @@
+name: Style check
+
+on:
+  # Trigger on pull requests.
+  pull_request:
+
+  # Trigger on pushes to the mainline branches and version tags. This prevents building commits
+  # twice when the pull request source branch is in the same repository.
+  push:
+    branches:
+      - "maint"
+      - "master"
+
+jobs:
+  pre-commit:
+    name: Run yapf and flake8.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - uses: pre-commit/action@v2.0.2
+
+  pre-commit-cpp:
+    name: Run clang-format.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - uses: pre-commit/action@v2.0.2
+      with:
+        extra_args: --all-files -c .pre-commit-config-cpp.yaml

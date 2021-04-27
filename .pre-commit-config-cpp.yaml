@@ -1,0 +1,21 @@
+# This file contains pre-commit hooks for checking the C++ code. Since these
+# hooks require tools that may not be trivial to install (unlike the Python
+# hooks like flake8), we keep these in a separate file to be applied manually.
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        entry: clang-format -i
+        language: system
+        types_or: [c++, cuda, inc]
+        # Exclude specific files.
+        exclude: |
+          (?x)(
+            ^CMake/|
+            ^hoomd/extern/|
+            ^hoomd/hpmc/UpdaterClusters\.h|
+            ^hoomd/hpmc/IntegratorHPMCMono\.h|
+            ^doc/dev/
+          )
+        verbose: true
