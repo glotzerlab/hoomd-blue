@@ -46,6 +46,145 @@ class AnisotropicPair(Pair):
         return ret
 
 
+class ALJ(AnisotropicPair):
+    R"""Anistropic LJ potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+        average_simplices (bool): Whether or not to perform simplex averaging (see below for more details).
+
+    :py:class:`alj` computes the LJ potential between anisotropic particles.
+    The anisotropy is implemented as a composite of two interactions, a
+    center-center component and a component of interaction measured at the
+    closest point of contact between the two particles. The potential supports
+    both standard LJ interactions as well as repulsive-only WCA interactions.
+    This behavior is controlled using the :code:`alpha` parameter, which can
+    take on the following values:
+
+    * :code:`0`:
+      All interactions are WCA (no attraction).
+
+    * :code:`1`:
+      Center-center interactions include attraction,
+      contact-contact interactions are solely repulsive.
+
+    * :code:`2`:
+      Center-center interactions are solely repulsive,
+      contact-contact interactions include attraction.
+
+    * :code:`3`:
+      All interactions include attractive and repulsive components.
+
+    For polytopes, computing interactions using a single contact point leads to
+    significant instabilities in the torques because the contact point can jump
+    from one end of a face to another in an arbitrarily small time interval. To
+    ameliorate this, the alj potential performs a local averaging over all the
+    features associated with the closest simplices on two polytopes. This
+    averaging can be turned off by setting the ``average_simplices`` argument
+    to ``False``.
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - *epsilon* - :math:`\varepsilon` (in energy units)
+    - *sigma_i* - the insphere radius of the first particle type.
+    - *sigma_j* - the insphere radius of the second particle type.
+    - *alpha* - Integer 0-3 indicating whether or not to include the attractive
+                component of the interaction (see above for details).
+    - *contact_sigma_i* - the contact sphere radius of the first type.
+      - *optional*: defaults to 0.15*sigma_i
+    - *contact_sigma_j* - the contact sphere radius of the second type.
+      - *optional*: defaults to 0.15*sigma_j
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    The following shape parameters may be set per particle type:
+
+    - *vertices* - The vertices of a convex polytope in 2 or 3 dimensions. The
+                   array may be :math:`N\times2` or :math:`N\times3` in 2D (in
+                   the latter case, the third dimension is ignored).
+    - *rounding radii* - The semimajor axes of a rounding ellipsoid. If a
+                         single number is specified, the rounding ellipsoid is
+                         a sphere.
+    - *faces* - The faces of the polyhedron specified as a (possible ragged) 2D
+                array of integers. The vertices must be ordered (see
+                :meth:`~.convexHull` for more information).
+
+    At least one of ``vertices`` or ``rounding_radii`` must be specified.
+    Specifying only ``rounding radii creates an ellipsoid, while specifying
+    only vertices creates a convex polytope. In general, the faces will be
+    inferred by computing the convex hull of the vertices and merging coplanar
+    faces. However, because merging of faces requires applying a numerical
+    threshold to find coplanar faces, in some cases the default value may
+    result in not all coplanar faces actually being merged. In such cases,
+    users can precompute the faces and provide them. The convenience class
+    method :meth:`~.convexHull` can be used for this purpose.
+
+    Example::
+
+        nl = nlist.Cell()
+        alj = pair.ALJ(nl, r_cut=2.5)
+        
+        cube_verts = [(-0.5, -0.5, -0.5),
+                      (-0.5, -0.5, 0.5),
+                      (-0.5, 0.5, -0.5),
+                      (-0.5, 0.5, 0.5),
+                      (0.5, -0.5, -0.5),
+                      (0.5, -0.5, 0.5),
+                      (0.5, 0.5, -0.5),
+                      (0.5, 0.5, 0.5)];
+        
+        cube_faces = [[0, 2, 6],
+                      [6, 4, 0],
+                      [5, 0, 4],
+                      [5,1,0],
+                      [5,4,6],
+                      [5,6,7],
+                      [3,2,0],
+                      [3,0,1],
+                      [3,6,2],
+                      [3,7,6],
+                      [3,1,5],
+                      [3,5,7]]
+ 
+        alj.params[('A')] = dict(epsilon=2.0,
+                                      sigma_i=1.0,
+                                      sigma_j=1.0,
+                                      alpha=1,
+                                      )
+
+        alj.shape["A"] = dict(vertices=cube_verts,
+                              faces=cube_faces,
+                              rounding_radii=[1])
+    """
+
+
+    _cpp_class_name = "AnisoPotentialALJ"
+
+    def __init__(self, nlist, r_cut=None, mode='none'):
+        super().__init__(nlist, r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma_i=float,
+                              sigma_j=float,
+                              alpha=int,
+                              contact_sigma_i=float,
+                              contact_sigma_j=float,
+                              len_keys=2)) # Allen -I do not what to set this to.
+        shape = TypeParameter(
+            'shape', 'particle_types',
+            TypeParameterDict(vertices=(float, float, float),
+                              faces=[[int]],
+                              rounding_radii=[float]
+                              len_keys=1))# Allen -I do not what to set this to.
+
+        self._extend_typeparam((params, shape))
+
+
 class Dipole(AnisotropicPair):
     R""" Screened dipole-dipole interactions.
 
