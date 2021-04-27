@@ -19,8 +19,8 @@ md.methods
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :members: _Method,
-              _MethodRATTLE,
+    :members: Method,
+              MethodRATTLE,
               Brownian,
               Langevin,
               NPT,

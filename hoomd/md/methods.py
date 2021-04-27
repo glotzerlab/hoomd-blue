@@ -17,16 +17,16 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
-class _Method(_HOOMDBaseObject):
+class Method(_HOOMDBaseObject):
     """Base class integration method.
 
     Provides common methods for all subclasses.
 
     Note:
-        Users should use the subclasses and not instantiate `_Method` directly.
+        Users should use the subclasses and not instantiate `Method` directly.
     """
 
-class _MethodRATTLE(_Method):
+class MethodRATTLE(Method):
     """Base class rattle integration method.
 
     Provides common methods for all subclasses which are compatible with the RATTLE
@@ -47,7 +47,7 @@ class _MethodRATTLE(_Method):
     * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 
     Note:
-        Users should use the subclasses and not instantiate `_MethodRATTLE` directly.
+        Users should use the subclasses and not instantiate `MethodRATTLE` directly.
 
     """
     def __init__(self, manifold_constraint, tolerance):
@@ -62,22 +62,18 @@ class _MethodRATTLE(_Method):
         param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
         self._param_dict.update(param_dict)
-
+    
+    def _add(self, sim):
+        if self.manifold_constraint is not None:
+            self.manifold_constraint._add(sim)
+        super()._add(sim)
 
     def _attach_constraint(self,sim):
-        if not self.manifold_constraint._added:
-            self.manifold_constraint._add(sim)
-        else:
-            if sim != self.manifold_constraint._simulation:
-                raise RuntimeError(f"{type(self)} object's manifold_constraint is used in a "
-                                    "different simulation.")
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
     def _getattr_param(self, attr):
         if self._attached:
-            # "manifold_constraint" returns a dict rather than an Manifold object
-            # so we convert it before returning it to the user.
             if attr == "manifold_constraint":
                 return self._param_dict["manifold_constraint"]
             parameter = getattr(self._cpp_obj, attr)
@@ -86,7 +82,7 @@ class _MethodRATTLE(_Method):
             return self._param_dict[attr]
 
 
-class NVT(_Method):
+class NVT(Method):
     r"""NVT Integration via the Nosé-Hoover thermostat.
 
     Args:
@@ -217,7 +213,7 @@ class NVT(_Method):
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
 
 
-class NPT(_Method):
+class NPT(Method):
     R""" NPT Integration via MTK barostat-thermostat.
 
     Args:
@@ -501,7 +497,7 @@ class NPT(_Method):
             self._simulation.timestep)
 
 
-class NPH(_Method):
+class NPH(Method):
     r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
@@ -673,7 +669,7 @@ class NPH(_Method):
             self._simulation.timestep)
 
 
-class NVE(_MethodRATTLE):
+class NVE(MethodRATTLE):
     R""" NVE Integration via Velocity-Verlet with or without RATTLE
 
     Args:
@@ -771,7 +767,7 @@ class NVE(_MethodRATTLE):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Langevin(_MethodRATTLE):
+class Langevin(MethodRATTLE):
     R""" Langevin dynamics with or without RATTLE
 
     Args:
@@ -965,7 +961,7 @@ class Langevin(_MethodRATTLE):
             # Attach param_dict and typeparam_dict
         super()._attach()
 
-class Brownian(_MethodRATTLE):
+class Brownian(MethodRATTLE):
     R""" Brownian dynamics with and without RATTLE.
 
     Args:
@@ -1154,7 +1150,7 @@ class Brownian(_MethodRATTLE):
         super()._attach()
 
 
-class Berendsen(_Method):
+class Berendsen(Method):
     r"""Applies the Berendsen thermostat.
 
     Args:
