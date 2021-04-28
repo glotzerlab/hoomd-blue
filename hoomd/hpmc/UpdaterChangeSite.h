@@ -259,8 +259,8 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
     	         vec3<Scalar> dr =  vec3<Scalar>( m_latticeVector.getSite(nn) );
 	         vec3<Scalar> new_pos = dr + pos_i;
                  box.wrap(new_pos, dummy);
-                 k = m_externalLattice->testIndex(i, pos_i);
-                 if(h_B0.data[k]) neighbour.push_back(nn);
+                 k = m_externalLattice->testIndex(i, new_pos);
+                 if(h_B0.data[k] == false) neighbour.push_back(nn);
             }
 
             if( neighbour.size() != 0){
@@ -379,7 +379,7 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
     	            // If no overlaps and Metropolis criterion is met, accept
     	            // trial move and update positions  and/or orientations.
     	            if (!overlap)
-    	                {
+  	                {
     	                // update the position of the particle in the tree for future updates
     	                detail::AABB aabb = aabb_i_local;
     	                aabb.translate(pos_i);
@@ -396,7 +396,7 @@ void ChangeSiteUpdater<Shape>::update(unsigned int timestep)
     	        }
     	    }
 	}
-	if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
+	//if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
 
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
         // wrap particles back into box
@@ -592,7 +592,7 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
                  dqr = dqr*refqr_i;
 
                  k = m_externalLattice->testIndex(i, dql, dqr);
-                 if(h_B0.data[k]) neighbour.push_back(nn);
+                 if(h_B0.data[k] == false) neighbour.push_back(k);
             }
 
             if( neighbour.size() != 0){
@@ -602,24 +602,20 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
                 // make a trial move for i
                 hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterChangeSite, m_seed, i, m_exec_conf->getRank()*m_cycles + cur_cycle, timestep);
 
-                unsigned int indx = 0;
-                if(neighbour.size() > 1 ) indx = hoomd::UniformIntDistribution(neighbour.size()-1)(rng_i); 
-
-                quat<Scalar> dql = quat<Scalar>( m_latticeQuat_l.getSite(neighbour[indx]) );
-                quat<Scalar> dqr = quat<Scalar>( m_latticeQuat_r.getSite(neighbour[indx]) );
-
-                dql = refql_i*dql;
-                dqr = dqr*refqr_i;
-
-                k = m_externalLattice->testIndex(i, dql, dqr);
+                k = neighbour[0];
+                if(neighbour.size() > 1 ){ 
+			k = hoomd::UniformIntDistribution(neighbour.size()-1)(rng_i); 
+                        k = neighbour[k];
+		}
 
                 quat<Scalar> refql_i_new = quat<Scalar>(h_ql0.data[k]);
                 quat<Scalar> refqr_i_new = quat<Scalar>(h_qr0.data[k]);
 
-                dql = refql_i_new*conj(refql_i);
+                quat<Scalar> dql = refql_i_new*conj(refql_i);
                 Scalar norm_l_inv = fast::rsqrt(norm2(dql));
                 dql *= norm_l_inv;
-                dqr = conj(refqr_i)*refqr_i_new;
+                
+                quat<Scalar> dqr = conj(refqr_i)*refqr_i_new;
                 Scalar norm_r_inv = fast::rsqrt(norm2(dqr));
                 dqr *= norm_r_inv;
 
@@ -720,7 +716,7 @@ void ChangeSiteUpdaterHypersphere<Shape>::update(unsigned int timestep)
                 }
             }
         }
-	if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
+	//if(change_attempt > 0) std::cout << "Site change acceptance: " <<  float(change_success)/float(change_attempt) << " " << change_success << " " << change_attempt << std::endl;
     }
 
 //! Export the ExampleUpdater class to python

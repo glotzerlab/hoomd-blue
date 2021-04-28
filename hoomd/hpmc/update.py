@@ -773,7 +773,7 @@ class remove_drift(_updater):
         remove_drift = update.remove_drift(mc=mc, external_lattice=lattice, period=1000);
 
     """
-    def __init__(self, mc, external_lattice, seed, period=1):
+    def __init__(self, mc, external_lattice, seed=918, period=1):
         hoomd.util.print_status_line();
         #initialize base class
         _updater.__init__(self);

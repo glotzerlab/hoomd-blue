@@ -604,7 +604,7 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
         {
             const Hypersphere& hypersphere = this->m_pdata->getHypersphere();
 
-            detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),m_refdist);
+            detail::AABB aabb_i = detail::AABB(hypersphere.hypersphericalToCartesian(quat_l, quat_r),m_refdist*2);
 
             OverlapReal dr = 1000;
             unsigned int k=0;
@@ -653,8 +653,8 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
         {
               ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
               m_latticeIndex.setReference(h_tags.data[index],k);
-              m_latticeBool.setReference(k,true);
               m_latticeBool.setReference(kk,false);
+              m_latticeBool.setReference(k,true);
         }
 
 
@@ -712,11 +712,13 @@ class ExternalFieldLatticeHypersphere : public ExternalFieldMono<Shape>
 
             if(dr > m_refdist){
                 unsigned int k = testIndex( index, quat_l, quat_r);
-                changeIndex(index,k,kk);
+                if(k != kk){
+                     changeIndex(index,k,kk);
 
-                 ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
-                 qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
-                 dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
+                     ql = quat<Scalar>(m_latticeQuat_l.getReference(k));
+                     qr = quat<Scalar>(m_latticeQuat_r.getReference(k));
+                     dr = detail::get_arclength_hypersphere(ql, qr, quat_l, quat_r, hypersphere);
+                 }
             }
 
             return m_k*dr*dr;
@@ -966,6 +968,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 MPI_Allreduce(MPI_IN_PLACE, &m_Energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
                 }
             #endif
+
 
             Scalar energy_per = m_Energy / Scalar(m_pdata->getNGlobal());
             m_EnergySum_y    = energy_per - m_EnergySum_c;
@@ -1217,7 +1220,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             vec3<Scalar> origin(m_pdata->getOrigin());
             const BoxDim& box = this->m_pdata->getGlobalBox();
 
-            detail::AABB aabb_i = detail::AABB(position,m_refdist);
+            detail::AABB aabb_i = detail::AABB(position,m_refdist*2);
 
             OverlapReal dr_min = 1000;
             unsigned int k=0;
@@ -1260,7 +1263,6 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 
               }  // end loop over AABB nodes
 
-
               return k;
         }
 
@@ -1268,8 +1270,8 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
         {
               ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
               m_latticeIndex.setReference(h_tags.data[index],k);
-              m_latticeBool.setReference(k,true);
               m_latticeBool.setReference(kk,false);
+              m_latticeBool.setReference(k,true);
         }
 
 
@@ -1329,12 +1331,14 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 
 	    if(dist > m_refdist){
 		unsigned int k = testIndex(index, position); 
-		changeIndex(index,k,kk);
+                if(k != kk){
+		    changeIndex(index,k,kk);
 
-            	r0 = vec3<Scalar>(m_latticePositions.getReference(k));
-            	r0 *= scale;
-            	dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
-            	dist = dot(dr,dr);
+            	    r0 = vec3<Scalar>(m_latticePositions.getReference(k));
+            	    r0 *= scale;
+            	    dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
+            	    dist = dot(dr,dr);
+		}
 	    }
 
             return m_k*dist;

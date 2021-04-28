@@ -58,7 +58,6 @@ class RemoveDriftUpdater : public Updater
         virtual void update(unsigned int timestep)
             {
 
-
             hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::UpdaterRemoveDrift, m_seed, 0, m_exec_conf->getRank(), timestep);
 
             unsigned int N_backup = m_pdata->getN();
