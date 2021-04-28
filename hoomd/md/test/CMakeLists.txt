@@ -59,7 +59,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _md ${PYTHON_LIBRARIES})
+    target_link_libraries(${CUR_TEST} _md -Wl,--allow-shlib-undefined -Wl,--no-as-needed ${PYTHON_LIBRARIES})
 
     fix_cudart_rpath(${CUR_TEST})
 
