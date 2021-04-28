@@ -313,7 +313,6 @@ def test_from_gsd_snapshot_populated(s, device):
 
 def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
     """Test that using invalid particle typeids raises an error."""
-
     snap = lattice_snapshot_factory(particle_types=['A', 'B'])
 
     # assign invalid type ids
@@ -322,3 +321,18 @@ def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
 
     with pytest.raises(RuntimeError):
         simulation_factory(snap)
+
+
+def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
+    """Test that initialization fails when there are no types."""
+    snap = lattice_snapshot_factory(particle_types=[])
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
+    """Test that zero particle systems can be initialized with no types."""
+    snap = lattice_snapshot_factory(particle_types=[], n=0)
+
+    simulation_factory(snap)

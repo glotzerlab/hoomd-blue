@@ -83,13 +83,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
-    // check the input for errors
-    if (n_types == 0)
-        {
-        m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
-        throw std::runtime_error("Error initializing ParticleData");
-        }
-
     // initialize snapshot with default values
     SnapshotParticleData<Scalar> snap(N);
 
@@ -833,9 +826,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     // check that all fields in the snapshot have correct length
     if (m_exec_conf->getRank() == 0 && ! snapshot.validate())
         {
-        m_exec_conf->msg->error() << "init.*: invalid particle data snapshot."
-                                << std::endl << std::endl;
-        throw std::runtime_error("Error initializing particle data.");
+        throw std::runtime_error("Invalid particle data in snapshot.");
         }
 
     // clear set of active tags
@@ -895,13 +886,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         if (my_rank == 0)
             {
             ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
-
-            // check the input for errors
-            if (snapshot.type_mapping.size() == 0)
-                {
-                m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
-                throw std::runtime_error("Error initializing ParticleData");
-                }
 
             const Index3D& di = m_decomposition->getDomainIndexer();
             unsigned int n_ranks = m_exec_conf->getNRanks();
@@ -1104,13 +1088,6 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     else
 #endif
         {
-        // check the input for errors
-        if (snapshot.type_mapping.size() == 0)
-            {
-            m_exec_conf->msg->error() << "Number of particle types must be greater than 0." << endl;
-            throw std::runtime_error("Error initializing ParticleData");
-            }
-
         // allocate array for reverse lookup tags
         m_rtag.resize(snapshot.size);
 
@@ -1205,7 +1182,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         }
     #endif
 
-    if (max_typeid >= m_type_mapping.size())
+    if (snapshot.size != 0 && max_typeid >= m_type_mapping.size())
         {
         std::ostringstream s;
         s << "Particle typeid " << max_typeid << " is invalid in a system with "
@@ -2656,9 +2633,6 @@ void SnapshotParticleData<Real>::insert(unsigned int i, unsigned int n)
 template <class Real>
 bool SnapshotParticleData<Real>::validate() const
     {
-    // Check that a type mapping exists
-    if (type_mapping.size() == 0) return false;
-
     // Check if all other fields are of equal length==size
     if (pos.size() != size || vel.size() != size || accel.size() != size || type.size() != size ||
         mass.size() != size || charge.size() != size || diameter.size() != size ||
