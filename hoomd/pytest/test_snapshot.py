@@ -336,3 +336,42 @@ def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=[], n=0)
 
     simulation_factory(snap)
+
+
+@pytest.mark.parametrize("group_name,group_size", [
+    ("bonds", 2),
+    ("angles", 3),
+    ("dihedrals", 4),
+    ("impropers", 4),
+    ("pairs", 2),
+])
+def test_invalid_bond_typeids(
+    group_name,
+    group_size,
+    simulation_factory,
+    lattice_snapshot_factory,
+):
+    """Test that using invalid bond typeids raises an error."""
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.exists:
+        group = getattr(snap, group_name)
+        group.types = ['A']
+        group.N = 1
+        group.group[0] = range(group_size)
+        group.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+    # test that 0 types is allowed when there are 0 items in the group
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.exists:
+        group = getattr(snap, group_name)
+        group.types = []
+        group.N = 0
+
+    simulation_factory(snap)
