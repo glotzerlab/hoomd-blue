@@ -28,6 +28,7 @@
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairBuckingham.h"
 #include "EvaluatorPairLJ1208.h"
+#include "EvaluatorPairLJ0804.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairDLVO.h"
@@ -118,6 +119,11 @@ gpu_compute_buckingham_forces(const pair_args_t& pair_args,
 hipError_t __attribute__((visibility("default")))
 gpu_compute_lj1208_forces(const pair_args_t& pair_args,
                           const EvaluatorPairLJ1208::param_type *d_params);
+
+//! Compute lj0804 pair forces on the GPU with PairEvaluatorLJ0804
+hipError_t __attribute__((visibility("default")))
+gpu_compute_lj0804_forces(const pair_args_t& pair_args,
+                          const EvaluatorPairLJ0804::param_type *d_params);
 
 //! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
 hipError_t __attribute__((visibility("default")))
