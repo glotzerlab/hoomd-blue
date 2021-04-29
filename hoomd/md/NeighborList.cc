@@ -30,8 +30,8 @@ using namespace std;
         but the list will not be computed until compute is called.
     \post The storage mode defaults to half
 */
-NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
-    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_rcut_min(_r_cut),
+NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
+    : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(0.0), m_rcut_min(0.0),
       m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false), m_storage_mode(half),
       m_rcut_changed(true), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
       m_dist_check(true), m_has_been_updated_once(false)
@@ -314,6 +314,7 @@ NeighborList::~NeighborList()
 */
 void NeighborList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // check if the rcut array has changed and update it
     if (m_rcut_changed)
         {
@@ -1685,7 +1686,7 @@ void NeighborList::updateMemoryMapping()
 void export_NeighborList(py::module& m)
     {
     py::class_<NeighborList, Compute, std::shared_ptr<NeighborList> > nlist(m, "NeighborList");
-    nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def_property("buffer", &NeighborList::getRBuff,
                       &NeighborList::setRBuff)
         .def_property("rebuild_check_delay",

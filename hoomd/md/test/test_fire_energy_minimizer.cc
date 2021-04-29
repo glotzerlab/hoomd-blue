@@ -393,7 +393,11 @@ void fire_smallsystem_test(fire_creator fire_creator1, nve_creator nve_creator1,
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.5), Scalar(0.3)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.3)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 2.5;
+    nlist->addRCutMatrix(r_cut);
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(2.5));
     fc->setRcut(0, 1, Scalar(2.5));
@@ -468,7 +472,11 @@ void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1,
     std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterTags(std::vector<unsigned int>({1})));
     std::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
-    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.3)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.3)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 3.0;
+    nlist->addRCutMatrix(r_cut);
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(3.0));
 

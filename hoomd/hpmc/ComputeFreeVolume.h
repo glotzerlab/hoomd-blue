@@ -70,7 +70,6 @@ class ComputeFreeVolume : public Compute
         void setTestParticleType(std::string type)
             {
             unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
-            assert(type < m_pdata->getNTypes());
             m_type = type_int;
             }
 
@@ -141,6 +140,7 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
 template<class Shape>
 void ComputeFreeVolume<Shape>::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (!shouldCompute(timestep))
         return;
 

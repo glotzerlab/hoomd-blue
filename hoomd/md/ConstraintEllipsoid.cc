@@ -47,6 +47,7 @@ ConstraintEllipsoid::~ConstraintEllipsoid()
 */
 void ConstraintEllipsoid::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;

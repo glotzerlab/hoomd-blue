@@ -26,6 +26,7 @@ ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef)
 */
 void ExampleUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ExampleUpdater");
 
     // access the particle data for writing on the CPU
@@ -70,6 +71,7 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 */
 void ExampleUpdaterGPU::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ExampleUpdater");
 
     // access the particle data arrays for writing on the GPU

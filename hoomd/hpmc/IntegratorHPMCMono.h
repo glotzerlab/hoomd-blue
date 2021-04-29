@@ -891,6 +891,7 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 template <class Shape>
 void IntegratorHPMCMono<Shape>::update(uint64_t timestep)
     {
+    Integrator::update(timestep);
     m_exec_conf->msg->notice(10) << "HPMCMono update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
 
@@ -1495,6 +1496,8 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
 
     // Loop over all particles
     #ifdef ENABLE_TBB
+    m_exec_conf->getTaskArena()->execute([&]{
+
     energy = tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, m_pdata->getN()),
         0.0f,
         [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
@@ -1585,6 +1588,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(uint64_t timestep)
     #ifdef ENABLE_TBB
     return energy;
     }, [](float x, float y)->float { return x+y; } );
+    }); // end task arena execute()
     #endif
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
@@ -2212,6 +2216,8 @@ std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
 
     // Loop over all particles
     #ifdef ENABLE_TBB
+    m_exec_conf->getTaskArena()->execute([&]{
+
     tbb::parallel_for(tbb::blocked_range<unsigned int>(0, N),
         [&](const tbb::blocked_range<unsigned int>& r) {
     for (unsigned int i = r.begin(); i != r.end(); ++i)
@@ -2295,6 +2301,7 @@ std::vector<float> IntegratorHPMCMono<Shape>::mapEnergies()
         } // end loop over particles
     #ifdef ENABLE_TBB
         });
+        }); // end task arena execute()
     #endif
     return energy_map;
     }
@@ -2496,6 +2503,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
     Scalar ln_denominator_tot(0.0);
 
     #ifdef ENABLE_TBB
+    m_exec_conf->getTaskArena()->execute([&]{
     try {
     #endif
 
@@ -3419,6 +3427,7 @@ inline bool IntegratorHPMCMono<Shape>::checkDepletantOverlap(unsigned int i, vec
 
     #ifdef ENABLE_TBB
     } catch (bool b) { }
+    }); // end task arena execute()
     #endif
 
     Scalar u = hoomd::UniformDistribution<Scalar>()(rng_depletants);

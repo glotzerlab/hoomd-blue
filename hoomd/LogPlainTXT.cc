@@ -92,6 +92,8 @@ void LogPlainTXT::setDelimiter(const std::string& delimiter)
 */
 void LogPlainTXT::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
+
     // do nothing if we do not output to a file
     if (!m_file_output)
         return;
