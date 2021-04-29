@@ -140,13 +140,6 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64_t timestep)
 
     // set nominal width
     Scalar nominal_width = this->m_mc->getMaxCoreDiameter();
-        {
-        // add range of test particle
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
-        quat<Scalar> o;
-        Shape tmp(o, params[this->m_type]);
-        nominal_width += tmp.getCircumsphereDiameter();
-        }
 
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);

@@ -124,7 +124,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
+        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();

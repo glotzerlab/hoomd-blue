@@ -136,6 +136,19 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         /// Set the rotational thermostat degrees of freedom
         void setRotationalThermostatDOF(pybind11::tuple v);
 
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            IntegrationMethodTwoStep::setCommunicator(comm);
+
+            // set the communicator on the internal thermo
+            m_thermo->setCommunicator(comm);
+            }
+
+        #endif
+
     protected:
         std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 

@@ -55,7 +55,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.4.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.5.tar.gz
 
 Or clone using Git:
 
@@ -152,7 +152,7 @@ You can install numpy and other python packages into your virtual environment us
 Note that other types of virtual environments
 (such as *conda*) may work, but are not thoroughly tested. ::
 
-    $ python3 -m venv /path/to/environment --system-site-packages
+    $ python3 -m venv /path/to/environment
 
 
 Compile HOOMD-blue

@@ -140,6 +140,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 */
 void Logger::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     if (m_prof) m_prof->push("Log");
 
     // update info in cache for later use and for immediate output.

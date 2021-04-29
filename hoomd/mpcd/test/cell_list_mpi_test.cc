@@ -9,7 +9,7 @@
 #endif // ENABLE_HIP
 
 #include "hoomd/mpcd/Communicator.h"
-
+#include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
 
@@ -753,6 +753,8 @@ void celllist_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
 
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    cl->setCommunicator(pdata_comm);
     cl->compute(0);
     const unsigned int my_rank = exec_conf->getRank();
         {
@@ -962,6 +964,8 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
 
     std::shared_ptr<mpcd::CellList> cl(new CL(sysdef, pdata));
+    std::shared_ptr<Communicator> pdata_comm(new Communicator(sysdef, decomposition));
+    cl->setCommunicator(pdata_comm);
 
     // move particles to edges of domains for testing
     const unsigned int my_rank = exec_conf->getRank();
