@@ -497,15 +497,19 @@ class NPH(_Method):
         length of the time step.
 
     Examples::
+
         dt = 0.005
         tauS = 1000 * dt
         nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0)
         # orthorhombic symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="none")
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0,
+                                   couple="none")
         # tetragonal symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="xy")
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0,
+                                   couple="xy")
         # triclinic symmetry
-        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0, couple="none", rescale_all=True)
+        nph = hoomd.md.methods.NPH(filter=hoomd.filter.All(), tauS=tauS, S=2.0,
+                                   couple="none", rescale_all=True)
         integrator = hoomd.md.Integrator(dt=dt, methods=[nph], forces=[lj])
 
     Attributes:
