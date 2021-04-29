@@ -236,10 +236,10 @@ class PotentialPair : public ForceCompute
 
         // Extra steps to insert (used for alchemy)
         virtual inline extra_pkg pkgInitialze(const uint64_t& timestep) {return nullptr;};
-        virtual inline void pkgPerParticle(const unsigned int& i, extra_pkg&) {};
+
         virtual inline void pkgPerNeighbor(const unsigned int& i, 
-                                           const unsigned int& j, 
-                                           const unsigned int& typpair_idx,
+                                           const unsigned int& j,
+                                           const bool in_rcut,
                                            evaluator& eval,
                                            extra_pkg&) {};
 
@@ -661,8 +661,6 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
         Scalar virialyzi = 0.0;
         Scalar virialzzi = 0.0;
 
-        pkgPerParticle(i, pkg);
-
         // loop over all of the neighbors of this particle
         const unsigned int myHead = h_head_list.data[i];
         const unsigned int size = (unsigned int)h_n_neigh.data[i];
@@ -723,7 +721,7 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i,j,typpair_idx,eval,pkg);
+            pkgPerNeighbor(i,j,(rsq < rcutsq),eval,pkg);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -870,9 +868,8 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
 
     energy = Scalar(0.0);
     
-    extra_pkg pkg;
     // max value will be special timestep case for extra packages
-    pkgInitialze(UINT64_MAX, pkg);
+    extra_pkg pkg = pkgInitialze(UINT64_MAX);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle< unsigned int > h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -903,7 +900,6 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
         if (evaluator::needsDiameter())
             di = h_diameter.data[i];
         if (evaluator::needsCharge())
-        pkgPerParticle(i,pkg);
             qi = h_charge.data[i];
 
         // loop over all particles in tags2

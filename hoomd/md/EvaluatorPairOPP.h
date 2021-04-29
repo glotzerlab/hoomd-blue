@@ -169,13 +169,13 @@ class EvaluatorPairOPP
             }
 
         // TODO: update the derivatives for the parameters including Cs and eta(s)
-        DEVICE void AlchemParams(Scalar* alphas)
+        DEVICE void alchemParams(const Scalar* alphas)
             {
             params.k *= alphas[0];
             params.phi *= alphas[1];
             }
 
-        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas)
+        DEVICE void evalAlchDerivatives(Scalar* alchemical_derivatives, const Scalar* alphas)
             {   // OPP without any modification at this point
                 {
 
@@ -184,8 +184,8 @@ class EvaluatorPairOPP
                 Scalar r3inv = r1inv * r1inv * r1inv;
                 //Scalar r15inv = r3inv * r3inv * r3inv * r3inv * r3inv;
 
-                dalchem_pair_energy[0]=-sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.k * (r - Scalar(1.0)) * r3inv;
-                dalchem_pair_energy[1]=-sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.phi * r3inv;
+                alchemical_derivatives[0]=-sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.k * (r - Scalar(1.0)) * r3inv;
+                alchemical_derivatives[1]=-sin(params.k * alphas[0] * (r - Scalar(1.0)) + params.phi * alphas[1]) * params.phi * r3inv;
 
                 }
 

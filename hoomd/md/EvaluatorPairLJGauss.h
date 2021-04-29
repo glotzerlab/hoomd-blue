@@ -144,17 +144,16 @@ class EvaluatorPairLJGauss
                 return false;
             }
 
-        DEVICE void AlchemParams(Scalar* alphas)
+        DEVICE void alchemParams(const Scalar* alphas)
             {
             epsilon *= alphas[0];
             sigma2 *= alphas[1]*alphas[1];
             r0 *= alphas[2];
             }
 
-        DEVICE void evalDAlphaEnergy(Scalar* dalchem_pair_energy, Scalar* alphas)
+        DEVICE void evalAlchDerivatives(Scalar* alchemical_derivatives, const Scalar* alphas)
             {
                 {
-                    
                 Scalar r = fast::sqrt(rsq);
                 // Scalar sigma = fast::sqrt(sigma2);
                 Scalar inva1  = 1.0/alphas[1];
@@ -163,9 +162,9 @@ class EvaluatorPairLJGauss
                 Scalar rdiffsq  = rdiff*rdiff;
                 Scalar exp_term  = fast::exp(-Scalar(0.5)*rdiffsq*invsiga1sq);
                 Scalar c = alphas[0] * epsilon * exp_term * invsiga1sq;
-                dalchem_pair_energy[0]=-epsilon * exp_term;
-                dalchem_pair_energy[1]=c*rdiffsq*inva1;
-                dalchem_pair_energy[2]=c*r0*rdiff;
+                alchemical_derivatives[0]=-epsilon * exp_term;
+                alchemical_derivatives[1]=c*rdiffsq*inva1;
+                alchemical_derivatives[2]=c*r0*rdiff;
                 }
             }
 

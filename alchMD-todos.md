@@ -3,13 +3,12 @@ This file is used for logging design decisions and unimplmeneted choices in the 
 # TODO
 [x] Write default PotentialPair match for signatures without alchemy bool
 [] Fail gracefully with XPLOR on
-[] generalize the extra functions in PotentialPair?
-[] Figure out array access with derived class specialized add-ins
+[X] generalize the extra functions in PotentialPair?
+[X] Figure out array access with derived class specialized add-ins
 
-# Possible test/points of failure
-- Reallocating alchemical force arrays, possible to trigger with particle number change exactly on step n and use new junk forces?
-    - Can maybe avoid by communicating the timestep 
-
+# Design choices
+- When an alchemical particle is disabled, it must rewrite the associated parameters.
+- When an alchemy particle is re-enabled it needs to implement the same constructor logic.
 
 # Incomplete/Removed for Simplicity
 - Saving alchemical particle information as part of snapshot data/system definition.
