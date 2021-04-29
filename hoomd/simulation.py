@@ -236,12 +236,17 @@ class Simulation(metaclass=Loggable):
                     "Cannot add `hoomd.Operations` object that belongs to "
                     "another `hoomd.Simulation` object.")
             # Switch out `hoomd.Operations` objects.
-            elif self._operations._scheduled:
+            reschedule = False
+            if self._operations._scheduled:
                 self._operations._unschedule()
-                self._operations._simulation = None
-                operations._simulation = self
-                operations._schedule()
-                self._operations = operations
+                reschedule = True
+
+            self._operations._simulation = None
+            operations._simulation = self
+            self._operations = operations
+
+            if reschedule:
+                self._operations._schedule()
 
     @log
     def tps(self):

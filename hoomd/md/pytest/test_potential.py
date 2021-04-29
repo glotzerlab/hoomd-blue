@@ -266,6 +266,12 @@ def _invalid_params():
                                                     md.pair.LJ1208,
                                                     {}))
 
+    lj0804_valid_dict = {'sigma': 1.0, 'epsilon': 1.0}
+    lj0804_invalid_dicts = _make_invalid_param_dict(lj0804_valid_dict)
+    invalid_params_list.extend(_make_invalid_params(lj0804_invalid_dicts,
+                                                    md.pair.LJ0804,
+                                                    {}))
+    
     fourier_valid_dict = {"a": [0.5, 1.0, 1.5], "b": [0.25, 0.034, 0.76]}
     fourier_invalid_dicts = _make_invalid_param_dict(fourier_valid_dict)
     invalid_params_list.extend(_make_invalid_params(fourier_invalid_dicts,

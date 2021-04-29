@@ -42,7 +42,6 @@ class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     public:
         //! Constructs the compute
         NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
-                            Scalar r_cut,
                             Scalar r_buff);
 
         //! Destructor

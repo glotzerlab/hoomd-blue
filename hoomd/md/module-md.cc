@@ -230,6 +230,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairBuckingham>(m, "PotentialPairBuckingham");
     export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
     export_PotentialPair<PotentialPairLJ1208>(m, "PotentialPairLJ1208");
+    export_PotentialPair<PotentialPairLJ0804>(m, "PotentialPairLJ0804");
     export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
     export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
@@ -289,6 +290,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairGPU<PotentialPairBuckinghamGPU, PotentialPairBuckingham>(m, "PotentialPairBuckinghamGPU");
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>(m, "PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairLJ1208GPU, PotentialPairLJ1208>(m, "PotentialPairLJ1208GPU");
+    export_PotentialPairGPU<PotentialPairLJ0804GPU, PotentialPairLJ0804>(m, "PotentialPairLJ0804GPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m, "PotentialPairYukawaGPU");
