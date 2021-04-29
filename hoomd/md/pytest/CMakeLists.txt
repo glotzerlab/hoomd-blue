@@ -12,6 +12,7 @@ set(files __init__.py
     test_write_debug_data_md.py
     test_nlist.py
     test_zero_momentum.py
+    test_gsd.py
     )
 
 install(FILES ${files}

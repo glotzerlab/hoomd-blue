@@ -7,14 +7,6 @@ pr:
 # repository.
 trigger: none
 
-# Instead, trigger periodic builds on active branches.
-schedules:
-- cron: "0 2-20/6 * * *"
-  displayName: Periodic build
-  branches:
-    include:
-    - "*"
-
 variables:
   image_root: glotzerlab/ci:2021.03
 
