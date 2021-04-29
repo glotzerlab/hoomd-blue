@@ -10,6 +10,7 @@ md.methods
 
     Brownian
     Langevin
+    NPH
     NPT
     NVE
     NVT
@@ -23,6 +24,7 @@ md.methods
               MethodRATTLE,
               Brownian,
               Langevin,
+              NPH,
               NPT,
               NVE,
               NVT
