@@ -64,14 +64,14 @@ class Operations(Collection):
     def __init__(self):
         self._compute = list()
         self._scheduled = False
+        self._simulation = None
         self._updaters = SyncedList(OnlyTypes(Updater),
                                     _triggered_op_conversion)
         self._writers = SyncedList(OnlyTypes(Writer),
-                                     _triggered_op_conversion)
+                                   _triggered_op_conversion)
         self._tuners = SyncedList(OnlyTypes(Tuner), lambda x: x._cpp_obj)
         self._computes = SyncedList(OnlyTypes(Compute), lambda x: x._cpp_obj)
         self._integrator = None
-
         self._tuners.append(ParticleSorter())
 
     def _get_proper_container(self, operation):
@@ -206,7 +206,8 @@ class Operations(Collection):
 
     def _unschedule(self):
         """Undo the effects of `Operations._schedule`."""
-        self._integrator._detach()
+        if self.integrator is not None:
+            self._integrator._detach()
         self._writers._unsync()
         self._updaters._unsync()
         self._tuners._unsync()

@@ -23,9 +23,8 @@ namespace py = pybind11;
  * \param r_buff The buffer radius.
  */
 NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_type_bits(1), m_lbvh_errors(m_exec_conf),
+    : NeighborListGPU(sysdef, r_buff), m_type_bits(1), m_lbvh_errors(m_exec_conf),
       m_n_images(0),
       m_type_changed(true), m_box_changed(true), m_max_num_changed(true), m_max_types(0)
     {
@@ -559,5 +558,5 @@ void NeighborListGPUTree::updateImageVectors()
 void export_NeighborListGPUTree(py::module& m)
     {
     py::class_<NeighborListGPUTree, NeighborListGPU, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree")
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >());
     }

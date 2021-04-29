@@ -10,6 +10,7 @@
 #include "Updater.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
+#include "md/ForceComposite.h"
 #include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include <string>
@@ -182,7 +183,7 @@ class PYBIND11_EXPORT Integrator : public Updater
         CommFlags determineFlags(uint64_t timestep);
 #endif
 
-        /// Helper function to determine (an-)isotropic integration mode
+        /// Check if any forces introduce anisotropic degrees of freedom
         bool getAnisotropic();
 
     private:
