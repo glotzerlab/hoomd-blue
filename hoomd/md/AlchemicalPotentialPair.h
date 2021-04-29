@@ -61,6 +61,36 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
         {
         m_next_alchemical_time_step = next;
         }
+
+    std::shared_ptr<AlchemicalPairParticle> getAlchemicalPairParticle(int i, int j, int k)
+        {
+        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles);
+        std::shared_ptr<AlchemicalPairParticle>& alpha_p
+            = h_alpha_p.data[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
+        if (alpha_p == nullptr)
+            {
+            alpha_p = std::make_shared<AlchemicalPairParticle>(this->m_exec_conf,
+                                                               this,
+                                                               make_int3(i, j, k));
+            m_needs_alch_force_resize = true;
+            }
+        return alpha_p;
+        }
+
+    void enableAlchemicalPairParticle(std::shared_ptr<AlchemicalPairParticle> alpha_p)
+        {
+        // ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles);
+        // h_alpha_p.data[]
+        ArrayHandle<mask_type> h_mask(m_alchemy_mask);
+        mask_type& mask = h_mask.data[m_alchemy_index(alpha_p->m_type_pair_param.x,
+                                                      alpha_p->m_type_pair_param.y)];
+        // TODO: make sure only adding a particle to an alchemostat can enable it
+        assert(mask[alpha_p->m_type_pair_param.z] == false);
+        // TODO: is this where the momentum etc should be initilized?
+        mask[alpha_p->m_type_pair_param.z] = true;
+        m_needs_alch_force_resize= true;
+        }
+
     //! Returns a list of log quantities this compute calculates
     virtual std::vector<std::string> getProvidedLogQuantities();
     //! Calculates the requested log value and returns it
@@ -76,13 +106,13 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
     GlobalArray<std::shared_ptr<AlchemicalPairParticle>>
         m_alchemical_particles;           //!< 2D array (alchemy_index,alchemical param)
     uint64_t m_next_alchemical_time_step; //!< Next alchemical time step
-    bool m_num_particles_changed = true;
+    bool m_needs_alch_force_resize = true;
 
     //! Method to be called when number of types changes
     void slotNumTypesChange();
     void slotNumParticlesChange()
         {
-        m_num_particles_changed = true;
+        m_needs_alch_force_resize = true;
         };
 
     // Extra steps to insert
@@ -101,6 +131,7 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::AlchemicalPotentialPair(
     const std::string& log_suffix)
     : PotentialPair<evaluator, extra_pkg>(sysdef, nlist, log_suffix)
     {
+    // TODO: proper logging variables
     this->m_exec_conf->msg->notice(5)
         << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
 
@@ -109,9 +140,9 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::AlchemicalPotentialPair(
                           &AlchemicalPotentialPair<evaluator, extra_pkg>::slotNumTypesChange>(this);
 
     this->m_pdata->getGlobalParticleNumberChangeSignal()
-        .template connect<
-            AlchemicalPotentialPair<evaluator, extra_pkg>,
-            &AlchemicalPotentialPair<evaluator, extra_pkg>::slotNumParticlesChange>(this);
+        .template connect<AlchemicalPotentialPair<evaluator, extra_pkg>,
+                          &AlchemicalPotentialPair<evaluator, extra_pkg>::slotNumParticlesChange>(
+            this);
     }
 
 // TODO: constructor from base class and similar demote for easy switching
@@ -121,10 +152,11 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::~AlchemicalPotentialPair()
     {
     this->m_exec_conf->msg->notice(5)
         << "Destroying AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
-        
+
     this->m_pdata->getNumTypesChangeSignal()
         .template disconnect<AlchemicalPotentialPair<evaluator, extra_pkg>,
-                          &AlchemicalPotentialPair<evaluator, extra_pkg>::slotNumTypesChange>(this);
+                             &AlchemicalPotentialPair<evaluator, extra_pkg>::slotNumTypesChange>(
+            this);
 
     this->m_pdata->getGlobalParticleNumberChangeSignal()
         .template disconnect<
@@ -202,7 +234,7 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
         this->m_exec_conf->msg->notice(10)
             << "AlchemPotentialPair: Calculating alchemical forces" << std::endl;
         // Only resize when preforming a new calculation so previous results remain accessible
-        if (m_num_particles_changed)
+        if (m_needs_alch_force_resize)
             {
             unsigned int N = this->m_pdata->getN();
             for (unsigned int i = 0; i < m_alchemical_particles.getNumElements(); i++)
@@ -212,7 +244,7 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
                     pkg.h_alchemical_particles.data[i].resizeForces(N);
                     }
                 }
-            m_num_particles_changed = false;
+            m_needs_alch_force_resize = false;
             }
         // zero the forces of all particles, used or not
         for (unsigned int i = 0; i < m_alchemical_particles.getNumElements(); i++)
