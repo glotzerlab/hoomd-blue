@@ -53,7 +53,7 @@ class Dihedral(Force):
         else:
             cpp_class = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cpp_class(sim.state._cpp_sys_def)
+        self._cpp_obj = cpp_class(self._simulation.state._cpp_sys_def)
         super()._attach()
 
 
