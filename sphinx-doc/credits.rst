@@ -27,11 +27,13 @@ The following people have contributed to the to HOOMD-blue:
 * Carolyn Phillips, University of Michigan
 * Charlie Slominski, Caltech
 * Chengyu Dai, University of Michigan
+* Chris Jones, Boise State University
 * Christoph Junghans
 * Christoph Klein, Vanderbilt University
 * Chrisy Du, University of Michigan
 * Cong Qiao, Brandeis University
 * Corwin Kerr, University of Michigan
+* Charlotte Zhao, University of Michigan
 * Dan Evans, University of Michigan
 * David LeBard, Temple University
 * Elizabeth R Chen, University of Michigan

@@ -44,7 +44,11 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(0.8)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 7.0;
+    nlist_2->addRCutMatrix(r_cut);
     std::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
 
     // first check for proper initialization by seeing if the force and potential come out to be 0
@@ -237,7 +241,11 @@ void table_potential_type_test(table_potential_creator table_creator, std::share
     h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
     }
 
-    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.8)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 2.0;
+    nlist->addRCutMatrix(r_cut);
     std::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
 
     // specify a table to interpolate
