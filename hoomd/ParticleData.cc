@@ -1172,17 +1172,21 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     // notify listeners that number of types has changed
     m_num_types_signal.emit();
 
+    unsigned int snapshot_size = snapshot.size;
+
     // Raise an exception if there are any invalid type ids. This is done here (instead of in the
     // loops above) to avoid MPI communication deadlocks when only some ranks have invalid types.
-    // As a convenience, broadcast the value so that all ranks throw the exception.
+    // As a convenience, broadcast the values needed to evaluate the condition the same on all
+    // ranks.
     #ifdef ENABLE_MPI
     if (m_decomposition)
         {
         bcast(max_typeid, 0, m_exec_conf->getMPICommunicator());
+        bcast(snapshot_size, 0, m_exec_conf->getMPICommunicator());
         }
     #endif
 
-    if (snapshot.size != 0 && max_typeid >= m_type_mapping.size())
+    if (snapshot_size != 0 && max_typeid >= m_type_mapping.size())
         {
         std::ostringstream s;
         s << "Particle typeid " << max_typeid << " is invalid in a system with "
