@@ -105,63 +105,79 @@ class SyncedList(MutableSequence):
         Detaches removed value and syncs cpp_list if necessary.
         """
         if len(self) <= index or -len(self) > index:
-            raise IndexError("Cannot assign index {} to list of length {}."
-                             "".format(index, len(self)))
-        else:
-            value = self._validate_or_error(value)
-            # If synced need to change cpp_list and detach operation before
-            # changing python list
-            if self._synced:
-                self._synced_list[index] = \
-                    self._to_synced_list_conversion(value)
-                self._list[index]._detach()
-            self._list[index]._remove()
-            self._list[index] = value
+            raise IndexError(
+                f"Cannot assign index {index} to list of length {len(self)}.")
+        # Convert negative to positive indices
+        index = self._handle_int(index)
+        value = self._validate_or_error(value)
+        # If synced need to change cpp_list and detach operation before
+        # changing python list
+        if self._synced:
+            self._synced_list[index] = \
+                self._to_synced_list_conversion(value)
+            self._list[index]._detach()
+        self._list[index]._remove()
+        self._list[index] = value
 
     def __getitem__(self, index):
         """Grabs the python list item."""
-        index = self._handle_slices(index)
+        index = self._handle_index(index)
         if hasattr(index, '__iter__'):
             return [self._list[i] for i in index]
-        else:
-            return self._list[index]
+
+        if len(self) <= index or -len(self) > index:
+            raise IndexError(
+                f"Cannot get index {index} of a list of length {len(self)}.")
+        return self._list[index]
 
     def __delitem__(self, index):
         """Deletes an item from list. Handles detaching if necessary."""
-        index = self._handle_slices(index)
+        index = self._handle_index(index)
         if hasattr(index, '__iter__'):
-            for pos, i in enumerate(index):
-                fixed_index = i - pos if i > 0 else i
-                del self[fixed_index]
+            # We must iterate from highest value to lowest to ensure we don't
+            # accidentally try to delete an index that doesn't exist any more.
+            for i in sorted(index, reverse=True):
+                del self[i]
             return
         if len(self) <= index or -len(self) > index:
-            raise IndexError("Cannot delete index {} to list of length {}."
-                             "".format(index, len(self)))
-        else:
-            # Since delitem may not del the underlying object, we need to
-            # manually call detach here.
-            if self._synced:
-                del self._synced_list[index]
-                self._list[index]._detach()
-            self._list[index]._remove()
-            del self._list[index]
+            raise IndexError(
+                f"Cannot delete index {index} to list of length {len(self)}.")
+        # Since delitem may not del the underlying object, we need to
+        # manually call detach here.
+        if self._synced:
+            del self._synced_list[index]
+            self._list[index]._detach()
+        self._list[index]._remove()
+        del self._list[index]
 
     @property
     def _synced(self):
         """Has a cpp_list object means that we are currently syncing."""
         return hasattr(self, "_synced_list")
 
-    def _handle_slices(self, index):
-        length = len(self)
-        if isinstance(index, slice):
-            start = index.start if index.start is not None else 0
-            start = start if start >= 0 else length - start
-            stop = index.stop if index.stop is not None else len(self)
-            stop = stop if stop >= 0 else length - stop
-            step = index.step if index.step is not None else 1
-            return list(range(start, stop, step))
-        else:
-            return index
+    def _handle_int(self, integer):
+        """Converts negative indices to positive."""
+        if integer < 0:
+            if -integer > len(self):
+                raise IndexError(
+                    f"Negative index {integer} is too small for list of length "
+                    f"{len(self)}"
+                )
+            return integer % max(1, len(self))
+        return integer
+
+    def _handle_index(self, index):
+        if not isinstance(index, slice):
+            return self._handle_int(index)
+        return self._handle_slice(index)
+
+    def _handle_slice(self, index):
+        start = index.start if index.start is not None else 0
+        start = self._handle_int(start)
+        stop = index.stop if index.stop is not None else len(self)
+        stop = self._handle_int(stop)
+        step = index.step if index.step is not None else 1
+        return list(range(start, stop, step))
 
     def synced_iter(self):
         """Iterate over values in the list. Does nothing when not synced.
@@ -212,14 +228,24 @@ class SyncedList(MutableSequence):
             del self._simulation
             del self._synced_list
 
-    def insert(self, pos, value):
-        """Insert value to list at pos, handling list syncing."""
+    def insert(self, index, value):
+        """Insert value to list at index, handling list syncing."""
         value = self._validate_or_error(value)
+        if abs(index) > len(self):
+            raise IndexError(
+                f"Cannot insert {value} to index {index} for a list of length "
+                f"{len(self)}"
+            )
+        # Wrap index like normal but allow for inserting a new element to the
+        # end of the list.
+        print(index, len(self))
+        index = self._handle_int(index)
+        print(index)
         if self._synced:
-            self._synced_list.insert(pos,
+            self._synced_list.insert(index,
                                      self._to_synced_list_conversion(value)
                                      )
-        self._list.insert(pos, value)
+        self._list.insert(index, value)
 
     def __getstate__(self):
         state = copy(self.__dict__)
