@@ -44,42 +44,6 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
         method->setProfiler(prof);
     }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
-    {
-    std::vector<std::string> combined_result;
-    std::vector<std::string> result;
-
-    // Get base class provided log quantities
-    result = Integrator::getProvidedLogQuantities();
-    combined_result.insert(combined_result.end(), result.begin(), result.end());
-
-    // add integrationmethod quantities
-    for (auto& method : m_methods)
-        {
-        result = method->getProvidedLogQuantities();
-        combined_result.insert(combined_result.end(), result.begin(), result.end());
-        }
-    return combined_result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-*/
-Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    bool quantity_flag = false;
-    Scalar log_value;
-
-    for (auto& method : m_methods)
-        {
-        log_value = method->getLogValue(quantity,timestep,quantity_flag);
-        if (quantity_flag) return log_value;
-        }
-    return Integrator::getLogValue(quantity, timestep);
-    }
-
 /*! \param timestep Current time step of the simulation
     \post All integration methods previously added with addIntegrationMethod() are applied in order to move the system
           state variables forward to \a timestep+1.
@@ -379,8 +343,8 @@ const std::string IntegratorTwoStep::getAnisotropicMode()
     }
 
 /*! Compute accelerations if needed for the first step.
-    If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
-    are available for the logger. This solves ticket #393
+    If acceleration is available in the restart file, then just call computeNetForce so that
+    net_force and net_virial are available in Python. This solves ticket #393
 */
 void IntegratorTwoStep::prepRun(uint64_t timestep)
     {

@@ -30,8 +30,7 @@ class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     public:
         //! Constructs the compute
         TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          unsigned int table_width,
-                          const std::string& log_suffix="");
+                          unsigned int table_width);
 
         //! Destructor
         virtual ~TableAngleForceComputeGPU() { }

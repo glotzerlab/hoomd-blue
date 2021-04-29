@@ -225,8 +225,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.02 % accuracy for conserved quantity
@@ -261,8 +261,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 box = pdata->getBox();
                 volume = box.getVolume();
                 enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 MY_CHECK_CLOSE(H_ref,H,H_tol);
 
@@ -278,8 +278,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
@@ -468,7 +468,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     Scalar3 L = box.getL();
     Scalar volume = L.x*L.y*L.z;
     Scalar enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    Scalar barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
     for (int i = 10001; i < 20000; i++)
@@ -491,7 +491,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
@@ -673,8 +673,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.25 % accuracy for conserved quantity
@@ -710,8 +710,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 Scalar rotational_ke = thermo_group_t->getRotationalKineticEnergy();
                 Scalar pe = thermo_group_t->getPotentialEnergy();
                 enthalpy =  ke + pe + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P*volume << std::endl;
                 std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy << " rot KE: " << rotational_ke << std::endl;
@@ -729,8 +729,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4

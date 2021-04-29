@@ -132,12 +132,6 @@ class PYBIND11_EXPORT Integrator : public Updater
         /// Count the total number of degrees of freedom removed by all constraint forces
         Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
-        /// Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        /// Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         /// helper function to compute total momentum
         virtual Scalar computeTotalMomentum(uint64_t timestep);
 

@@ -94,8 +94,7 @@ class FreeVolume(Compute):
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
-                                cl,
-                                "")
+                                cl)
 
         super()._attach()
 

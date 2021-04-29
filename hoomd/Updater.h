@@ -91,61 +91,6 @@ class PYBIND11_EXPORT Updater
             {
             }
 
-        //! Returns a list of log quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See Logger for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log value and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns 0. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogQuantities() will be requested from
-            getLogValue().
-
-            See Logger for more information on what this is about.
-        */
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
-            {
-            return Scalar(0.0);
-            }
-
-        //! Returns a list of log matrix quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogMatrixQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log matrix and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns an empty shared_ptr. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogMatrixQuantities() will be requested from
-            getLogMatrixValue().
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual pybind11::array getLogMatrix(const std::string& quantity, uint64_t timestep)
-            {
-            unsigned char tmp[] = {0};
-            return pybind11::array(0,tmp);
-            }
-
         //! Reset stat counters
         /*! If derived classes provide statistics for the last run, they should resetStats() to
             clear any counters. System will reset the stats before any run() so that stats printed

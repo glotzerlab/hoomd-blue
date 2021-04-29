@@ -115,33 +115,6 @@ pybind11::dict HarmonicDihedralForceCompute::getParams(std::string type)
     return params;
     }
 
-/*! DihedralForceCompute provides
-    - \c dihedral_harmonic_energy
-*/
-std::vector< std::string > HarmonicDihedralForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back("dihedral_harmonic_energy");
-    return list;
-    }
-
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == string("dihedral_harmonic_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "dihedral.harmonic: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */

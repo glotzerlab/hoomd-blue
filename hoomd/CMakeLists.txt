@@ -43,10 +43,6 @@ set(_hoomd_sources Analyzer.cc
                    Integrator.cc
                    IntegratorData.cc
                    LoadBalancer.cc
-                   Logger.cc
-                   LogPlainTXT.cc
-                   LogMatrix.cc
-                   LogHDF5.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -135,10 +131,6 @@ set(_hoomd_headers
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h
     LoadBalancer.h
-    Logger.h
-    LogPlainTXT.h
-    LogMatrix.h
-    LogHDF5.h
     managed_allocator.h
     ManagedArray.h
     MemoryTraceback.h

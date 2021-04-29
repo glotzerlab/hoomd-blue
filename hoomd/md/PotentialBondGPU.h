@@ -37,8 +37,7 @@ class PotentialBondGPU : public PotentialBond<evaluator>
     {
     public:
         //! Construct the bond potential
-        PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         const std::string& log_suffix="");
+        PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         virtual ~PotentialBondGPU() {}
 
@@ -64,9 +63,8 @@ class PotentialBondGPU : public PotentialBond<evaluator>
 template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                          const std::string& log_suffix)
-    : PotentialBond<evaluator>(sysdef, log_suffix)
+PotentialBondGPU< evaluator, gpu_cgbf >::PotentialBondGPU(std::shared_ptr<SystemDefinition> sysdef)
+    : PotentialBond<evaluator>(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -171,7 +169,7 @@ void PotentialBondGPU< evaluator, gpu_cgbf >::computeForces(uint64_t timestep)
 template < class T, class Base > void export_PotentialBondGPU(pybind11::module& m, const std::string& name)
     {
      pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
             ;
     }
 

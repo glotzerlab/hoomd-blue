@@ -18,12 +18,10 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<NeighborList> nlist,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TablePotential" << endl;
@@ -78,8 +76,6 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
 
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
-
-    m_log_name = std::string("pair_table_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the number of types changes
     m_pdata->getNumTypesChangeSignal().connect<TablePotential, &TablePotential::slotNumTypesChange>(this);
@@ -237,30 +233,6 @@ void TablePotential::setTable(unsigned int typ1,
 
     // notify the neighbor list that we have changed r_cut values
     m_nlist->notifyRCutMatrixChange();
-    }
-
-/*! TablePotential provides
-    - \c pair_table_energy
-*/
-std::vector< std::string > TablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar TablePotential::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.table: " << quantity << " is not a valid log quantity for TablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The table based forces are computed for the given timestep. The neighborlist's
@@ -445,7 +417,7 @@ void TablePotential::computeForces(uint64_t timestep)
 void export_TablePotential(py::module& m)
     {
     py::class_<TablePotential, ForceCompute, std::shared_ptr<TablePotential> >(m, "TablePotential")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int>())
     .def("setTable", &TablePotential::setTable)
     ;
     }

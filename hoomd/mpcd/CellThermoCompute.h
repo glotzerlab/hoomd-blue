@@ -33,8 +33,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     {
     public:
         //! Constructor
-        CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
-                          const std::string& suffix = std::string(""));
+        CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata);
 
         //! Destructor
         virtual ~CellThermoCompute();
@@ -186,8 +185,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Slot for the number of virtual particles changing
         /*!
          * All thermo properties should be recomputed if the number of virtual particles changes.
-         * This is because we cannot distinguish times when the thermo is used for logging vs.
-         * in a collision method. The cases where the thermo is first used without virtual particles
+         * The cases where the thermo is first used without virtual particles
          * followed by with virtual particles are small, and so it is easiest to just recompute.
          */
         void slotNumVirtual()
