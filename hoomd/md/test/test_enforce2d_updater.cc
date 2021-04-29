@@ -83,7 +83,11 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
 
-    std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
+    std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(0.3)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 2.5;
+    nlist->addRCutMatrix(r_cut);
     nlist->setStorageMode(NeighborList::half);
 
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));

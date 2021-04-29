@@ -48,7 +48,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     }
 
     // test construction of the neighborlist
-    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_2, 0.25));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -129,7 +129,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     pdata_6->notifyParticleSort();
     }
 
-    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.25));
     nlist_6->addRCutMatrix(r_cut);
         {
         ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
@@ -259,7 +259,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         pdata_3->notifyParticleSort();
         }
 
-    std::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_3(new NL(sysdef_3, 0.25));
     nlist_3->setStorageMode(NeighborList::full);
     Index2D type_pair_idx = nlist_3->getTypePairIndexer();
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
@@ -370,7 +370,7 @@ void neighborlist_particle_asymm_tests(std::shared_ptr<ExecutionConfiguration> e
         pdata_18->notifyParticleSort();
         }
 
-    std::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 3.0, 0.05));
+    std::shared_ptr<NeighborList> nlist_18(new NL(sysdef_18, 0.05));
     type_pair_idx = nlist_18->getTypePairIndexer();
     r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
                                           exec_conf);
@@ -484,7 +484,7 @@ void neighborlist_type_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         pdata_6->notifyParticleSort();
         }
 
-    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.1));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.1));
     Index2D type_pair_idx = nlist_6->getTypePairIndexer();
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
                                                exec_conf);
@@ -765,7 +765,7 @@ void neighborlist_exclusion_tests(std::shared_ptr<ExecutionConfiguration> exec_c
     pdata_6->notifyParticleSort();
     }
 
-    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.25));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -846,7 +846,7 @@ void neighborlist_body_filter_tests(std::shared_ptr<ExecutionConfiguration> exec
     pdata_6->notifyParticleSort();
     }
 
-    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 3.0, 0.25));
+    std::shared_ptr<NeighborList> nlist_6(new NL(sysdef_6, 0.25));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_6->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -927,7 +927,7 @@ void neighborlist_diameter_shift_tests(std::shared_ptr<ExecutionConfiguration> e
     }
 
     // test construction of the neighborlist
-    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
+    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 0.5));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -1002,7 +1002,7 @@ void neighborlist_diameter_shift_periodic_tests(std::shared_ptr<ExecutionConfigu
     }
 
     // test construction of the neighborlist
-    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 1.5, 0.5));
+    std::shared_ptr<NeighborList> nlist_2(new NL(sysdef_3, 0.5));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -1066,7 +1066,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    std::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(3.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist1(new NLA(sysdef, Scalar(0.4)));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist1->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -1076,7 +1076,7 @@ void neighborlist_comparison_test(std::shared_ptr<ExecutionConfiguration> exec_c
     nlist1->addRCutMatrix(r_cut);
     nlist1->setStorageMode(NeighborList::full);
 
-    std::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(3.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist2(new NLB(sysdef, Scalar(0.4)));
     nlist2->addRCutMatrix(r_cut);
     nlist2->setStorageMode(NeighborList::full);
 
@@ -1141,7 +1141,7 @@ void neighborlist_large_ex_tests(std::shared_ptr<ExecutionConfiguration> exec_co
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    std::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(0.4)));
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
@@ -1200,7 +1200,7 @@ void neighborlist_cutoff_exclude_tests(std::shared_ptr<ExecutionConfiguration> e
             }
         }
 
-    std::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(-1.0), Scalar(0.4)));
+    std::shared_ptr<NeighborList> nlist(new NL(sysdef_3, Scalar(0.4)));
     Index2D type_pair_idx = nlist->getTypePairIndexer();
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(type_pair_idx.getNumElements(),
                                                exec_conf);
@@ -1311,7 +1311,7 @@ void neighborlist_2d_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     sysdef->setNDimensions(2);
     auto pdata = sysdef->getParticleData();
 
-    auto nlist = std::make_shared<NL>(sysdef, 3.0, 0.25);
+    auto nlist = std::make_shared<NL>(sysdef, 0.25);
     auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
                                                exec_conf);
         {
