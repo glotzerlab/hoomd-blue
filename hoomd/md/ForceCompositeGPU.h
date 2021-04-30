@@ -70,7 +70,7 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
             {
             MolecularForceCompute::checkParticlesSorted();
 
-            if (m_rebuld_molecules)
+            if (m_rebuild_molecules)
                 // identify center particles for use in GPU kernel
                 findRigidCenters();
             }
