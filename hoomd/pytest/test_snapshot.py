@@ -48,6 +48,8 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                     assert y == []
                 else:
                     assert x == y
+            elif prop == 'acceleration' or prop == 'is_accel_set':
+                continue
             else:
                 x = getattr(getattr(gsd_snap, attr), prop)
                 y = getattr(getattr(hoomd_snap, attr), prop)
@@ -309,3 +311,69 @@ def test_from_gsd_snapshot_populated(s, device):
     gsd_snap = make_gsd_snapshot(s)
     hoomd_snap = Snapshot.from_gsd_snapshot(gsd_snap, device.communicator)
     assert_equivalent_snapshots(gsd_snap, hoomd_snap)
+
+
+def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
+    """Test that using invalid particle typeids raises an error."""
+    snap = lattice_snapshot_factory(particle_types=['A', 'B'])
+
+    # assign invalid type ids
+    if snap.exists:
+        snap.particles.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+def test_no_particle_types(simulation_factory, lattice_snapshot_factory):
+    """Test that initialization fails when there are no types."""
+    snap = lattice_snapshot_factory(particle_types=[])
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+
+def test_zero_particle_system(simulation_factory, lattice_snapshot_factory):
+    """Test that zero particle systems can be initialized with no types."""
+    snap = lattice_snapshot_factory(particle_types=[], n=0)
+
+    simulation_factory(snap)
+
+
+@pytest.mark.parametrize("group_name,group_size", [
+    ("bonds", 2),
+    ("angles", 3),
+    ("dihedrals", 4),
+    ("impropers", 4),
+    ("pairs", 2),
+])
+def test_invalid_bond_typeids(
+    group_name,
+    group_size,
+    simulation_factory,
+    lattice_snapshot_factory,
+):
+    """Test that using invalid bond typeids raises an error."""
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.exists:
+        group = getattr(snap, group_name)
+        group.types = ['A']
+        group.N = 1
+        group.group[0] = range(group_size)
+        group.typeid[:] = 2
+
+    with pytest.raises(RuntimeError):
+        simulation_factory(snap)
+
+    # test that 0 types is allowed when there are 0 items in the group
+    snap = lattice_snapshot_factory()
+
+    # assign invalid type ids
+    if snap.exists:
+        group = getattr(snap, group_name)
+        group.types = []
+        group.N = 0
+
+    simulation_factory(snap)

@@ -53,12 +53,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// Sets the profiler for the compute to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
-        /// Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        /// Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         /// Take one timestep forward
         virtual void update(uint64_t timestep);
 

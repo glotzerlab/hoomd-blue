@@ -188,8 +188,7 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(
                      > anisopotentialpair(m, name.c_str());
     anisopotentialpair.def(
         pybind11::init<std::shared_ptr<SystemDefinition>,
-                       std::shared_ptr<NeighborList>,
-                       const std::string& >())
+                       std::shared_ptr<NeighborList>>())
         .def("setParams", &AnisoPotentialPairDipole::setParamsPython)
         .def("getParams", &AnisoPotentialPairDipole::getParamsPython)
         .def("setMu", &AnisoPotentialPairDipole::setShapePython)

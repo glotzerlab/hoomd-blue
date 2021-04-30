@@ -285,27 +285,6 @@ void EAMForceCompute::interpolation(int num_all, int num_per, Scalar delta, Arra
         }
     }
 
-std::vector<std::string> EAMForceCompute::getProvidedLogQuantities()
-    {
-    vector < string > list;
-    list.push_back("pair_eam_energy");
-    return list;
-    }
-
-Scalar EAMForceCompute::getLogValue(const std::string &quantity, uint64_t timestep)
-    {
-    if (quantity == string("pair_eam_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.eam: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The EAM forces are computed for the given timestep. The neighborlist's
  compute method is called to ensure that it is up to date.
  \param timestep specifies the current time step of the simulation

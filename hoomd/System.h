@@ -8,7 +8,6 @@
 #include "Analyzer.h"
 #include "Compute.h"
 #include "Integrator.h"
-#include "Logger.h"
 #include "Trigger.h"
 #include "Tuner.h"
 
@@ -103,9 +102,6 @@ class PYBIND11_EXPORT System
 
         //! Configures profiling of runs
         void enableProfiler(bool enable);
-
-        //! Register logger
-        void registerLogger(std::shared_ptr<Logger> logger);
 
         //! Get the average TPS from the last run
         Scalar getLastTPS() const

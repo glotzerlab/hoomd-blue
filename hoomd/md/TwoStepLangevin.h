@@ -50,12 +50,6 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
             return m_reservoir_energy;
             }
 
-        /// Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        /// Returns logged values
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
-
         /// Performs the second step of the integration
         virtual void integrateStepOne(uint64_t timestep);
 
@@ -71,9 +65,6 @@ class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
 
         /// If true, changes to the energy of the reservoir are calculated
         bool m_tally;
-
-        /// Name of the reservoir quantity that we log
-        std::string m_log_name;
 
         /// If set true, there will be no translational noise (random force)
         bool m_noiseless_t;

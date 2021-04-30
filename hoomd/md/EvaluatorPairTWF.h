@@ -223,8 +223,7 @@ class EvaluatorPairTWF
 
         #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
