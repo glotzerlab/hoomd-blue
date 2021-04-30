@@ -68,27 +68,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
             return m_reservoir_energy;
             }
 
-        //! Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities()
-        {
-        vector<string> result;
-        if (m_tally)
-            result.push_back(m_log_name);
-        return result;
-        }
-
-        //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
-        {
-        if (m_tally && quantity == m_log_name)
-            {
-            my_quantity_flag = true;
-            return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
-            }
-        else
-            return Scalar(0);
-        }
-
         //! Performs the second step of the integration
         virtual void integrateStepOne(uint64_t timestep);
 
@@ -118,7 +97,6 @@ class PYBIND11_EXPORT TwoStepRATTLELangevin : public TwoStepLangevinBase
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the system is coupled to.
         Scalar m_extra_energy_overdeltaT;  //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
-        std::string m_log_name;            //!< Name of the reservoir quantity that we log
         bool m_noiseless_t;                //!< If set true, there will be no translational noise (random force)
         bool m_noiseless_r;                //!< If set true, there will be no rotational noise (random torque)
         Scalar m_tolerance;                      //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
@@ -151,9 +129,6 @@ TwoStepRATTLELangevin<Manifold>::TwoStepRATTLELangevin(std::shared_ptr<SystemDef
     if( !manifold_fits){
         throw std::runtime_error("Parts of the manifold are outside the box");
     }
-
-    m_log_name = string("langevin_reservoir_energy");
-
     }
 
 
@@ -179,7 +154,7 @@ void TwoStepRATTLELangevin<Manifold>::integrateStepOne(uint64_t timestep)
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-    
+
     bool manifold_fits = m_manifold.fitsInsideBox(box);
 
     if( !manifold_fits){
