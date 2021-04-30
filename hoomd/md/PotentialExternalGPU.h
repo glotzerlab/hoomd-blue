@@ -30,8 +30,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
         //! Constructs the compute
-        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
-                             const std::string& log_suffix="");
+        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -56,9 +55,8 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     \param sysdef system definition
  */
 template<class evaluator>
-PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                const std::string& log_suffix)
-    : PotentialExternal<evaluator>(sysdef, log_suffix)
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef)
+    : PotentialExternal<evaluator>(sysdef)
     {
     unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
     this->m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
@@ -128,7 +126,7 @@ template < class T, class base >
 void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, base, std::shared_ptr<T> >(m, name.c_str())
-                .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
+                .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
                 .def("setParams", &T::setParams)
                 .def("setField", &T::setField)
                 ;

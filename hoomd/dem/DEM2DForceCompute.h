@@ -56,12 +56,6 @@ class DEM2DForceCompute : public ForceCompute
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Real getLogValue(const std::string& quantity, uint64_t timestep);
-
         void connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
 
         int slotWriteDEMGSDShapeSpec(gsd_handle& handle) const;

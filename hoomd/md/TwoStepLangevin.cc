@@ -21,39 +21,11 @@ TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
       m_extra_energy_overdeltaT(0), m_tally(false), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepLangevin" << endl;
-
-    m_log_name = string("langevin_reservoir_energy");
     }
 
 TwoStepLangevin::~TwoStepLangevin()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevin" << endl;
-    }
-
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    if (m_tally)
-        result.push_back(m_log_name);
-    return result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quantity logged here
-*/
-
-Scalar TwoStepLangevin::getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag)
-    {
-    if (m_tally && quantity == m_log_name)
-        {
-        my_quantity_flag = true;
-        return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
-        }
-    else
-        return Scalar(0);
     }
 
 /*! \param timestep Current time step

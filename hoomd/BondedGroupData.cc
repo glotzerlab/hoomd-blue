@@ -292,17 +292,16 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
 
     unsigned int max_tag = m_pdata->getMaximumTag();
 
-    // check for some silly errors a user could make
+    // validate user input
     for (unsigned int i = 0; i < group_size; ++i)
         if (member_tags.tag[i] > max_tag)
             {
             std::ostringstream oss;
-            oss << name << ".*: Particle tag out of bounds when attempting to add " << name << ": ";
+            oss << "Particle tag out of bounds when attempting to add " << name << ": ";
             for (unsigned int j = 0; j < group_size; ++j)
                 oss << member_tags.tag[j] << ((j != group_size - 1) ? "," : "");
             oss << std::endl;
-            m_exec_conf->msg->error() << oss.str();
-            throw runtime_error(std::string("Error adding ") + name);
+            throw runtime_error(oss.str());
             }
 
     for (unsigned int i = 0; i < group_size; ++i)
@@ -310,12 +309,11 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
             if (i != j && member_tags.tag[i] == member_tags.tag[j])
                 {
                 std::ostringstream oss;
-                oss << name << ".*: The same particle can only occur once in a " << name << ": ";
+                oss << "The same particle can only occur once in a " << name << ": ";
                 for (unsigned int k = 0; k < group_size; ++k)
                     oss << member_tags.tag[k] << ((k != group_size - 1) ? "," : "");
                 oss << std::endl;
-                m_exec_conf->msg->error() << oss.str();
-                throw runtime_error(std::string("Error adding ") + name);
+                throw runtime_error(oss.str());
                 }
 
     if (has_type_mapping)
@@ -323,9 +321,10 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
         unsigned int type = typeval.type;
         if (type >= m_type_mapping.size() && has_type_mapping)
             {
-            m_exec_conf->msg->error() << name << ".*: Invalid " << name << " type " << type
-                << "! The number of types is " << m_type_mapping.size() << std::endl;
-            throw std::runtime_error(std::string("Error adding ") + name);
+            std::ostringstream s;
+            s << "Invalid " << name << " typeid " << type
+              << ". The number of types is " << m_type_mapping.size() << ".";
+            throw std::runtime_error(s.str());
             }
         }
 

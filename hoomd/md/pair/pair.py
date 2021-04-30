@@ -180,8 +180,7 @@ class Pair(force.Force):
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
         self._cpp_obj = cls(
-            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
-            '')  # TODO remove name string arg
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
 
         super()._attach()
 

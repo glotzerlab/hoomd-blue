@@ -30,8 +30,7 @@ class PotentialExternal: public ForceCompute
     {
     public:
         //! Constructs the compute
-        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef,
-                                     const std::string& log_suffix="");
+        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~PotentialExternal<evaluator>();
 
         //! type of external potential parameters
@@ -42,16 +41,9 @@ class PotentialExternal: public ForceCompute
         void setParams(unsigned int type, param_type params);
         void setField(field_type field);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
     protected:
 
         GPUArray<param_type>    m_params;        //!< Array of per-type parameters
-        std::string             m_log_name;               //!< Cached log name
         GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
@@ -74,14 +66,11 @@ class PotentialExternal: public ForceCompute
 
 /*! Constructor
     \param sysdef system definition
-    \param log_suffix Name given to this instance of the force
 */
 template<class evaluator>
-PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef,
-                         const std::string& log_suffix)
+PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
-    m_log_name = std::string("external_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -99,35 +88,6 @@ template<class evaluator>
 PotentialExternal<evaluator>::~PotentialExternal()
     {
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
-    }
-
-/*! PotentialExternal provides
-    - \c external_"name"_energy
-*/
-template<class evaluator>
-std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template<class evaluator>
-Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "external." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Computes the specified constraint forces
@@ -247,7 +207,7 @@ template < class T >
 void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-                  .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+                  .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;

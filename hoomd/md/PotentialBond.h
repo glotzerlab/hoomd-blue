@@ -32,8 +32,7 @@ class PotentialBond : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix="");
+        PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~PotentialBond();
@@ -46,14 +45,8 @@ class PotentialBond : public ForceCompute
         /// Get the parameters
         pybind11::dict getParams(std::string type);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
         /// Validate bond type
         virtual void validateType(unsigned int type, std::string action);
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -63,7 +56,6 @@ class PotentialBond : public ForceCompute
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
         std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
@@ -71,11 +63,9 @@ class PotentialBond : public ForceCompute
     };
 
 /*! \param sysdef System to compute forces on
-    \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix)
+PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
@@ -83,7 +73,6 @@ PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysd
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_log_name = std::string("bond_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
@@ -152,35 +141,6 @@ pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
     ArrayHandle<param_type> h_params(m_params, access_location::host,
                                      access_mode::read);
     return h_params.data[itype].asDict();
-    }
-
-/*! PotentialBond provides
-    - \c bond_"name"_energy
-*/
-template< class evaluator >
-std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Actually perform the force computation
@@ -377,7 +337,7 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(uint64_t timestep)
 template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         ;

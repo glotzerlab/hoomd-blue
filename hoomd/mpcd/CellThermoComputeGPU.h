@@ -30,8 +30,7 @@ class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     {
     public:
         //! Constructor
-        CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                             const std::string& suffix = std::string(""));
+        CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata);
 
         //! Destructor
         virtual ~CellThermoComputeGPU();
