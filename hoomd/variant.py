@@ -56,6 +56,15 @@ class Variant(_hoomd.Variant):
         _hoomd.Variant.__init__(self)
         self.__dict__ = state
 
+    def _private_eq(self, other):
+        """Return whether two variants are equivalent."""
+        if not isinstance(other, Variant):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in self._eq_attrs)
+
 
 class Constant(_hoomd.VariantConstant, Variant):
     """A constant value.
@@ -68,10 +77,13 @@ class Constant(_hoomd.VariantConstant, Variant):
     Attributes:
         value (float): The value.
     """
+    _eq_attrs = ("value",)
 
     def __init__(self, value):
         Variant.__init__(self)
         _hoomd.VariantConstant.__init__(self, value)
+
+    __eq__ = Variant._private_eq
 
 
 class Ramp(_hoomd.VariantRamp, Variant):
@@ -94,10 +106,13 @@ class Ramp(_hoomd.VariantRamp, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
     """
+    _eq_attrs = ("A", "B", "t_start", "t_ramp")
 
     def __init__(self, A, B, t_start, t_ramp):
         Variant.__init__(self)
         _hoomd.VariantRamp.__init__(self, A, B, t_start, t_ramp)
+
+    __eq__ = Variant._private_eq
 
 
 class Cycle(_hoomd.VariantCycle, Variant):
@@ -129,10 +144,13 @@ class Cycle(_hoomd.VariantCycle, Variant):
         t_B (int): The holding time at B.
         t_BA (int): The time spent ramping from B to A.
     """
+    _eq_attrs = ("A", "B", "t_start", "t_A", "t_AB", "t_B", "t_BA")
 
     def __init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA):
         Variant.__init__(self)
         _hoomd.VariantCycle.__init__(self, A, B, t_start, t_A, t_AB, t_B, t_BA)
+
+    __eq__ = Variant._private_eq
 
 
 class Power(_hoomd.VariantPower, Variant):
@@ -162,7 +180,10 @@ class Power(_hoomd.VariantPower, Variant):
         t_start (int): The start time step.
         t_ramp (int): The length of the ramp.
     """
+    _eq_attrs = ("A", "B", "power", "t_start", "t_ramp")
 
     def __init__(self, A, B, power, t_start, t_ramp):
         Variant.__init__(self)
         _hoomd.VariantPower.__init__(self, A, B, power, t_start, t_ramp)
+
+    __eq__ = Variant._private_eq

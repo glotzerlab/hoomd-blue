@@ -44,7 +44,7 @@ class ParticleSorter(Tuner):
             trigger=Trigger,
             grid=OnlyTypes(
                 int,
-                postprocess=lambda x: int(ParticleSorter._to_power_of_two(x)),
+                postprocess=ParticleSorter._to_power_of_two,
                 preprocess=ParticleSorter._natural_number,
                 allow_none=True))
         self.trigger = trigger
