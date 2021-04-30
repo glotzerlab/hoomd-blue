@@ -26,10 +26,6 @@
 #include "DCDDumpWriter.h"
 #include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
-#include "Logger.h"
-#include "LogPlainTXT.h"
-#include "LogMatrix.h"
-#include "LogHDF5.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "PythonUpdater.h"
@@ -278,10 +274,6 @@ PYBIND11_MODULE(_hoomd, m)
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
-    export_Logger(m);
-    export_LogPlainTXT(m);
-    export_LogMatrix(m);
-    export_LogHDF5(m);
     export_CallbackAnalyzer(m);
 
     // updaters

@@ -91,13 +91,6 @@ class Communicator;
        forward for the second half step
     -# each integration method only applies these operations to the particles contained within its group (exceptions
        are allowed when box rescaling is needed)
-
-    <b>Design items still left to do:</b>
-
-    Interaction with logger: perhaps the integrator should forward log value queries on to the integration method?
-    each method could be given a user name so that they are logged in user-controlled columns. This provides a window
-    into the internally computed state variables logging per method.
-
     \ingroup updaters
 */
 class PYBIND11_EXPORT IntegrationMethodTwoStep
@@ -138,34 +131,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            }
-
-        //! Returns a list of log quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See Logger for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log value and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-            \param my_quantity_flag Returns true if this method tracks this quantity
-
-            The base class just returns 0. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogQuantities() will be requested from
-            getLogValue().
-
-            See Logger for more information on what this is about.
-        */
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep,  bool &my_quantity_flag)
-            {
-            return Scalar(0.0);
             }
 
         //! Change the timestep

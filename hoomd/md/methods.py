@@ -191,13 +191,12 @@ class NVT(Method):
 
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
-        thermo = thermo_cls(cpp_sys_def, group, "")
+        thermo = thermo_cls(cpp_sys_def, group)
         self._cpp_obj = my_class(cpp_sys_def,
                                  group,
                                  thermo,
                                  self.tau,
-                                 self.kT,
-                                 "")
+                                 self.kT)
         super()._attach()
 
     def thermalize_thermostat_dof(self):
@@ -220,6 +219,13 @@ class NVT(Method):
 
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatDOF(self._simulation.timestep)
+
+    @hoomd.logging.log
+    def thermostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
 
 class NPT(Method):
@@ -447,13 +453,9 @@ class NPT(Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def,
-                            thermo_group,
-                            "")
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        thermo_full_step = thermo_cls(cpp_sys_def,
-                              thermo_group,
-                              "")
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         self._cpp_obj = cpp_cls(cpp_sys_def,
                                  thermo_group,
@@ -504,6 +506,20 @@ class NPT(Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
+
+    @hoomd.logging.log
+    def thermostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
+
+    @hoomd.logging.log
+    def barostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NPH(Method):
@@ -637,9 +653,9 @@ class NPH(Method):
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo_group = self._simulation.state._get_group(self.filter)
 
-        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group, "")
+        thermo_half_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group, "")
+        thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
         self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
                                 thermo_full_step, 1.0, self.tauS, self.kT,
@@ -680,6 +696,13 @@ class NPH(Method):
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
             self._simulation.timestep)
+
+    @hoomd.logging.log
+    def barostat_energy(self):
+        if not self._attached:
+            return None
+        else:
+            return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
 
 class NVE(MethodRATTLE):
@@ -1233,7 +1256,7 @@ class Berendsen(Method):
             thermo_cls = _md.ComputeThermoGPU
         self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
                                    group,
-                                   thermo_cls(sim.state._cpp_sys_def, group, ""),
+                                   thermo_cls(sim.state._cpp_sys_def, group),
                                    self.tau,
                                    self.kT)
         super()._attach()

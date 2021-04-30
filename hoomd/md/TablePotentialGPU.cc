@@ -19,13 +19,11 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<NeighborList> nlist,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : TablePotential(sysdef, nlist, table_width, log_suffix)
+                                     unsigned int table_width)
+    : TablePotential(sysdef, nlist, table_width)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
@@ -113,7 +111,6 @@ void export_TablePotentialGPU(py::module& m)
     py::class_<TablePotentialGPU, TablePotential, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<NeighborList>,
-                                unsigned int,
-                                const std::string& >())
+                                unsigned int>())
                                 ;
     }

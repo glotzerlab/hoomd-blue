@@ -38,8 +38,7 @@ class PYBIND11_EXPORT TwoStepNVTMTKGPU : public TwoStepNVTMTK
                       std::shared_ptr<ParticleGroup> group,
                       std::shared_ptr<ComputeThermo> thermo,
                       Scalar tau,
-                      std::shared_ptr<Variant> T,
-                      const std::string& suffix = std::string(""));
+                      std::shared_ptr<Variant> T);
         virtual ~TwoStepNVTMTKGPU() {};
 
         //! Performs the first step of the integration

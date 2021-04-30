@@ -17,12 +17,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : BondTablePotential(sysdef, table_width, log_suffix)
+                                     unsigned int table_width)
+    : BondTablePotential(sysdef, table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotentialGPU" << endl;
 
@@ -119,8 +117,5 @@ void BondTablePotentialGPU::computeForces(uint64_t timestep)
 void export_BondTablePotentialGPU(py::module& m)
     {
     py::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU> >(m, "BondTablePotentialGPU")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                            unsigned int,
-                            const std::string& >())
-                            ;
+        .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>());
     }

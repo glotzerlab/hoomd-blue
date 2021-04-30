@@ -217,12 +217,6 @@ class UpdaterBoxMC : public Updater
             m_beta_P = betaP;
             }
 
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Reset statistics counters
         void resetStats()
             {

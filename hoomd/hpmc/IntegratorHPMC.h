@@ -379,12 +379,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return 1;
             }
 
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Check the particle data for non-normalized orientations
         virtual bool checkParticleOrientations();
 

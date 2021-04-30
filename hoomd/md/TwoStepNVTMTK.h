@@ -44,8 +44,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
                    std::shared_ptr<ParticleGroup> group,
                    std::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   std::shared_ptr<Variant> T,
-                   const std::string& suffix = std::string(""));
+                   std::shared_ptr<Variant> T);
         virtual ~TwoStepNVTMTK();
 
         //! Update the temperature
@@ -84,12 +83,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             xi = new_xi;
             setIntegratorVariables(v);
             }
-
-        //! Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool &my_quantity_flag);
 
         //! Performs the first step of the integration
         virtual void integrateStepOne(uint64_t timestep);
@@ -136,6 +129,8 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         /// Set the rotational thermostat degrees of freedom
         void setRotationalThermostatDOF(pybind11::tuple v);
 
+        Scalar getThermostatEnergy(uint64_t timestep);
+
         #ifdef ENABLE_MPI
 
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
@@ -154,7 +149,6 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         std::shared_ptr<Variant> m_T; //!< Temperature set point
-        std::string m_log_name;         //!< Name of the reservoir quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
 

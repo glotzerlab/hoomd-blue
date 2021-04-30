@@ -59,12 +59,6 @@ public:
     //! Get the r cut value read from the EAM potential file
     virtual Scalar get_r_cut();
 
-    //! Returns a list of log quantities this compute calculates
-    virtual std::vector<std::string> getProvidedLogQuantities();
-
-    //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string &quantity, uint64_t timestep);
-
     //! Load EAM potential file
     virtual void loadFile(char *filename, int type_of_file);
 

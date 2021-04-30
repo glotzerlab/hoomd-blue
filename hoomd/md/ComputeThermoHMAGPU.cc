@@ -27,13 +27,12 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
     \param harmonicPressure The contribution to the pressure from harmonic fluctuations
-    \param suffix Suffix to append to all logged quantity names
 */
 
 ComputeThermoHMAGPU::ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<ParticleGroup> group, const double temperature,
-                                   const double harmonicPressure, const std::string& suffix)
-    : ComputeThermoHMA(sysdef, group, temperature, harmonicPressure, suffix), m_scratch(m_exec_conf)
+                                   const double harmonicPressure)
+    : ComputeThermoHMA(sysdef, group, temperature, harmonicPressure), m_scratch(m_exec_conf)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -196,9 +195,6 @@ void export_ComputeThermoHMAGPU(py::module& m)
     {
     py::class_<ComputeThermoHMAGPU, ComputeThermoHMA, std::shared_ptr<ComputeThermoHMAGPU> >(m,"ComputeThermoHMAGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
-         std::shared_ptr<ParticleGroup>,
-         const double,
-         const double,
-         const std::string& >())
+         std::shared_ptr<ParticleGroup>, const double, const double>())
         ;
     }
