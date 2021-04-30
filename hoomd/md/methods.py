@@ -17,6 +17,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 
+
 class Method(_HOOMDBaseObject):
     """Base class integration method.
 
@@ -26,29 +27,31 @@ class Method(_HOOMDBaseObject):
         Users should use the subclasses and not instantiate `Method` directly.
     """
 
+
 class MethodRATTLE(Method):
     """Base class rattle integration method.
 
-    Provides common methods for all subclasses which are compatible with the RATTLE
-    algorithm. Particles can be constrained to a manifold surface using the
-    RATTLE scheme. For poor initial conditions that include overlapping atoms,
-    a limit can be specified to the movement a particle is allowed to make in
-    one time step. After a few thousand time steps with the limit set, the
-    system should be in a safe state to continue with unconstrained integration.
+    Provides common methods for all subclasses which are compatible with the
+    RATTLE algorithm. Particles can be constrained to a manifold surface using
+    the RATTLE scheme. For poor initial conditions that include overlapping
+    atoms, a limit can be specified to the movement a particle is allowed to
+    make in one time step. After a few thousand time steps with the limit set,
+    the system should be in a safe state to continue with unconstrained
+    integration.
 
     Warning:
         The particles should be initialised close to the implicit surface of
         the manifold. Even though the particles are mapped to the set surface
-        automatically, the mapping can lead to small inter-particle distances and,
-        hence, large forces between particles!
+        automatically, the mapping can lead to small inter-particle distances
+        and, hence, large forces between particles!
 
     For the equations of motion, see:
 
     * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
 
     Note:
-        Users should use the subclasses and not instantiate `MethodRATTLE` directly.
-
+        Users should use the subclasses and not instantiate `MethodRATTLE`
+        directly.
     """
     def __init__(self, manifold_constraint, tolerance):
 
@@ -62,13 +65,13 @@ class MethodRATTLE(Method):
         param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
         self._param_dict.update(param_dict)
-    
+
     def _add(self, sim):
         if self.manifold_constraint is not None:
             self.manifold_constraint._add(sim)
         super()._add(sim)
 
-    def _attach_constraint(self,sim):
+    def _attach_constraint(self, sim):
         if not self.manifold_constraint._attached:
             self.manifold_constraint._attach()
 
@@ -80,6 +83,12 @@ class MethodRATTLE(Method):
             return parameter
         else:
             return self._param_dict[attr]
+
+    def _setattr_param(self, attr):
+        if attr == "manifold_constraint":
+            raise AttributeError(
+                "Cannot set manifold_constraint after construction.")
+        super()._setattr_param(attr)
 
 
 class NVT(Method):
@@ -686,8 +695,8 @@ class NVE(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        tolerance (`float`): Defines the tolerated error particles are 
-            allowed to deviate from the manifold in terms of the implicit function. 
+        tolerance (`float`): Defines the tolerated error particles are
+            allowed to deviate from the manifold in terms of the implicit function.
             This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations using
@@ -794,8 +803,8 @@ class Langevin(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        tolerance (`float`): Defines the tolerated error particles are allowed 
-            to deviate from the manifold in terms of the implicit function. 
+        tolerance (`float`): Defines the tolerated error particles are allowed
+            to deviate from the manifold in terms of the implicit function.
             This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 
     .. rubric:: Translational degrees of freedom
@@ -982,7 +991,7 @@ class Brownian(MethodRATTLE):
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
 
-        tolerance (`float`): Defines the toleraated error particles are allowed 
+        tolerance (`float`): Defines the toleraated error particles are allowed
             to deviate from the manifold in terms of the implicit function. This
             is only used if RATTLE algorithm is triggered. Defaults to 1e-6
 

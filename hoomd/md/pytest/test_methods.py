@@ -105,7 +105,7 @@ def method_base_params(request):
 def check_instance_attrs(instance, attr_dict, set_attrs=False):
     for attr, value in attr_dict.items():
         if set_attrs:
-            setattr(instance, attr, value) 
+            setattr(instance, attr, value)
         assert getattr(instance, attr) == value
 
 
@@ -153,7 +153,7 @@ def test_rattle_attributes(method_base_params):
 
 
     if not method_base_params.has_rattle:
-        pytest.skip("RATTLE method is not implemented for this method") 
+        pytest.skip("RATTLE method is not implemented for this method")
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
@@ -162,8 +162,9 @@ def test_rattle_attributes(method_base_params):
     assert method.tolerance == 1e-6
 
     sphere = hoomd.md.manifold.Sphere(r=10)
-    method.manifold_constraint = sphere
-    assert method.manifold_constraint == sphere
+    with pytest.raises(AttributeError):
+        method.manifold_constraint = sphere
+    assert method.manifold_constraint == gyroid
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
@@ -173,7 +174,7 @@ def test_rattle_attributes_attached(simulation_factory,
                                 method_base_params):
 
     if not method_base_params.has_rattle:
-        pytest.skip("RATTLE integrator is not implemented for this method") 
+        pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
@@ -200,7 +201,7 @@ def test_rattle_attributes_attached(simulation_factory,
         # manifold cannot be set after scheduling
         method.manifold_constraint = sphere
     assert method.manifold_constraint == gyroid
-    
+
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
 
@@ -209,7 +210,7 @@ def test_rattle_attributes_attached(simulation_factory,
 def test_rattle_missing_manifold(method_base_params):
 
     if not method_base_params.has_rattle:
-        pytest.skip("RATTLE method is not implemented for this method") 
+        pytest.skip("RATTLE method is not implemented for this method")
 
     all_ = hoomd.filter.All()
     with pytest.raises(TypeError):
