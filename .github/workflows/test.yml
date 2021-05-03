@@ -1,0 +1,110 @@
+name: Test
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  # Trigger on pull requests.
+  pull_request:
+
+  # Trigger on pushes to the mainline branches and version tags. This prevents building commits
+  # twice when the pull request source branch is in the same repository.
+  push:
+    branches:
+      - "master"
+      - "maint"
+      - "github-actions"
+
+  # Trigger on request.
+  workflow_dispatch:
+
+# Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners
+# for compiling all tests configurations (GPU and CPU), then upload the installation directory
+# as an artifact. Test jobs depend on the build job, download the install directory, and run the
+# tests. Upload each build configuration to a separate artifact.
+
+# Github Actions does not support any form of templating at this time, not even YAML anchors.
+# To minimize the number of duplicated lines, encode the job configuration as an array in config:
+# [image, (mpi), (tbb)]
+jobs:
+  build:
+    name: Build [${{ join(matrix.config, '_') }}]
+    runs-on: ubuntu-latest
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+          # specify runner here even though it is not needed for the build, so that these lines
+          # can be copied and pasted to the other jobs
+          - {config: [clang11_py39, mpi], runner: ubuntu-latest}
+          - {config: [cuda11_py38], runner: [self-hosted,GPU]}
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          path: code
+          submodules: true
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake ../code -GNinja \
+                        -DENABLE_GPU=$(ENABLE_GPU) \
+                        -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
+                        -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
+                        -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
+                        -DTEST_CPU_IN_GPU_BUILDS=off \
+                        -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
+        env:
+          ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
+          ENABLE_MPI: ${{ contains(matrix.config, 'mpi') }}
+          ENABLE_TBB: ${{ contains(matrix.config, 'tbb') }}
+          BUILD_JIT: ${{ contains(matrix.config, 'jit') }}
+      - name: Build
+        run: ninja install
+        working-directory: build
+      # Tar the installation directory to preserve permissions and reduce HTTP requests on upload.
+      - name: 'Tar install'
+        run: tar -cvf install.tar install
+      # Upload the tarball. Retain the file for a limited time in case developers need to download
+      # and run tests locally for further debugging.
+      - name: 'Upload install'
+        uses: actions/upload-artifact@v2.2.3
+        with:
+          name: install-${{ join(matrix.config, '_') }}
+          path: install.tar
+          retention-days: 7
+
+  test:
+    name: Test [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+          - {config: [clang11_py39, mpi], runner: ubuntu-latest}
+          - {config: [cuda11_py38], runner: [self-hosted,GPU]}
+    steps:
+      - uses: actions/download-artifact@v2.0.9
+        with:
+          name: install-${{ join(matrix.config, '_') }}
+      - name: Untar install
+        run: tar -xvf install.tar
+      - name: Run tests
+        run: python3 -m pytest --pyargs hoomd -v --log-level=DEBUG --durations=0
+        env:
+          PYTHONPATH: ${{ github.workspace }}/install
+
+  # This job is used to provide a single requirement for branch merge conditions.
+  tests_complete:
+    name: Unit test
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: echo "Done!"
