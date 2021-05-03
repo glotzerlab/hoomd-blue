@@ -2,6 +2,7 @@ from io import StringIO
 from math import isclose
 import pytest
 
+from hoomd.conftest import operation_pickling_check
 import hoomd
 import hoomd.write
 
@@ -14,12 +15,23 @@ except ImportError:
 skip_mpi = pytest.mark.skipif(skip_mpi, reason="MPI4py is not importable.")
 
 
+class Identity:
+    def __init__(self, x):
+        self.x = x
+
+    def __call__(self):
+        return self.x
+
+    def __eq__(self, other):
+        return self.x == other.x
+
+
 @pytest.fixture
 def logger():
     logger = hoomd.logging.Logger(categories=['scalar'])
-    logger[('dummy', 'loggable', 'int')] = (lambda: 42000000, 'scalar')
-    logger[('dummy', 'loggable', 'float')] = (lambda: 3.1415, 'scalar')
-    logger[('dummy', 'loggable', 'string')] = (lambda: "foobarbaz", 'string')
+    logger[('dummy', 'loggable', 'int')] = (Identity(42000000), 'scalar')
+    logger[('dummy', 'loggable', 'float')] = (Identity(3.1415), 'scalar')
+    logger[('dummy', 'loggable', 'string')] = (Identity("foobarbaz"), 'string')
     return logger
 
 
@@ -33,7 +45,7 @@ def expected_values():
 @pytest.mark.serial
 def test_header_generation(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     for i in range(10):
         table_writer.write()
@@ -58,7 +70,7 @@ def test_header_generation(device, logger):
 @pytest.mark.serial
 def test_values(device, logger, expected_values):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     for i in range(10):
         table_writer.write()
@@ -87,7 +99,7 @@ def test_values(device, logger, expected_values):
 @skip_mpi
 def test_mpi_write_only(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output)
+    table_writer = hoomd.write.Table(1, logger, output)
     table_writer._comm = device.communicator
     table_writer.write()
 
@@ -102,7 +114,7 @@ def test_mpi_write_only(device, logger):
 def test_header_attributes(device, logger):
     output = StringIO("")
     table_writer = hoomd.write.Table(
-        0, logger, output, header_sep='-', max_header_len=13)
+        1, logger, output, header_sep='-', max_header_len=13)
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -115,7 +127,7 @@ def test_header_attributes(device, logger):
 def test_delimiter(device, logger):
     output = StringIO("")
     table_writer = hoomd.write.Table(
-        0, logger, output, delimiter=',')
+        1, logger, output, delimiter=',')
     table_writer._comm = device.communicator
     table_writer.write()
     lines = output.getvalue().split('\n')
@@ -125,7 +137,7 @@ def test_delimiter(device, logger):
 @pytest.mark.serial
 def test_max_precision(device, logger):
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
                                      max_precision=5)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -134,7 +146,7 @@ def test_max_precision(device, logger):
     smaller_lines = output.getvalue().split('\n')
 
     output = StringIO("")
-    table_writer = hoomd.write.Table(0, logger, output, pretty=False,
+    table_writer = hoomd.write.Table(1, logger, output, pretty=False,
                                      max_precision=15)
     table_writer._comm = device.communicator
     for i in range(10):
@@ -154,7 +166,13 @@ def test_only_string_and_scalar_quantities(device):
     logger = hoomd.logging.Logger()
     output = StringIO("")
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(0, logger, output)
+        hoomd.write.Table(1, logger, output)
     logger = hoomd.logging.Logger(categories=['sequence'])
     with pytest.raises(ValueError):
-        _ = hoomd.write.Table(0, logger, output)
+        hoomd.write.Table(1, logger, output)
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory, logger):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    table = hoomd.write.Table(1, logger)
+    operation_pickling_check(table, sim)

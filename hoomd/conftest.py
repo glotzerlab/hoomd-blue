@@ -1,3 +1,4 @@
+import pickle
 import pytest
 import hoomd
 import atexit
@@ -278,3 +279,15 @@ def logging_check(cls, expected_namespace, expected_loggables):
 
     for name, properties in expected_loggables.items():
         check_loggable(cls, name, properties)
+
+
+def pickling_check(instance):
+    pkled_instance = pickle.loads(pickle.dumps(instance))
+    assert instance == pkled_instance
+
+
+def operation_pickling_check(instance, sim):
+    pickling_check(instance)
+    sim.operations += instance
+    sim.run(0)
+    pickling_check(instance)

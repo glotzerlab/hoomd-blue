@@ -417,7 +417,7 @@ class NPT(Method):
             filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter([Variant,]*6), preprocess=self._preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=[bool,]*6,

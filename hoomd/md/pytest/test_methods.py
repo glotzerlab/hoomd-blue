@@ -1,7 +1,6 @@
 import hoomd
+from hoomd.conftest import pickling_check
 import pytest
-import numpy
-import itertools
 from copy import deepcopy
 from collections import namedtuple
 
@@ -110,7 +109,6 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
 
 
 def test_attributes(method_base_params):
-
     all_ = hoomd.filter.All()
     method = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
@@ -124,6 +122,7 @@ def test_attributes(method_base_params):
     assert method.filter is type_A
 
     check_instance_attrs(method,method_base_params.changed_params,True)
+
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -150,8 +149,6 @@ def test_attributes_attached(simulation_factory,
 
 
 def test_rattle_attributes(method_base_params):
-
-
     if not method_base_params.has_rattle:
         pytest.skip("RATTLE method is not implemented for this method")
 
@@ -168,6 +165,7 @@ def test_rattle_attributes(method_base_params):
 
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
+
 
 def test_rattle_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -207,8 +205,8 @@ def test_rattle_attributes_attached(simulation_factory,
 
     check_instance_attrs(method,method_base_params.changed_params,True)
 
-def test_rattle_missing_manifold(method_base_params):
 
+def test_rattle_missing_manifold(method_base_params):
     if not method_base_params.has_rattle:
         pytest.skip("RATTLE method is not implemented for this method")
 
@@ -456,3 +454,20 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     xi_rot, eta_rot = nvt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
+
+
+def test_pickling(method_base_params, simulation_factory,
+                  two_particle_snapshot_factory):
+    method = method_base_params.method(
+        **method_base_params.setup_params, filter=hoomd.filter.All())
+
+    pickling_check(method)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_base_params.method == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
+    integrator = hoomd.md.Integrator(0.05, methods=[method])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(method)
