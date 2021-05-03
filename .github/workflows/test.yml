@@ -71,8 +71,7 @@ jobs:
         run: ninja install
         working-directory: build
       - name: Remove object files
-        run: rm **/*.o
-        working-directory: build
+        run: find build -type f -name '*.o' -delete
       # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
       - name: 'Tar build'
         run: tar -cvf build.tar build
