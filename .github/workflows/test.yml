@@ -55,7 +55,7 @@ jobs:
           mkdir -p build
           cd build
           cmake ../code -GNinja \
-                        -DCMAKE_BUILD_TYPE=Release
+                        -DCMAKE_BUILD_TYPE=Release \
                         -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                         -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                         -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
