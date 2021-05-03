@@ -85,7 +85,7 @@ jobs:
           path: build.tar
           retention-days: 7
 
-  test:
+  pytest:
     name: Run pytest [${{ join(matrix.config, '_') }}]
     needs: build
     runs-on: ${{ matrix.runner }}
@@ -108,6 +108,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/build
 
+  ctest:
     name: Run ctest [${{ join(matrix.config, '_') }}]
     needs: build
     runs-on: ${{ matrix.runner }}
