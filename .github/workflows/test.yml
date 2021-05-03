@@ -33,14 +33,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
+      options: -u 0
     strategy:
       matrix:
         include:
           # specify runner here even though it is not needed for the build, so that these lines
           # can be copied and pasted to the other jobs
           - {config: [clang11_py39, mpi], runner: ubuntu-latest}
-          - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU]}
+          - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: "--gpus=all -e CUDA_VISIBLE_DEVICES"}
     steps:
       - uses: actions/checkout@v2.3.4
         with:
@@ -83,12 +83,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: -u 0 --gpus=all -e CUDA_VISIBLE_DEVICES
+      options: -u 0 ${{ matrix.docker_options }}
     strategy:
       matrix:
         include:
           - {config: [clang11_py39, mpi], runner: ubuntu-latest}
-          - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU]}
+          - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: "--gpus=all -e CUDA_VISIBLE_DEVICES"}
     steps:
       - uses: actions/download-artifact@v2.0.9
         with:
