@@ -84,7 +84,7 @@ class MethodRATTLE(Method):
         else:
             return self._param_dict[attr]
 
-    def _setattr_param(self, attr):
+    def _setattr_param(self, attr, value):
         if attr == "manifold_constraint":
             raise AttributeError(
                 "Cannot set manifold_constraint after construction.")
