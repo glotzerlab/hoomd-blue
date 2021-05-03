@@ -7,16 +7,16 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
+import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.integrate import BaseIntegrator
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data import syncedlist
 from hoomd.md.methods import _Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import Constraint, Rigid
-import itertools
 
 
 def _preprocess_aniso(value):
@@ -34,22 +34,22 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
+
     def __init__(self, forces, constraints, methods, rigid):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, Force),
-                                  to_synced_list=lambda x: x._cpp_obj,
-                                  iterable=forces)
+        self._forces = syncedlist.SyncedList(
+            Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
 
-        self._constraints = SyncedList(lambda x: isinstance(x,
-                                                            Constraint),
-                                       to_synced_list=lambda x: x._cpp_obj,
-                                       iterable=constraints)
+        self._constraints = syncedlist.SyncedList(
+            Constraint,
+            syncedlist._PartialGetAttr('_cpp_obj'),
+            iterable=constraints)
 
-        self._methods = SyncedList(lambda x: isinstance(x, _Method),
-                                   to_synced_list=lambda x: x._cpp_obj,
-                                   iterable=methods)
+        self._methods = syncedlist.SyncedList(
+            _Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
+
         param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)

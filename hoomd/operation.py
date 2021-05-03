@@ -9,61 +9,11 @@
 # Triggered objects should inherit from _TriggeredOperation.
 
 
-from hoomd.util import is_iterable, dict_map, dict_filter, str_to_tuple_keys
+from copy import copy
+
 from hoomd.trigger import Trigger
-from hoomd.variant import Variant, Constant
-from hoomd.filter import ParticleFilter
-from hoomd.logging import Loggable, log
-from hoomd.data.typeconverter import RequiredArg
-from hoomd.util import NamespaceDict
-from hoomd._hoomd import GSDStateReader
+from hoomd.logging import Loggable
 from hoomd.data.parameterdicts import ParameterDict
-
-from collections.abc import Mapping
-from copy import deepcopy
-
-
-def _convert_values_to_log_form(value):
-    """Function for making state loggable quantity conform to spec.
-
-    Since the state dictionary is composed of properties for a given class
-    instance that does not have flags associated with it, we need to add the
-    flags when querying for the state. This does makes state logger type flag
-    generation dynamic meaning that we must be careful that we won't wrongly
-    detect different flags for the same attribute. In general this shouldn't
-    be a concern, though.
-    """
-    if value is RequiredArg:
-        return RequiredArg
-    elif isinstance(value, Variant):
-        if isinstance(value, Constant):
-            return (value.value, 'scalar')
-        else:
-            return (value, 'object')
-    elif isinstance(value, Trigger) or isinstance(value, ParticleFilter):
-        return (value, 'object')
-    elif isinstance(value, Operation):
-        return (value, 'object')
-    elif isinstance(value, str):
-        return (value, 'string')
-    elif (is_iterable(value)
-            and len(value) != 0
-            and all([isinstance(v, str) for v in value])):
-        return (value, 'strings')
-    elif not is_iterable(value):
-        return (value, 'scalar')
-    else:
-        return (value, 'sequence')
-
-
-def _handle_gsd_arrays(arr):
-    if arr.size == 1:
-        return arr[0]
-    if arr.ndim == 1:
-        if arr.size < 3:
-            return tuple(arr.flatten())
-    else:
-        return arr
 
 
 class _HOOMDGetSetAttrBase:
@@ -89,7 +39,8 @@ class _HOOMDGetSetAttrBase:
 
     def __getattr__(self, attr):
         if attr in self._reserved_default_attrs.keys():
-            value = self._reserved_default_attrs[attr]()
+            default = self._reserved_default_attrs[attr]
+            value = default() if callable(default) else default
             object.__setattr__(self, attr, value)
             return value
         elif attr in self._param_dict.keys():
@@ -144,153 +95,15 @@ class _HOOMDGetSetAttrBase:
             raise ValueError("To set {}, you must use a dictionary "
                              "with types as keys.".format(attr))
 
-
-class _StatefulAttrBase(_HOOMDGetSetAttrBase, metaclass=Loggable):
-    """Extends parent class to provide a mechanism for exporting object state.
-
-    Provides a means for getting object state, the ``state`` property and
-    ``_get_state`` method (the method exists as a hook for later subclasses to
-    export their state). Also, provides a means for creating new objects from
-    another object's state, ``from_state``. The ``from_state`` method has a few
-    caveats. One of the largest is that any variable found in the
-    ``self._param_dict`` and is placed in ``__params__`` is expected to be
-    accepted in the constructor. Another is that any parameters that are needed
-    at construction but are not in the objects ``_param_dict`` or
-    must be passed as a keyword argument to the method.
-
-    Currently ``from_state`` supports getting the state from a GSD file and a
-    Python ``dict``.
-    """
-    def _typeparam_states(self):
-        """Converts all typeparameters into a standard Python ``ict`` object."""
-        state = {name: tp.state for name, tp in self._typeparam_dict.items()}
-        return deepcopy(state)
-
-    def _get_state(self):
-        """Hook to allow subclasses to overwrite state property."""
-        state = self._typeparam_states()
-        state['__params__'] = dict(self._param_dict)
-        return dict_filter(dict_map(state, _convert_values_to_log_form),
-                           lambda x: x is not RequiredArg)
-
-    @log(category='state')
-    def state(self):
-        """The state of the object.
-
-        The state counts as anything stored in the ``_param_dict`` and
-        ``_typeparam_dict``.
-        """
-        return self._get_state()
-
-    @classmethod
-    def from_state(cls, state, final_namespace=None, **kwargs):
-        """Creates a new object from another object's state.
-
-        Args:
-            state (str or dict): A state dictionary for an object of this
-                type, a gsd file name, or a dictionary outputted by
-                `hoomd.logging.Logger`.
-            final_namespace (str): The name for the key of the parent dictionary
-                from where the state is stored. This is to allow for users to
-                specify the property state information in the case where
-                multiple of the same object have their state information stored
-                in the same location. As an example if two LJ pair potentials
-                are stored, the final namespaces would be ``LJ`` and ``LJ_1``.
-            frame (int): Only accepted when a gsd file name is passed for
-                ``state``. The frame to access the state information. Is keyword
-                only.
-        """
-        # resolve the namespace
-        namespace = list(cls._export_dict.values())[0].namespace
-        if final_namespace is not None:
-            namespace = namespace[:-1] + (final_namespace,)
-
-        namespace = namespace + ('state',)
-
-        # recover state dictionary
-        state_dict, unused_args = cls._get_state_dict(state,
-                                                      namespace,
-                                                      **kwargs)
-        return cls._from_state_with_state_dict(state_dict, **unused_args)
-
-    @classmethod
-    def _get_state_dict(cls, data, namespace, **kwargs):
-        """Get the state dictionary from the accepted outputs of from_state.
-
-        Deals with GSD files, namespace dicts (the output of hoomd loggers), and
-        state dictionaries.
-        """
-        # Filenames
-        if isinstance(data, str):
-            if data.endswith('gsd'):
-                state, kwargs = cls._state_from_gsd(data, namespace, **kwargs)
-
-        # Dictionaries and like objects
-        elif isinstance(data, NamespaceDict):
-            state = deepcopy(data[namespace])
-        elif isinstance(data, Mapping):
-            try:
-                # try to grab the namespace
-                state = deepcopy(NamespaceDict(data)[namespace])
-            except KeyError:
-                # if namespace can't be found assume that dictionary is the
-                # state dictionary (This assumes that values are of the form
-                # (value, flag)
-                try:
-                    state = dict_map(data, lambda x: x[0])
-                except TypeError:
-                    # if the map fails, we then assume that the dictionary is
-                    # one without the flag information on the data. This could
-                    # be the case if a logger backend stores the data and that
-                    # returned data is fed in.
-                    state = deepcopy(data)
-
-        # Data is of an unusable type
-        else:
-            raise ValueError("Object {} cannot be used to get state."
-                             "".format(data))
-
-        return (state, kwargs)
-
-    @classmethod
-    def _state_from_gsd(cls, filename, namespace, **kwargs):
-        """Get state dictionary from GSD file."""
-        if 'frame' not in kwargs.keys():
-            frame = -1
-        else:
-            frame = kwargs.pop('frame')
-        # Grab state keys from gsd
-        reader = GSDStateReader(filename, frame)
-        namespace_str = 'log/' + '/'.join(namespace)
-        state_chunks = reader.getAvailableChunks(namespace_str)
-        state_dict = NamespaceDict()
-        chunk_slice = slice(len(namespace_str) + 1, None)
-        # Build up state dict
-        for state_chunk in state_chunks:
-            state_dict_key = tuple(state_chunk[chunk_slice].split('/'))
-            state_dict[state_dict_key] = \
-                _handle_gsd_arrays(reader.readChunk(state_chunk))
-        return (state_dict._dict, kwargs)
-
-    @classmethod
-    def _from_state_with_state_dict(cls, state, **kwargs):
-        """Using the state dictionary create a new object."""
-        # Initialize object using params from state and passed arguments
-        params = state.get('__params__', {})
-        params.update(kwargs)
-        obj = cls(**params)
-        state.pop('__params__', None)
-
-        # Add typeparameter information
-        for name, tp_dict in state.items():
-            if '__default__' in tp_dict.keys():
-                obj._typeparam_dict[name].default = tp_dict['__default__']
-                del tp_dict['__default__']
-            # Parse the stringified tuple back into tuple
-            if obj._typeparam_dict[name]._len_keys > 1:
-                tp_dict = str_to_tuple_keys(tp_dict)
-            setattr(obj, name, tp_dict)
-        return obj
+    def __eq__(self, other):
+        if not isinstance(other, _HOOMDGetSetAttrBase):
+            return NotImplemented
+        return (self._param_dict == other._param_dict
+                and all(
+                    set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys())
+                    and self._typeparam_dict[k] == other._typeparam_dict[k]
+                    for k in self._typeparam_dict)
+                )
 
 
 class _DependencyRelation:
@@ -349,7 +162,8 @@ class _DependencyRelation:
         self._dependencies.remove(obj)
 
 
-class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
+class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
+                       metaclass=Loggable):
     """Handles attaching/detaching to a simulation.
 
     ``_StatefulAttrBase`` handles getting and setting attributes as well as
@@ -371,11 +185,14 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
     detaching is removing an object from its simulation.
     """
     _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
-                               '_cpp_obj': lambda: None,
-                               '_dependents': lambda: [],
-                               '_dependencies': lambda: []}
+                               '_cpp_obj': None,
+                               '_dependents': list,
+                               '_dependencies': list}
 
-    _skip_for_equality = set(['_cpp_obj', '_dependent_list'])
+    _skip_for_equality = {
+        '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
+        '_simulation'}
+    _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
         if self._attached:
@@ -396,15 +213,14 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
                                      " initialization".format(attr))
 
     def __eq__(self, other):
-        other_keys = set(other.__dict__.keys())
+        other_keys = other.__dict__.keys()
         for key in self.__dict__.keys():
             if key in self._skip_for_equality:
                 continue
-            else:
-                if key not in other_keys \
-                        or self.__dict__[key] != other.__dict__[key]:
-                    return False
-        return True
+            elif (key not in other_keys
+                    or self.__dict__[key] != other.__dict__[key]):
+                return False
+        return super().__eq__(other)
 
     def _detach(self):
         if self._attached:
@@ -457,19 +273,6 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         for key in self._param_dict.keys():
             self._param_dict[key] = getattr(self, key)
 
-    @log(category='state')
-    def state(self):
-        """The state of the object.
-
-        Provides a mapping of attributes to their values for use in storing
-        objects state for later object reinitialization. An object's state can
-        be used to create an identical object using the `from_state` method
-        (some object require other parameters to be passed in `from_state`
-        besides the state mapping).
-        """
-        self._update_param_dict()
-        return super()._get_state()
-
     def _unapply_typeparam_dict(self):
         for typeparam in self._typeparam_dict.values():
             typeparam._detach()
@@ -490,6 +293,12 @@ class _HOOMDBaseObject(_StatefulAttrBase, _DependencyRelation):
         """
         return []
 
+    def __getstate__(self):
+        state = copy(self.__dict__)
+        for attr in self._remove_for_pickling:
+            state.pop(attr, None)
+        return state
+
 
 class Operation(_HOOMDBaseObject):
     """Represents operations that are added to an `hoomd.Operations` object.
@@ -499,6 +308,13 @@ class Operation(_HOOMDBaseObject):
     `Writer`, `Compute`, `Tuner`, and `hoomd.integrate.BaseIntegrator`. All
     HOOMD-blue operations inherit from one of these five base classes. To find
     the purpose of each class see its documentation.
+
+    Note:
+        Developers or those contributing to HOOMD-blue, see our architecture
+        `file`_ for information on HOOMD-blue's architecture decisions regarding
+        operations.
+
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ARCHITECTURE.md
     """
     pass
 

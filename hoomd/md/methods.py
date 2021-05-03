@@ -353,7 +353,7 @@ class NPT(_Method):
             filter=ParticleFilter,
             kT=Variant,
             tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self.__preprocess_stress),
+            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
             tauS=float(tauS),
             couple=str(couple),
             box_dof=(bool,)*6,
@@ -408,7 +408,7 @@ class NPT(_Method):
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def __preprocess_stress(self,value):
+    def _preprocess_stress(self,value):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(

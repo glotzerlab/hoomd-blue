@@ -1,8 +1,6 @@
 import hoomd
+from hoomd.conftest import pickling_check
 import pytest
-import numpy
-import itertools
-from copy import deepcopy
 
 
 def test_brownian_attributes():
@@ -763,3 +761,58 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     xi_rot, eta_rot = nvt.rotational_thermostat_dof
     assert xi_rot != 0.0
     assert eta_rot == 0.0
+
+
+@pytest.mark.parametrize('method_cls, kwargs', [
+    (hoomd.md.methods.NVT, {
+        'filter': hoomd.filter.All(),
+        'kT': 1.0,
+        'tau': 2.0
+    }),
+    (hoomd.md.methods.NVE, {
+        'filter': hoomd.filter.All()
+    }),
+    (hoomd.md.methods.NPH, {
+        'filter': hoomd.filter.All(),
+        'S': 2.0,
+        'tauS': 2.0,
+        'couple': 'xyz',
+        'box_dof': [True, True, True, True, True, True]
+    }),
+    (hoomd.md.methods.NPT, {
+        'filter': hoomd.filter.All(),
+        'kT': 2.0,
+        'tau': 2.0,
+        'S': 2.0,
+        'tauS': 2.0,
+        'box_dof': [True, True, True, True, True, True],
+        'couple': 'xyz'
+    }),
+    (hoomd.md.methods.Langevin, {
+        'filter': hoomd.filter.All(),
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.Brownian, {
+        'filter': hoomd.filter.All(),
+        'kT': 1.5
+    }),
+    (hoomd.md.methods.Berendsen, {
+        'filter': hoomd.filter.All(),
+        'kT': 1.5,
+        'tau': 10.0
+    }),
+],
+                         ids=lambda x: x.__class__.__name__)
+def test_pickling(method_cls, kwargs, simulation_factory,
+                  two_particle_snapshot_factory):
+    method = method_cls(**kwargs)
+    pickling_check(method)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    if (method_cls == hoomd.md.methods.Berendsen
+            and sim.device.communicator.num_ranks > 1):
+        pytest.skip("Berendsen method does not support multiple processor "
+                    "configurations.")
+    integrator = hoomd.md.Integrator(0.05, methods=[method])
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(method)

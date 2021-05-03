@@ -77,14 +77,18 @@ class LoggerCategories(Flag):
         """
         categories = cls.__members__.values() if categories is None else categories
 
-        def from_str(category):
-            if isinstance(category, str):
-                return cls[category]
-            else:
-                return category
+        return reduce(cls._combine_flags, categories, LoggerCategories.NONE)
 
-        return reduce(
-            lambda x, y: from_str(x) | from_str(y), categories, LoggerCategories.NONE)
+    @classmethod
+    def _combine_flags(cls, flag1, flag2):
+        return cls._from_str(flag1) | cls._from_str(flag2)
+
+    @classmethod
+    def _from_str(cls, category):
+        if isinstance(category, str):
+            return cls[category]
+        else:
+            return category
 
     @classmethod
     def _get_string_list(cls, category):
@@ -744,3 +748,10 @@ class Logger(SafeNamespaceDict):
             return [quantity]
         else:
             return quantity
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return (self.categories == other.categories
+                and self.only_default == other.only_default
+                and self._dict == other._dict)
