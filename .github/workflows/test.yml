@@ -19,6 +19,10 @@ on:
   # Trigger on request.
   workflow_dispatch:
 
+env:
+  # prevent deadlocked MPI tests from causing the job to cancel
+  MPIEXEC_TIMEOUT: 3000
+
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners
 # for compiling all tests configurations (GPU and CPU), then upload the installation directory
 # as an artifact. Test jobs depend on the build job, download the install directory, and run the
@@ -51,7 +55,8 @@ jobs:
           mkdir -p build
           cd build
           cmake ../code -GNinja \
-                        -DENABLE_GPU=$(ENABLE_GPU) \
+                        -DCMAKE_BUILD_TYPE=Release
+                        -DENABLE_GPU=${ENABLE_GPU:-"OFF"} \
                         -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                         -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                         -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
@@ -65,20 +70,23 @@ jobs:
       - name: Build
         run: ninja install
         working-directory: build
-      # Tar the installation directory to preserve permissions and reduce HTTP requests on upload.
-      - name: 'Tar install'
-        run: tar -cvf install.tar install
+      - name: Remove object files
+        run: rm **/*.o
+        working-directory: build
+      # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
+      - name: 'Tar build'
+        run: tar -cvf build.tar build
       # Upload the tarball. Retain the file for a limited time in case developers need to download
       # and run tests locally for further debugging.
-      - name: 'Upload install'
+      - name: 'Upload build'
         uses: actions/upload-artifact@v2.2.3
         with:
-          name: install-${{ join(matrix.config, '_') }}
-          path: install.tar
+          name: build-${{ join(matrix.config, '_') }}
+          path: build.tar
           retention-days: 7
 
   test:
-    name: Test [${{ join(matrix.config, '_') }}]
+    name: Run pytest [${{ join(matrix.config, '_') }}]
     needs: build
     runs-on: ${{ matrix.runner }}
     container:
@@ -92,13 +100,40 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2.0.9
         with:
-          name: install-${{ join(matrix.config, '_') }}
-      - name: Untar install
-        run: tar -xvf install.tar
+          name: build-${{ join(matrix.config, '_') }}
+      - name: Untar build
+        run: tar -xvf build.tar
       - name: Run tests
         run: python3 -m pytest --pyargs hoomd -v --log-level=DEBUG --durations=0
         env:
-          PYTHONPATH: ${{ github.workspace }}/install
+          PYTHONPATH: ${{ github.workspace }}/build
+
+    name: Run ctest [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: -u 0 ${{ matrix.docker_options }}
+    strategy:
+      matrix:
+        include:
+          - {config: [clang11_py39, mpi], runner: ubuntu-latest}
+          - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: "--gpus=all -e CUDA_VISIBLE_DEVICES"}
+    steps:
+      - uses: actions/download-artifact@v2.0.9
+        with:
+          name: build-${{ join(matrix.config, '_') }}
+      - name: Untar build
+        run: tar -xvf build.tar
+      - name: Run tests
+        run: ctest
+        working-directory: build
+        env:
+          PYTHONPATH: ${{ github.workspace }}/build
+          # allow openmpi to oversubscribe cores
+          OMPI_MCA_rmaps_base_oversubscribe: 1
+          # prevent errors from mis-configured openib systems
+          OMPI_MCA_btl: "vader,self"
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
