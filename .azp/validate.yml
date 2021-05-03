@@ -1,9 +1,7 @@
 # Trigger on PRs into stable branches. These builds take a significant amount of time. In the Azure
 # Pipelines web UI, this pipeline is set to require a team member's request before building. Add a
 # PR comment `/azp run validate` to run this pipeline.
-pr:
-  - maint
-  - master
+pr: none
 
 # Do not trigger on every push. This runs every commit twice for PRs with branches on the main
 # repository.

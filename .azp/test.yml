@@ -1,7 +1,5 @@
 # Trigger on PRs into stable branches.
-pr:
-  - maint
-  - master
+pr: none
 
 # Do not trigger on every push. This runs every commit twice for PRs with branches on the main
 # repository.

@@ -1,13 +1,8 @@
 # Trigger on new tags to build and upload release tarballs.
-trigger:
-  tags:
-    include:
-    - 'v*'
+trigger: none
 
 # Trigger on PRs to test that PRs do not break the tarball build. PR builds skip the upload step.
-pr:
-  - maint
-  - master
+pr: none
 
 variables:
   image_root: glotzerlab/ci:2021.03
