@@ -1,7 +1,6 @@
 import hoomd
+from hoomd.conftest import pickling_check
 import pytest
-import numpy
-import itertools
 from copy import deepcopy
 from collections import namedtuple
 
@@ -93,13 +92,12 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
     for attr, value in attr_dict.items():
         if set_attrs:
             with pytest.raises(AttributeError):
-                setattr(instance, attr, value) 
+                setattr(instance, attr, value)
         else:
             assert getattr(instance, attr) == value
 
 
 def test_attributes(manifold_base_params):
-
     surface = manifold_base_params.surface(**manifold_base_params.setup_params)
 
     check_instance_attrs(surface,manifold_base_params.setup_params)
@@ -109,6 +107,7 @@ def test_attributes(manifold_base_params):
 
     check_instance_attrs(surface,manifold_base_params.setup_params)
     check_instance_attrs(surface,manifold_base_params.extra_params)
+
 
 def test_attributes_attached(simulation_factory,
                                 two_particle_snapshot_factory,
@@ -129,3 +128,16 @@ def test_attributes_attached(simulation_factory,
 
     check_instance_attrs(surface,manifold_base_params.setup_params)
     check_instance_attrs(surface,manifold_base_params.extra_params)
+
+
+def test_pickling(manifold_base_params,
+        simulation_factory, two_particle_snapshot_factory):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    manifold = manifold_base_params.manifold(
+        **manifold_base_params.setup_params)
+    nve = hoomd.md.NVE(filter=hoomd.filter.All(), manifold_constraint=manifold)
+    integrator = hoomd.md.Integrator(0.005, methods=[nve])
+    sim.operations += integrator
+    pickling_check(manifold)
+    sim.run(0)
+    pickling_check(manifold)
