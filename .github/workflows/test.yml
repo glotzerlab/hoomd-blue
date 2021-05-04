@@ -113,7 +113,7 @@ jobs:
       run: >-
         python3 -m pytest
         --pyargs hoomd
-        -v --durations=0
+        -v -ra --durations=0
       env:
         PYTHONPATH: ${{ github.workspace }}/build
     - name: Run pytest (mpi)
@@ -131,7 +131,7 @@ jobs:
       run: >-
         python3 -m pytest
         --pyargs hoomd
-        -v --durations=0
+        -v -ra --durations=0
         -m cupy_optional
       env:
         PYTHONPATH: ${{ github.workspace }}/build
@@ -212,7 +212,7 @@ jobs:
         mpirun -n 2
         ${GITHUB_WORKSPACE}/build/hoomd/pytest/pytest-openmpi.sh
         --pyargs hoomd -v -x -ra --durations=0
-        -m validate --validate
+        -p hoomd.pytest_plugin_validate -m validate --validate
         || cat pytest.out.1
       env:
         PYTHONPATH: ${{ github.workspace }}/build
