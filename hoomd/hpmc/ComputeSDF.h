@@ -254,8 +254,12 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
 template<class Shape>
 pybind11::list ComputeSDF<Shape>::getSDF()
     {
-    pybind11::list hist = pybind11::cast(m_hist);
-    return hist;
+    #ifdef ENABLE_MPI
+    if (!m_exec_conf->isRoot())
+        return pybind11::none;
+    #endif
+
+    return pybind11::cast(m_hist);
     }
 
 template < class Shape >
