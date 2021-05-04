@@ -9,6 +9,7 @@ def test_before_attaching():
     assert sdf.xmax == 0.02
     assert sdf.dx == 1e-4
     assert sdf.sdf is None
+    assert sdf.betaP is None
 
 
 def test_after_attaching(simulation_factory, lattice_snapshot_factory):
@@ -30,3 +31,5 @@ def test_after_attaching(simulation_factory, lattice_snapshot_factory):
     sim.run(10)
     assert isinstance(sdf.sdf, list)
     assert len(sdf.sdf) > 0
+    assert isinstance(sdf.betaP, float)
+    assert sdf.betaP > 0
