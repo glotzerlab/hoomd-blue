@@ -8,6 +8,7 @@
 #include "hoomd/VectorMath.h"
 
 #include <map>
+#include <sstream>
 #include <string.h>
 namespace py = pybind11;
 
@@ -95,27 +96,29 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     if (body_typeid >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Invalid rigid body type." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        throw std::runtime_error("Error initializing ForceComposite: Invalid rigid body type.");
         }
 
     if (type.size() != pos.size() || orientation.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle lists"
-            <<" (position, orientation, type) are of unequal length." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Constituent particle lists"
+            <<" (position, orientation, type) are of unequal length.";
+        throw std::runtime_error(error_msg.str());
         }
     if (charge.size() && charge.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Charges are non-empty but of different"
-            <<" length than the positions." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Charges are non-empty but of different "
+            << "length than the positions.";
+        throw std::runtime_error(error_msg.str());
         }
     if (diameter.size() && diameter.size() != pos.size())
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Diameters are non-empty but of different"
-            <<" length than the positions." << std::endl;
-        throw std::runtime_error("Error initializing ForceComposite");
+        std::ostringstream error_msg;
+        error_msg << "Error initializing ForceComposite: Diameters are non-empty but of different "
+            << "length than the positions.";
+        throw std::runtime_error(error_msg.str());
         }
 
     bool body_updated = false;
@@ -349,29 +352,29 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     return m_d_max[type];
     }
 
-void ForceComposite::validateRigidBodies(bool create)
+void ForceComposite::validateRigidBodies()
     {
     if (!(m_bodies_changed || m_particles_added_removed))
         {
         return;
         }
+
     // check validity of rigid body types: no nested rigid bodies
     unsigned int ntypes = m_pdata->getNTypes();
     assert(m_body_types.getPitch() >= ntypes);
-
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
         for (unsigned int itype = 0; itype < ntypes; ++itype)
             {
-            for (unsigned int j= 0; j < h_body_len.data[itype]; ++j)
+            for (unsigned int j=0; j < h_body_len.data[itype]; ++j)
                 {
                 assert(h_body_type.data[m_body_idx(itype,j)] <= ntypes);
                 if (h_body_len.data[h_body_type.data[m_body_idx(itype,j)]] != 0)
                     {
-                    m_exec_conf->msg->error() << "constrain.rigid(): A rigid body type may not contain constituent particles "
-                        << "that are also rigid bodies!" << std::endl;
-                    throw std::runtime_error("Error initializing ForceComposite");
+                    throw std::runtime_error(
+                        "Error initializing ForceComposite: A rigid body type "
+                        "may not contain constituent particles that are also rigid bodies.");
                     }
                 }
             }
@@ -382,114 +385,111 @@ void ForceComposite::validateRigidBodies(bool create)
     // take a snapshot on rank 0
     m_pdata->takeSnapshot(snap);
 
-    // constituent particles added as rigid body copies
-    unsigned int n_add_particles = 0;
+    std::vector<unsigned int> molecule_tag;
 
-    // True if we need to remove all constituent particles from the system first
-    bool need_remove_bodies = false;
+    // number of bodies in system
+    unsigned int nbodies = 0;
 
+    // Validate the body tags in the system and assign molecules into molecule tag
     if (m_exec_conf->getRank() == 0)
         {
         // access body data
         ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(
+            m_body_types, access_location::host, access_mode::read);
 
         typedef std::map<unsigned int, unsigned int> map_t;
+        // This will count the length of all molecules (realized rigid bodies) in the system.
         map_t body_particle_count;
+
+        molecule_tag.resize(snap.size, NO_MOLECULE);
 
         // count number of constituent particles to add
         for (unsigned i = 0; i < snap.size; ++i)
             {
             assert(snap.type[i] < ntypes);
 
+            // Particle is of a type with a non-zero body definition. This should only happen if it
+            // is a central particle.
             bool is_central_particle = h_body_len.data[snap.type[i]] != 0;
 
-            if (create)
+            // Validate central particle tag - body tag correspondence.
+            if (is_central_particle)
                 {
-                if (snap.body[i] < MIN_FLOPPY)
+                if (snap.body[i] != i)
                     {
-                    if (!is_central_particle)
-                        {
-                        need_remove_bodies = true;
-                        }
-                    else
-                        {
-                        // wipe out body flag
-                        assert(snap.body[i] == i);
-                        snap.body[i] = NO_BODY;
-                        }
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Central particles must have a body tag "
+                        "identical to their particle tag.");
                     }
 
-                // for each particle of a body type, add a copy of the constituent particles
-                n_add_particles += h_body_len.data[snap.type[i]];
+                // Create a new molecule count for central particle i.
+                body_particle_count.insert(std::make_pair(i, 0));
+                molecule_tag[i] = nbodies++;
                 }
-            else
+            // validate constituent particles. MIN_FLOPPY defines the maximum tag for a particle
+            // that is in a rigid body. Tags higher than this can be in a floppy body.
+            else if (snap.body[i] < MIN_FLOPPY)
                 {
-                // validate constituent particle
-                if (is_central_particle)
+                // check if particle body tag correctly points to the central particle and less than
+                // the number of particles in the system. This first check is to ensure that no
+                // unallocated memory is attempted to be accessed in the second check.
+                if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
                     {
-                    if (snap.body[i] != i)
-                        {
-                        m_exec_conf->msg->error() << "constrain.rigid(): Central particles must have a body tag identical to their contiguous tag." << std::endl;
-                        throw std::runtime_error("Error validating rigid bodies\n");
-                        }
-
-                    body_particle_count.insert(std::make_pair(i,0));
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Constituent particle body tags must "
+                        "be the tag of their central particles.");
                     }
-                if (snap.body[i] < MIN_FLOPPY)
+
+                unsigned int central_particle_index = snap.body[i];
+                map_t::iterator it = body_particle_count.find(central_particle_index);
+                // If find returns the end of the map, then the central particle for this
+                // particular composite particle has not been seen yet. Since we are iterating
+                // over the snapshot, this means that the tag for the central particle is higher
+                // than the composite particles which is not allowed.
+                if (it == body_particle_count.end())
                     {
-                    // check if particle body tag correctly points to the central particle
-                    if (snap.body[i] >= snap.size || snap.body[snap.body[i]] != snap.body[i])
-                        {
-                        m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle body tags must point to the center particle." << std::endl;
-                        throw std::runtime_error("Error validating rigid bodies\n");
-                        }
-
-                    if (! is_central_particle)
-                        {
-                        unsigned int central_particle = snap.body[i];
-                        unsigned int body_type = snap.type[central_particle];
-
-                        map_t::iterator it = body_particle_count.find(central_particle);
-                        if (it == body_particle_count.end())
-                            {
-                            m_exec_conf->msg->error() << "constrain.rigid(): Central particle " << snap.body[i]
-                                << " does not precede particle with tag " << i << std::endl;
-                            throw std::runtime_error("Error validating rigid bodies\n");
-                            }
-
-                        unsigned int n = it->second;
-                        if (n == h_body_len.data[body_type])
-                            {
-                            m_exec_conf->msg->error() << "constrain.rigid(): Number of constituent particles for body " << snap.body[i] << " exceeds definition"
-                                    << std::endl;
-                            throw std::runtime_error("Error validating rigid bodies\n");
-                            }
-
-                        if (h_body_type.data[m_body_idx(body_type, n)] != snap.type[i])
-                            {
-                            m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle types must be consistent with rigid body parameters." << std::endl;
-                            throw std::runtime_error("Error validating rigid bodies\n");
-                            }
-
-                        // increase count
-                        it->second++;
-                        }
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Central particle must have a lower "
+                        "tag than all constituent particles.");
                     }
+
+                unsigned int current_molecule_size = it->second;
+                unsigned int body_type = snap.type[central_particle_index];
+                if (current_molecule_size == h_body_len.data[body_type])
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Too many constituent particles for "
+                        "rigid body.");
+                    }
+
+                if (h_body_type.data[
+                        m_body_idx(body_type, current_molecule_size)] != snap.type[i])
+                    {
+                    throw std::runtime_error(
+                        "Error validating rigid bodies: Constituent particle types must be "
+                        "consistent with the rigid body definition.  Rigid body definition "
+                        "is in order of particle tag.");
+                    }
+                // increase molecule size by one as particle is validated
+                it->second++;
+                // Mark consistent particle in molecule as belonging to its central particle.
+                molecule_tag[i] = molecule_tag[snap.body[i]];
                 }
             }
-
-        if (! create)
+        for (auto it = body_particle_count.begin(); it != body_particle_count.end();++it)
             {
-            for (map_t::iterator it = body_particle_count.begin(); it != body_particle_count.end();++it)
+            const auto central_particle_tag = it->first;
+            const auto molecule_size = it->second;
+            unsigned int central_particle_type = snap.type[central_particle_tag];
+            if (molecule_size != h_body_len.data[central_particle_type])
                 {
-                unsigned int central_particle_type = snap.type[it->first];
-                if (it->second != h_body_len.data[central_particle_type])
-                    {
-                    m_exec_conf->msg->error() << "constrain.rigid(): Incomplete rigid body with only " << it->second << " constituent particles "
-                        << "instead of " << h_body_len.data[central_particle_type] << " for body " << it->first << std::endl;
-                    throw std::runtime_error("Error validating rigid bodies\n");
-                    }
+                std::ostringstream error_msg;
+                error_msg << "Error validating rigid bodies: Incomplete rigid body with only "
+                    << molecule_size << " constituent particles "
+                    << "instead of " << h_body_len.data[central_particle_type] << " for body "
+                    << central_particle_tag;
+                throw std::runtime_error(error_msg.str());
                 }
             }
         }
@@ -497,191 +497,120 @@ void ForceComposite::validateRigidBodies(bool create)
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        bcast(need_remove_bodies, 0, m_exec_conf->getMPICommunicator());
-        bcast(n_add_particles, 0, m_exec_conf->getMPICommunicator());
+        bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+        bcast(nbodies, 0, m_exec_conf->getMPICommunicator());
         }
     #endif
 
-    if (need_remove_bodies)
+    if (nbodies == 0)
         {
-        m_exec_conf->msg->notice(2)
-            << "constrain.rigid(): Removing all particles part of rigid bodies (except central particles)."
-            << "Particle tags may change."
-            << std::endl;
+        throw std::runtime_error("Rigid bodies selected, but no rigid bodies were found.");
+        }
 
-        // re-initialize, removing rigid bodies
+    // resize Molecular tag member array
+    m_molecule_tag.resize(molecule_tag.size());
+        {
+        ArrayHandle<unsigned int> h_molecule_tag(
+            m_molecule_tag, access_location::host, access_mode::overwrite);
+        std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
+        }
+
+    // store number of molecules in all ranks
+    m_n_molecules_global = nbodies;
+
+    // reset flags
+    m_bodies_changed = false;
+    m_particles_added_removed = false;
+    }
+
+void ForceComposite::createRigidBodies()
+    {
+
+    SnapshotParticleData<Scalar> snap;
+
+    // take a snapshot on rank 0
+    m_pdata->takeSnapshot(snap);
+    bool remove_existing_bodies = false;
+    unsigned int n_constituent_particles = 0;
+        {
+        // We restrict the scope of h_body_len to ensure if we remove_existing_bodies or in any way
+        // reallocated m_body_len to a new memory location that we will be forced to reaquire the
+        // handle to the correct new memory location.
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        for (unsigned int particle_tag = 0; particle_tag < snap.size; ++particle_tag)
+            {
+            // Determine whether rigid bodies exist in the current system via the definitions of
+            // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
+            // snap.body[i] = NO_BODY to prevent central particles from being removed in
+            // initializeFromSnapshot if we must remove rigid bodies.
+            if (h_body_len.data[snap.type[particle_tag]] == 0)
+                {
+                remove_existing_bodies = true;
+                }
+            else
+                {
+                snap.body[particle_tag] = NO_BODY;
+                }
+            // Increase the number of particles we need to add by the number of constituent
+            // particles this rigid body center has based on its type.
+            n_constituent_particles += h_body_len.data[snap.type[particle_tag]];
+            }
+        }
+
+    if (remove_existing_bodies)
+        {
+        m_exec_conf->msg->notice(7)
+            << "ForceComposite reinitialize particle data without rigid bodies" << std::endl;
         m_pdata->initializeFromSnapshot(snap, true);
-
-        // update snapshot
         m_pdata->takeSnapshot(snap);
         }
 
     std::vector<unsigned int> molecule_tag;
+    unsigned int n_central_particles = snap.size;
+    snap.insert(snap.size, n_constituent_particles);
 
-    // number of bodies in system
-    unsigned int nbodies = 0;
-
-    const BoxDim& global_box = m_pdata->getGlobalBox();
-    SnapshotParticleData<Scalar> snap_out = snap;
-
-    if (create)
+    if (m_exec_conf->getRank() == 0)
         {
-        if (m_exec_conf->getRank() == 0)
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_type(
+                m_body_types, access_location::host, access_mode::read);
+        molecule_tag.resize(n_central_particles + n_constituent_particles, NO_MOLECULE);
+
+        unsigned int constituent_particle_tag = n_central_particles;
+        for (unsigned int central_particle_tag = 0;
+                central_particle_tag < n_central_particles; ++central_particle_tag)
             {
-            unsigned int old_size = snap.size;
+            assert(snap.type[i] < ntypes);
+            assert(snap.body[i] == NO_BODY);
 
-            // resize and reset global molecule table
-            molecule_tag.resize(old_size+n_add_particles, NO_MOLECULE);
+            snap.body[central_particle_tag] = central_particle_tag;
+            molecule_tag[central_particle_tag] = central_particle_tag;
 
-            // access body data
-            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
-            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+            unsigned int body_type = snap.type[central_particle_tag];
+            unsigned int n_body_particles = h_body_len.data[body_type];
 
-            unsigned int snap_idx_out = old_size;
-
-            // create copies
-            for (unsigned i = 0; i < old_size; ++i)
+            for (unsigned int current_body_index = 0;
+                    current_body_index < n_body_particles; ++current_body_index)
                 {
-                assert(snap.type[i] < ntypes);
+                // Update constituent particle snapshot properties from default.
+                // Position and orientation are handled by updateCompositeParticles.
+                snap.type[constituent_particle_tag] = h_body_type.data[
+                    m_body_idx(body_type, current_body_index)];
+                snap.body[constituent_particle_tag] = central_particle_tag;
+                snap.charge[constituent_particle_tag] = m_body_charge[
+                    body_type][constituent_particle_tag];
 
-                bool is_central_particle = h_body_len.data[snap.type[i]] != 0;
+                // Since the central particle tags here will be [0, n_central_particles), we know
+                // that the molecule number will be the same as the central particle tag.
+                molecule_tag[constituent_particle_tag] = central_particle_tag;
 
-                assert(snap.body[i] == NO_BODY);
-
-                if (is_central_particle)
-                    {
-                    unsigned int body_type = snap.type[i];
-
-                    unsigned body_tag = i;
-
-                    // set body id to tag of central particle
-                    snap_out.body[i] = body_tag;
-
-                    // set molecule tag
-                    molecule_tag[i] = nbodies;
-
-                    vec3<Scalar> central_pos(snap.pos[i]);
-                    quat<Scalar> central_orientation(snap.orientation[i]);
-                    int3 central_img = snap.image[i];
-
-                    // insert elements into snapshot
-                    unsigned int n= h_body_len.data[body_type];
-                    snap_out.insert(snap_idx_out, n);
-
-                    for (unsigned int j = 0; j < n; ++j)
-                        {
-                        // set type
-                        snap_out.type[snap_idx_out] = h_body_type.data[m_body_idx(body_type,j)];
-
-                        // set body index on constituent particle
-                        snap_out.body[snap_idx_out] = body_tag;
-
-                        // use contiguous molecule tag
-                        molecule_tag[snap_idx_out] = nbodies;
-
-                        // update position and orientation to ensure particles end up in correct domain
-                        vec3<Scalar> pos(central_pos);
-
-                        pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
-                        quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
-
-                        // wrap into box, allowing rigid bodies to span multiple images
-                        int3 img = global_box.getImage(vec_to_scalar3(pos));
-                        int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                        pos = global_box.shift(pos, negimg);
-
-                        snap_out.pos[snap_idx_out] = pos;
-                        snap_out.image[snap_idx_out] = central_img + img;
-                        snap_out.orientation[snap_idx_out] = orientation;
-
-                        // set charge and diameter
-                        snap_out.charge[snap_idx_out] = m_body_charge[body_type][j];
-                        snap_out.diameter[snap_idx_out] = m_body_diameter[body_type][j];
-                        snap_idx_out++;
-                        }
-
-                    nbodies++;
-                    }
-
-                }
-
-            }
-        m_exec_conf->msg->notice(2) << "constrain.rigid(): Creating " << nbodies << " rigid bodies (adding "
-            << n_add_particles << " particles)" << std::endl;
-        }
-    else
-        {
-        if (m_exec_conf->getRank() == 0)
-            {
-            molecule_tag.resize(snap.size, NO_MOLECULE);
-
-            typedef std::map<unsigned int, unsigned int> map_t;
-            map_t body_particle_count;
-
-            // assign contiguous molecule tags and update constituent particle positions and
-            // orientations
-            for (unsigned i = 0; i < snap_out.size; ++i)
-                {
-                assert(snap_out.type[i] < ntypes);
-
-                if (snap_out.body[i] >= MIN_FLOPPY)
-                    {
-                    continue;
-                    }
-
-                if (snap_out.body[i] == i)
-                    {
-                    // central particle
-                    molecule_tag[i] = nbodies++;
-                    body_particle_count.insert(std::make_pair(snap_out.body[i], 0));
-                    }
-                else
-                    {
-                    molecule_tag[i] = molecule_tag[snap_out.body[i]];
-
-                    // Get the current index for the particle in the body to use for indexing
-                    // into the rigid body definition. Then, increment the count for the next
-                    // particle in this body.
-                    map_t::iterator it = body_particle_count.find(snap_out.body[i]);
-                    unsigned int body_index = it->second;
-
-                    unsigned int central_type = snap_out.type[snap_out.body[i]];
-                    quat<Scalar> central_orientation(snap_out.orientation[snap_out.body[i]]);
-
-                    // Position constituent particle relative to central particles current
-                    // position and orientation.
-                    ArrayHandle<Scalar3> h_body_pos(
-                        m_body_pos, access_location::host, access_mode::read);
-                    vec3<Scalar> pos(snap_out.pos[snap_out.body[i]]);
-                    pos += rotate(central_orientation, vec3<Scalar>(
-                        h_body_pos.data[m_body_idx(central_type, body_index)]));
-                    // wrap into box, allowing rigid bodies to span multiple images
-                    int3 img = global_box.getImage(vec_to_scalar3(pos));
-                    int3 negimg = make_int3(-img.x, -img.y, -img.z);
-                    pos = global_box.shift(pos, negimg);
-                    snap_out.pos[i] = pos;
-
-                    // Update image and orientation
-                    int3 central_img = snap_out.image[snap_out.body[i]];
-                    snap_out.image[i] = central_img + img;
-
-                    ArrayHandle<Scalar4> h_body_orientation(
-                        m_body_orientation, access_location::host, access_mode::read);
-                    snap_out.orientation[i] = central_orientation * quat<Scalar>(
-                        h_body_orientation.data[m_body_idx(central_type, body_index)]);
-
-                    // Update index for next constituent particle in this body.
-                    it->second++;
-                    }
+                ++constituent_particle_tag;
                 }
             }
-
         }
 
-    // re-initialize, keeping particles with body != NO_BODY at this time
-    m_pdata->initializeFromSnapshot(snap_out, false);
+    // Keep rigid bodies this time when initializing.
+    m_pdata->initializeFromSnapshot(snap, false);
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -690,32 +619,21 @@ void ForceComposite::validateRigidBodies(bool create)
         }
     #endif
 
-    // resize GPU table
     m_molecule_tag.resize(molecule_tag.size());
-        {
-        // store global molecule information in GlobalArray
-        ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
-        std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
-        }
+            {
+            // store global molecule information in GlobalArray
+            ArrayHandle<unsigned int> h_molecule_tag(
+                m_molecule_tag, access_location::host, access_mode::overwrite);
+            std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
+            }
+    m_n_molecules_global = n_central_particles;
 
-    // store number of molecules
-    m_n_molecules_global = nbodies;
-
-    #ifdef ENABLE_MPI
-    if (m_pdata->getDomainDecomposition())
-        {
-        bcast(m_n_molecules_global, 0, m_exec_conf->getMPICommunicator());
-        }
-    #endif
-
-    if (m_n_molecules_global == 0)
-        {
-        throw std::runtime_error("Rigid bodies selected, but no rigid bodies were found.");
-        }
-
-    // reset flags
     m_bodies_changed = false;
     m_particles_added_removed = false;
+
+    // Timestep is not currently used by updateCompositeParticles so we can just pass in a dummy
+    // value. TODO this may better just be removed from the signature.
+    updateCompositeParticles(0);
     }
 
 #ifdef ENABLE_MPI
@@ -972,9 +890,10 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
 
         if (central_idx == NOT_LOCAL)
             {
-            m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Missing central particle tag " << central_tag
-                                              << "!" << std::endl << std::endl;
-            throw std::runtime_error("Error updating composite particles.\n");
+            std::ostringstream error_msg;
+            error_msg << "Error updating composite particles: Missing central particle tag "
+                << central_tag << ".";
+            throw std::runtime_error(error_msg.str());
             }
 
         // central particle position and orientation
@@ -998,9 +917,11 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
             if (particle_index < m_pdata->getN())
                 {
                 // if the molecule is incomplete and has local members, this is an error
-                m_exec_conf->msg->errorAllRanks() << "constrain.rigid(): Composite particle with body tag "
-                                                  << central_tag << " incomplete" << std::endl << std::endl;
-                throw std::runtime_error("Error while updating constituent particles.\n");
+                std::ostringstream error_msg;
+                error_msg << "Error while updating constituent particles:"
+                    << "Composite particle with body tag " << central_tag
+                    << " incomplete.";
+                throw std::runtime_error(error_msg.str());
                 }
 
             // otherwise we must ignore it
@@ -1042,5 +963,7 @@ void export_ForceComposite(py::module& m)
         .def("setBody", &ForceComposite::setBody)
         .def("getBody", &ForceComposite::getBody)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
+        .def("createRigidBodies", &ForceComposite::createRigidBodies)
+        .def("updateCompositeParticles", &ForceComposite::updateCompositeParticles)
     ;
     }

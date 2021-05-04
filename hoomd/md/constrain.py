@@ -19,7 +19,6 @@ The degrees of freedom removed from the system by constraints are correctly
 taken into account when computing the temperature.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
@@ -257,15 +256,35 @@ class Rigid(Constraint):
         self._add_typeparam(body)
         self.body.default = None
 
-    def create_bodies(self, create=True):
-        R"""Create copies of rigid bodies.
+    def create_bodies(self, state):
+        R"""Create rigid bodies from central particles in state currently.
 
         Args:
-            create (bool): When True, create rigid bodies, otherwise validate
-                existing ones.
+            state (hoomd.State): the state to add rigid bodies too.
         """
-        self._cpp_obj.validateRigidBodies(create)
+        if self._attached:
+            raise RuntimeError(
+                "Cannot call create_bodies after running simulation.")
+        # Attach and store information for detaching after calling
+        # createRigidBodies
+        old_sim = None
+        if self._added:
+            old_sim = self._simulation
+        self._add(state._simulation)
+        super()._attach()
+
+        self._cpp_obj.createRigidBodies()
+
+        # Restore previous state
+        self._detach()
+        if old_sim is not None:
+            self._simulation = old_sim
+        else:
+            self._remove()
 
     def _attach(self):
         super()._attach()
-        self._cpp_obj.validateRigidBodies(False)
+        # Need to ensure body tags and molecule sizes are correct and that the
+        # positions and orientations are accurate before integration.
+        self._cpp_obj.validateRigidBodies()
+        self._cpp_obj.updateCompositeParticles(0)

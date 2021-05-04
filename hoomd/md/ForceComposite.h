@@ -68,10 +68,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
         virtual void updateCompositeParticles(uint64_t timestep);
 
-        //! Validate or create copies of rigid body constituent particles
-        /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
-         */
-        virtual void validateRigidBodies(bool create=false);
+        //! Validate rigid body constituent particles
+        virtual void validateRigidBodies();
+
+        //! Create rigid body constituent particles
+        virtual void createRigidBodies();
 
         /// Construct from a Python dictionary
         void setBody(std::string typ, pybind11::object v)
