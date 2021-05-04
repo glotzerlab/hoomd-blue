@@ -105,7 +105,13 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
     for attr, value in attr_dict.items():
         if set_attrs:
             setattr(instance, attr, value)
-        assert getattr(instance, attr) == value
+        if hasattr(value, "__iter__") and not isinstance(value, str):
+            assert all(
+                v == instance_v
+                for v, instance_v in zip(value, getattr(instance, attr))
+            )
+        else:
+            assert getattr(instance, attr) == value
 
 
 def test_attributes(method_base_params):

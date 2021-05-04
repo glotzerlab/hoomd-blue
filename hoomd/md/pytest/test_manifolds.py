@@ -130,12 +130,13 @@ def test_attributes_attached(simulation_factory,
     check_instance_attrs(surface,manifold_base_params.extra_params)
 
 
-def test_pickling(manifold_base_params,
-        simulation_factory, two_particle_snapshot_factory):
+def test_pickling(manifold_base_params, simulation_factory,
+                  two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    manifold = manifold_base_params.manifold(
+    manifold = manifold_base_params.surface(
         **manifold_base_params.setup_params)
-    nve = hoomd.md.NVE(filter=hoomd.filter.All(), manifold_constraint=manifold)
+    nve = hoomd.md.methods.NVE(
+        filter=hoomd.filter.All(), manifold_constraint=manifold)
     integrator = hoomd.md.Integrator(0.005, methods=[nve])
     sim.operations += integrator
     pickling_check(manifold)
