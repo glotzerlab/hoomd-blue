@@ -88,7 +88,7 @@ class MethodRATTLE(Method):
         if attr == "manifold_constraint":
             raise AttributeError(
                 "Cannot set manifold_constraint after construction.")
-        super()._setattr_param(attr)
+        super()._setattr_param(attr, value)
 
 
 class NVT(Method):
