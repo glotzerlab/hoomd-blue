@@ -37,7 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: -u 0
     strategy:
       matrix:
         include:
@@ -90,7 +89,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: -u 0 ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }}
     strategy:
       matrix:
         include:
@@ -113,7 +112,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      options: -u 0 ${{ matrix.docker_options }}
+      options: ${{ matrix.docker_options }}
     strategy:
       matrix:
         include:
