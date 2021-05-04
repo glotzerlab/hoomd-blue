@@ -185,7 +185,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             v["orientations"] = orientations;
             v["charges"] = charges;
             v["diameters"] = diameters;
-            return v;
+            return std::move(v);
             }
 
     protected:
