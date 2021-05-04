@@ -22,6 +22,9 @@ on:
 env:
   # prevent deadlocked MPI tests from causing the job to cancel
   MPIEXEC_TIMEOUT: 3000
+  # allow mpirun to execute as root in the tests
+  OMPI_ALLOW_RUN_AS_ROOT: 1
+  OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
 
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners
 # for compiling all tests configurations (GPU and CPU), then upload the installation directory
