@@ -29,6 +29,31 @@
 namespace hpmc
 {
 
+namespace detail
+{
+
+//! Local helper function to test overlap of two particles with scale
+template < class Shape >
+bool test_scaled_overlap(const vec3<Scalar>& r_ij,
+                         const quat<Scalar>& orientation_i,
+                         const quat<Scalar>& orientation_j,
+                         const typename Shape::param_type& params_i,
+                         const typename Shape::param_type& params_j,
+                         Scalar lambda)
+    {
+    // need a dummy error counter
+    unsigned int dummy = 0;
+
+    // instantiate the shapes
+    Shape shape_i(orientation_i, params_i);
+    Shape shape_j(orientation_j, params_j);
+
+    vec3<Scalar> r_ij_scaled = r_ij * (Scalar(1.0) - lambda);
+    return check_circumsphere_overlap(r_ij_scaled, shape_i, shape_j) && test_overlap(r_ij_scaled, shape_i, shape_j, dummy);
+    }
+
+}
+
 //! SDF analysis
 /*! **Overview** <br>
 
