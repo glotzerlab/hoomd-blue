@@ -136,11 +136,6 @@ class ComputeSDF : public Compute
 
         Scalar m_last_max_diam;                 //!< Last recorded maximum diameter
 
-        //! Helper function to open the output file
-        void openOutputFile();
-
-        //! Write current histogram to the file
-        void writeOutput(uint64_t timestep);
 
         //! Zero the histogram counts
         void zeroHistogram();
@@ -411,6 +406,5 @@ template < class Shape > void export_ComputeSDF(pybind11::module& m, const std::
 } // end namespace hpmc
 
 #endif // __COMPUTE_SDF__H__
-
 
 
