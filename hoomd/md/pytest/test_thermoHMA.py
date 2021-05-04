@@ -1,5 +1,7 @@
 import hoomd
 import math
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 
 def test_before_attaching():
@@ -58,7 +60,11 @@ def test_logging(simulation_factory, two_particle_snapshot_factory):
 
     log = hoomd.logging.Logger()
     log += thermoHMA
-    for _ in range(5):
-        sim.run(5)
-        for key, (val, _) in log.log()['md']['compute']['HarmonicAveragedThermodynamicQuantities']['state']['__params__'].items():
-            assert val == getattr(thermoHMA, key)
+    sim.run(5)
+    logging_check(hoomd.md.compute.HarmonicAveragedThermodynamicQuantities,
+                  ('md', 'compute'),
+                  {'potential_energy': {'category': LoggerCategories.scalar,
+                                        'default': True},
+                   'pressure': {'category': LoggerCategories.scalar,
+                                'default': True}}
+                  )
