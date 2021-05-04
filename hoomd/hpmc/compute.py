@@ -13,6 +13,7 @@ from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
+import numpy
 
 
 class FreeVolume(Compute):
@@ -141,18 +142,6 @@ class SDF(Compute):
     Warning:
         :py:class:`SDF` does not compute correct pressures for simulations with concave particles or enthalpic interactions.
 
-    Numpy extrapolation code::
-
-        def extrapolate(s, dx, xmax, degree=5):
-          # determine the number of values to fit
-          n_fit = int(math.ceil(xmax/dx));
-          s_fit = s[0:n_fit];
-          # construct the x coordinates
-          x_fit = numpy.arange(0,xmax,dx)
-          x_fit += dx/2;
-          # perform the fit and extrapolation
-          p = numpy.polyfit(x_fit, s_fit, degree);
-          return numpy.polyval(p, 0.0);
 
     Examples::
 
@@ -199,5 +188,21 @@ class SDF(Compute):
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.sdf
+        else:
+            return None
+
+    @log
+    def betaP(self):
+        """Pressure in NVT simulations."""
+        if self._attached:
+            # get the values to fit
+            n_fit = int(numpy.ceil(self.xmax / self.dx))
+            sdf_fit = self.sdf[0:n_fit]
+            # construct the x coordinates
+            x_fit = numpy.arange(0, self.xmax, self.dx)
+            x_fit += self.dx / 2
+            # perform the fit and extrapolation
+            p = numpy.polyfit(x_fit, sdf_fit, 5)
+            return numpy.polyval(p, 0.0)
         else:
             return None
