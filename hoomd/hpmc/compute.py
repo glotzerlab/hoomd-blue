@@ -110,7 +110,7 @@ class FreeVolume(Compute):
 
 
 class SDF(Compute):
-    R""" Compute the scale distribution function.
+    r"""Compute the scale distribution function.
 
     Args:
         xmax (float): Maximum *x* value at the right hand side of the rightmost bin (distance units).
