@@ -126,7 +126,12 @@ jobs:
       - name: Untar build
         run: tar -xvf build.tar
       - name: Run tests
-        run: ctest
+        run: >-
+          ctest
+          -T test
+          --output-on-failure
+          --test-output-size-failed 1048576
+          --test-output-size-passed 1048576
         working-directory: build
         env:
           PYTHONPATH: ${{ github.workspace }}/build
