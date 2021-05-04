@@ -7,7 +7,6 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapeFacetedEllipsoid.h"
-#include "AnalyzerSDF.h"
 
 #include "ExternalField.h"
 #include "ExternalFieldWall.h"
@@ -42,7 +41,6 @@ void export_faceted_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoFacetedEllipsoid");
     export_ComputeFreeVolume< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeFacetedEllipsoid");
-    export_AnalyzerSDF< ShapeFacetedEllipsoid >(m, "AnalyzerSDFFacetedEllipsoid");
     export_UpdaterMuVT< ShapeFacetedEllipsoid >(m, "UpdaterMuVTFacetedEllipsoid");
     export_UpdaterClusters< ShapeFacetedEllipsoid >(m, "UpdaterClustersFacetedEllipsoid");
 

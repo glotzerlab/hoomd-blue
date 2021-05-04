@@ -7,8 +7,8 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapePolyhedron.h"
-#include "AnalyzerSDF.h"
 #include "ShapeUnion.h"
+#include "ComputeSDF.h"
 
 #include "ExternalField.h"
 #include "ExternalFieldWall.h"
@@ -40,7 +40,7 @@ void export_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedron");
     export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
-    // export_AnalyzerSDF< ShapePolyhedron >(m, "AnalyzerSDFPolyhedron");
+    // export_ComputeSDF< ShapePolyhedron >(m, "ComputeSDFPolyhedron");
     export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
     export_UpdaterClusters< ShapePolyhedron >(m, "UpdaterClustersPolyhedron");
 

@@ -7,8 +7,8 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSphinx.h"
-#include "AnalyzerSDF.h"
 #include "ShapeUnion.h"
+#include "ComputeSDF.h"
 
 #include "ExternalField.h"
 #include "ExternalFieldWall.h"
@@ -40,7 +40,7 @@ void export_sphinx(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSphinx >(m, "IntegratorHPMCMonoSphinx");
     export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
-    export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
+    export_ComputeSDF< ShapeSphinx >(m, "ComputeSDFSphinx");
     export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
     export_UpdaterClusters< ShapeSphinx >(m, "UpdaterClustersSphinx");
 

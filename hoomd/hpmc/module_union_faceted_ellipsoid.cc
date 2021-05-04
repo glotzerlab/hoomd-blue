@@ -5,7 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "ComputeFreeVolume.h"
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 
 #include "ShapeUnion.h"
 #include "ShapeFacetedEllipsoid.h"
@@ -40,7 +40,7 @@ void export_union_faceted_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnion");
-    // export_AnalyzerSDF< ShapeUnion<ShapeFacetedEllipsoid> >(m, "AnalyzerSDFFacetedEllipsoidUnion");
+    // export_ComputeSDF< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeSDFFacetedEllipsoidUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterMuVTFacetedEllipsoidUnion");
     export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnion");
 

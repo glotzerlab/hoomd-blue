@@ -7,7 +7,6 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSphere.h"
-#include "AnalyzerSDF.h"
 #include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
@@ -42,7 +41,6 @@ void export_sphere(py::module& m)
     export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_ComputeSDF< ShapeSphere >(m, "ComputeSDFSphere");
-    export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
     export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
 

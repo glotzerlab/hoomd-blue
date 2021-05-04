@@ -7,7 +7,6 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapeConvexPolygon.h"
-#include "AnalyzerSDF.h"
 #include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
@@ -45,7 +44,6 @@ void export_convex_polygon(py::module& m)
     export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
     export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
     export_ComputeSDF< ShapeConvexPolygon >(m, "ComputeSDFConvexPolygon");
-    export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
 

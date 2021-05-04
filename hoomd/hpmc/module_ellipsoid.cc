@@ -7,7 +7,6 @@
 #include "ComputeFreeVolume.h"
 
 #include "ShapeEllipsoid.h"
-#include "AnalyzerSDF.h"
 #include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
@@ -42,7 +41,6 @@ void export_ellipsoid(py::module& m)
     export_IntegratorHPMCMono< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoid");
     export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
     export_ComputeSDF< ShapeEllipsoid >(m, "ComputeSDFEllipsoid");
-    export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
     export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
 

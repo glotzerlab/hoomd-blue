@@ -16,7 +16,7 @@
 #include "ShapeFacetedEllipsoid.h"
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
-#include "AnalyzerSDF.h"
+#include "ComputeSDF.h"
 #include "UpdaterBoxMC.h"
 #include "UpdaterClusters.h"
 #include "UpdaterMuVT.h"
