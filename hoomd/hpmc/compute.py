@@ -195,7 +195,7 @@ class SDF(Compute):
 
     @log
     def sdf(self):
-        """Free volume available to the test particle."""
+        """Scale distribution function."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.sdf
