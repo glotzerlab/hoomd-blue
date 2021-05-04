@@ -21,9 +21,8 @@ using namespace std;
 using namespace hpmc::detail;
 
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
+    : NeighborList(sysdef, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
       m_type_changed(true), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
@@ -389,6 +388,6 @@ void NeighborListTree::traverseTree()
 void export_NeighborListTree(py::module& m)
     {
     py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree")
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
                      ;
     }

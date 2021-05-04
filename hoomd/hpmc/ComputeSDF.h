@@ -161,11 +161,6 @@ class ComputeSDF : public Compute
 
         Scalar m_last_max_diam;                 //!< Last recorded maximum diameter
 
-        //! Helper function to open the output file
-        void openOutputFile();
-
-        //! Write current histogram to the file
-        void writeOutput(uint64_t timestep);
 
         //! Zero the histogram counts
         void zeroHistogram();
@@ -194,7 +189,6 @@ ComputeSDF< Shape >::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
-    m_hist.resize((size_t)(xmax / dx));
     zeroHistogram();
 
     Scalar max_diam = m_mc->getMaxCoreDiameter();
@@ -245,7 +239,7 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
     #ifdef ENABLE_MPI
         if (m_comm)
             {
-            MPI_Reduce(&m_hist[0], &hist_total[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+            MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
 
             // then all ranks but root stop here
             if (! m_exec_conf->isRoot())
@@ -267,6 +261,8 @@ pybind11::list ComputeSDF<Shape>::getSDF()
 template < class Shape >
 void ComputeSDF<Shape>::zeroHistogram()
     {
+    // resize the histogram
+    m_hist.resize((size_t)(m_xmax / m_dx));
     // Zero the histogram
     for (unsigned int i = 0; i < m_hist.size(); i++)
         {
@@ -436,6 +432,3 @@ template < class Shape > void export_ComputeSDF(pybind11::module& m, const std::
 } // end namespace hpmc
 
 #endif // __COMPUTE_SDF__H__
-
-
-
