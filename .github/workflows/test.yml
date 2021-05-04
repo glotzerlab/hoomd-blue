@@ -29,6 +29,8 @@ env:
   OMPI_MCA_rmaps_base_oversubscribe: 1
   # prevent errors from mis-configured openib systems
   OMPI_MCA_btl: "vader,self"
+  # skip running the CPU tests in GPU builds
+  _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
 
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
 # compiling all tests configurations (GPU and CPU), then upload the build directory (sans object
@@ -66,7 +68,6 @@ jobs:
                       -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                       -DENABLE_TBB=${ENABLE_TBB:-"OFF"} \
                       -DBUILD_JIT=${BUILD_JIT:-"OFF"} \
-                      -DTEST_CPU_IN_GPU_BUILDS=off \
                       -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install
       env:
         ENABLE_GPU: ${{ contains(matrix.config[0], 'cuda') }}
@@ -111,8 +112,8 @@ jobs:
     - name: Run pytest (serial)
       run: >-
         python3 -m pytest
-        --pyargs hoomd -v --log-level=DEBUG
-        --durations=0
+        --pyargs hoomd
+        -v --durations=0
       env:
         PYTHONPATH: ${{ github.workspace }}/build
     - name: Run pytest (mpi)
@@ -120,7 +121,8 @@ jobs:
       run: >-
         mpirun -n 2
         ${GITHUB_WORKSPACE}/build/hoomd/pytest/pytest-openmpi.sh
-        --pyargs hoomd -v -x -ra --durations=0
+        --pyargs hoomd
+        -v -x -ra --durations=0
         || cat pytest.out.1
       env:
         PYTHONPATH: ${{ github.workspace }}/build
@@ -128,9 +130,9 @@ jobs:
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: >-
         python3 -m pytest
-        --pyargs hoomd -v --log-level=DEBUG
-        --durations=0
-        -m "cupy_optional"
+        --pyargs hoomd
+        -v --durations=0
+        -m cupy_optional
       env:
         PYTHONPATH: ${{ github.workspace }}/build
         # disallow use of cupy
@@ -140,8 +142,9 @@ jobs:
       run: >-
         mpirun -n 2
         ${GITHUB_WORKSPACE}/build/hoomd/pytest/pytest-openmpi.sh
-        --pyargs hoomd -v -x -ra --durations=0
-        -m "cupy_optional"
+        --pyargs hoomd
+        -v -x -ra --durations=0
+        -m cupy_optional
         || cat pytest.out.1
       env:
         PYTHONPATH: ${{ github.workspace }}/build
@@ -177,10 +180,47 @@ jobs:
       env:
         PYTHONPATH: ${{ github.workspace }}/build
 
+  validate:
+    name: Validate [${{ join(matrix.config, '_') }}]
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
+    strategy:
+      matrix:
+        include:
+        - {config: [clang11_py39, mpi], runner: ubuntu-latest}
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: "--gpus=all"}
+    steps:
+    - uses: actions/download-artifact@v2.0.9
+      with:
+        name: build-${{ join(matrix.config, '_') }}
+    - name: Untar build
+      run: tar -xvf build.tar
+    - name: Run pytest (serial)
+      if: ${{ !contains(matrix.config, 'mpi') }}
+      run: >-
+        python3 -m pytest
+        --pyargs hoomd -v -ra --log-level=DEBUG --durations=0
+        -m validate --validate
+      env:
+        PYTHONPATH: ${{ github.workspace }}/build
+    - name: Run pytest (mpi)
+      if: ${{ contains(matrix.config, 'mpi') }}
+      run: >-
+        mpirun -n 2
+        ${GITHUB_WORKSPACE}/build/hoomd/pytest/pytest-openmpi.sh
+        --pyargs hoomd -v -x -ra --durations=0
+        -m validate --validate
+        || cat pytest.out.1
+      env:
+        PYTHONPATH: ${{ github.workspace }}/build
+
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
     name: Unit test
-    needs: [pytest, ctest]
+    needs: [pytest, ctest, validate]
     runs-on: ubuntu-latest
 
     steps:
