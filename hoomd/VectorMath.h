@@ -95,11 +95,42 @@ struct vec3
         z = tz;
         }
 
+    DEVICE Real& operator[](const unsigned int i)
+        {
+        switch(i) {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            }
+        // This branch is unreachable, but must include something to avoid
+        // compiler warnings. The return value is chosen to match the non-const
+        // version of the operator.
+        return x;
+        }
+
+    DEVICE const Real operator[](const unsigned int i) const
+        {
+        switch(i) {
+            case 0:
+                return x;
+            case 1:
+                return y;
+            case 2:
+                return z;
+            }
+        // This branch is unreachable, but must include something to avoid
+        // compiler warnings. The return value is chosen to match the non-const
+        // version of the operator.
+        return x;
+        }
+
     Real x; //!< x-component of the vector
     Real y; //!< y-component of the vector
     Real z; //!< z-component of the vector
     };
-
 
 //! Addition of two vec3s
 /*! \param a First vector
