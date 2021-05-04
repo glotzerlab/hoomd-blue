@@ -241,9 +241,6 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
             {
             MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
 
-            // then all ranks but root stop here
-            if (! m_exec_conf->isRoot())
-                return;
             }
     #endif
 
