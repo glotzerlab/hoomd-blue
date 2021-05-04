@@ -17,7 +17,7 @@
 
 #ifndef NVCC
 #include "hoomd/ExecutionConfiguration.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 /*! \file EvaluatorPairALJ.h
@@ -25,7 +25,8 @@
 */
 
 // need to declare these class methods with __host__ __device__ qualifiers when building in nvcc
-//! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
 #else
@@ -36,297 +37,15 @@
 #endif
 #endif
 
-//! Shape parameters for the ALJ potential.
-/*! The ALJ potential in its current form can be used to handle a generalized
- * class of shapes composed of the Minkowski sum of an ellipsoid and a convex
- * polyhedron. The shape parameters here are sufficiently general as to handle
- * all possible cases in both 2D and 3D. The shape is stored as a set of
- * (optional) vertices that trace out the underlying polytope (polygon in 2D,
- * polyhedron in 3D) and a set of 3 rounding radii stored as a vec3. For
- * simulations of polytopes, the contact point formalism is inherently unstable
- * due to the oscillations that may occur when facets are nearly parallel. To
- * resolve this, the ALJ potential implements a form of face averaging that is
- * essentially a local form of the discrete element method (DEM). To do this,
- * it sums over all relevant point-edge interactions in 2D, and in 3D it sums
- * both point-face interactions and edge-edge interactions. To support this
- * calculation over an entire polytope, the shape params also encode the faces.
- * The faces are stored in two separate arrays. The faces array is a linear
- * container that indexes into the vertices to indicate which vertices compose
- * each face. Since this array is linear, the face_offsets array is used to
- * indicate the index in teh faces array corresponding to the start of each
- * face of the polytope.
+//! Anisotropic LJ (ALJ) potential.
+/*! The ALJ potential is a generalization of Lennard-Jones potential for convex
+ * anisotropic shapes. The potential is defined by a mean-field approximation
+ * to the total interaction energy between a pair of anistropic shapes that
+ * reduces the total interaction to a simple sum between 1) a contact
+ * interaction at between the closest points on each shape to the other, and 2)
+ * a center-center interaction analogous to the standard isotropic LJ
+ * potential.
  */
-/*! Clip a value between 0 and 1 */
-
-
-HOSTDEVICE inline Scalar clip(const Scalar &x)
-    {
-    return (x >= 0)*(x + (x > 1)*(1 - x));
-    }
-
-
-// Note: delta is from the edge to the point.
-//! Compute the distance from a point to a line segment in 2D.
-/*! All the points (point, e1, and e2) must be provided in the same coordinate
- * system i.e. relative to the same origin. The delta and projection arguments
- * are overwritten by reference. The projection is provided in the same
- * coordinate system as the input points, and the delta vector points from the
- * projection to the input point (i.e. from the segment to the point).
- *
- * \param point The point to which to calculate distance.
- * \param e1 The first endpoint of the segment from which to calculate distance.
- * \param e2 The first endpoint of the segment from which to calculate distance.
- * \param delta The vector pointing from the closest point on the input segment to the input point (updated by reference).
- * \param projection The closest point on the segment defined by e2-e1 to the input point (updated by reference).
- */
-HOSTDEVICE inline void
-pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const vec3<Scalar> &e2, vec3<Scalar> &delta, vec3<Scalar> &projection)
-    {
-    vec3<Scalar> edge = e1 - e2;
-    Scalar edge_length_sq = dot(edge, edge);
-    Scalar t = clip(dot(point - e1, e2 - e1)/edge_length_sq);
-    projection = e1 - t * edge;
-    delta = point - projection;
-    }
-
-
-//! Compute the distance between a point and the face of a polytope.
-/*! This function is adapted from DEMEvaluator::vertexFace. The energy
- * evaluation has been removed from this function, so this function only
- * computes the distance and leaves the energy evaluation to a separate
- * routine. The internals of this method are adapted from DEM to use the data
- * structures of the ALJ potential, namely the alj_shape_params instead of the
- * various arrays stored in the DEM3DForceCompute class.
- *
- * Note that all calculations in this method are done in particle j's reference
- * frame, so r0 is immediately shifted to r0j and used accordingly.
- *
- * \param rij The vector from the particle containing r0 to the particle whose face is being evaluated.
- * \param shape_j The shape parameters of shape j.
- * \param r0 The vertex on the first particle.
- * \param matj The orientation of the second particle.
- * \param face_j The index into shape_j->face_offsets of the current face on the second particle.
- * \param delta The vector pointing from the closest point on the face of particle j to the input point r0 (updated by reference).
- * \param projection The closest point on the face to r0, IN THE FRAME OF PARTICLE j (updated by reference).
- */
-HOSTDEVICE inline void pointFaceDistance(
-    const vec3<Scalar> &rij, const alj_shape_params *shape_j, const vec3<Scalar> &r0, const Scalar (&matj)[3][3], unsigned int face_j, vec3<Scalar> &delta, vec3<Scalar> &projection)
-    {
-    // distsq will be used to hold the square distance from r0 to the
-    // face of interest; work relative to particle j's center of mass
-    Scalar distsq(0);
-    // r0 from particle j's frame of reference
-    const vec3<Scalar> r0j(r0 - rij);
-    // rPrime is the closest point to r0
-    vec3<Scalar> rPrime;
-
-    // vertex0 is the reference point in particle j to "fan out" from
-    unsigned int start_idx = shape_j->face_offsets[face_j];
-    unsigned int end_idx = (face_j == shape_j->face_offsets.size() - 1) ? shape_j->faces.size() : shape_j->face_offsets[face_j+1];
-    const vec3<Scalar> vertex0(rotate(matj, shape_j->verts[shape_j->faces[start_idx]]));
-
-    // r0r0: vector from vertex0 to r0 relative to particle j
-    const vec3<Scalar> r0r0(r0j - vertex0);
-
-    // check distance for first edge of polygon
-    const vec3<Scalar> secondVertex(rotate(matj, shape_j->verts[shape_j->faces[start_idx+1]]));
-    const vec3<Scalar> rsec(secondVertex - vertex0);
-    Scalar lambda(dot(r0r0, rsec)/dot(rsec, rsec));
-    lambda = clip(lambda);
-    vec3<Scalar> closest(vertex0 + lambda*rsec);
-    vec3<Scalar> closestr0(closest - r0j);
-    Scalar closestDistsq(dot(closestr0, closestr0));
-    distsq = closestDistsq;
-    rPrime = closest;
-
-    // indices of three points in triangle of interest: vertex0Index, i, facesj[i]
-    // p01 and p02: two edge vectors of the triangle of interest
-    vec3<Scalar> p1, p2(secondVertex), p01, p02(secondVertex - vertex0);
-
-    // iterate through all fan triangles
-    for(unsigned int next_idx = start_idx+2; next_idx < end_idx; ++next_idx)
-        {
-        Scalar alpha(0), beta(0);
-
-        p1 = p2;
-        p2 = rotate(matj, shape_j->verts[shape_j->faces[next_idx]]);
-        p01 = p02;
-        p02 = p2 - vertex0;
-
-        // pc: vector normal to the triangle of interest
-        const vec3<Scalar> pc(cross(p01, p02));
-
-        // distance matrix A is:
-        // [ p01.x p02.x pc.x ]
-        // [ p01.y p02.y pc.y ]
-        // [ p01.z p02.z pc.z ]
-        Scalar magA(p01.x*(p02.y*pc.z - pc.y*p02.z) - p02.x*(p01.y*pc.z - pc.y*p01.z) +
-            pc.x*(p01.y*p02.z - p02.y*p01.z));
-
-        alpha = ((p02.y*pc.z - pc.y*p02.z)*r0r0.x + (pc.x*p02.z - p02.x*pc.z)*r0r0.y +
-            (p02.x*pc.y - pc.x*p02.y)*r0r0.z)/magA;
-        beta = ((pc.y*p01.z - p01.y*pc.z)*r0r0.x + (p01.x*pc.z - pc.x*p01.z)*r0r0.y +
-            (pc.x*p01.y - p01.x*pc.y)*r0r0.z)/magA;
-
-        alpha = clip(alpha);
-        beta = clip(beta);
-        const Scalar k(alpha + beta);
-
-        if(k > 1)
-            {
-            alpha /= k;
-            beta /= k;
-            }
-
-        // check distance for exterior edge of polygon
-        const vec3<Scalar> p12(p2 - p1);
-        Scalar lambda(dot(r0j - p1, p12)/dot(p12, p12));
-        lambda = clip(lambda);
-        vec3<Scalar> closest(p1 + lambda*p12);
-        vec3<Scalar> closestr0(closest - r0j);
-        Scalar closestDistsq(dot(closestr0, closestr0));
-        if(closestDistsq < distsq)
-            {
-            distsq = closestDistsq;
-            rPrime = closest;
-            }
-
-        // closest: closest point in triangle (in particle j's reference frame)
-        closest = vertex0 + alpha*p01 + beta*p02;
-        // closestr0: vector between r0 and closest
-        closestr0 = closest - r0j;
-        closestDistsq = dot(closestr0, closestr0);
-        if(closestDistsq < distsq)
-            {
-            distsq = closestDistsq;
-            rPrime = closest;
-            }
-        }
-
-    // check distance for last edge of polygon
-    const vec3<Scalar> rlast(p2 - vertex0);
-    lambda = dot(r0r0, rlast)/dot(rlast, rlast);
-    lambda = clip(lambda);
-    closest = vertex0 + lambda*rlast;
-    closestr0 = closest - r0j;
-    closestDistsq = dot(closestr0, closestr0);
-    if(closestDistsq < distsq)
-        {
-        distsq = closestDistsq;
-        rPrime = closest;
-        }
-
-    projection = rPrime;
-    delta = r0j - projection;
-    }
-
-
-//! Compute the distance between two line segments in 3D.
-/*! This function is adapted from DEMEvaluator::edgeEdge. Like
- * pointFaceDistance, the energy evaluation has been removed from this
- * function. The only other change is that the first few lines of
- * DEMEvaluator::edgeEdge do an unnecessary number of repeated computations
- * through calling the detp function defined there, but most of these dot
- * products are identical and can be reduced as in the first 10 lines of this
- * function. All inputs must be provided in the same coordinate system.
- *
- * \param e00 The first vertex of the first line segment.
- * \param e01 The second vertex of the first line segment.
- * \param e10 The first vertex of the second line segment.
- * \param e11 The second vertex of the second line segment.
- * \param closestI The closest point to the second segment on the first segment (overwritten by reference).
- * \param closestI The closest point to the first segment on the second segment (overwritten by reference).
- */
-HOSTDEVICE inline void
-edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ)
-    {
-    // This math is identical to DEM's but is simplified to reduce the number
-    // of dot products and clarify the purpose of the calculations that are
-    // present.
-    // in the style of http://paulbourke.net/geometry/pointlineplane/
-    const vec3<Scalar> r0(e01 - e00);
-    const vec3<Scalar> r1(e11 - e10);
-    const Scalar r0sq(dot(r0, r0));
-    const Scalar r1sq(dot(r1, r1));
-    const Scalar r1r0(dot(r1, r0));
-
-    const vec3<Scalar> diff0010(e00 - e10);
-    const Scalar detp5(dot(diff0010, r1));
-    const Scalar detp7(dot(diff0010, r0));
-
-    Scalar r0sqr1sq = r0sq * r1sq;
-    Scalar r1r0r1r0 = r1r0 * r1r0;
-    const Scalar denominator(r0sqr1sq - r1r0r1r0);
-    Scalar lambda0((detp5*r1r0 - detp7*r1sq)/denominator);
-    Scalar lambda1((detp5 + lambda0*r1r0)/r1sq);
-
-    lambda0 = clip(lambda0);
-    lambda1 = clip(lambda1);
-
-    closestI = e00 + lambda0*r0;
-    closestJ = e10 + lambda1*r1;
-    vec3<Scalar> rContact(closestJ - closestI);
-    Scalar closestDistsq = dot(rContact, rContact);
-
-    Scalar lambda(clip(dot(e10 - e00, r0)/r0sq));
-    vec3<Scalar> candidateI(e00 + lambda*r0);
-    rContact = e10 - candidateI;
-    Scalar distsq(dot(rContact, rContact));
-    if(distsq < closestDistsq)
-        {
-        closestI = candidateI;
-        closestJ = e10;
-        closestDistsq = distsq;
-        }
-
-    lambda = clip(dot(e11 - e00, r0)/r0sq);
-    candidateI = e00 + lambda*r0;
-    rContact = e11 - candidateI;
-    distsq = dot(rContact, rContact);
-    if(distsq < closestDistsq)
-        {
-        closestI = candidateI;
-        closestJ = e11;
-        closestDistsq = distsq;
-        }
-
-    lambda = clip(dot(diff0010, r1)/r1sq);
-    vec3<Scalar> candidateJ = e10 + lambda*r1;
-    rContact = candidateJ - e00;
-    distsq = dot(rContact, rContact);
-    if(distsq < closestDistsq)
-        {
-        closestI = e00;
-        closestJ = candidateJ;
-        closestDistsq = distsq;
-        }
-
-    lambda = clip(dot(e01 - e10, r1)/r1sq);
-    candidateJ = e10 + lambda*r1;
-    rContact = candidateJ - e01;
-    distsq = dot(rContact, rContact);
-    if(distsq < closestDistsq)
-        {
-        closestI = e01;
-        closestJ = candidateJ;
-        closestDistsq = distsq;
-        }
-
-    if(fabs(1 - r1r0r1r0/r0sqr1sq) < 1e-6)
-        {
-        const Scalar lambda00(clip(dot(e10-e00, r0)/r0sq));
-        const Scalar lambda01(clip(dot(e11-e00, r0)/r0sq));
-        const Scalar lambda10(clip(dot(e00-e10, r1)/r1sq));
-        const Scalar lambda11(clip(dot(e01-e10, r1)/r1sq));
-
-        lambda0 = Scalar(.5)*(lambda00 + lambda01);
-        lambda1 = Scalar(.5)*(lambda10 + lambda11);
-
-        closestI = e00 + lambda0*r0;
-        closestJ = e10 + lambda1*r1;
-        }
-    }
-
 
 //! Convert a quaternion to a rotation matrix.
 /*! The ALJ potential requires performing a large number of repeated rotations
@@ -382,145 +101,6 @@ HOSTDEVICE inline void quat2mat(const quat<Scalar> &q, Scalar (&mat)[3][3])
     }
 
 
-//! Find the simplex defined by verts that is closest to the provided vector.
-/*! The closest simplex in this case is defined as the set of ndim points that
- * are a subset of a face of the polytope defined by verts that also form the
- * minimal set of angles with the provided vector. These angles are computed
- * using dot products of the rotated vertices with the vector.
- *
- * \param verts The vertices of the shape.
- * \param vector The point outside the shape, given in the body frame of the verts.
- * \param mat The orientation of the verts.
- * \param unique_vectors Array of vec3 to which the rotated vectors on the simplex are written (overwritten by references).
- */
-template <unsigned int ndim>
-HOSTDEVICE inline void findSimplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar (&mat)[3][3], vec3<Scalar> (&unique_vectors)[ndim])
-    {
-    Scalar angles[ndim];
-    for (unsigned int i = 0; i < ndim; ++i)
-        angles[i] = Scalar(M_PI);
-
-    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
-
-    vec3<Scalar> rot_shift_vec = rotate(mat, verts[0]);
-    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-    unique_vectors[0] = rot_shift_vec;
-    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
-
-    for (unsigned int i = 1; i < verts.size(); ++i)
-        {
-        rot_shift_vec = rotate(mat, verts[i]);
-        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
-
-        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
-        if (ndim == 3 && angle >= angles[2])
-            {
-            insertion_index = 3;
-            }
-
-        if (insertion_index < ndim)
-            {
-            for (unsigned int j = (ndim-1); j > insertion_index; --j)
-                {
-                unique_vectors[j] = unique_vectors[j-1];
-                angles[j] = angles[j-1];
-                }
-            unique_vectors[insertion_index] = rot_shift_vec;
-            angles[insertion_index] = angle;
-            }
-        }
-    }
-
-
-//! Find the face defined by verts that is closest to the provided vector.
-/*! This function is very similar to findSimplex (see the documentation to that function above),
- * except that this function is designed to work in three dimensions where the
- * closest simplex may not be enough because a single face may be composed of
- * multiple simplices (where a simplex is defined in the sense of a convex
- * hull, i.e. it always contains exactly ndim points). For instance, a face of
- * a cube is composed of two triangular simplices. The first part of this
- * function is identical to findSimplex, except that instead of storing the
- * vectors found only the corresponding indices are stored. Then, a search
- * through all the faces of the shape is performed to identify the face
- * containing those three vertices; that face must be unique, and is the face
- * that will be used.
- *
- * \param vector The point outside the shape, given in the body frame of the verts.
- * \param mat The orientation of the verts.
- * \param face The face on the shape closest to vector (overwritten by reference).
- * \param shape The shape parameters of the particle being tested.
- */
-template <unsigned int ndim>
-HOSTDEVICE inline void findFace(const vec3<Scalar> &vector, const Scalar (&mat)[3][3], unsigned int &face, const alj_shape_params *shape)
-    {
-    // First identify the closest points
-    unsigned int unique_vectors[ndim];
-    Scalar angles[ndim];
-    for (unsigned int i = 0; i < ndim; ++i)
-        angles[i] = Scalar(M_PI);
-
-    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
-
-    vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
-    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-    unique_vectors[0] = 0;
-    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
-
-    for (unsigned int i = 1; i < shape->verts.size(); ++i)
-        {
-        rot_shift_vec = rotate(mat, shape->verts[i]);
-        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
-        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
-
-        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
-        if (ndim == 3 && angle >= angles[2])
-            {
-            insertion_index = 3;
-            }
-
-        if (insertion_index < ndim)
-            {
-            for (unsigned int j = (ndim-1); j > insertion_index; --j)
-                {
-                unique_vectors[j] = unique_vectors[j-1];
-                angles[j] = angles[j-1];
-                }
-            unique_vectors[insertion_index] = i;
-            angles[insertion_index] = angle;
-            }
-        }
-
-    // Now loop over all faces and find the one that has the three closest points.
-    unsigned int num_faces = shape->face_offsets.size();
-    for (face = 0; face < num_faces; ++face)
-        {
-        unsigned int last_idx = (face == num_faces-1) ? shape->faces.size() : shape->face_offsets[face+1];
-        bool found0 = false, found1 = false, found2 = false;
-        for (unsigned int j = shape->face_offsets[face]; j < last_idx; ++j)
-            {
-            if (shape->faces[j] == unique_vectors[0])
-                found0 = true;
-            if (shape->faces[j] == unique_vectors[1])
-                found1 = true;
-            if (shape->faces[j] == unique_vectors[2])
-                found2 = true;
-            }
-        if (found0 && found1 && found2)
-            break;
-        }
-    }
-
-
-//! Anisotropic LJ (ALJ) potential.
-/*! The ALJ potential is a generalization of Lennard-Jones potential for convex
- * anisotropic shapes. The potential is defined by a mean-field approximation
- * to the total interaction energy between a pair of anistropic shapes that
- * reduces the total interaction to a simple sum between 1) a contact
- * interaction at between the closest points on each shape to the other, and 2)
- * a center-center interaction analogous to the standard isotropic LJ
- * potential.
- */
 template <unsigned int ndim>
 class EvaluatorPairALJ
     {
@@ -528,28 +108,56 @@ class EvaluatorPairALJ
 
         struct param_type
             {
-            DEVICE param_type()
-                : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0), contact_sigma_j(0.0), alpha(0), average_simplices(false)
+            HOSTDEVICE param_type()
+                : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0),
+                  contact_sigma_j(0.0), alpha(0), average_simplices(false)
                 {}
-        
+
             #ifndef NVCC
             //! Shape constructor
-            param_type(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i, Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
-                : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
-        
+            param_type(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i,
+                       Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices,
+                       bool use_device)
+                : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j),
+                  contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j),
+                  alpha(_alpha), average_simplices(_average_simplices) {}
+
+            param_type(pybind11::dict params)
+                : epsilon(params["epsilon"].cast<Scalar>()),
+                  sigma_i(params["sigma_i"].cast<Scalar>()),
+                  sigma_j(params["sigma_j"].cast<Scalar>()),
+                  contact_sigma_i(params["contact_sigma_i"].cast<Scalar>()),
+                  contact_sigma_j(params["contact_sigma_j"].cast<Scalar>()),
+                  alpha(params["alpha"].cast<unsigned int>()),
+                  average_simplices(params["average_simplices"].cast<bool>()) {}
+
+            pybind11::object toPython()
+                {
+                using namespace pybind11::literals;
+                return pybind11::dict(
+                    "epsilon"_a=epsilon,
+                    "sigma_i"_a=sigma_i,
+                    "sigma_j"_a=sigma_j,
+                    "contact_sigma_i"_a=sigma_i,
+                    "contact_sigma_j"_a=sigma_j,
+                    "alpha"_a=alpha,
+                    "average_simplices"_a=average_simplices
+                    );
+                }
+
             #endif
-        
+
             //! Load dynamic data members into shared memory and increase pointer
             /*! \param ptr Pointer to load data to (will be incremented)
              *  \param available_bytes Size of remaining shared memory allocation
              */
             HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
-        
+
             #ifdef ENABLE_CUDA
             //! Attach managed memory to CUDA stream
             void attach_to_stream(cudaStream_t stream) const {}
             #endif
-        
+
             //! Potential parameters
             Scalar epsilon;                      //! Interaction energy scale.
             Scalar sigma_i;                      //! Size of particle i.
@@ -559,40 +167,49 @@ class EvaluatorPairALJ
             unsigned int alpha;                  //! Toggle switch of attractive branch of potential (0 for all repulsive, 3 for all attractive, 1 for center-center attraction, 2 for contact-contact attraction).
             bool average_simplices;              //! Whether or not to average interactions over simplices.
             };
-        
-
 
         struct shape_type
             {
             HOSTDEVICE shape_type()
                 {}
-        
+
             #ifndef NVCC
-        
+
             //! Shape constructor
-            /*! \param vertices Nested pybind list that translates to an Nx3 set of vertices
-                \param faces_ Nested pybind list that contains indices into vertices corresponding to each face.
-                \param rr The semimajor axes of the rounding ellipse.
-                \param use_device Whether or not the shape params are managed on the host, forwarded through to underlying arrays for migration to the GPU as needed.
+            /*! \param shape the Python dictionary containing the following keys
+                    * vertices Nested pybind list that translates to an Nx3 set of vertices
+                    * faces Nested pybind list that contains indices into vertices corresponding to
+                            each face.
+                    * rr The semimajor axes of the rounding ellipse.
+                    * (unused for now) use_device Whether or not the shape params are managed on the
+                                                  host, forwarded through to underlying arrays for
+                                                  migration to the GPU as needed.
              */
-            shape_type(pybind11::list vertices, pybind11::list faces_, pybind11::list rr, bool use_device) : has_rounding(false)
+            shape_type(pybind11::dict shape) : has_rounding(false)
                 {
                 // Unpack the list[list] of vertices into a ManagedArray.
+                auto vertices = shape["vertices"].cast<pybind11::list>();
                 unsigned int N = len(vertices);
-                verts = ManagedArray<vec3<Scalar> >(N, use_device);
+                // TODO: add support for managed memory on GPU
+                verts = ManagedArray<vec3<Scalar> >(N, false);
                 for (unsigned int i = 0; i < N; ++i)
                     {
-                    pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
-                    verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
+                    pybind11::list vertices_tmp = pybind11::cast<pybind11::tuple>(vertices[i]);
+                    verts[i] = vec3<Scalar>(
+                        pybind11::cast<Scalar>(vertices_tmp[0]),
+                        pybind11::cast<Scalar>(vertices_tmp[1]),
+                        pybind11::cast<Scalar>(vertices_tmp[2]));
                     }
-        
+
                 // Since we don't know the total number of face indices a priori (we
                 // only have access to the top-level list), we first construct the face
                 // offsets array and simultaneously compute the total number of faces.
                 // Then, we allocate the faces array and loop a second time to store
                 // those indices linearly.
+                auto faces_ = shape["faces"].cast<pybind11::list>();
                 N = len(faces_);
-                face_offsets = ManagedArray<unsigned int>(N, use_device);
+                // TODO: add support for managed memory on GPU
+                face_offsets = ManagedArray<unsigned int>(N, false);
                 face_offsets[0] = 0;
                 for (unsigned int i = 0; i < (N-1); ++i)
                     {
@@ -601,8 +218,9 @@ class EvaluatorPairALJ
                     }
                 pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
                 const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
-        
-                faces = ManagedArray<unsigned int>(total_face_indices, use_device);
+
+                // TODO: add support for managed memory on GPU
+                faces = ManagedArray<unsigned int>(total_face_indices, false);
                 unsigned int counter = 0;
                 for (unsigned int i = 0; i < N; ++i)
                 {
@@ -613,8 +231,9 @@ class EvaluatorPairALJ
                         ++counter;
                     }
                 }
-        
+
                 // Store the rounding radii.
+                auto rr = shape["rounding_radius"].cast<pybind11::tuple>();
                 rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
                 rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
                 rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
@@ -623,20 +242,60 @@ class EvaluatorPairALJ
                     has_rounding = true;
                     }
                 }
-        
+
+            pybind11::object toPython()
+                {
+                pybind11::list vertices;
+                for (unsigned int i = 0; i < verts.size(); ++i)
+                    {
+                    auto& position = verts[i];
+                    vertices.append(pybind11::make_tuple(position.x, position.y, position.z));
+                    }
+
+                pybind11::list py_faces;
+                unsigned int current_face_index = 0;
+                for (unsigned int i = 1; i < face_offsets.size(); ++i)
+                    {
+                    pybind11::list face_vertices;
+                    for (; current_face_index < face_offsets[i]; ++current_face_index)
+                        {
+                        face_vertices.append(faces[current_face_index]);
+                        }
+                    py_faces.append(face_vertices);
+                    }
+
+                // Copy final face
+                pybind11::list face_vertices;
+                for (; current_face_index < faces.size(); ++current_face_index)
+                    {
+                    face_vertices.append(faces[current_face_index]);
+                    }
+                py_faces.append(face_vertices);
+
+                    {
+                    using namespace pybind11::literals;
+                    return pybind11::dict(
+                        "vertices"_a=vertices,
+                        "faces"_a=py_faces,
+                        "rounding_radii"_a=pybind11::make_tuple(
+                            rounding_radii.x, rounding_radii.y, rounding_radii.z)
+                        );
+                    }
+                }
+
             #endif
-        
+
             //! Load dynamic data members into shared memory and increase pointer
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory allocation
              */
-            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
                 {
                 verts.load_shared(ptr, available_bytes);
                 faces.load_shared(ptr, available_bytes);
                 face_offsets.load_shared(ptr, available_bytes);
                 }
-        
+
             #ifdef ENABLE_CUDA
             //! Attach managed memory to CUDA stream
             void attach_to_stream(cudaStream_t stream) const
@@ -646,7 +305,7 @@ class EvaluatorPairALJ
                 face_offsets.attach_to_stream(stream);
                 }
             #endif
-        
+
             //! Shape parameters
             ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
             ManagedArray<unsigned int> faces;       //! Shape faces.
@@ -654,12 +313,6 @@ class EvaluatorPairALJ
             vec3<Scalar> rounding_radii;  //! The semimajor axes of the rounding ellipse.
             bool has_rounding;    //! Whether or not the shape has rounding radii.
             };
-        
-
-
-        typedef pair_alj_params param_type;
-
-        typedef alj_shape_params shape_param_type;
 
         //! Constructs the pair potential evaluator.
         /*! \param _dr Displacement vector between particle centers of mass.
@@ -711,7 +364,7 @@ class EvaluatorPairALJ
         /*! \param shape_i Shape of particle i
             \param shape_j Shape of particle j
         */
-        HOSTDEVICE void setShape(const shape_param_type *shapei, const shape_param_type *shapej)
+        HOSTDEVICE void setShape(const shape_type *shapei, const shape_type *shapej)
             {
             shape_i = shapei;
             shape_j = shapej;
@@ -992,13 +645,437 @@ class EvaluatorPairALJ
         quat<Scalar> qj;   //!< Orientation quaternion for particle j
         unsigned int tag_i;      //!< Tag of particle i.
         unsigned int tag_j;      //!< Tag of particle j.
-        const shape_param_type *shape_i;      //!< Shape parameters of particle i.
-        const shape_param_type *shape_j;      //!< Shape parameters of particle j.
+        const shape_type *shape_i;      //!< Shape parameters of particle i.
+        const shape_type *shape_j;      //!< Shape parameters of particle j.
         const param_type& _params;      //!< Potential parameters for the pair of interest.
 
         constexpr static Scalar TWO_P_13 = 1.2599210498948732;  // 2^(1/3)
         constexpr static Scalar SHIFT_RHO_DIFF = -0.25; // (1/(2^(1/6)))**12 - (1/(2^(1/6)))**6
     };
+
+
+//! Shape parameters for the ALJ potential.
+/*! The ALJ potential in its current form can be used to handle a generalized
+ * class of shapes composed of the Minkowski sum of an ellipsoid and a convex
+ * polyhedron. The shape parameters here are sufficiently general as to handle
+ * all possible cases in both 2D and 3D. The shape is stored as a set of
+ * (optional) vertices that trace out the underlying polytope (polygon in 2D,
+ * polyhedron in 3D) and a set of 3 rounding radii stored as a vec3. For
+ * simulations of polytopes, the contact point formalism is inherently unstable
+ * due to the oscillations that may occur when facets are nearly parallel. To
+ * resolve this, the ALJ potential implements a form of face averaging that is
+ * essentially a local form of the discrete element method (DEM). To do this,
+ * it sums over all relevant point-edge interactions in 2D, and in 3D it sums
+ * both point-face interactions and edge-edge interactions. To support this
+ * calculation over an entire polytope, the shape params also encode the faces.
+ * The faces are stored in two separate arrays. The faces array is a linear
+ * container that indexes into the vertices to indicate which vertices compose
+ * each face. Since this array is linear, the face_offsets array is used to
+ * indicate the index in the faces array corresponding to the start of each
+ * face of the polytope.
+ */
+
+/*! Clip a value between 0 and 1 */
+HOSTDEVICE inline Scalar clip(const Scalar &x)
+    {
+    return (x >= 0)*(x + (x > 1)*(1 - x));
+    }
+
+
+// Note: delta is from the edge to the point.
+//! Compute the distance from a point to a line segment in 2D.
+/*! All the points (point, e1, and e2) must be provided in the same coordinate
+ * system i.e. relative to the same origin. The delta and projection arguments
+ * are overwritten by reference. The projection is provided in the same
+ * coordinate system as the input points, and the delta vector points from the
+ * projection to the input point (i.e. from the segment to the point).
+ *
+ * \param point The point to which to calculate distance.
+ * \param e1 The first endpoint of the segment from which to calculate distance.
+ * \param e2 The first endpoint of the segment from which to calculate distance.
+ * \param delta The vector pointing from the closest point on the input segment to the input point (updated by reference).
+ * \param projection The closest point on the segment defined by e2-e1 to the input point (updated by reference).
+ */
+HOSTDEVICE inline void
+pointSegmentDistance(const vec3<Scalar> &point, const vec3<Scalar> &e1, const vec3<Scalar> &e2, vec3<Scalar> &delta, vec3<Scalar> &projection)
+    {
+    vec3<Scalar> edge = e1 - e2;
+    Scalar edge_length_sq = dot(edge, edge);
+    Scalar t = clip(dot(point - e1, e2 - e1)/edge_length_sq);
+    projection = e1 - t * edge;
+    delta = point - projection;
+    }
+
+
+//! Compute the distance between a point and the face of a polytope.
+/*! This function is adapted from DEMEvaluator::vertexFace. The energy evaluation has been removed
+ * from this function, so this function only computes the distance and leaves the energy evaluation
+ * to a separate routine. The internals of this method are adapted from DEM to use the data
+ * structures of the ALJ potential, namely the EvaluatorPairALJ::shape_type instead of the various
+ * arrays stored in the DEM3DForceCompute class.
+ *
+ * Note that all calculations in this method are done in particle j's reference frame, so r0 is
+ * immediately shifted to r0j and used accordingly.
+ *
+ * \param rij The vector from the particle containing r0 to the particle whose face is being evaluated.
+ * \param shape_j The shape parameters of shape j.
+ * \param r0 The vertex on the first particle.
+ * \param matj The orientation of the second particle.
+ * \param face_j The index into shape_j->face_offsets of the current face on the second particle.
+ * \param delta The vector pointing from the closest point on the face of particle j to the input point r0 (updated by reference).
+ * \param projection The closest point on the face to r0, IN THE FRAME OF PARTICLE j (updated by reference).
+ */
+HOSTDEVICE inline void pointFaceDistance(
+    const vec3<Scalar> &rij, const EvaluatorPairALJ<3>::shape_type *shape_j,
+    const vec3<Scalar> &r0, const Scalar (&matj)[3][3], unsigned int face_j, vec3<Scalar> &delta,
+    vec3<Scalar> &projection)
+    {
+    // distsq will be used to hold the square distance from r0 to the
+    // face of interest; work relative to particle j's center of mass
+    Scalar distsq(0);
+    // r0 from particle j's frame of reference
+    const vec3<Scalar> r0j(r0 - rij);
+    // rPrime is the closest point to r0
+    vec3<Scalar> rPrime;
+
+    // vertex0 is the reference point in particle j to "fan out" from
+    unsigned int start_idx = shape_j->face_offsets[face_j];
+    unsigned int end_idx = (face_j == shape_j->face_offsets.size() - 1) ? shape_j->faces.size() : shape_j->face_offsets[face_j+1];
+    const vec3<Scalar> vertex0(rotate(matj, shape_j->verts[shape_j->faces[start_idx]]));
+
+    // r0r0: vector from vertex0 to r0 relative to particle j
+    const vec3<Scalar> r0r0(r0j - vertex0);
+
+    // check distance for first edge of polygon
+    const vec3<Scalar> secondVertex(rotate(matj, shape_j->verts[shape_j->faces[start_idx+1]]));
+    const vec3<Scalar> rsec(secondVertex - vertex0);
+    Scalar lambda(dot(r0r0, rsec)/dot(rsec, rsec));
+    lambda = clip(lambda);
+    vec3<Scalar> closest(vertex0 + lambda*rsec);
+    vec3<Scalar> closestr0(closest - r0j);
+    Scalar closestDistsq(dot(closestr0, closestr0));
+    distsq = closestDistsq;
+    rPrime = closest;
+
+    // indices of three points in triangle of interest: vertex0Index, i, facesj[i]
+    // p01 and p02: two edge vectors of the triangle of interest
+    vec3<Scalar> p1, p2(secondVertex), p01, p02(secondVertex - vertex0);
+
+    // iterate through all fan triangles
+    for(unsigned int next_idx = start_idx+2; next_idx < end_idx; ++next_idx)
+        {
+        Scalar alpha(0), beta(0);
+
+        p1 = p2;
+        p2 = rotate(matj, shape_j->verts[shape_j->faces[next_idx]]);
+        p01 = p02;
+        p02 = p2 - vertex0;
+
+        // pc: vector normal to the triangle of interest
+        const vec3<Scalar> pc(cross(p01, p02));
+
+        // distance matrix A is:
+        // [ p01.x p02.x pc.x ]
+        // [ p01.y p02.y pc.y ]
+        // [ p01.z p02.z pc.z ]
+        Scalar magA(p01.x*(p02.y*pc.z - pc.y*p02.z) - p02.x*(p01.y*pc.z - pc.y*p01.z) +
+            pc.x*(p01.y*p02.z - p02.y*p01.z));
+
+        alpha = ((p02.y*pc.z - pc.y*p02.z)*r0r0.x + (pc.x*p02.z - p02.x*pc.z)*r0r0.y +
+            (p02.x*pc.y - pc.x*p02.y)*r0r0.z)/magA;
+        beta = ((pc.y*p01.z - p01.y*pc.z)*r0r0.x + (p01.x*pc.z - pc.x*p01.z)*r0r0.y +
+            (pc.x*p01.y - p01.x*pc.y)*r0r0.z)/magA;
+
+        alpha = clip(alpha);
+        beta = clip(beta);
+        const Scalar k(alpha + beta);
+
+        if(k > 1)
+            {
+            alpha /= k;
+            beta /= k;
+            }
+
+        // check distance for exterior edge of polygon
+        const vec3<Scalar> p12(p2 - p1);
+        Scalar lambda(dot(r0j - p1, p12)/dot(p12, p12));
+        lambda = clip(lambda);
+        vec3<Scalar> closest(p1 + lambda*p12);
+        vec3<Scalar> closestr0(closest - r0j);
+        Scalar closestDistsq(dot(closestr0, closestr0));
+        if(closestDistsq < distsq)
+            {
+            distsq = closestDistsq;
+            rPrime = closest;
+            }
+
+        // closest: closest point in triangle (in particle j's reference frame)
+        closest = vertex0 + alpha*p01 + beta*p02;
+        // closestr0: vector between r0 and closest
+        closestr0 = closest - r0j;
+        closestDistsq = dot(closestr0, closestr0);
+        if(closestDistsq < distsq)
+            {
+            distsq = closestDistsq;
+            rPrime = closest;
+            }
+        }
+
+    // check distance for last edge of polygon
+    const vec3<Scalar> rlast(p2 - vertex0);
+    lambda = dot(r0r0, rlast)/dot(rlast, rlast);
+    lambda = clip(lambda);
+    closest = vertex0 + lambda*rlast;
+    closestr0 = closest - r0j;
+    closestDistsq = dot(closestr0, closestr0);
+    if(closestDistsq < distsq)
+        {
+        distsq = closestDistsq;
+        rPrime = closest;
+        }
+
+    projection = rPrime;
+    delta = r0j - projection;
+    }
+
+
+//! Compute the distance between two line segments in 3D.
+/*! This function is adapted from DEMEvaluator::edgeEdge. Like
+ * pointFaceDistance, the energy evaluation has been removed from this
+ * function. The only other change is that the first few lines of
+ * DEMEvaluator::edgeEdge do an unnecessary number of repeated computations
+ * through calling the detp function defined there, but most of these dot
+ * products are identical and can be reduced as in the first 10 lines of this
+ * function. All inputs must be provided in the same coordinate system.
+ *
+ * \param e00 The first vertex of the first line segment.
+ * \param e01 The second vertex of the first line segment.
+ * \param e10 The first vertex of the second line segment.
+ * \param e11 The second vertex of the second line segment.
+ * \param closestI The closest point to the second segment on the first segment (overwritten by reference).
+ * \param closestI The closest point to the first segment on the second segment (overwritten by reference).
+ */
+HOSTDEVICE inline void
+edgeEdgeDistance(const vec3<Scalar> &e00, const vec3<Scalar> &e01, const vec3<Scalar> &e10, const vec3<Scalar> &e11, vec3<Scalar> &closestI, vec3<Scalar> &closestJ)
+    {
+    // This math is identical to DEM's but is simplified to reduce the number
+    // of dot products and clarify the purpose of the calculations that are
+    // present.
+    // in the style of http://paulbourke.net/geometry/pointlineplane/
+    const vec3<Scalar> r0(e01 - e00);
+    const vec3<Scalar> r1(e11 - e10);
+    const Scalar r0sq(dot(r0, r0));
+    const Scalar r1sq(dot(r1, r1));
+    const Scalar r1r0(dot(r1, r0));
+
+    const vec3<Scalar> diff0010(e00 - e10);
+    const Scalar detp5(dot(diff0010, r1));
+    const Scalar detp7(dot(diff0010, r0));
+
+    Scalar r0sqr1sq = r0sq * r1sq;
+    Scalar r1r0r1r0 = r1r0 * r1r0;
+    const Scalar denominator(r0sqr1sq - r1r0r1r0);
+    Scalar lambda0((detp5*r1r0 - detp7*r1sq)/denominator);
+    Scalar lambda1((detp5 + lambda0*r1r0)/r1sq);
+
+    lambda0 = clip(lambda0);
+    lambda1 = clip(lambda1);
+
+    closestI = e00 + lambda0*r0;
+    closestJ = e10 + lambda1*r1;
+    vec3<Scalar> rContact(closestJ - closestI);
+    Scalar closestDistsq = dot(rContact, rContact);
+
+    Scalar lambda(clip(dot(e10 - e00, r0)/r0sq));
+    vec3<Scalar> candidateI(e00 + lambda*r0);
+    rContact = e10 - candidateI;
+    Scalar distsq(dot(rContact, rContact));
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = e10;
+        closestDistsq = distsq;
+        }
+
+    lambda = clip(dot(e11 - e00, r0)/r0sq);
+    candidateI = e00 + lambda*r0;
+    rContact = e11 - candidateI;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = candidateI;
+        closestJ = e11;
+        closestDistsq = distsq;
+        }
+
+    lambda = clip(dot(diff0010, r1)/r1sq);
+    vec3<Scalar> candidateJ = e10 + lambda*r1;
+    rContact = candidateJ - e00;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = e00;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    lambda = clip(dot(e01 - e10, r1)/r1sq);
+    candidateJ = e10 + lambda*r1;
+    rContact = candidateJ - e01;
+    distsq = dot(rContact, rContact);
+    if(distsq < closestDistsq)
+        {
+        closestI = e01;
+        closestJ = candidateJ;
+        closestDistsq = distsq;
+        }
+
+    if(fabs(1 - r1r0r1r0/r0sqr1sq) < 1e-6)
+        {
+        const Scalar lambda00(clip(dot(e10-e00, r0)/r0sq));
+        const Scalar lambda01(clip(dot(e11-e00, r0)/r0sq));
+        const Scalar lambda10(clip(dot(e00-e10, r1)/r1sq));
+        const Scalar lambda11(clip(dot(e01-e10, r1)/r1sq));
+
+        lambda0 = Scalar(.5)*(lambda00 + lambda01);
+        lambda1 = Scalar(.5)*(lambda10 + lambda11);
+
+        closestI = e00 + lambda0*r0;
+        closestJ = e10 + lambda1*r1;
+        }
+    }
+
+
+//! Find the simplex defined by verts that is closest to the provided vector.
+/*! The closest simplex in this case is defined as the set of ndim points that
+ * are a subset of a face of the polytope defined by verts that also form the
+ * minimal set of angles with the provided vector. These angles are computed
+ * using dot products of the rotated vertices with the vector.
+ *
+ * \param verts The vertices of the shape.
+ * \param vector The point outside the shape, given in the body frame of the verts.
+ * \param mat The orientation of the verts.
+ * \param unique_vectors Array of vec3 to which the rotated vectors on the simplex are written (overwritten by references).
+ */
+template <unsigned int ndim>
+HOSTDEVICE inline void findSimplex(const ManagedArray<vec3<Scalar> > &verts, const vec3<Scalar> &vector, const Scalar (&mat)[3][3], vec3<Scalar> (&unique_vectors)[ndim])
+    {
+    Scalar angles[ndim];
+    for (unsigned int i = 0; i < ndim; ++i)
+        angles[i] = Scalar(M_PI);
+
+    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+
+    vec3<Scalar> rot_shift_vec = rotate(mat, verts[0]);
+    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+    unique_vectors[0] = rot_shift_vec;
+    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+
+    for (unsigned int i = 1; i < verts.size(); ++i)
+        {
+        rot_shift_vec = rotate(mat, verts[i]);
+        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
+        if (ndim == 3 && angle >= angles[2])
+            {
+            insertion_index = 3;
+            }
+
+        if (insertion_index < ndim)
+            {
+            for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                {
+                unique_vectors[j] = unique_vectors[j-1];
+                angles[j] = angles[j-1];
+                }
+            unique_vectors[insertion_index] = rot_shift_vec;
+            angles[insertion_index] = angle;
+            }
+        }
+    }
+
+
+//! Find the face defined by verts that is closest to the provided vector.
+/*! This function is very similar to findSimplex (see the documentation to that function above),
+ * except that this function is designed to work in three dimensions where the
+ * closest simplex may not be enough because a single face may be composed of
+ * multiple simplices (where a simplex is defined in the sense of a convex
+ * hull, i.e. it always contains exactly ndim points). For instance, a face of
+ * a cube is composed of two triangular simplices. The first part of this
+ * function is identical to findSimplex, except that instead of storing the
+ * vectors found only the corresponding indices are stored. Then, a search
+ * through all the faces of the shape is performed to identify the face
+ * containing those three vertices; that face must be unique, and is the face
+ * that will be used.
+ *
+ * \param vector The point outside the shape, given in the body frame of the verts.
+ * \param mat The orientation of the verts.
+ * \param face The face on the shape closest to vector (overwritten by reference).
+ * \param shape The shape parameters of the particle being tested.
+ */
+template <unsigned int ndim>
+HOSTDEVICE inline void findFace(
+        const vec3<Scalar> &vector, const Scalar (&mat)[3][3], unsigned int &face,
+        const typename EvaluatorPairALJ<ndim>::shape_type *shape)
+    {
+    // First identify the closest points
+    unsigned int unique_vectors[ndim];
+    Scalar angles[ndim];
+    for (unsigned int i = 0; i < ndim; ++i)
+        angles[i] = Scalar(M_PI);
+
+    vec3<Scalar> norm_vector = vector / sqrt(dot(vector, vector));
+
+    vec3<Scalar> rot_shift_vec = rotate(mat, shape->verts[0]);
+    vec3<Scalar> norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+    unique_vectors[0] = 0;
+    angles[0] = acos(dot(norm_rot_shift_vector, norm_vector));
+
+    for (unsigned int i = 1; i < shape->verts.size(); ++i)
+        {
+        rot_shift_vec = rotate(mat, shape->verts[i]);
+        norm_rot_shift_vector = rot_shift_vec / sqrt(dot(rot_shift_vec, rot_shift_vec));
+        Scalar angle = acos(dot(norm_rot_shift_vector, norm_vector));
+
+        unsigned int insertion_index = (angle < angles[0] ? 0 : (angle < angles[1] ? 1 : 2 ));
+        if (ndim == 3 && angle >= angles[2])
+            {
+            insertion_index = 3;
+            }
+
+        if (insertion_index < ndim)
+            {
+            for (unsigned int j = (ndim-1); j > insertion_index; --j)
+                {
+                unique_vectors[j] = unique_vectors[j-1];
+                angles[j] = angles[j-1];
+                }
+            unique_vectors[insertion_index] = i;
+            angles[insertion_index] = angle;
+            }
+        }
+
+    // Now loop over all faces and find the one that has the three closest points.
+    unsigned int num_faces = shape->face_offsets.size();
+    for (face = 0; face < num_faces; ++face)
+        {
+        unsigned int last_idx = (face == num_faces-1) ? shape->faces.size() : shape->face_offsets[face+1];
+        bool found0 = false, found1 = false, found2 = false;
+        for (unsigned int j = shape->face_offsets[face]; j < last_idx; ++j)
+            {
+            if (shape->faces[j] == unique_vectors[0])
+                found0 = true;
+            if (shape->faces[j] == unique_vectors[1])
+                found1 = true;
+            if (shape->faces[j] == unique_vectors[2])
+                found2 = true;
+            }
+        if (found0 && found1 && found2)
+            break;
+        }
+    }
 
 
 template <>
@@ -1170,43 +1247,6 @@ std::string EvaluatorPairALJ<3>::getShapeSpec() const
         }
 
     return shapedef.str();
-    }
-#endif
-
-
-
-#ifndef NVCC
-alj_shape_params make_alj_shape_params(pybind11::list vertices, pybind11::list faces, pybind11::list rounding_radii, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    {
-    alj_shape_params result(vertices, faces, rounding_radii, exec_conf->isCUDAEnabled());
-    return result;
-    }
-
-pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar contact_sigma_i, Scalar contact_sigma_j, unsigned int alpha, bool average_simplices, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    {
-    pair_alj_params result(epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha, average_simplices, exec_conf->isCUDAEnabled());
-    return result;
-    }
-
-//! Function to export the ALJ parameter type to python
-void export_alj_params(pybind11::module& m)
-{
-    pybind11::class_<pair_alj_params>(m, "pair_alj_params")
-        .def(pybind11::init<>())
-        .def_readwrite("alpha", &pair_alj_params::alpha)
-        .def_readwrite("epsilon", &pair_alj_params::epsilon)
-        .def_readwrite("sigma_i", &pair_alj_params::sigma_i)
-        .def_readwrite("sigma_j", &pair_alj_params::sigma_j);
-
-    m.def("make_pair_alj_params", &make_pair_alj_params);
-}
-
-void export_alj_shape_params(pybind11::module& m)
-    {
-    pybind11::class_<alj_shape_params>(m, "alj_shape_params")
-        .def(pybind11::init<>());
-
-    m.def("make_alj_shape_params", &make_alj_shape_params);
     }
 #endif
 
