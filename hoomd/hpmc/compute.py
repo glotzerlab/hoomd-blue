@@ -137,9 +137,6 @@ class SDF(Compute):
     A good rule of thumb might be to fit a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5 - but this needs further testing to
     confirm.
 
-    :py:class:`SDF` works well with restartable jobs. Ensure that `period` is an integer fraction :math:`1/k` of the
-    restart period. Then :py:class:`SDF` will have written the final output to its file just before the restart gets
-    written. The new data needed for the next line of values is entirely collected after the restart.
 
     Warning:
         :py:class:`SDF` does not compute correct pressures for simulations with concave particles.
