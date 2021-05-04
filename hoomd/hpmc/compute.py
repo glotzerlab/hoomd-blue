@@ -139,7 +139,7 @@ class SDF(Compute):
 
 
     Warning:
-        :py:class:`SDF` does not compute correct pressures for simulations with concave particles.
+        :py:class:`SDF` does not compute correct pressures for simulations with concave particles or enthalpic interactions.
 
     Numpy extrapolation code::
 
