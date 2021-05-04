@@ -237,6 +237,8 @@ pybind11::list ComputeSDF<Shape>::getSDF()
 template < class Shape >
 void ComputeSDF<Shape>::zeroHistogram()
     {
+    // resize the histogram
+    m_hist.resize((size_t)(m_xmax / m_dx));
     // Zero the histogram
     for (unsigned int i = 0; i < m_hist.size(); i++)
         {
@@ -406,4 +408,3 @@ template < class Shape > void export_ComputeSDF(pybind11::module& m, const std::
 } // end namespace hpmc
 
 #endif // __COMPUTE_SDF__H__
-
