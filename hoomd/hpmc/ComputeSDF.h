@@ -164,7 +164,6 @@ ComputeSDF< Shape >::ComputeSDF(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeSDF: " << xmax << " " << dx << std::endl;
 
-    m_hist.resize((size_t)(xmax / dx));
     zeroHistogram();
 
     Scalar max_diam = m_mc->getMaxCoreDiameter();
