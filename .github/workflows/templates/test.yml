@@ -156,28 +156,28 @@ jobs:
 
   validate:
 << job(name='Validate', use_gpu_runners=True, configurations=validate_configurations, needs='build') >>
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
 << download_steps >>
 << pytest_validate_steps >>
 
   build_release:
 << job(name='Build', use_gpu_runners=False, configurations=release_test_configurations) >>
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
 << build_steps >>
 << upload_steps >>
 
   pytest_release:
 << job(name='Run pytest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
 << download_steps >>
 << pytest_steps >>
 
   ctest_release:
 << job(name='Run ctest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
 << download_steps >>
 << ctest_steps >>

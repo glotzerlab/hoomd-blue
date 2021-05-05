@@ -14,7 +14,6 @@ on:
     branches:
     - "master"
     - "maint"
-    - "github-actions"
 
   # Trigger on request.
   workflow_dispatch:
@@ -184,7 +183,7 @@ jobs:
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
@@ -219,7 +218,7 @@ jobs:
         - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - uses: actions/checkout@v2.3.4
       with:
@@ -281,7 +280,7 @@ jobs:
         - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
@@ -327,7 +326,7 @@ jobs:
         - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
