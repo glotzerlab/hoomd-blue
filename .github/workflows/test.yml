@@ -7,8 +7,8 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  # Trigger on pull requests.
   pull_request:
+      types: [opened, labeled, reopened, synchronize]
 
   # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
   # request source branch is in the same repository.

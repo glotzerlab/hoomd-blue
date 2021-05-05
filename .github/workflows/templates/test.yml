@@ -4,6 +4,10 @@ name: Test
 # Edit the `test.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
 # workflow.
 <% endblock %>
+<% block on_pull_request %>
+  pull_request:
+      types: [opened, labeled, reopened, synchronize]
+<% endblock %>
 <% block env %>
 env:
   # prevent deadlocked MPI tests from causing the job to cancel
