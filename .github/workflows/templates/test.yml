@@ -26,12 +26,12 @@ env:
     <% if use_gpu_runners %>
     runs-on: ${{ matrix.runner }}
     container:
-      image: << container >>-${{ matrix.config[0] }}
+      image: << container_prefix >>-${{ matrix.config[0] }}
       options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     <% else %>
     runs-on: ubuntu-latest
     container:
-      image: << container >>-${{ matrix.config[0] }}
+      image: << container_prefix >>-${{ matrix.config[0] }}
     <% endif %>
     strategy:
       matrix:

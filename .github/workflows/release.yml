@@ -1,0 +1,106 @@
+name: GitHub Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  # Trigger on pull requests.
+  pull_request:
+
+  # Trigger on pushes to the mainline branches. This prevents building commits twice when the pull
+  # request source branch is in the same repository.
+  push:
+    branches:
+    - "master"
+    - "maint"
+    # Trigger on tags. Tag builds create GitHub releases with the change log and source tarball.
+    tags:
+      - "v*"
+
+  # Trigger on request.
+  workflow_dispatch:
+
+
+env:
+  name: hoomd
+
+
+jobs:
+  release:
+    name: Build release tarball
+    runs-on: ubuntu-latest
+    container:
+      image: glotzerlab/ci:2021.05-ubuntu20.04
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 0
+          submodules: true
+          path: code
+
+      - name: Determine last tag via git describe
+        if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "tag=$(git describe --abbrev=0)" >> $GITHUB_ENV
+        working-directory: code
+
+      # git describe does not return the current tag in tag pushes on GitHub Actions, use GITHUB_REF instead
+      - name: Determine tag from GITHUB_REF
+        if:  startsWith(github.ref, 'refs/tags/v')
+        run: echo "tag=$(echo ${GITHUB_REF} | sed  -e 's/refs\/tags\///g')" >> $GITHUB_ENV
+
+      - name: Write version change log
+        run: .github/workflows/make-changelog-md.sh  ${tag} | tee ${GITHUB_WORKSPACE}/changelog.md
+        working-directory: code
+
+      - name: Copy source
+        run: cp -R code ${name}-${tag}
+
+      - name: Remove .git
+        run: rm -rf ${name}-${tag}/.git && ls -laR ${name}-${tag}
+
+      - name: Tar source
+        run: tar -cvzf ${name}-${tag}.tar.gz ${name}-${tag}
+
+      - uses: actions/upload-artifact@v2.2.3
+        with:
+          name: release
+          path: |
+            *.tar.gz
+            changelog.md
+
+  publish:
+    name: Publish [GitHub]
+    needs: [release]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2.0.9
+        with:
+          name: release
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: "*.tar.gz"
+          body_path: changelog.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Slack notification
+        if: startsWith(github.ref, 'refs/tags/v') && ( cancelled() || failure() )
+        uses: 8398a7/action-slack@v3.9.0
+        with:
+          status: ${{ job.status }}
+          fields: workflow,job,message,commit
+          mention: channel
+          if_mention: failure,cancelled
+          channel: '#dev-hoomd'
+          username: Github Action
+          author_name: ''
+          job_name: Publish [GitHub]
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
