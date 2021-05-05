@@ -51,6 +51,8 @@ class _DynamicIntegrator(BaseIntegrator):
             _Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
 
         param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
+        if rigid is not None and rigid._added:
+            raise ValueError("Rigid object can only belong to one integrator.")
         param_dict["rigid"] = rigid
         self._param_dict.update(param_dict)
 
@@ -58,9 +60,14 @@ class _DynamicIntegrator(BaseIntegrator):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
-        self.rigid._add(self._simulation)
-        self.rigid._attach()
+        if self.rigid is not None:
+            self.rigid._attach()
         super()._attach()
+
+    def _add(self, simulation):
+        super()._add(simulation)
+        if self.rigid is not None:
+            self.rigid._add(simulation)
 
     @property
     def forces(self):
@@ -104,20 +111,29 @@ class _DynamicIntegrator(BaseIntegrator):
         return super()._getattr_param(attr)
 
     def _setattr_param(self, attr, value):
-        if attr == "rigid" and self._attached:
-            self._set_rigid_attached(value)
-            return
+        if attr == "rigid":
+            self._set_rigid(value)
         super()._setattr_param(attr, value)
-        if attr == "rigid" and self._added:
+
+    def _set_rigid(self, value):
+        """Handles the adding and detaching of potential Rigid objects."""
+        old_rigid = self.rigid
+        self._param_dict["rigid"] = value
+
+        if self.rigid is not None and self.rigid._added:
+            raise ValueError("Cannot add Rigid object to multiple integrators.")
+
+        if old_rigid is not None and self._attached:
+            old_rigid._detach()
+
+        if self._added:
+            if old_rigid is not None:
+                old_rigid._remove()
             self.rigid._add(self._simulation)
 
-    def _set_rigid_attached(self, rigid):
-        old_rigid = self.rigid
-        old_rigid._detach()
-        old_rigid._remove()
-        rigid._add(self._simulation)
-        rigid._attach()
-        self._cpp_obj.rigid = rigid._cpp_obj
+        if self._attached:
+            self.rigid._attach()
+            self._cpp_obj.rigid = value._cpp_obj
 
 
 class Integrator(_DynamicIntegrator):
