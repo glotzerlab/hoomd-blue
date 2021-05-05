@@ -117,7 +117,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "RATTLELangevin step 1");
 
-    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if(!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
@@ -139,7 +139,7 @@ void TwoStepRATTLELangevinGPU<Manifold>::integrateStepOne(unsigned int timestep)
                      d_image.data,
                      d_index_array.data,
                      this->m_group->getGPUPartition(),
-                     m_pdata->getBox(),
+                     this->m_pdata->getBox(),
                      this->m_deltaT,
                      false,
                      0,

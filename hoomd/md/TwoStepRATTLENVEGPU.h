@@ -118,7 +118,7 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if(!this->m_manifold.fitsInsideBox(this->m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
@@ -134,7 +134,7 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
                      d_image.data,
                      d_index_array.data,
                      this->m_group->getGPUPartition(),
-                     m_pdata->getBox(),
+                     this->m_pdata->getBox(),
                      this->m_deltaT,
                      this->m_limit,
                      this->m_limit_val,
