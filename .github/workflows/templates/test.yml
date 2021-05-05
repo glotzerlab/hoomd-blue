@@ -191,7 +191,7 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
     name: Unit test
-    needs: [pytest, ctest, validate, pytest_release, ctest_release]
+    needs: [pytest, ctest, validate]
     runs-on: ubuntu-latest
 
     steps:
