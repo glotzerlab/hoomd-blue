@@ -1,4 +1,6 @@
 name: Test
+# Edit the `test.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
+# workflow.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

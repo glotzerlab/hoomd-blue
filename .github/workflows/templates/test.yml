@@ -1,6 +1,8 @@
 <% extends "workflow.yml" %>
 <% block name %>
 name: Test
+# Edit the `test.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
+# workflow.
 <% endblock %>
 <% block env %>
 env:

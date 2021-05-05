@@ -1,3 +1,5 @@
+# Edit `release.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
+# workflow.
 name: GitHub Release
 
 concurrency:

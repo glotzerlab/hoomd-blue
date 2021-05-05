@@ -1,5 +1,7 @@
 <% extends "workflow.yml" %>
 <% block name %>
+# Edit `release.yml` in `.github/workflows/templates` and run `make_workflows.py` to update the
+# workflow.
 name: GitHub Release
 <% endblock %>
 <% block on_push_tags %>
