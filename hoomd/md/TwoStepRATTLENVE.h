@@ -125,11 +125,10 @@ TwoStepRATTLENVE<Manifold>::TwoStepRATTLENVE(std::shared_ptr<SystemDefinition> s
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLENVE" << endl;
 
-    bool manifold_fits = m_manifold.fitsInsideBox(m_pdata->getBox());
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     if (!skip_restart)
         {
@@ -169,11 +168,10 @@ void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_fits = m_manifold.fitsInsideBox(box);
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     // perform the first half step of the RATTLE algorithm applied on velocity verlet
     // v(t+deltaT/2) = v(t) + (1/2)*deltaT*(a-lambda*n_manifold(x(t))/m)

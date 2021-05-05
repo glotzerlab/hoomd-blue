@@ -85,13 +85,10 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "BD step 1");
 
-    BoxDim box = this->m_pdata->getBox();
-    
-    bool manifold_fits = this->m_manifold.fitsInsideBox(box);
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     // access all the needed data
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -149,7 +146,7 @@ void TwoStepRATTLEBDGPU<Manifold>::integrateStepOne(uint64_t timestep)
     gpu_rattle_brownian_step_one(d_pos.data,
                           d_image.data,
                           d_vel.data,
-                          box,
+                          m_pdata->getBox(),
                           d_diameter.data,
                           d_tag.data,
                           d_index_array.data,

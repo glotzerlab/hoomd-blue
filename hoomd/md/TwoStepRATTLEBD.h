@@ -112,11 +112,10 @@ TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sys
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    bool manifold_fits = m_manifold.fitsInsideBox(m_pdata->getBox());
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     }
 
@@ -157,11 +156,10 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    bool manifold_fits = m_manifold.fitsInsideBox(m_pdata->getBox());
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     uint16_t seed = m_sysdef->getSeed();
 
@@ -439,7 +437,7 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 
 	Scalar3 residual;
 	Scalar resid;
-        
+
 	unsigned int iteration = 0;
 	do
 	{
@@ -448,13 +446,13 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 	    residual.y = h_pos.data[j].y - next_pos.y + (h_net_force.data[j].y + Fr_y - mu*normal.y) * deltaT_gamma;
 	    residual.z = h_pos.data[j].z - next_pos.z + (h_net_force.data[j].z + Fr_z - mu*normal.z) * deltaT_gamma;
 	    resid = m_manifold.implicitFunction(next_pos);
-	    
+
 	    Scalar3 next_normal = m_manifold.derivative(next_pos);
 
 	    Scalar nndotr = dot(next_normal,residual);
 	    Scalar nndotn = dot(next_normal,normal);
 	    Scalar beta = (resid + nndotr)/nndotn;
-	    
+
 	    next_pos.x = next_pos.x - beta*normal.x + residual.x;
 	    next_pos.y = next_pos.y - beta*normal.y + residual.y;
 	    next_pos.z = next_pos.z - beta*normal.z + residual.z;

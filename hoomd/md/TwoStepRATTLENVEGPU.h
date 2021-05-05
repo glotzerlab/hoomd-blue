@@ -38,18 +38,18 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 	public:
 	//! Constructs the integration method and associates it with the system
 	TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar tolerance);
-	
+
 	virtual ~TwoStepRATTLENVEGPU(){};
-	
+
 	//! Performs the first step of the integration
 	virtual void integrateStepOne(unsigned int timestep);
-	
+
 	//! Performs the second step of the integration
 	virtual void integrateStepTwo(unsigned int timestep);
-	
+
 	//! Includes the RATTLE forces to the virial/net force
 	virtual void includeRATTLEForce(unsigned int timestep);
-	
+
 	//! Set autotuner parameters
 	/*! \param enable Enable/disable autotuning
 	\param period period (approximate) in time steps when returning occurs
@@ -66,7 +66,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 		m_tuner_angular_two->setPeriod(period);
 		m_tuner_angular_two->setEnabled(enable);
 		}
-	
+
 	private:
 		std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
 		std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
@@ -81,7 +81,7 @@ class PYBIND11_EXPORT TwoStepRATTLENVEGPU : public TwoStepRATTLENVE<Manifold>
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
 */
-template<class Manifold> 
+template<class Manifold>
 TwoStepRATTLENVEGPU<Manifold>::TwoStepRATTLENVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Manifold manifold, bool skip_restart, Scalar tolerance)
     : TwoStepRATTLENVE<Manifold>(sysdef, group, manifold, skip_restart, tolerance)
     {
@@ -118,13 +118,10 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::read);
     ArrayHandle<int3> d_image(this->m_pdata->getImages(), access_location::device, access_mode::readwrite);
 
-    BoxDim box = this->m_pdata->getBox();
-
-    bool manifold_fits = this->m_manifold.fitsInsideBox(box);
-
-    if( !manifold_fits){
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
         throw std::runtime_error("Parts of the manifold are outside the box");
-    }
+        }
 
     ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -137,7 +134,7 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepOne(unsigned int timestep)
                      d_image.data,
                      d_index_array.data,
                      this->m_group->getGPUPartition(),
-                     box,
+                     m_pdata->getBox(),
                      this->m_deltaT,
                      this->m_limit,
                      this->m_limit_val,
@@ -261,21 +258,21 @@ void TwoStepRATTLENVEGPU<Manifold>::integrateStepTwo(unsigned int timestep)
 template<class Manifold>
 void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
 {
-	
+
 	// access all the needed data
 	const GlobalArray< Scalar4 >& net_force = this->m_pdata->getNetForce();
 	const GlobalArray<Scalar>&  net_virial = this->m_pdata->getNetVirial();
 	ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(), access_location::device, access_mode::read);
 	ArrayHandle<Scalar4> d_vel(this->m_pdata->getVelocities(), access_location::device, access_mode::read);
 	ArrayHandle<Scalar3> d_accel(this->m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-	
+
 	ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
 	ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
-	
+
 	ArrayHandle< unsigned int > d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
-	
+
 	size_t net_virial_pitch = net_virial.getPitch();
-	
+
 	// perform the update on the GPU
 	this->m_exec_conf->beginMultiGPU();
 	m_tuner_one->begin();
@@ -292,10 +289,10 @@ void TwoStepRATTLENVEGPU<Manifold>::includeRATTLEForce(unsigned int timestep)
 		     this->m_deltaT,
 		     this->m_zero_force,
 		     m_tuner_one->getParam());
-	
+
 	if(this->m_exec_conf->isCUDAErrorCheckingEnabled())
 	CHECK_CUDA_ERROR();
-	
+
 	m_tuner_one->end();
 	this->m_exec_conf->endMultiGPU();
 
