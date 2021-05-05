@@ -487,7 +487,7 @@ void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
 /// helper function to determine the ghost communication flags
 CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
     {
-    auto flags = Integrator::determineFlags(timestep)
+    auto flags = Integrator::determineFlags(timestep);
     if (m_rigid_bodies)
         {
         flags |= m_rigid_bodies->getRequestedCommFlags(timestep);
