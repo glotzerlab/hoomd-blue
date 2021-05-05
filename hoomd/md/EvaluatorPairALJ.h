@@ -189,7 +189,7 @@ class EvaluatorPairALJ
                 {
                 // Unpack the list[list] of vertices into a ManagedArray.
                 auto vertices = shape["vertices"].cast<pybind11::list>();
-                unsigned int N = len(vertices);
+                unsigned int N = static_cast<unsigned int>(len(vertices));
                 // TODO: add support for managed memory on GPU
                 verts = ManagedArray<vec3<Scalar> >(N, false);
                 for (unsigned int i = 0; i < N; ++i)
@@ -207,17 +207,18 @@ class EvaluatorPairALJ
                 // Then, we allocate the faces array and loop a second time to store
                 // those indices linearly.
                 auto faces_ = shape["faces"].cast<pybind11::list>();
-                N = len(faces_);
+                N = static_cast<unsigned int>(static_cast<unsigned int>(len(faces_)));
                 // TODO: add support for managed memory on GPU
                 face_offsets = ManagedArray<unsigned int>(N, false);
                 face_offsets[0] = 0;
                 for (unsigned int i = 0; i < (N-1); ++i)
                     {
                     pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-                    face_offsets[i+1] = face_offsets[i] + len(faces_tmp);
+                    face_offsets[i+1] = face_offsets[i] + static_cast<unsigned int>(len(faces_tmp));
                     }
                 pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
-                const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
+                const unsigned int total_face_indices = face_offsets[N-1]
+                    + static_cast<unsigned int>(len(faces_tmp));
 
                 // TODO: add support for managed memory on GPU
                 faces = ManagedArray<unsigned int>(total_face_indices, false);
@@ -225,7 +226,7 @@ class EvaluatorPairALJ
                 for (unsigned int i = 0; i < N; ++i)
                 {
                     pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-                    for (unsigned int j = 0; j < len(face_tmp); ++j)
+                    for (unsigned int j = 0; j < static_cast<unsigned int>(len(face_tmp)); ++j)
                     {
                         faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
                         ++counter;
