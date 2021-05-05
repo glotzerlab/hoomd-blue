@@ -37,7 +37,7 @@ env:
       matrix:
         include:
     <% for configuration in configurations %>
-        - {config: << configuration.config >>, runner: << configuration.runner >>, docker_options: '<< configuration.docker_options >>' }}
+        - {config: << configuration.config >>, runner: << configuration.runner >>, docker_options: '<< configuration.docker_options >>' }
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>

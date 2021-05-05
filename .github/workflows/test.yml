@@ -53,10 +53,10 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
+        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
     - uses: actions/checkout@v2.3.4
@@ -108,10 +108,10 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
+        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
     - uses: actions/download-artifact@v2.0.9
@@ -147,10 +147,10 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
+        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
     - uses: actions/download-artifact@v2.0.9
@@ -179,10 +179,10 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
+        - {config: [clang11_py39, mpi, tbb], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     #if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
@@ -208,16 +208,16 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }}
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
     #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -270,16 +270,16 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }}
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
     #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
@@ -316,16 +316,16 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }}
-        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }}
-        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }}
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [clang10_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang9_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang8_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang7_py38], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc8_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [clang6_py37], runner: ubuntu-latest, docker_options: '' }
+        - {config: [gcc7_py36], runner: ubuntu-latest, docker_options: '' }
 
     #if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
