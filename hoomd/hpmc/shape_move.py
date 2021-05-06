@@ -122,3 +122,32 @@ class Python(ShapeMove):
                                  self.stepsize, self.param_ratio)
         self._boltzmann_function = boltzmann_cls()
         super()._attach()
+
+
+class Vertex(ShapeMove):
+    def __init__(self, stepsize, param_ratio, volume):
+        param_dict = ParameterDict(stepsize=list(stepsize),
+                                   param_ratio=float(param_ratio),
+                                   volume=float(volume))
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        move_cls = None
+        boltzmann_cls = None
+        if isinstance(integrator, integrate.ConvexPolyhedron):
+            move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron
+        else:
+            raise RuntimeError("Integrator not supported")
+
+        ntypes = len(self.mc.state["shape"].keys()) - 1
+        self._cpp_obj = move_cls(ntypes, self.stepsize,
+                                 self.param_ratio, self.volume)
+        self._boltzmann_function = boltzmann_cls()
+        super()._attach()
