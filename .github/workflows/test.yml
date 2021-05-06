@@ -34,7 +34,7 @@ env:
   # skip running the CPU tests in GPU builds
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
   # import HOOMD out of the build directory
-  PYTHONPATH: ${{ github.workspace }}/build
+  PYTHONPATH: ${{ github.workspace }}/install
 
 
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
@@ -88,14 +88,22 @@ jobs:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -cvf build.tar build
-    # Upload the tarball. Retain the file for a limited time in case developers need to download
+      run: tar -I zstd -cvf build.tar build
+    - name: 'Tar install'
+      run: tar -I zstd -cvf install.tar install
+    # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
       uses: actions/upload-artifact@v2.2.3
       with:
         name: build-${{ join(matrix.config, '_') }}
         path: build.tar
+        retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: install-${{ join(matrix.config, '_') }}
+        path: install.tar
         retention-days: 7
 
 
@@ -117,9 +125,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
-        name: build-${{ join(matrix.config, '_') }}
-    - name: Untar build
-      run: tar -xvf build.tar
+        name: install-${{ join(matrix.config, '_') }}
+    - name: Untar install
+      run: tar -I zstd -xvf install.tar
 
     - name: Run pytest (serial)
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0
@@ -158,7 +166,7 @@ jobs:
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -xvf build.tar
+      run: tar -I zstd -xvf build.tar
 
     - name: Run tests
       run: >-
@@ -189,9 +197,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
-        name: build-${{ join(matrix.config, '_') }}
-    - name: Untar build
-      run: tar -xvf build.tar
+        name: install-${{ join(matrix.config, '_') }}
+    - name: Untar install
+      run: tar -I zstd -xvf install.tar
 
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
@@ -250,14 +258,22 @@ jobs:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -cvf build.tar build
-    # Upload the tarball. Retain the file for a limited time in case developers need to download
+      run: tar -I zstd -cvf build.tar build
+    - name: 'Tar install'
+      run: tar -I zstd -cvf install.tar install
+    # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
       uses: actions/upload-artifact@v2.2.3
       with:
         name: build-${{ join(matrix.config, '_') }}
         path: build.tar
+        retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: install-${{ join(matrix.config, '_') }}
+        path: install.tar
         retention-days: 7
 
 
@@ -286,9 +302,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v2.0.9
       with:
-        name: build-${{ join(matrix.config, '_') }}
-    - name: Untar build
-      run: tar -xvf build.tar
+        name: install-${{ join(matrix.config, '_') }}
+    - name: Untar install
+      run: tar -I zstd -xvf install.tar
 
     - name: Run pytest (serial)
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0
@@ -334,7 +350,7 @@ jobs:
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -xvf build.tar
+      run: tar -I zstd -xvf build.tar
 
     - name: Run tests
       run: >-
@@ -349,7 +365,7 @@ jobs:
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
     name: Unit test
-    needs: [pytest, ctest, validate, pytest_release, ctest_release]
+    needs: [pytest, ctest, validate]
     runs-on: ubuntu-latest
 
     steps:
