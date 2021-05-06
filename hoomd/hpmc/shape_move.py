@@ -3,6 +3,7 @@ from hoomd.operation import _HOOMDBaseObject
 from . import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.logging import log
 
 
 class ShapeMove(_HOOMDBaseObject):
@@ -82,12 +83,30 @@ class Elastic(ShapeMove):
 
     @property
     def stiffness(self):
-        return self._boltzmann_function.stiffness
+        return self._boltzmann_function.stiffness(self._simulation.timestep)
 
     @stiffness.setter
     def stiffness(self, new_stiffness):
         self._param_dict["stiffness"] = new_stiffness
         self._boltzmann_function.stiffness = new_stiffness
+
+    @log(category="scalar")
+    def shape_move_stiffness(self):
+        """float: Stiffness of the shape used to calculate shape energy
+
+        Returns:
+            The stiffness of the shape at the current timestep
+        """
+        return self.stiffness
+
+    @log(category="scalar")
+    def shape_move_energy(self):
+        """float: Energy of the shape resulting from shear moves
+
+        Returns:
+            The energy of the shape at the current timestep
+        """
+        return sum([self._cpp_obj.getShapeMoveEnergy(i, self._simulation.timestep) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
 
 
 class Python(ShapeMove):
@@ -122,6 +141,15 @@ class Python(ShapeMove):
                                  self.stepsize, self.param_ratio)
         self._boltzmann_function = boltzmann_cls()
         super()._attach()
+
+    @log(category='scalar')
+    def shape_param(self):
+        """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
+
+        Returns:
+            The current value of the shape parameter in the user-specified callback
+        """
+        return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
 
 
 class Vertex(ShapeMove):
