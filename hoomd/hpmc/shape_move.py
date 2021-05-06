@@ -88,3 +88,37 @@ class Elastic(ShapeMove):
     def stiffness(self, new_stiffness):
         self._param_dict["stiffness"] = new_stiffness
         self._boltzmann_function.stiffness = new_stiffness
+
+
+class Python(ShapeMove):
+    def __init__(self, callback, params, stepsize, param_ratio):
+        param_dict = ParameterDict(callback=callable,
+                                   params=list(params),
+                                   stepsize=list(stepsize),
+                                   param_ratio=float(param_ratio))
+        param_dict["callback"] = callback
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        move_cls = None
+        boltzmann_cls = None
+        shapes = ['Sphere', 'ConvexPolygon', 'SimplePolygon',
+                  'ConvexPolyhedron', 'ConvexSpheropolyhedron',
+                  'Ellipsoid', 'ConvexSpheropolygon', 'Polyhedron',
+                  'Sphinx', 'SphereUnion']
+        for shape in shapes:
+            if isinstance(integrator, getattr(integrate, shape)):
+                move_cls = getattr(_hpmc, 'PythonShapeMove' + shape)
+                boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
+
+        ntypes = len(self.mc.state["shape"].keys()) - 1
+        self._cpp_obj = move_cls(ntypes, self.callback, self.params,
+                                 self.stepsize, self.param_ratio)
+        self._boltzmann_function = boltzmann_cls()
+        super()._attach()
