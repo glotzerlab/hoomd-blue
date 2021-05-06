@@ -1,3 +1,4 @@
+import pickle
 import pytest
 import hoomd
 import atexit
@@ -120,25 +121,26 @@ def lattice_snapshot_factory(device):
             s.particles.types = particle_types
 
             # create the lattice
-            range_ = numpy.arange(-n / 2, n / 2)
-            if dimensions == 2:
-                pos = list(itertools.product(range_, range_, [0]))
-            else:
-                pos = list(itertools.product(range_, repeat=3))
-            pos = numpy.array(pos) * a
-            pos[:, 0] += a / 2
-            pos[:, 1] += a / 2
-            if dimensions == 3:
-                pos[:, 2] += a / 2
-
-            # perturb the positions
-            if r > 0:
-                shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+            if n > 0:
+                range_ = numpy.arange(-n / 2, n / 2)
                 if dimensions == 2:
-                    shift[:, 2] = 0
-                pos += shift
+                    pos = list(itertools.product(range_, range_, [0]))
+                else:
+                    pos = list(itertools.product(range_, repeat=3))
+                pos = numpy.array(pos) * a
+                pos[:, 0] += a / 2
+                pos[:, 1] += a / 2
+                if dimensions == 3:
+                    pos[:, 2] += a / 2
 
-            s.particles.position[:] = pos
+                # perturb the positions
+                if r > 0:
+                    shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+                    if dimensions == 2:
+                        shift[:, 2] = 0
+                    pos += shift
+
+                s.particles.position[:] = pos
 
         return s
 
@@ -277,3 +279,15 @@ def logging_check(cls, expected_namespace, expected_loggables):
 
     for name, properties in expected_loggables.items():
         check_loggable(cls, name, properties)
+
+
+def pickling_check(instance):
+    pkled_instance = pickle.loads(pickle.dumps(instance))
+    assert instance == pkled_instance
+
+
+def operation_pickling_check(instance, sim):
+    pickling_check(instance)
+    sim.operations += instance
+    sim.run(0)
+    pickling_check(instance)

@@ -107,7 +107,7 @@ void System::run(uint64_t nsteps, bool write_at_start)
         // make sure we start off with a migration substep
         m_comm->forceMigrate();
 
-        // communicate here, to run before the Logger
+        // communicate here
         m_comm->communicate(m_cur_tstep);
         }
     #endif
@@ -196,24 +196,6 @@ void System::updateTPS()
 void System::enableProfiler(bool enable)
     {
     m_profile = enable;
-    }
-
-/*! \param logger Logger to register computes and updaters with
-    All computes and updaters registered with the system are also registered with the logger.
-*/
-void System::registerLogger(std::shared_ptr<Logger> logger)
-    {
-    // set the profiler on everything
-    if (m_integrator)
-        logger->registerUpdater(m_integrator);
-
-    // updaters
-    for (auto &updater_trigger_pair: m_updaters)
-        logger->registerUpdater(updater_trigger_pair.first);
-
-    // computes
-    for (auto compute: m_computes)
-        logger->registerCompute(compute);
     }
 
 /*! \param enable Enable/disable autotuning
@@ -351,7 +333,6 @@ void export_System(py::module& m)
     .def("setIntegrator", &System::setIntegrator)
     .def("getIntegrator", &System::getIntegrator)
 
-    .def("registerLogger", &System::registerLogger)
     .def("setAutotunerParams", &System::setAutotunerParams)
     .def("enableProfiler", &System::enableProfiler)
     .def("run", &System::run)

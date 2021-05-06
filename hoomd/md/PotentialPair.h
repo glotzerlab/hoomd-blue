@@ -54,7 +54,6 @@
      - The energy can be globally shifted to 0 at the cutoff
      - XPLOR switching can be enabled
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     A note on the design of XPLOR switching:
@@ -80,10 +79,8 @@
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, PotentialPair needs to know the name of the potential. For now, that will be queried from
-    the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independently.
-
+    For profiling PotentialPair needs to know the name of the potential. For
+    now, that will be queried from the evaluator.
     \sa export_PotentialPair()
 */
 template< class evaluator, typename extra_pkg = std::nullptr_t >
@@ -95,8 +92,7 @@ class PotentialPair : public ForceCompute
 
         //! Construct the pair potential
         PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
-                      const std::string& log_suffix="");
+                      std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPair();
 
@@ -124,11 +120,6 @@ class PotentialPair : public ForceCompute
                                    std::string action);
         //! Method that is called to connect to the gsd write state signal
         void connectGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Shifting modes that can be applied to the energy
         enum energyShiftMode
@@ -223,7 +214,6 @@ class PotentialPair : public ForceCompute
         GlobalArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GlobalArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
-        std::string m_log_name;                     //!< Cached log name
 
         /// Track whether we have attached to the Simulation object
         bool m_attached = true;
@@ -342,15 +332,12 @@ class PotentialPair : public ForceCompute
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
-    template<class evaluator, typename extra_pkg>
-    PotentialPair<evaluator,extra_pkg>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                                            std::shared_ptr<NeighborList> nlist,
-                                            const std::string& log_suffix)
-        : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift),
-          m_typpair_idx(m_pdata->getNTypes())
-        {
+template<class evaluator, typename extra_pkg>
+PotentialPair< evaluator, extra_pkg >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist)
+    : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
+    {
     m_exec_conf->msg->notice(5) << "Constructing PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
     assert(m_pdata);
@@ -389,7 +376,6 @@ class PotentialPair : public ForceCompute
 
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
-    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().template connect<PotentialPair<evaluator,extra_pkg>, &PotentialPair<evaluator,extra_pkg>::slotNumTypesChange>(this);
@@ -552,37 +538,6 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
     m_exec_conf->msg->notice(10) << "PotentialPair writing to GSD File to name: " << shapespec.getName() << std::endl;
     int retval = shapespec.write(handle, this->getTypeShapeMapping(m_params));
     return retval;
-    }
-
-/*! PotentialPair provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with evaluator::getName()
-*/
-    template<class evaluator, typename extra_pkg>
-    std::vector<std::string> PotentialPair<evaluator,extra_pkg>::getProvidedLogQuantities()
-        {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-    template<class evaluator, typename extra_pkg>
-    Scalar PotentialPair<evaluator,extra_pkg>::getLogValue(const std::string& quantity, uint64_t timestep)
-        {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                  << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure
@@ -1032,7 +987,7 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
 template < class T > void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > potentialpair(m, name.c_str());
-    potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         .def("setRCut", &T::setRCutPython)

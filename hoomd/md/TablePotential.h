@@ -64,8 +64,7 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         //! Constructs the compute
         TablePotential(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<NeighborList> nlist,
-                       unsigned int table_width,
-                       const std::string& log_suffix="");
+                       unsigned int table_width);
 
         //! Destructor
         virtual ~TablePotential();
@@ -77,12 +76,6 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
                               const std::vector<Scalar> &F,
                               Scalar rmin,
                               Scalar rmax);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         virtual void notifyDetach()
             {
@@ -99,7 +92,6 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         unsigned int m_ntypes;                      //!< Store the number of particle types
         GlobalArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GlobalArray<Scalar4> m_params;                 //!< Parameters stored for each table
-        std::string m_log_name;                     //!< Cached log name
 
         /// Indexer into the tables
         Index2DUpperTriangular m_type_pair_idx;

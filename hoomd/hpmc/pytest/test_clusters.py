@@ -5,6 +5,7 @@
 """Test hoomd.hpmc.update.Clusters."""
 
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
@@ -152,3 +153,16 @@ def test_pivot_moves(device, simulation_factory,
 
     avg = cl.avg_cluster_size
     assert avg > 0
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    """Test that Cluster objects are picklable."""
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc.shape['A'] = dict(diameter=1.1)
+    mc.shape['B'] = dict(diameter=1.3)
+    sim.operations.integrator = mc
+
+    cl = hoomd.hpmc.update.Clusters(trigger=hoomd.trigger.Periodic(5),
+                                    pivot_move_ratio=0.1)
+    operation_pickling_check(cl, sim)

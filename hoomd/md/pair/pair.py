@@ -180,8 +180,7 @@ class Pair(force.Force):
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
         self._cpp_obj = cls(
-            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj,
-            '')  # TODO remove name string arg
+            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
 
         super()._attach()
 
@@ -387,7 +386,7 @@ class SLJ(Pair):
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(epsilon=float, sigma=float,
-                                                 alpha=1.0, len_keys=2)
+                                                 len_keys=2)
                                )
         self._add_typeparam(params)
 
@@ -1049,7 +1048,7 @@ class DPDLJ(Pair):
         \\begin{eqnarray*}
         V_{\\mathrm{LJ}}(r) = & 4 \\varepsilon \\left[ \\left(
             \\frac{\\sigma}{r} \\right)^{12} -
-            \\alpha \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]
+             \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]
             & r < r_{\\mathrm{cut}} \\\\
                             = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1087,9 +1086,6 @@ class DPDLJ(Pair):
           * ``sigma`` (`float`, **required**) - :math:`\\sigma`
             (in distance units)
 
-          * ``alpha`` (`float`, **optional**, defaults to 1.0) -
-            :math:`\\alpha` (unitless)
-
           * ``gamma`` (`float`, **required**) - :math:`\\gamma` (in units of
             force/velocity)
 
@@ -1108,7 +1104,7 @@ class DPDLJ(Pair):
 
         super().__init__(nlist, r_cut, r_on, mode)
         params = TypeParameter('params', 'particle_types', TypeParameterDict(
-            epsilon=float, sigma=float, alpha=1.0, gamma=float,
+            epsilon=float, sigma=float, gamma=float,
             len_keys=2))
         self._add_typeparam(params)
 
@@ -1154,7 +1150,7 @@ class ForceShiftedLJ(Pair):
 
         \\begin{eqnarray*}
         V(r) = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r}
-          \\right)^{12} - \\alpha \\left( \\frac{\\sigma}{r} \\right)^{6}
+          \\right)^{12} - \\left( \\frac{\\sigma}{r} \\right)^{6}
           \\right] + \\Delta V(r) & r < r_{\\mathrm{cut}}\\\\
              = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1180,9 +1176,6 @@ class ForceShiftedLJ(Pair):
 
           * ``sigma`` (`float`, **required**) - :math:`\\sigma`
             (in distance units)
-
-          * ``alpha`` (`float`, **optional**, defaults to 1.0) - :math:`\\alpha`
-            (unitless)
 
     Example::
 
@@ -1659,7 +1652,7 @@ class LJ1208(Pair):
         \\begin{eqnarray*}
         V_{\\mathrm{LJ}}(r)
           = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{12} -
-          \\alpha \\left( \\frac{\\sigma}{r} \\right)^{8} \\right]
+          \\left( \\frac{\\sigma}{r} \\right)^{8} \\right]
           & r < r_{\\mathrm{cut}} \\\\
           = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
         \\end{eqnarray*}
@@ -1811,11 +1804,14 @@ class Fourier(Pair):
         fourier.params[('A', 'A')] = dict(a=[a2,a3,a4], b=[b2,b3,b4])
     """
     _cpp_class_name = "PotentialPairFourier"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-            TypeParameterDict(a=list, b=list,
-            _defaults=dict(a=[float]*3, b=[float]*3), len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(a=(float, float, float),
+                              b=(float, float, float),
+                              len_keys=2))
         self._add_typeparam(params)
 
 

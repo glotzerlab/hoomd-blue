@@ -39,24 +39,6 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
 
         void computeForces(uint64_t timestep);
 
-        /*! Returns the names of provided log quantities.
-         */
-        std::vector<std::string> getProvidedLogQuantities()
-            {
-            std::vector<std::string> list = ForceCompute::getProvidedLogQuantities();
-            for (std::vector<std::string>::iterator it = m_log_names.begin(); it != m_log_names.end(); ++it)
-                {
-                list.push_back(*it);
-                }
-            return list;
-            }
-
-        /*! Returns the value of a specific log quantity.
-         * \param quantity The name of the quantity to return the value of
-         * \param timestep The current value of the time step
-         */
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Get sum of charges
         Scalar getQSum();
 
@@ -198,8 +180,6 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_x;   //!< Fourier transformed mesh times the influence function, x-component
         GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_y;   //!< Fourier transformed mesh times the influence function, y-component
         GlobalArray<kiss_fft_cpx> m_inv_fourier_mesh_z;   //!< Fourier transformed mesh times the influence function, z-component
-
-        std::vector<std::string> m_log_names;           //!< Name of the log quantity
 
         bool m_dfft_initialized;                   //! True if host dfft has been initialized
 

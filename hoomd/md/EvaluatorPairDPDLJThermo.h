@@ -52,7 +52,7 @@
     where
      \f{eqnarray*}
     V_{\mathrm{LJ}}(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]  & r < r_{\mathrm{cut}} \\
+                                            \left( \frac{\sigma}{r} \right)^{6} \right]  & r < r_{\mathrm{cut}} \\
                                             = & 0 & r \ge r_{\mathrm{cut}} \\
     \f}
     and
@@ -68,7 +68,7 @@
 
     lj1 and lj2 are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
+    - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
 
 */
 class EvaluatorPairDPDLJThermo
@@ -279,8 +279,7 @@ class EvaluatorPairDPDLJThermo
 
         #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

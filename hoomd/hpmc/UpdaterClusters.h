@@ -290,30 +290,6 @@ class UpdaterClusters : public Updater
         //! Destructor
         virtual ~UpdaterClusters();
 
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
-            {
-            hpmc_clusters_counters_t counters = getCounters(2);
-
-            if (quantity == "hpmc_clusters_avg_size")
-                {
-                return counters.getAverageClusterSize();
-                }
-            return Scalar(0.0);
-            }
-
-        /*
-            \returns a list of provided quantities
-        */
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            // start with the integrator provided quantities
-            std::vector< std::string > result;
-            // then add ours
-            result.push_back("hpmc_clusters_avg_size");
-            return result;
-            }
-
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
@@ -448,7 +424,7 @@ UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef
     m_G.setTaskArena(sysdef->getParticleData()->getExecConf()->getTaskArena());
     #endif
 
-    // initialize logger and stats
+    // initialize stats
     resetStats();
 
     // initialize memory

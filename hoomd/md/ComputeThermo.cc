@@ -23,12 +23,10 @@ using namespace std;
 
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
-    \param suffix Suffix to append to all logged quantity names
 */
 ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
-                             std::shared_ptr<ParticleGroup> group,
-                             const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_logging_enabled(true)
+                             std::shared_ptr<ParticleGroup> group)
+    : Compute(sysdef), m_group(group)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
@@ -45,25 +43,6 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
         CHECK_CUDA_ERROR();
         }
     #endif
-
-    m_logname_list.push_back(string("temperature") + suffix);
-    m_logname_list.push_back(string("translational_temperature") + suffix);
-    m_logname_list.push_back(string("rotational_temperature") + suffix);
-    m_logname_list.push_back(string("kinetic_energy") + suffix);
-    m_logname_list.push_back(string("translational_kinetic_energy") + suffix);
-    m_logname_list.push_back(string("rotational_kinetic_energy") + suffix);
-    m_logname_list.push_back(string("potential_energy") + suffix);
-    m_logname_list.push_back(string("ndof") + suffix);
-    m_logname_list.push_back(string("translational_ndof") + suffix);
-    m_logname_list.push_back(string("rotational_ndof") + suffix);
-    m_logname_list.push_back(string("num_particles") + suffix);
-    m_logname_list.push_back(string("pressure") + suffix);
-    m_logname_list.push_back(string("pressure_xx") + suffix);
-    m_logname_list.push_back(string("pressure_xy") + suffix);
-    m_logname_list.push_back(string("pressure_xz") + suffix);
-    m_logname_list.push_back(string("pressure_yy") + suffix);
-    m_logname_list.push_back(string("pressure_yz") + suffix);
-    m_logname_list.push_back(string("pressure_zz") + suffix);
 
     m_computed_flags.reset();
 
@@ -87,100 +66,6 @@ void ComputeThermo::compute(uint64_t timestep)
         {
         computeProperties();
         m_computed_flags = m_pdata->getFlags();
-        }
-    }
-
-std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
-    {
-    if (m_logging_enabled)
-        {
-        return m_logname_list;
-        }
-    else
-        {
-        return std::vector< std::string >();
-        }
-    }
-
-Scalar ComputeThermo::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    compute(timestep);
-    if (quantity == m_logname_list[0])
-        {
-        return getTemperature();
-        }
-    else if (quantity == m_logname_list[1])
-        {
-        return getTranslationalTemperature();
-        }
-    else if (quantity == m_logname_list[2])
-        {
-        return getRotationalTemperature();
-        }
-    else if (quantity == m_logname_list[3])
-        {
-        return getKineticEnergy();
-        }
-    else if (quantity == m_logname_list[4])
-        {
-        return getTranslationalKineticEnergy();
-        }
-    else if (quantity == m_logname_list[5])
-        {
-        return getRotationalKineticEnergy();
-        }
-    else if (quantity == m_logname_list[6])
-        {
-        return getPotentialEnergy();
-        }
-    else if (quantity == m_logname_list[7])
-        {
-        return Scalar(m_group->getTranslationalDOF() + m_group->getRotationalDOF());
-        }
-    else if (quantity == m_logname_list[8])
-        {
-        return Scalar(m_group->getTranslationalDOF());
-        }
-    else if (quantity == m_logname_list[9])
-        {
-        return Scalar(m_group->getRotationalDOF());
-        }
-    else if (quantity == m_logname_list[10])
-        {
-        return Scalar(m_group->getNumMembersGlobal());
-        }
-    else if (quantity == m_logname_list[11])
-        {
-        return getPressure();
-        }
-    else if (quantity == m_logname_list[12])
-        {
-        return Scalar(getPressureTensor().xx);
-        }
-    else if (quantity == m_logname_list[13])
-        {
-        return Scalar(getPressureTensor().xy);
-        }
-    else if (quantity == m_logname_list[14])
-        {
-        return Scalar(getPressureTensor().xz);
-        }
-    else if (quantity == m_logname_list[15])
-        {
-        return Scalar(getPressureTensor().yy);
-        }
-    else if (quantity == m_logname_list[16])
-        {
-        return Scalar(getPressureTensor().yz);
-        }
-    else if (quantity == m_logname_list[17])
-        {
-        return Scalar(getPressureTensor().zz);
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "compute.ThermodynamicQuantities: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
         }
     }
 
@@ -414,7 +299,7 @@ void ComputeThermo::reduceProperties()
 void export_ComputeThermo(py::module& m)
     {
     py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>>())
     .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
     .def_property_readonly("pressure", &ComputeThermo::getPressure)
     .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
@@ -426,6 +311,5 @@ void export_ComputeThermo(py::module& m)
     .def_property_readonly("translational_kinetic_energy", &ComputeThermo::getTranslationalKineticEnergy)
     .def_property_readonly("rotational_kinetic_energy", &ComputeThermo::getRotationalKineticEnergy)
     .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
-    .def("setLoggingEnabled", &ComputeThermo::setLoggingEnabled)
     ;
     }

@@ -5,6 +5,7 @@
 """Test hoomd.hpmc.update.BoxMC."""
 
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import pytest
 import numpy as np
 
@@ -275,3 +276,14 @@ def test_counters(box_move, simulation_factory, lattice_snapshot_factory,
             ctr = getattr(boxmc, v)
             assert ctr[0] > 0
             assert ctr[0] + ctr[1] == 100
+
+
+@pytest.mark.parametrize("box_move", box_moves_attrs)
+def test_pickling(box_move, simulation_factory, two_particle_snapshot_factory):
+    boxmc = hoomd.hpmc.update.BoxMC(betaP=hoomd.variant.Constant(3))
+    setattr(boxmc, box_move['move'], box_move['params'])
+    sim = simulation_factory(two_particle_snapshot_factory())
+    mc = hoomd.hpmc.integrate.Sphere()
+    mc.shape['A'] = dict(diameter=1)
+    sim.operations.integrator = mc
+    operation_pickling_check(boxmc, sim)
