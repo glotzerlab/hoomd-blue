@@ -210,7 +210,7 @@ jobs:
   tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
-    if: always()
+    if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
