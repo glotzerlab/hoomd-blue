@@ -204,12 +204,24 @@ jobs:
 << download_build_steps >>
 << ctest_steps >>
 
-  # This job is used to provide a single requirement for branch merge conditions.
+  # This job is used to provide a single requirement for branch merge conditions. GitHub considers
+  # the check passing even if it is skipped, so this job raises errors when required jobs were not
+  # run.
   tests_complete:
     name: Unit test
     needs: [pytest, ctest, validate]
+    if: always()
     runs-on: ubuntu-latest
 
     steps:
+      - name: Error if pytest did not succeed
+        if: needs.pytest.result != 'success'
+        run: exit 1
+      - name: Error if ctest did not succeed
+        if: needs.ctest.result != 'success'
+        run: exit 1
+      - name: Error if validate did not succeed
+        if: needs.validate.result != 'success'
+        run: exit 1
       - run: echo "Done!"
 <% endblock %>
