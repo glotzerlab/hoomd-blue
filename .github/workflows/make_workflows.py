@@ -33,4 +33,4 @@ if __name__ == '__main__':
 
     template = env.get_template('release.yml')
     with open('release.yml', 'w') as f:
-        f.write(template.render(configurations))
+        f.write(template.render())
