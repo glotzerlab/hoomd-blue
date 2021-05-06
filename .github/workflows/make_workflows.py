@@ -2,15 +2,19 @@
 
 import jinja2
 import yaml
+import os
 
 if __name__ == '__main__':
+    # change to the directory of the script
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'),
-                             block_start_string = '<%',
-                             block_end_string = '%>',
-                             variable_start_string = '<<',
-                             variable_end_string = '>>',
-                             comment_start_string = '<#',
-                             comment_end_string = '#>',
+                             block_start_string='<%',
+                             block_end_string='%>',
+                             variable_start_string='<<',
+                             variable_end_string='>>',
+                             comment_start_string='<#',
+                             comment_end_string='#>',
                              trim_blocks=True,
                              lstrip_blocks=True)
     template = env.get_template('test.yml')
@@ -19,7 +23,7 @@ if __name__ == '__main__':
 
     # preprocess configurations and fill out additional fields needed by
     # `test.yml` to configure the matrix jobs
-    for name,configuration in configurations.items():
+    for name, configuration in configurations.items():
         for entry in configuration:
             if entry['config'].startswith('[cuda'):
                 entry['runner'] = "[self-hosted,GPU]"

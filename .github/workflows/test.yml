@@ -88,9 +88,9 @@ jobs:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -I zstd -cvf build.tar build
+      run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
     - name: 'Tar install'
-      run: tar -I zstd -cvf install.tar install
+      run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
@@ -127,7 +127,7 @@ jobs:
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
-      run: tar -I zstd -xvf install.tar
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
     - name: Run pytest (serial)
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
@@ -166,7 +166,7 @@ jobs:
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -I zstd -xvf build.tar
+      run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 
     - name: Run tests
       run: >-
@@ -199,7 +199,7 @@ jobs:
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
-      run: tar -I zstd -xvf install.tar
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
     - name: Run pytest (serial)
       if: ${{ !contains(matrix.config, 'mpi') }}
@@ -258,9 +258,9 @@ jobs:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -I zstd -cvf build.tar build
+      run: tar --use-compress-program='zstd -10 -T0' -cvf build.tar build
     - name: 'Tar install'
-      run: tar -I zstd -cvf install.tar install
+      run: tar --use-compress-program='zstd -10 -T0' -cvf install.tar install
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
@@ -304,7 +304,7 @@ jobs:
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
-      run: tar -I zstd -xvf install.tar
+      run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
     - name: Run pytest (serial)
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
@@ -350,7 +350,7 @@ jobs:
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -I zstd -xvf build.tar
+      run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 
     - name: Run tests
       run: >-

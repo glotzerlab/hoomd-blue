@@ -24,6 +24,7 @@ env:
   # import HOOMD out of the build directory
   PYTHONPATH: ${{ github.workspace }}/install
 <% endblock %>
+<% set tar_command="tar --use-compress-program='zstd -10 -T0'" %>
 <% macro job(name, use_gpu_runners, configurations, needs='') %>
     name: << name >> [${{ join(matrix.config, '_') }}]
     <% if needs != '' %>
@@ -76,9 +77,9 @@ env:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -I zstd -cvf build.tar build
+      run: << tar_command >> -cvf build.tar build
     - name: 'Tar install'
-      run: tar -I zstd -cvf install.tar install
+      run: << tar_command >> -cvf install.tar install
     # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
@@ -99,14 +100,14 @@ env:
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -I zstd -xvf build.tar
+      run: << tar_command >> -xvf build.tar
 <% endset %>
 <% set download_install_steps %>
     - uses: actions/download-artifact@v2.0.9
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
-      run: tar -I zstd -xvf install.tar
+      run: << tar_command >> -xvf install.tar
 <% endset %>
 <% set pytest_options="--pyargs hoomd -v -ra --durations=0 --durations-min=0.1" %>
 <% set pytest_validate_options="-p hoomd.pytest_plugin_validate -m validate --validate" %>
