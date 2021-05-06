@@ -55,6 +55,8 @@ class Constant(ShapeMove):
             if isinstance(integrator, getattr(integrate, shape)):
                 move_cls = getattr(_hpmc, 'ConstantShapeMove' + shape)
                 boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
+        if move_cls is None or boltzmann_cls is None:
+            raise RuntimeError("Integrator not supported")
 
         ntypes = len(integrator.state["shape"].keys()) - 1
         self._cpp_obj = move_cls(ntypes, self.shape_params)
@@ -207,6 +209,8 @@ class Python(ShapeMove):
             if isinstance(integrator, getattr(integrate, shape)):
                 move_cls = getattr(_hpmc, 'PythonShapeMove' + shape)
                 boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
+        if move_cls is None or boltzmann_cls is None:
+            raise RuntimeError("Integrator not supported")
 
         ntypes = len(self.mc.state["shape"].keys()) - 1
         self._cpp_obj = move_cls(ntypes, self.callback, self.params,
