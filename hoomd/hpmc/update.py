@@ -581,6 +581,15 @@ class Shape(Updater):
                                    num_phase=int(num_phase))
         self._param_dict.update(param_dict)
 
+    def _add(self, sim):
+        if self.shape_move is not None:
+            self.shape_move._add(sim)
+        super()._add(sim)
+
+    def _attach_shape_move(self, sim):
+        if not self.shape_move._attached:
+            self.shape_move._attach()
+
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
@@ -607,9 +616,10 @@ class Shape(Updater):
             for typ in integrator.type_shapes:
                 if typ['sweep_radius'] != 0 and len(typ['vertices']) > 1:
                     raise RuntimeError("Currently alchemical moves with integrate.convex_spheropolyhedron are only enabled for polyhedral and spherical particles.")
+        self._attach_shape_move(self._simulation)
         self._cpp_obj = updater_cls(self._simulation.state._cpp_sys_def,
                                     integrator._cpp_obj,
-                                    self.shape_move,
+                                    self.shape_move._cpp_obj,
                                     self.shape_move._boltzmann_function,
                                     self.move_ratio,
                                     self._simulation.seed,
