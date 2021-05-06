@@ -88,7 +88,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
         assert(mask[alpha_p->m_type_pair_param.z] == false);
         // TODO: is this where the momentum etc should be initilized?
         mask[alpha_p->m_type_pair_param.z] = true;
-        m_needs_alch_force_resize= true;
+        m_needs_alch_force_resize = true;
         }
 
     //! Returns a list of log quantities this compute calculates
@@ -265,7 +265,7 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
             pkg.alphas[i][k]
                 = (pkg.h_alchemy_mask.data[i][k])
                       ? pkg.h_alchemical_particles.data[k * m_alchemy_index.getNumElements() + i]
-                            ->getValue()
+                            ->value
                       : Scalar(1.0);
             }
         }
@@ -297,7 +297,7 @@ inline void AlchemicalPotentialPair<evaluator, extra_pkg>::pkgPerNeighbor(const 
             if (mask[k])
                 {
                 ArrayHandle<Scalar> h_alchemical_forces(
-                    pkg.h_alchemical_particles.data[alchemy_index].m_alchemical_forces);
+                    pkg.h_alchemical_particles.data[alchemy_index]->m_alchemical_derivatives);
                 h_alchemical_forces.data[i] += alchemical_derivatives[k] * Scalar(0.5);
                 }
             alchemy_index += m_alchemy_index.getNumElements();

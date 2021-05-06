@@ -27,17 +27,13 @@ class AlchemicalParticle
     public:
     AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                        std::shared_ptr<Compute> base)
-        : m_exec_conf(exec_conf), m_base(base), m_value(Scalar(1.0)) {};
-    Scalar getValue()
-        {
-        return m_value;
-        };
+        : value(Scalar(1.0)), m_exec_conf(exec_conf), m_base(base) {};
 
+    Scalar value; //!< Alpha space dimensionless position of the particle
     protected:
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                 //!< Stored shared ptr to the execution configuration
     std::shared_ptr<Compute> m_base; //!< the associated Alchemical Compute
-    Scalar m_value;                  //!< Alpha space dimensionless position of the particle
     // TODO: decide if velocity or momentum would typically be better for numerical stability
     };
 class AlchemicalMDParticle : public AlchemicalParticle
@@ -45,26 +41,36 @@ class AlchemicalMDParticle : public AlchemicalParticle
     public:
     AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          std::shared_ptr<Compute> base)
-        : AlchemicalParticle(exec_conf, base), m_kinetic_values(make_scalar3(1.0, 0.0, 0.0)) {};
+        : AlchemicalParticle(exec_conf, base) {};
+
     void zeroForces()
         {
-        ArrayHandle<Scalar> h_forces(m_alchemical_forces,
+        ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
                                      access_location::host,
                                      access_mode::overwrite);
-        memset((void*)h_forces.data, 0, sizeof(Scalar) * m_alchemical_forces.getNumElements());
+        memset((void*)h_forces.data, 0, sizeof(Scalar) * m_alchemical_derivatives.getNumElements());
         }
 
     void resizeForces(unsigned int N)
         {
         GlobalArray<Scalar> new_forces(N, m_exec_conf);
-        m_alchemical_forces.swap(new_forces);
+        m_alchemical_derivatives.swap(new_forces);
         }
 
+    Scalar getNetForce(uint64_t timestep)
+        {
+        // TODO: remove this sanity check after we're done making sure timing works
+        assert(m_timestepNetForce.first == timestep);
+        return m_timestepNetForce.second;
+        }
+
+    Scalar momentum; // the momentum of the particle
+    Scalar2 mass;    // mass (x) and it's inverse (y) (don't have to recompute constantly)
+    Scalar mu; //!< the alchemical potential of the particle
     protected:
-    // TODO: decide if velocity or momentum would typically be better for numerical stability
-    Scalar3 m_kinetic_values; //!< x=mass, y=velocity/momentum, z=netForce
-    // std::shared_ptr<ForceCompute> m_force; //!< the associated Alchemical Force Compute
-    GlobalArray<Scalar> m_alchemical_forces; //!< Per particle alchemical forces
+    // the timestep the net force was computed and the netforce
+    std::pair<uint64_t, Scalar> m_timestepNetForce;
+    GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     };
 
 class AlchemicalPairParticle : public AlchemicalMDParticle
