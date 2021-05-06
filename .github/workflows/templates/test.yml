@@ -22,7 +22,7 @@ env:
   # skip running the CPU tests in GPU builds
   _HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_: 1
   # import HOOMD out of the build directory
-  PYTHONPATH: ${{ github.workspace }}/build
+  PYTHONPATH: ${{ github.workspace }}/install
 <% endblock %>
 <% macro job(name, use_gpu_runners, configurations, needs='') %>
     name: << name >> [${{ join(matrix.config, '_') }}]
@@ -76,8 +76,10 @@ env:
       run: find build -type f -name '*.o' -delete
     # Tar the build directory to preserve permissions and reduce HTTP requests on upload.
     - name: 'Tar build'
-      run: tar -cvf build.tar build
-    # Upload the tarball. Retain the file for a limited time in case developers need to download
+      run: tar -I zstd -cvf build.tar build
+    - name: 'Tar install'
+      run: tar -I zstd -cvf install.tar install
+    # Upload the tarballs. Retain the file for a limited time in case developers need to download
     # and run tests locally for further debugging.
     - name: 'Upload build'
       uses: actions/upload-artifact@v2.2.3
@@ -85,13 +87,26 @@ env:
         name: build-${{ join(matrix.config, '_') }}
         path: build.tar
         retention-days: 7
+    - name: 'Upload install'
+      uses: actions/upload-artifact@v2.2.3
+      with:
+        name: install-${{ join(matrix.config, '_') }}
+        path: install.tar
+        retention-days: 7
 <% endset %>
-<% set download_steps %>
+<% set download_build_steps %>
     - uses: actions/download-artifact@v2.0.9
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
-      run: tar -xvf build.tar
+      run: tar -I zstd -xvf build.tar
+<% endset %>
+<% set download_install_steps %>
+    - uses: actions/download-artifact@v2.0.9
+      with:
+        name: install-${{ join(matrix.config, '_') }}
+    - name: Untar install
+      run: tar -I zstd -xvf install.tar
 <% endset %>
 <% set pytest_options="--pyargs hoomd -v -ra --durations=0" %>
 <% set pytest_validate_options="-p hoomd.pytest_plugin_validate -m validate --validate" %>
@@ -151,20 +166,20 @@ jobs:
   pytest:
 << job(name='Run pytest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
     steps:
-<< download_steps >>
+<< download_install_steps >>
 << pytest_steps >>
 
   ctest:
 << job(name='Run ctest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
     steps:
-<< download_steps >>
+<< download_build_steps >>
 << ctest_steps >>
 
   validate:
 << job(name='Validate', use_gpu_runners=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
-<< download_steps >>
+<< download_install_steps >>
 << pytest_validate_steps >>
 
   build_release:
@@ -178,14 +193,14 @@ jobs:
 << job(name='Run pytest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
-<< download_steps >>
+<< download_install_steps >>
 << pytest_steps >>
 
   ctest_release:
 << job(name='Run ctest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
-<< download_steps >>
+<< download_build_steps >>
 << ctest_steps >>
 
   # This job is used to provide a single requirement for branch merge conditions.
