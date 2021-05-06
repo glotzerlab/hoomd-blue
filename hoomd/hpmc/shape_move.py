@@ -37,3 +37,54 @@ class Constant(ShapeMove):
         self._cpp_obj = move_cls(ntypes, self.shape_params)
         self._boltzmann_function = boltzmann_cls()
         super()._attach()
+
+
+class Elastic(ShapeMove):
+    def __init__(self, stiffness, reference, stepsize, param_ratio):
+        param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
+                                   reference=dict(reference),
+                                   stepsize=list(stepsize),
+                                   param_ratio=float(param_ratio))
+        param_dict["stiffness"] = stiffness
+        self._param_dict.update(param_dict)
+
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        move_cls = None
+        shape_cls = None
+        boltzmann_cls = None
+        if isinstance(integrator, integrate.ConvexPolyhedron):
+            move_cls = _hpmc.ElasticShapeMoveConvexPolyhedron
+            boltzmann_cls = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron
+            shape_cls = hoomd.hpmc._hpmc.PolyhedronVertices
+        elif isinstance(integrator, integrate.Ellipsoid):
+            move_cls = _hpmc.ElasticShapeMoveEllipsoid
+            for type_shape in self.mc.type_shapes():
+                if not np.isclose(type_shape["a"], type_shape["b"]) or \
+                   not np.isclose(type_shape["a"], type_shape["c"]) or \
+                   not np.isclose(type_shape["b"], type_shape["c"]):
+                    raise ValueError("This updater only works when a=b=c initially.")
+            boltzmann_cls = _hpmc.ShapeSpringLogBoltzmannEllipsoid
+            shape_cls = hoomd.hpmc._hpmc.EllipsoidParams
+        else:
+            raise RuntimeError("Integrator not supported")
+
+        ntypes = len(self.mc.state["shape"].keys()) - 1
+        self._shape_move = move_cls(ntypes, self.stepsize, self.param_ratio)
+        ref_shape = shape_cls(self.reference)
+        self._boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
+        super()._attach()
+
+    @property
+    def stiffness(self):
+        return self._boltzmann_function.stiffness
+
+    @stiffness.setter
+    def stiffness(self, new_stiffness):
+        self._param_dict["stiffness"] = new_stiffness
+        self._boltzmann_function.stiffness = new_stiffness
