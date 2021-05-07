@@ -21,6 +21,8 @@ class UpdaterShape  : public Updater
     public:
         UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                      std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                     std::shared_ptr< ShapeMoveBase<Shape> > move,
+                     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > lbf,
                      Scalar move_ratio,
                      unsigned int seed,
                      unsigned int tselect,
@@ -128,6 +130,8 @@ class UpdaterShape  : public Updater
 template < class Shape >
 UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                                  std::shared_ptr< ShapeMoveBase<Shape> > move,
+                                  std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > lbf,
                                   Scalar move_ratio,
                                   unsigned int seed,
                                   unsigned int tselect,
@@ -136,12 +140,13 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool multiphase,
                                   unsigned int numphase)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_mc(mc),
-      m_determinant(m_pdata->getNTypes(), m_exec_conf),
+      m_move_ratio(move_ratio*65535), m_mc(mc), m_log_boltz_function(lbf)
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move)
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
       m_num_phase(numphase), m_update_order(seed)
     {
+
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_box_accepted.resize(m_pdata->getNTypes(), 0);
@@ -150,6 +155,14 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_provided_quantities.push_back("shape_move_acceptance_ratio");
     m_provided_quantities.push_back("shape_move_particle_volume");
     m_provided_quantities.push_back("shape_move_multi_phase_box");
+
+    std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
+    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
+    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
+
+    quantities = m_move_function->getProvidedLogQuantities();
+    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
+    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
 
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -664,6 +677,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     pybind11::class_< UpdaterShape<Shape>, std::shared_ptr< UpdaterShape<Shape> >, Updater >(m, name.c_str())
     .def( pybind11::init<   std::shared_ptr<SystemDefinition>,
                             std::shared_ptr< IntegratorHPMCMono<Shape> >,
+                            std::shared_ptr< ShapeMoveBase<Shape> >,
+                            std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >,
                             Scalar,
                             unsigned int,
                             unsigned int,
