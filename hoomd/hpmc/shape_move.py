@@ -60,7 +60,7 @@ class Constant(ShapeMove):
 
         ntypes = len(integrator.state["shape"].keys()) - 1
         self._cpp_obj = move_cls(ntypes, self.shape_params)
-        self._boltzmann_function = boltzmann_cls()
+        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
 
@@ -119,17 +119,17 @@ class Elastic(ShapeMove):
         ntypes = len(self.mc.state["shape"].keys()) - 1
         self._shape_move = move_cls(ntypes, self.stepsize, self.param_ratio)
         ref_shape = shape_cls(self.reference)
-        self._boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
+        self._log_boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
         super()._attach()
 
     @property
     def stiffness(self):
-        return self._boltzmann_function.stiffness(self._simulation.timestep)
+        return self._log_boltzmann_function.stiffness(self._simulation.timestep)
 
     @stiffness.setter
     def stiffness(self, new_stiffness):
         self._param_dict["stiffness"] = new_stiffness
-        self._boltzmann_function.stiffness = new_stiffness
+        self._log_boltzmann_function.stiffness = new_stiffness
 
     @log(category="scalar")
     def shape_move_stiffness(self):
@@ -215,7 +215,7 @@ class Python(ShapeMove):
         ntypes = len(self.mc.state["shape"].keys()) - 1
         self._cpp_obj = move_cls(ntypes, self.callback, self.params,
                                  self.stepsize, self.param_ratio)
-        self._boltzmann_function = boltzmann_cls()
+        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
     @log(category='scalar')
@@ -272,5 +272,5 @@ class Vertex(ShapeMove):
         ntypes = len(self.mc.state["shape"].keys()) - 1
         self._cpp_obj = move_cls(ntypes, self.stepsize,
                                  self.param_ratio, self.volume)
-        self._boltzmann_function = boltzmann_cls()
+        self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
