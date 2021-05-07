@@ -909,7 +909,7 @@ void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
     {
     .def(pybind11::init<unsigned int,
                         std::vector< std::vector<Scalar> >,
-                        std::vector<Scalar>)
+                        std::vector<Scalar> >())
     .def_property("stepsize", &ElasticShapeMove<Shape>::getStepsize, &ElasticShapeMove<Shape>::setStepsize)
     .def_property("param_ratio", &ElasticShapeMove<Shape>::getParamRatio, &ElasticShapeMove<Shape>::setParamRatio)
     ;
@@ -920,6 +920,14 @@ void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name);
 
 template<class Shape>
 void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::string& name);
+    {
+    .def(pybind11::init<std::shared_ptr<Variant>,
+                        typename Shape::param_type ref,
+                        std::shared_ptr<ElasticShapeMove<Shape> > >())
+    .def_property("stiffness", &ShapeSpring<Shape>::getStiffness, &ShapeSpring<Shape>::setStiffness)
+    ;
+    }
+
 
 template<class Shape>
 void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& name);
@@ -931,7 +939,7 @@ void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std:
                         pybind11::object,
                         std::vector< std::vector<Scalar> >,
                         std::vector<Scalar>,
-                        Scalar)
+                        Scalar >())
     .def_property("params", &PythonShapeMove<Shape>::getParams, &PythonShapeMove<Shape>::setParams)
     .def_property("stepsize", &PythonShapeMove<Shape>::getStepsize, &PythonShapeMove<Shape>::setStepsize)
     .def_property("param_ratio", &PythonShapeMove<Shape>::getParamRatio, &PythonShapeMove<Shape>::setParamRatio)
@@ -947,7 +955,7 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
                         pybind11::object,
                         std::vector< std::vector<Scalar> >,
                         std::vector<Scalar>,
-                        Scalar)
+                        Scalar >())
     .def_property("params", &PythonShapeMove<Shape>::getParams, &PythonShapeMove<Shape>::setParams)
     .def_property("stepsize", &PythonShapeMove<Shape>::getStepsize, &PythonShapeMove<Shape>::setStepsize)
     .def_property("param_ratio", &PythonShapeMove<Shape>::getParamRatio, &PythonShapeMove<Shape>::setParamRatio)
@@ -959,7 +967,7 @@ template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
     {
     .def(pybind11::init<unsigned int,
-                        std::vector< pybind11::dict >)
+                        std::vector< pybind11::dict > >())
     .def_property("shape_params", &ConstantShapeMove<Shape>::getShapeParams, &ConstantShapeMove<Shape>::setShapeParams)
     ;
     }
