@@ -140,15 +140,6 @@ class Elastic(ShapeMove):
         """
         return self.stiffness
 
-    @log(category="scalar")
-    def shape_move_energy(self):
-        """float: Energy of the shape resulting from shear moves
-
-        Returns:
-            The energy of the shape at the current timestep
-        """
-        return sum([self._cpp_obj.getShapeMoveEnergy(i, self._simulation.timestep) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
-
 
 class Python(ShapeMove):
     R"""Enable python shape move and) set parameters.
