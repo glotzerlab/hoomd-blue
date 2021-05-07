@@ -1,210 +1,51 @@
 import hoomd
 from hoomd.conftest import pickling_check
 import pytest
+from copy import deepcopy
+from collections import namedtuple
+
+paramtuple = namedtuple('paramtuple',
+                        ['setup_params',
+                         'extra_params',
+                         'changed_params',
+                         'has_rattle',
+                         'method'])
 
 
-def test_brownian_attributes():
-    """Test attributes of the Brownian integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant)
+def _method_base_params():
+    method_base_params_list = []
+    # Start with valid parameters to get the keys and placeholder values
 
-    assert brownian.filter is all_
-    assert brownian.kT is constant
-    assert brownian.alpha is None
+    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    langevin_extra_params = {'alpha': None, 'tally_reservoir_energy': False }
+    langevin_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+                      'alpha': None, 'tally_reservoir_energy': True }
+    langevin_has_rattle = True
 
-    type_A = hoomd.filter.Type(['A'])
-    brownian.filter = type_A
-    assert brownian.filter is type_A
+    method_base_params_list.extend([paramtuple(langevin_setup_params,
+                                                    langevin_extra_params,
+                                                    langevin_changed_params,
+                                                    langevin_has_rattle,
+                                                    hoomd.md.methods.Langevin)])
 
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    brownian.kT = ramp
-    assert brownian.kT is ramp
+    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0) }
+    brownian_extra_params = {'alpha': None }
+    brownian_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+                      'alpha': 0.125}
+    brownian_has_rattle = True
 
-    brownian.alpha = 0.125
-    assert brownian.alpha == 0.125
+    method_base_params_list.extend([paramtuple(brownian_setup_params,
+                                                    brownian_extra_params,
+                                                    brownian_changed_params,
+                                                    brownian_has_rattle,
+                                                    hoomd.md.methods.Brownian)])
 
-
-def test_brownian_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
-    """Test attributes of the Brownian integrator after attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    brownian = hoomd.md.methods.Brownian(filter = all_, kT=constant)
-
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[brownian])
-    sim.operations._schedule()
-
-    assert brownian.filter is all_
-    assert brownian.kT is constant
-    assert brownian.alpha is None
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        brownian.filter = type_A
-
-    assert brownian.filter is all_
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    brownian.kT = ramp
-    assert brownian.kT is ramp
-
-    brownian.alpha = 0.125
-    assert brownian.alpha == 0.125
-
-
-@pytest.mark.serial
-def test_berendsen_attributes(device):
-    """Test attributes of the Berendsen integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
-
-    assert berendsen.filter == all_
-    assert berendsen.kT == constant
-    assert berendsen.tau == 10.0
-
-    type_A = hoomd.filter.Type(['A'])
-    berendsen.filter = type_A
-    assert berendsen.filter == type_A
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    berendsen.kT = ramp
-    assert berendsen.kT == ramp
-
-    berendsen.tau = 1.2
-    assert berendsen.tau == 1.2
-
-
-@pytest.mark.serial
-def test_berendsen_attributes_attached(simulation_factory,
-                                       two_particle_snapshot_factory):
-    """Test attributes of the Berendsen integrator after attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    berendsen = hoomd.md.methods.Berendsen(filter=all_, kT=constant, tau=10.0)
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[berendsen])
-    sim.operations._schedule()
-
-    assert berendsen.filter == all_
-    assert berendsen.kT == constant
-    assert berendsen.tau == 10.0
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        berendsen.filter = type_A
-
-    assert berendsen.filter == all_
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    berendsen.kT = ramp
-    assert berendsen.kT == ramp
-
-    berendsen.tau = 1.2
-    assert berendsen.tau == 1.2
-
-
-def test_langevin_attributes():
-    """Test attributes of the Langevin integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant)
-
-    assert langevin.filter is all_
-    assert langevin.kT is constant
-    assert langevin.alpha is None
-    assert (not langevin.tally_reservoir_energy)
-
-    type_A = hoomd.filter.Type(['A'])
-    langevin.filter = type_A
-    assert langevin.filter is type_A
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    langevin.kT = ramp
-    assert langevin.kT is ramp
-
-    langevin.alpha = 0.125
-    assert langevin.alpha == 0.125
-
-    langevin.tally_reservoir_energy = True
-    assert langevin.tally_reservoir_energy
-
-
-def test_langevin_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
-    """Test attributes of the Langevin integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    langevin = hoomd.md.methods.Langevin(filter = all_, kT=constant)
-
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[langevin])
-    sim.operations._schedule()
-
-    assert langevin.filter is all_
-    assert langevin.kT is constant
-    assert langevin.alpha is None
-    assert (not langevin.tally_reservoir_energy)
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        langevin.filter = type_A
-
-    assert langevin.filter is all_
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    langevin.kT = ramp
-    assert langevin.kT is ramp
-
-    langevin.alpha = 0.125
-    assert langevin.alpha == 0.125
-
-    langevin.tally_reservoir_energy = True
-    assert langevin.tally_reservoir_energy
-
-
-def test_npt_attributes():
-    """Test attributes of the NPT integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant_t = hoomd.variant.Constant(2.0)
     constant_s = [hoomd.variant.Constant(1.0),
                   hoomd.variant.Constant(2.0),
                   hoomd.variant.Constant(3.0),
                   hoomd.variant.Constant(0.125),
                   hoomd.variant.Constant(.25),
                   hoomd.variant.Constant(.5)]
-    npt = hoomd.md.methods.NPT(filter = all_, kT=constant_t, tau=2.0,
-                               S = constant_s,
-                               tauS = 2.0,
-                               couple='xyz')
-
-    assert npt.filter is all_
-    assert npt.kT is constant_t
-    assert npt.tau == 2.0
-    assert len(npt.S) == 6
-    for i in range(6):
-        assert npt.S[i] is constant_s[i]
-    assert npt.tauS == 2.0
-    assert npt.box_dof == (True,True,True,False,False,False)
-    assert npt.couple == 'xyz'
-    assert not npt.rescale_all
-    assert npt.gamma == 0.0
-
-    type_A = hoomd.filter.Type(['A'])
-    npt.filter = type_A
-    assert npt.filter is type_A
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    npt.kT = ramp
-    assert npt.kT is ramp
-
-    npt.tau = 10.0
-    assert npt.tau == 10.0
 
     ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
                   hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
@@ -212,182 +53,172 @@ def test_npt_attributes():
                   hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
                   hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
                   hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
-    npt.S = ramp_s
-    assert len(npt.S) == 6
-    for i in range(6):
-        assert npt.S[i] is ramp_s[i]
 
-    npt.tauS = 10.0
-    assert npt.tauS == 10.0
+    npt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
+            'tauS': 2.0, 'box_dof': [True,True,True,False,False,False], 'couple': 'xyz' }
+    npt_extra_params = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
+            'rotational_thermostat_dof': (0.0, 0.0), 'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0) }
+    npt_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
+            'tauS': 10.0, 'box_dof': [True,False,False,False,True,False], 'couple': 'none',
+            'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5),
+            'rotational_thermostat_dof': (0.5, 0.25), 'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)}
+    npt_has_rattle = False
 
-    npt.box_dof = (True,False,False,False,True,False)
-    assert npt.box_dof == (True,False,False,False,True,False)
+    method_base_params_list.extend([paramtuple(npt_setup_params,
+                                                    npt_extra_params,
+                                                    npt_changed_params,
+                                                    npt_has_rattle,
+                                                    hoomd.md.methods.NPT)])
 
-    npt.couple = 'none'
-    assert npt.couple == 'none'
+    nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0 }
+    nvt_extra_params = { }
+    nvt_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0,
+            'translational_thermostat_dof': (0.125, 0.5), 'rotational_thermostat_dof': (0.5, 0.25)}
+    nvt_has_rattle = False
 
-    npt.rescale_all = True
-    assert npt.rescale_all
+    method_base_params_list.extend([paramtuple(nvt_setup_params,
+                                                    nvt_extra_params,
+                                                    nvt_changed_params,
+                                                    nvt_has_rattle,
+                                                    hoomd.md.methods.NVT)])
 
-    npt.gamma = 2.0
-    assert npt.gamma == 2.0
+    nve_setup_params = { }
+    nve_extra_params = { }
+    nve_changed_params = { }
+    nve_has_rattle = True
 
-    assert npt.translational_thermostat_dof == (0.0, 0.0)
-    npt.translational_thermostat_dof = (0.125, 0.5)
-    assert npt.translational_thermostat_dof == (0.125, 0.5)
+    method_base_params_list.extend([paramtuple(nve_setup_params,
+                                                    nve_extra_params,
+                                                    nve_changed_params,
+                                                    nve_has_rattle,
+                                                    hoomd.md.methods.NVE)])
 
-    assert npt.rotational_thermostat_dof == (0.0, 0.0)
-    npt.rotational_thermostat_dof = (0.5, 0.25)
-    assert npt.rotational_thermostat_dof == (0.5, 0.25)
-
-    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
-    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    return method_base_params_list
 
 
-def test_nph_attributes():
-    """Test attributes of the NPH integrator before attaching."""
+@pytest.fixture(scope="function", params=_method_base_params(), ids=(lambda x: x[4].__name__))
+def method_base_params(request):
+    return deepcopy(request.param)
+
+
+def check_instance_attrs(instance, attr_dict, set_attrs=False):
+    for attr, value in attr_dict.items():
+        if set_attrs:
+            setattr(instance, attr, value)
+        if hasattr(value, "__iter__") and not isinstance(value, str):
+            assert all(
+                v == instance_v
+                for v, instance_v in zip(value, getattr(instance, attr))
+            )
+        else:
+            assert getattr(instance, attr) == value
+
+
+def test_attributes(method_base_params):
     all_ = hoomd.filter.All()
-    constant_s = [
-        hoomd.variant.Constant(1.0),
-        hoomd.variant.Constant(2.0),
-        hoomd.variant.Constant(3.0),
-        hoomd.variant.Constant(0.125),
-        hoomd.variant.Constant(.25),
-        hoomd.variant.Constant(.5)
-    ]
-    nph = hoomd.md.methods.NPH(filter=all_,
-                               S=constant_s,
-                               tauS=2.0,
-                               couple='xyz')
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
-    assert nph.filter == all_
-    assert len(nph.S) == 6
-    for i in range(6):
-        assert nph.S[i] is constant_s[i]
-    assert nph.tauS == 2.0
-    assert nph.box_dof == (True, True, True, False, False, False)
-    assert nph.couple == 'xyz'
-    assert not nph.rescale_all
-    assert nph.gamma == 0.0
+    assert method.filter is all_
+
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
-    nph.filter = type_A
-    assert nph.filter == type_A
+    method.filter = type_A
+    assert method.filter is type_A
 
-    ramp_s = [
-        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
-    ]
-    nph.S = ramp_s
-    assert len(nph.S) == 6
-    for i in range(6):
-        assert nph.S[i] is ramp_s[i]
-
-    nph.tauS = 10.0
-    assert nph.tauS == 10.0
-
-    nph.box_dof = (True, False, False, False, True, False)
-    assert nph.box_dof == (True, False, False, False, True, False)
-
-    nph.couple = 'none'
-    assert nph.couple == 'none'
-
-    nph.rescale_all = True
-    assert nph.rescale_all
-
-    nph.gamma = 2.0
-    assert nph.gamma == 2.0
-
-    assert nph.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    nph.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
-    assert nph.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    check_instance_attrs(method,method_base_params.changed_params,True)
 
 
-def test_npt_attributes_attached_3d(simulation_factory,
-                                      two_particle_snapshot_factory):
-    """Test attributes of the NPT integrator before attaching."""
+def test_attributes_attached(simulation_factory,
+                                two_particle_snapshot_factory,
+                                method_base_params):
+
     all_ = hoomd.filter.All()
-    constant_t = hoomd.variant.Constant(2.0)
-    constant_s = [hoomd.variant.Constant(1.0),
-                  hoomd.variant.Constant(2.0),
-                  hoomd.variant.Constant(3.0),
-                  hoomd.variant.Constant(0.125),
-                  hoomd.variant.Constant(.25),
-                  hoomd.variant.Constant(.5)]
-    npt = hoomd.md.methods.NPT(filter = all_, kT=constant_t, tau=2.0,
-                               S = constant_s,
-                               tauS = 2.0,
-                               couple='xyz')
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
 
     sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations._schedule()
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(0)
 
-    assert npt.filter is all_
-    assert npt.kT is constant_t
-    assert npt.tau == 2.0
-    assert len(npt.S) == 6
-    for i in range(6):
-        assert npt.S[i] is constant_s[i]
-    assert npt.tauS == 2.0
-    assert npt.couple == 'xyz'
+    assert method.filter is all_
+
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
-        npt.filter = type_A
+        method.filter = type_A
 
-    assert npt.filter is all_
+    check_instance_attrs(method,method_base_params.changed_params,True)
 
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    npt.kT = ramp
-    assert npt.kT is ramp
 
-    npt.tau = 10.0
-    assert npt.tau == 10.0
+def test_rattle_attributes(method_base_params):
+    if not method_base_params.has_rattle:
+        pytest.skip("RATTLE method is not implemented for this method")
 
-    ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
-    npt.S = ramp_s
-    assert len(npt.S) == 6
-    for i in range(6):
-        assert npt.S[i] is ramp_s[i]
+    all_ = hoomd.filter.All()
+    gyroid = hoomd.md.manifold.Gyroid(N=1)
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    assert method.manifold_constraint == gyroid
+    assert method.tolerance == 1e-6
 
-    npt.tauS = 10.0
-    assert npt.tauS == 10.0
+    sphere = hoomd.md.manifold.Sphere(r=10)
+    with pytest.raises(AttributeError):
+        method.manifold_constraint = sphere
+    assert method.manifold_constraint == gyroid
 
-    npt.box_dof = (True,False,False,False,True,False)
-    assert tuple(npt.box_dof) == (True,False,False,False,True,False)
+    method.tolerance = 1e-5
+    assert method.tolerance == 1e-5
 
-    npt.couple = 'none'
-    assert npt.couple == 'none'
 
-    npt.rescale_all = True
-    assert npt.rescale_all
+def test_rattle_attributes_attached(simulation_factory,
+                                two_particle_snapshot_factory,
+                                method_base_params):
 
-    npt.gamma = 2.0
-    assert npt.gamma == 2.0
+    if not method_base_params.has_rattle:
+        pytest.skip("RATTLE integrator is not implemented for this method")
 
-    assert npt.translational_thermostat_dof == (0.0, 0.0)
-    npt.translational_thermostat_dof = (0.125, 0.5)
-    assert npt.translational_thermostat_dof == (0.125, 0.5)
+    all_ = hoomd.filter.All()
+    gyroid = hoomd.md.manifold.Gyroid(N=1)
+    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
 
-    assert npt.rotational_thermostat_dof == (0.0, 0.0)
-    npt.rotational_thermostat_dof = (0.5, 0.25)
-    assert npt.rotational_thermostat_dof == (0.5, 0.25)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
+    sim.run(0)
 
-    assert npt.barostat_dof == (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    npt.barostat_dof = (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
-    assert npt.barostat_dof == (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    assert method.filter is all_
+    assert method.manifold_constraint == gyroid
+    assert method.tolerance == 1e-6
+
+    check_instance_attrs(method,method_base_params.setup_params)
+    check_instance_attrs(method,method_base_params.extra_params)
+
+    type_A = hoomd.filter.Type(['A'])
+    with pytest.raises(AttributeError):
+        # filter cannot be set after scheduling
+        method.filter = type_A
+
+    sphere = hoomd.md.manifold.Sphere(r=10)
+    with pytest.raises(AttributeError):
+        # manifold cannot be set after scheduling
+        method.manifold_constraint = sphere
+    assert method.manifold_constraint == gyroid
+
+    method.tolerance = 1e-5
+    assert method.tolerance == 1e-5
+
+    check_instance_attrs(method,method_base_params.changed_params,True)
+
+
+def test_rattle_missing_manifold(method_base_params):
+    if not method_base_params.has_rattle:
+        pytest.skip("RATTLE method is not implemented for this method")
+
+    all_ = hoomd.filter.All()
+    with pytest.raises(TypeError):
+        method = method_base_params.method(**method_base_params.setup_params,filter=all_, tolerance = 1e-5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
@@ -428,8 +259,8 @@ def test_nph_attributes_attached_3d(simulation_factory,
     nph.tauS = 10.0
     assert nph.tauS == 10.0
 
-    nph.box_dof = (True, False, False, False, True, False)
-    assert tuple(nph.box_dof) == (True, False, False, False, True, False)
+    nph.box_dof = [True, False, False, False, True, False]
+    assert nph.box_dof == [True, False, False, False, True, False]
 
     nph.couple = 'none'
     assert nph.couple == 'none'
@@ -476,7 +307,7 @@ def test_npt_thermalize_thermostat_and_barostat_dof(
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations._schedule()
+    sim.run(0)
 
     npt.thermalize_thermostat_and_barostat_dof()
     xi, eta = npt.translational_thermostat_dof
@@ -558,15 +389,15 @@ def test_npt_attributes_attached_2d(simulation_factory,
                                couple='xy')
 
 
-    assert npt.box_dof == (True,True,True,False,False,False)
+    assert npt.box_dof == [True,True,True,False,False,False]
     assert npt.couple == 'xy'
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[npt])
-    sim.operations._schedule()
+    sim.run(0)
 
     # after attaching in 2d, only some coupling modes and box dof are valid
-    assert tuple(npt.box_dof) == (True,True,False,False,False,False)
+    assert npt.box_dof == [True,True,False,False,False,False]
     assert npt.couple == 'xy'
 
     with pytest.raises(ValueError):
@@ -579,140 +410,8 @@ def test_npt_attributes_attached_2d(simulation_factory,
     npt.couple = 'none'
     assert npt.couple == 'none'
 
-    npt.box_dof = (True, True, True, True, True, True)
-    assert tuple(npt.box_dof) == (True, True, False, True, False, False)
-
-
-def test_nph_attributes_attached_2d(simulation_factory,
-                                    two_particle_snapshot_factory):
-    """Test attributes of the NPH integrator specific to 2D simulations."""
-    all_ = hoomd.filter.All()
-    nph = hoomd.md.methods.NPH(filter=all_, S=2.0, tauS=2.0, couple='xy')
-
-    assert nph.box_dof == (True, True, True, False, False, False)
-    assert nph.couple == 'xy'
-
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nph])
-    sim.run(0)
-
-    # after attaching in 2d, only some coupling modes and box dof are valid
-    assert tuple(nph.box_dof) == (True, True, False, False, False, False)
-    assert nph.couple == 'xy'
-
-    with pytest.raises(ValueError):
-        nph.couple = 'xyz'
-    with pytest.raises(ValueError):
-        nph.couple = 'xz'
-    with pytest.raises(ValueError):
-        nph.couple = 'yz'
-
-    nph.couple = 'none'
-    assert nph.couple == 'none'
-
-    nph.box_dof = (True, True, True, True, True, True)
-    assert tuple(nph.box_dof) == (True, True, False, True, False, False)
-
-
-def test_nve_attributes():
-    """Test attributes of the NVE integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    nve = hoomd.md.methods.NVE(filter = all_)
-
-    assert nve.filter is all_
-
-    type_A = hoomd.filter.Type(['A'])
-    nve.filter = type_A
-    assert nve.filter is type_A
-
-
-def test_nve_attributes_attached(simulation_factory,
-                                 two_particle_snapshot_factory):
-    """Test attributes of the NVE integrator before attaching."""
-    all_ = hoomd.filter.All()
-    nve = hoomd.md.methods.NVE(filter = all_)
-
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nve])
-    sim.operations._schedule()
-
-    assert nve.filter is all_
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        nve.filter = type_A
-
-    assert nve.filter is all_
-
-
-def test_nvt_attributes():
-    """Test attributes of the NVT integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    nvt = hoomd.md.methods.NVT(filter = all_, kT=constant, tau=2.0)
-
-    assert nvt.filter is all_
-    assert nvt.kT is constant
-    assert nvt.tau == 2.0
-
-    type_A = hoomd.filter.Type(['A'])
-    nvt.filter = type_A
-    assert nvt.filter is type_A
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    nvt.kT = ramp
-    assert nvt.kT is ramp
-
-    nvt.tau = 10.0
-    assert nvt.tau == 10.0
-
-    assert nvt.translational_thermostat_dof == (0.0, 0.0)
-    nvt.translational_thermostat_dof = (0.125, 0.5)
-    assert nvt.translational_thermostat_dof == (0.125, 0.5)
-
-    assert nvt.rotational_thermostat_dof == (0.0, 0.0)
-    nvt.rotational_thermostat_dof = (0.5, 0.25)
-    assert nvt.rotational_thermostat_dof == (0.5, 0.25)
-
-
-def test_nvt_attributes_attached(simulation_factory,
-                                      two_particle_snapshot_factory):
-    """Test attributes of the NVT integrator before attaching."""
-    all_ = hoomd.filter.All()
-    constant = hoomd.variant.Constant(2.0)
-    nvt = hoomd.md.methods.NVT(filter = all_, kT=constant, tau=2.0)
-
-    sim = simulation_factory(two_particle_snapshot_factory())
-    sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
-    sim.operations._schedule()
-
-    assert nvt.filter is all_
-    assert nvt.kT is constant
-    assert nvt.tau == 2.0
-
-    type_A = hoomd.filter.Type(['A'])
-    with pytest.raises(AttributeError):
-        # filter cannot be set after scheduling
-        nvt.filter = type_A
-
-    assert nvt.filter is all_
-
-    ramp = hoomd.variant.Ramp(1, 2, 1000000, 2000000)
-    nvt.kT = ramp
-    assert nvt.kT is ramp
-
-    nvt.tau = 10.0
-    assert nvt.tau == 10.0
-
-    assert nvt.translational_thermostat_dof == (0.0, 0.0)
-    nvt.translational_thermostat_dof = (0.125, 0.5)
-    assert nvt.translational_thermostat_dof == (0.125, 0.5)
-
-    assert nvt.rotational_thermostat_dof == (0.0, 0.0)
-    nvt.rotational_thermostat_dof = (0.5, 0.25)
-    assert nvt.rotational_thermostat_dof == (0.5, 0.25)
+    npt.box_dof = [True, True, True, True, True, True]
+    assert npt.box_dof == [True, True, False, True, False, False]
 
 
 def test_nvt_thermalize_thermostat_dof(simulation_factory,
@@ -724,7 +423,7 @@ def test_nvt_thermalize_thermostat_dof(simulation_factory,
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[nvt])
-    sim.operations._schedule()
+    sim.run(0)
 
     nvt.thermalize_thermostat_dof()
     xi, eta = nvt.translational_thermostat_dof
@@ -763,52 +462,14 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
     assert eta_rot == 0.0
 
 
-@pytest.mark.parametrize('method_cls, kwargs', [
-    (hoomd.md.methods.NVT, {
-        'filter': hoomd.filter.All(),
-        'kT': 1.0,
-        'tau': 2.0
-    }),
-    (hoomd.md.methods.NVE, {
-        'filter': hoomd.filter.All()
-    }),
-    (hoomd.md.methods.NPH, {
-        'filter': hoomd.filter.All(),
-        'S': 2.0,
-        'tauS': 2.0,
-        'couple': 'xyz',
-        'box_dof': [True, True, True, True, True, True]
-    }),
-    (hoomd.md.methods.NPT, {
-        'filter': hoomd.filter.All(),
-        'kT': 2.0,
-        'tau': 2.0,
-        'S': 2.0,
-        'tauS': 2.0,
-        'box_dof': [True, True, True, True, True, True],
-        'couple': 'xyz'
-    }),
-    (hoomd.md.methods.Langevin, {
-        'filter': hoomd.filter.All(),
-        'kT': 1.5
-    }),
-    (hoomd.md.methods.Brownian, {
-        'filter': hoomd.filter.All(),
-        'kT': 1.5
-    }),
-    (hoomd.md.methods.Berendsen, {
-        'filter': hoomd.filter.All(),
-        'kT': 1.5,
-        'tau': 10.0
-    }),
-],
-                         ids=lambda x: x.__class__.__name__)
-def test_pickling(method_cls, kwargs, simulation_factory,
+def test_pickling(method_base_params, simulation_factory,
                   two_particle_snapshot_factory):
-    method = method_cls(**kwargs)
+    method = method_base_params.method(
+        **method_base_params.setup_params, filter=hoomd.filter.All())
+
     pickling_check(method)
     sim = simulation_factory(two_particle_snapshot_factory())
-    if (method_cls == hoomd.md.methods.Berendsen
+    if (method_base_params.method == hoomd.md.methods.Berendsen
             and sim.device.communicator.num_ranks > 1):
         pytest.skip("Berendsen method does not support multiple processor "
                     "configurations.")

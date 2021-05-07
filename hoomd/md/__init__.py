@@ -17,6 +17,7 @@ from hoomd.md import external
 from hoomd.md import force
 from hoomd.md import improper
 from hoomd.md.integrate import Integrator
+from hoomd.md import manifold
 from hoomd.md import nlist
 from hoomd.md import pair
 from hoomd.md import update
