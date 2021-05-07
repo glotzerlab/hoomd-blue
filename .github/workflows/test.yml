@@ -60,7 +60,8 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
-    - uses: actions/checkout@v2.3.4
+    - name: Checkout
+      uses: actions/checkout@v2.3.4
       with:
         path: code
         submodules: true
@@ -123,7 +124,8 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
@@ -162,7 +164,8 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download build
+      uses: actions/download-artifact@v2.0.9
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
@@ -195,7 +198,8 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
@@ -230,7 +234,8 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
-    - uses: actions/checkout@v2.3.4
+    - name: Checkout
+      uses: actions/checkout@v2.3.4
       with:
         path: code
         submodules: true
@@ -300,7 +305,8 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
@@ -346,7 +352,8 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download build
+      uses: actions/download-artifact@v2.0.9
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build

@@ -36,7 +36,8 @@ jobs:
       image: glotzerlab/ci:2021.05-ubuntu20.04
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
         with:
           fetch-depth: 0
           submodules: true
@@ -65,7 +66,8 @@ jobs:
       - name: Tar source
         run: tar -cvzf ${name}-${tag}.tar.gz ${name}-${tag}
 
-      - uses: actions/upload-artifact@v2.2.3
+      - name: Upload release files
+        uses: actions/upload-artifact@v2.2.3
         with:
           name: release
           path: |

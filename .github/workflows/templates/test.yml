@@ -48,7 +48,8 @@ env:
     <% endfor %>
 <% endmacro %>
 <% set build_steps %>
-    - uses: actions/checkout@v2.3.4
+    - name: Checkout
+      uses: actions/checkout@v2.3.4
       with:
         path: code
         submodules: true
@@ -96,14 +97,16 @@ env:
         retention-days: 7
 <% endset %>
 <% set download_build_steps %>
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download build
+      uses: actions/download-artifact@v2.0.9
       with:
         name: build-${{ join(matrix.config, '_') }}
     - name: Untar build
       run: << tar_command >> -xvf build.tar
 <% endset %>
 <% set download_install_steps %>
-    - uses: actions/download-artifact@v2.0.9
+    - name: Download install
+      uses: actions/download-artifact@v2.0.9
       with:
         name: install-${{ join(matrix.config, '_') }}
     - name: Untar install
