@@ -350,14 +350,14 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     {
     public:
         ConvexPolyhedronVertexShapeMove(unsigned int ntypes,
-                                        Scalar stepsize,
+                                        std::vector<Scalar> step_size,
                                         Scalar mixratio,
                                         Scalar volume)
             : ShapeMoveBase<ShapeConvexPolyhedron>(ntypes), m_volume(volume)
             {
             this->m_det_inertia_tensor = 1.0;
             m_scale = 1.0;
-            std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+            m_step_size = step_size;
             m_calculated.resize(ntypes, false);
             m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
             m_select_ratio = fmin(mixratio, 1.0)*65535;
@@ -442,12 +442,12 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
 
     public:
         ElasticShapeMove(unsigned int ntypes,
-                         const Scalar& stepsize,
+                         std::vector<Scalar> step_size,
                          Scalar move_ratio)
             : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            this->m_step_size.resize(ntypes, stepsize);
+            this->m_step_size = step_size;
             m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
             m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
             std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
@@ -518,6 +518,16 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
         void retreat(unsigned int timestep)
             {
             m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
+            }
+
+        Scalar getParamRatio()
+            {
+            return m_select_ratio;
+            }
+
+        void setParamRatio(Scalar param_ratio)
+            {
+            m_select_ratio = fmin(param_ratio, 1.0)*65535;
             }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
