@@ -42,18 +42,28 @@ class UpdaterShape  : public Updater
 
         void initialize();
 
-        float getParticleVolume(unsigned int ndx)
+        float getParticleVolume()
             {
+            Scalar volume = 0.0;
             ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-            detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
-            return mp.getVolume()*Scalar(h_ntypes.data[ndx]);
+            for (unsigned int ndx = 0; ndx < m_ntypes; ndx++)
+                {
+                detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
+                volume += mp.getVolume()*Scalar(h_ntypes.data[ndx]);
+                }
+            return volume;
             }
 
-        float getShapeMoveEnergy(unsigned int ndx, unsigned int timestep)
+        float getShapeMoveEnergy(unsigned int timestep)
             {
+            Scalar energy = 0.0;
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-            return m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
+            for (unsigned int ndx = 0; ndx < m_ntypes; ndx++)
+                {
+                energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
+                }
+            return energy
             }
 
         float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
@@ -721,9 +731,9 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             bool,
                             bool,
                             unsigned int>())
-    .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
-    .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
-    .def("getParticleVolume", &UpdaterShape<Shape>::getParticleVolume)
+    .def_property_readonly("accepted_count", &UpdaterShape<Shape>::getAcceptedCount)
+    .def_property_readonly("total_count", &UpdaterShape<Shape>::getTotalCount)
+    .def_property_readonly("getParticleVolume", &UpdaterShape<Shape>::getParticleVolume)
     .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
     .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
     .def("setLogBoltzmannFunction", &UpdaterShape<Shape>::setLogBoltzmannFunction)
