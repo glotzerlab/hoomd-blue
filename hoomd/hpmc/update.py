@@ -634,16 +634,16 @@ class Shape(Updater):
     def total_count(self):
         """Total number of shape moves attempted
         """
-        return sum([self._cpp_obj.getTotalCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+        return self._cpp_obj.total_count
 
     @property
     def accepted_count(self):
         """Total number of shape moves accepted
         """
-        return sum([self._cpp_obj.getAcceptedCount(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+        return self._cpp_obj.accepted_count
 
     @log(category='scalar')
-    def shape_move_acceptance_ratio(self):
+    def acceptance_ratio(self):
         """float: Returns the shape move acceptance ratio for all particle types
 
         Returns:
@@ -655,13 +655,22 @@ class Shape(Updater):
         return acc
 
     @log(category='scalar')
-    def shape_move_particle_volume(self):
+    def particle_volume(self):
         """float: Returns the total volume being occupied by particles.
 
         Returns:
             The current value of the total volume occupied by particles
         """
-        return sum([self._cpp_obj.getParticleVolume(i) for i in range(self._simulation.state._cpp_sys_def.getParticleData().getNTypes())])
+        return self._cpp_obj.particle_volume
+
+    @log(category="scalar")
+    def shape_move_energy(self):
+        """float: Energy of the shape resulting from shear moves
+
+        Returns:
+            The energy of the shape at the current timestep
+        """
+        return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
 
     def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
