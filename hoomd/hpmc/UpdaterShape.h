@@ -76,7 +76,11 @@ class UpdaterShape  : public Updater
 
         void setLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
+        std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > getLogBoltzmannFunction();
+
         void setShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
+
+        std::shared_ptr< ShapeMoveBase<Shape> > getShapeMove();
 
         Scalar getStepSize(unsigned int typ)
             {
@@ -89,6 +93,35 @@ class UpdaterShape  : public Updater
             if(m_move_function) m_move_function->setStepSize(typ, stepsize);
             }
 
+        Scalar getMoveRatio()
+            {
+            return m_move_ratio / 65535;
+            }
+
+        void setMoveRatio(Scalar move_ratio)
+            {
+            m_move_ratio = move_ratio * 65535;
+            }
+
+        bool getPretend() {return m_pretend;}
+
+        void setPretend(bool pretend) {m_pretend = pretend;}
+
+        unsigned int getNselect() {return m_type_select;}
+
+        void setNselect(unsigned int nselect) {m_type_select = nselect;}
+
+        unsigned int getNsweeps() {return m_nsweeps;}
+
+        void setNsweeps(unsigned int nsweeps) {m_nsweeps = nsweeps;}
+
+        bool getMultiPhase() {return m_multi_phase;}
+
+        void setMultiPhase(bool multi_phase) {m_multi_phase = multi_phase;}
+
+        unsigned int getNumPhase() {return m_num_phase;}
+
+        void setNumPhase(unsigned int num_phase) {m_num_phase = num_phase;}
 
         void countTypes();
 
