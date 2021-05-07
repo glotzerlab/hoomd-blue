@@ -74,9 +74,9 @@ class UpdaterShape  : public Updater
             std::fill(m_box_total.begin(), m_box_total.end(), 0);
             }
 
-        void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
+        void setLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-        void registerShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
+        void setShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
 
         Scalar getStepSize(unsigned int typ)
             {
@@ -590,25 +590,27 @@ void UpdaterShape<Shape>::initialize()
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
+void UpdaterShape<Shape>::setLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
     {
-    if(m_log_boltz_function)
-        return;
     m_log_boltz_function = lbf;
-    std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
-    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
-    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
-void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<ShapeMoveBase<Shape> > move)
+std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > UpdaterShape<Shape>::getLogBoltzmannFunction()
     {
-    if(m_move_function) // if it exists I do not want to reset it.
-        return;
+    return m_log_boltz_function;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::setShapeMove(std::shared_ptr<ShapeMoveBase<Shape> > move)
+    {
     m_move_function = move;
-    std::vector< std::string > quantities(m_move_function->getProvidedLogQuantities());
-    m_provided_quantities.reserve( m_provided_quantities.size() + quantities.size() );
-    m_provided_quantities.insert(m_provided_quantities.end(), quantities.begin(), quantities.end());
+    }
+
+template< typename Shape>
+std::shared_ptr<ShapeMoveBase<Shape> > UpdaterShape<Shape>::getShapeMove()
+    {
+    return m_move_function;
     }
 
 template< typename Shape>
@@ -691,8 +693,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("getParticleVolume", &UpdaterShape<Shape>::getParticleVolume)
     .def("getShapeMoveEnergy", &UpdaterShape<Shape>::getShapeMoveEnergy)
     .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
-    .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
-    .def("registerLogBoltzmannFunction", &UpdaterShape<Shape>::registerLogBoltzmannFunction)
+    .def("setShapeMove", &UpdaterShape<Shape>::setShapeMove)
+    .def("setLogBoltzmannFunction", &UpdaterShape<Shape>::setLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
     .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
