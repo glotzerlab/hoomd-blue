@@ -1,3 +1,5 @@
+import json
+
 from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
@@ -234,15 +236,13 @@ class GayBerne(AnisotropicPair):
         return super()._return_type_shapes()
 
 
-class alj(ai_pair):
+class ALJ(AnisotropicPair):
     R"""Anistropic LJ potential.
-
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
         average_simplices (bool): Whether or not to perform simplex averaging (see below for more details).
-
     :py:class:`alj` computes the LJ potential between anisotropic particles.
     The anisotropy is implemented as a composite of two interactions, a
     center-center component and a component of interaction measured at the
@@ -250,21 +250,16 @@ class alj(ai_pair):
     both standard LJ interactions as well as repulsive-only WCA interactions.
     This behavior is controlled using the :code:`alpha` parameter, which can
     take on the following values:
-
     * :code:`0`:
       All interactions are WCA (no attraction).
-
     * :code:`1`:
       Center-center interactions include attraction,
       contact-contact interactions are solely repulsive.
-
     * :code:`2`:
       Center-center interactions are solely repulsive,
       contact-contact interactions include attraction.
-
     * :code:`3`:
       All interactions include attractive and repulsive components.
-
     For polytopes, computing interactions using a single contact point leads to
     significant instabilities in the torques because the contact point can jump
     from one end of a face to another in an arbitrarily small time interval. To
@@ -272,11 +267,8 @@ class alj(ai_pair):
     features associated with the closest simplices on two polytopes. This
     averaging can be turned off by setting the ``average_simplices`` argument
     to ``False``.
-
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
-
     The following coefficients must be set per unique pair of particle types:
-
     - *epsilon* - :math:`\varepsilon` (in energy units)
     - *sigma_i* - the insphere radius of the first particle type.
     - *sigma_j* - the insphere radius of the second particle type.
@@ -288,9 +280,7 @@ class alj(ai_pair):
       - *optional*: defaults to 0.15*sigma_j
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
-
     The following shape parameters may be set per particle type:
-
     - *vertices* - The vertices of a convex polytope in 2 or 3 dimensions. The
                    array may be :math:`N\times2` or :math:`N\times3` in 2D (in
                    the latter case, the third dimension is ignored).
@@ -300,7 +290,6 @@ class alj(ai_pair):
     - *faces* - The faces of the polyhedron specified as a (possible ragged) 2D
                 array of integers. The vertices must be ordered (see
                 :meth:`~.convexHull` for more information).
-
     At least one of ``vertices`` or ``rounding_radii`` must be specified.
     Specifying only ``rounding radii creates an ellipsoid, while specifying
     only vertices creates a convex polytope. In general, the faces will be
@@ -310,224 +299,61 @@ class alj(ai_pair):
     result in not all coplanar faces actually being merged. In such cases,
     users can precompute the faces and provide them. The convenience class
     method :meth:`~.convexHull` can be used for this purpose.
-
     Example::
+        nl = nlist.Cell()
+        alj = pair.ALJ(nl, r_cut=2.5)
 
-        nl = nlist.cell()
-        alj = pair.alj(r_cut=2.5, nlist=nl)
-        alj.pair_coeff.set(
-            'A', 'A', epsilon=1.0, sigma_i=2.0, sigma_j=2.0, alpha=0)
+        cube_verts = [(-0.5, -0.5, -0.5),
+                      (-0.5, -0.5, 0.5),
+                      (-0.5, 0.5, -0.5),
+                      (-0.5, 0.5, 0.5),
+                      (0.5, -0.5, -0.5),
+                      (0.5, -0.5, 0.5),
+                      (0.5, 0.5, -0.5),
+                      (0.5, 0.5, 0.5)];
+
+        cube_faces = [[0, 2, 6],
+                      [6, 4, 0],
+                      [5, 0, 4],
+                      [5,1,0],
+                      [5,4,6],
+                      [5,6,7],
+                      [3,2,0],
+                      [3,0,1],
+                      [3,6,2],
+                      [3,7,6],
+                      [3,1,5],
+                      [3,5,7]]
+
+        alj.params[('A')] = dict(epsilon=2.0,
+                                      sigma_i=1.0,
+                                      sigma_j=1.0,
+                                      alpha=1,
+                                      )
+        alj.shape["A"] = dict(vertices=cube_verts,
+                              faces=cube_faces,
+                              rounding_radii=[1])
     """
 
-    def __init__(self, r_cut, nlist, name=None, average_simplices=True):
-        hoomd.util.print_status_line()
+    _cpp_class_name = "AnisoPotentialALJ"
 
-        # initialize the base class
-        ai_pair.__init__(self, r_cut, nlist, name)
+    def __init__(self, nlist, r_cut=None, mode='none'):
+        super().__init__(nlist, r_cut, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma_i=float,
+                              sigma_j=float,
+                              alpha=int,
+                              contact_sigma_i=float,
+                              contact_sigma_j=float,
+                              len_keys=2))  # Allen -I do not what to set this to.
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            if hoomd.context.current.system_definition.getNDimensions() == 2:
-                cls = _md.AnisoPotentialPairALJ2D
-            else:
-                cls = _md.AnisoPotentialPairALJ3D
-        else:
-            self.nlist.cpp_nlist.setStorageMode(
-                _md.NeighborList.storageMode.full)
-            if hoomd.context.current.system_definition.getNDimensions() == 2:
-                cls = _md.AnisoPotentialPairALJ2DGPU
-            else:
-                cls = _md.AnisoPotentialPairALJ3DGPU
+        shape = TypeParameter(
+            'shape', 'particle_types',
+            TypeParameterDict(vertices=(float, float, float),
+                              faces=[[int]],
+                              rounding_radii=[float],
+                              len_keys=1))  # Allen -I do not what to set this to.
 
-        # create the c++ mirror class
-        self.cpp_force = cls(hoomd.context.current.system_definition,
-                             self.nlist.cpp_nlist, self.name)
-        self.cpp_class = cls
-
-        hoomd.context.current.system.addCompute(
-            self.cpp_force, self.force_name)
-
-        # Note that while this is set for the entire pair potential, in
-        # practice it is passed through on a per-pair basis as part of the pair
-        # params.
-        self.average_simplices = average_simplices
-
-        # Setup the coefficent options. Note that the contact sigmas are
-        # optional, but if not provided they are computed based on the sigmas
-        # so we have to provide dummy values here for checking.
-        self.required_coeffs = ['epsilon', 'sigma_i', 'sigma_j', 'alpha',
-                                'contact_sigma_i', 'contact_sigma_j']
-        self.pair_coeff.set_default_coeff('contact_sigma_i', -1.0);
-        self.pair_coeff.set_default_coeff('contact_sigma_j', -1.0);
-
-    def process_coeff(self, coeff):
-        epsilon = coeff['epsilon']
-        sigma_i = coeff['sigma_i']
-        sigma_j = coeff['sigma_j']
-        alpha = int(coeff['alpha'])
-
-        default_contact_multiplier = 0.15
-        contact_sigma_i = coeff['contact_sigma_i']
-        contact_sigma_j = coeff['contact_sigma_j']
-        if contact_sigma_i == -1:
-            contact_sigma_i = sigma_i*default_contact_multiplier
-        if contact_sigma_j == -1:
-            contact_sigma_j = sigma_j*default_contact_multiplier
-
-        if alpha not in range(4):
-            raise ValueError(
-                "The alpha parameter must be an integer from 0 to 3.")
-
-        return _md.make_pair_alj_params(
-            epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha,
-            self.average_simplices, hoomd.context.exec_conf)
-
-
-    ### COPIED FROM dem.utils
-    @classmethod
-    def convexHull(cls, vertices, tol=1e-6):
-        """Compute the 3D convex hull of a set of vertices and merge coplanar faces.
-
-        Args:
-            vertices (list): List of (x, y, z) coordinates
-            tol (float): Floating point tolerance for merging coplanar faces
-
-
-        Returns an array of vertices and a list of faces (vertex
-        indices) for the convex hull of the given set of vertice.
-
-        .. note::
-            This method uses scipy's quickhull wrapper and therefore requires scipy.
-
-        """
-        from scipy.spatial import cKDTree, ConvexHull;
-        from scipy.sparse.csgraph import connected_components;
-        from collections import defaultdict
-        import numpy as np
-
-        hull = ConvexHull(vertices);
-        # Triangles in the same face will be defined by the same linear equalities
-        dist = cKDTree(hull.equations);
-        trianglePairs = dist.query_pairs(tol);
-
-        connectivity = np.zeros((len(hull.simplices), len(hull.simplices)), dtype=np.int32);
-
-        for (i, j) in trianglePairs:
-            connectivity[i, j] = connectivity[j, i] = 1;
-
-        # connected_components returns (number of faces, cluster index for each input)
-        (_, joinTarget) = connected_components(connectivity, directed=False);
-        faces = defaultdict(list);
-        norms = defaultdict(list);
-        for (idx, target) in enumerate(joinTarget):
-            faces[target].append(idx);
-            norms[target] = hull.equations[idx][:3];
-
-        # a list of sets of all vertex indices in each face
-        faceVerts = [set(hull.simplices[faces[faceIndex]].flat) for faceIndex in sorted(faces)];
-        # normal vector for each face
-        faceNorms = [norms[faceIndex] for faceIndex in sorted(faces)];
-
-        # polygonal faces
-        polyFaces = [];
-        for (norm, faceIndices) in zip(faceNorms, faceVerts):
-            face = np.array(list(faceIndices), dtype=np.uint32);
-            N = len(faceIndices);
-
-            r = hull.points[face];
-            rcom = np.mean(r, axis=0);
-
-            # plane_{a, b}: basis vectors in the plane
-            plane_a = r[0] - rcom;
-            plane_a /= np.sqrt(np.sum(plane_a**2));
-            plane_b = np.cross(norm, plane_a);
-
-            dr = r - rcom[np.newaxis, :];
-
-            thetas = np.arctan2(dr.dot(plane_b), dr.dot(plane_a));
-
-            sortidx = np.argsort(thetas);
-
-            face = face[sortidx];
-            polyFaces.append(face.tolist());
-
-        return (hull.points.tolist(), polyFaces);
-
-    def _set_cpp_shape(self, type_id, type_name):
-        # Ensure that shape parameters are always 3D lists, even in 2D.
-        # TODO: Ensure that the centroid is contained in the shape.
-        # There is always at least one vertex. For ellipsoids, this is just the
-        # origin and has no effect.
-        import numpy as np
-
-        ndim = hoomd.context.current.system_definition.getNDimensions()
-
-        # Process rounding radius
-        rrs = self.shape[type_name].get('rounding_radii', 0)
-        try:
-            rounding_radii = list(rrs)
-            if len(rounding_radii) > 3:
-                raise ValueError(
-                    "The rounding radius must be a single value or a "
-                    "sequence of 1-3 values.")
-
-            ndim = hoomd.context.current.system_definition.getNDimensions()
-            if len(rounding_radii) == 1:
-                rounding_radii *= ndim
-                if ndim == 2:
-                    rounding_radii += [0]
-            elif ndim == 2:
-                if len(rounding_radii) == 2:
-                    rounding_radii += [0]
-                elif rounding_radii[2] != 0:
-                    raise ValueError(
-                        "The z dimension rounding radius must be 0 in 2D.")
-            elif len(rounding_radii) != 3:
-                raise ValueError("Invalid rounding radius in 3D.")
-        except TypeError:
-            # We were passed a scalar value
-            if hoomd.context.current.system_definition.getNDimensions() == 2:
-                rounding_radii = [rrs, rrs, 0]
-            else:
-                rounding_radii = [rrs, rrs, rrs]
-
-        # Process vertices
-        vertices = self.shape[type_name].get('vertices')
-        if vertices is not None:
-            vertices = list(vertices)
-            if ndim == 2:
-                vertices = [[v[0], v[1], 0] for v in vertices]
-
-            if len(vertices) <= ndim and rrs == 0:
-                raise ValueError("Your shape must have at least {} vertices in "
-                                "{} dimensions".format(
-                                    ndim+1, ndim));
-
-            if np.linalg.norm(np.mean(vertices, axis=0)) > 1e-6:
-                raise ValueError(
-                    "The vertices must be centered at the centroid of your shape. "
-                    "Please subtract the centroid (e.g. via "
-                    "`np.mean(vertices, axis=0)`) from the vertices.")
-
-            faces = self.shape[type_name].get('faces')
-            if faces is None:
-                if ndim == 3:
-                    vertices, faces = self.convexHull(vertices)
-                else:
-                    # The faces don't actually get used for 2D, so just pass a
-                    # dummy for now.
-                    faces = [[0]]
-        else:
-            vertices = [[0, 0, 0]]
-            faces = [[0]]
-
-        param = _md.make_alj_shape_params(
-            vertices, faces, rounding_radii, hoomd.context.exec_conf)
-        self.cpp_force.setShape(type_id, param)
-
-    def get_type_shapes(self):
-        """Get all the types of shapes in the current simulation.
-
-        Returns:
-            A list of dictionaries, one for each particle type in the system.
-        """
-        return super(ai_pair, self)._return_type_shapes()
+        self._extend_typeparam((params, shape))
