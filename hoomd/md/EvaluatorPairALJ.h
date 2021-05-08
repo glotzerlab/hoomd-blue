@@ -36,155 +36,6 @@
 #endif
 #endif
 
-//! Shape parameters for the ALJ potential.
-/*! The ALJ potential in its current form can be used to handle a generalized
- * class of shapes composed of the Minkowski sum of an ellipsoid and a convex
- * polyhedron. The shape parameters here are sufficiently general as to handle
- * all possible cases in both 2D and 3D. The shape is stored as a set of
- * (optional) vertices that trace out the underlying polytope (polygon in 2D,
- * polyhedron in 3D) and a set of 3 rounding radii stored as a vec3. For
- * simulations of polytopes, the contact point formalism is inherently unstable
- * due to the oscillations that may occur when facets are nearly parallel. To
- * resolve this, the ALJ potential implements a form of face averaging that is
- * essentially a local form of the discrete element method (DEM). To do this,
- * it sums over all relevant point-edge interactions in 2D, and in 3D it sums
- * both point-face interactions and edge-edge interactions. To support this
- * calculation over an entire polytope, the shape params also encode the faces.
- * The faces are stored in two separate arrays. The faces array is a linear
- * container that indexes into the vertices to indicate which vertices compose
- * each face. Since this array is linear, the face_offsets array is used to
- * indicate the index in teh faces array corresponding to the start of each
- * face of the polytope.
- */
-struct alj_shape_params
-    {
-    HOSTDEVICE alj_shape_params()
-        {}
-
-    #ifndef NVCC
-
-    //! Shape constructor
-    /*! \param vertices Nested pybind list that translates to an Nx3 set of vertices
-        \param faces_ Nested pybind list that contains indices into vertices corresponding to each face.
-        \param rr The semimajor axes of the rounding ellipse.
-        \param use_device Whether or not the shape params are managed on the host, forwarded through to underlying arrays for migration to the GPU as needed.
-     */
-    alj_shape_params(pybind11::list vertices, pybind11::list faces_, pybind11::list rr, bool use_device) : has_rounding(false)
-        {
-        // Unpack the list[list] of vertices into a ManagedArray.
-        unsigned int N = len(vertices);
-        verts = ManagedArray<vec3<Scalar> >(N, use_device);
-        for (unsigned int i = 0; i < N; ++i)
-            {
-            pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
-            verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
-            }
-
-        // Since we don't know the total number of face indices a priori (we
-        // only have access to the top-level list), we first construct the face
-        // offsets array and simultaneously compute the total number of faces.
-        // Then, we allocate the faces array and loop a second time to store
-        // those indices linearly.
-        N = len(faces_);
-        face_offsets = ManagedArray<unsigned int>(N, use_device);
-        face_offsets[0] = 0;
-        for (unsigned int i = 0; i < (N-1); ++i)
-            {
-            pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-            face_offsets[i+1] = face_offsets[i] + len(faces_tmp);
-            }
-        pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
-        const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
-
-        faces = ManagedArray<unsigned int>(total_face_indices, use_device);
-        unsigned int counter = 0;
-        for (unsigned int i = 0; i < N; ++i)
-        {
-            pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-            for (unsigned int j = 0; j < len(face_tmp); ++j)
-            {
-                faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
-                ++counter;
-            }
-        }
-
-        // Store the rounding radii.
-        rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
-        rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
-        rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
-        if (rounding_radii.x > 0 || rounding_radii.y > 0 || rounding_radii.z > 0)
-            {
-            has_rounding = true;
-            }
-        }
-
-    #endif
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-        \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
-        {
-        verts.load_shared(ptr, available_bytes);
-        faces.load_shared(ptr, available_bytes);
-        face_offsets.load_shared(ptr, available_bytes);
-        }
-
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
-        {
-        verts.attach_to_stream(stream);
-        faces.attach_to_stream(stream);
-        face_offsets.attach_to_stream(stream);
-        }
-    #endif
-
-    //! Shape parameters
-    ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
-    ManagedArray<unsigned int> faces;       //! Shape faces.
-    ManagedArray<unsigned int> face_offsets;       //! Index where each faces starts.
-    vec3<Scalar> rounding_radii;  //! The semimajor axes of the rounding ellipse.
-    bool has_rounding;    //! Whether or not the shape has rounding radii.
-    };
-
-//! Potential parameters for the ALJ potential.
-struct pair_alj_params
-    {
-    DEVICE pair_alj_params()
-        : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0), contact_sigma_j(0.0), alpha(0), average_simplices(false)
-        {}
-
-    #ifndef NVCC
-    //! Shape constructor
-    pair_alj_params(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i, Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
-        : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
-
-    #endif
-
-    //! Load dynamic data members into shared memory and increase pointer
-    /*! \param ptr Pointer to load data to (will be incremented)
-     *  \param available_bytes Size of remaining shared memory allocation
-     */
-    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
-
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const {}
-    #endif
-
-    //! Potential parameters
-    Scalar epsilon;                      //! Interaction energy scale.
-    Scalar sigma_i;                      //! Size of particle i.
-    Scalar sigma_j;                      //! Size of particle j.
-    Scalar contact_sigma_i;              //! Size of contact sphere on particle i.
-    Scalar contact_sigma_j;              //! Size of contact sphere on particle j.
-    unsigned int alpha;                  //! Toggle switch of attractive branch of potential (0 for all repulsive, 3 for all attractive, 1 for center-center attraction, 2 for contact-contact attraction).
-    bool average_simplices;              //! Whether or not to average interactions over simplices.
-    };
-
-
 /*! Clip a value between 0 and 1 */
 HOSTDEVICE inline Scalar clip(const Scalar &x)
     {
@@ -652,9 +503,154 @@ template <unsigned int ndim>
 class EvaluatorPairALJ
     {
     public:
-        typedef pair_alj_params param_type;
+        //! Potential parameters for the ALJ potential.
+        struct param_type
+            {
+            DEVICE param_type()
+                : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0), contact_sigma_j(0.0), alpha(0), average_simplices(false)
+                {}
 
-        typedef alj_shape_params shape_param_type;
+            #ifndef NVCC
+            //! Shape constructor
+            param_type(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i, Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
+                : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
+
+            #endif
+
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+             *  \param available_bytes Size of remaining shared memory allocation
+             */
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+
+            #ifdef ENABLE_CUDA
+            //! Attach managed memory to CUDA stream
+            void attach_to_stream(cudaStream_t stream) const {}
+            #endif
+
+            //! Potential parameters
+            Scalar epsilon;                      //! Interaction energy scale.
+            Scalar sigma_i;                      //! Size of particle i.
+            Scalar sigma_j;                      //! Size of particle j.
+            Scalar contact_sigma_i;              //! Size of contact sphere on particle i.
+            Scalar contact_sigma_j;              //! Size of contact sphere on particle j.
+            unsigned int alpha;                  //! Toggle switch of attractive branch of potential (0 for all repulsive, 3 for all attractive, 1 for center-center attraction, 2 for contact-contact attraction).
+            bool average_simplices;              //! Whether or not to average interactions over simplices.
+            };
+
+        //! Shape parameters for the ALJ potential.
+        /*! The ALJ potential in its current form can be used to handle a generalized
+         * class of shapes composed of the Minkowski sum of an ellipsoid and a convex
+         * polyhedron. The shape parameters here are sufficiently general as to handle
+         * all possible cases in both 2D and 3D. The shape is stored as a set of
+         * (optional) vertices that trace out the underlying polytope (polygon in 2D,
+         * polyhedron in 3D) and a set of 3 rounding radii stored as a vec3. For
+         * simulations of polytopes, the contact point formalism is inherently unstable
+         * due to the oscillations that may occur when facets are nearly parallel. To
+         * resolve this, the ALJ potential implements a form of face averaging that is
+         * essentially a local form of the discrete element method (DEM). To do this,
+         * it sums over all relevant point-edge interactions in 2D, and in 3D it sums
+         * both point-face interactions and edge-edge interactions. To support this
+         * calculation over an entire polytope, the shape params also encode the faces.
+         * The faces are stored in two separate arrays. The faces array is a linear
+         * container that indexes into the vertices to indicate which vertices compose
+         * each face. Since this array is linear, the face_offsets array is used to
+         * indicate the index in teh faces array corresponding to the start of each
+         * face of the polytope.
+         */
+        struct shape_type
+            {
+            HOSTDEVICE shape_type()
+                {}
+
+            #ifndef NVCC
+
+            //! Shape constructor
+            /*! \param vertices Nested pybind list that translates to an Nx3 set of vertices
+                \param faces_ Nested pybind list that contains indices into vertices corresponding to each face.
+                \param rr The semimajor axes of the rounding ellipse.
+                \param use_device Whether or not the shape params are managed on the host, forwarded through to underlying arrays for migration to the GPU as needed.
+             */
+            shape_type(pybind11::list vertices, pybind11::list faces_, pybind11::list rr, bool use_device) : has_rounding(false)
+                {
+                // Unpack the list[list] of vertices into a ManagedArray.
+                unsigned int N = len(vertices);
+                verts = ManagedArray<vec3<Scalar> >(N, use_device);
+                for (unsigned int i = 0; i < N; ++i)
+                    {
+                    pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
+                    verts[i] = vec3<Scalar>(pybind11::cast<Scalar>(vertices_tmp[0]), pybind11::cast<Scalar>(vertices_tmp[1]), pybind11::cast<Scalar>(vertices_tmp[2]));
+                    }
+
+                // Since we don't know the total number of face indices a priori (we
+                // only have access to the top-level list), we first construct the face
+                // offsets array and simultaneously compute the total number of faces.
+                // Then, we allocate the faces array and loop a second time to store
+                // those indices linearly.
+                N = len(faces_);
+                face_offsets = ManagedArray<unsigned int>(N, use_device);
+                face_offsets[0] = 0;
+                for (unsigned int i = 0; i < (N-1); ++i)
+                    {
+                    pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+                    face_offsets[i+1] = face_offsets[i] + len(faces_tmp);
+                    }
+                pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
+                const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
+
+                faces = ManagedArray<unsigned int>(total_face_indices, use_device);
+                unsigned int counter = 0;
+                for (unsigned int i = 0; i < N; ++i)
+                {
+                    pybind11::list face_tmp = pybind11::cast<pybind11::list>(faces_[i]);
+                    for (unsigned int j = 0; j < len(face_tmp); ++j)
+                    {
+                        faces[counter] = pybind11::cast<unsigned int>(face_tmp[j]);
+                        ++counter;
+                    }
+                }
+
+                // Store the rounding radii.
+                rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
+                rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
+                rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
+                if (rounding_radii.x > 0 || rounding_radii.y > 0 || rounding_radii.z > 0)
+                    {
+                    has_rounding = true;
+                    }
+                }
+
+            #endif
+
+            //! Load dynamic data members into shared memory and increase pointer
+            /*! \param ptr Pointer to load data to (will be incremented)
+                \param available_bytes Size of remaining shared memory allocation
+             */
+            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+                {
+                verts.load_shared(ptr, available_bytes);
+                faces.load_shared(ptr, available_bytes);
+                face_offsets.load_shared(ptr, available_bytes);
+                }
+
+            #ifdef ENABLE_CUDA
+            //! Attach managed memory to CUDA stream
+            void attach_to_stream(cudaStream_t stream) const
+                {
+                verts.attach_to_stream(stream);
+                faces.attach_to_stream(stream);
+                face_offsets.attach_to_stream(stream);
+                }
+            #endif
+
+            //! Shape parameters
+            ManagedArray<vec3<Scalar> > verts;       //! Shape vertices.
+            ManagedArray<unsigned int> faces;       //! Shape faces.
+            ManagedArray<unsigned int> face_offsets;       //! Index where each faces starts.
+            vec3<Scalar> rounding_radii;  //! The semimajor axes of the rounding ellipse.
+            bool has_rounding;    //! Whether or not the shape has rounding radii.
+            };
+
 
         //! Constructs the pair potential evaluator.
         /*! \param _dr Displacement vector between particle centers of mass.
@@ -1165,43 +1161,6 @@ std::string EvaluatorPairALJ<3>::getShapeSpec() const
         }
 
     return shapedef.str();
-    }
-#endif
-
-
-
-#ifndef NVCC
-alj_shape_params make_alj_shape_params(pybind11::list vertices, pybind11::list faces, pybind11::list rounding_radii, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    {
-    alj_shape_params result(vertices, faces, rounding_radii, exec_conf->isCUDAEnabled());
-    return result;
-    }
-
-pair_alj_params make_pair_alj_params(Scalar epsilon, Scalar sigma_i, Scalar sigma_j, Scalar contact_sigma_i, Scalar contact_sigma_j, unsigned int alpha, bool average_simplices, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    {
-    pair_alj_params result(epsilon, sigma_i, sigma_j, contact_sigma_i, contact_sigma_j, alpha, average_simplices, exec_conf->isCUDAEnabled());
-    return result;
-    }
-
-//! Function to export the ALJ parameter type to python
-void export_alj_params(pybind11::module& m)
-{
-    pybind11::class_<pair_alj_params>(m, "pair_alj_params")
-        .def(pybind11::init<>())
-        .def_readwrite("alpha", &pair_alj_params::alpha)
-        .def_readwrite("epsilon", &pair_alj_params::epsilon)
-        .def_readwrite("sigma_i", &pair_alj_params::sigma_i)
-        .def_readwrite("sigma_j", &pair_alj_params::sigma_j);
-
-    m.def("make_pair_alj_params", &make_pair_alj_params);
-}
-
-void export_alj_shape_params(pybind11::module& m)
-    {
-    pybind11::class_<alj_shape_params>(m, "alj_shape_params")
-        .def(pybind11::init<>());
-
-    m.def("make_alj_shape_params", &make_alj_shape_params);
     }
 #endif
 
