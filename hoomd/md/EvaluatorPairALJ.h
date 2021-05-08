@@ -515,6 +515,30 @@ class EvaluatorPairALJ
             param_type(Scalar _epsilon, Scalar _sigma_i, Scalar _sigma_j, Scalar _contact_sigma_i, Scalar _contact_sigma_j, unsigned int _alpha, bool _average_simplices, bool use_device)
                 : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j), contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha), average_simplices(_average_simplices) {}
 
+            param_type(pybind11::dict params)
+                : epsilon(params["epsilon"].cast<Scalar>()),
+                  sigma_i(params["sigma_i"].cast<Scalar>()),
+                  sigma_j(params["sigma_j"].cast<Scalar>()),
+                  contact_sigma_i(params["contact_sigma_i"].cast<Scalar>()),
+                  contact_sigma_j(params["contact_sigma_j"].cast<Scalar>()),
+                  alpha(params["alpha"].cast<unsigned int>()),
+                  average_simplices(params["average_simplices"].cast<bool>()) {}
+
+			
+            pybind11::object toPython()
+                {
+                using namespace pybind11::literals;
+                return pybind11::dict(
+                    "epsilon"_a=epsilon,
+                    "sigma_i"_a=sigma_i,
+                    "sigma_j"_a=sigma_j,
+                    "contact_sigma_i"_a=sigma_i,
+                    "contact_sigma_j"_a=sigma_j,
+                    "alpha"_a=alpha,
+                    "average_simplices"_a=average_simplices
+                    );
+                }
+
             #endif
 
             //! Load dynamic data members into shared memory and increase pointer
@@ -571,10 +595,14 @@ class EvaluatorPairALJ
                 \param rr The semimajor axes of the rounding ellipse.
                 \param use_device Whether or not the shape params are managed on the host, forwarded through to underlying arrays for migration to the GPU as needed.
              */
-            shape_type(pybind11::list vertices, pybind11::list faces_, pybind11::list rr, bool use_device) : has_rounding(false)
+            shape_type(pybind11::dict shape) : has_rounding(false)
                 {
+                // TODO: Add support for managed memory on GPU.
+                bool use_device = false;
+
                 // Unpack the list[list] of vertices into a ManagedArray.
-                unsigned int N = len(vertices);
+                auto vertices = shape["vertices"].cast<pybind11::list>();
+                unsigned int N = static_cast<unsigned int>(len(vertices));
                 verts = ManagedArray<vec3<Scalar> >(N, use_device);
                 for (unsigned int i = 0; i < N; ++i)
                     {
@@ -587,16 +615,18 @@ class EvaluatorPairALJ
                 // offsets array and simultaneously compute the total number of faces.
                 // Then, we allocate the faces array and loop a second time to store
                 // those indices linearly.
-                N = len(faces_);
+                auto faces_ = shape["faces"].cast<pybind11::list>();
+                N = static_cast<unsigned int>(len(faces_));
                 face_offsets = ManagedArray<unsigned int>(N, use_device);
                 face_offsets[0] = 0;
                 for (unsigned int i = 0; i < (N-1); ++i)
                     {
                     pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[i]);
-                    face_offsets[i+1] = face_offsets[i] + len(faces_tmp);
+                    face_offsets[i+1] = face_offsets[i] + static_cast<unsigned int>(len(faces_tmp));
                     }
                 pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
-                const unsigned int total_face_indices = face_offsets[N-1] + len(faces_tmp);
+                const unsigned int total_face_indices = face_offsets[N-1] + 
+                    static_cast<unsigned int>(len(faces_tmp));
 
                 faces = ManagedArray<unsigned int>(total_face_indices, use_device);
                 unsigned int counter = 0;
@@ -611,12 +641,53 @@ class EvaluatorPairALJ
                 }
 
                 // Store the rounding radii.
+                auto rr = shape["rounding_radius"].cast<pybind11::tuple>();
                 rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
                 rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
                 rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
                 if (rounding_radii.x > 0 || rounding_radii.y > 0 || rounding_radii.z > 0)
                     {
                     has_rounding = true;
+                    }
+                }
+
+            pybind11::object toPython()
+                {
+                pybind11::list vertices;
+                for (unsigned int i = 0; i < verts.size(); ++i)
+                    {
+                    auto& position = verts[i];
+                    vertices.append(pybind11::make_tuple(position.x, position.y, position.z));
+                    }
+
+                pybind11::list py_faces;
+                unsigned int current_face_index = 0;
+                for (unsigned int i = 1; i < face_offsets.size(); ++i)
+                    {
+                    pybind11::list face_vertices;
+                    for (; current_face_index < face_offsets[i]; ++current_face_index)
+                        {
+                        face_vertices.append(faces[current_face_index]);
+                        }
+                    py_faces.append(face_vertices);
+                    }
+
+                // Copy final face
+                pybind11::list face_vertices;
+                for (; current_face_index < faces.size(); ++current_face_index)
+                    {
+                    face_vertices.append(faces[current_face_index]);
+                    }
+                py_faces.append(face_vertices);
+
+                    {
+                    using namespace pybind11::literals;
+                    return pybind11::dict(
+                        "vertices"_a=vertices,
+                        "faces"_a=py_faces,
+                        "rounding_radii"_a=pybind11::make_tuple(
+                            rounding_radii.x, rounding_radii.y, rounding_radii.z)
+                        );
                     }
                 }
 
