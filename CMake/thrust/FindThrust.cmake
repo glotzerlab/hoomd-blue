@@ -10,16 +10,15 @@ find_path( THRUST_INCLUDE_DIR
 
 # Find thrust version
 file( STRINGS ${THRUST_INCLUDE_DIR}/thrust/version.h
-      version
-      REGEX "#define THRUST_VERSION[ \t]+([0-9x]+)"
+      _version_line
+      REGEX "#define THRUST_VERSION[ \t]+([0-9]+)"
 )
 
-string( REGEX REPLACE "#define THRUST_VERSION[ \t]+" "" version ${version} )
-string( REGEX MATCH "^[0-9]" major ${version} )
-string( REGEX REPLACE "^${major}00" "" version ${version} )
-string( REGEX MATCH "^[0-9]" minor ${version} )
-string( REGEX REPLACE "^${minor}0" "" version ${version} )
-set( THRUST_VERSION "${major}.${minor}.${version}")
+string(REGEX REPLACE "#define THRUST_VERSION[ \t]+([0-9]+).*$" "\\1" _version "${_version_line}")
+math( EXPR major ${_version}/100000 )
+math( EXPR minor ${_version}/100%1000 )
+math( EXPR subminor ${_version}%100 )
+set( THRUST_VERSION "${major}.${minor}.${subminor}" )
 
 # Check for required components
 set( THRUST_FOUND TRUE )

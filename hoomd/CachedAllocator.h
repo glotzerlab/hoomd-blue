@@ -13,6 +13,9 @@
 #ifndef __CACHED_ALLOCATOR_H__
 #define __CACHED_ALLOCATOR_H__
 
+#include <string>
+#include <stdexcept>
+
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
 

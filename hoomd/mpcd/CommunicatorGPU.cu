@@ -19,7 +19,11 @@
 #include <thrust/sort.h>
 #include <thrust/transform.h>
 
+#if __CUDACC_VER_MAJOR__ >= 11
+#include <cub/device/device_reduce.cuh>
+#else
 #include "hoomd/extern/cub/cub/device/device_reduce.cuh"
+#endif
 
 namespace mpcd
 {

@@ -642,6 +642,7 @@ class gsd(hoomd.analyze._analyzer):
             if time_step is None:
                 time_step = hoomd.context.current.system.getCurrentTimeStep()
             self.cpp_analyzer.analyze(time_step);
+            hoomd.context.current.analyzers.remove(self)
 
         # store metadata
         self.filename = filename
