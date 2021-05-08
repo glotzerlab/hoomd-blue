@@ -1,3 +1,8 @@
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+// Maintainer: vramasub
+
 #ifndef __GJK_SV_H__
 #define __GJK_SV_H__
 
@@ -106,7 +111,7 @@ HOSTDEVICE inline void s1d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
     vec3<Scalar> t = W[i2] - W[i1];
     unsigned int I = 0;
     Scalar neg_tI = -t[0];
-    
+
     if (abs(t[1]) > abs(neg_tI))
     {
         I = 1;
@@ -120,11 +125,11 @@ HOSTDEVICE inline void s1d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
     }
 
     Scalar pI = (dot(W[i2], t)/dot(t, t)) * neg_tI + W[i2][I];
-    
+
     // Identify the signed volume resulting from replacing each point by the origin.
     Scalar C[2] = {-W[i2][I] + pI, W[i1][I] - pI};
     unsigned int sign_comparisons[2] = {compareSigns(neg_tI, C[0]), compareSigns(neg_tI, C[1])};
-    
+
     // If all signed volumes are identical, the origin lies inside the simplex.
     if (sign_comparisons[0] + sign_comparisons[1] == 2)
     {
@@ -184,7 +189,7 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
 
     vec3<Scalar> n = cross(W[point1_idx] - W[point0_idx], W[point2_idx] - W[point0_idx]);
     vec3<Scalar> p0 = (dot(W[point0_idx], n)/dot(n, n))*(n);
-    
+
     // Choose maximum area plane to project onto.
     // Make sure to store the *signed* area of the plane.
     // This loop is unrolled to save a few extra ops (assigning
@@ -198,7 +203,7 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
             W[point1_idx][1] * W[point0_idx][2] -
             W[point2_idx][1] * W[point1_idx][2] -
             W[point0_idx][1] * W[point2_idx][2]);
-    
+
     // This term is multiplied by -1.
     Scalar mu = (
             W[point1_idx][2] * W[point0_idx][0] +
@@ -226,12 +231,12 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
         idx_x = 0;
         idx_y = 1;
     }
-    
+
     // Compute the signed areas of each of the simplices formed by replacing an
     // index with a projection of the origin onto the area in this plane
     Scalar C[num_points] = {0};
     bool sign_comparisons[num_points] = {false};
-    
+
     C[0] = (p0[idx_x] * W[point1_idx][idx_y] +
             p0[idx_y] * W[point2_idx][idx_x] +
             W[point1_idx][idx_x] * W[point2_idx][idx_y] -
@@ -239,7 +244,7 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
             p0[idx_y] * W[point1_idx][idx_x] -
             W[point2_idx][idx_x] * W[point1_idx][idx_y]);
     sign_comparisons[0] = compareSigns(mu_max, C[0]);
-    
+
     C[1] = (p0[idx_x] * W[point2_idx][idx_y] +
             p0[idx_y] * W[point0_idx][idx_x] +
             W[point2_idx][idx_x] * W[point0_idx][idx_y] -
@@ -247,7 +252,7 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
             p0[idx_y] * W[point2_idx][idx_x] -
             W[point0_idx][idx_x] * W[point2_idx][idx_y]);
     sign_comparisons[1] = compareSigns(mu_max, C[1]);
-    
+
     C[2] = (p0[idx_x] * W[point0_idx][idx_y] +
             p0[idx_y] * W[point1_idx][idx_x] +
             W[point0_idx][idx_x] * W[point1_idx][idx_y] -
@@ -287,7 +292,7 @@ HOSTDEVICE inline void s2d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
                 }
 
                 Scalar new_lambdas[max_num_points] = {0};
-                
+
                 s1d<ndim>(W, new_used, new_lambdas);
                 // Consider resetting in place if possible.
                 new_point[0] = 0;
@@ -327,7 +332,7 @@ HOSTDEVICE inline void s3d(vec3<Scalar>* W, unsigned int &W_used, Scalar* lambda
     // This function is always called with 4 points, so a constant is defined
     // for clarity.
     constexpr unsigned int num_points = 4;
-    // Unlike s1d and s2d, this function can only be called in 3d so it does not use the template 
+    // Unlike s1d and s2d, this function can only be called in 3d so it does not use the template
     constexpr unsigned int ndim = 3;
     constexpr unsigned int max_num_points = ndim + 1;
     Scalar C[num_points] = {0};
@@ -552,7 +557,7 @@ HOSTDEVICE inline void sv_subalgorithm(vec3<Scalar>* W, unsigned int &W_used, Sc
  *  However, in certain nearly degenerate cases the Johnson subalgorithm can
  *  fail to return the correct result. In this case, the original solution has
  *  always been to follow a backup procedure that amounts to a brute force
- *  search through all possible simplices. 
+ *  search through all possible simplices.
  *
  *  The backup procedure is quite expensive, so in principle we would like to
  *  use the Johnson algorithm alone. Bergen et al assert that in practice the
@@ -618,7 +623,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     v = dr;
 
     // We don't bother to initialize most of these arrays since the W_used
-    // array controls which data is valid. 
+    // array controls which data is valid.
     vec3<Scalar> W[max_num_points];
     Scalar lambdas[max_num_points];
     unsigned int W_used = 0;
@@ -639,7 +644,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
     // The tolerances are compile-time constants.
     constexpr Scalar eps(1e-8), omega(1e-4);
 
-    Scalar u(0); 
+    Scalar u(0);
     bool close_enough(false);
     // Value of 50 chosen based on empirical observations.
     const unsigned int max_iterations = ((has_rounding1 || has_rounding2) ? 50 : verts1.size() + verts2.size() + 1);
@@ -713,7 +718,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar> > &verts1, const Mana
             for (; new_index < max_num_points; ++new_index)
                 {
                 // At least one of these must be empty, otherwise we have an
-                // overlap. 
+                // overlap.
                 if (!(W_used & (1 << new_index)))
                     {
                     W[new_index] = w;
