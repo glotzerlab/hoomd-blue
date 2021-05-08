@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -9,7 +9,7 @@
  */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "CommunicatorGPU.h"
 #include "CommunicatorGPU.cuh"
@@ -158,7 +158,7 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
         << " communication stage(s)." << std::endl;
     }
 
-void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
+void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
@@ -202,7 +202,7 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                 ArrayHandle<unsigned int> d_tmp_keys(m_tmp_keys, access_location::device, access_mode::overwrite);
                 ArrayHandle<unsigned int> d_cart_ranks(m_decomposition->getCartRanks(), access_location::device, access_mode::read);
 
-                num_send_neigh = mpcd::gpu::sort_comm_send_buffer(d_sendbuf.data,
+                num_send_neigh = (unsigned int)mpcd::gpu::sort_comm_send_buffer(d_sendbuf.data,
                                                                   d_neigh_send.data,
                                                                   d_num_send.data,
                                                                   d_tmp_keys.data,
@@ -210,7 +210,7 @@ void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
                                                                   m_decomposition->getDomainIndexer(),
                                                                   m_comm_mask[stage],
                                                                   d_cart_ranks.data,
-                                                                  m_sendbuf.size());
+                                                                  (unsigned int)(m_sendbuf.size()));
                 }
 
             // fill the number of particles to send for each neighbor
@@ -358,10 +358,10 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
  */
 void mpcd::detail::export_CommunicatorGPU(py::module& m)
     {
-    py::class_<mpcd::CommunicatorGPU, std::shared_ptr<mpcd::CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
+    py::class_<mpcd::CommunicatorGPU, mpcd::Communicator, std::shared_ptr<mpcd::CommunicatorGPU> >(m,"CommunicatorGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData> >())
         .def("setMaxStages",&mpcd::CommunicatorGPU::setMaxStages);
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // ENABLE_MPI

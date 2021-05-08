@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -12,12 +12,12 @@
 #ifndef MPCD_BOUNCE_BACK_NVE_H_
 #define MPCD_BOUNCE_BACK_NVE_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "hoomd/md/IntegrationMethodTwoStep.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -45,10 +45,10 @@ class PYBIND11_EXPORT BounceBackNVE : public ::IntegrationMethodTwoStep
         virtual ~BounceBackNVE();
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Get the streaming geometry
         std::shared_ptr<const Geometry> getGeometry()
@@ -100,7 +100,7 @@ BounceBackNVE<Geometry>::~BounceBackNVE()
     }
 
 template<class Geometry>
-void BounceBackNVE<Geometry>::integrateStepOne(unsigned int timestep)
+void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
     {
     if (m_aniso)
         {
@@ -163,7 +163,7 @@ void BounceBackNVE<Geometry>::integrateStepOne(unsigned int timestep)
     }
 
 template<class Geometry>
-void BounceBackNVE<Geometry>::integrateStepTwo(unsigned int timestep)
+void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
     {
     if (m_aniso)
         {
@@ -266,8 +266,8 @@ void export_BounceBackNVE(pybind11::module& m)
     namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
-    py::class_<BounceBackNVE<Geometry>, std::shared_ptr<BounceBackNVE<Geometry>>>
-        (m, name.c_str(), py::base<IntegrationMethodTwoStep>())
+    py::class_<BounceBackNVE<Geometry>, IntegrationMethodTwoStep, std::shared_ptr<BounceBackNVE<Geometry>>>
+        (m, name.c_str())
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<const Geometry>>())
         .def_property("geometry", &BounceBackNVE<Geometry>::getGeometry, &BounceBackNVE<Geometry>::setGeometry)
         ;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -781,14 +781,15 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
                                    void *d_tmp,
                                    size_t& tmp_bytes,
                                    const mpcd::detail::cell_thermo_element *d_tmp_thermo,
-                                   const unsigned int Ncell)
+                                   const size_t Ncell)
     {
-    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, Ncell);
+    cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, (unsigned int)Ncell);
     return cudaSuccess;
     }
 
 //! Explicit template instantiation of pack for cell velocity
-template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_send_buf,
+template cudaError_t __attribute__((visibility("default")))
+pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_send_buf,
                                       const double4 *d_props,
                                       const unsigned int *d_send_idx,
                                       const mpcd::detail::CellVelocityPackOp op,
@@ -796,7 +797,8 @@ template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp:
                                       unsigned int block_size);
 
 //! Explicit template instantiation of pack for cell energy
-template cudaError_t pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_send_buf,
+template cudaError_t __attribute__((visibility("default")))
+pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_send_buf,
                                       const double3 *d_props,
                                       const unsigned int *d_send_idx,
                                       const mpcd::detail::CellEnergyPackOp op,
@@ -804,7 +806,8 @@ template cudaError_t pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::e
                                       unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell velocity
-template cudaError_t unpack_cell_buffer(double4 *d_props,
+template cudaError_t __attribute__((visibility("default")))
+unpack_cell_buffer(double4 *d_props,
                                         const unsigned int *d_cells,
                                         const unsigned int *d_recv,
                                         const unsigned int *d_recv_begin,
@@ -815,7 +818,8 @@ template cudaError_t unpack_cell_buffer(double4 *d_props,
                                         const unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell energy
-template cudaError_t unpack_cell_buffer(double3 *d_props,
+template cudaError_t __attribute__((visibility("default")))
+unpack_cell_buffer(double3 *d_props,
                                         const unsigned int *d_cells,
                                         const unsigned int *d_recv,
                                         const unsigned int *d_recv_begin,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,7 +8,7 @@
     \brief Declares an updater that zeros the momentum of the system
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <vector>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ZEROMOMENTUMUPDATER_H__
 #define __ZEROMOMENTUMUPDATER_H__
@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ZeroMomentumUpdater : public Updater
         virtual ~ZeroMomentumUpdater();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ZeroMomentumUpdater to python

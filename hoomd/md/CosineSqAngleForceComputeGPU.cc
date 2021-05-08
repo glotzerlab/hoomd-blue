@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -30,7 +30,8 @@ CosineSqAngleForceComputeGPU::CosineSqAngleForceComputeGPU(std::shared_ptr<Syste
     GPUArray<Scalar2> params(m_angle_data->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "cosinesq_angle", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "cosinesq_angle", this->m_exec_conf));
     }
 
 CosineSqAngleForceComputeGPU::~CosineSqAngleForceComputeGPU()
@@ -60,7 +61,7 @@ void CosineSqAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
 
     Calls gpu_compute_cosinesq_angle_forces to do the dirty work.
 */
-void CosineSqAngleForceComputeGPU::computeForces(unsigned int timestep)
+void CosineSqAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
     // start the profile
     if (m_prof) m_prof->push(m_exec_conf, "CosineSq Angle");
@@ -103,7 +104,7 @@ void CosineSqAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_CosineSqAngleForceComputeGPU(py::module& m)
     {
-    py::class_<CosineSqAngleForceComputeGPU, std::shared_ptr<CosineSqAngleForceComputeGPU> >(m, "CosineSqAngleForceComputeGPU", py::base<CosineSqAngleForceCompute>())
+    py::class_<CosineSqAngleForceComputeGPU, CosineSqAngleForceCompute, std::shared_ptr<CosineSqAngleForceComputeGPU> >(m, "CosineSqAngleForceComputeGPU")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

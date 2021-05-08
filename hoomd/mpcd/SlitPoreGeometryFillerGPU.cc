@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -15,7 +15,7 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(std::shared_ptr<mpcd:
                                                    Scalar density,
                                                    unsigned int type,
                                                    std::shared_ptr<::Variant> T,
-                                                   unsigned int seed,
+                                                   uint16_t seed,
                                                    std::shared_ptr<const mpcd::detail::SlitPoreGeometry> geom)
     : mpcd::SlitPoreGeometryFiller(sysdata, density, type, T, seed, geom)
     {
@@ -25,7 +25,7 @@ mpcd::SlitPoreGeometryFillerGPU::SlitPoreGeometryFillerGPU(std::shared_ptr<mpcd:
 /*!
  * \param timestep Current timestep
  */
-void mpcd::SlitPoreGeometryFillerGPU::drawParticles(unsigned int timestep)
+void mpcd::SlitPoreGeometryFillerGPU::drawParticles(uint64_t timestep)
     {
     ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
@@ -36,6 +36,8 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(unsigned int timestep)
     ArrayHandle<uint2> d_ranges(m_ranges, access_location::device, access_mode::read);
 
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
+
+    uint16_t seed = m_sysdef->getSeed();
 
     m_tuner->begin();
     mpcd::gpu::slit_pore_draw_particles(d_pos.data,
@@ -50,9 +52,9 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(unsigned int timestep)
                                         m_type,
                                         m_first_tag,
                                         first_idx,
-                                        m_T->getValue(timestep),
+                                        (*m_T)(timestep),
                                         timestep,
-                                        m_seed,
+                                        seed,
                                         m_tuner->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner->end();
@@ -64,8 +66,8 @@ void mpcd::SlitPoreGeometryFillerGPU::drawParticles(unsigned int timestep)
 void mpcd::detail::export_SlitPoreGeometryFillerGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitPoreGeometryFillerGPU, std::shared_ptr<mpcd::SlitPoreGeometryFillerGPU>>
-        (m, "SlitPoreGeometryFillerGPU", py::base<mpcd::SlitPoreGeometryFiller>())
+    py::class_<mpcd::SlitPoreGeometryFillerGPU, mpcd::SlitPoreGeometryFiller, std::shared_ptr<mpcd::SlitPoreGeometryFillerGPU>>
+        (m, "SlitPoreGeometryFillerGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,

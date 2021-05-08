@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NPT_MTK_H__
 #define __TWO_STEP_NPT_MTK_H__
@@ -15,12 +15,12 @@
     \brief Declares the TwoStepNPTMTK class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.
@@ -66,14 +66,14 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Constructs the integration method and associates it with the system
         TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                    std::shared_ptr<ParticleGroup> group,
-                   std::shared_ptr<ComputeThermo> thermo_group,
-                   std::shared_ptr<ComputeThermo> thermo_group_t,
+                   std::shared_ptr<ComputeThermo> thermo_half_step,
+                   std::shared_ptr<ComputeThermo> thermo_full_step,
                    Scalar tau,
-                   Scalar tauP,
+                   Scalar tauS,
                    std::shared_ptr<Variant> T,
-                   pybind11::list S,
-                   couplingMode couple,
-                   unsigned int flags,
+                   const std::vector<std::shared_ptr<Variant>>& S,
+                   const std::string& couple,
+                   const std::vector<bool>& flags,
                    const bool nph=false);
 
         virtual ~TwoStepNPTMTK();
@@ -86,18 +86,12 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
-    //! Update the stress components
-    /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
-     */
-    virtual void setS(pybind11::list S)
+        //! Update the stress components
+        /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
+         */
+        virtual void setS(const std::vector<std::shared_ptr<Variant>>& S)
             {
-            std::vector<std::shared_ptr<Variant> > swapS;
-            swapS.resize(0);
-            for (int i = 0; i< 6; ++i)
-                   {
-                swapS.push_back(pybind11::cast<std::shared_ptr<Variant>>(S[i]));
-                }
-            m_S.swap(swapS);
+             m_S = S;
             }
 
         //! Update the tau value
@@ -109,11 +103,11 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             }
 
         //! Update the nuP value
-        /*! \param tauP New pressure constant to set
+        /*! \param tauS New pressure constant to set
         */
-        virtual void setTauP(Scalar tauP)
+        virtual void setTauS(Scalar tauS)
             {
-            m_tauP = tauP;
+            m_tauS = tauS;
             }
 
         //! Set the scale all particles option
@@ -129,16 +123,65 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             m_gamma = gamma;
             }
+        //! declaration for setting the parameter couple
+        void setCouple(const std::string& value);
+
+        //! declaration for setting the parameter flags
+        void setFlags(const std::vector<bool>& value);
+
+        //! Get temperature
+        virtual std::shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
+        // Get stress
+        std::vector<std::shared_ptr<Variant>> getS()
+            {
+            return m_S;
+            }
+
+        // Get tau
+        virtual Scalar getTau()
+            {
+            return m_tau;
+            }
+
+        // Get tauS
+        virtual Scalar getTauS()
+            {
+            return m_tauS;
+            }
+
+        // Get rescale_all
+        bool getRescaleAll()
+            {
+            return m_rescale_all;
+            }
+
+        // Get gamma
+        Scalar getGamma()
+            {
+            return m_gamma;
+            }
+
+        // declaration get function of couple
+        std::string getCouple();
+
+        // declaration get function of flags
+        std::vector<bool> getFlags();
+
+
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
+
 
         //! Get needed pdata flags
-        /*! TwoStepNPTMTK needs the pressure, so the isotropic_virial or pressure_tensor flag is set,
-            depending on the integration mode
+        /*! TwoStepNPTMTK needs the pressure, so the pressure_tensor flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
@@ -147,17 +190,10 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             if (m_aniso)
                 {
                 flags[pdata_flag::rotational_kinetic_energy] = 1;
-//                flags[pdata_flag::rotational_virial] = 1;
                 }
             flags[pdata_flag::external_field_virial]=1;
             return flags;
             }
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Returns logged values
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
         //! Initialize integrator variables
         virtual void initializeIntegratorVariables()
@@ -169,16 +205,52 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Randomize the barostat variables
-        virtual void randomizeVelocities(unsigned int timestep);
+        /// Randomize the thermostat and barostat variables
+        void thermalizeThermostatAndBarostatDOF(uint64_t timestep);
+
+        /// Get the translational thermostat degrees of freedom
+        pybind11::tuple getTranslationalThermostatDOF();
+
+        /// Set the translational thermostat degrees of freedom
+        void setTranslationalThermostatDOF(pybind11::tuple v);
+
+        /// Get the rotational thermostat degrees of freedom
+        pybind11::tuple getRotationalThermostatDOF();
+
+        /// Set the rotational thermostat degrees of freedom
+        void setRotationalThermostatDOF(pybind11::tuple v);
+
+        Scalar getThermostatEnergy(uint64_t timestep);
+
+        /// Get the barostat degrees of freedom
+        pybind11::tuple getBarostatDOF();
+
+        /// Set the barostat degrees of freedom
+        void setBarostatDOF(pybind11::tuple v);
+
+        Scalar getBarostatEnergy(uint64_t timestep);
+
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            IntegrationMethodTwoStep::setCommunicator(comm);
+
+            // set the communicator on the internal thermo
+            m_thermo_half_step->setCommunicator(comm);
+            m_thermo_full_step->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
-        std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
-        std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
-        unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
+        std::shared_ptr<ComputeThermo> m_thermo_half_step;   //!< ComputeThermo operating on the integrated group at t+dt/2
+        std::shared_ptr<ComputeThermo> m_thermo_full_step; //!< ComputeThermo operating on the integrated group at t
+        Scalar m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
-        Scalar m_tauP;                  //!< tauP value for the barostat
+        Scalar m_tauS;                  //!< tauS value for the barostat
         std::shared_ptr<Variant> m_T; //!< Temperature set point
         std::vector<std::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
         Scalar m_V;                     //!< Current volume
@@ -194,16 +266,14 @@ class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
 
         Scalar m_gamma;                 //!< Optional damping factor for box degrees of freedom
 
-        std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
-
         //! Helper function to advance the barostat parameters
-        void advanceBarostat(unsigned int timestep);
+        void advanceBarostat(uint64_t timestep);
 
         //! advance the thermostat
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */
-        void advanceThermostat(unsigned int timestep);
+        void advanceThermostat(uint64_t timestep);
 
         //! Helper function to update the propagator elements
         void updatePropagator(Scalar nuxx, Scalar nuxy, Scalar nuxz, Scalar nuyy, Scalar nuyz, Scalar nuzz);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -17,7 +17,7 @@ namespace hpmc
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -146,7 +146,7 @@ DEVICE inline bool vok5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal
         OverlapReal Qbdef = bedf+bfde-bdef,Qbedf = bdef+bfde-bedf,Qbfde = bdef+bedf-bfde;
         OverlapReal Qcdef = cedf+cfde-cdef,Qcedf = cdef+cfde-cedf,Qcfde = cdef+cedf-cfde;
 
-        return
+        return bool(
         +ab*cd*ef*(-Qabcd+Qabce+Qabcf+Qabde+Qabdf-Qabef+Qaecd+Qafcd+Qacef+Qadef+Qbecd+Qbfcd+Qbcef+Qbdef-Qcdef)
         +ab*ce*df*(+Qabcd-Qabce+Qabcf+Qabde-Qabdf+Qabef+Qadce+Qacdf+Qafce+Qaedf+Qbdce+Qbcdf+Qbfce+Qbedf-Qcedf)
         +ab*cf*de*(+Qabcd+Qabce-Qabcf-Qabde+Qabdf+Qabef+Qacde+Qadcf+Qaecf+Qafde+Qbcde+Qbdcf+Qbecf+Qbfde-Qcfde)
@@ -196,7 +196,7 @@ DEVICE inline bool vok5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal
           ae*(afbc*(becf+bfce)+afbd*(bedf+bfde)+afcd*(cedf+cfde))+
           bc*(bdef*(cedf+cfde)+bedf*(cdef+cfde)+bfde*(cdef+cedf))+
           bd*(becf*(cdef+cedf)+bfce*(cdef+cfde))+
-          be*(bfcd*(cedf+cfde)));
+          be*(bfcd*(cedf+cfde))));
     }
 
 DEVICE inline OverlapReal vok6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
@@ -2046,7 +2046,7 @@ DEVICE inline    OverlapReal yol4(OverlapReal ar,OverlapReal br,OverlapReal cr,O
 
 DEVICE inline    OverlapReal uol1(OverlapReal ar)
     {
-        return M_PI*4/3*ar*ar*ar;
+        return OverlapReal(M_PI*4.0/3.0)*ar*ar*ar;
     }
 
 DEVICE inline    OverlapReal uol2(OverlapReal ar,OverlapReal br,OverlapReal ab)
@@ -2071,7 +2071,7 @@ DEVICE inline  OverlapReal vol2(OverlapReal ar,OverlapReal br,OverlapReal ab)
         return
         +uol1(ar)*(1-cos2(ar,ab,br))/2
         +uol1(br)*(1-cos2(br,ab,ar))/2
-        -M_PI*4/3*t2(ar,br,ab)*t2(ar,br,ab)/ab;
+        -OverlapReal(M_PI*4.0/3.0)*t2(ar,br,ab)*t2(ar,br,ab)/ab;
     }
 
  DEVICE inline    OverlapReal uol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc)
@@ -2157,10 +2157,10 @@ DEVICE inline    OverlapReal xol3(OverlapReal ar,OverlapReal br,OverlapReal cr,O
         +2*t3(ar,br,cr,ab,ac,bc)*sign(ar)*sign(br)*sign(cr)
         +(wol2(ar,br,ab)*tab+
           wol2(ar,cr,ac)*tac+
-          wol2(br,cr,bc)*tbc)/M_PI
-        -(uol1(ar)*(tab+tac+tar-M_PI)+
-          uol1(br)*(tab+tbc+tbr-M_PI)+
-          uol1(cr)*(tac+tbc+tcr-M_PI))/(2*M_PI);
+          wol2(br,cr,bc)*tbc)/OverlapReal(M_PI)
+        -(uol1(ar)*(tab+tac+tar-OverlapReal(M_PI))+
+          uol1(br)*(tab+tbc+tbr-OverlapReal(M_PI))+
+          uol1(cr)*(tac+tbc+tcr-OverlapReal(M_PI)))/(2*OverlapReal(M_PI));
     }
 
 DEVICE inline    OverlapReal uol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
@@ -2406,11 +2406,11 @@ DEVICE inline     OverlapReal yol4(OverlapReal ar,OverlapReal br,OverlapReal cr,
           wol2(ar,dr,ad)*tad+
           wol2(br,cr,bc)*tbc+
           wol2(br,dr,bd)*tbd+
-          wol2(cr,dr,cd)*tcd)/(2*M_PI)
-        +(uol1(ar)*(tab+tac+tad-M_PI)+
-          uol1(br)*(tab+tbc+tbd-M_PI)+
-          uol1(cr)*(tac+tbc+tcd-M_PI)+
-          uol1(dr)*(tad+tbd+tcd-M_PI))/(4*M_PI);
+          wol2(cr,dr,cd)*tcd)/(2*OverlapReal(M_PI))
+        +(uol1(ar)*(tab+tac+tad-OverlapReal(M_PI))+
+          uol1(br)*(tab+tbc+tbd-OverlapReal(M_PI))+
+          uol1(cr)*(tac+tbc+tcd-OverlapReal(M_PI))+
+          uol1(dr)*(tad+tbd+tcd-OverlapReal(M_PI)))/(4*OverlapReal(M_PI));
     }
 
 } // detail

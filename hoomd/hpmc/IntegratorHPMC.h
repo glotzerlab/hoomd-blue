@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -9,6 +9,9 @@
     \brief Declaration of IntegratorHPMC
 */
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
 
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
@@ -16,12 +19,111 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#endif
+
+#ifdef ENABLE_HIP
+#include "hoomd/GPUPartition.cuh"
+#include "hoomd/Autotuner.h"
 #endif
 
 namespace hpmc
 {
+
+namespace detail
+{
+
+#ifdef ENABLE_HIP
+//! Wraps arguments to kernel::narow_phase_patch functions
+struct hpmc_patch_args_t
+    {
+    //! Construct a hpmc_patch_args_t
+    hpmc_patch_args_t(const Scalar4 *_d_postype,
+                const Scalar4 *_d_orientation,
+                const Scalar4 *_d_trial_postype,
+                const Scalar4 *_d_trial_orientation,
+                const unsigned int *_d_trial_move_type,
+                const Index3D& _ci,
+                const uint3& _cell_dim,
+                const Scalar3& _ghost_width,
+                const unsigned int _N,
+                const uint16_t _seed,
+                const unsigned int _rank,
+                const uint64_t _timestep,
+                const unsigned int _num_types,
+                const BoxDim& _box,
+                const unsigned int *_d_excell_idx,
+                const unsigned int *_d_excell_size,
+                const Index2D& _excli,
+                const Scalar _r_cut_patch,
+                const Scalar *_d_additive_cutoff,
+                const unsigned int *_d_update_order_by_ptl,
+                const unsigned int *_d_reject_in,
+                unsigned int *_d_reject_out,
+                const Scalar *_d_charge,
+                const Scalar *_d_diameter,
+                const unsigned int *_d_reject_out_of_cell,
+                const GPUPartition& _gpu_partition)
+                : d_postype(_d_postype),
+                  d_orientation(_d_orientation),
+                  d_trial_postype(_d_trial_postype),
+                  d_trial_orientation(_d_trial_orientation),
+                  d_trial_move_type(_d_trial_move_type),
+                  ci(_ci),
+                  cell_dim(_cell_dim),
+                  ghost_width(_ghost_width),
+                  N(_N),
+                  seed(_seed),
+                  rank(_rank),
+                  timestep(_timestep),
+                  num_types(_num_types),
+                  box(_box),
+                  d_excell_idx(_d_excell_idx),
+                  d_excell_size(_d_excell_size),
+                  excli(_excli),
+                  r_cut_patch(_r_cut_patch),
+                  d_additive_cutoff(_d_additive_cutoff),
+                  d_update_order_by_ptl(_d_update_order_by_ptl),
+                  d_reject_in(_d_reject_in),
+                  d_reject_out(_d_reject_out),
+                  d_charge(_d_charge),
+                  d_diameter(_d_diameter),
+                  d_reject_out_of_cell(_d_reject_out_of_cell),
+                  gpu_partition(_gpu_partition)
+        { }
+
+    const Scalar4 *d_postype;               //!< postype array
+    const Scalar4 *d_orientation;           //!< orientation array
+    const Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
+    const Scalar4 *d_trial_orientation;     //!< New orientations of particles
+    const unsigned int *d_trial_move_type;  //!< 0=no move, 1/2 = translate/rotate
+    const Index3D& ci;                //!< Cell indexer
+    const uint3& cell_dim;            //!< Cell dimensions
+    const Scalar3& ghost_width;       //!< Width of the ghost layer
+    const unsigned int N;             //!< Number of particles
+    const uint16_t seed;              //!< RNG seed
+    const unsigned int rank;          //!< MPI Rank
+    const uint64_t timestep;          //!< Current timestep
+    const unsigned int num_types;     //!< Number of particle types
+    const BoxDim& box;                //!< Current simulation box
+    const unsigned int *d_excell_idx;       //!< Expanded cell list
+    const unsigned int *d_excell_size;//!< Size of expanded cells
+    const Index2D& excli;             //!< Excell indexer
+    const Scalar r_cut_patch;        //!< Global cutoff radius
+    const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
+    const unsigned int *d_update_order_by_ptl; //!< Order of the update sequence
+    const unsigned int *d_reject_in; //!< Previous reject flags
+    unsigned int *d_reject_out;      //!< New reject flags
+    const Scalar *d_charge;          //!< Particle charges
+    const Scalar *d_diameter;        //!< Particle diameters
+    const unsigned int *d_reject_out_of_cell;   //!< Flag if a particle move has been rejected a priori
+    const GPUPartition& gpu_partition; //!< split particles among GPUs
+    };
+#endif
+
+} // end namespace detail
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
@@ -40,79 +142,106 @@ class PatchEnergy
         PatchEnergy() { }
         virtual ~PatchEnergy() { }
 
-    //! Returns the cut-off radius
-    virtual Scalar getRCut()
-        {
-        return 0;
-        }
+        #ifdef ENABLE_HIP
+        //! A struct that contains the kernel arguments
+        typedef detail::hpmc_patch_args_t gpu_args_t;
+        #endif
 
-    //! Returns the geometric extent, per type
-    virtual Scalar getAdditiveCutoff(unsigned int type)
-        {
-        return 0;
-        }
+        //! Returns the cut-off radius
+        virtual Scalar getRCut()
+            {
+            return 0;
+            }
 
-    //! evaluate the energy of the patch interaction
-    /*! \param r_ij Vector pointing from particle i to j
-        \param type_i Integer type index of particle i
-        \param d_i Diameter of particle i
-        \param charge_i Charge of particle i
-        \param q_i Orientation quaternion of particle i
-        \param type_j Integer type index of particle j
-        \param q_j Orientation quaternion of particle j
-        \param d_j Diameter of particle j
-        \param charge_j Charge of particle j
-        \returns Energy of the patch interaction.
-    */
-    virtual float energy(const vec3<float>& r_ij,
-        unsigned int type_i,
-        const quat<float>& q_i,
-        float d_i,
-        float charge_i,
-        unsigned int type_j,
-        const quat<float>& q_j,
-        float d_j,
-        float charge_j)
-        {
-        return 0;
-        }
+        //! Returns the geometric extent, per type
+        virtual Scalar getAdditiveCutoff(unsigned int type)
+            {
+            return 0;
+            }
 
+        //! evaluate the energy of the patch interaction
+        /*! \param r_ij Vector pointing from particle i to j
+            \param type_i Integer type index of particle i
+            \param d_i Diameter of particle i
+            \param charge_i Charge of particle i
+            \param q_i Orientation quaternion of particle i
+            \param type_j Integer type index of particle j
+            \param q_j Orientation quaternion of particle j
+            \param d_j Diameter of particle j
+            \param charge_j Charge of particle j
+            \returns Energy of the patch interaction.
+        */
+        virtual float energy(const vec3<float>& r_ij,
+            unsigned int type_i,
+            const quat<float>& q_i,
+            float d_i,
+            float charge_i,
+            unsigned int type_j,
+            const quat<float>& q_j,
+            float d_j,
+            float charge_j)
+            {
+            return 0;
+            }
+
+        #ifdef ENABLE_HIP
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
+            }
+
+        //! Asynchronously launch the JIT kernel
+        /*! \param args Kernel arguments
+            \param hStream stream to execute on
+            */
+        virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
+            {
+            throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
+            }
+        #endif
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
-        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int seed);
+        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~IntegratorHPMC();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
             m_count_step_start = h_counters.data[0];
             }
 
         //! Change maximum displacement
-        /*! \param d new d to set
-         *! \param typ type to which d will be set
+        /*! \param typ Name of type to set
+         *! \param d new d to set
         */
-        void setD(Scalar d,unsigned int typ)
+        inline void setD(std::string name, Scalar d)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
+
                 {
                 ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-                h_d.data[typ] = d;
+                h_d.data[id] = d;
                 }
+
             updateCellWidth();
             }
 
-        //! Get maximum displacement (by type)
-        inline Scalar getD(unsigned int typ)
+        //! Get maximum displacement (by type name)
+        inline Scalar getD(std::string name)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-            return h_d.data[typ];
+            return h_d.data[id];
             }
 
         //! Get array of translation move sizes
@@ -137,21 +266,39 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return maxD;
             }
 
-        //! Change maximum rotation
-        /*! \param a new a to set
-         *! \param type type to which d will be set
-        */
-        void setA(Scalar a,unsigned int typ)
+        //! Get the minimum particle translational move size
+        virtual Scalar getMinTransMoveSize()
             {
-            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-            h_a.data[typ] = a;
+            // access the type parameters
+            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+            // for each type, create a temporary shape and return the maximum diameter
+            Scalar minD = h_d.data[0];
+            for (unsigned int typ = 1; typ < this->m_pdata->getNTypes(); typ++)
+                {
+                minD = std::max(minD, h_d.data[typ]);
+                }
+
+            return minD;
             }
 
-        //! Get maximum rotation
-        inline Scalar getA(unsigned int typ)
+        //! Change maximum rotation
+        /*! \param name Type name to set
+         *! \param a new a to set
+        */
+        inline void setA(std::string name, Scalar a)
             {
+            unsigned int id = this->m_pdata->getTypeByName(name);
+            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
+            h_a.data[id] = a;
+            }
+
+        //! Get maximum rotation by name
+        inline Scalar getA(std::string name)
+            {
+            unsigned int id = this->m_pdata->getTypeByName(name);
             ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-            return h_a.data[typ];
+            return h_a.data[id];
             }
 
         //! Get array of rotation move sizes
@@ -160,19 +307,19 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_a;
             }
 
-        //! Change move ratio
-        /*! \param move_ratio new move_ratio to set
+        //! Change translation move probability.
+        /*! \param translation_move_probability new translation_move_probability to set
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setTranslationMoveProbability(Scalar translation_move_probability)
             {
-            m_move_ratio = unsigned(move_ratio*65536);
+            m_translation_move_probability = unsigned(translation_move_probability*65536);
             }
 
-        //! Get move ratio
-        //! \returns ratio of translation versus rotation move attempts
-        inline double getMoveRatio()
+        //! Get translation move probability.
+        //! \returns Fraction of moves that are translation moves.
+        inline double getTranslationMoveProbability()
             {
-            return m_move_ratio/65536.0;
+            return m_translation_move_probability/65536.0;
             }
 
         //! Set nselect
@@ -191,32 +338,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return m_nselect;
             }
 
-        //! Print statistics about the hmc steps taken
-        virtual void printStats()
-            {
-            hpmc_counters_t counters = getCounters(1);
-            m_exec_conf->msg->notice(2) << "-- HPMC stats:" << "\n";
-            m_exec_conf->msg->notice(2) << "Average translate acceptance: " << counters.getTranslateAcceptance() << "\n";
-            if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
-                {
-                m_exec_conf->msg->notice(2) << "Average rotate acceptance:    " << counters.getRotateAcceptance() << "\n";
-                }
-
-            // elapsed time
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            uint64_t total_moves = counters.getNMoves();
-            m_exec_conf->msg->notice(2) << "Trial moves per second:        " << double(total_moves) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per second:     " << double(counters.overlap_checks) / cur_time << std::endl;
-            m_exec_conf->msg->notice(2) << "Overlap checks per trial move: " << double(counters.overlap_checks) / double(total_moves) << std::endl;
-            m_exec_conf->msg->notice(2) << "Number of overlap errors:      " << double(counters.overlap_err_count) << std::endl;
-            }
-
         //! Get performance in moves per second
         virtual double getMPS()
             {
-            hpmc_counters_t counters = getCounters(1);
-            double cur_time = double(m_clock.getTime()) / Scalar(1e9);
-            return double(counters.getNMoves()) / cur_time;
+            return m_mps;
             }
 
         //! Reset statistics counters
@@ -238,7 +363,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             \param early_exit exit at first overlap found if true
             \returns number of overlaps if early_exit=false, 1 if early_exit=true
         */
-        virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit)
+        virtual unsigned int countOverlaps(bool early_exit)
             {
             return 0;
             }
@@ -249,16 +374,10 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             MC does not integrate with the MD computations that use this value.
         */
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 1;
             }
-
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
         //! Check the particle data for non-normalized orientations
         virtual bool checkParticleOrientations();
@@ -290,7 +409,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
             }
         //! Method to scale the box
-        virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
+        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -313,23 +432,20 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         /*! \param timestep the current time step
          * \returns the total patch energy
          */
-        virtual float computePatchEnergy(unsigned int timestep)
+        virtual float computePatchEnergy(uint64_t timestep)
             {
             // base class method returns 0
             return 0.0;
             }
 
-        //! Enable deterministic simulations
-        virtual void setDeterministic(bool deterministic) {};
-
         //! Prepare for the run
-        virtual void prepRun(unsigned int timestep)
+        virtual void prepRun(uint64_t timestep)
             {
             m_past_first_run = true;
             }
 
         //! Set the patch energy
-        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+        virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
             }
@@ -342,47 +458,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             m_patch_log = log;
             }
 
-    protected:
-        unsigned int m_seed;                        //!< Random number seed
-        unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
-        unsigned int m_nselect;                     //!< Number of particles to select for trial moves
-
-        GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
-        GPUVector<Scalar> m_a;                      //!< Maximum angular displacement by type
-
-        GPUArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
-
-        Scalar m_nominal_width;                      //!< nominal cell width
-        Scalar m_extra_ghost_width;                  //!< extra ghost width to add
-        ClockSource m_clock;                           //!< Timer for self-benchmarking
-
-        ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
-
-        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
-        bool m_patch_log;                           //!< If true, only use patch energy for logging
-
-        bool m_past_first_run;                      //!< Flag to test if the first run() has started
-        //! Update the nominal width of the cells
-        /*! This method is virtual so that derived classes can set appropriate widths
-            (for example, some may want max diameter while others may want a buffer distance).
-        */
-        virtual void updateCellWidth()
-            {
-            }
-
-        //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int)
-            {
-            return Scalar(0.0);
-            }
-
         #ifdef ENABLE_MPI
-        //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(unsigned int)
-            {
-            return CommFlags(0);
-            }
-
         //! Set the MPI communicator
         /*! \param comm the communicator
             This method is overridden so that we can register with the signal to set the ghost layer width.
@@ -407,6 +483,51 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             // set the member variable
             Integrator::setCommunicator(comm);
             }
+        #endif
+
+    protected:
+        unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
+        unsigned int m_nselect;                     //!< Number of particles to select for trial moves
+
+        GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
+        GPUVector<Scalar> m_a;                      //!< Maximum angular displacement by type
+
+        GlobalArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
+
+        Scalar m_nominal_width;                      //!< nominal cell width
+        Scalar m_extra_ghost_width;                  //!< extra ghost width to add
+        ClockSource m_clock;                           //!< Timer for self-benchmarking
+
+        /// Moves-per-second value last recorded
+        double m_mps = 0;
+
+        ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
+
+        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
+        bool m_patch_log;                           //!< If true, only use patch energy for logging
+
+        bool m_past_first_run;                      //!< Flag to test if the first run() has started
+        //! Update the nominal width of the cells
+        /*! This method is virtual so that derived classes can set appropriate widths
+            (for example, some may want max diameter while others may want a buffer distance).
+        */
+        virtual void updateCellWidth()
+            {
+            }
+
+        //! Return the requested ghost layer width
+        virtual Scalar getGhostLayerWidth(unsigned int type)
+            {
+            return Scalar(0.0);
+            }
+
+        #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(uint64_t timestep)
+            {
+            return CommFlags(0);
+            }
+
         #endif
 
     private:

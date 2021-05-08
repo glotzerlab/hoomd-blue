@@ -7,6 +7,8 @@
 #include <omp.h>
 #include <mkl.h>
 
+#pragma GCC visibility push(default)
+
 #define FFT1D_SUPPORTS_THREADS
 
 typedef MKL_Complex8  cpx_t;
@@ -51,4 +53,6 @@ void dfft_local_1dfft(
     cpx_t *out,
     plan_t p,
     int dir);
+
+#pragma GCC visibility pop
 #endif

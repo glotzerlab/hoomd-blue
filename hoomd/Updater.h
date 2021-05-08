@@ -1,13 +1,15 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 
+
 #include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
 #include "SharedSignal.h"
+#include "Communicator.h"
 
 #include <memory>
 
@@ -18,12 +20,12 @@
     \brief Declares a base class for all updaters
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -64,7 +66,17 @@ class PYBIND11_EXPORT Updater
         /*! Derived classes will implement this method to perform their specific update
             \param timestep Current time step of the simulation
         */
-        virtual void update(unsigned int timestep)  {};
+        virtual void update(uint64_t timestep)
+            {
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition() && !m_comm)
+                {
+                throw std::runtime_error(
+                    "Bug: m_comm not set for a system with a domain decomposition in " +
+                    std::string(typeid(*this).name()));
+                }
+            #endif
+            };
 
         //! Sets the profiler for the compute to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof);
@@ -79,73 +91,9 @@ class PYBIND11_EXPORT Updater
             {
             }
 
-        //! Returns a list of log quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See Logger for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log value and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns 0. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogQuantities() will be requested from
-            getLogValue().
-
-            See Logger for more information on what this is about.
-        */
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            return Scalar(0.0);
-            }
-
-        //! Returns a list of log matrix quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogMatrixQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log matrix and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns an empty shared_ptr. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogMatrixQuantities() will be requested from
-            getLogMatrixValue().
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
-            {
-            unsigned char tmp[] = {0};
-            return pybind11::array(0,tmp);
-            }
-
-        //! Print some basic stats to stdout
-        /*! Derived classes can optionally implement this function. A System will
-            call all of the Updaters' printStats functions at the end of a run
-            so the user can see useful information
-        */
-        virtual void printStats()
-            {
-            }
-
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
-            counters printed by printStats. System will reset the stats before any run() so that stats printed
+        /*! If derived classes provide statistics for the last run, they should resetStats() to
+            clear any counters. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats()
@@ -196,6 +144,10 @@ class PYBIND11_EXPORT Updater
                     }
                 }
             }
+
+        /// Python will notify C++ objects when they are detached from Simulation
+        virtual void notifyDetach() { };
+
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with

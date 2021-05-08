@@ -1,9 +1,7 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-#ifndef __GSDDUMPWRITER_H__
-#define __GSDDUMPWRITER_H__
+#pragma once
 
 #include "Analyzer.h"
 #include "ParticleGroup.h"
@@ -17,19 +15,18 @@
     \brief Declares the GSDDumpWriter class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Analyzer for writing out GSD dump files
 /*! GSDDumpWriter writes out the current state of the system to a GSD file
     every time analyze() is called. When a group is specified, only write out the
     particles in the group.
 
-    On the first call to analyze() \a fname is created with a dcd header. If it already
-    exists, append to the file (unless the user specifies overwrite=True).
+    The file is not opened until the first call to analyze().
 
     \ingroup analyzers
 */
@@ -40,7 +37,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
                       std::shared_ptr<ParticleGroup> group,
-                      bool overwrite=false,
+                      std::string mode="ab",
                       bool truncate=false);
 
         //! Control attribute writes
@@ -67,17 +64,81 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
             m_write_topology = b;
             }
 
+        std::string getFilename()
+            {
+            return m_fname;
+            }
+
+        std::string getMode()
+            {
+            return m_mode;
+            }
+
+        bool getTruncate()
+            {
+            return m_truncate;
+            }
+
+        std::shared_ptr<ParticleGroup> getGroup()
+            {
+            return m_group;
+            }
+
+        pybind11::tuple getDynamic()
+            {
+            pybind11::list result;
+            if (m_write_attribute)
+                result.append("attribute");
+            if (m_write_property)
+                result.append("property");
+            if (m_write_momentum)
+                result.append("momentum");
+            if (m_write_topology)
+                result.append("topology");
+
+            return pybind11::tuple(result);
+            }
+
         //! Destructor
         ~GSDDumpWriter();
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
         hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
+        /// Write a logged quantities
+        void writeLogQuantities(pybind11::dict dict);
+
+        /// Set the log writer
+        void setLogWriter(pybind11::object log_writer)
+            {
+            m_log_writer = log_writer;
+            }
+
+        /// Get the log writer
+        pybind11::object getLogWriter()
+            {
+            return m_log_writer;
+            }
+
+        /// Get needed pdata flags
+        virtual PDataFlags getRequestedPDataFlags()
+            {
+            PDataFlags flags;
+
+            if (!m_log_writer.is_none())
+                {
+                flags.set();
+                }
+
+            return flags;
+            }
+
+
     private:
         std::string m_fname;                //!< The file name we are writing to
-        bool m_overwrite;                   //!< True if file should be overwritten
+        std::string m_mode;                 //!< The file open mode
         bool m_truncate;                    //!< True if we should truncate the file on every analyze()
         bool m_is_initialized;              //!< True if the file is open
         bool m_write_attribute;             //!< True if attributes should be written
@@ -86,9 +147,13 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
 
+        static std::list<std::string> particle_chunks;
+
+        /// Callback to write log quantities to file
+        pybind11::object m_log_writer;
+
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
         std::map<std::string, bool> m_nondefault; //!< Map of quantities (true when non-default in frame 0)
-        std::map<std::string, pybind11::function> m_user_log;   //!< Map of user-defined quantities to log
 
         hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
@@ -99,7 +164,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
         void initFileIO();
 
         //! Write frame header
-        void writeFrameHeader(unsigned int timestep);
+        void writeFrameHeader(uint64_t timestep);
 
         //! Write particle attributes
         void writeAttributes(const SnapshotParticleData<float>& snapshot, const std::map<unsigned int, unsigned int> &map);
@@ -119,7 +184,7 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
                            PairData::Snapshot& pair);
 
         //! Write user defined log data
-        void writeUser(unsigned int timestep, bool root);
+        void writeUser(uint64_t timestep, bool root);
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
@@ -132,5 +197,3 @@ class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
 
 //! Exports the GSDDumpWriter class to python
 void export_GSDDumpWriter(pybind11::module& m);
-
-#endif

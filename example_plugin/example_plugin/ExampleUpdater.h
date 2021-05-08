@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // **********************
@@ -18,8 +18,8 @@
 
 // pybind11 is used to create the python bindings to the C++ object,
 // but not if we are compiling GPU kernels
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 // (if you really don't want to include the whole hoomd.h, you can include individual files IF AND ONLY IF
@@ -40,16 +40,16 @@ class ExampleUpdater : public Updater
         ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ExampleUpdater class to python
 void export_ExampleUpdater(pybind11::module& m);
 
 // Third, this class offers a GPU accelerated method in order to demonstrate how to include CUDA code in pluins
-// we need to declare a separate class for that (but only if ENABLE_CUDA is set)
+// we need to declare a separate class for that (but only if ENABLE_HIP is set)
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 //! A GPU accelerated nonsense particle updater written to demonstrate how to write a plugin w/ CUDA code
 /*! This updater simply sets all of the particle's velocities to 0 (on the GPU) when update() is called.
@@ -61,12 +61,12 @@ class ExampleUpdaterGPU : public ExampleUpdater
         ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
     };
 
 //! Export the ExampleUpdaterGPU class to python
 void export_ExampleUpdaterGPU(pybind11::module& m);
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // _EXAMPLE_UPDATER_H_

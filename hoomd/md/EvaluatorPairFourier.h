@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: zhoupj
@@ -6,7 +6,7 @@
 #ifndef __PAIR_EVALUATOR_FOURIER_H__
 #define __PAIR_EVALUATOR_FOURIER_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -14,13 +14,13 @@
 
 /*! \file EvaluatorPairFourier.h
     \brief Defines the pair evaluator class for potential in form of Fourier series
-
+    
     \details .....
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -30,37 +30,75 @@
 /*! <b>General Overview</b>
 
     See EvaluatorPairLJ.
-
+    
     <b>Fourier specifics</b>
-
+    
     EvaluatorPairFourier evaluates the function:
     \f[ V_{\mathrm{Fourier}}(r) = \frac{1}{r^{12}}
     + \frac{1}{r^2}\sum_{n=1}^4 [a_n cos(\frac{n \pi r}{r_{cut}})
     + b_n sin(\frac{n \pi r}{r_{cut}})] \f]
-
+    
     where:
     \f[ a_1 = \sum_{n=2}^4 (-1)^n a_n cos(\frac{n \pi r}{r_{cut}}) \f]
-
+    
     \f[ b_1 = \sum_{n=2}^4 n (-1)^n b_n cos(\frac{n \pi r}{r_{cut}}) \f]
-
+    
     is calculated to enforce close to zero value at r_cut
-
-    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a pair_fourier_params type.
+    
+    The Fourier potential does not need diameter or charge. two sets of parameters: a and b (both list of size 3) are specified and stored in a param_type struct.
     - \a a is placed in params.a,
     - \a b is placed in params.b.
-
+    
 */
-struct pair_fourier_params
-{
-  Scalar a[3];      //!< Fourier component coefficents
-  Scalar b[3];      //!< Fourier component coefficents
-};
-
 class EvaluatorPairFourier
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef pair_fourier_params param_type; //first try a 4th order fourier expression of potential
+        struct param_type
+            {
+            Scalar a[3];  //!< Fourier component coefficents
+            Scalar b[3];  //!< Fourier component coefficents
+
+
+            #ifdef ENABLE_HIP
+            //! set CUDA memory hint
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type()
+                {
+                for (int i=0; i<3; i++)
+                    {
+                    a[i] = 0.0;
+                    b[i] = 0.0;
+                    }
+                }
+
+            param_type(pybind11::dict v)
+                {
+                pybind11::list py_a(v["a"]);
+                pybind11::list py_b(v["b"]);
+
+                for (int i=0; i<3; i++)
+                    {
+                    a[i] = pybind11::cast<Scalar>(py_a[i]);
+                    b[i] = pybind11::cast<Scalar>(py_b[i]);
+                    }
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["a"] = pybind11::make_tuple(a[0], a[1], a[2]);
+                v["b"] = pybind11::make_tuple(b[0], b[1], b[2]);
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
+
+
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
             \param _rcutsq Sqauared distance at which the potential goes to 0
@@ -94,7 +132,7 @@ class EvaluatorPairFourier
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
-
+                  
             \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr,
@@ -105,7 +143,7 @@ class EvaluatorPairFourier
             if (rsq < rcutsq)
                 {
                 Scalar half_period = fast::sqrt(rcutsq);
-		Scalar period_scale = M_PI / half_period;
+                Scalar period_scale = M_PI / half_period;
                 Scalar r = fast::sqrt(rsq);
                 Scalar x = r * period_scale;
                 Scalar r1inv = Scalar(1)/r;
@@ -116,8 +154,9 @@ class EvaluatorPairFourier
                 Scalar b1 = 0;
                 for (int i=2; i<5; i++)
                     {
-                    a1 = a1 + fast::pow(Scalar(-1),Scalar(i)) * params.a[i-2];
-                    b1 = b1 + i * fast::pow(Scalar(-1),Scalar(i)) * params.b[i-2];
+                    Scalar pow_neg1_i = (i & 1) ? -1.0 : 1.0;
+                    a1 = a1 + pow_neg1_i * params.a[i-2];
+                    b1 = b1 + i * pow_neg1_i * params.b[i-2];
                     }
                 Scalar theta = x;
                 Scalar s;
@@ -145,10 +184,9 @@ class EvaluatorPairFourier
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
@@ -164,7 +202,7 @@ class EvaluatorPairFourier
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        const pair_fourier_params& params;      //!< Fourier component coefficents
+        const param_type& params;      //!< Fourier component coefficents
     };
 
 

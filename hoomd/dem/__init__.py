@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R"""Simulate rounded, faceted shapes in molecular dynamics.
@@ -37,21 +37,21 @@ Integration
 To allow particles to rotate, use integrators which can update
 rotational degrees of freedom:
 
-  * :py:mod:`hoomd.md.integrate.nve`
-  * :py:mod:`hoomd.md.integrate.nvt`
-  * :py:mod:`hoomd.md.integrate.npt`
-  * :py:mod:`hoomd.md.integrate.langevin`
-  * :py:mod:`hoomd.md.integrate.brownian`
+  * `hoomd.md.methods.NVE`
+  * `hoomd.md.methods.NVT`
+  * `hoomd.md.methods.NPT`
+  * `hoomd.md.methods.Langevin`
+  * `hoomd.md.methods.Brownian`
 
 Note that the Nosé-Hoover thermostats used in
-:py:mod:`hoomd.md.integrate.nvt` and :py:mod:`hoomd.md.integrate.npt`
+`hoomd.md.methods.NVT` and `hoomd.md.methods.NPT`
 work by rescaling momenta and angular momenta. This can lead to
 instabilities in the start of the simulation if particles are
 initialized with 0 angular momentum and no neighbor interactions. Two
 easy fixes for this problem are to initialize each particle with some
 angular momentum or to first run for a few steps with
-:py:mod:`hoomd.md.integrate.langevin` or
-:py:mod:`hoomd.md.integrate.brownian`.
+`hoomd.md.methods.Langevin` or
+`hoomd.md.methods.Brownian`.
 
 Data Storage
 ------------
@@ -60,7 +60,7 @@ To store trajectories of DEM systems, use a format that knows about
 anisotropic particles, such as:
 
   * :py:class:`hoomd.dump.getar`
-  * :py:class:`hoomd.dump.gsd`
+  * :py:class:`hoomd.dump.GSD`
 
 .. rubric:: Stability
 
@@ -77,21 +77,3 @@ will not require any modifications. **Maintainer:** Matthew Spellings.
 from hoomd.dem import pair
 from hoomd.dem import params
 from hoomd.dem import utils
-
-# add DEM article citation notice
-import hoomd
-_citation = hoomd.cite.article(cite_key='spellings2016',
-                               author=['M Spellings', 'R L Marson', 'J A Anderson', 'S C Glotzer'],
-                               title='GPU accelerated Discrete Element Method (DEM) molecular dynamics for conservative, faceted particle simulations',
-                               journal=' Journal of Computational Physics',
-                               volume=334,
-                               pages='460--467',
-                               month='apr',
-                               year='2017',
-                               doi='10.1016/j.jcp.2017.01.014',
-                               feature='DEM')
-
-if hoomd.context.bib is None:
-    hoomd.cite._extra_default_entries.append(_citation)
-else:
-    hoomd.context.bib.add(_citation)

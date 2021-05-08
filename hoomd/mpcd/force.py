@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward
@@ -17,7 +17,7 @@ required to maintain temperature control in the driven system (see
 .. note::
 
     The external force **must** be attached to a streaming method
-    (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+    (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
     On its own, the force object will not affect the system.
 
 """
@@ -27,7 +27,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
-class _force(hoomd.meta._metadata):
+class _force():
     r""" Base external force field.
 
     This base class does some basic initialization tests, and then constructs the
@@ -40,17 +40,14 @@ class _force(hoomd.meta._metadata):
     def __init__(self):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.force: system must be initialized before the external force.\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.force: system must be initialized before the external force.\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
             raise RuntimeError('MPCD system not initialized')
 
-        hoomd.meta._metadata.__init__(self)
-        self._cpp = _mpcd.ExternalField(hoomd.context.exec_conf)
-        self.metadata_fields = []
+        self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_exec_conf)
 
 class block(_force):
     r""" Block force.
@@ -95,14 +92,13 @@ class block(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
 
     """
     def __init__(self, F, H=None, w=None):
-        hoomd.util.print_status_line()
 
         # current box size
         Lz = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL().z
@@ -115,17 +111,16 @@ class block(_force):
 
         # validate block positions
         if H <= 0 or H > Lz/2:
-            hoomd.context.msg.error('mpcd.force.block: H = {} should be nonzero and inside box.\n'.format(H))
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: H = {} should be nonzero and inside box.\n'.format(H))
             raise ValueError('Invalid block spacing')
         if w <= 0 or w > (Lz/2-H):
-            hoomd.context.msg.error('mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'.format(w,H))
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'.format(w,H))
             raise ValueError('Invalid block width')
         if w > H:
-            hoomd.context.msg.warning('mpcd.force.block: blocks overlap with H = {} < w = {}.\n'.format(H,w))
+            hoomd.context.current.device.cpp_msg.warning('mpcd.force.block: blocks overlap with H = {} < w = {}.\n'.format(H,w))
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','H','w']
         self._F = F
         self._H = H
         self._w = w
@@ -171,26 +166,24 @@ class constant(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
 
     """
     def __init__(self, F):
-        hoomd.util.print_status_line()
 
         try:
             if len(F) != 3:
-                hoomd.context.msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+                hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
                 raise ValueError('External field must be a 3-component vector')
         except TypeError:
-            hoomd.context.msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
             raise ValueError('External field must be a 3-component vector')
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F']
         self._F = F
 
         # initialize c++
@@ -233,18 +226,16 @@ class sine(_force):
     .. note::
 
         The external force **must** be attached to a streaming method
-        (see :py:mod:`.mpcd.stream`) using `set_force` to take effect.
+        (see :py:mod:`.mpcd.stream`) using ``set_force`` to take effect.
         On its own, the force object will not affect the system.
 
     .. versionadded:: 2.6
 
     """
     def __init__(self, F, k):
-        hoomd.util.print_status_line()
 
         # initialize python level
         _force.__init__(self)
-        self.metadata_fields += ['F','k']
         self._F = F
         self._k = k
 

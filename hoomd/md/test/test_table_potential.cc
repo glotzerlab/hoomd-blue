@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -10,7 +10,7 @@
 
 #include "hoomd/md/TablePotential.h"
 #include "hoomd/md/NeighborListTree.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TablePotentialGPU.h"
 #endif
 
@@ -44,7 +44,11 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     }
 
-    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(0.8)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist_2->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 7.0;
+    nlist_2->addRCutMatrix(r_cut);
     std::shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
 
     // first check for proper initialization by seeing if the force and potential come out to be 0
@@ -53,7 +57,7 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     {
     GlobalArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_1.data[0].x, tol_small);
@@ -92,7 +96,7 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     {
     GlobalArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_2.data[0].x, tol_small);
@@ -130,7 +134,7 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     {
     GlobalArray<Scalar4>& force_array_3 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_3 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_3.getPitch();
+    size_t pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_3.data[0].x, -1.0, tol);
@@ -163,7 +167,7 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     {
     GlobalArray<Scalar4>& force_array_4 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_4 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_4.getPitch();
+    size_t pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_4.data[0].y, -4.0, tol);
@@ -195,7 +199,7 @@ void table_potential_basic_test(table_potential_creator table_creator, std::shar
     {
     GlobalArray<Scalar4>& force_array_5 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_5 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_5.getPitch();
+    size_t pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_5.data[0].x, tol_small);
@@ -237,7 +241,11 @@ void table_potential_type_test(table_potential_creator table_creator, std::share
     h_pos.data[3].x = Scalar(1.5); h_pos.data[3].y = Scalar(1.5); h_pos.data[3].z = 0.0; h_pos.data[3].w = __int_as_scalar(1);
     }
 
-    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(0.8)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 2.0;
+    nlist->addRCutMatrix(r_cut);
     std::shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
 
     // specify a table to interpolate
@@ -267,7 +275,7 @@ void table_potential_type_test(table_potential_creator table_creator, std::share
     {
     GlobalArray<Scalar4>& force_array_6 =  fc->getForceArray();
     GlobalArray<Scalar>& virial_array_6 =  fc->getVirialArray();
-    unsigned int pitch = virial_array_6.getPitch();
+    size_t pitch = virial_array_6.getPitch();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_6.data[0].x, -8.0, tol);
@@ -312,7 +320,7 @@ std::shared_ptr<TablePotential> base_class_table_creator(std::shared_ptr<SystemD
     return std::shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! TablePotentialGPU creator for unit tests
 std::shared_ptr<TablePotential> gpu_table_creator(std::shared_ptr<SystemDefinition> sysdef,
                                              std::shared_ptr<NeighborList> nlist,
@@ -339,7 +347,7 @@ UP_TEST( TablePotential_type )
     table_potential_type_test(table_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for basic test on GPU
 UP_TEST( TablePotentialGPU_basic )
     {

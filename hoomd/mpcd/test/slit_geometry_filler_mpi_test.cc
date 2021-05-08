@@ -1,12 +1,12 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/SlitGeometryFiller.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/SlitGeometryFillerGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -39,8 +39,8 @@ void slit_fill_mpi_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // create slit channel with half width 5
     auto slit = std::make_shared<const mpcd::detail::SlitGeometry>(5.0, 0.0, mpcd::detail::boundary::no_slip);
-    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConst>(1.0);
-    std::shared_ptr<mpcd::SlitGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, 42, slit);
+    std::shared_ptr<::Variant> kT = std::make_shared<::VariantConstant>(1.0);
+    std::shared_ptr<mpcd::SlitGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, slit);
 
     /*
      * Test basic filling up for this cell list
@@ -80,9 +80,9 @@ UP_TEST( slit_fill_mpi )
     {
     slit_fill_mpi_test<mpcd::SlitGeometryFiller>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 UP_TEST( slit_fill_mpi_gpu )
     {
     slit_fill_mpi_test<mpcd::SlitGeometryFillerGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

@@ -3,6 +3,9 @@
 #include <sstream>
 #include "EvalFactory.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
@@ -16,6 +19,9 @@
 #include "llvm/Support/DynamicLibrary.h"
 
 #include "llvm/Support/raw_os_ostream.h"
+
+#pragma GCC diagnostic pop
+
 
 //! C'tor
 EvalFactory::EvalFactory(const std::string& llvm_ir)
@@ -90,12 +96,12 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
 
     #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
     m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
-    m_alpha = (float *)(cantFail(alpha.getAddress()));
-    m_alpha_union = (float *)(cantFail(alpha_union.getAddress()));
+    m_alpha = (float **)(cantFail(alpha.getAddress()));
+    m_alpha_union = (float **)(cantFail(alpha_union.getAddress()));
     #else
     m_eval = (EvalFnPtr) eval.getAddress();
-    m_alpha = (float *) alpha.getAddress();
-    m_alpha_union = (float *) alpha_union.getAddress();
+    m_alpha = (float **) alpha.getAddress();
+    m_alpha_union = (float **) alpha_union.getAddress();
     #endif
 
     llvm_err.flush();

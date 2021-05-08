@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,15 +19,15 @@
     The molecule/body id can therefore be used to look up the central particle easily.
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/GPUPartition.cuh"
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
@@ -62,11 +62,11 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
-        virtual void updateCompositeParticles(unsigned int timestep);
+        virtual void updateCompositeParticles(uint64_t timestep);
 
         //! Validate or create copies of rigid body constituent particles
         /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
@@ -148,7 +148,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         #endif
 
         //! Compute the forces and torques on the central particle
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Helper method to calculate the body diameter
         Scalar getBodyDiameter(unsigned int body_type);

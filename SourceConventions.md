@@ -2,7 +2,7 @@
 
 [TOC]
 
-The following conventions apply to all code written in HOOMD-blue, whether it be C++, python, CMake, etc. Pull requests
+The following conventions apply to all C++ code written in HOOMD-blue. Pull requests
 will not be accepted and feature branches will not be merged unless these conventions are followed.
 
 ## Indentation

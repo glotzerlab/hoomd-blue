@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -17,12 +17,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : BondTablePotential(sysdef, table_width, log_suffix)
+                                     unsigned int table_width)
+    : BondTablePotential(sysdef, table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotentialGPU" << endl;
 
@@ -37,7 +35,8 @@ BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> s
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_bond", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_bond", this->m_exec_conf));
     }
 
 BondTablePotentialGPU::~BondTablePotentialGPU()
@@ -51,7 +50,7 @@ BondTablePotentialGPU::~BondTablePotentialGPU()
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void BondTablePotentialGPU::computeForces(unsigned int timestep)
+void BondTablePotentialGPU::computeForces(uint64_t timestep)
     {
 
     // start the profile
@@ -117,9 +116,6 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
 
 void export_BondTablePotentialGPU(py::module& m)
     {
-    py::class_<BondTablePotentialGPU, std::shared_ptr<BondTablePotentialGPU> >(m, "BondTablePotentialGPU", py::base<BondTablePotential>())
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                            unsigned int,
-                            const std::string& >())
-                            ;
+    py::class_<BondTablePotentialGPU, BondTablePotential, std::shared_ptr<BondTablePotentialGPU> >(m, "BondTablePotentialGPU")
+        .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>());
     }

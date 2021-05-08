@@ -15,7 +15,7 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 using namespace std;
@@ -30,14 +30,15 @@ struct ShapeDummy
 
 UP_TEST( rand_rotate_3d )
     {
-    hoomd::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     quat<Scalar> a(1, vec3<Scalar>(0,0,0));
     for (int i=0; i<10000; i++)
         {
         // move the shape
         quat<Scalar> prev = a;
-        move_rotate(a, rng, 1.0, 3);
+        move_rotate<3>(a, rng, 1.0);
         quat<Scalar> delta(prev.s - a.s, prev.v - a.v);
 
         // check that all coordinates moved
@@ -55,7 +56,8 @@ UP_TEST( rand_rotate_3d )
 
 UP_TEST( rand_rotate_2d )
     {
-    hoomd::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     Scalar a = .1;
 
@@ -64,7 +66,7 @@ UP_TEST( rand_rotate_2d )
         {
         // move the shape
         quat<Scalar> prev = o;
-        move_rotate(o, rng, a, 2);
+        move_rotate<2>(o, rng, a);
         quat<Scalar> delta(prev.s - o.s, prev.v - o.v);
 
         // check that the angle coordinate moved and that the 0 components stayed 0
@@ -85,7 +87,8 @@ UP_TEST( rand_rotate_2d )
 
 UP_TEST( rand_translate_3d )
     {
-    hoomd::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -111,7 +114,8 @@ UP_TEST( rand_translate_3d )
 
 UP_TEST( rand_translate_2d )
     {
-    hoomd::RandomGenerator rng(123, 456, 789);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -144,10 +148,10 @@ void test_update_order(const unsigned int max)
     for (unsigned int i = 0; i < 2; i++)
         counts[i] = 0;
 
-    UpdateOrder o(10, max);
+    UpdateOrder o(max);
     for (unsigned int i = 0 ; i < nsamples; i++)
         {
-        o.shuffle(i);
+        o.shuffle(i, 10);
         if (o[0] == 0)
             {
             counts[0]++;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -45,8 +45,9 @@ ConstraintEllipsoid::~ConstraintEllipsoid()
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void ConstraintEllipsoid::update(unsigned int timestep)
+void ConstraintEllipsoid::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
@@ -150,7 +151,7 @@ void ConstraintEllipsoid::validate()
 
 void export_ConstraintEllipsoid(py::module& m)
     {
-    py::class_< ConstraintEllipsoid, std::shared_ptr<ConstraintEllipsoid> >(m, "ConstraintEllipsoid", py::base<Updater>())
+    py::class_< ConstraintEllipsoid, Updater, std::shared_ptr<ConstraintEllipsoid> >(m, "ConstraintEllipsoid")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

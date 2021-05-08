@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -14,8 +14,8 @@
 
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -29,7 +29,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         ~ExternalFieldMonoComposite() {}
 
-        Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
+        Scalar calculateBoltzmannWeight(uint64_t timestep) { return 0.0; }
 
         double calculateDeltaE(const Scalar4 * const  position_old,
                                         const Scalar4 * const  orientation_old,
@@ -52,7 +52,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         void addExternal(std::shared_ptr< ExternalFieldMono<Shape> > ext) { m_externals.push_back(ext); }
 
-        void reset(unsigned int timestep)
+        void reset(uint64_t timestep)
         {
             for(size_t i = 0; i < m_externals.size(); i++)
             {
@@ -69,7 +69,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_ExternalFieldComposite(pybind11::module& m, std::string name)
 {
-   pybind11::class_<ExternalFieldMonoComposite<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+   pybind11::class_<ExternalFieldMonoComposite<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMonoComposite<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("addExternal", &ExternalFieldMonoComposite<Shape>::addExternal)
     ;

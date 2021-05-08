@@ -1,8 +1,8 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#ifndef __GETARDUMPER_H_
-#define __GETARDUMPER_H_
+#ifndef __GETAR_DUMPER_H_
+#define __GETAR_DUMPER_H_
 
 #include "hoomd/Analyzer.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -15,15 +15,14 @@
 #include <string>
 #include <vector>
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace getardump{
 
     typedef SnapshotSystemData<Scalar> SystemSnapshot;
-    std::shared_ptr<SystemSnapshot> takeSystemSnapshot(
-        std::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool, bool);
+    std::shared_ptr<SystemSnapshot> takeSystemSnapshot(std::shared_ptr<SystemDefinition>);
 
     /// Known operation modes
     enum GetarDumpMode {
@@ -182,7 +181,7 @@ namespace getardump{
 
             /// Returns the path within the archive where this property
             /// should be stored
-            std::string getFormattedPath(unsigned int timestep) const
+            std::string getFormattedPath(uint64_t timestep) const
                 {
                 if(m_behavior == gtar::Constant)
                     return m_prefix + m_suffix;
@@ -237,14 +236,12 @@ namespace getardump{
                 {
                 PDataFlags flags;
 
-                for(PeriodMap::iterator iteri(m_periods.begin());
-                    iteri != m_periods.end(); ++iteri)
-                    for(std::vector<GetarDumpDescription>::iterator iterj(iteri->second.begin());
-                        iterj != iteri->second.end(); ++iterj)
+                for(PeriodMap::iterator iter_i(m_periods.begin());
+                    iter_i != m_periods.end(); ++iter_i)
+                    for(std::vector<GetarDumpDescription>::iterator iter_j(iter_i->second.begin());
+                        iter_j != iter_i->second.end(); ++iter_j)
                         {
-                        const Property prop(iterj->m_prop);
-                        flags[pdata_flag::potential_energy] = (flags[pdata_flag::potential_energy] |
-                            (prop == PotentialEnergy));
+                        const Property prop(iter_j->m_prop);
                         flags[pdata_flag::pressure_tensor] = (flags[pdata_flag::pressure_tensor] |
                             (unsigned int)(prop == Virial));
                         }
@@ -252,7 +249,7 @@ namespace getardump{
                 }
 
             /// Called every timestep
-            void analyze(unsigned int timestep);
+            void analyze(uint64_t timestep);
 
             /// Calculate the correct period for all of the properties
             /// activated on this analyzer
@@ -269,17 +266,17 @@ namespace getardump{
             /// Write a quantity with the given name using the given
             /// string, as a dynamic property with the given timestep
             /// (timesteps <0 indicate to dump a static quantity)
-            void writeStr(const std::string &name, const std::string &contents, int timestep);
+            void writeStr(const std::string &name, const std::string &contents, uint64_t timestep);
 
         private:
             /// Write any GetarDumpDescription for the given timestep
-            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write an individual GetarDumpDescription for the given timestep
-            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write a uniform GetarDumpDescription for the given timestep
-            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
             /// Write a text GetarDumpDescription for the given timestep
-            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, uint64_t timestep);
 
             /// File archive interface
             std::shared_ptr<gtar::GTAR> m_archive;

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -28,26 +28,25 @@ using namespace std;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              std::shared_ptr<ComputeThermo> thermo,
                              Scalar tau,
-                             std::shared_ptr<Variant> T,
-                             const std::string& suffix)
-    : TwoStepNVTMTK(sysdef, group, thermo, tau, T, suffix)
+                             std::shared_ptr<Variant> T)
+    : TwoStepNVTMTK(sysdef, group, thermo, tau, T)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
         {
-        m_exec_conf->msg->error() << "Creating a TwoStepNVTMTKPU when CUDA is disabled" << endl;
+        m_exec_conf->msg->error() << "Creating a TwoStepNVTMTKGPU when CUDA is disabled" << endl;
         throw std::runtime_error("Error initializing TwoStepNVTMTKGPU");
         }
 
     // initialize autotuner
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         valid_params.push_back(block_size);
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nvt_mtk_step_one", this->m_exec_conf));
@@ -59,7 +58,7 @@ TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover method
 */
-void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNVTMTKGPU::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -150,7 +149,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNVTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -225,13 +224,11 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVTMTKGPU(py::module& m)
     {
-    py::class_<TwoStepNVTMTKGPU, std::shared_ptr<TwoStepNVTMTKGPU> >(m, "TwoStepNVTMTKGPU", py:: base<TwoStepNVTMTK>())
+    py::class_<TwoStepNVTMTKGPU, TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTKGPU> >(m, "TwoStepNVTMTKGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                           std::shared_ptr<ParticleGroup>,
                           std::shared_ptr<ComputeThermo>,
                           Scalar,
-                          std::shared_ptr<Variant>,
-                          const std::string&
-                          >())
+                          std::shared_ptr<Variant>>())
         ;
     }

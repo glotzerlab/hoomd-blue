@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,11 +15,11 @@
     \brief Declares a base class for all energy minimization methods
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
@@ -36,7 +36,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
         virtual ~FIREEnergyMinimizerGPU() {}
 
         //! Iterates forward one step
-        virtual void update(unsigned int);
+        virtual void update(uint64_t timestep);
 
     protected:
         unsigned int m_nparticles;              //!< number of particles in the system

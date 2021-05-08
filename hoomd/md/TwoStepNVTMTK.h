@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NVT_MTK_H__
 #define __TWO_STEP_NVT_MTK_H__
@@ -15,11 +15,11 @@
     \brief Declares the TwoStepNVTMTK class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface
@@ -44,8 +44,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
                    std::shared_ptr<ParticleGroup> group,
                    std::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   std::shared_ptr<Variant> T,
-                   const std::string& suffix = std::string(""));
+                   std::shared_ptr<Variant> T);
         virtual ~TwoStepNVTMTK();
 
         //! Update the temperature
@@ -56,12 +55,24 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             m_T = T;
             }
 
+        /// Get the current temperature variant
+        std::shared_ptr<Variant> getT()
+            {
+            return m_T;
+            }
+
         //! Update the tau value
         /*! \param tau New time constant to set
         */
         virtual void setTau(Scalar tau)
             {
             m_tau = tau;
+            }
+
+        /// get the tau value
+        Scalar getTau()
+            {
+            return m_tau;
             }
 
         //! Set the value of xi (for unit tests)
@@ -73,17 +84,11 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Returns a list of log quantities this integrator calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Returns logged values
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
-
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Get needed pdata flags
         /*! in anisotropic mode, we need the rotational kinetic energy
@@ -109,15 +114,41 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
             setIntegratorVariables(v);
             }
 
-        //! Randomize the thermostat variable
-        virtual void randomizeVelocities(unsigned int timestep);
+        /// Randomize the thermostat variables
+        void thermalizeThermostatDOF(uint64_t timestep);
+
+        /// Get the translational thermostat degrees of freedom
+        pybind11::tuple getTranslationalThermostatDOF();
+
+        /// Set the translational thermostat degrees of freedom
+        void setTranslationalThermostatDOF(pybind11::tuple v);
+
+        /// Get the rotational thermostat degrees of freedom
+        pybind11::tuple getRotationalThermostatDOF();
+
+        /// Set the rotational thermostat degrees of freedom
+        void setRotationalThermostatDOF(pybind11::tuple v);
+
+        Scalar getThermostatEnergy(uint64_t timestep);
+
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            IntegrationMethodTwoStep::setCommunicator(comm);
+
+            // set the communicator on the internal thermo
+            m_thermo->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
         std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         std::shared_ptr<Variant> m_T; //!< Temperature set point
-        std::string m_log_name;         //!< Name of the reservoir quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
 
@@ -125,7 +156,7 @@ class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
         /*!\param timestep The time step
          * \param broadcast True if we should broadcast the integrator variables via MPI
          */
-        void advanceThermostat(unsigned int timestep, bool broadcast=true);
+        void advanceThermostat(uint64_t timestep, bool broadcast=true);
     };
 
 //! Exports the TwoStepNVTMTK class to python

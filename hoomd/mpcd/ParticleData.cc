@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -16,7 +16,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif // ENABLE_MPI
 
-#include "hoomd/extern/pybind/include/pybind11/stl.h"
+#include <pybind11/stl.h>
 
 #include <random>
 #include <iomanip>
@@ -155,14 +155,14 @@ void mpcd::ParticleData::initializeFromSnapshot(const std::shared_ptr<const mpcd
             // loop over particles in snapshot, place them into domains
             for (auto it = snapshot->position.begin(); it != snapshot->position.end(); ++it)
                 {
-                unsigned int snap_idx = it - snapshot->position.begin();
+                unsigned int snap_idx = (unsigned int)(it - snapshot->position.begin());
 
                 // determine domain the particle is placed into
                 Scalar3 pos = vec_to_scalar3(*it);
                 Scalar3 f = global_box.makeFraction(pos);
-                int i= f.x * ((Scalar)di.getW());
-                int j= f.y * ((Scalar)di.getH());
-                int k= f.z * ((Scalar)di.getD());
+                int i= int(f.x * ((Scalar)di.getW()));
+                int j= int(f.y * ((Scalar)di.getH()));
+                int k= int(f.z * ((Scalar)di.getD()));
 
                 // wrap particles that are exactly on a boundary
                 char3 flags = make_char3(0,0,0);
@@ -471,7 +471,7 @@ void mpcd::ParticleData::takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot
             // write back into the snapshot in tag order, don't really care about cache coherency
             for (unsigned int rank_idx = 0; rank_idx < n_ranks; ++rank_idx)
                 {
-                const unsigned int N = pos_proc[rank_idx].size();
+                const unsigned int N = (unsigned int)pos_proc[rank_idx].size();
                 for (unsigned int idx = 0; idx < N; ++idx)
                     {
                     const unsigned int snap_idx = tag_proc[rank_idx][idx];
@@ -647,14 +647,14 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         GPUArray<unsigned int> remove_ids(N_max, m_exec_conf);
         m_remove_ids.swap(remove_ids);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUFlags<unsigned int> num_remove(m_exec_conf);
         m_num_remove.swap(num_remove);
 
         // this array is used for particle migration
         GPUArray<unsigned char> remove_flags(N_max, m_exec_conf);
         m_remove_flags.swap(remove_flags);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
         }
     #endif // ENABLE_MPI
     }
@@ -691,9 +691,9 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
         m_comm_flags_alt.resize(N_max);
         m_remove_ids.resize(N_max);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         m_remove_flags.resize(N_max);
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
         }
     #endif // ENABLE_MPI
     }
@@ -888,7 +888,7 @@ void mpcd::ParticleData::addVirtualParticles(unsigned int N)
  */
 void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
                                          unsigned int mask,
-                                         unsigned int timestep)
+                                         uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -966,7 +966,7 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
  */
 void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
                                       unsigned int mask,
-                                      unsigned int timestep)
+                                      uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -974,7 +974,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
         throw std::runtime_error("MPCD particles cannot be added with virtual particles set");
         }
 
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
 
     unsigned int old_nparticles = m_N;
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
@@ -1008,7 +1008,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
     notifySort(timestep);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 /*!
  * \param out Buffer into which particle data is packed
  * \param mask Mask for \a m_comm_flags to determine if communication is necessary
@@ -1022,7 +1022,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
  */
 void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
                                             unsigned int mask,
-                                            unsigned int timestep)
+                                            uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -1120,7 +1120,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
  */
 void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
                                          unsigned int mask,
-                                         unsigned int timestep)
+                                         uint64_t timestep)
     {
     if (m_N_virtual > 0)
         {
@@ -1129,7 +1129,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         }
 
     unsigned int old_nparticles = m_N;
-    unsigned int num_add_ptls = in.size();
+    unsigned int num_add_ptls = (unsigned int)in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
 
     // amortized resizing of particle data
@@ -1164,7 +1164,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
     invalidateCellCache();
     notifySort(timestep);
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposition)
     {
@@ -1172,14 +1172,14 @@ void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposi
     if (decomposition)
         m_decomposition = decomposition;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
         m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
         m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
         }
-    #endif // ENABLE_CUDA
+    #endif // ENABLE_HIP
     }
 #endif // ENABLE_MPI
 

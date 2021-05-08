@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -13,10 +13,8 @@
 
 /*!
  * \param sysdata MPCD system data
- * \param suffix Suffix for logged quantities
  */
-mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
-                                           const std::string& suffix)
+mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata)
         : Compute(sysdata->getSystemDefinition()),
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),
@@ -53,8 +51,9 @@ mpcd::CellThermoCompute::~CellThermoCompute()
     m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellThermoCompute, &mpcd::CellThermoCompute::slotNumVirtual>(this);
     }
 
-void mpcd::CellThermoCompute::compute(unsigned int timestep)
+void mpcd::CellThermoCompute::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     // check if computation should proceed, and always mark the calculation as occurring at this timestep, even if forced
     if (!shouldCompute(timestep)) return;
     m_last_computed = timestep;
@@ -77,7 +76,7 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void mpcd::CellThermoCompute::computeCellProperties(unsigned int timestep)
+void mpcd::CellThermoCompute::computeCellProperties(uint64_t timestep)
     {
     /*
      * In MPI simulations, begin by calculating the velocities and energies of
@@ -524,8 +523,7 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoCompute> >
-        (m, "CellThermoCompute", py::base<Compute>())
-        .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
+    py::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute> >
+        (m, "CellThermoCompute")
+        .def(py::init< std::shared_ptr<mpcd::SystemData> >());
     }

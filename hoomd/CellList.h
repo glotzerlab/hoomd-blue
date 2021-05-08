@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -17,11 +17,11 @@
     \brief Declares the CellList class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __CELLLIST_H__
 #define __CELLLIST_H__
@@ -200,6 +200,12 @@ class PYBIND11_EXPORT CellList : public Compute
             m_params_changed = true;
             }
 
+        /// Get whether the cell list is sorted
+        bool getSortCellList()
+            {
+            return m_sort_cell_list;
+            }
+
         //! Set the flag to compute the cell adjacency list
         void setComputeAdjList(bool compute_adj_list)
             {
@@ -332,13 +338,10 @@ class PYBIND11_EXPORT CellList : public Compute
             }
 
         //! Compute the cell list given the current particle positions
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Benchmark the computation
         double benchmark(unsigned int num_iters);
-
-        //! Print statistics on the cell list
-        virtual void printStats();
 
         // @}
 
@@ -421,7 +424,7 @@ class PYBIND11_EXPORT CellList : public Compute
     };
 
 //! Export the CellList class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_CellList(pybind11::module& m);
 #endif
 

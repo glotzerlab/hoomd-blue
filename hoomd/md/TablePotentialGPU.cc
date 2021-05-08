@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,13 +19,11 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<NeighborList> nlist,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : TablePotential(sysdef, nlist, table_width, log_suffix)
+                                     unsigned int table_width)
+    : TablePotential(sysdef, nlist, table_width)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
@@ -34,7 +32,8 @@ TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TableForceComputeGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_table", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "pair_table", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep. The neighborlist's
@@ -44,7 +43,7 @@ compute method is called to ensure that it is up to date.
 
 Calls gpu_compute_table_forces to do the leg work
 */
-void TablePotentialGPU::computeForces(unsigned int timestep)
+void TablePotentialGPU::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -109,10 +108,9 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
 
 void export_TablePotentialGPU(py::module& m)
     {
-    py::class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU", py::base<TablePotential>())
+    py::class_<TablePotentialGPU, TablePotential, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                 std::shared_ptr<NeighborList>,
-                                unsigned int,
-                                const std::string& >())
+                                unsigned int>())
                                 ;
     }

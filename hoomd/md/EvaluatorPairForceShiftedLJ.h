@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,11 +7,12 @@
 #ifndef __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
 #define __PAIR_EVALUATOR_FORCE_SHIFTED_LJ_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/md/EvaluatorPairLJ.h"
 
 /*! \file EvaluatorPairForceShiftedLJ.h
     \brief Defines the pair evaluator class for LJ potentials
@@ -21,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -34,7 +35,7 @@
     EvaluatorPairForceShiftedLJ evaluates the function:
     \f[ V(r) = V_{LJ}(r) + \Delta V(r) \f], where
     \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+                                            \left( \frac{\sigma}{r} \right)^{6} \right] \f]
     is the standard Lennard-Jones pair potential and
     \f[ \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}}) \f].
     The constant value \f$ -\frac{1}{r} \frac{\partial V}{\partial r}(r_{\mathrm{cut}}) \f$ is
@@ -47,7 +48,7 @@ class EvaluatorPairForceShiftedLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef EvaluatorPairLJ::param_type param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +56,7 @@ class EvaluatorPairForceShiftedLJ
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairForceShiftedLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 
@@ -113,10 +114,9 @@ class EvaluatorPairForceShiftedLJ
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

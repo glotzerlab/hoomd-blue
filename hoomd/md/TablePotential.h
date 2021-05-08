@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,11 +15,11 @@
     \brief Declares the TablePotential class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
@@ -64,8 +64,7 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         //! Constructs the compute
         TablePotential(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<NeighborList> nlist,
-                       unsigned int table_width,
-                       const std::string& log_suffix="");
+                       unsigned int table_width);
 
         //! Destructor
         virtual ~TablePotential();
@@ -78,11 +77,14 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
                               Scalar rmin,
                               Scalar rmax);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual void notifyDetach()
+            {
+            if (m_attached)
+                {
+                m_nlist->removeRCutMatrix(m_r_cut_nlist);
+                }
+            m_attached = false;
+            }
 
     protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
@@ -90,10 +92,18 @@ class PYBIND11_EXPORT TablePotential : public ForceCompute
         unsigned int m_ntypes;                      //!< Store the number of particle types
         GlobalArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GlobalArray<Scalar4> m_params;                 //!< Parameters stored for each table
-        std::string m_log_name;                     //!< Cached log name
+
+        /// Indexer into the tables
+        Index2DUpperTriangular m_type_pair_idx;
+
+        /// Track whether we have attached to the Simulation object
+        bool m_attached = true;
+
+        /// r_cut (not squared) given to the neighbor list
+        std::shared_ptr<GlobalArray<Scalar>> m_r_cut_nlist;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();

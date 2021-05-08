@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -17,12 +17,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : TableAngleForceCompute(sysdef, table_width, log_suffix)
+                                     unsigned int table_width)
+    : TableAngleForceCompute(sysdef, table_width)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
@@ -35,7 +33,8 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
     GPUArray<unsigned int> flags(1, this->m_exec_conf);
     m_flags.swap(flags);
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "table_angle", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "table_angle", this->m_exec_conf));
     }
 
 /*! \post The table based forces are computed for the given timestep.
@@ -44,7 +43,7 @@ TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefin
 
 Calls gpu_compute_bondtable_forces to do the leg work
 */
-void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
+void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
     {
 
     // start the profile
@@ -97,9 +96,7 @@ void TableAngleForceComputeGPU::computeForces(unsigned int timestep)
 
 void export_TableAngleForceComputeGPU(py::module& m)
     {
-    py::class_<TableAngleForceComputeGPU, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU", py::base<TableAngleForceCompute>())
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                         unsigned int,
-                         const std::string& >())
+    py::class_<TableAngleForceComputeGPU, TableAngleForceCompute, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU")
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
                         ;
     }

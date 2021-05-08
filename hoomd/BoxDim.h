@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -14,14 +14,14 @@
 #include "HOOMDMath.h"
 #include "VectorMath.h"
 
-// Don't include MPI when compiling with NVCC or an LLVM JIT build
-#if defined(ENABLE_MPI) && !defined(NVCC) && !defined(HOOMD_LLVMJIT_BUILD)
+// Don't include MPI when compiling with __HIPCC__ or an LLVM JIT build
+#if defined(ENABLE_MPI) && !defined(__HIPCC__) && !defined(HOOMD_LLVMJIT_BUILD)
 #include "HOOMDMPI.h"
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
@@ -60,7 +60,11 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-struct __attribute__((visibility("default"))) BoxDim
+struct
+#ifndef __HIPCC__
+__attribute__((visibility("default")))
+#endif
+BoxDim
     {
     public:
         //! Constructs a useless box
@@ -168,6 +172,13 @@ struct __attribute__((visibility("default"))) BoxDim
             m_hi = L/Scalar(2.0);
             m_lo = -m_hi;
             m_Linv = Scalar(1.0)/L;
+
+            // avoid NaN when Lz == 0
+            if (L.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
+
             m_L = L;
             }
 
@@ -195,7 +206,13 @@ struct __attribute__((visibility("default"))) BoxDim
             {
             m_hi = hi;
             m_lo = lo;
+
+            // avoid NaN when Lz == 0
             m_Linv = Scalar(1.0)/(m_hi - m_lo);
+            if (m_hi.z == Scalar(0.0) && m_lo.z == Scalar(0.0))
+                {
+                m_Linv.z = 0;
+                }
             m_L = m_hi - m_lo;
             }
 
@@ -279,10 +296,10 @@ struct __attribute__((visibility("default"))) BoxDim
             Scalar3 w = v;
             Scalar3 L = getL();
 
-            #ifdef NVCC
+            #ifdef __HIPCC__
             if (m_periodic.z)
                 {
-                Scalar img = rintf(w.z * m_Linv.z);
+                Scalar img = rint(w.z * m_Linv.z);
                 w.z -= L.z * img;
                 w.y -= L.z * m_yz * img;
                 w.x -= L.z * m_xz * img;
@@ -290,17 +307,17 @@ struct __attribute__((visibility("default"))) BoxDim
 
             if (m_periodic.y)
                 {
-                Scalar img = rintf(w.y * m_Linv.y);
+                Scalar img = rint(w.y * m_Linv.y);
                 w.y -= L.y * img;
                 w.x -= L.y * m_xy * img;
                 }
 
             if (m_periodic.x)
                 {
-                w.x -= L.x * rintf(w.x * m_Linv.x);
+                w.x -= L.x * rint(w.x * m_Linv.x);
                 }
             #else
-            // on the cpu, branches are faster than calling rintf
+            // on the cpu, branches are faster than calling rint
             if (m_periodic.z)
                 {
                 if (w.z >= m_hi.z)
@@ -321,13 +338,13 @@ struct __attribute__((visibility("default"))) BoxDim
                 {
                 if (w.y >= m_hi.y)
                     {
-                    int i = (w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(w.y*m_Linv.y+Scalar(0.5));
                     w.y -= (Scalar)i*L.y;
                     w.x -= (Scalar)i*L.y * m_xy;
                     }
                 else if (w.y < m_lo.y)
                     {
-                    int i = (-w.y*m_Linv.y+Scalar(0.5));
+                    int i = int(-w.y*m_Linv.y+Scalar(0.5));
                     w.y += (Scalar)i*L.y;
                     w.x += (Scalar)i*L.y * m_xy;
                     }
@@ -337,12 +354,12 @@ struct __attribute__((visibility("default"))) BoxDim
                 {
                 if (w.x >= m_hi.x)
                     {
-                    int i = (w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(w.x*m_Linv.x+Scalar(0.5));
                     w.x -= (Scalar)i*L.x;
                     }
                 else if (w.x < m_lo.x)
                     {
-                    int i = (-w.x*m_Linv.x+Scalar(0.5));
+                    int i = int(-w.x*m_Linv.x+Scalar(0.5));
                     w.x += (Scalar)i*L.x;
                     }
                 }
@@ -485,9 +502,9 @@ struct __attribute__((visibility("default"))) BoxDim
         HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
             Scalar3 r = v;
-            r += shift.x*getLatticeVector(0);
-            r += shift.y*getLatticeVector(1);
-            r += shift.z*getLatticeVector(2);
+            r += Scalar(shift.x)*getLatticeVector(0);
+            r += Scalar(shift.y)*getLatticeVector(1);
+            r += Scalar(shift.z)*getLatticeVector(2);
             return r;
             }
 
@@ -511,6 +528,12 @@ struct __attribute__((visibility("default"))) BoxDim
             dist.x = m_L.x*fast::rsqrt(Scalar(1.0) + m_xy*m_xy + (m_xy*m_yz - m_xz)*(m_xy*m_yz - m_xz));
             dist.y = m_L.y*fast::rsqrt(Scalar(1.0) + m_yz*m_yz);
             dist.z = m_L.z;
+
+            // avoid NaN when Lz == 0
+            if (m_L.z == Scalar(0.0))
+                {
+                dist.z = Scalar(1.0);
+                }
 
             return dist;
             }
@@ -550,19 +573,48 @@ struct __attribute__((visibility("default"))) BoxDim
             return make_scalar3(0.0,0.0,0.0);
             }
 
+        HOSTDEVICE bool operator==(const BoxDim& other) const
+            {
+            Scalar3 L1 = getL();
+            Scalar3 L2 = other.getL();
+
+            Scalar xy1 = getTiltFactorXY();
+            Scalar xy2 = other.getTiltFactorXY();
+            Scalar xz1 = getTiltFactorXZ();
+            Scalar xz2 = other.getTiltFactorXZ();
+            Scalar yz1 = getTiltFactorYZ();
+            Scalar yz2 = other.getTiltFactorYZ();
+
+            return L1 == L2 && xy1 == xy2 && xz1 == xz2 && yz1 == yz2;
+            }
+
+        HOSTDEVICE bool operator!=(const BoxDim& other) const
+            {
+            return !((*this) == other);
+            }
         #ifdef ENABLE_MPI
         //! Serialization method
         template<class Archive>
         void serialize(Archive & ar, const unsigned int version)
             {
-            ar & m_lo;
-            ar & m_hi;
-            ar & m_L;
-            ar & m_Linv;
+            ar & m_lo.x;
+            ar & m_lo.y;
+            ar & m_lo.z;
+            ar & m_hi.x;
+            ar & m_hi.y;
+            ar & m_hi.z;
+            ar & m_L.x;
+            ar & m_L.y;
+            ar & m_L.z;
+            ar & m_Linv.x;
+            ar & m_Linv.y;
+            ar & m_Linv.z;
             ar & m_xy;
             ar & m_xz;
             ar & m_yz;
-            ar & m_periodic;
+            ar & m_periodic.x;
+            ar & m_periodic.y;
+            ar & m_periodic.z;
             }
         #endif
 

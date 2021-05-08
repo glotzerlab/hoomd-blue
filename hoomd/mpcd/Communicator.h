@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -13,7 +13,7 @@
 #ifndef MPCD_COMMUNICATOR_H_
 #define MPCD_COMMUNICATOR_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -30,7 +30,7 @@
 #include <memory>
 #include <vector>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 //! Forward declarations for some classes
 class SystemDefinition;
@@ -106,7 +106,7 @@ class PYBIND11_EXPORT Communicator
          * This method is supposed to be called every time step and automatically performs all necessary
          * communication steps.
          */
-        void communicate(unsigned int timestep);
+        void communicate(uint64_t timestep);
 
         //! Migrate particle data to local domain
         /*!
@@ -120,10 +120,10 @@ class PYBIND11_EXPORT Communicator
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
-        virtual void migrateParticles(unsigned int timestep);
+        virtual void migrateParticles(uint64_t timestep);
 
         //! Migration signal type
-        typedef Nano::Signal<bool (unsigned int)> MigrateSignal;
+        typedef Nano::Signal<bool (uint64_t timestep)> MigrateSignal;
 
         //! Get the migrate request signal
         /*!

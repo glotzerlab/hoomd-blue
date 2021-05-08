@@ -1,14 +1,7 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file HOOMDInitializer.h
-    \brief Declares the HOOMDInitializer class
-*/
-
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,9 +9,8 @@
 #include <string>
 #include "hoomd/extern/gsd.h"
 
-#ifdef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#endif
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 #ifndef __GSD_INITIALIZER_H__
 #define __GSD_INITIALIZER_H__
@@ -102,12 +94,45 @@ class PYBIND11_EXPORT GSDReader
         void readHeader();
         void readParticles();
         void readTopology();
-
-        /// Check and raise an exception if an error occurs
-        void checkError(int retval);
     };
 
-//! Exports GSDReader to python
+/** Read state information from a GSD file
+
+    GSDStateReader provides an interface for ``from_state`` methods to discover and read state data
+    from a GSD file.
+*/
+class PYBIND11_EXPORT GSDStateReader
+    {
+    public:
+        /** Open the file
+
+            @param name File name to open.
+            @frame Index of frame to access. Negative values index from the end.
+        */
+        GSDStateReader(const std::string &name, const int64_t frame);
+
+        /// Destructor
+        ~GSDStateReader();
+
+        /// Get a list of chunk names starting with *base*.
+        std::vector<std::string> getAvailableChunks(const std::string& base);
+
+        /// Read a chunk and return as a numpy array
+        pybind11::array readChunk(const std::string& name);
+
+    private:
+        /// Store the filename
+        std::string m_name;
+
+        /// Frame to read from the file
+        uint64_t m_frame;
+
+        /// Handle to the file
+        gsd_handle m_handle;
+    };
+
+
+/// Exports GSDReader and GSDStateReader to python
 void export_GSDReader(pybind11::module& m);
 
 #endif

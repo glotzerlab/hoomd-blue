@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -14,7 +14,7 @@ HOOMD_UP_MAIN()
 
 #include "hoomd/md/CommunicatorGrid.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/CommunicatorGridGPU.h"
 #endif
 
@@ -333,7 +333,7 @@ UP_TEST( CommunicateGrid_test_positions)
     }
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Basic ghost grid exchange test on GPU
 UP_TEST( CommunicateGrid_test_basic_GPU)
     {

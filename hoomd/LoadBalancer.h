@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,7 +8,7 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,11 +16,11 @@
 
 #ifndef __LOADBALANCER_H__
 #define __LOADBALANCER_H__
-
-#include "Updater.h"
+#include "Tuner.h"
+#include "Trigger.h"
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -43,11 +43,13 @@
  *
  * \ingroup updaters
  */
-class PYBIND11_EXPORT LoadBalancer : public Updater
+class PYBIND11_EXPORT LoadBalancer : public Tuner
     {
     public:
         //! Constructor
-        LoadBalancer(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<DomainDecomposition> decomposition,
+                     std::shared_ptr<Trigger> trigger);
         //! Destructor
         virtual ~LoadBalancer();
 
@@ -100,17 +102,33 @@ class PYBIND11_EXPORT LoadBalancer : public Updater
                 }
             }
 
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        /// Set m_enable_x
+        void setEnableX(bool enable) {m_enable_x = enable;}
 
-        //! Print load balancer counters
-        virtual void printStats();
+        /// Get value of m_enable_x
+        bool getEnableX(bool enable) {return m_enable_x;}
+
+        /// Set m_enable_y
+        void setEnableY(bool enable) {m_enable_y = enable;}
+
+        /// Get value of m_enable_y
+        bool getEnableY(bool enable) {return m_enable_y;}
+
+        /// Set m_enable_z
+        void setEnableZ(bool enable) {m_enable_z = enable;}
+
+        /// Get value of m_enable_z
+        bool getEnableZ(bool enable) {return m_enable_z;}
+
+        //! Take one timestep forward
+        virtual void update(uint64_t timestep);
 
         //! Reset the counters for the run
         virtual void resetStats();
 
     protected:
         std::shared_ptr<DomainDecomposition> m_decomposition; //!< The domain decomposition to balance
+        std::shared_ptr<Trigger> m_trigger;
 
         const MPI_Comm m_mpi_comm;  //!< MPI communicator for all ranks
 

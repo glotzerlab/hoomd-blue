@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_SPECIAL_PAIR_GPU_H__
 #define __POTENTIAL_SPECIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialSpecialPair.h"
 //! Use GPU functions for bonds
@@ -19,7 +19,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -31,15 +31,14 @@
 
     \sa export_PotentialSpecialPairGPU()
 */
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
 class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
     {
     public:
         //! Construct the special_pair potential
-        PotentialSpecialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         const std::string& log_suffix="");
+        PotentialSpecialPairGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         virtual ~PotentialSpecialPairGPU() {}
 
@@ -59,15 +58,15 @@ class PotentialSpecialPairGPU : public PotentialSpecialPair<evaluator>
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                          const std::string& log_suffix)
-    : PotentialSpecialPair<evaluator>(sysdef, log_suffix)
+PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(
+        std::shared_ptr<SystemDefinition> sysdef)
+    : PotentialSpecialPair<evaluator>(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -88,13 +87,14 @@ PotentialSpecialPairGPU< evaluator, gpu_cgbf >::PotentialSpecialPairGPU(std::sha
     ArrayHandle<unsigned int> h_flags(m_flags,access_location::host, access_mode::overwrite);
     h_flags.data[0] = 0;
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "special_pair_"+evaluator::getName(), this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgbf(const bond_args_t& bond_args,
+template< class evaluator, hipError_t gpu_cgbf(const bond_args_t& bond_args,
                                                 const typename evaluator::param_type *d_params,
                                                 unsigned int *d_flags) >
-void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int timestep)
+void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, this->m_prof_name);
@@ -170,10 +170,10 @@ void PotentialSpecialPairGPU< evaluator, gpu_cgbf >::computeForces(unsigned int 
 */
 template < class T, class Base > void export_PotentialSpecialPairGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
             ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_SPECIAL_PAIR_GPU_H__

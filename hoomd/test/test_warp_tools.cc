@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -196,6 +196,13 @@ UP_TEST( test_warp_reduce_32 )
     {
     test_warp_reduce(32);
     }
+#ifdef __HIP_PLATFORM_HCC__
+//! Warp reduce with 1 thread
+UP_TEST( test_warp_reduce_64 )
+    {
+    test_warp_reduce(64);
+    }
+#endif
 
 //! Warp scan with 1 thread
 UP_TEST( test_warp_scan_1 )
@@ -227,3 +234,10 @@ UP_TEST( test_warp_scan_32 )
     {
     test_warp_scan(32);
     }
+#ifdef __HIP_PLATFORM_HCC__
+//! Warp scan with 64 threads
+UP_TEST( test_warp_scan_64 )
+    {
+    test_warp_scan(64);
+    }
+#endif

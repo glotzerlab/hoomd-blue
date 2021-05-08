@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -22,11 +22,11 @@ class Communicator;
     \brief Declares a base class for all two-step integration methods
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps
 /*! \b Overview
@@ -91,13 +91,6 @@ class Communicator;
        forward for the second half step
     -# each integration method only applies these operations to the particles contained within its group (exceptions
        are allowed when box rescaling is needed)
-
-    <b>Design items still left to do:</b>
-
-    Interaction with logger: perhaps the integrator should forward log value queries on to the integration method?
-    each method could be given a user name so that they are logged in user-controlled columns. This provides a window
-    into the internally computed state variables logging per method.
-
     \ingroup updaters
 */
 class PYBIND11_EXPORT IntegrationMethodTwoStep
@@ -111,12 +104,19 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Abstract method that performs the first step of the integration
         /*! \param timestep Current time step
         */
-        virtual void integrateStepOne(unsigned int timestep) {}
+        virtual void integrateStepOne(uint64_t timestep) {}
 
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
         */
-        virtual void integrateStepTwo(unsigned int timestep)
+        virtual void integrateStepTwo(uint64_t timestep)
+            {
+            }
+
+        //! Calculates force which keeps paricles on manifold in RATTLE integrators
+        /*! \param timestep Current time step
+        */
+        virtual void includeRATTLEForce(uint64_t timestep)
             {
             }
 
@@ -133,34 +133,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             {
             }
 
-        //! Returns a list of log quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See Logger for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log value and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-            \param my_quantity_flag Returns true if this method tracks this quantity
-
-            The base class just returns 0. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogQuantities() will be requested from
-            getLogValue().
-
-            See Logger for more information on what this is about.
-        */
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep,  bool &my_quantity_flag)
-            {
-            return Scalar(0.0);
-            }
-
         //! Change the timestep
         void setDeltaT(Scalar deltaT);
 
@@ -171,7 +143,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         bool isValidRestart() { return m_valid_restart; }
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> query_group);
+        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
@@ -189,7 +161,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        void setCommunicator(std::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             assert(comm);
             m_comm = comm;
@@ -203,7 +175,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             {
             // warn if we are moving isotropic->anisotropic and we
             // find no rotational degrees of freedom
-            if (!m_aniso && aniso && !this->getRotationalNDOF(m_group))
+            if (!m_aniso && aniso && this->getRotationalDOF(m_group) == Scalar(0))
                 {
                     m_exec_conf->msg->warning() << "Integrator #"<<  m_integrator_id <<
                         ": Anisotropic integration requested, but no rotational "
@@ -219,19 +191,16 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         //! Compute rotational degrees of freedom
         /*! \param query_group The group of particles to compute rotational DOF for
          */
-        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
-
-        void setRandomizeVelocitiesParams(Scalar T_randomize, unsigned int seed_randomize)
-            {
-            m_T_randomize = T_randomize;
-            m_seed_randomize = seed_randomize;
-            m_shouldRandomize = true;
-            }
-
-        virtual void randomizeVelocities(unsigned int timestep);
+        virtual Scalar getRotationalDOF(std::shared_ptr<ParticleGroup> query_group);
 
         //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
         virtual void initializeIntegratorVariables() {}
+
+        //! Return true if the method is momentum conserving
+        virtual bool isMomentumConserving() const
+            {
+            return true;
+            }
 
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
@@ -240,11 +209,6 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
-
-        /*! Member variables for randomizeVelocities(). */
-        Scalar m_T_randomize = 0;
-        unsigned int m_seed_randomize = 0;
-        bool m_shouldRandomize = false;
 
         Scalar m_deltaT;                                    //!< The time step
 

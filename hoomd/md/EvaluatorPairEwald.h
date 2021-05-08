@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_EWALD_H__
 #define __PAIR_EVALUATOR_EWALD_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -19,7 +19,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#if defined NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -47,7 +47,39 @@ class EvaluatorPairEwald
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar kappa;
+            Scalar alpha;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hints() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : kappa(0), alpha(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                kappa = v["kappa"].cast<Scalar>();
+                alpha = v["alpha"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["kappa"] = kappa;
+                v["alpha"] = alpha;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -55,7 +87,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), alpha(_params.y)
+          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.kappa), alpha(_params.alpha)
             {
             }
 
@@ -111,10 +143,9 @@ class EvaluatorPairEwald
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

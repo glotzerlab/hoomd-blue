@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,7 +15,7 @@
 #include "ParticleData.h"
 
 #include "HOOMDMPI.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <algorithm>
 #include <cmath>
@@ -68,10 +68,10 @@ DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration>
     {
     m_exec_conf->msg->notice(5) << "Constructing DomainDecomposition" << endl;
 
-    unsigned int nx = (fxs.size() > 0) ? (fxs.size() + 1) : 0;
-    unsigned int ny = (fys.size() > 0) ? (fys.size() + 1) : 0;
-    unsigned int nz = (fzs.size() > 0) ? (fzs.size() + 1) : 0;
-    initializeDomainGrid(L, nx, ny, nz, false);
+    size_t nx = (fxs.size() > 0) ? (fxs.size() + 1) : 0;
+    size_t ny = (fys.size() > 0) ? (fys.size() + 1) : 0;
+    size_t nz = (fzs.size() > 0) ? (fzs.size() + 1) : 0;
+    initializeDomainGrid(L, (unsigned int)nx, (unsigned int)ny, (unsigned int)nz, false);
 
     std::vector<Scalar> try_fxs = fxs;
     std::vector<Scalar> try_fys = fys;
@@ -143,7 +143,7 @@ void DomainDecomposition::initializeDomainGrid(Scalar3 L,
         if (m_twolevel)
             {
             // every node has the same number of ranks, so nranks == num_nodes * num_ranks_per_node
-            unsigned int n_nodes = m_nodes.size();
+            unsigned int n_nodes = (unsigned int)(m_nodes.size());
 
             // subdivide the global grid
             findDecomposition(nranks, L, nx, ny, nz);
@@ -587,21 +587,21 @@ unsigned int DomainDecomposition::placeParticle(const BoxDim& global_box, Scalar
     // as long as we don't wrap them around. Therefore, shift back into nearest box if that is the case
     std::vector<Scalar>::iterator it;
     it = std::lower_bound(m_cum_frac_x.begin(), m_cum_frac_x.end(), f.x);
-    int ix = it - 1 - m_cum_frac_x.begin();
+    int ix = int(it - 1 - m_cum_frac_x.begin());
     if (ix < 0)
         ix++;
     else if (ix >= (int)m_nx)
         ix--;
 
     it = std::lower_bound(m_cum_frac_y.begin(), m_cum_frac_y.end(), f.y);
-    int iy = it - 1 - m_cum_frac_y.begin();
+    int iy = int(it - 1 - m_cum_frac_y.begin());
     if (iy < 0)
         iy++;
     else if (iy >= (int)m_ny)
         iy--;
 
     it = std::lower_bound(m_cum_frac_z.begin(), m_cum_frac_z.end(), f.z);
-    int iz = it - 1 - m_cum_frac_z.begin();
+    int iz = int(it - 1 - m_cum_frac_z.begin());
     if (iz < 0)
         iz++;
     else if (iz >= (int)m_nz)
@@ -651,7 +651,7 @@ void DomainDecomposition::initializeTwoLevel()
     for (std::set<std::string>::iterator it = m_nodes.begin(); it != m_nodes.end(); ++it)
         {
         std::pair<map_t::iterator, map_t::iterator> p = m_node_map.equal_range(*it);
-        unsigned int n_node = std::distance(p.first, p.second);
+        unsigned int n_node = (unsigned int)(std::distance(p.first, p.second));
 
         // if we have a non-uniform number of ranks per node use one-level decomposition
         if (m_max_n_node != 0 && n_node != m_max_n_node)

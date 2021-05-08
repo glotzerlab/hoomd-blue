@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __BOND_EVALUATOR_COULOMB_H__
 #define __BOND_EVALUATOR_COULOMB_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -23,11 +23,47 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
 #endif
+
+struct special_coulomb_params
+    {
+    Scalar alpha;
+    Scalar r_cutsq;
+
+    #ifdef ENABLE_HIP
+    //! Set CUDA memory hints
+    void set_memory_hint() const
+        {
+        // default implementation does nothing
+        }
+    #endif
+
+    #ifndef __HIPCC__
+    special_coulomb_params(): alpha(0.), r_cutsq(0.){}
+
+    special_coulomb_params(pybind11::dict v)
+        {
+        alpha = v["alpha"].cast<Scalar>();
+        r_cutsq = 0.;
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["alpha"] = alpha;
+        return v;
+        }
+    #endif
+    }
+    #ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+    #else
+    __attribute__((aligned(16)));
+    #endif
 
 //! Class for evaluating the Coulomb bond potential
 /*! See the EvaluatorPairLJ class for the meaning of the parameters
@@ -36,14 +72,14 @@ class EvaluatorSpecialPairCoulomb
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef special_coulomb_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorSpecialPairCoulomb(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq), scale(_params.x), rcutsq(_params.y)
+            : rsq(_rsq), scale(_params.alpha), rcutsq(_params.r_cutsq)
             {
             }
 
@@ -93,10 +129,9 @@ class EvaluatorSpecialPairCoulomb
             return true;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

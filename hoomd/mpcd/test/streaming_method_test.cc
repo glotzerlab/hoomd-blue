@@ -1,13 +1,13 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/StreamingGeometry.h"
 #include "hoomd/mpcd/ConfinedStreamingMethod.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/ConfinedStreamingMethodGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -111,11 +111,11 @@ UP_TEST( mpcd_streaming_method_basic )
     typedef mpcd::ConfinedStreamingMethod<mpcd::detail::BulkGeometry> method;
     streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! basic test case for MPCD StreamingMethod class
 UP_TEST( mpcd_streaming_method_setup )
     {
     typedef mpcd::ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry> method;
     streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -43,8 +43,9 @@ TempRescaleUpdater::~TempRescaleUpdater()
 /*! Perform the proper velocity rescaling
     \param timestep Current time step of the simulation
 */
-void TempRescaleUpdater::update(unsigned int timestep)
+void TempRescaleUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // find the current temperature
 
     assert(m_thermo);
@@ -60,7 +61,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
     else
         {
         // calculate a fraction to scale the momenta by
-        Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+        Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
         // scale the free particle velocities
         assert(m_pdata);
@@ -88,7 +89,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
         else
             {
             // calculate a fraction to scale the momenta by
-            Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+            Scalar fraction = sqrt((*m_tset)(timestep) / cur_temp);
 
             // scale the free particle velocities
             assert(m_pdata);
@@ -119,7 +120,7 @@ void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
 
 void export_TempRescaleUpdater(py::module& m)
     {
-    py::class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater", py::base<Updater>())
+    py::class_<TempRescaleUpdater, Updater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ComputeThermo>,
                                  std::shared_ptr<Variant> >())

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -52,8 +52,6 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
-
-    m_log_names.push_back("pppm_energy");
 
     m_mesh_points = make_uint3(0,0,0);
     m_global_dim = make_uint3(0,0,0);
@@ -147,8 +145,8 @@ PPPMForceCompute::~PPPMForceCompute()
 
     if (m_kiss_fft_initialized)
         {
-        free(m_kiss_fft);
-        free(m_kiss_ifft);
+        kiss_fft_free(m_kiss_fft);
+        kiss_fft_free(m_kiss_ifft);
         kiss_fft_cleanup();
         }
     #ifdef ENABLE_MPI
@@ -179,7 +177,7 @@ void PPPMForceCompute::compute_gf_denom()
 
     long int ifact = 1; // need long data type for seventh order polynomial
     for (k = 1; k < 2*(int)m_order; k++) ifact *= k;
-    Scalar gaminv = 1.0/ifact;
+    Scalar gaminv = Scalar(1.0)/Scalar(ifact);
     for (l = 0; l < (int)m_order; l++) h_gf_b.data[l] *= gaminv;
     }
 
@@ -417,9 +415,9 @@ uint3 PPPMForceCompute::computeGhostCellNum()
         Scalar3 cell_width = box.getNearestPlaneDistance() /
             make_scalar3(m_mesh_points.x, m_mesh_points.y, m_mesh_points.z);
 
-        if (n_ghost_cells.x) n_ghost_cells.x += r_buff/cell_width.x + 1;
-        if (n_ghost_cells.y) n_ghost_cells.y += r_buff/cell_width.y + 1;
-        if (n_ghost_cells.z) n_ghost_cells.z += r_buff/cell_width.z + 1;
+        if (n_ghost_cells.x) n_ghost_cells.x += (unsigned int)(r_buff/cell_width.x) + 1;
+        if (n_ghost_cells.y) n_ghost_cells.y += (unsigned int)(r_buff/cell_width.y) + 1;
+        if (n_ghost_cells.z) n_ghost_cells.z += (unsigned int)(r_buff/cell_width.z) + 1;
         }
     #endif
     return n_ghost_cells;
@@ -485,6 +483,15 @@ void PPPMForceCompute::initializeFFT()
         dims[0] = m_mesh_points.z;
         dims[1] = m_mesh_points.y;
         dims[2] = m_mesh_points.x;
+
+        if (m_kiss_fft)
+            {
+            kiss_fft_free(m_kiss_fft);
+            }
+        if (m_kiss_ifft)
+            {
+            kiss_fft_free(m_kiss_ifft);
+            }
 
         m_kiss_fft = kiss_fftnd_alloc(dims, 3, 0, NULL, NULL);
         m_kiss_ifft = kiss_fftnd_alloc(dims, 3, 1, NULL, NULL);
@@ -769,9 +776,9 @@ void PPPMForceCompute::assignParticles()
             }
 
         // find cell of the mesh the particle is in
-        int ix = (reduced_pos.x + shift);
-        int iy = (reduced_pos.y + shift);
-        int iz = (reduced_pos.z + shift);
+        int ix = int(reduced_pos.x + shift);
+        int iy = int(reduced_pos.y + shift);
+        int iz = int(reduced_pos.z + shift);
 
         Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
         Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
@@ -859,7 +866,7 @@ void PPPMForceCompute::assignParticles()
                     // store in row major order
                     unsigned int neigh_idx = neighi + m_grid_dim.x * (neighj + m_grid_dim.y*neighk);
 
-                    h_mesh.data[neigh_idx].r += qi*W/V_cell;
+                    h_mesh.data[neigh_idx].r += float(qi*W/V_cell);
                     }
                 }
             }
@@ -923,14 +930,14 @@ void PPPMForceCompute::updateMeshes()
 
             Scalar3 kvec = h_k.data[k];
 
-            h_fourier_mesh_G_x.data[k].r = f.i * kvec.x * scaled_inf_f;
-            h_fourier_mesh_G_x.data[k].i = -f.r * kvec.x * scaled_inf_f;
+            h_fourier_mesh_G_x.data[k].r = float(f.i * kvec.x * scaled_inf_f);
+            h_fourier_mesh_G_x.data[k].i = float(-f.r * kvec.x * scaled_inf_f);
 
-            h_fourier_mesh_G_y.data[k].r = f.i * kvec.y * scaled_inf_f;
-            h_fourier_mesh_G_y.data[k].i = -f.r * kvec.y * scaled_inf_f;
+            h_fourier_mesh_G_y.data[k].r = float(f.i * kvec.y * scaled_inf_f);
+            h_fourier_mesh_G_y.data[k].i = float(-f.r * kvec.y * scaled_inf_f);
 
-            h_fourier_mesh_G_z.data[k].r = f.i * kvec.z * scaled_inf_f;
-            h_fourier_mesh_G_z.data[k].i = -f.r * kvec.z * scaled_inf_f;
+            h_fourier_mesh_G_z.data[k].r = float(f.i * kvec.z * scaled_inf_f);
+            h_fourier_mesh_G_z.data[k].i = float(-f.r * kvec.z * scaled_inf_f);
             }
         }
 
@@ -1053,9 +1060,9 @@ void PPPMForceCompute::interpolateForces()
 
 
         // find cell of the force mesh the particle is in
-        int ix = (reduced_pos.x + shift);
-        int iy = (reduced_pos.y + shift);
-        int iz = (reduced_pos.z + shift);
+        int ix = int(reduced_pos.x + shift);
+        int iy = int(reduced_pos.y + shift);
+        int iz = int(reduced_pos.z + shift);
 
         Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
         Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
@@ -1230,7 +1237,7 @@ Scalar PPPMForceCompute::computePE()
     return sum;
     }
 
-void PPPMForceCompute::computeForces(unsigned int timestep)
+void PPPMForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("PPPM");
 
@@ -1282,14 +1289,11 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
     updateMeshes();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    if (flags[pdata_flag::potential_energy])
-        {
-        computePE();
-        }
+    computePE();
 
     interpolateForces();
 
-    if (flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial])
+    if (flags[pdata_flag::pressure_tensor])
         {
         computeVirial();
         }
@@ -1376,7 +1380,7 @@ inline void eval_pppm_real_space(Scalar alpha, Scalar kappa, Scalar rsq, Scalar 
     {
     const Scalar sqrtpi = sqrt(M_PI);
 
-    Scalar r = sqrtf(rsq);
+    Scalar r = slow::sqrt(rsq);
     Scalar expfac = fast::exp(-alpha*r);
     Scalar arg1 = kappa * r - alpha/Scalar(2.0)/kappa;
     Scalar arg2 = kappa * r + alpha/Scalar(2.0)/kappa;
@@ -1507,7 +1511,7 @@ void PPPMForceCompute::fixExclusions()
     // reset virial (but not forces, we reset them above)
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -1591,27 +1595,6 @@ void PPPMForceCompute::fixExclusions()
     if (m_prof) m_prof->pop();
     }
 
-Scalar PPPMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == m_log_names[0])
-        {
-        // make sure values are current
-        compute(timestep);
-
-        Scalar result = computePE();
-
-        if(m_nlist->getExclusionsSet())
-            {
-            result += calcEnergySum();
-            }
-
-        return result;
-        }
-
-    // nothing found? return base class value
-    return ForceCompute::getLogValue(quantity, timestep);
-    }
-
 Scalar PPPMForceCompute::getQSum()
     {
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
@@ -1669,7 +1652,7 @@ Scalar PPPMForceCompute::getQ2Sum()
 
 void export_PPPMForceCompute(py::module& m)
     {
-    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+    py::class_<PPPMForceCompute, ForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)

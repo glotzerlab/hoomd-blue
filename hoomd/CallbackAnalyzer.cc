@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,8 +7,6 @@
 /*! \file CallbackAnalyzer.cc
     \brief Defines the CallbackAnalyzer class
 */
-
-
 
 #include "CallbackAnalyzer.h"
 
@@ -40,14 +38,15 @@ CallbackAnalyzer::~CallbackAnalyzer()
 
     analyze() will call the callback
 */
-void CallbackAnalyzer::analyze(unsigned int timestep)
+void CallbackAnalyzer::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
       callback(timestep);
     }
 
 void export_CallbackAnalyzer(py::module& m)
     {
-    py::class_<CallbackAnalyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer",py::base<Analyzer>())
+    py::class_<CallbackAnalyzer, Analyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer")
     .def(py::init< std::shared_ptr<SystemDefinition>, py::object>())
     ;
     }

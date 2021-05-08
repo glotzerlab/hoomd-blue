@@ -1,10 +1,9 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSimplePolygon.h"
@@ -20,15 +19,12 @@
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
-#include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
-#include "UpdaterClustersImplicit.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "IntegratorHPMCMonoGPU.h"
-#include "IntegratorHPMCMonoImplicitGPU.h"
-#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "UpdaterClustersGPU.h"
 #endif
 
 
@@ -46,13 +42,10 @@ namespace hpmc
 void export_simple_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitSimplePolygon");
     export_ComputeFreeVolume< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygon");
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
-    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitSimplePolygon");
-    export_UpdaterMuVTImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterMuVTImplicitSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");
@@ -62,11 +55,10 @@ void export_simple_polygon(py::module& m)
     // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m, "UpdaterExternalFieldWallSimplePolygon");
     export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
-    #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitGPUSimplePolygon");
-    export_IntegratorHPMCMonoImplicitNewGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoImplicitNewGPUSimplePolygon");
-    export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeGPUSimplePolygon");
+    #ifdef ENABLE_HIP
+    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygonGPU");
+    export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygonGPU");
+    export_UpdaterClustersGPU< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygonGPU");
     #endif
     }
 

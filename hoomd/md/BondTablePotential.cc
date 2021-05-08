@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,11 +19,9 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondTablePotential" << endl;
@@ -50,14 +48,13 @@ BondTablePotential::BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_bond_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(), m_bond_data->getNTypes());
     m_table_value = table_value;
 
 
 
 
 
-    m_log_name = std::string("bond_table_energy") + log_suffix;
     }
 
 BondTablePotential::~BondTablePotential()
@@ -119,34 +116,10 @@ void BondTablePotential::setTable(unsigned int type,
         }
     }
 
-/*! BondTablePotential provides
-    - \c bond_table_energy
-*/
-std::vector< std::string > BondTablePotential::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar BondTablePotential::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "bond.table: " << quantity << " is not a valid log quantity for BondTablePotential" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void BondTablePotential::computeForces(unsigned int timestep)
+void BondTablePotential::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute
@@ -293,8 +266,8 @@ void BondTablePotential::computeForces(unsigned int timestep)
 //! Exports the BondTablePotential class to python
 void export_BondTablePotential(py::module& m)
     {
-    py::class_<BondTablePotential, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential", py::base<ForceCompute>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    py::class_<BondTablePotential, ForceCompute, std::shared_ptr<BondTablePotential> >(m, "BondTablePotential")
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
     .def("setTable", &BondTablePotential::setTable)
     ;
     }

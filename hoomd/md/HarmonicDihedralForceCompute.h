@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,14 +15,41 @@
     \brief Declares a class for computing harmonic dihedrals
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
+
+struct dihedral_harmonic_params
+    {
+    Scalar k;
+    Scalar d;
+    Scalar n;
+    Scalar phi_0;
+
+    #ifndef __HIPCC__
+    dihedral_harmonic_params(): k(0.), d(0.), n(0.), phi_0(0.){}
+
+    dihedral_harmonic_params(pybind11::dict v)
+        : k(v["k"].cast<Scalar>()), d(v["d"].cast<Scalar>()),
+          n(v["n"].cast<Scalar>()), phi_0(v["phi0"].cast<Scalar>()){}
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["k"] = k;
+        v["d"] = d;
+        v["n"] = n;
+        v["phi0"] = phi_0;
+        return v;
+        }
+    #endif
+    }
+    __attribute__((aligned(32)));
 
 //! Computes harmonic dihedral forces on each particle
 /*! Harmonic dihedral forces are computed on every particle in the simulation.
@@ -40,19 +67,18 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         virtual ~HarmonicDihedralForceCompute();
 
         //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0);
+        virtual void setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+        virtual void setParamsPython(std::string type, pybind11::dict params);
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        /// Get the parameters for a particular type
+        pybind11::dict getParams(std::string type);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step
         */
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags = CommFlags(0);
             flags[comm_flag::tag] = 1;
@@ -70,7 +96,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the DihedralForceCompute class to python

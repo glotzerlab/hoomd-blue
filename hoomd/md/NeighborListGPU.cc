@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -36,10 +36,10 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     buildNlist(0);
     filterNlist();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
         {
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
         CHECK_CUDA_ERROR();
         }
 #endif
@@ -49,9 +49,9 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     for (unsigned int i = 0; i < num_iters; i++)
         filterNlist();
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if(m_exec_conf->isCUDAEnabled())
-        cudaThreadSynchronize();
+        hipDeviceSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
 
@@ -59,13 +59,13 @@ double NeighborListGPU::benchmarkFilter(unsigned int num_iters)
     return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
-void NeighborListGPU::buildNlist(unsigned int timestep)
+void NeighborListGPU::buildNlist(uint64_t timestep)
     {
     m_exec_conf->msg->error() << "nlist: O(N^2) neighbor lists are no longer supported." << endl;
     throw runtime_error("Error updating neighborlist bins");
     }
 
-bool NeighborListGPU::distanceCheck(unsigned int timestep)
+bool NeighborListGPU::distanceCheck(uint64_t timestep)
     {
     // prevent against unnecessary calls
     if (! shouldCheckDistance(timestep))
@@ -259,8 +259,8 @@ void NeighborListGPU::buildHeadList()
 
 void export_NeighborListGPU(py::module& m)
     {
-    py::class_<NeighborListGPU, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU", py::base<NeighborList>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListGPU, NeighborList, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU")
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }

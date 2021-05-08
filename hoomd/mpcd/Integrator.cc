@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -60,8 +60,9 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
  *       state variables forward to \a timestep+1.
  * \post Internally, all forces added via Integrator::addForceCompute are evaluated at \a timestep+1
  */
-void mpcd::Integrator::update(unsigned int timestep)
+void mpcd::Integrator::update(uint64_t timestep)
     {
+    IntegratorTwoStep::update(timestep);
     // issue a warning if no integration methods are set
     if (!m_gave_warning && m_methods.size() == 0 && !m_stream)
         {
@@ -123,7 +124,7 @@ void mpcd::Integrator::update(unsigned int timestep)
         }
 
     // compute the net force on the MD particles
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         computeNetForceGPU(timestep+1);
     else
@@ -153,7 +154,7 @@ void mpcd::Integrator::setDeltaT(Scalar deltaT)
  * If acceleration is available in the restart file, then just call computeNetForce so that net_force and net_virial
  * are available for the logger. This solves ticket #393
 */
-void mpcd::Integrator::prepRun(unsigned int timestep)
+void mpcd::Integrator::prepRun(uint64_t timestep)
     {
     IntegratorTwoStep::prepRun(timestep);
 
@@ -211,7 +212,7 @@ void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> fi
 void mpcd::detail::export_Integrator(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::Integrator, std::shared_ptr<mpcd::Integrator> >(m, "Integrator", py::base<::IntegratorTwoStep>())
+    py::class_<mpcd::Integrator, ::IntegratorTwoStep, std::shared_ptr<mpcd::Integrator> >(m, "Integrator")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
         .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)

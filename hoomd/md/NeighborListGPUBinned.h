@@ -1,22 +1,22 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 
 #include "NeighborListGPU.h"
-#include "hoomd/CellList.h"
+#include "hoomd/CellListGPU.h"
 #include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPUBinned.h
     \brief Declares the NeighborListGPUBinned class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
@@ -33,18 +33,17 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     public:
         //! Constructs the compute
         NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
-                              Scalar r_cut,
-                              Scalar r_buff,
-                              std::shared_ptr<CellList> cl = std::shared_ptr<CellList>());
+                              Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListGPUBinned();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Change the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            NeighborListGPU::notifyRCutMatrixChange();
+            }
 
         //! Set the autotuner period
         void setTuningParam(unsigned int param)
@@ -63,8 +62,30 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
+        /// Make the neighborlist deterministic
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
+
+        /// Get the deterministic flag
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
+
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
         std::shared_ptr<CellList> m_cl;   //!< The cell list
@@ -72,10 +93,13 @@ class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
         unsigned int m_param;               //!< Kernel tuning parameter
         bool m_use_index;                 //!< True for indirect lookup of particle data via index
 
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = true;
+
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
     };
 
 //! Exports NeighborListGPUBinned to python

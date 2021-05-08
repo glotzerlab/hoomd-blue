@@ -3,17 +3,21 @@ md.bond
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.md.bond
 
 .. autosummary::
     :nosignatures:
 
-    md.bond.fene
-    md.bond.harmonic
-    md.bond.table
+    Bond
+    FENE
+    Harmonic
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.bond
     :synopsis: Bond potentials.
-    :members:
+    :members: Bond,
+              FENE,
+              Harmonic
+    :no-inherited-members:
+    :show-inheritance:

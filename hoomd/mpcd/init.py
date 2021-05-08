@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward
@@ -31,7 +31,7 @@ def make_random(N, kT, seed):
 
     MPCD particles are randomly initialized into the simulation box.
     An MPCD system can be randomly initialized only **after** the HOOMD system
-    is first initialized (see :py:mod:`hoomd.init`). The system can only be
+    is first initialized (see ``hoomd.init``). The system can only be
     initialized one time. The total number of particles *N* is evenly divided
     between all domains. Random positions are then drawn uniformly within the
     (local) box. Particle velocities are drawn from a Maxwell-Boltzmann
@@ -49,23 +49,20 @@ def make_random(N, kT, seed):
         be reasonably recycled elsewhere.
 
     """
-    hoomd.util.print_status_line()
-
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     # make particle data first
     sysdef = hoomd.context.current.system_definition
     box = sysdef.getParticleData().getBox()
     if hoomd.context.current.decomposition:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.exec_conf, hoomd.context.current.decomposition.cpp_dd)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf, hoomd.context.current.decomposition.cpp_dd)
     else:
-        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.exec_conf)
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, sysdef.getNDimensions(), hoomd.context.current.device.cpp_exec_conf)
 
     # then make mpcd system
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(sysdef,pdata))
@@ -81,7 +78,7 @@ def read_snapshot(snapshot):
         Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system`)
 
     An MPCD system can be initialized from a snapshot **after** the HOOMD system
-    is first initialized (see :py:mod:`hoomd.init`). The system can only be
+    is first initialized (see ``hoomd.init``). The system can only be
     initialized one time. If no type is specified in the snapshot, a default type
     *A* will be assigned to the MPCD particles.
 
@@ -99,14 +96,12 @@ def read_snapshot(snapshot):
         MPCD snapshot is not properly resized.
 
     """
-    hoomd.util.print_status_line();
 
     if not hoomd.init.is_initialized():
-        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
-        raise RuntimeError("HOOMD system not initialized")
+        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
 
     if hoomd.context.current.mpcd is not None:
-        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        hoomd.context.current.device.cpp_msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
     hoomd.context.current.mpcd = data.system(_mpcd.SystemData(snapshot.sys_snap))

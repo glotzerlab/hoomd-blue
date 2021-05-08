@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,7 +8,7 @@
     \brief Defines the SystemDefinition class
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -17,7 +17,7 @@
 #include "BondedGroupData.h"
 
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 
 #ifndef __SYSTEM_DEFINITION_H__
@@ -99,6 +99,30 @@ class PYBIND11_EXPORT SystemDefinition
             {
             return m_n_dimensions;
             }
+
+        /// Set the random numbers seed
+        void setSeed(uint16_t seed)
+            {
+            m_seed = seed;
+
+            #ifdef ENABLE_MPI
+            // In case of MPI run, every rank should be initialized with the same seed.
+            // Broadcast the seed of rank 0 to all ranks to correct cases where the user provides
+            // different seeds
+
+            if( this->m_particle_data->getDomainDecomposition() )
+                bcast(m_seed,
+                      0,
+                      this->m_particle_data->getExecConf()->getMPICommunicator());
+            #endif
+            }
+
+        /// Get the random number seed
+        uint16_t getSeed() const
+            {
+            return m_seed;
+            }
+
         //! Get the particle data
         std::shared_ptr<ParticleData> getParticleData() const
             {
@@ -145,14 +169,7 @@ class PYBIND11_EXPORT SystemDefinition
 
         //! Return a snapshot of the current system data
         template <class Real>
-        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles= true,
-                                                           bool bonds = false,
-                                                           bool angles = false,
-                                                           bool dihedrals = false,
-                                                           bool impropers = false,
-                                                           bool constraints = false,
-                                                           bool integrators = false,
-                                                           bool pairs = false);
+        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot();
 
         //! Re-initialize the system from a snapshot
         template <class Real>
@@ -160,6 +177,7 @@ class PYBIND11_EXPORT SystemDefinition
 
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
+        uint16_t m_seed=0;                                  //!< Random number seed
         std::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
         std::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
         std::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system

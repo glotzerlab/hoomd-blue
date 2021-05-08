@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
-#include "hoomd/CellList.h"
+#include "hoomd/CellListGPU.h"
 #include "hoomd/CellListStencil.h"
 #include "hoomd/Autotuner.h"
 
@@ -13,11 +13,11 @@
     \brief Declares the NeighborListGPUStencil class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLISTGPUSTENCIL_H__
 #define __NEIGHBORLISTGPUSTENCIL_H__
@@ -34,19 +34,18 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     public:
         //! Constructs the compute
         NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
-                               Scalar r_cut,
-                               Scalar r_buff,
-                               std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
-                               std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
+                               Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListGPUStencil();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Change the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            m_needs_restencil = true;
+            NeighborListGPU::notifyRCutMatrixChange();
+            }
 
         //! Change the underlying cell width
         void setCellWidth(Scalar cell_width)
@@ -67,28 +66,35 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_tuner->setEnabled(enable);
             }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            m_cls->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
         std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
-        unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
+        uint64_t m_last_tuned_timestep;       //!< Last tuning timestep
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list
         std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
-        bool m_override_cell_width;                 //!< Flag to override the cell width
+        bool m_override_cell_width = false;       //!< Flag to override the cell width
 
         //! Update the stencil radius
         void updateRStencil();
-        bool m_needs_restencil;                             //!< Flag for updating the stencil
-        void slotRCutChange()
-            {
-            m_needs_restencil = true;
-            }
+        bool m_needs_restencil = true;  //!< Flag for updating the stencil
 
         //! Sort the particles by type
         void sortTypes();
@@ -103,6 +109,10 @@ class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
             m_pid_map.resize(m_pdata->getMaxN());
             m_needs_resort = true;
             }
+
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = false;
+
     };
 
 //! Exports NeighborListGPUStencil to python

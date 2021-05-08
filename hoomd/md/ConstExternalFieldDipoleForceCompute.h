@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Declares a class for computing external forces on anisotropic particles
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__
 #define __CONSTEXTERNALFIELDDIPOLEFORCECOMPUTE_H__
@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ConstExternalFieldDipoleForceCompute : public ForceCompute
 
     protected:
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
     private:
     Scalar4 field;  //!< Electric field

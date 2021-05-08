@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,9 +13,10 @@
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepLangevin.h"
 #include "hoomd/md/ConstraintSphere.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/ConstraintSphereGPU.h"
 #endif
+#include "hoomd/filter/ParticleFilterAll.h"
 
 #include <math.h>
 
@@ -46,7 +47,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
     // at P with radius r. Use a huge box so boundary conditions don't come into play
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
@@ -66,8 +67,8 @@ void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionC
 
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
-    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0, false, false));
+    std::shared_ptr<VariantConstant> T_variant(new VariantConstant(Temp));
+    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
@@ -105,7 +106,7 @@ std::shared_ptr<ConstraintSphere> base_class_cs_creator(std::shared_ptr<SystemDe
     return std::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! ConstraintSphereGPU factory for the unit tests
 std::shared_ptr<ConstraintSphere> gpu_cs_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group,
@@ -123,7 +124,7 @@ UP_TEST( BDUpdater_tests )
     constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Basic test for the GPU class
 UP_TEST( BDUpdaterGPU_tests )
     {

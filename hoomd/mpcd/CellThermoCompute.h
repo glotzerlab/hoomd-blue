@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,7 +11,7 @@
 #ifndef MPCD_CELL_THERMO_COMPUTE_H_
 #define MPCD_CELL_THERMO_COMPUTE_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -24,7 +24,7 @@
 
 #include "hoomd/Compute.h"
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -33,14 +33,13 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     {
     public:
         //! Constructor
-        CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
-                          const std::string& suffix = std::string(""));
+        CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata);
 
         //! Destructor
         virtual ~CellThermoCompute();
 
         //! Compute the cell thermodynamic properties
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Get the cell indexer for the attached cell list
         const Index3D& getCellIndexer() const
@@ -134,14 +133,14 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
             }
 
         //! Get the signal to attach a callback function
-        Nano::Signal<void (unsigned int)>& getCallbackSignal()
+        Nano::Signal<void (uint64_t timestep)>& getCallbackSignal()
             {
             return m_callbacks;
             }
 
     protected:
         //! Compute the cell properties
-        void computeCellProperties(unsigned int timestep);
+        void computeCellProperties(uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Begin the calculation of outer cell properties
@@ -177,7 +176,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Updates the requested optional flags
         void updateFlags();
 
-        Nano::Signal<void (unsigned int)> m_callbacks;  //!< Signal for callback functions
+        Nano::Signal<void (uint64_t timestep)> m_callbacks;  //!< Signal for callback functions
 
     private:
         //! Allocate memory per cell
@@ -186,8 +185,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Slot for the number of virtual particles changing
         /*!
          * All thermo properties should be recomputed if the number of virtual particles changes.
-         * This is because we cannot distinguish times when the thermo is used for logging vs.
-         * in a collision method. The cases where the thermo is first used without virtual particles
+         * The cases where the thermo is first used without virtual particles
          * followed by with virtual particles are small, and so it is easiest to just recompute.
          */
         void slotNumVirtual()

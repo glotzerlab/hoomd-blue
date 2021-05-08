@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Declares a class for computing ellipsoid constraint forces
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __CONSTRAINT_Ellipsoid_H__
 #define __CONSTRAINT_Ellipsoid_H__
@@ -39,7 +39,7 @@ class PYBIND11_EXPORT ConstraintEllipsoid : public Updater
         virtual ~ConstraintEllipsoid();
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied

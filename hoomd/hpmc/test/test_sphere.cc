@@ -11,7 +11,7 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #include <memory>
 
 using namespace hpmc;
@@ -24,7 +24,7 @@ UP_TEST( construction )
     // parameters
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
     o = o * (Scalar)(Scalar(1.0)/sqrt(norm2(o)));
-    sph_params par;
+    SphereParams par;
     par.radius = 1.25;
     par.ignore = 0;
     par.isOriented = false;
@@ -51,7 +51,7 @@ UP_TEST( overlap_sphere)
     quat<Scalar> o;
     BoxDim box(100);
 
-    sph_params par;
+    SphereParams par;
     par.radius=1.25;
     par.ignore=0;
     par.isOriented = false;
@@ -87,7 +87,7 @@ UP_TEST( overlap_boundaries )
     // parameters
     quat<Scalar> o;
     BoxDim box(20);
-    sph_params par;
+    SphereParams par;
     par.radius=1.0;
     par.ignore = 0;
     par.isOriented = false;
@@ -109,3 +109,6 @@ UP_TEST( overlap_boundaries )
     UP_ASSERT(test_overlap(rij,a,c,err_count));
     UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }
+
+
+

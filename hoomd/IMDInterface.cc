@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,6 @@
 /*! \file IMDInterface.cc
     \brief Defines the IMDInterface class
 */
-
 
 #include "IMDInterface.h"
 #include "SignalHandler.h"
@@ -132,8 +131,9 @@ IMDInterface::~IMDInterface()
 
     \param timestep Current time step of the simulation
 */
-void IMDInterface::analyze(unsigned int timestep)
+void IMDInterface::analyze(uint64_t timestep)
     {
+    Analyzer::analyze(timestep);
     if (m_prof)
         m_prof->push("IMD");
 
@@ -427,7 +427,7 @@ void IMDInterface::establishConnectionAttempt()
 
     Sends the current coordinates to VMD for display.
 */
-void IMDInterface::sendCoords(unsigned int timestep)
+void IMDInterface::sendCoords(uint64_t timestep)
     {
     // take a snapshot of the particle data
     SnapshotParticleData<Scalar> snapshot;
@@ -443,7 +443,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 
     // setup and send the energies structure
     IMDEnergies energies;
-    energies.tstep = timestep;
+    energies.tstep = static_cast<int32_t>(timestep);
     energies.T = 0.0f;
     energies.Etot = 0.0f;
     energies.Epot = 0.0f;
@@ -481,7 +481,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 
 void export_IMDInterface(py::module& m)
     {
-    py::class_<IMDInterface, std::shared_ptr<IMDInterface> >(m,"IMDInterface",py::base<Analyzer>())
+    py::class_<IMDInterface, Analyzer, std::shared_ptr<IMDInterface> >(m,"IMDInterface")
     .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
         ;
     }

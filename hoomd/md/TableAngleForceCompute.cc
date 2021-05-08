@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -24,11 +24,9 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                               unsigned int table_width,
-                               const std::string& log_suffix)
+                               unsigned int table_width)
         : ForceCompute(sysdef), m_table_width(table_width)
     {
     m_exec_conf->msg->notice(5) << "Constructing TableAngleForceCompute" << endl;
@@ -61,10 +59,9 @@ TableAngleForceCompute::TableAngleForceCompute(std::shared_ptr<SystemDefinition>
     assert(!m_tables.isNull());
 
     // helper to compute indices
-    Index2D table_value(m_tables.getPitch(),m_angle_data->getNTypes());
+    Index2D table_value((unsigned int)m_tables.getPitch(), (unsigned int)m_angle_data->getNTypes());
     m_table_value = table_value;
 
-    m_log_name = std::string("angle_table_energy") + log_suffix;
     }
 
 TableAngleForceCompute::~TableAngleForceCompute()
@@ -109,34 +106,10 @@ void TableAngleForceCompute::setTable(unsigned int type,
         }
     }
 
-/*! TableAngleForceCompute provides
-    - \c angle_table_energy
-*/
-std::vector< std::string > TableAngleForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-Scalar TableAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "angle.table: " << quantity << " is not a valid log quantity for TableAngleForceCompute" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The table based forces are computed for the given timestep.
 \param timestep specifies the current time step of the simulation
 */
-void TableAngleForceCompute::computeForces(unsigned int timestep)
+void TableAngleForceCompute::computeForces(uint64_t timestep)
     {
 
     // start the profile for this compute
@@ -155,7 +128,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
     memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
@@ -247,7 +220,7 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 
         /// Here we use the table!!
         unsigned int angle_type = m_angle_data->getTypeByIndex(i);
-        unsigned int value_i = floor(value_f);
+        unsigned int value_i = (unsigned int)(slow::floor(value_f));
         Scalar2 VT0 = h_tables.data[m_table_value(value_i, angle_type)];
         Scalar2 VT1 = h_tables.data[m_table_value(value_i+1, angle_type)];
         // unpack the data
@@ -330,8 +303,8 @@ void TableAngleForceCompute::computeForces(unsigned int timestep)
 //! Exports the TableAngleForceCompute class to python
 void export_TableAngleForceCompute(py::module& m)
     {
-    py::class_<TableAngleForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute", py::base<ForceCompute>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
+    py::class_<TableAngleForceCompute, ForceCompute, std::shared_ptr<TableAngleForceCompute> >(m, "TableAngleForceCompute")
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
     .def("setTable", &TableAngleForceCompute::setTable)
     ;
     }

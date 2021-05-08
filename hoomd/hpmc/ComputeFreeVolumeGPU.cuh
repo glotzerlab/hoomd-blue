@@ -1,9 +1,10 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
 #define _COMPUTE_FREE_VOLUME_CUH_
 
+#include "hip/hip_runtime.h"
 #include "HPMCCounters.h"
 #include "HPMCPrecisionSetup.h"
 
@@ -13,9 +14,7 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
 
-#include <curand_kernel.h>
-
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "Moves.h"
 #include "hoomd/TextureTools.h"
 #endif
@@ -50,10 +49,10 @@ struct hpmc_free_volume_args_t
                 const uint3& _cell_dim,
                 const unsigned int _N,
                 const unsigned int _num_types,
-                const unsigned int _seed,
+                const uint16_t _seed,
                 const unsigned int _rank,
                 unsigned int _select,
-                const unsigned int _timestep,
+                const uint64_t _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
                 const unsigned int _block_size,
@@ -64,8 +63,7 @@ struct hpmc_free_volume_args_t
                 const Scalar3 _ghost_width,
                 const unsigned int *_d_check_overlaps,
                 Index2D _overlap_idx,
-                cudaStream_t _stream,
-                const cudaDeviceProp& _devprop
+                const hipDeviceProp_t& _devprop
                 )
                 : n_sample(_n_sample),
                   type(_type),
@@ -95,7 +93,6 @@ struct hpmc_free_volume_args_t
                   ghost_width(_ghost_width),
                   d_check_overlaps(_d_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  stream(_stream),
                   devprop(_devprop)
         {
         };
@@ -114,10 +111,10 @@ struct hpmc_free_volume_args_t
     const uint3& cell_dim;            //!< Cell dimensions
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
-    const unsigned int seed;          //!< RNG seed
+    const uint16_t seed;          //!< RNG seed
     const unsigned int rank;          //!< MPI rank
     unsigned int select;              //!< RNG select value
-    const unsigned int timestep;      //!< Current time step
+    const uint64_t timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box
     unsigned int block_size;          //!< Block size to execute
@@ -128,14 +125,13 @@ struct hpmc_free_volume_args_t
     const Scalar3 ghost_width;       //!< Width of ghost layer
     const unsigned int *d_check_overlaps;   //!< Interaction matrix
     Index2D overlap_idx;              //!< Interaction matrix indexer
-    cudaStream_t stream;               //!< Stream for kernel execution
-    const cudaDeviceProp& devprop;    //!< CUDA device properties
+    const hipDeviceProp_t& devprop;    //!< CUDA device properties
     };
 
 template< class Shape >
-cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t &args, const typename Shape::param_type *d_params);
+hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t &args, const typename Shape::param_type *d_params);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Compute the cell that a particle sits in
 __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
@@ -201,10 +197,10 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const uint3 cell_dim,
                                      const unsigned int N,
                                      const unsigned int num_types,
-                                     const unsigned int seed,
+                                     const uint16_t seed,
                                      const unsigned int rank,
                                      const unsigned int select,
-                                     const unsigned int timestep,
+                                     const uint64_t timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
                                      unsigned int *d_n_overlap_all,
@@ -227,7 +223,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     i = blockIdx.x * n_groups + group;
 
     // load the per type pair parameters into shared memory
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     unsigned int *s_check_overlaps = (unsigned int *) (s_params + num_types);
     unsigned int ntyppairs = overlap_idx.getNumElements();
@@ -285,7 +281,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::ComputeFreeVolume, seed, rank, i, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ComputeFreeVolume, timestep, seed),
+                               hoomd::Counter(rank, i));
 
     unsigned int my_cell;
 
@@ -306,7 +303,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
         if (shape_i.hasOrientation())
             {
-            shape_i.orientation = generateRandomOrientation(rng);
+            shape_i.orientation = generateRandomOrientation(rng, dim);
             }
 
         // find cell the particle is in
@@ -348,7 +345,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                     unsigned int err_count;
                     if (s_check_overlaps[overlap_idx(typ_j, type)] && test_overlap(r_ij, shape_i, shape_j, err_count))
                         {
-                        atomicAdd(&s_overlap[group],1);
+                        s_overlap[group] = 1;
                         break;
                         }
                     }
@@ -381,7 +378,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 //! Kernel driver for gpu_hpmc_free_volume_kernel()
 /*! \param args Bundled arguments
     \param d_params Per-type shape parameters
-    \returns Error codes generated by any CUDA calls, or cudaSuccess when there is no error
+    \returns Error codes generated by any CUDA calls, or hipSuccess when there is no error
 
     This templatized method is the kernel driver for parallel update of any shape. It is instantiated for every shape at the
     bottom of this file.
@@ -389,7 +386,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     \ingroup hpmc_kernels
 */
 template< class Shape >
-cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typename Shape::param_type *d_params)
+hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typename Shape::param_type *d_params)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
@@ -399,14 +396,14 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     assert(args.block_size%(args.stride*args.group_size)==0);
 
     // reset counters
-    cudaMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int), args.stream);
+    hipMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
-    static cudaFuncAttributes attr;
+    static hipFuncAttributes attr;
     if (max_block_size == -1)
         {
-        cudaFuncGetAttributes(&attr, gpu_hpmc_free_volume_kernel<Shape>);
+        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -416,35 +413,23 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     dim3 threads(args.stride, args.group_size, n_groups);
     dim3 grid( args.n_sample / n_groups + 1, 1, 1);
 
-    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
-        + args.overlap_idx.getNumElements()*sizeof(unsigned int);
+    unsigned int shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
+        + args.overlap_idx.getNumElements()*sizeof(unsigned int));
 
-    // required for memory coherency
-    cudaDeviceSynchronize();
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
-
-    // attach the parameters to the kernel stream so that they are visible
-    // when other kernels are called
-    cudaStreamAttachMemAsync(args.stream, d_params, 0, cudaMemAttachSingle);
-    for (unsigned int i = 0; i < args.num_types; ++i)
-        {
-        // attach nested memory regions
-        d_params[i].attach_to_stream(args.stream);
-        }
+    unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes);
 
     // determine dynamically requested shared memory
     char *ptr = (char *)nullptr;
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int i = 0; i < args.num_types; ++i)
         {
-        d_params[i].load_shared(ptr, available_bytes);
+        d_params[i].allocate_shared(ptr, available_bytes);
         }
     unsigned int extra_bytes = max_extra_bytes - available_bytes;
 
     shared_bytes += extra_bytes;
 
-    gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, 0,
                                                      args.n_sample,
                                                      args.type,
                                                      args.d_postype,
@@ -471,13 +456,10 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      d_params,
                                                      max_extra_bytes);
 
-    // return control of managed memory
-    cudaDeviceSynchronize();
-
-    return cudaSuccess;
+    return hipSuccess;
     }
 
-#endif // NVCC
+#endif // __HIPCC__
 
 }; // end namespace detail
 

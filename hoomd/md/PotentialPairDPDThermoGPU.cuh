@@ -1,4 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+#include "hip/hip_runtime.h"
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,13 +16,17 @@
 #include "hoomd/ParticleData.cuh"
 #include "EvaluatorPairDPDThermo.h"
 #include "hoomd/Index1D.h"
-#ifdef NVCC
+#ifdef __HIPCC__
 #include "hoomd/WarpTools.cuh"
-#endif // NVCC
+#endif // __HIPCC__
 #include <cassert>
 
-//! Maximum number of threads (width of a dpd_warp)
+// currently this is hardcoded, we should set it to the max of platforms
+#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
+#elif defined(__HIP_PLATFORM_HCC__)
+const int gpu_dpd_pair_force_max_tpp = 64;
+#endif
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
@@ -29,7 +34,7 @@ struct dpd_pair_args_t
     //! Construct a dpd_pair_args_t
     dpd_pair_args_t(Scalar4 *_d_force,
                     Scalar *_d_virial,
-                    const unsigned int _virial_pitch,
+                    const size_t _virial_pitch,
                     const unsigned int _N,
                     const unsigned int _n_max,
                     const Scalar4 *_d_pos,
@@ -40,11 +45,11 @@ struct dpd_pair_args_t
                     const unsigned int *_d_nlist,
                     const unsigned int *_d_head_list,
                     const Scalar *_d_rcutsq,
-                    const unsigned int _size_nlist,
+                    const size_t _size_nlist,
                     const unsigned int _ntypes,
                     const unsigned int _block_size,
-                    const unsigned int _seed,
-                    const unsigned int _timestep,
+                    const uint16_t _seed,
+                    const uint64_t _timestep,
                     const Scalar _deltaT,
                     const Scalar _T,
                     const unsigned int _shift_mode,
@@ -78,7 +83,7 @@ struct dpd_pair_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< Pitch of 2D virial array
+    const size_t virial_pitch; //!< Pitch of 2D virial array
     const unsigned int N;           //!< number of particles
     const unsigned int n_max;       //!< Maximum size of particle data arrays
     const Scalar4 *d_pos;           //!< particle positions
@@ -89,11 +94,11 @@ struct dpd_pair_args_t
     const unsigned int *d_nlist;    //!< Device array listing the neighbors of each particle
     const unsigned int *d_head_list;//!< Indexes for accessing d_nlist
     const Scalar *d_rcutsq;          //!< Device array listing r_cut squared per particle type pair
-    const unsigned int size_nlist;  //!< Total length of the neighbor list
+    const size_t size_nlist;  //!< Total length of the neighbor list
     const unsigned int ntypes;      //!< Number of particle types in the simulation
     const unsigned int block_size;  //!< Block size to execute
-    const unsigned int seed;        //!< user provided seed for PRNG
-    const unsigned int timestep;    //!< timestep of simulation
+    const uint16_t seed;        //!< user provided seed for PRNG
+    const uint64_t timestep;    //!< timestep of simulation
     const Scalar deltaT;             //!< timestep size
     const Scalar T;                  //!< temperature
     const unsigned int shift_mode;  //!< The potential energy shift mode
@@ -101,7 +106,7 @@ struct dpd_pair_args_t
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
     };
 
-#ifdef NVCC
+#ifdef __HIPCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and
@@ -144,7 +149,7 @@ struct dpd_pair_args_t
 template< class evaluator, unsigned int shift_mode, unsigned int compute_virial, unsigned char use_gmem_nlist, int tpp>
 __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               Scalar *d_virial,
-                                              const unsigned int virial_pitch,
+                                              const size_t virial_pitch,
                                               const unsigned int N,
                                               const Scalar4 *d_pos,
                                               const Scalar4 *d_vel,
@@ -155,8 +160,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                                               const unsigned int *d_head_list,
                                               const typename evaluator::param_type *d_params,
                                               const Scalar *d_rcutsq,
-                                              const unsigned int d_seed,
-                                              const unsigned int d_timestep,
+                                              const uint16_t d_seed,
+                                              const uint64_t d_timestep,
                                               const Scalar d_deltaT,
                                               const Scalar d_T,
                                               const int ntypes)
@@ -165,10 +170,10 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::param_type *s_params =
         (typename evaluator::param_type *)(&s_data[0]);
-    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    Scalar *s_rcutsq = (Scalar *)(&s_data[num_typ_parameters*sizeof(typename evaluator::param_type)]);
 
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
@@ -333,8 +338,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
 template<typename T>
 int dpd_get_max_block_size(T func)
     {
-    cudaFuncAttributes attr;
-    cudaFuncGetAttributes(&attr, (const void *)func);
+    hipFuncAttributes attr;
+    hipFuncGetAttributes(&attr, (const void *)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_dpd_pair_force_max_tpp;
@@ -370,8 +375,8 @@ struct DPDForceComputeKernel
             unsigned int block_size = args.block_size;
 
             Index2D typpair_idx(args.ntypes);
-            unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                        * typpair_idx.getNumElements();
+            unsigned int shared_bytes = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                                        * typpair_idx.getNumElements());
 
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)
@@ -380,9 +385,7 @@ struct DPDForceComputeKernel
             block_size = block_size < max_block_size ? block_size : max_block_size;
             dim3 grid(args.N / (block_size/tpp) + 1, 1, 1);
 
-            gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>
-                                <<<grid, block_size, shared_bytes>>>
-                                (args.d_force,
+            hipLaunchKernelGGL((gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist, tpp>), dim3(grid), dim3(block_size), shared_bytes, 0, args.d_force,
                                 args.d_virial,
                                 args.virial_pitch,
                                 args.N,
@@ -425,7 +428,7 @@ struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nli
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template< class evaluator >
-cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
+hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                                    const typename evaluator::param_type *d_params)
     {
     assert(d_params);
@@ -448,7 +451,7 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 break;
                 }
             default:
-                return cudaErrorUnknown;
+                return hipErrorUnknown;
             }
         }
     else
@@ -466,11 +469,11 @@ cudaError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
                 break;
                 }
             default:
-                return cudaErrorUnknown;
+                return hipErrorUnknown;
             }
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 #endif
 

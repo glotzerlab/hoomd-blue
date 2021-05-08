@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -14,9 +14,10 @@
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/Enforce2DUpdaterGPU.h"
 #endif
 
@@ -49,10 +50,11 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     sysdef->setNDimensions(2);
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    RandomGenerator rng(11, 21, 33);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     // setup a simple initial state
     Scalar tiny = 1e-3;
@@ -72,16 +74,20 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
             pdata->setVelocity(k, vel);
             }
 
-    std::shared_ptr<Variant> T(new VariantConst(1.0));
+    std::shared_ptr<Variant> T(new VariantConstant(1.0));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    thermo->setNDOF(2*group_all->getNumMembers()-2);
+    group_all->setTranslationalDOF(2*group_all->getNumMembers()-2);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
 
-    std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
+    std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(0.3)));
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
+    h_r_cut.data[0] = 2.5;
+    nlist->addRCutMatrix(r_cut);
     nlist->setStorageMode(NeighborList::half);
 
     std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
@@ -89,12 +95,9 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
     fc->setRcut(0,0,Scalar(2.5));
     fc->setShiftMode(PotentialPairLJ::shift);
 
@@ -179,7 +182,7 @@ std::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(std::shared_ptr<S
     return std::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Enforce2DUpdaterGPU creator for unit tests
 std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -194,7 +197,7 @@ UP_TEST( Enforce2DUpdater_basic )
    enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for basic enforce2d tests
 UP_TEST( Enforce2DUpdaterGPU_basic )
     {

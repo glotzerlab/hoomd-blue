@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward
@@ -22,7 +22,7 @@ from hoomd.md import _md
 from . import _mpcd
 import numpy as np
 
-class _collision_method(hoomd.meta._metadata):
+class _collision_method():
     """ Base collision method
 
     Args:
@@ -37,21 +37,17 @@ class _collision_method(hoomd.meta._metadata):
     def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            hoomd.context.msg.error("mpcd.collide: system must be initialized before collision method\n")
-            raise RuntimeError('System not initialized')
+            raise RuntimeError('mpcd.collide: system must be initialized before collision method\n')
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._collide is not None:
-            hoomd.context.msg.error('mpcd.collide: only one collision method can be created.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
-
-        hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift','enabled']
 
         self.period = period
         self.seed = seed
@@ -60,15 +56,13 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = True
         self._cpp = None
 
-        hoomd.util.quiet_status()
         self.enable()
-        hoomd.util.unquiet_status()
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
 
         Args:
-            group (:py:mod:`hoomd.group`): Group of particles to embed
+            group (``hoomd.group``): Group of particles to embed
 
         The *group* is embedded into the MPCD collision step and cell properties.
         During collisions, the embedded particles are included in determining
@@ -77,7 +71,7 @@ class _collision_method(hoomd.meta._metadata):
 
         No integrator is generated for *group*. Usually, you will need to create
         a separate method to integrate the embedded particles. The recommended
-        (and most common) integrator to use is :py:class:`~hoomd.md.integrate.nve`.
+        (and most common) integrator to use is :py:class:`~hoomd.md.methods.NVE`.
         It is generally **not** a good idea to use a thermostatting integrator for
         the embedded particles, since the MPCD particles themselves already act
         as a heat bath that will thermalize the embedded particles.
@@ -89,7 +83,6 @@ class _collision_method(hoomd.meta._metadata):
             method.embed(polymer)
 
         """
-        hoomd.util.print_status_line()
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
@@ -103,11 +96,10 @@ class _collision_method(hoomd.meta._metadata):
 
         Enabling the collision method adds it to the current MPCD system definition.
         Only one collision method can be attached to the system at any time.
-        If another method is already set, :py:meth:`disable()` must be called
+        If another method is already set, ``disable`` must be called
         first before switching.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = True
         hoomd.context.current.mpcd._collide = self
@@ -124,7 +116,6 @@ class _collision_method(hoomd.meta._metadata):
         use this method to remove the current collision method before adding another.
 
         """
-        hoomd.util.print_status_line()
 
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
@@ -151,11 +142,10 @@ class _collision_method(hoomd.meta._metadata):
             hoomd.set_period(period=4)
 
         """
-        hoomd.util.print_status_line()
 
         cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
         if cur_tstep % self.period != 0 or cur_tstep % period != 0:
-            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
             raise RuntimeError('collision period can only be changed on multiple of current and new period')
 
         self._cpp.setPeriod(cur_tstep, period)
@@ -170,7 +160,7 @@ class at(_collision_method):
         period (int): Number of integration steps between collisions
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set
             point for the thermostat (in energy units).
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        group (``hoomd.group``): Group of particles to embed in collisions
 
     This class implements the Andersen thermostat collision rule for MPCD, as described
     by `Allahyarov and Gompper <https://doi.org/10.1103/PhysRevE.66.036702>`_.
@@ -186,7 +176,7 @@ class at(_collision_method):
     Note:
         The *period* must be chosen as a multiple of the MPCD
         :py:mod:`~hoomd.mpcd.stream` period. Other values will result in an
-        error when :py:meth:`hoomd.run()` is called.
+        error when ```hoomd.run``` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
     MPCD cell list must be randomly shifted in order to ensure Galilean
@@ -195,9 +185,9 @@ class at(_collision_method):
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
     HOOMD particles in *group* can be embedded into the collision step (see
-    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    ``embed``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.NVE`.
 
     Examples::
 
@@ -206,13 +196,11 @@ class at(_collision_method):
 
     """
     def __init__(self, seed, period, kT, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.ATCollisionMethod
             thermo_class = _mpcd.CellThermoCompute
         else:
@@ -234,10 +222,8 @@ class at(_collision_method):
                                   hoomd.context.current.mpcd._at_thermo,
                                   self.kT.cpp_variant)
 
-        hoomd.util.quiet_status()
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -254,7 +240,6 @@ class at(_collision_method):
             srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
 
         """
-        hoomd.util.print_status_line()
 
         if shift is not None:
             self.shift = shift
@@ -273,7 +258,7 @@ class srd(_collision_method):
         kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature set
             point for the thermostat (in energy units). If False (default), no
             thermostat is applied and an NVE simulation is run.
-        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        group (``hoomd.group``): Group of particles to embed in collisions
 
     This class implements the classic stochastic rotation dynamics collision
     rule for MPCD as first proposed by `Malevanets and Kapral <http://dx.doi.org/10.1063/1.478857>`_.
@@ -289,7 +274,7 @@ class srd(_collision_method):
     Note:
         The *period* must be chosen as a multiple of the MPCD
         :py:mod:`~hoomd.mpcd.stream` period. Other values will
-        result in an error when :py:meth:`hoomd.run()` is called.
+        result in an error when ```hoomd.run``` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
     MPCD cell list must be randomly shifted in order to ensure Galilean
@@ -298,9 +283,9 @@ class srd(_collision_method):
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
     HOOMD particles in *group* can be embedded into the collision step (see
-    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    ``embed()``). A separate integration method (:py:mod:`~hoomd.md.methods`)
     must be specified in order to integrate the positions of particles in *group*.
-    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+    The recommended integrator is :py:class:`~hoomd.md.methods.NVE`.
 
     The SRD method naturally imparts the NVE ensemble to the system comprising
     the MPCD particles and *group*. Accordingly, the system must be properly
@@ -321,12 +306,10 @@ class srd(_collision_method):
 
     """
     def __init__(self, seed, period, angle, kT=False, group=None):
-        hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle','kT']
 
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
         else:
             collide_class = _mpcd.SRDCollisionMethodGPU
@@ -337,11 +320,9 @@ class srd(_collision_method):
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
-        hoomd.util.quiet_status()
         self.set_params(angle=angle, kT=kT)
         if group is not None:
             self.embed(group)
-        hoomd.util.unquiet_status()
 
     def set_params(self, angle=None, shift=None, kT=None):
         """ Set parameters for the SRD collision method
@@ -362,7 +343,6 @@ class srd(_collision_method):
             srd.set_params(kT=False)
 
         """
-        hoomd.util.print_status_line()
 
         if angle is not None:
             self.angle = angle

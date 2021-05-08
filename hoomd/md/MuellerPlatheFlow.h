@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -31,11 +31,11 @@ struct flow_enum
     };
 
 //Above this line shared constructs can be declared.
-#ifndef NVCC
+#ifndef __HIPCC__
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #include <cfloat>
 #include <memory>
@@ -67,13 +67,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         virtual ~MuellerPlatheFlow(void);
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities(void);
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        virtual void update(uint64_t timestep);
 
         Scalar summed_exchanged_momentum(void) const{return m_exchanged_momentum;}
 
@@ -176,5 +170,5 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
 
-#endif//NVCC
+#endif// __HIPCC__
 #endif//__MUELLER_PLATHE_FLOW_H__

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <memory>
@@ -11,11 +11,11 @@
     \brief Declares PotentialBond
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
@@ -32,42 +32,40 @@ class PotentialBond : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix="");
+        PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~PotentialBond();
 
-        //! Set the parameters
+        /// Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
+        virtual void setParamsPython(std::string type,
+                                     pybind11::dict param);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+        /// Get the parameters
+        pybind11::dict getParams(std::string type);
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        /// Validate bond type
+        virtual void validateType(unsigned int type, std::string action);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
         std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
-    \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix)
+PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
@@ -75,7 +73,6 @@ PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysd
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_log_name = std::string("bond_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
@@ -94,54 +91,63 @@ PotentialBond< evaluator >::~PotentialBond()
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator >
-void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
+template< class evaluator >
+void PotentialBond< evaluator >::validateType(unsigned int type,
+                                              std::string action)
     {
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
         {
-        this->m_exec_conf->msg->error() << "Invalid bond type specified" << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialBond");
+        std::string err = "Invalid bond type specified.";
+        err += "Error " + action + " in PotentialBond";
+        throw std::runtime_error(err);
         }
+    }
 
+template<class evaluator >
+void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
+    {
+    // make sure the type is valid
+    validateType(type, "setting params");
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = param;
     }
 
-/*! PotentialBond provides
-    - \c bond_"name"_energy
+
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
 */
-template< class evaluator >
-std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities()
+template<class evaluator >
+void PotentialBond< evaluator >::setParamsPython(std::string type,
+                                                 pybind11::dict param)
     {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
+    auto itype = m_bond_data->getTypeByName(type);
+    auto struct_param = param_type(param);
+    setParams(itype, struct_param);
     }
 
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
+/*! \param types Type of the bond to set parameters for using string
+    \param param Parameter to set
+
+    Sets the parameters for the potential of a particular bond type
 */
-template< class evaluator >
-Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+template<class evaluator >
+pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
     {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
+    auto itype = m_bond_data->getTypeByName(type);
+    validateType(itype, "getting params");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[itype].asDict();
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
 template< class evaluator >
-void PotentialBond< evaluator >::computeForces(unsigned int timestep)
+void PotentialBond< evaluator >::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_prof_name);
 
@@ -176,7 +182,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
     for (unsigned int i = 0; i< 6; i++)
@@ -189,6 +195,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 
     // for each of the bonds
     const unsigned int size = (unsigned int)m_bond_data->getN();
+
     for (unsigned int i = 0; i < size; i++)
         {
         // lookup the tag of each of the particles participating in the bond
@@ -240,13 +247,10 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         // calculate r_ab squared
         Scalar rsq = dot(dx,dx);
 
-        // get parameters for this bond type
-        param_type param = h_params.data[h_typeval.data[i].type];
-
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
-        evaluator eval(rsq, param);
+        evaluator eval(rsq, h_params.data[h_typeval.data[i].type]);
         if (evaluator::needsDiameter())
             eval.setDiameter(diameter_a,diameter_b);
         if (evaluator::needsCharge())
@@ -308,7 +312,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialBond< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -332,9 +336,10 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 */
 template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(),pybind11::base<ForceCompute>())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
-        .def("setParams", &T::setParams)
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
         ;
     }
 

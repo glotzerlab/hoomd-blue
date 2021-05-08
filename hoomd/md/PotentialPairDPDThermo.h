@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -16,7 +16,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -32,9 +32,7 @@
 
     PotentialPairDPDThermo handles most of the gory internal details common to all standard pair potentials.
      - A cutoff radius to be specified per particle type pair for the conservative and stochastic potential
-     - A RNG seed is stored.
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     \sa export_PotentialPairDPDThermo()
@@ -48,60 +46,37 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
 
         //! Construct the pair potential
         PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
-                      const std::string& log_suffix="");
+                               std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPairDPDThermo() { };
-
-
-        //! Set the seed
-        virtual void setSeed(unsigned int seed);
 
         //! Set the temperature
         virtual void setT(std::shared_ptr<Variant> T);
 
+        //! Get the temperature
+        virtual std::shared_ptr<Variant> getT();
+
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
 
-        unsigned int m_seed;  //!< seed for PRNG for DPD thermostat
         std::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
 
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
-    : PotentialPair<evaluator>(sysdef,nlist, log_suffix)
+                                                            std::shared_ptr<NeighborList> nlist)
+    : PotentialPair<evaluator>(sysdef,nlist)
     {
-    }
-
-/*! \param seed Stored seed for PRNG
- \note All ranks other than 0 ignore the seed input and use the value of ranke 0.
-*/
-template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
-    {
-    m_seed = seed;
-    // In case of MPI run, every rank should be initialized with the same seed.
-    // For simplicity we broadcast the seed of rank 0 to all ranks.
-#ifdef ENABLE_MPI
-    if( this->m_pdata->getDomainDecomposition() )
-        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
-#endif//ENABLE_MPI
-
-    // Hash the User's Seed to make it less likely to be a low positive integer
-    m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
     }
 
 /*! \param T the temperature the system is thermostated on this time step.
@@ -112,13 +87,20 @@ void PotentialPairDPDThermo< evaluator >::setT(std::shared_ptr<Variant> T)
     m_T = T;
     }
 
+/*! Gets the temperature variant*/
+template< class evaluator >
+std::shared_ptr<Variant> PotentialPairDPDThermo< evaluator >::getT()
+    {
+    return m_T;
+    }
+
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure
     that it is up to date before proceeding.
 
     \param timestep specifies the current time step of the simulation
 */
 template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermo< evaluator >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -151,6 +133,8 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
     // need to start from a zero force, energy and virial
     memset((void*)h_force.data,0,sizeof(Scalar4)*this->m_force.getNumElements());
     memset((void*)h_virial.data,0,sizeof(Scalar)*this->m_virial.getNumElements());
+
+    uint16_t seed = this->m_sysdef->getSeed();
 
     // for each particle
     for (int i = 0; i < (int)this->m_pdata->getN(); i++)
@@ -219,12 +203,12 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
             evaluator eval(rsq, rcutsq, param);
 
             // Special Potential Pair DPD Requirements
-            const Scalar currentTemp = m_T->getValue(timestep);
+            const Scalar currentTemp = (*m_T)(timestep);
 
             // set seed using global tags
             unsigned int tagi = h_tag.data[i];
             unsigned int tagj = h_tag.data[j];
-            eval.set_seed_ij_timestep(m_seed,tagi,tagj,timestep);
+            eval.set_seed_ij_timestep(seed,tagi,tagj,timestep);
             eval.setDeltaT(this->m_deltaT);
             eval.setRDotV(rdotv);
             eval.setT(currentTemp);
@@ -281,7 +265,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -304,10 +288,9 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
 */
 template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
-        .def("setSeed", &T::setSeed)
-        .def("setT", &T::setT)
+    pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
+        .def_property("kT", &T::getT, &T::setT)
               ;
     }
 

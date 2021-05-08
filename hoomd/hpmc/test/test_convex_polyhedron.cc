@@ -4,6 +4,8 @@
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapeConvexPolyhedron.h"
 
+#include "hoomd/extern/quickhull/QuickHull.hpp"
+
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
@@ -14,42 +16,13 @@ HOOMD_UP_MAIN();
 #include <iostream>
 #include <string>
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 using namespace hpmc;
 using namespace std;
 using namespace hpmc::detail;
 
 unsigned int err_count;
-
-// helper function to compute poly radius
-poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist)
-    {
-    poly3d_verts result(vlist.size(),false);
-    result.ignore = 0;
-
-    // extract the verts from the python list and compute the radius on the way
-    OverlapReal radius_sq = OverlapReal(0.0);
-    for (unsigned int i = 0; i < vlist.size(); i++)
-        {
-        vec3<OverlapReal> vert = vlist[i];
-        result.x[i] = vert.x;
-        result.y[i] = vert.y;
-        result.z[i] = vert.z;
-        radius_sq = std::max(radius_sq, dot(vert, vert));
-        }
-    for (unsigned int i = vlist.size(); i < result.N; i++)
-        {
-        result.x[i] = 0;
-        result.y[i] = 0;
-        result.z[i] = 0;
-        }
-
-    // set the diameter
-    result.diameter = 2*sqrt(radius_sq);
-
-    return result;
-    }
 
 UP_TEST( construction )
     {
@@ -60,7 +33,7 @@ UP_TEST( construction )
     vlist.push_back(vec3<Scalar>(1,0,0));
     vlist.push_back(vec3<Scalar>(0,1.25,0));
     vlist.push_back(vec3<Scalar>(0,0,1.1));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
 
@@ -86,14 +59,13 @@ UP_TEST( support )
     {
     // Find the support of a tetrahedron
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
     SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron (verts);
@@ -102,13 +74,13 @@ UP_TEST( support )
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
     v2 = vec3<OverlapReal>(-0.5, -0.5, -0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(-0.1, 0.1, 0.1));
+    v1 = sa(vec3<OverlapReal>(-0.125, 0.125, 0.125));
     v2 = vec3<OverlapReal>(-0.5, 0.5, 0.5);
     UP_ASSERT(v1 == v2);
     v1 = sa(vec3<OverlapReal>(1, -1, 1));
     v2 = vec3<OverlapReal>(0.5, -0.5, 0.5);
     UP_ASSERT(v1 == v2);
-    v1 = sa(vec3<OverlapReal>(0.51, 0.49, -0.1));
+    v1 = sa(vec3<OverlapReal>(OverlapReal(0.51), OverlapReal(0.49), OverlapReal(-0.1)));
     v2 = vec3<OverlapReal>(0.5, 0.5, -0.5);
     UP_ASSERT(v1 == v2);
     }
@@ -118,7 +90,6 @@ UP_TEST( composite_support )
     {
     // Find the support of the Minkowski difference of two offset cubes
     quat<Scalar> o;
-    BoxDim box(100);
 
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<Scalar>(-0.5, -0.5, -0.5));
@@ -129,7 +100,7 @@ UP_TEST( composite_support )
     vlist.push_back(vec3<Scalar>(-0.5, 0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, -0.5, -0.5));
     vlist.push_back(vec3<Scalar>(0.5, 0.5, 0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(vec3<Scalar>(0,0,0), o, verts);
     ShapeConvexPolyhedron b(vec3<Scalar>(0,0,0), o, verts);
@@ -158,7 +129,6 @@ UP_TEST( overlap_octahedron_no_rot )
     // first set of simple overlap checks is two octahedra at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -166,9 +136,9 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
-    vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
-    vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
-    poly3d_verts verts = setup_verts(vlist);
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(0.707106781186548)));
+    vlist.push_back(vec3<OverlapReal>(0,0,OverlapReal(-0.707106781186548)));
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
     ShapeConvexPolyhedron b(o, verts);
@@ -245,7 +215,6 @@ UP_TEST( overlap_cube_no_rot )
     // first set of simple overlap checks is two squares at unit orientation
     vec3<Scalar> r_ij;
     quat<Scalar> o;
-    BoxDim box(100);
 
     // build a square
     vector< vec3<OverlapReal> > vlist;
@@ -257,7 +226,7 @@ UP_TEST( overlap_cube_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o, verts);
 
@@ -350,8 +319,6 @@ UP_TEST( overlap_cube_rot1 )
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
 
-    BoxDim box(100);
-
     // build a square
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
@@ -362,7 +329,7 @@ UP_TEST( overlap_cube_rot1 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_a, verts);
 
@@ -432,8 +399,6 @@ UP_TEST( overlap_cube_rot2 )
     Scalar alpha = M_PI/4.0;
     quat<Scalar> o_b(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternion
 
-    BoxDim box(100);
-
     // build a cube
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
@@ -444,7 +409,7 @@ UP_TEST( overlap_cube_rot2 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_b, verts);
 
@@ -517,8 +482,6 @@ UP_TEST( overlap_cube_rot3 )
     const quat<Scalar> q2(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1));
     quat<Scalar> o_b(q2 * q1);
 
-    BoxDim box(100);
-
     // build a cube
     vector< vec3<OverlapReal> > vlist;
     vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
@@ -529,7 +492,7 @@ UP_TEST( overlap_cube_rot3 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts verts = setup_verts(vlist);
+    PolyhedronVertices verts(vlist, 0, 0);
 
     ShapeConvexPolyhedron a(o_a, verts);
 
@@ -620,3 +583,63 @@ UP_TEST( overlap_cube_rot3 )
     UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
 
     }
+
+UP_TEST( closest_pt_cube_no_rot )
+    {
+    //! Test that projection of points is working for a cube
+    vec3<Scalar> r_ij;
+    quat<Scalar> o;
+
+    // build a cube
+    vector< vec3<OverlapReal> > vlist;
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,-0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
+    vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
+    PolyhedronVertices verts(vlist, 0, 0);
+
+    ShapeConvexPolyhedron a(o, verts);
+
+    // a point inside
+    ProjectionFuncConvexPolyhedron P(a.verts);
+
+    vec3<OverlapReal> p = P(vec3<OverlapReal>(0,0,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the x axis
+    p = P(vec3<OverlapReal>(1,0,0));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the y axis
+    p = P(vec3<OverlapReal>(0,2,0));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0.5,tol);
+    MY_CHECK_CLOSE(p.z,0,tol);
+
+    // a point out on the z axis
+    p = P(vec3<OverlapReal>(0,0,3));
+    MY_CHECK_CLOSE(p.x,0,tol);
+    MY_CHECK_CLOSE(p.y,0,tol);
+    MY_CHECK_CLOSE(p.z,0.5,tol);
+
+    // a point nearest to the +yz face
+    p = P(vec3<OverlapReal>(1,.25,.25));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0.25,tol);
+    MY_CHECK_CLOSE(p.z,0.25,tol);
+
+    // a point nearest to a corner
+    p = P(vec3<OverlapReal>(1,1,1));
+    MY_CHECK_CLOSE(p.x,0.5,tol);
+    MY_CHECK_CLOSE(p.y,0.5,tol);
+    MY_CHECK_CLOSE(p.z,0.5,tol);
+    }
+

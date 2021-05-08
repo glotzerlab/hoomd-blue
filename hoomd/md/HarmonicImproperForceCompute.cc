@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -81,37 +81,10 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
         m_exec_conf->msg->warning() << "improper.harmonic: specified Chi <= 0" << endl;
     }
 
-/*! ImproperForceCompute provides
-    - \c improper_harmonic_energy
-*/
-std::vector< std::string > HarmonicImproperForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back("improper_harmonic_energy");
-    return list;
-    }
-
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == string("improper_harmonic_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "improper.harmonic: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
+void HarmonicImproperForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Improper");
 
@@ -122,7 +95,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -318,7 +291,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicImproperForceCompute(py::module& m)
     {
-    py::class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicImproperForceCompute, ForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;

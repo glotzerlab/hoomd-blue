@@ -1,18 +1,11 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-// Maintainer: joaander
-
-/*! \file Integrator.cc
-    \brief Defines the Integrator base class
-*/
-
 
 #include "Integrator.h"
 
 namespace py = pybind11;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "Integrator.cuh"
 #endif
 
@@ -20,10 +13,14 @@ namespace py = pybind11;
 #include "Communicator.h"
 #endif
 
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceConstraint> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<ForceCompute> >);
+
 using namespace std;
 
-/*! \param sysdef System to update
-    \param deltaT Time step to use
+/** @param sysdef System to update
+    @param deltaT Time step to use
 */
 Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
@@ -42,7 +39,7 @@ Integrator::~Integrator()
     #endif
     }
 
-/*! \param fc ForceCompute to add
+/** @param fc ForceCompute to add
 */
 void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
     {
@@ -51,7 +48,7 @@ void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
     fc->setDeltaT(m_deltaT);
     }
 
-/*! \param fc ForceConstraint to add
+/** @param fc ForceConstraint to add
 */
 void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     {
@@ -60,7 +57,7 @@ void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     fc->setDeltaT(m_deltaT);
     }
 
-/*! \param hook HalfStepHook to set
+/** @param hook HalfStepHook to set
 */
 void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
     {
@@ -68,7 +65,7 @@ void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
     m_half_step_hook = hook;
     }
 
-/*! Call removeForceComputes() to completely wipe out the list of force computes
+/** Call removeForceComputes() to completely wipe out the list of force computes
     that the integrator uses to sum forces.
 */
 void Integrator::removeForceComputes()
@@ -77,164 +74,59 @@ void Integrator::removeForceComputes()
     m_constraint_forces.clear();
     }
 
-/*! Call removeHalfStepHook() to unset the integrator's HalfStep hook
+/** Call removeHalfStepHook() to unset the integrator's HalfStep hook
 */
 void Integrator::removeHalfStepHook()
     {
     m_half_step_hook.reset();
     }
 
-/*! \param deltaT New time step to set
+/** @param deltaT New time step to set
 */
 void Integrator::setDeltaT(Scalar deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
 
-    for (unsigned int i=0; i < m_forces.size(); i++)
-        m_forces[i]->setDeltaT(deltaT);
+    for (auto& force: m_forces)
+        {
+        force->setDeltaT(deltaT);
+        }
 
-    for (unsigned int i=0; i < m_constraint_forces.size(); i++)
-        m_constraint_forces[i]->setDeltaT(deltaT);
+    for (auto& constraint_force: m_constraint_forces)
+        {
+        constraint_force->setDeltaT(deltaT);
+        }
 
-     m_deltaT = deltaT;
+    m_deltaT = deltaT;
     }
 
-/*! \return the timestep deltaT
+/** \return the timestep deltaT
 */
 Scalar Integrator::getDeltaT()
     {
     return m_deltaT;
     }
 
-/*! Loops over all constraint forces in the Integrator and sums up the number of DOF removed
+/** Loops over all constraint forces in the Integrator and sums up the number of DOF removed
+    @param query The group over which to compute the removed degrees of freedom
 */
-unsigned int Integrator::getNDOFRemoved()
+Scalar Integrator::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
     {
     // start counting at 0
-    unsigned int n = 0;
+    Scalar n = 0;
 
-    // loop through all constraint forces
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
-    for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
-        n += (*force_compute)->getNDOFRemoved();
-
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        n += constraint_force->getNDOFRemoved(query);
+        }
     return n;
     }
 
-/*! The base class Integrator provides a few of the common logged quantities. This is the most convenient and
-    sensible place to put it because most of the common quantities are computed by the various integrators.
-    That, and there must be an integrator in any sensible simulation.ComputeThermo handles the computation of
-    thermodynamic quantities.
-
-    Derived integrators may also want to add additional quantities. They can do this in
-    getProvidedLogQuantities() by calling Integrator::getProvidedLogQuantities() and adding their own custom
-    provided quantities before returning.
-
-    Integrator provides:
-        - volume
-        - box lengths lx, ly, lz
-        - tilt factors xy, xz, yz
-        - momentum
-        - particle number N
-
-    See Logger for more information on what this is about.
-*/
-std::vector< std::string > Integrator::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    result.push_back("volume");
-    result.push_back("lx");
-    result.push_back("ly");
-    result.push_back("lz");
-    result.push_back("xy");
-    result.push_back("xz");
-    result.push_back("yz");
-    result.push_back("momentum");
-    result.push_back("N");
-    return result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-
-    The Integrator base class will provide a number of quantities (see getProvidedLogQuantities()). Derived
-    classes that calculate any of these on their own can (and should) return their calculated values. To do so
-    an overridden getLogValue() should have the following logic:
-    \code
-    if (quantity == "my_calculated_quantity1")
-        return my_calculated_quantity1;
-    else if (quantity == "my_calculated_quantity2")
-        return my_calculated_quantity2;
-    else return Integrator::getLogValue(quantity, timestep);
-    \endcode
-    In this way the "overridden" quantity is handled by the derived class and any other quantities are passed up
-    to the base class to be handled there.
-
-    See Logger for more information on what this is about.
-*/
-Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == "volume")
-        {
-        BoxDim box = m_pdata->getGlobalBox();
-        return box.getVolume(m_sysdef->getNDimensions()==2);
-        }
-    else if (quantity == "lx")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar3 L = box.getL();
-        return L.x;
-        }
-    else if (quantity == "ly")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar3 L = box.getL();
-        return L.y;
-        }
-    else if (quantity == "lz")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar3 L = box.getL();
-        return L.z;
-        }
-    else if (quantity == "xy")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar xy = box.getTiltFactorXY();
-        return xy;
-        }
-    else if (quantity == "xz")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar xz = box.getTiltFactorXZ();
-        return xz;
-        }
-    else if (quantity == "yz")
-        {
-        BoxDim box= m_pdata->getGlobalBox();
-        Scalar yz = box.getTiltFactorYZ();
-        return yz;
-        }
-    else if (quantity == "momentum")
-        {
-        return computeTotalMomentum(timestep);
-        }
-    else if (quantity == "N")
-        {
-        return (Scalar) m_pdata->getNGlobal();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "integrate.*: " << quantity << " is not a valid log quantity for Integrator" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
-/*! \param timestep Current timestep
+/** @param timestep Current timestep
     \post \c h_accel.data[i] is set based on the forces computed by the ForceComputes
 */
-void Integrator::computeAccelerations(unsigned int timestep)
+void Integrator::computeAccelerations(uint64_t timestep)
     {
     m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
@@ -265,15 +157,15 @@ void Integrator::computeAccelerations(unsigned int timestep)
         }
     }
 
-/*! \param timestep Current time step of the simulation
+/** @param timestep Current time step of the simulation
 
     computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates the magnitude of the total
     system momentum
 */
-Scalar Integrator::computeTotalMomentum(unsigned int timestep)
+Scalar Integrator::computeTotalMomentum(uint64_t timestep)
     {
     // grab access to the particle data
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
     // sum up the kinetic energy
     double p_tot_x = 0.0;
@@ -290,9 +182,9 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
         }
     #endif
 
@@ -302,16 +194,17 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     return Scalar(p_tot);
     }
 
-/*! \param timestep Current time step of the simulation
+/** @param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
           if the forces and/or integrator are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
-void Integrator::computeNetForce(unsigned int timestep)
+void Integrator::computeNetForce(uint64_t timestep)
     {
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -343,17 +236,17 @@ void Integrator::computeNetForce(unsigned int timestep)
         // now, add up the net forces
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
 
-        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        for (const auto& force : m_forces)
             {
-            GlobalArray<Scalar4>& h_force_array = (*force_compute)->getForceArray();
-            GlobalArray<Scalar>& h_virial_array = (*force_compute)->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = (*force_compute)->getTorqueArray();
+            GlobalArray<Scalar4>& h_force_array = force->getForceArray();
+            GlobalArray<Scalar>& h_virial_array = force->getVirialArray();
+            GlobalArray<Scalar4>& h_torque_array = force->getTorqueArray();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());
@@ -363,7 +256,7 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
 
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
             for (unsigned int j = 0; j < nparticles; j++)
                 {
                 h_net_force.data[j].x += h_force.data[j].x;
@@ -383,14 +276,18 @@ void Integrator::computeNetForce(unsigned int timestep)
                 }
 
             for (unsigned int k = 0; k < 6; k++)
-                external_virial[k] += (*force_compute)->getExternalVirial(k);
+                {
+                external_virial[k] += force->getExternalVirial(k);
+                }
 
-            external_energy += (*force_compute)->getExternalEnergy();
+            external_energy += force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -414,9 +311,10 @@ void Integrator::computeNetForce(unsigned int timestep)
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->compute(timestep);
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -432,21 +330,21 @@ void Integrator::computeNetForce(unsigned int timestep)
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
-        for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        for (const auto& constraint_force : m_constraint_forces)
             {
-            GlobalArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
-            GlobalArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
-            GlobalArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
+            GlobalArray<Scalar4>& h_force_array = constraint_force->getForceArray();
+            GlobalArray<Scalar>& h_virial_array = constraint_force->getVirialArray();
+            GlobalArray<Scalar4>& h_torque_array = constraint_force->getTorqueArray();
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
-            unsigned int virial_pitch = h_virial_array.getPitch();
+            size_t virial_pitch = h_virial_array.getPitch();
 
             assert(nparticles <= h_force_array.getNumElements());
             assert(6*nparticles <= h_virial_array.getNumElements());
@@ -465,17 +363,23 @@ void Integrator::computeNetForce(unsigned int timestep)
                 h_net_torque.data[j].w += h_torque.data[j].w;
 
                 for (unsigned int k = 0; k < 6; k++)
+                    {
                     h_net_virial.data[k*net_virial_pitch+j] += h_virial.data[k*virial_pitch+j];
+                    }
                 }
             for (unsigned int k = 0; k < 6; k++)
-                external_virial[k] += (*force_constraint)->getExternalVirial(k);
+                {
+                external_virial[k] += constraint_force->getExternalVirial(k);
+                }
 
-            external_energy += (*force_constraint)->getExternalEnergy();
+            external_energy += constraint_force->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
+        {
         m_pdata->setExternalVirial(k, external_virial[k]);
+        }
 
     m_pdata->setExternalEnergy(external_energy);
 
@@ -486,12 +390,12 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
     }
 
-#ifdef ENABLE_CUDA
-/*! \param timestep Current time step of the simulation
+#ifdef ENABLE_HIP
+/** @param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
     \note The summation step is performed <b>on the GPU</b>.
 */
-void Integrator::computeNetForceGPU(unsigned int timestep)
+void Integrator::computeNetForceGPU(uint64_t timestep)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -501,10 +405,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     // compute all the normal forces first
 
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->compute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -520,7 +424,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GlobalArray< Scalar4 >& net_force  = m_pdata->getNetForce();
         const GlobalArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
         const GlobalArray< Scalar >&  net_virial = m_pdata->getNetVirial();
-        unsigned int net_virial_pitch = net_virial.getPitch();
+        size_t net_virial_pitch = net_virial.getPitch();
 
         ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
@@ -544,9 +448,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
-            cudaMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
-            cudaMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
+            hipMemset(d_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+            hipMemset(d_net_torque.data, 0, sizeof(Scalar4)*net_torque.getNumElements());
+            hipMemset(d_net_virial.data, 0, 6*sizeof(Scalar)*net_virial_pitch);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -651,7 +555,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         flags[pdata_flag::pressure_tensor],
                                          m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -662,11 +566,11 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // add up external virials and energies
-    for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
+    for (const auto& force : m_forces)
         {
         for (unsigned int k = 0; k < 6; k++)
-            external_virial[k] += m_forces[cur_force]->getExternalVirial(k);
-        external_energy += m_forces[cur_force]->getExternalEnergy();
+            external_virial[k] += force->getExternalVirial(k);
+        external_energy += force->getExternalEnergy();
         }
 
     for (unsigned int k = 0; k < 6; k++)
@@ -693,9 +597,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        (*force_constraint)->compute(timestep);
+    for (auto& constraint_force : m_constraint_forces)
+        {
+        constraint_force->compute(timestep);
+        }
 
     if (m_prof)
         {
@@ -816,7 +721,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         flags[pdata_flag::pressure_tensor],
                                          m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -827,11 +732,13 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // add up external virials
-    for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
+    for (const auto& constraint_force : m_constraint_forces)
         {
         for (unsigned int k = 0; k < 6; k++)
-            external_virial[k] += m_constraint_forces[cur_force]->getExternalVirial(k);
-        external_energy += m_constraint_forces[cur_force]->getExternalEnergy();
+            {
+            external_virial[k] += constraint_force->getExternalVirial(k);
+            }
+        external_energy += constraint_force->getExternalEnergy();
         }
 
     for (unsigned int k = 0; k < 6; k++)
@@ -848,45 +755,48 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     }
 #endif
 
-/*! The base class integrator actually does nothing in update()
-    \param timestep Current time step of the simulation
+/** The base class integrator actually does nothing in update()
+    @param timestep Current time step of the simulation
 */
-void Integrator::update(unsigned int timestep)
+void Integrator::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     }
 
-/*! prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full
+/** prepRun() is to be called at the very beginning of each run, before any analyzers are called, but after the full
     simulation is defined. It allows the integrator to perform any one-off setup tasks and update net_force and
     net_virial, if needed.
 
-    Specifically, updated net_force and net_virial in this call is a must for logged quantities to properly carry
+    Specifically, updated net_force and net_virial in this call is a must to properly carry
     over in restarted jobs.
 
     The base class does nothing, it is up to derived classes to implement the correct behavior.
 */
-void Integrator::prepRun(unsigned int timestep)
+void Integrator::prepRun(uint64_t timestep)
     {
     }
 
 #ifdef ENABLE_MPI
-/*! \param tstep Time step for which to determine the flags
+/** @param tstep Time step for which to determine the flags
 
     The flags needed are determined by peeking to \a tstep and then using bitwise or
     to combine the flags from all ForceComputes
 */
-CommFlags Integrator::determineFlags(unsigned int timestep)
+CommFlags Integrator::determineFlags(uint64_t timestep)
     {
     CommFlags flags(0);
 
     // query all forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        flags |= (*force_compute)->getRequestedCommFlags(timestep);
+    for (const auto& force : m_forces)
+        {
+        flags |= force->getRequestedCommFlags(timestep);
+        }
 
     // query all constraints
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        flags |= (*force_constraint)->getRequestedCommFlags(timestep);
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        flags |= constraint_force->getRequestedCommFlags(timestep);
+        }
 
     return flags;
     }
@@ -909,13 +819,13 @@ void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     m_signals_connected = true;
     }
 
-void Integrator::computeCallback(unsigned int timestep)
+void Integrator::computeCallback(uint64_t timestep)
     {
     // pre-compute all active forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
-
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        (*force_compute)->preCompute(timestep);
+    for (auto& force : m_forces)
+        {
+        force->preCompute(timestep);
+        }
     }
 #endif
 
@@ -923,30 +833,29 @@ bool Integrator::getAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
-    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (auto& force : m_forces)
+        {
+        aniso |= force->isAnisotropic();
+        }
 
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
-        aniso |= (*force_compute)->isAnisotropic();
-
-    // pre-compute all active constraint forces
-    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
-    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
-        aniso |= (*force_constraint)->isAnisotropic();
+    for (const auto& constraint_force : m_constraint_forces)
+        {
+        aniso |= constraint_force->isAnisotropic();
+        }
 
     return aniso;
     }
 
 void export_Integrator(py::module& m)
     {
-    py::class_<Integrator, std::shared_ptr<Integrator> >(m,"Integrator",py::base<Updater>())
+	py::bind_vector<std::vector<std::shared_ptr<ForceCompute> > >(m, "ForceComputeList");
+	py::bind_vector<std::vector<std::shared_ptr<ForceConstraint> > >(m, "ForceConstraintList");
+
+    py::class_<Integrator, Updater, std::shared_ptr<Integrator> >(m,"Integrator")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-    .def("addForceCompute", &Integrator::addForceCompute)
-    .def("addForceConstraint", &Integrator::addForceConstraint)
-    .def("setHalfStepHook", &Integrator::setHalfStepHook)
-    .def("removeForceComputes", &Integrator::removeForceComputes)
-    .def("removeHalfStepHook", &Integrator::removeHalfStepHook)
-    .def("setDeltaT", &Integrator::setDeltaT)
-    .def("getNDOF", &Integrator::getNDOF)
-    .def("getRotationalNDOF", &Integrator::getRotationalNDOF)
+    .def("updateGroupDOF", &Integrator::updateGroupDOF)
+    .def_property("dt", &Integrator::getDeltaT, &Integrator::setDeltaT)
+	.def_property_readonly("forces", &Integrator::getForces)
+	.def_property_readonly("constraints", &Integrator::getConstraintForces)
     ;
     }

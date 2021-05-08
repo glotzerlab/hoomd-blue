@@ -1,15 +1,16 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
 
 #include "utils.h"
 #include "hoomd/mpcd/ATCollisionMethod.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/mpcd/ATCollisionMethodGPU.h"
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/SnapshotSystemData.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN()
@@ -53,9 +54,9 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(1.5);
+    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
 
-    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 2, 1, 42, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
     collide->enableGridShifting(false);
 
     // nothing should happen on the first step
@@ -92,7 +93,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     // perform the collision many times, and ensure that the average temperature is correct
     const unsigned int num_sample = 50000;
     double Tavg = 0.0;
-    for (unsigned int timestep=2; timestep < 2+num_sample; ++timestep)
+    for (uint64_t timestep=2; timestep < 2+num_sample; ++timestep)
         {
         thermo->compute(timestep);
         Tavg += thermo->getTemperature();
@@ -145,13 +146,13 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     AllThermoRequest thermo_req(thermo);
 
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(1.5);
+    std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
 
-    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 42, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);
     collide->enableGridShifting(false);
 
     // embed the particle group into the mpcd system
-    std::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleFilter> selector_one(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_one));
     collide->setEmbeddedGroup(group_all);
 
@@ -186,7 +187,7 @@ UP_TEST( at_collision_method_embed )
     {
     at_collision_method_embed_test<mpcd::ATCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! basic test case for MPCD ATCollisionMethodGPU class
 UP_TEST( at_collision_method_basic_gpu )
     {
@@ -197,4 +198,4 @@ UP_TEST( at_collision_method_embed_gpu )
     {
     at_collision_method_embed_test<mpcd::ATCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

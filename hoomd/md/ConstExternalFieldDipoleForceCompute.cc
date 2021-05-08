@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -45,7 +45,7 @@ void ConstExternalFieldDipoleForceCompute::setParams(Scalar field_x,Scalar field
 /*! \brief Compute the torque applied = Cross[p,Field]
     \param timestep Current timestep
 */
-void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
+void ConstExternalFieldDipoleForceCompute::computeForces(uint64_t timestep)
     {
     // array handles
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),access_location::host,access_mode::read);
@@ -97,7 +97,7 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
 
 void export_ConstExternalFieldDipoleForceCompute(py::module& m)
     {
-    py::class_< ConstExternalFieldDipoleForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute", py::base<ForceCompute>())
+    py::class_< ConstExternalFieldDipoleForceCompute, ForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
     .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams)
     ;

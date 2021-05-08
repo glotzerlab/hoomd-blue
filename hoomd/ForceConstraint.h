@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
-
 #include "ForceCompute.h"
 
 #include <memory>
@@ -12,11 +11,11 @@
     \brief Declares a base class for computing constraint
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceConstraint_H__
 #define __ForceConstraint_H__
@@ -31,10 +30,11 @@ class PYBIND11_EXPORT ForceConstraint : public ForceCompute
         //! Constructs the compute
         ForceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Return the number of DOF removed by this constraint
+        //! Return the number of DOF removed from a group by this constraint
         /*! The base class ForceConstraint returns 0, derived classes should override
+            @param query The group over which to compute the removed degrees of freedom
         */
-        virtual unsigned int getNDOFRemoved()
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
             {
             return 0;
             }
@@ -42,7 +42,7 @@ class PYBIND11_EXPORT ForceConstraint : public ForceCompute
     protected:
 
         //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the ForceConstraint to python

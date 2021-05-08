@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -12,7 +12,7 @@
 #include "Communicator.h"
 
 #include "hoomd/extern/BVLSSolver.h"
-#include "hoomd/extern/Eigen/Eigen/Dense"
+#include <Eigen/Dense>
 
 #include <iostream>
 #include <stdexcept>
@@ -29,11 +29,14 @@ namespace py = pybind11;
  * \param decomposition Domain decomposition
  */
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<DomainDecomposition> decomposition)
-        : Updater(sysdef), m_decomposition(decomposition), m_mpi_comm(m_exec_conf->getMPICommunicator()),
-          m_max_imbalance(Scalar(1.0)), m_recompute_max_imbalance(true), m_needs_migrate(false),
-          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)),
-          m_N_own(m_pdata->getN()), m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
+                           std::shared_ptr<DomainDecomposition> decomposition,
+                           std::shared_ptr<Trigger> trigger)
+        : Tuner(sysdef, trigger), m_decomposition(decomposition),
+          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
+          m_recompute_max_imbalance(true), m_needs_migrate(false),
+          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
+          m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
+          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
           m_n_iterations(0), m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
@@ -56,8 +59,9 @@ LoadBalancer::~LoadBalancer()
  * Computes the load imbalance along each slice and adjusts the domain boundaries. This process is repeated iteratively
  * in each dimension taking into account the adjusted boundaries each time.
  */
-void LoadBalancer::update(unsigned int timestep)
+void LoadBalancer::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
 
@@ -334,7 +338,7 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
     // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
     // constraints correctly)
     const Scalar eps(0.001);
-    unsigned int m = N_i.size();
+    unsigned int m = (unsigned int)N_i.size();
     unsigned int n = m - 1;
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
     A(0,0) = 1.0; A(m,0) = eps;
@@ -545,21 +549,6 @@ void LoadBalancer::computeOwnedParticles()
     }
 
 /*!
- * Print statistics on the maximum and average load imbalance, and the number of times
- * load balancing was performed.
- */
-void LoadBalancer::printStats()
-    {
-    if (m_exec_conf->msg->getNoticeLevel() < 1)
-        return;
-
-    double avg_imb = m_total_max_imbalance / ((double)m_n_calls);
-    m_exec_conf->msg->notice(1) << "-- Load imbalance stats:" << endl;
-    m_exec_conf->msg->notice(1) << "max imbalance: " << m_max_max_imbalance << " / avg. imbalance: " << avg_imb << endl;
-    m_exec_conf->msg->notice(1) << "iterations: " << m_n_iterations << " / rebalances: " << m_n_rebalances << endl;
-    }
-
-/*!
  * Zero the counters.
  */
 void LoadBalancer::resetStats()
@@ -571,13 +560,17 @@ void LoadBalancer::resetStats()
 
 void export_LoadBalancer(py::module& m)
     {
-    py::class_<LoadBalancer, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer",py::base<Updater>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
-    .def("enableDimension", &LoadBalancer::enableDimension)
-    .def("getTolerance", &LoadBalancer::getTolerance)
-    .def("setTolerance", &LoadBalancer::setTolerance)
-    .def("getMaxIterations", &LoadBalancer::getMaxIterations)
-    .def("setMaxIterations", &LoadBalancer::setMaxIterations)
+    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer")
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                   std::shared_ptr<DomainDecomposition>,
+                   std::shared_ptr<Trigger> >())
+    .def_property("tolerance", &LoadBalancer::getTolerance,
+                  &LoadBalancer::setTolerance)
+    .def_property("max_iterations", &LoadBalancer::getMaxIterations,
+                  &LoadBalancer::setMaxIterations)
+    .def_property("x", &LoadBalancer::getEnableX, &LoadBalancer::setEnableX)
+    .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
+    .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ)
     ;
     }
 #endif // ENABLE_MPI

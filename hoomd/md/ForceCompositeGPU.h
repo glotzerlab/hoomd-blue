@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Implementation of a rigid body force compute, GPU version
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
@@ -35,7 +35,7 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
          * \param remote If true, consider remote bodies, otherwise bodies
          *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep);
+        virtual void updateCompositeParticles(uint64_t timestep);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -60,7 +60,7 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
 
     protected:
         //! Compute the forces and torques on the central particle
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Helper kernel to sort rigid bodies by their center particles
         virtual void findRigidCenters();

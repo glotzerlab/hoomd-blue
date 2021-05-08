@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -113,7 +113,7 @@ void mpcd::CellListGPU::buildCellList()
  * \param order Mapping of sorted particle indexes onto old particle indexes
  * \param rorder Mapping of old particle indexes onto sorted particle indexes
  */
-void mpcd::CellListGPU::sort(unsigned int timestep,
+void mpcd::CellListGPU::sort(uint64_t timestep,
                              const GPUArray<unsigned int>& order,
                              const GPUArray<unsigned int>& rorder)
     {
@@ -144,7 +144,7 @@ void mpcd::CellListGPU::sort(unsigned int timestep,
     }
 
 #ifdef ENABLE_MPI
-bool mpcd::CellListGPU::needsEmbedMigrate(unsigned int timestep)
+bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
     {
     // no migrate needed if no embedded particles
     if (!m_embed_group) return false;
@@ -180,7 +180,7 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellListGPU, std::shared_ptr<mpcd::CellListGPU> >(m, "CellListGPU", py::base<mpcd::CellList>())
+    py::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU> >(m, "CellListGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
     ;
     }

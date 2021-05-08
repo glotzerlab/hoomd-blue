@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -21,8 +21,8 @@
 #include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc {
@@ -51,7 +51,7 @@ class RemoveDriftUpdater : public Updater
             }
 
         //! Take one timestep forward
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(), access_location::host, access_mode::readwrite);
@@ -110,7 +110,7 @@ template <class Shape>
 void export_RemoveDriftUpdater(pybind11::module& m, std::string name)
     {
     using pybind11::class_;
-   pybind11::class_<RemoveDriftUpdater<Shape>, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+   pybind11::class_<RemoveDriftUpdater<Shape>, Updater, std::shared_ptr<RemoveDriftUpdater<Shape> > >(m, name.c_str())
    .def(pybind11::init<     std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ExternalFieldLattice<Shape> >,
                             std::shared_ptr<IntegratorHPMCMono<Shape> > >())

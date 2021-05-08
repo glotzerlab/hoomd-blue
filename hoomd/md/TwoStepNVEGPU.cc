@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -32,7 +32,8 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     // initialize autotuner
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         valid_params.push_back(block_size);
 
     m_tuner_one.reset(new Autotuner(valid_params, 5, 100000, "nve_step_one", this->m_exec_conf));
@@ -45,7 +46,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNVEGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -118,7 +119,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNVEGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
@@ -188,7 +189,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepNVEGPU(py::module& m)
     {
-    py::class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU", py::base<TwoStepNVE>())
+    py::class_<TwoStepNVEGPU, TwoStepNVE, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         ;
     }

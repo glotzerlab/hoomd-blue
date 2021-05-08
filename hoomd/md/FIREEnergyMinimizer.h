@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -15,11 +15,11 @@
     \brief Declares the FIRE energy minimizer class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Finds the nearest basin in the potential energy landscape
 /*! \b Overview
@@ -37,7 +37,7 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         virtual void reset();
 
         //! Perform one minimization iteration
-        virtual void update(unsigned int);
+        virtual void update(uint64_t timestep);
 
         //! Return whether or not the minimization has converged
         bool hasConverged() const {return m_converged;}
@@ -91,16 +91,6 @@ class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
         /*! \param steps is the minimum number of steps (attempts) that will be made
         */
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
-
-        //! Get needed pdata flags
-        /*! FIREEnergyMinimizer needs the potential energy, so its flag is set
-        */
-        virtual PDataFlags getRequestedPDataFlags()
-            {
-            PDataFlags flags = IntegratorTwoStep::getRequestedPDataFlags();
-            flags[pdata_flag::potential_energy] = 1;
-            return flags;
-            }
 
     protected:
         //! Function to create the underlying integrator

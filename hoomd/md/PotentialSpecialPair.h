@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <memory>
@@ -11,11 +11,11 @@
     \brief Declares PotentialSpecialPair
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIALSPECIAL_PAIR_H__
 #define __POTENTIALSPECIAL_PAIR_H__
@@ -35,42 +35,46 @@ class PotentialSpecialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix="");
+        PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~PotentialSpecialPair();
 
+        /// Validate the given type
+        virtual void validateType(unsigned int type, std::string action);
+
         //! Set the parameters
         virtual void setParams(unsigned int type, const param_type &param);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+        virtual void setParamsPython(std::string type, pybind11::dict param);
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        /// Set the r_cut for a given type
+        virtual void setRCut(std::string type, Scalar r_cut);
+
+        /// Get the r_cut for a given type
+        virtual Scalar getRCut(std::string type);
+
+        /// Get the parameters for a specific type
+        virtual pybind11::dict getParams(std::string type);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
     protected:
         GPUArray<param_type> m_params;              //!< SpecialPair parameters per type
         std::shared_ptr<PairData> m_pair_data;    //!< Data to use in computing particle pairs
-        std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
-    \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix)
+PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing PotentialSpecialPair<" << evaluator::getName() << ">" << std::endl;
@@ -78,7 +82,6 @@ PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDe
 
     // access the pair data for later use
     m_pair_data = m_sysdef->getPairData();
-    m_log_name = std::string("special_pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Special pair ") + evaluator::getName();
 
     // allocate the parameters
@@ -92,6 +95,18 @@ PotentialSpecialPair< evaluator >::~PotentialSpecialPair()
     m_exec_conf->msg->notice(5) << "Destroying PotentialSpecialPair<" << evaluator::getName() << ">" << std::endl;
     }
 
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::validateType(unsigned int type,
+                                                     std::string action)
+    {
+    if (type >= m_pair_data->getNTypes())
+        {
+        std::string err("Invalid pair type specified: ");
+        throw std::runtime_error(err + "Error " + action +
+                                 " in PotentialSpecialPair");
+        }
+    }
+
 /*! \param type Type of the pair to set parameters for
     \param param Parameter to set
 
@@ -101,50 +116,76 @@ template<class evaluator >
 void PotentialSpecialPair< evaluator >::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
-    if (type >= m_pair_data->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "Invalid pair type specified" << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialSpecialPair");
-        }
-
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
+    validateType(type, "setting parameters");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
     h_params.data[type] = param;
     }
 
-/*! PotentialSpecialPair provides
-    - \c special_pair_"name"_energy
+/*! \param type String of the type of the pair to set parameters for
+    \param param Parameters to set in a python dictionary
+
+    Sets the parameters for the potential of a particular pair type
 */
-template< class evaluator >
-std::vector< std::string > PotentialSpecialPair< evaluator >::getProvidedLogQuantities()
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::setParamsPython(std::string type,
+                                                        pybind11::dict param)
     {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
+    // TODO getTypeByName validates types already, so this twice validates types
+    auto typ = m_pair_data->getTypeByName(type);
+    param_type _param(param);
+    setParams(typ, _param);
     }
 
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
+/*! \param type String of the type of the pair to get parameters for
+
+    gets the parameters for the potential of a particular pair type
 */
-template< class evaluator >
-Scalar PotentialSpecialPair< evaluator >::getLogValue(const std::string& quantity, unsigned int timestep)
+template<class evaluator >
+pybind11::dict PotentialSpecialPair< evaluator >::getParams(std::string type)
     {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
+    // make sure the type is valid
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "getting parameters");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return h_params.data[typ].asDict();
+    }
+
+/*! \param type String of the type of the pair to set r_cut for
+    \param r_cut r_cut to set
+
+    Sets the r_cut for the potential of a particular pair type
+*/
+template<class evaluator >
+void PotentialSpecialPair< evaluator >::setRCut(std::string type, Scalar r_cut)
+    {
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "setting r_cut");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::readwrite);
+    h_params.data[typ].r_cutsq = r_cut * r_cut;
+    }
+
+/*! \param type String of the type of the pair to get r_cut for
+
+    Gets the r_cut for the potential of a particular pair type
+*/
+template<class evaluator >
+Scalar PotentialSpecialPair< evaluator >::getRCut(std::string type)
+    {
+    auto typ = m_pair_data->getTypeByName(type);
+    validateType(typ, "getting r_cut");
+    ArrayHandle<param_type> h_params(m_params, access_location::host,
+                                     access_mode::read);
+    return sqrt(h_params.data[typ].r_cutsq);
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
 template< class evaluator >
-void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
+void PotentialSpecialPair< evaluator >::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push(m_prof_name);
 
@@ -179,7 +220,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
     for (unsigned int i = 0; i< 6; i++)
@@ -311,7 +352,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
 /*! \param timestep Current time step
  */
 template < class evaluator >
-CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(unsigned int timestep)
+CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -335,9 +376,12 @@ CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(unsigned int 
 */
 template < class T > void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(),pybind11::base<ForceCompute>())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
-        .def("setParams", &T::setParams)
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
+        .def("setParams", &T::setParamsPython)
+        .def("getParams", &T::getParams)
+        .def("setRCut", &T::setRCut)
+        .def("getRCut", &T::getRCut)
         ;
     }
 

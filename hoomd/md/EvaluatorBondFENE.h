@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __BOND_EVALUATOR_FENE_H__
 #define __BOND_EVALUATOR_FENE_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -19,11 +19,47 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
 #endif
+
+struct fene_params
+    {
+    Scalar k;
+    Scalar r_0;
+    Scalar lj1;
+    Scalar lj2;
+
+    #ifndef __HIPCC__
+    fene_params() {k = 0; r_0 = 0; lj1 = 0; lj2 = 0;}
+
+    fene_params(Scalar k, Scalar r_0, Scalar lj1, Scalar lj2) :
+        k(k), r_0(r_0), lj1(lj1), lj2(lj2) {}
+
+    fene_params(pybind11::dict v)
+        {
+        k = v["k"].cast<Scalar>();
+        r_0 = v["r0"].cast<Scalar>();
+        Scalar epsilon = v["epsilon"].cast<Scalar>();
+        Scalar sigma = v["sigma"].cast<Scalar>();
+        lj1 = 4.0 * epsilon * std::pow(sigma, 12.0);
+        lj2 = 4.0 * epsilon * std::pow(sigma, 6.0);
+        }
+
+    pybind11::dict asDict()
+        {
+        pybind11::dict v;
+        v["k"] = k;
+        v["r0"] = r_0;
+        Scalar sigma = std::pow(lj1 / lj2, 1.0 / 6.0);
+        v["sigma"] = sigma;
+        v["epsilon"] = lj1 / 4.0 / std::pow(sigma, 12.0);
+        return v;
+        }
+    #endif
+    }__attribute__((aligned(32)));
 
 //! Class for evaluating the FENE bond potential
 /*! The parameters are:
@@ -38,14 +74,15 @@ class EvaluatorBondFENE
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        typedef fene_params param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorBondFENE(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq), K(_params.x), r_0(_params.y), lj1(_params.z), lj2(_params.w)
+            : rsq(_rsq), K(_params.k), r_0(_params.r_0),
+              lj1(_params.lj1), lj2(_params.lj2)
             {
             }
 
@@ -122,10 +159,9 @@ class EvaluatorBondFENE
             return true;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

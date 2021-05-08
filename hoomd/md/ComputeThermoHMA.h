@@ -1,0 +1,130 @@
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+
+// Maintainer: ajs42
+
+#include "hoomd/Compute.h"
+#include "hoomd/GPUArray.h"
+#include "ComputeThermoHMATypes.h"
+#include "hoomd/ParticleGroup.h"
+
+#include <memory>
+#include <limits>
+
+/*! \file ComputeThermoHMA.h
+    \brief Declares a class for computing thermodynamic quantities
+*/
+
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
+#endif
+
+#include <pybind11/pybind11.h>
+
+#ifndef __COMPUTE_THERMO_HMA_H__
+#define __COMPUTE_THERMO_HMA_H__
+
+//! Computes thermodynamic properties of a group of particles
+/*! ComputeThermoHMA calculates instantaneous thermodynamic properties and provides them for Python.
+    All computed values are stored in a GPUArray so that they can be accessed on the GPU without intermediate copies.
+    Use the enum values in thermoHMA_index to index the array and extract the properties of interest. Convenience
+    functions are provided for accessing the values on the CPU.
+
+    Computed quantities available in the GPUArray:
+     - pressure (valid for the all group)
+     - potential energy
+
+    All quantities are made available in Python as properties.
+
+    \ingroup computes
+*/
+class PYBIND11_EXPORT ComputeThermoHMA : public Compute
+    {
+    public:
+        //! Constructs the compute
+        ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<ParticleGroup> group, const double temperature,
+                      const double harmonicPressure);
+
+        //! Destructor
+        virtual ~ComputeThermoHMA();
+
+        //! Compute the temperature
+        virtual void compute(uint64_t timestep);
+
+        //! Returns the potential energy last computed by compute()
+        /*! \returns Instantaneous potential energy of the system, or NaN if the energy is not valid
+        */
+        Scalar getPotentialEnergyHMA()
+            {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
+            // return NaN if the flags are not valid
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+            return h_properties.data[thermoHMA_index::potential_energyHMA];
+            }
+
+
+        //! Returns the pressure last computed by compute()
+        /*! \returns Instantaneous pressure of the system
+        */
+        Scalar getPressureHMA()
+            {
+            // return NaN if the flags are not valid
+            PDataFlags flags = m_pdata->getFlags();
+            if (flags[pdata_flag::pressure_tensor])
+                {
+                // return the pressure
+                #ifdef ENABLE_MPI
+                if (!m_properties_reduced) reduceProperties();
+                #endif
+
+                ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
+                return h_properties.data[thermoHMA_index::pressureHMA];
+                }
+            else
+                {
+                return std::numeric_limits<Scalar>::quiet_NaN();
+                }
+            }
+
+        //! Get the gpu array of properties
+        const GPUArray<Scalar>& getProperties()
+            {
+            #ifdef ENABLE_MPI
+            if (!m_properties_reduced) reduceProperties();
+            #endif
+
+            return m_properties;
+            }
+
+        //! Method to be called when particles are added/removed/sorted
+        void slotParticleSort();
+
+    protected:
+        std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
+        GPUArray<Scalar> m_properties;  //!< Stores the computed properties
+
+        //! Does the actual computation
+        virtual void computeProperties();
+
+        #ifdef ENABLE_MPI
+        bool m_properties_reduced;      //!< True if properties have been reduced across MPI
+
+        //! Reduce properties over MPI
+        virtual void reduceProperties();
+        #endif
+
+        Scalar m_temperature, m_harmonicPressure;
+        GlobalArray<Scalar3> m_lattice_site;
+    };
+
+//! Exports the ComputeThermoHMA class to python
+#ifndef NVCC
+void export_ComputeThermoHMA(pybind11::module& m);
+#endif
+
+#endif

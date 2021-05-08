@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 #ifndef __POTENTIAL_TERSOFF_GPU_H__
 #define __POTENTIAL_TERSOFF_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include <memory>
 
@@ -17,7 +17,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -32,15 +32,14 @@
 
     \sa export_PotentialTersoffGPU()
 */
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
         //! Construct the potential
         PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
-                            std::shared_ptr<NeighborList> nlist,
-                            const std::string& log_suffix="");
+                            std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialTersoffGPU();
 
@@ -59,15 +58,14 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                std::shared_ptr<NeighborList> nlist,
-                                                                const std::string& log_suffix)
-    : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
+                                                                std::shared_ptr<NeighborList> nlist)
+    : PotentialTersoff<evaluator>(sysdef, nlist)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
 
@@ -82,11 +80,11 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     // initialize autotuner
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
-    unsigned int max_tpp = 1;
-    max_tpp = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    unsigned int max_tpp = warp_size;
 
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
@@ -100,16 +98,16 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
     m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::~PotentialTersoffGPU()
         {
         this->m_exec_conf->msg->notice(5) << "Destroying PotentialTersoffGPU" << std::endl;
         }
 
-template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timestep)
+void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     this->m_nlist->compute(timestep);
@@ -137,7 +135,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     BoxDim box = this->m_pdata->getBox();
 
     // access parameters
-    ArrayHandle<Scalar> d_ronsq(this->m_ronsq, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rcutsq(this->m_rcutsq, access_location::device, access_mode::read);
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
 
@@ -145,7 +142,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
     PDataFlags flags = this->m_pdata->getFlags();
-    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+    bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     this->m_tuner->begin();
     unsigned int param =  this->m_tuner->getParam();
@@ -164,7 +161,6 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_nlist.data,
                             d_head_list.data,
                             d_rcutsq.data,
-                            d_ronsq.data,
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
                             block_size,
@@ -187,10 +183,10 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
 */
 template < class T, class Base > void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif

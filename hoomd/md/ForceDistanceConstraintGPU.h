@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -26,11 +26,11 @@
     \brief Declares a class to implement pairwise distance constraint
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceDistanceConstraintGPU_H__
 #define __ForceDistanceConstraintGPU_H__
@@ -114,13 +114,13 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         GPUVector<double> m_sparse_val;    //!< Sparse matrix value list
 
         //! Populate the quantities in the constraint-force equation
-        virtual void fillMatrixVector(unsigned int timestep);
+        virtual void fillMatrixVector(uint64_t timestep);
 
         //! Solve the matrix equation
-        virtual void solveConstraints(unsigned int timestep);
+        virtual void solveConstraints(uint64_t timestep);
 
         //! Compute the constraint forces using the Lagrange multipliers
-        virtual void computeConstraintForces(unsigned int timestep);
+        virtual void computeConstraintForces(uint64_t timestep);
     };
 
 //! Exports the ForceDistanceConstraint to python

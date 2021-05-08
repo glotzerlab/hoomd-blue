@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 
 #include "TwoStepNPTMTK.h"
 #include "hoomd/Variant.h"
-#include "hoomd/ComputeThermo.h"
+#include "ComputeThermo.h"
 #include "hoomd/Autotuner.h"
 
 #include <memory>
@@ -19,11 +19,11 @@
     \brief Declares the TwoStepNPTMTKGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! This is a version of TwoStepNPTMTK that runs on the GPU.
@@ -39,20 +39,20 @@ class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
                    std::shared_ptr<ComputeThermo> thermo_group,
                    std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
-                   Scalar tauP,
+                   Scalar tauS,
                    std::shared_ptr<Variant> T,
-                   pybind11::list S,
-                   couplingMode couple,
-                   unsigned int flags,
-                   const bool nph=false);
+                   const std::vector<std::shared_ptr<Variant>>& S,
+                   const std::string& couple,
+                   const std::vector<bool>& flags,
+                   const bool nph);
 
         virtual ~TwoStepNPTMTKGPU();
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning

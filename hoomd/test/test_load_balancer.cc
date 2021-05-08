@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -9,6 +9,7 @@
 HOOMD_UP_MAIN();
 
 #include "hoomd/System.h"
+#include "hoomd/Trigger.h"
 
 #include <memory>
 #include <functional>
@@ -16,7 +17,7 @@ HOOMD_UP_MAIN();
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
 #include "hoomd/LoadBalancer.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/LoadBalancerGPU.h"
 #endif
 
@@ -73,7 +74,8 @@ void test_load_balancer_basic(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
     lb->setMaxIterations(2);
 
@@ -178,7 +180,8 @@ void test_load_balancer_multi(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
     lb->enableDimension(1, false);
     lb->setMaxIterations(100);
@@ -314,7 +317,8 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     pdata->initializeFromSnapshot(snap);
 
-    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition));
+    auto trigger = std::make_shared<PeriodicTrigger>(1);
+    std::shared_ptr<LoadBalancer> lb(new LB(sysdef,decomposition, trigger));
     lb->setCommunicator(comm);
 
     // migrate atoms and check placement
@@ -395,7 +399,7 @@ UP_TEST( LoadBalancer_test_ghost)
     test_load_balancer_ghost<LoadBalancer>(exec_conf, BoxDim(1.0,-.6,.7,.5));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! Tests basic particle redistribution on the GPU
 UP_TEST( LoadBalancerGPU_test_basic)
     {
@@ -431,6 +435,6 @@ UP_TEST( LoadBalancerGPU_test_ghost)
     // triclinic box 2
     test_load_balancer_ghost<LoadBalancerGPU>(exec_conf, BoxDim(1.0,-.6,.7,.5));
     }
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // ENABLE_MPI

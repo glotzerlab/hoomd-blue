@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -43,7 +43,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // create the bond force compute to check
     std::shared_ptr<PotentialBondFENE> fc_2 = bf_creator(sysdef_2);
-    fc_2->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
+    fc_2->setParams(0, fene_params(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
 
     // compute the force and check the results
     fc_2->compute(0);
@@ -51,7 +51,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     {
     GlobalArray<Scalar4>& force_array_1 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_1 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     // check that the force is correct, it should be 0 since we haven't created any bonds yet
@@ -75,7 +75,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     // this time there should be a force
     GlobalArray<Scalar4>& force_array_2 =  fc_2->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_2->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_2.data[0].x, -30.581156, tol);
@@ -143,9 +143,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     pdata_6->setPosition(5, make_scalar3(0.0,0.0,29.6));
 
     std::shared_ptr<PotentialBondFENE> fc_6 = bf_creator(sysdef_6);
-    fc_6->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
-    fc_6->setParams(1, make_scalar4(Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
-    fc_6->setParams(2, make_scalar4(Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0)));
+    fc_6->setParams(0, fene_params(Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
+    fc_6->setParams(1, fene_params(Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0)));
+    fc_6->setParams(2, fene_params(Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0)));
 
     sysdef_6->getBondData()->addBondedGroup(Bond(0, 0,1));
     sysdef_6->getBondData()->addBondedGroup(Bond(1, 2,3));
@@ -157,7 +157,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     // check that the forces are correctly computed
     GlobalArray<Scalar4>& force_array_4 =  fc_6->getForceArray();
     GlobalArray<Scalar>& virial_array_4 =  fc_6->getVirialArray();
-    unsigned int pitch = virial_array_4.getPitch();
+    size_t pitch = virial_array_4.getPitch();
     ArrayHandle<Scalar4> h_force_4(force_array_4,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_4(virial_array_4,access_location::host,access_mode::read);
     MY_CHECK_CLOSE(h_force_4.data[0].x, 187.121131, tol);
@@ -239,7 +239,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
 
     // build the bond force compute and try it out
     std::shared_ptr<PotentialBondFENE> fc_4 = bf_creator(sysdef_4);
-    fc_4->setParams(0, make_scalar4(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
+    fc_4->setParams(0, fene_params(Scalar(1.5), Scalar(1.75), Scalar(pow(1.2,12.0)), Scalar(pow(1.2,6.0))));
     // only add bonds on the left, top, and bottom of the square
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,3));
     sysdef_4->getBondData()->addBondedGroup(Bond(0, 2,0));
@@ -250,7 +250,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     {
     GlobalArray<Scalar4>& force_array_5 =  fc_4->getForceArray();
     GlobalArray<Scalar>& virial_array_5 =  fc_4->getVirialArray();
-    unsigned int pitch = virial_array_5.getPitch();
+    size_t pitch = virial_array_5.getPitch();
     ArrayHandle<Scalar4> h_force_5(force_array_5,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_5(virial_array_5,access_location::host,access_mode::read);
     // the right two particles should only have a force pulling them left
@@ -310,8 +310,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
 
     std::shared_ptr<PotentialBondFENE> fc1 = bf_creator1(sysdef);
     std::shared_ptr<PotentialBondFENE> fc2 = bf_creator2(sysdef);
-    fc1->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
-    fc2->setParams(0, make_scalar4(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
+    fc1->setParams(0, fene_params(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
+    fc2->setParams(0, fene_params(Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0)));
 
     // displace particles a little so all forces aren't alike
     {
@@ -345,7 +345,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
     // verify that the forces are identical (within roundoff errors)
     GlobalArray<Scalar4>& force_array_6 =  fc1->getForceArray();
     GlobalArray<Scalar>& virial_array_6 =  fc1->getVirialArray();
-    unsigned int pitch = virial_array_6.getPitch();
+    size_t pitch = virial_array_6.getPitch();
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
     GlobalArray<Scalar4>& force_array_7 =  fc2->getForceArray();
@@ -392,7 +392,7 @@ std::shared_ptr<PotentialBondFENE> base_class_bf_creator(std::shared_ptr<SystemD
     return std::shared_ptr<PotentialBondFENE>(new PotentialBondFENE(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! PotentialBondFENE creator for bond_force_basic_tests()
 std::shared_ptr<PotentialBondFENE> gpu_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -407,7 +407,7 @@ UP_TEST( PotentialBondFENE_basic )
     bond_force_basic_tests(bf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for bond forces on the GPU
 UP_TEST( PotentialBondFENEGPU_basic )
     {

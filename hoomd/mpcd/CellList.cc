@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -56,8 +56,9 @@ mpcd::CellList::~CellList()
     m_pdata->getBoxChangeSignal().disconnect<mpcd::CellList, &mpcd::CellList::slotBoxChanged>(this);
     }
 
-void mpcd::CellList::compute(unsigned int timestep)
+void mpcd::CellList::compute(uint64_t timestep)
     {
+    Compute::compute(timestep);
     if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
 
     if (m_virtual_change)
@@ -146,9 +147,9 @@ void mpcd::CellList::updateGlobalBox()
 
     // box must be evenly divisible by cell size
     const Scalar3 L = global_box.getL();
-    m_global_cell_dim = make_uint3(round(L.x/m_cell_size),
-                                   round(L.y/m_cell_size),
-                                   round(L.z/m_cell_size));
+    m_global_cell_dim = make_uint3((unsigned int)round(L.x/m_cell_size),
+                                   (unsigned int)round(L.y/m_cell_size),
+                                   (unsigned int)round(L.z/m_cell_size));
     if (m_sysdef->getNDimensions() == 2)
         {
         if (m_global_cell_dim.z > 1)
@@ -202,21 +203,21 @@ void mpcd::CellList::computeDimensions()
 
         // setup lo bin
         const Scalar3 delta_lo = box.getLo() - global_lo;
-        int3 my_lo_bin = make_int3(std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
-                                   std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
-        int3 lo_neigh_bin = make_int3(std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
-                                      std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
+        int3 my_lo_bin = make_int3((int)std::floor((delta_lo.x - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.y - m_max_grid_shift) / m_cell_size),
+                                   (int)std::floor((delta_lo.z - m_max_grid_shift) / m_cell_size));
+        int3 lo_neigh_bin = make_int3((int)std::ceil((delta_lo.x + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.y + m_max_grid_shift) / m_cell_size),
+                                      (int)std::ceil((delta_lo.z + m_max_grid_shift) / m_cell_size));
 
         // setup hi bin
         const Scalar3 delta_hi = box.getHi() - global_lo;
-        int3 my_hi_bin = make_int3(std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
-                                   std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
-        int3 hi_neigh_bin = make_int3(std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
-                                      std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
+        int3 my_hi_bin = make_int3((int)std::ceil((delta_hi.x + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.y + m_max_grid_shift) / m_cell_size),
+                                   (int)std::ceil((delta_hi.z + m_max_grid_shift) / m_cell_size));
+        int3 hi_neigh_bin = make_int3((int)std::floor((delta_hi.x - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.y - m_max_grid_shift) / m_cell_size),
+                                      (int)std::floor((delta_hi.z - m_max_grid_shift) / m_cell_size));
 
         // initially size the grid assuming one rank in each direction, and then resize based on communication
         m_cell_dim = m_global_cell_dim;
@@ -555,9 +556,9 @@ void mpcd::CellList::buildCellList()
 
         // bin particle assuming orthorhombic box (already validated)
         const Scalar3 delta = (pos_i - m_grid_shift) - global_lo;
-        int3 global_bin = make_int3(std::floor(delta.x / m_cell_size),
-                                    std::floor(delta.y / m_cell_size),
-                                    std::floor(delta.z / m_cell_size));
+        int3 global_bin = make_int3((int)std::floor(delta.x / m_cell_size),
+                                    (int)std::floor(delta.y / m_cell_size),
+                                    (int)std::floor(delta.z / m_cell_size));
 
         // wrap cell back through the boundaries (grid shifting may send +/- 1 outside of range)
         // this is done using periodic from the "local" box, since this will be periodic
@@ -633,7 +634,7 @@ void mpcd::CellList::buildCellList()
  * \param order Mapping of sorted particle indexes onto old particle indexes
  * \param rorder Mapping of old particle indexes onto sorted particle indexes
  */
-void mpcd::CellList::sort(unsigned int timestep,
+void mpcd::CellList::sort(uint64_t timestep,
                           const GPUArray<unsigned int>& order,
                           const GPUArray<unsigned int>& rorder)
     {
@@ -672,7 +673,7 @@ void mpcd::CellList::sort(unsigned int timestep,
     }
 
 #ifdef ENABLE_MPI
-bool mpcd::CellList::needsEmbedMigrate(unsigned int timestep)
+bool mpcd::CellList::needsEmbedMigrate(uint64_t timestep)
     {
     // no migrate needed if no embedded particles
     if (!m_embed_group) return false;
@@ -855,7 +856,7 @@ void mpcd::detail::export_CellList(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellList, std::shared_ptr<mpcd::CellList> >(m, "CellList", py::base<Compute>())
+    py::class_<mpcd::CellList, Compute, std::shared_ptr<mpcd::CellList> >(m, "CellList")
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
         .def_property("cell_size", &mpcd::CellList::getCellSize, &mpcd::CellList::setCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)

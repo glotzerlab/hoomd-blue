@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -71,7 +71,7 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 
     Sets parameters for the potential of a particular dihedral type
 */
-void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity, Scalar phi_0)
+void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, Scalar sign, Scalar multiplicity, Scalar phi_0)
     {
     // make sure the type is valid
     if (type >= m_dihedral_data->getNTypes())
@@ -81,8 +81,8 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         }
 
     m_K[type] = K;
-    m_sign[type] = (Scalar)sign;
-    m_multi[type] = (Scalar)multiplicity;
+    m_sign[type] = sign;
+    m_multi[type] = multiplicity;
     m_phi_0[type] = phi_0;
 
     // check for some silly errors a user could make
@@ -94,37 +94,31 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
         m_exec_conf->msg->warning() << "dihedral.harmonic: specified phi_0 outside [0, 2pi)" << endl;
     }
 
-/*! DihedralForceCompute provides
-    - \c dihedral_harmonic_energy
-*/
-std::vector< std::string > HarmonicDihedralForceCompute::getProvidedLogQuantities()
+
+void HarmonicDihedralForceCompute::setParamsPython(std::string type,
+                                                   pybind11::dict params)
     {
-    vector<string> list;
-    list.push_back("dihedral_harmonic_energy");
-    return list;
+    // make sure the type is valid
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_harmonic_params _params(params);
+    setParams(typ, _params.k, _params.d, _params.n, _params.phi_0);
     }
 
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+pybind11::dict HarmonicDihedralForceCompute::getParams(std::string type)
     {
-    if (quantity == string("dihedral_harmonic_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "dihedral.harmonic: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
+    auto typ = m_dihedral_data->getTypeByName(type);
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["d"] = m_sign[typ];
+    params["n"] = m_multi[typ];
+    params["phi0"] = m_phi_0[typ];
+    return params;
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
+void HarmonicDihedralForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Dihedral");
 
@@ -146,7 +140,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
@@ -365,8 +359,9 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicDihedralForceCompute(py::module& m)
     {
-    py::class_<HarmonicDihedralForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicDihedralForceCompute, ForceCompute, std::shared_ptr<HarmonicDihedralForceCompute> >(m, "HarmonicDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &HarmonicDihedralForceCompute::setParams)
+    .def("setParams", &HarmonicDihedralForceCompute::setParamsPython)
+    .def("getParams", &HarmonicDihedralForceCompute::getParams)
     ;
     }

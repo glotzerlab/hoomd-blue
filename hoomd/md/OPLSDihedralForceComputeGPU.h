@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Declares the OPLSDihedralForceComputeGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __OPLSDIHEDRALFORCECOMPUTEGPU_H__
 #define __OPLSDIHEDRALFORCECOMPUTEGPU_H__
@@ -50,7 +50,7 @@ class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceComp
     private:
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the OPLSDihedralForceComputeGPU class to python

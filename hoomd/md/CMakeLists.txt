@@ -4,6 +4,8 @@ set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    BondTablePotential.cc
                    CommunicatorGrid.cc
+                   ComputeThermo.cc
+                   ComputeThermoHMA.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
@@ -18,6 +20,13 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   ManifoldZCylinder.cc
+                   ManifoldDiamond.cc
+                   ManifoldEllipsoid.cc
+                   ManifoldGyroid.cc
+                   ManifoldXYPlane.cc
+                   ManifoldPrimitive.cc
+                   ManifoldSphere.cc
                    MolecularForceCompute.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -55,6 +64,14 @@ set(_md_headers ActiveForceComputeGPU.h
                 BondTablePotential.h
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
+                ComputeThermoGPU.cuh
+                ComputeThermoGPU.h
+                ComputeThermoHMAGPU.cuh
+                ComputeThermoHMAGPU.h
+                ComputeThermo.h
+                ComputeThermoHMA.h
+                ComputeThermoTypes.h
+                ComputeThermoHMATypes.h
                 ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
@@ -83,12 +100,15 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
                 EvaluatorPairLJ1208.h
+                EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
+                EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
                 EvaluatorPairSLJ.h
+                EvaluatorPairTWF.h
                 EvaluatorPairYukawa.h
                 EvaluatorPairZBL.h
                 EvaluatorTersoff.h
@@ -107,6 +127,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                ManifoldZCylinder.h
+                ManifoldDiamond.h
+                ManifoldEllipsoid.h
+                ManifoldGyroid.h
+                ManifoldXYPlane.h
+                ManifoldPrimitive.h
+                ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h
@@ -146,14 +173,23 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
                 TwoStepBDGPU.h
+                TwoStepRATTLEBDGPU.h
+                TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
+                TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
+                TwoStepRATTLELangevinGPU.h
+                TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
+                TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
+                TwoStepRATTLENVEGPU.h
+                TwoStepRATTLENVEGPU.cuh
+                TwoStepRATTLENVE.h
                 TwoStepNVEGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
@@ -162,10 +198,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 ZeroMomentumUpdater.h
                 )
 
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
+                           ComputeThermoGPU.cc
+                           ComputeThermoHMAGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
@@ -202,6 +240,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
                       BuckinghamDriverPotentialPairGPU.cu
+                      ComputeThermoGPU.cu
+                      ComputeThermoHMAGPU.cu
                       DLVODriverPotentialPairGPU.cu
                       DPDLJThermoDriverPotentialPairGPU.cu
                       DPDThermoDriverPotentialPairGPU.cu
@@ -212,8 +252,11 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       MieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
+                      OPPDriverPotentialPairGPU.cu
+                      TWFDriverPotentialPairGPU.cu
                       FourierDriverPotentialPairGPU.cu
                       PairLJ1208DriverPotentialPairGPU.cu
+                      PairLJ0804DriverPotentialPairGPU.cu
                       ReactionFieldDriverPotentialPairGPU.cu
                       SLJDriverPotentialPairGPU.cu
                       YukawaDriverPotentialPairGPU.cu
@@ -245,123 +288,96 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
+		      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
+		      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
+		      all_kernels_diamond_manifold.cu
+		      all_kernels_ellipsoid_manifold.cu
+		      all_kernels_gyroid_manifold.cu
+		      all_kernels_primitive_manifold.cu
+		      all_kernels_sphere_manifold.cu
+		      all_kernels_xyplane_manifold.cu
+		      all_kernels_zcylinder_manifold.cu
                       )
 
-if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
-endif (ENABLE_CUDA)
+if (ENABLE_HIP)
+set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
+endif (ENABLE_HIP)
 
-pybind11_add_module(_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES} NO_EXTRAS)
+pybind11_add_module(_md SHARED ${_md_sources} ${_cuda_sources} ${DFFT_SOURCES} ${_md_headers} NO_EXTRAS)
+# alias into the HOOMD namespace so that plugins and symlinked components both work
+add_library(HOOMD::_md ALIAS _md)
+
 if(APPLE)
 set_target_properties(_md PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
 else()
-set_target_properties(_md PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+set_target_properties(_md PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
 else()
-    target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(_md PUBLIC _hoomd)
 endif()
-if (ENABLE_CUDA)
+if (ENABLE_HIP)
     target_link_libraries(_md PRIVATE neighbor)
 endif()
-
-# if we are compiling with MPI support built in, set appropriate
-# compiler/linker flags
-if (ENABLE_MPI)
-   if(MPI_COMPILE_FLAGS)
-       set_target_properties(_md PROPERTIES COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS}")
-   endif(MPI_COMPILE_FLAGS)
-   if(MPI_LINK_FLAGS)
-       set_target_properties(_md PROPERTIES LINK_FLAGS "${MPI_CXX_LINK_FLAGS}")
-   endif(MPI_LINK_FLAGS)
-endif(ENABLE_MPI)
 
 fix_cudart_rpath(_md)
 
 # install the library
-install(TARGETS _md
-        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+install(TARGETS _md EXPORT HOOMDTargets
+        LIBRARY DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
         )
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-MACRO(copy_file file)
-    add_custom_command (
-        OUTPUT ${file}
-        DEPENDS ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/${file}
-        COMMENT    "Copy hoomd/md/${file}"
-    )
-ENDMACRO(copy_file)
-
 set(files __init__.py
           angle.py
           bond.py
           charge.py
+          compute.py
           constrain.py
           dihedral.py
           external.py
           force.py
           improper.py
           integrate.py
+          manifold.py
+          many_body.py
+          methods.py
           nlist.py
-          pair.py
           update.py
           wall.py
           special_pair.py
     )
 
 install(FILES ${files}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/md
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md
        )
 
-foreach(file ${files})
-    copy_file(${file})
-endforeach()
-
-add_custom_target(copy_md ALL DEPENDS ${files})
-
-# copy python modules to the build directory to make it a working python package
-MACRO(copy_header file)
-    add_custom_command (
-        OUTPUT ${file}
-        POST_BUILD
-        COMMAND    ${CMAKE_COMMAND}
-        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/md/${file}
-        COMMENT    "Copy hoomd/include/hoomd/md/${file}"
-    )
-ENDMACRO(copy_header)
+copy_files_to_build("${files}" "md" "*.py")
 
 # install headers in installation target
 install(FILES ${_md_headers}
-        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/md
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include/hoomd/md
        )
 
-if (COPY_HEADERS)
-# copy headers into build directory
-foreach(file ${_md_headers})
-    copy_header(${file})
-endforeach()
-
-add_custom_target(copy_md_headers ALL DEPENDS ${_md_headers})
-endif()
+add_subdirectory(pair)
 
 if (BUILD_TESTING)
-    add_subdirectory(test-py)
+    # add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
 
+add_subdirectory(pytest)
+
 if (BUILD_VALIDATION)
-    add_subdirectory(validation)
+    # add_subdirectory(validation)
 endif()

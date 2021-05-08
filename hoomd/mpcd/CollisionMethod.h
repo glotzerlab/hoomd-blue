@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,12 +11,12 @@
 #ifndef MPCD_COLLISION_METHOD_H_
 #define MPCD_COLLISION_METHOD_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "SystemData.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -31,18 +31,17 @@ class PYBIND11_EXPORT CollisionMethod
     public:
         //! Constructor
         CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
-                        unsigned int cur_timestep,
-                        unsigned int period,
-                        int phase,
-                        unsigned int seed);
+                        uint64_t cur_timestep,
+                        uint64_t period,
+                        int phase);
         //! Destructor
         virtual ~CollisionMethod() { }
 
         //! Implementation of the collision rule
-        void collide(unsigned int timestep);
+        void collide(uint64_t timestep);
 
         //! Peek if a collision will occur on this timestep
-        virtual bool peekCollide(unsigned int timestep) const;
+        virtual bool peekCollide(uint64_t timestep) const;
 
         //! Sets the profiler for the integration method to use
         void setProfiler(std::shared_ptr<Profiler> prof)
@@ -69,7 +68,7 @@ class PYBIND11_EXPORT CollisionMethod
             }
 
         //! Generates the random grid shift vector
-        void drawGridShift(unsigned int timestep);
+        void drawGridShift(uint64_t timestep);
 
         //! Sets a group of particles that is coupled to the MPCD solvent through the collision step
         /*!
@@ -84,6 +83,18 @@ class PYBIND11_EXPORT CollisionMethod
         //! Set the period of the collision method
         void setPeriod(unsigned int cur_timestep, unsigned int period);
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
@@ -95,15 +106,16 @@ class PYBIND11_EXPORT CollisionMethod
         std::shared_ptr<mpcd::CellList> m_cl;          //!< MPCD cell list
         std::shared_ptr<ParticleGroup> m_embed_group;  //!< Embedded particles
 
-        unsigned int m_period;                  //!< Number of timesteps between collisions
-        unsigned int m_next_timestep;           //!< Timestep next collision should be performed
-        unsigned int m_seed;        //!< Random number seed
+        uint64_t m_period;                  //!< Number of timesteps between collisions
+        uint64_t m_next_timestep;           //!< Timestep next collision should be performed
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
 
         //! Check if a collision should occur and advance the timestep counter
-        virtual bool shouldCollide(unsigned int timestep);
+        virtual bool shouldCollide(uint64_t timestep);
 
         //! Call the collision rule
-        virtual void rule(unsigned int timestep) {}
+        virtual void rule(uint64_t timestep) {}
 
         bool m_enable_grid_shift;   //!< Flag to enable grid shifting
     };

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,12 +19,12 @@
     \brief Declares a base class for all computes
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -63,27 +63,30 @@ class PYBIND11_EXPORT Compute
     public:
         //! Constructs the compute and associates it with the ParticleData
         Compute(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Compute() {};
+        virtual ~Compute() {}
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(unsigned int timestep){}
+        virtual void compute(uint64_t timestep)
+            {
+            #ifdef ENABLE_MPI
+            if (m_pdata->getDomainDecomposition() && !m_comm)
+                {
+                throw std::runtime_error(
+                    "Bug: m_comm not set for a system with a domain decomposition in " +
+                    std::string(typeid(*this).name()));
+                }
+            #endif
+            }
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
 
-        //! Print some basic stats to stdout
-        /*! Derived classes can optionally implement this function. A System will
-            call all of the Compute's printStats functions at the end of a run
-            so the user can see useful information
-        */
-        virtual void printStats(){}
-
         //! Reset stat counters
-        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
-            counters printed by printStats. System will reset the stats before any run() so that stats printed
+        /*! If derived classes provide statistics for the last run, they should resetStats() to
+            clear any counters. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
         virtual void resetStats(){}
@@ -101,67 +104,15 @@ class PYBIND11_EXPORT Compute
             {
             }
 
-        //! Returns a list of log quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See Logger for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log value and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns 0. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogQuantities() will be requested from
-            getLogValue().
-
-            See Logger for more information on what this is about.
-        */
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            return Scalar(0.0);
-            }
-        //! Returns a list of log matrix quantities this compute calculates
-        /*! The base class implementation just returns an empty vector. Derived classes should override
-            this behavior and return a list of quantities that they log.
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual std::vector< std::string > getProvidedLogMatrixQuantities()
-            {
-            return std::vector< std::string >();
-            }
-
-        //! Calculates the requested log matrix and returns it
-        /*! \param quantity Name of the log quantity to get
-            \param timestep Current time step of the simulation
-
-            The base class just returns an empty shared_ptr. Derived classes should override this behavior and return
-            the calculated value for the given quantity. Only quantities listed in
-            the return value getProvidedLogMatrixQuantities() will be requested from
-            getLogMatrixValue().
-
-            See LogMatrix for more information on what this is about.
-        */
-        virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
-            {
-            unsigned char tmp[] = {0};
-            return pybind11::array(0,tmp);
-            }
-
-
         //! Force recalculation of compute
         /*! If this function is called, recalculation of the compute will be forced (even if had
          *  been calculated earlier in this timestep)
          * \param timestep current timestep
          */
-        void forceCompute(unsigned int timestep);
+        void forceCompute(uint64_t timestep);
+
+        /// Python will notify C++ objects when they are detached from Simulation
+        virtual void notifyDetach() { };
 
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
@@ -202,14 +153,14 @@ class PYBIND11_EXPORT Compute
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
         bool m_force_compute;           //!< true if calculation is enforced
-        unsigned int m_last_computed;   //!< Stores the last timestep compute was called
+        uint64_t m_last_computed;       //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called
 
         //! Simple method for testing if the computation should be run or not
-        virtual bool shouldCompute(unsigned int timestep);
+        virtual bool shouldCompute(uint64_t timestep);
 
         //! Peek to see if computation should be run without updating internal state
-        virtual bool peekCompute(unsigned int timestep) const;
+        virtual bool peekCompute(uint64_t timestep) const;
 
     private:
         //! The python export needs to be a friend to export shouldCompute()
@@ -217,7 +168,7 @@ class PYBIND11_EXPORT Compute
     };
 
 //! Exports the Compute class to python
-#ifndef NVCC
+#ifndef __HIPCC__
 void export_Compute(pybind11::module& m);
 #endif
 

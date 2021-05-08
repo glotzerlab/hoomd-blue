@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_BUCKINGHAM_H__
 #define __PAIR_EVALUATOR_BUCKINGHAM_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -21,7 +21,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -58,7 +58,38 @@ class EvaluatorPairBuckingham
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar A;
+            Scalar rho;
+            Scalar C;
+
+            #ifdef ENABLE_HIP
+            //! set CUDA memory hint
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : A(0), rho(0), C(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                A = v["A"].cast<Scalar>();
+                rho = v["rho"].cast<Scalar>();
+                C = v["C"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["A"] = A;
+                v["rho"] = rho;
+                v["C"] = C;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -66,8 +97,8 @@ class EvaluatorPairBuckingham
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairBuckingham(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), A(_params.x), rho(_params.y),
-                C(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), A(_params.A), rho(_params.rho),
+                C(_params.C)
             {
             }
 
@@ -126,10 +157,9 @@ class EvaluatorPairBuckingham
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

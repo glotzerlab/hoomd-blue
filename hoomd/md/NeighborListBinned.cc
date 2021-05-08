@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,24 +19,15 @@ using namespace std;
 namespace py = pybind11;
 
 NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_cut,
-                                       Scalar r_buff,
-                                       std::shared_ptr<CellList> cl)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl)
+                                       Scalar r_buff)
+    : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef))
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
-
-    // create a default cell list if one was not specified
-    if (!m_cl)
-        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     m_cl->setRadius(1);
     m_cl->setComputeXYZF(true);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
-
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
     }
 
 NeighborListBinned::~NeighborListBinned()
@@ -44,41 +35,19 @@ NeighborListBinned::~NeighborListBinned()
     m_exec_conf->msg->notice(5) << "Destroying NeighborListBinned" << endl;
     }
 
-void NeighborListBinned::setRCut(Scalar r_cut, Scalar r_buff)
+void NeighborListBinned::buildNlist(uint64_t timestep)
     {
-    NeighborList::setRCut(r_cut, r_buff);
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
+    // update the cell list size if needed
+    if (m_update_cell_size)
+        {
+        Scalar rmax = getMaxRCut() + m_r_buff;
+        if (m_diameter_shift)
+            rmax += m_d_max - Scalar(1.0);
 
-    m_cl->setNominalWidth(rmax);
-    }
+        m_cl->setNominalWidth(rmax);
+        m_update_cell_size = false;
+        }
 
-void NeighborListBinned::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborList::setRCutPair(typ1,typ2,r_cut);
-
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
-    }
-
-void NeighborListBinned::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborList::setMaximumDiameter(d_max);
-
-    // need to update the cell list settings appropriately
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    m_cl->setNominalWidth(rmax);
-    }
-
-void NeighborListBinned::buildNlist(unsigned int timestep)
-    {
     m_cl->compute(timestep);
 
     uint3 dim = m_cl->getDim();
@@ -93,18 +62,6 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
-
-    // validate that the cutoff fits inside the box
-    Scalar rmax = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        rmax += m_d_max - Scalar(1.0);
-
-    if (m_filter_body)
-        {
-        // add the maximum diameter of all composite particles
-        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
-        rmax += 0.5*max_d_comp;
-        }
 
     // access the rlist data
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
@@ -233,7 +190,8 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
 
 void export_NeighborListBinned(py::module& m)
     {
-    py::class_<NeighborListBinned, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned", py::base<NeighborList>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList> >())
-                     ;
+    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
+        .def_property("deterministic", &NeighborListBinned::getDeterministic, &NeighborListBinned::setDeterministic)
+        ;
     }

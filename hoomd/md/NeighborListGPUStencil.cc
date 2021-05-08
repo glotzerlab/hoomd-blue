@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,22 +27,13 @@ namespace py = pybind11;
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
 NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
-                                               Scalar r_cut,
-                                               Scalar r_buff,
-                                               std::shared_ptr<CellList> cl,
-                                               std::shared_ptr<CellListStencil> cls)
-    : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
-      m_needs_restencil(true), m_needs_resort(true)
+                                               Scalar r_buff)
+    : NeighborListGPU(sysdef, r_buff),
+    m_cl(std::make_shared<CellListGPU>(sysdef)),
+    m_cls(std::make_shared<CellListStencil>(sysdef, m_cl)),
+    m_needs_resort(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListGPUStencil" << std::endl;
-
-    // create a default cell list if one was not specified
-    if (!m_cl)
-        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
-
-    // construct the default cell list stencil generator for the current cell list if one was not specified already
-    if (!m_cls)
-        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     // types are always required now
@@ -58,7 +49,8 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     std::vector<unsigned int> valid_params;
 
     const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         unsigned int s=1;
 
@@ -77,10 +69,9 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     m_tuner->setSync(bool(m_pdata->getDomainDecomposition()));
     #endif
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
+    // cell sizes need update by default
+    m_update_cell_size = true;
 
-    getRCutChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
     m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
     m_pdata->getParticleSortSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
 
@@ -92,51 +83,8 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 NeighborListGPUStencil::~NeighborListGPUStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
-    getRCutChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
     m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
     m_pdata->getParticleSortSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
-    }
-
-void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborListGPU::setRCut(r_cut, r_buff);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
-    }
-
-void NeighborListGPUStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborListGPU::setRCutPair(typ1,typ2,r_cut);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
-    }
-
-void NeighborListGPUStencil::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborListGPU::setMaximumDiameter(d_max);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
     }
 
 void NeighborListGPUStencil::updateRStencil()
@@ -192,19 +140,32 @@ void NeighborListGPUStencil::sortTypes()
 
         if (swap)
             {
-            cudaMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), cudaMemcpyDeviceToDevice);
+            hipMemcpy(d_pids.data, d_pids_alt(), sizeof(unsigned int)*m_pdata->getN(), hipMemcpyDeviceToDevice);
             }
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void NeighborListGPUStencil::buildNlist(unsigned int timestep)
+void NeighborListGPUStencil::buildNlist(uint64_t timestep)
     {
     if (m_storage_mode != full)
         {
         m_exec_conf->msg->error() << "Only full mode nlists can be generated on the GPU" << std::endl;
         throw std::runtime_error("Error computing neighbor list");
+        }
+
+    if (m_update_cell_size)
+        {
+        if (!m_override_cell_width)
+            {
+            Scalar rmin = getMinRCut() + m_r_buff;
+            if (m_diameter_shift)
+                rmin += m_d_max - Scalar(1.0);
+
+            m_cl->setNominalWidth(rmin);
+            }
+        m_update_cell_size = false;
         }
 
     m_cl->compute(timestep);
@@ -270,8 +231,17 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
         (box.getPeriodic().y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << std::endl;
-        throw std::runtime_error("Error updating neighborlist bins");
+        std::ostringstream oss;
+        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
+            << "rmax=" << rmax << std::endl;
+
+        if (box.getPeriodic().x)
+            oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+        if (box.getPeriodic().y)
+            oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+        if (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z)
+            oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+        throw std::runtime_error(oss.str());
         }
 
     // we should not call the tuner with MPI sync enabled
@@ -325,7 +295,7 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListGPUStencil(py::module& m)
     {
-    py::class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil", py::base<NeighborListGPU>())
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
+    py::class_<NeighborListGPUStencil, NeighborListGPU, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil")
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

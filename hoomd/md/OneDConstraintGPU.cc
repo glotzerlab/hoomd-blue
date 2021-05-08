@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -32,14 +32,15 @@ OneDConstraintGPU::OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing OneDConstraintGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "oneD_constraint", this->m_exec_conf));
+    unsigned int warp_size = m_exec_conf->dev_prop.warpSize;
+    m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "oneD_constraint", this->m_exec_conf));
 
     }
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
-void OneDConstraintGPU::computeForces(unsigned int timestep)
+void OneDConstraintGPU::computeForces(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
@@ -91,7 +92,7 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
 
 void export_OneDConstraintGPU(py::module& m)
     {
-    py::class_< OneDConstraintGPU, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU", py::base<ForceConstraint>())
+    py::class_< OneDConstraintGPU, ForceConstraint, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
                    std::shared_ptr<ParticleGroup>,
                    Scalar3 >())

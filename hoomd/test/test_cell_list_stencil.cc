@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 #include "hoomd/CellListStencil.h"
 #include "hoomd/Initializers.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/CellListGPU.h"
 #endif
 
@@ -156,7 +156,7 @@ UP_TEST( CellListStencil_cpu )
     celllist_stencil_basic_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for cell list stencil on the GPU
 UP_TEST( CellListStencil_gpu )
     {

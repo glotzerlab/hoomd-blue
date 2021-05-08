@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -145,7 +145,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
     unsigned int niter = 100;
 
     std::vector<unsigned int> molecule_tags(nptl, NO_MOLECULE);
-    hoomd::RandomGenerator rng(123456);
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
+                               hoomd::Counter(4,5,6));
 
     MyMolecularForceCompute mfc_cpu(sysdef_cpu, molecule_tags, 0);
     MyMolecularForceCompute mfc_gpu(sysdef_gpu, molecule_tags, 0);
@@ -169,8 +170,8 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
             if (*it != NO_MOLECULE) unique_tags.insert(*it);
             }
 
-        mfc_cpu.setNMolecules(unique_tags.size());
-        mfc_gpu.setNMolecules(unique_tags.size());
+        mfc_cpu.setNMolecules((unsigned int)unique_tags.size());
+        mfc_gpu.setNMolecules((unsigned int)unique_tags.size());
 
         mfc_cpu.setMoleculeTags(molecule_tags);
         mfc_gpu.setMoleculeTags(molecule_tags);
@@ -211,7 +212,7 @@ UP_TEST( MolecularForceCompute_basic )
     basic_molecule_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-# ifdef ENABLE_CUDA
+# ifdef ENABLE_HIP
 //! test case for particle test on GPU
 UP_TEST( MolecularForceCompute_basic_GPU)
     {

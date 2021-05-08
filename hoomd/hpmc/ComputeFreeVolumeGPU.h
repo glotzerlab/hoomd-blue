@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 
 #include "hoomd/Compute.h"
@@ -24,11 +24,11 @@ using namespace std;
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -44,9 +44,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         //! Construct the integrator
         ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             std::shared_ptr<CellList> cl,
-                             unsigned int seed,
-                             std::string suffix);
+                             std::shared_ptr<CellList> cl);
         //! Destructor
         virtual ~ComputeFreeVolumeGPU();
 
@@ -65,7 +63,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
             }
 
         //! Return an estimate of the overlap volume
-        virtual void computeFreeVolume(unsigned int timestep);
+        virtual void computeFreeVolume(uint64_t timestep);
 
     protected:
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -74,8 +72,6 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
-
-        cudaStream_t m_stream;                //!< CUDA stream for kernel execution
 
         std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
@@ -87,18 +83,17 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
 template< class Shape >
 ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    std::shared_ptr<CellList> cl,
-                                                    unsigned int seed,
-                                                    std::string suffix)
-    : ComputeFreeVolume<Shape>(sysdef,mc,cl, seed,suffix)
+                                                    std::shared_ptr<CellList> cl)
+    : ComputeFreeVolume<Shape>(sysdef,mc,cl)
     {
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
     // encoded as block_size*1000000 + stride*100 + group_size.
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= (unsigned int) this->m_exec_conf->dev_prop.maxThreadsPerBlock; block_size += warp_size)
         {
-        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
+        for (auto s : Autotuner::getTppListPow2(warp_size))
             {
             unsigned int stride = 1;
             while (stride <= this->m_exec_conf->dev_prop.warpSize/s)
@@ -126,36 +121,23 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    m_tuner_excell_block_size.reset(new Autotuner(32,1024,32, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
-
-    // create a cuda stream to ensure managed memory coherency
-    cudaStreamCreate(&m_stream);
-    CHECK_CUDA_ERROR();
+    m_tuner_excell_block_size.reset(new Autotuner(warp_size,this->m_exec_conf->dev_prop.maxThreadsPerBlock,warp_size, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
     }
 
 template<class Shape>
 ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
     {
-    cudaStreamDestroy(m_stream);
-    CHECK_CUDA_ERROR();
     }
 
 /*! \return the current free volume (by MC integration)
 */
 template<class Shape>
-void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
+void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(uint64_t timestep)
     {
     this->m_exec_conf->msg->notice(5) << "HPMC computing free volume " << timestep << std::endl;
 
     // set nominal width
     Scalar nominal_width = this->m_mc->getMaxCoreDiameter();
-        {
-        // add range of test particle
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
-        quat<Scalar> o;
-        Shape tmp(o, params[this->m_type]);
-        nominal_width += tmp.getCircumsphereDiameter();
-        }
 
     if (this->m_cl->getNominalWidth() != nominal_width)
         this->m_cl->setNominalWidth(nominal_width);
@@ -193,24 +175,31 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     ArrayHandle<unsigned int> d_cell_idx(this->m_cl->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_adj(this->m_cl->getCellAdjArray(), access_location::device, access_mode::read);
 
+    // per-device cell list data
+    const ArrayHandle<unsigned int>& d_cell_size_per_device = this->m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(this->m_cl->getCellSizeArrayPerDevice(),access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+    const ArrayHandle<unsigned int>& d_cell_idx_per_device = this->m_cl->getPerDevice() ?
+        ArrayHandle<unsigned int>(this->m_cl->getIndexArrayPerDevice(), access_location::device, access_mode::read) :
+        ArrayHandle<unsigned int>(GlobalArray<unsigned int>(), access_location::device, access_mode::read);
+
     ArrayHandle< unsigned int > d_excell_idx(this->m_excell_idx, access_location::device, access_mode::readwrite);
     ArrayHandle< unsigned int > d_excell_size(this->m_excell_size, access_location::device, access_mode::readwrite);
 
     // update the expanded cells
     this->m_tuner_excell_block_size->begin();
-    detail::gpu_hpmc_excell(d_excell_idx.data,
-                            d_excell_size.data,
-                            this->m_excell_list_indexer,
-                            d_cell_idx.data,
-                            d_cell_size.data,
-                            d_cell_adj.data,
-                            this->m_cl->getCellIndexer(),
-                            this->m_cl->getCellListIndexer(),
-                            this->m_cl->getCellAdjIndexer(),
-                            this->m_tuner_excell_block_size->getParam());
-    if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
+    gpu::hpmc_excell(d_excell_idx.data,
+                        d_excell_size.data,
+                        m_excell_list_indexer,
+                        this->m_cl->getPerDevice() ? d_cell_idx_per_device.data : d_cell_idx.data,
+                        this->m_cl->getPerDevice() ? d_cell_size_per_device.data : d_cell_size.data,
+                        d_cell_adj.data,
+                        this->m_cl->getCellIndexer(),
+                        this->m_cl->getCellListIndexer(),
+                        this->m_cl->getCellAdjIndexer(),
+                        this->m_cl->getPerDevice() ? this->m_exec_conf->getNumActiveGPUs() : 1,
+                        this->m_tuner_excell_block_size->getParam());
+    if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     this->m_tuner_excell_block_size->end();
 
     // access the particle data
@@ -253,7 +242,7 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getDim(),
                                                    this->m_pdata->getN(),
                                                    this->m_pdata->getNTypes(),
-                                                   this->m_seed,
+                                                   this->m_sysdef->getSeed(),
                                                    this->m_exec_conf->getRank(),
                                                    0,
                                                    timestep,
@@ -267,7 +256,6 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
                                                    overlap_idx,
-                                                   m_stream,
                                                    this->m_exec_conf->dev_prop);
 
 
@@ -315,17 +303,15 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 */
 template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str(), pybind11::base< ComputeFreeVolume<Shape> >())
+     pybind11::class_<ComputeFreeVolumeGPU<Shape>, ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                std::shared_ptr<CellList>,
-                unsigned int,
-                std::string >())
+                std::shared_ptr<CellList>>())
         ;
     }
 
 } // end namespace hpmc
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__

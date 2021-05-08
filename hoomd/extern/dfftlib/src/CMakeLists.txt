@@ -1,10 +1,10 @@
 include_directories(${MPI_INCLUDE_PATH} ${CUDA_TOOLKIT_INCLUDE})
 
-if(ENABLE_CUDA)
+if(ENABLE_HIP)
     # CUFFT is default for CUDA
     set(CUDA_SOURCES cufft_single_interface.c)
 
-    set(CUDA_SOURCES dfft_cuda.c ${CUDA_SOURCES})
+    set(CUDA_SOURCES dfft_cuda.cc ${CUDA_SOURCES})
     cuda_compile(DFFT_CUDA_O dfft_cuda.cu SHARED)
     set(CUDA_OBJECTS ${DFFT_CUDA_O})
     set(CUDA_LIBS ${CUDA_CUDART_LIBRARY} ${CUDA_cufft_LIBRARY})
@@ -22,7 +22,7 @@ if(ENABLE_HOST)
     set(HOST_SOURCES dfft_host.c ${HOST_SOURCES})
 endif()
 
-add_library (dfft SHARED dfft_common.c ${HOST_SOURCES} ${CUDA_SOURCES} ${CUDA_OBJECTS})
+add_library (dfft SHARED dfft_common.cc ${HOST_SOURCES} ${CUDA_SOURCES} ${CUDA_OBJECTS})
 target_link_libraries(dfft ${MPI_C_LIBRARIES} ${LOCAL_FFT_LIBRARIES} ${CUDA_LIBS})
 
 if(MPI_COMPILE_FLAGS)
@@ -36,4 +36,4 @@ if(MPI_LINK_FLAGS)
 endif()
 
 
-install(TARGETS dfft DESTINATION ${PYTHON_MODULE_BASE_DIR})
+install(TARGETS dfft DESTINATION ${PYTHON_SITE_INSTALL_DIR})

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,7 +11,7 @@
 
 #include "hoomd/md/CosineSqAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/CosineSqAngleForceComputeGPU.h"
 #endif
 
@@ -50,7 +50,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_1 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_1.getPitch();
+    size_t pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
 
@@ -77,7 +77,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_2.data[0].x, tol);
@@ -96,7 +96,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_2.data[0].x, tol);
@@ -117,7 +117,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_2.getPitch();
+    size_t pitch = virial_array_2.getPitch();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
     MY_CHECK_SMALL(h_force_2.data[0].x, tol);
@@ -165,7 +165,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     {
     GlobalArray<Scalar4>& force_array_3 =  fc_3->getForceArray();
     GlobalArray<Scalar>& virial_array_3 =  fc_3->getVirialArray();
-    unsigned int pitch = virial_array_3.getPitch();
+    size_t pitch = virial_array_3.getPitch();
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
 
@@ -210,7 +210,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
     {
     GlobalArray<Scalar4>& force_array_7 =  fc1->getForceArray();
     GlobalArray<Scalar>& virial_array_7 =  fc1->getVirialArray();
-    unsigned int pitch = virial_array_7.getPitch();
+    size_t pitch = virial_array_7.getPitch();
     ArrayHandle<Scalar4> h_force_7(force_array_7,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
     GlobalArray<Scalar4>& force_array_8 =  fc2->getForceArray();
@@ -258,7 +258,7 @@ std::shared_ptr<CosineSqAngleForceCompute> base_class_af_creator(std::shared_ptr
     return std::shared_ptr<CosineSqAngleForceCompute>(new CosineSqAngleForceCompute(sysdef));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! AngleForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<CosineSqAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -276,7 +276,7 @@ UP_TEST( CosineSqAngleForceCompute_basic )
     angle_force_basic_tests(af_creator, exec_conf);
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for angle forces on the GPU
 UP_TEST( CosineSqAngleForceComputeGPU_basic )
     {

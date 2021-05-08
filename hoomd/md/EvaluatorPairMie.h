@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_MIE_H__
 #define __PAIR_EVALUATOR_MIE_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -21,7 +21,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -52,7 +52,50 @@ class EvaluatorPairMie
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar m1;
+            Scalar m2;
+            Scalar m3;
+            Scalar m4;
+
+            #ifdef ENABLE_HIP
+            // set CUDA memory hints
+            void set_memory_hint() const {}
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : m1(0), m2(0), m3(0), m4(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                m3 = v["n"].cast<Scalar>();
+                m4 = v["m"].cast<Scalar>();
+
+                Scalar epsilon = v["epsilon"].cast<Scalar>();
+                Scalar sigma = v["sigma"].cast<Scalar>();
+
+                Scalar outFront = (m3/(m3-m4)) * fast::pow(m3/m4, m4/(m3-m4));
+                m1 = outFront * epsilon * fast::pow(sigma, m3);
+                m2 = outFront * epsilon * fast::pow(sigma, m4);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["n"] = m3;
+                v["m"] = m4;
+
+                Scalar sigma = fast::pow(m1 / m2, 1 / (m3 - m4));
+                Scalar epsilon = m1 / fast::pow(sigma, m3) * (m3 - m4) / m3 * fast::pow(m3 / m4, m4 / (m4 - m3));
+		
+                v["epsilon"] = epsilon;
+                v["sigma"] = sigma;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -62,7 +105,7 @@ class EvaluatorPairMie
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairMie(Scalar _rsq, Scalar _rcutsq,  const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.x), mie2(_params.y), mie3(_params.z), mie4(_params.w)
+            : rsq(_rsq), rcutsq(_rcutsq), mie1(_params.m1), mie2(_params.m2), mie3(_params.m3), mie4(_params.m4)
             {
             }
 
@@ -97,17 +140,17 @@ class EvaluatorPairMie
             if (rsq < rcutsq && mie1 != 0)
                 {
                 Scalar r2inv = Scalar(1.0)/rsq;
-                Scalar rninv = pow(r2inv,mie3/Scalar(2.0));
-                Scalar rminv = pow(r2inv,mie4/Scalar(2.0));
+                Scalar rninv = fast::pow(r2inv,mie3/Scalar(2.0));
+                Scalar rminv = fast::pow(r2inv,mie4/Scalar(2.0));
                 force_divr= r2inv * (mie3 * mie1 * rninv - mie4 * mie2 * rminv);
 
                 pair_eng = mie1 * rninv - mie2 * rminv;
 
                 if (energy_shift)
                     {
-                    Scalar rcutninv = Scalar(1.0)/pow(rcutsq,mie3/Scalar(2.0));
-                    Scalar rcutminv = Scalar(1.0)/pow(rcutsq,mie4/Scalar(2.0));
-                    pair_eng -= mie1 * rcutninv - mie2* rcutminv;
+                    Scalar rcutninv = fast::pow(rcutsq,-mie3/Scalar(2.0));
+                    Scalar rcutminv = fast::pow(rcutsq,-mie4/Scalar(2.0));
+                    pair_eng -= mie1 * rcutninv - mie2 * rcutminv;
                     }
                 return true;
                 }
@@ -115,10 +158,9 @@ class EvaluatorPairMie
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

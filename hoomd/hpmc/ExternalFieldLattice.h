@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_LATTICE_H_
@@ -14,8 +14,8 @@
 
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -108,7 +108,7 @@ class LatticeReferenceList
                 if(exec_conf) exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
                 throw std::runtime_error("Error setting LatticeReferenceList");
                 }
-            m_N = numPoints;
+            m_N = (unsigned int)numPoints;
             GPUArray<ScalarType> temp(numPoints, exec_conf);
             { // scope the copy.
             ArrayHandle<ScalarType> h_temp(temp, access_location::host, access_mode::overwrite);
@@ -192,7 +192,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 m_symmetry.push_back(identity);
                 }
-            reset(0); // initializes all of the energy logging parameters.
+            reset(0); // initializes all of the energy parameters.
             }
 
         ~ExternalFieldLattice()
@@ -200,7 +200,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
         }
 
-        Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
+        Scalar calculateBoltzmannWeight(uint64_t timestep) { return 0.0; }
 
         double calculateDeltaE(const Scalar4 * const position_old_arg,
                                         const Scalar4 * const orientation_old_arg,
@@ -229,7 +229,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             Scalar scaleNew = pow((newVolume/curVolume), Scalar(1.0/3.0));
 
             double dE = 0.0;
-            for(size_t i = 0; i < m_pdata->getN(); i++)
+            for(unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 Scalar old_E = calcE(i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), scaleOld);
                 Scalar new_E = calcE(i, vec3<Scalar>(*(position_new+i)), quat<Scalar>(*(orientation_new+i)), scaleNew);
@@ -246,7 +246,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return dE;
             }
 
-        void compute(unsigned int timestep)
+        void compute(uint64_t timestep)
             {
             if(!this->shouldCompute(timestep))
                 {
@@ -256,7 +256,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             // access particle data and system box
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orient(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            for(size_t i = 0; i < m_pdata->getN(); i++)
+            for(unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
                 vec3<Scalar> position(h_postype.data[i]);
                 quat<Scalar> orientation(h_orient.data[i]);
@@ -304,8 +304,8 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 python_list_to_vector_scalar3(r0, lattice_positions, ndim);
                 python_list_to_vector_scalar4(q0, lattice_orientations);
-                psz = lattice_positions.size();
-                qsz = lattice_orientations.size();
+                psz = (unsigned int)lattice_positions.size();
+                qsz = (unsigned int)lattice_orientations.size();
                 }
             if( this->m_pdata->getDomainDecomposition())
                 {
@@ -397,54 +397,6 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 m_box = newBox;
             }
 
-        //! Returns a list of log quantities this compute calculates
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            return m_ProvidedQuantities;
-            }
-
-        //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            compute(timestep);
-
-            if( quantity == LATTICE_ENERGY_LOG_NAME )
-                {
-                return m_Energy;
-                }
-            else if( quantity == LATTICE_ENERGY_AVG_LOG_NAME )
-                {
-                if( !m_num_samples )
-                    return 0.0;
-                return m_EnergySum/double(m_num_samples);
-                }
-            else if ( quantity == LATTICE_ENERGY_SIGMA_LOG_NAME )
-                {
-                if( !m_num_samples )
-                    return 0.0;
-                Scalar first_moment = m_EnergySum/double(m_num_samples);
-                Scalar second_moment = m_EnergySqSum/double(m_num_samples);
-                return sqrt(second_moment - (first_moment*first_moment));
-                }
-            else if ( quantity == LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME )
-                {
-                return m_k;
-                }
-            else if ( quantity == LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME )
-                {
-                return m_q;
-                }
-            else if ( quantity == LATTICE_NUM_SAMPLES_LOG_NAME )
-                {
-                return m_num_samples;
-                }
-            else
-                {
-                m_exec_conf->msg->error() << "field.lattice_field: " << quantity << " is not a valid log quantity" << std::endl;
-                throw std::runtime_error("Error getting log value");
-                }
-            }
-
         void setParams(Scalar k, Scalar q)
             {
             m_k = k;
@@ -461,26 +413,26 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return m_latticeOrientations.getReferenceArray();
             }
 
-        void reset( unsigned int ) // TODO: remove the timestep
+        virtual void reset(uint64_t timestep ) // TODO: remove the timestep
             {
             m_EnergySum = m_EnergySum_y = m_EnergySum_t = m_EnergySum_c = Scalar(0.0);
             m_EnergySqSum = m_EnergySqSum_y = m_EnergySqSum_t = m_EnergySqSum_c = Scalar(0.0);
             m_num_samples = 0;
             }
 
-        Scalar getEnergy(unsigned int timestep)
+        Scalar getEnergy(uint64_t timestep)
         {
             compute(timestep);
             return m_Energy;
         }
-        Scalar getAvgEnergy(unsigned int timestep)
+        Scalar getAvgEnergy(uint64_t timestep)
         {
             compute(timestep);
             if( !m_num_samples )
                 return 0.0;
             return m_EnergySum/double(m_num_samples);
         }
-        Scalar getSigma(unsigned int timestep)
+        Scalar getSigma(uint64_t timestep)
         {
             compute(timestep);
             if( !m_num_samples )
@@ -578,7 +530,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 template<class Shape>
 void export_LatticeField(pybind11::module& m, std::string name)
     {
-   pybind11::class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+   pybind11::class_<ExternalFieldLattice<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::list, Scalar, pybind11::list, Scalar, pybind11::list>())
     .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
     .def("setParams", &ExternalFieldLattice<Shape>::setParams)

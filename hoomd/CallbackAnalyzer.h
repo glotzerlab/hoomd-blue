@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,7 +11,7 @@
 #ifndef __CALLBACK_ANALYZER_H__
 #define __CALLBACK_ANALYZER_H__
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -21,7 +21,7 @@
 #include <string>
 #include <fstream>
 #include <memory>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 //! Calls a python functor object
 /*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.
@@ -40,7 +40,7 @@ class CallbackAnalyzer : public Analyzer
         ~CallbackAnalyzer();
 
         //! Call the analyzer callback
-        void analyze(unsigned int timestep);
+        void analyze(uint64_t timestep);
 
     private:
 

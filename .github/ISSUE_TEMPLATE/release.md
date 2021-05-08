@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release v2.XX.Y'
+title: 'Release v3.0.0-beta.N'
 labels: ''
 assignees: 'joaander'
 
@@ -18,3 +18,5 @@ Release checklist:
   - [Output](https://hoomd-blue.readthedocs.io/en/latest/)
 - [ ] Tag and push.
 - [ ] Update conda-forge recipe.
+- [ ] Update glotzerlab-software.
+- [ ] Announce release on mailing list.

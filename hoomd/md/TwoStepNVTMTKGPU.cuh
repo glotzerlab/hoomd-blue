@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -16,7 +16,7 @@
 #define __TWO_STEP_NVT_MTK_GPU_CUH__
 
 //! Kernel driver for the first part of the NVT update called by TwoStepNVTGPU
-cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
+hipError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              Scalar4 *d_vel,
                              const Scalar3 *d_accel,
                              int3 *d_image,
@@ -30,7 +30,7 @@ cudaError_t gpu_nvt_mtk_step_one(Scalar4 *d_pos,
                              );
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
+hipError_t gpu_nvt_mtk_step_two(Scalar4 *d_vel,
                              Scalar3 *d_accel,
                              unsigned int *d_group_members,
                              unsigned int group_size,

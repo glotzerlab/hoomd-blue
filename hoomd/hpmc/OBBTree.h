@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -22,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -40,7 +40,7 @@ namespace detail
 
 const unsigned int OBB_INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
-#ifndef NVCC
+#ifndef __HIPCC__
 
 //! Node in an OBBTree
 /*! Stores data for a node in the OBB tree
@@ -160,7 +160,7 @@ class OBBTree
         */
         inline unsigned int getNodeNumParticles(unsigned int node) const
             {
-            return (m_nodes[node].particles.size());
+            return ((unsigned int)m_nodes[node].particles.size());
             }
 
         //! Get the particles in a given node
@@ -310,29 +310,32 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
     {
     // merge all the OBBs into one, as tightly as possible
     OBB my_obb = obbs[start];
-    std::vector<vec3<OverlapReal> > merge_internal_coordinates;
-    std::vector<OverlapReal > merge_vertex_radii;
 
-    for (unsigned int i = start; i < start+len; ++i)
+    if (len > 1)
         {
-        for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
+        std::vector<vec3<OverlapReal> > merge_internal_coordinates;
+        std::vector<OverlapReal > merge_vertex_radii;
+
+        for (unsigned int i = start; i < start+len; ++i)
             {
-            merge_internal_coordinates.push_back(internal_coordinates[i][j]);
-            merge_vertex_radii.push_back(vertex_radii[i][j]);
+            for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
+                {
+                merge_internal_coordinates.push_back(internal_coordinates[i][j]);
+                merge_vertex_radii.push_back(vertex_radii[i][j]);
+                }
             }
+
+        // combine masks
+        unsigned int mask = 0;
+
+        for (unsigned int i = start; i < start+len; ++i)
+            {
+            mask |= obbs[i].mask;
+            }
+
+        my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radii, sphere_tree);
+        my_obb.mask = mask;
         }
-
-    // combine masks
-    unsigned int mask = 0;
-
-    for (unsigned int i = start; i < start+len; ++i)
-        {
-        mask |= obbs[i].mask;
-        }
-
-    // merge internal coordinates
-    my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radii, sphere_tree);
-    my_obb.mask = mask;
 
     // handle the case of a leaf node creation
     if (len <= m_leaf_capacity)
@@ -372,7 +375,7 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
         OverlapReal split_proj(0.0);
         for (unsigned int i = 0; i < len; ++i)
             {
-            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/len;
+            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/OverlapReal(len);
             }
 
         // split on x direction according to object mean
@@ -472,7 +475,7 @@ inline unsigned int OBBTree::allocateNode()
 // end group overlap
 /*! @}*/
 
-#endif // NVCC
+#endif // __HIPCC__
 
 }; // end namespace detail
 

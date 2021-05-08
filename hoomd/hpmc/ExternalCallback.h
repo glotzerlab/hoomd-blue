@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
@@ -14,8 +14,8 @@
 
 #include "ExternalField.h"
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -40,7 +40,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         ~ExternalCallback() { }
 
         //! Compute Boltzmann weight exp(-U) of current configuration
-        Scalar calculateBoltzmannWeight(unsigned int timestep)
+        Scalar calculateBoltzmannWeight(uint64_t timestep)
             {
             auto snap = takeSnapshot();
             double energy = getEnergy(snap);
@@ -80,7 +80,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             }
 
         // does nothing
-        void compute(unsigned int timestep) { }
+        void compute(uint64_t timestep) { }
 
         // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,
@@ -119,13 +119,13 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         // Take a snapshot of the particle data (only)
         std::shared_ptr<SnapshotSystemData<Scalar> > takeSnapshot()
             {
-            return this->m_sysdef->template takeSnapshot<Scalar>(true);
+            return this->m_sysdef->template takeSnapshot<Scalar>();
             }
 
         double getEnergy(std::shared_ptr<SnapshotSystemData<Scalar> > snap)
             {
             double e = 0.0;
-            if (callback != pybind11::none())
+            if (!callback.is(pybind11::none()))
                 {
                 pybind11::object rv = callback(snap);
                 try
@@ -147,7 +147,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
 template<class Shape>
 void export_ExternalCallback(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<ExternalCallback<Shape>, std::shared_ptr< ExternalCallback<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    pybind11::class_<ExternalCallback<Shape>, ExternalFieldMono<Shape>, std::shared_ptr< ExternalCallback<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::object>())
     ;
     }

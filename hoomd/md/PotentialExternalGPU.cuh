@@ -1,4 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+#include "hip/hip_runtime.h"
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -22,7 +23,7 @@ struct external_potential_args_t
     //! Construct a external_potential_args_t
     external_potential_args_t(Scalar4 *_d_force,
               Scalar *_d_virial,
-              const unsigned int _virial_pitch,
+              const size_t _virial_pitch,
               const unsigned int _N,
               const Scalar4 *_d_pos,
               const Scalar *_d_diameter,
@@ -43,7 +44,7 @@ struct external_potential_args_t
 
     Scalar4 *d_force;                //!< Force to write out
     Scalar *d_virial;                //!< Virial to write out
-    const unsigned int virial_pitch; //!< The pitch of the 2D array of virial matrix elements
+    const size_t virial_pitch; //!< The pitch of the 2D array of virial matrix elements
     const BoxDim& box;         //!< Simulation box in GPU format
     const unsigned int N;           //!< Number of particles
     const Scalar4 *d_pos;           //!< Device array of particle positions
@@ -60,11 +61,13 @@ struct external_potential_args_t
  * \tparam Evaluator functor
  */
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
+hipError_t
+__attribute__((visibility("default")))
+gpu_cpef(const external_potential_args_t& external_potential_args,
                      const typename evaluator::param_type *d_params,
                      const typename evaluator::field_type *d_field);
 
-#ifdef NVCC
+#ifdef __HIPCC__
 //! Kernel for calculating external forces
 /*! This kernel is called to calculate the external forces on all N particles. Actual evaluation of the potentials and
     forces for each particle is handled via the template class \a evaluator.
@@ -81,7 +84,7 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
 template< class evaluator >
 __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
                                                Scalar *d_virial,
-                                               const unsigned int virial_pitch,
+                                               const size_t virial_pitch,
                                                const unsigned int N,
                                                const Scalar4 *d_pos,
                                                const Scalar *d_diameter,
@@ -94,7 +97,7 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // read in field data cooperatively
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     typename evaluator::field_type *s_field = (typename evaluator::field_type *)(&s_data[0]);
 
         {
@@ -166,15 +169,15 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
  * instantiated per potential in a cu file.
  */
 template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
+hipError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                      const typename evaluator::param_type *d_params,
                      const typename evaluator::field_type *d_field)
     {
         static unsigned int max_block_size = UINT_MAX;
         if (max_block_size == UINT_MAX)
             {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
+            hipFuncAttributes attr;
+            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(&gpu_compute_external_forces_kernel<evaluator>));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -186,7 +189,7 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
         unsigned int bytes = (sizeof(typename evaluator::field_type)/sizeof(int)+1)*sizeof(int);
 
         // run the kernel
-        gpu_compute_external_forces_kernel<evaluator><<<grid, threads, bytes>>>(external_potential_args.d_force,
+        hipLaunchKernelGGL((gpu_compute_external_forces_kernel<evaluator>), dim3(grid), dim3(threads), bytes, 0, external_potential_args.d_force,
                                                                                 external_potential_args.d_virial,
                                                                                 external_potential_args.virial_pitch,
                                                                                 external_potential_args.N,
@@ -197,7 +200,7 @@ cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                                                                                 d_params,
                                                                                 d_field);
 
-        return cudaSuccess;
+        return hipSuccess;
     };
-#endif // NVCC
+#endif // __HIPCC__
 #endif // __POTENTIAL_PAIR_GPU_CUH__

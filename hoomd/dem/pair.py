@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R"""DEM pair potentials.
@@ -147,7 +147,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list to use
         radius (float): Rounding radius :math:`r` to apply to the shape vertices
 
-    The effect is as if a :py:class:`hoomd.md.pair.lj` interaction
+    The effect is as if a ``hoomd.md.pair.lj`` interaction
     with :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r`
     were applied between the contact points of each pair of particles.
 
@@ -169,7 +169,6 @@ class WCA(hoomd.md.force._force, _DEMBase):
     """
 
     def __init__(self, nlist, radius=1.):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;
@@ -177,7 +176,7 @@ class WCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.WCADEM2D,
              (2, None, 'gpu'): (_dem.WCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.WCADEM3D,
@@ -263,7 +262,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     The SWCA potential enables simulation of particles with
     heterogeneous rounding radii. The effect is as if a
-    :py:class:`hoomd.md.pair.slj` interaction with
+    :py:class:`hoomd.md.pair.SLJ` interaction with
     :math:`r_{cut}=2^{1/6}\sigma` and :math:`\sigma=2\cdot r` were
     applied between the contact points of each pair of particles.
 
@@ -284,7 +283,6 @@ class SWCA(hoomd.md.force._force, _DEMBase):
 
     """
     def __init__(self, nlist, radius=1., d_max=None):
-        hoomd.util.print_status_line();
         friction = None;
 
         self.radius = radius;
@@ -292,7 +290,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.autotunerPeriod = 100000;
         self.vertices = {};
 
-        self.onGPU = hoomd.context.exec_conf.isCUDAEnabled();
+        self.onGPU = hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled();
         cppForces = {(2, None, 'cpu'): _dem.SWCADEM2D,
              (2, None, 'gpu'): (_dem.SWCADEM2DGPU if self.onGPU else None),
              (3, None, 'cpu'): _dem.SWCADEM3D,
@@ -301,9 +299,9 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         self.dimensions = hoomd.context.current.system_definition.getNDimensions();
 
         # Error out in MPI simulations
-        if (hoomd._hoomd.is_MPI_available()):
+        if (hoomd.version.mpi_enabled):
             if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
+                hoomd.context.current.device.cpp_msg.error("pair.SWCA is not supported in multi-processor simulations.\n\n");
                 raise RuntimeError("Error setting up pair potential.");
 
         # initialize the base class
@@ -313,7 +311,7 @@ class SWCA(hoomd.md.force._force, _DEMBase):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             self.d_max = max(x.diameter for x in hoomd.data.particle_data(sysdef.getParticleData()));
-            hoomd.context.msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
+            hoomd.context.current.device.cpp_msg.notice(2, "Notice: swca set d_max=" + str(self.d_max) + "\n");
 
         # interparticle cutoff radius, will be updated as shapes are added
         self.r_cut = 2*2*self.radius*2**(1./6);

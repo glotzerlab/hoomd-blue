@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 #ifndef __EVALUATOR_SQUARE_DENSITY__
 #define __EVALUATOR_SQUARE_DENSITY__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -18,7 +18,7 @@
    Phys. Rev. E 68, p. 066702 (2003)
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -30,8 +30,42 @@
 class EvaluatorSquareDensity
     {
     public:
-        //! Define the parameter type used by this evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar A;
+            Scalar B;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : A(0), B(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                A = v["A"].cast<Scalar>();
+                B = v["B"].cast<Scalar>();
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["A"] = A;
+                v["B"] = B;
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the evaluator
         /*! \param _rij_sq Squared distance between particles i and j
@@ -39,7 +73,7 @@ class EvaluatorSquareDensity
             \param _params Per type-pair parameters for this potential
         */
         DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.x), B(_params.y)
+            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.A), B(_params.B)
             {
             }
 
@@ -150,10 +184,9 @@ class EvaluatorSquareDensity
             return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name.  Must be short and all lowercase, as this is the name
-            energies will be logged as via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
@@ -165,6 +198,8 @@ class EvaluatorSquareDensity
             throw std::runtime_error("Shape definition not supported for this pair potential.");
             }
         #endif
+
+        static const bool flag_for_RevCross=false;
 
     protected:
         Scalar rij_sq; //!< Stored rij_sq from the constructor

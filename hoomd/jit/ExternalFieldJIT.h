@@ -104,7 +104,7 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
                 Scalar4 postype_i = h_postype.data[i];
                 unsigned int typ_i = __scalar_as_int(postype_i.w);
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                
+
                 dE += energy(box_new, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
                 dE -= energy(*box_old, typ_i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), h_diameter.data[i], h_charge.data[i]);
                 }
@@ -135,46 +135,6 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
             return dE;
             }
 
-        //! Returns a list of log quantities this compute calculates
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector<std::string> provided_quantities;
-            provided_quantities.push_back(std::string("external_field_jit"));
-            return provided_quantities;
-            }
-
-        //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            if ( quantity == "external_field_jit" )
-                {
-                ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
-
-                const BoxDim& box = this->m_pdata->getGlobalBox();
-
-                double dE = 0.0;
-                for(size_t i = 0; i < this->m_pdata->getN(); i++)
-                    {
-                    // read in the current position and orientation
-                    Scalar4 postype_i = h_postype.data[i];
-                    unsigned int typ_i = __scalar_as_int(postype_i.w);
-                    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-                    dE += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
-                    }
-
-                return dE;
-                }
-            else
-                {
-                this->m_exec_conf->msg->error() << "jit.external.user: " << quantity << " is not a valid log quantity" << std::endl;
-                throw std::runtime_error("Error getting log value");
-                }
-            }
-
     protected:
         //! function pointer signature
         typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box, unsigned int type, const vec3<Scalar>& r_i, const quat<Scalar>& q_i, Scalar diameter, Scalar charge);
@@ -187,8 +147,8 @@ class ExternalFieldJIT : public hpmc::ExternalFieldMono<Shape>
 template< class Shape>
 void export_ExternalFieldJIT(pybind11::module &m, std::string name)
     {
-    pybind11::class_<ExternalFieldJIT<Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str(), pybind11::base< hpmc::ExternalFieldMono <Shape> >())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>, 
+    pybind11::class_<ExternalFieldJIT<Shape>, hpmc::ExternalFieldMono <Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string& >())
             .def("energy", &ExternalFieldJIT<Shape>::energy);

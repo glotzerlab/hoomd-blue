@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -42,7 +42,7 @@ TwoStepBerendsenGPU::TwoStepBerendsenGPU(std::shared_ptr<SystemDefinition> sysde
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -54,7 +54,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
@@ -84,7 +84,7 @@ void TwoStepBerendsenGPU::integrateStepOne(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsenGPU::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -120,7 +120,7 @@ void TwoStepBerendsenGPU::integrateStepTwo(unsigned int timestep)
 
 void export_BerendsenGPU(py::module& m)
     {
-    py::class_<TwoStepBerendsenGPU, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU", py::base<TwoStepBerendsen>())
+    py::class_<TwoStepBerendsenGPU, TwoStepBerendsen, std::shared_ptr<TwoStepBerendsenGPU> >(m, "TwoStepBerendsenGPU")
       .def(py::init< std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<ParticleGroup>,
                             std::shared_ptr<ComputeThermo>,

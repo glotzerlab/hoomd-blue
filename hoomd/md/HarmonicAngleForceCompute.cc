@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -82,37 +82,32 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
         m_exec_conf->msg->warning() << "angle.harmonic: specified t_0 <= 0" << endl;
     }
 
-/*! AngleForceCompute provides
-    - \c angle_harmonic_energy
-*/
-std::vector< std::string > HarmonicAngleForceCompute::getProvidedLogQuantities()
+void HarmonicAngleForceCompute::setParamsPython(std::string type,
+                                                pybind11::dict params)
     {
-    vector<string> list;
-    list.push_back("angle_harmonic_energy");
-    return list;
+    auto typ = m_angle_data->getTypeByName(type);
+    auto _params = angle_harmonic_params(params);
+    setParams(typ, _params.k, _params.t_0);
     }
 
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+pybind11::dict HarmonicAngleForceCompute::getParams(std::string type)
     {
-    if (quantity == string("angle_harmonic_energy"))
+    auto typ = m_angle_data->getTypeByName(type);
+    if (typ >= m_angle_data->getNTypes())
         {
-        compute(timestep);
-        return calcEnergySum();
+        m_exec_conf->msg->error() << "angle.harmonic: Invalid angle type specified" << endl;
+        throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
         }
-    else
-        {
-        m_exec_conf->msg->error() << "angle.harmonic: " << quantity << " is not a valid log quantity for AngleForceCompute" << endl;
-        throw runtime_error("Error getting log value");
-        }
+    pybind11::dict params;
+    params["k"] = m_K[typ];
+    params["t0"] = m_t_0[typ];
+    return params;
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
+void HarmonicAngleForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("Harmonic Angle");
 
@@ -123,7 +118,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -278,8 +273,9 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
 void export_HarmonicAngleForceCompute(py::module& m)
     {
-    py::class_<HarmonicAngleForceCompute, std::shared_ptr<HarmonicAngleForceCompute> >(m, "HarmonicAngleForceCompute", py::base<ForceCompute>())
+    py::class_<HarmonicAngleForceCompute, ForceCompute, std::shared_ptr<HarmonicAngleForceCompute> >(m, "HarmonicAngleForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &HarmonicAngleForceCompute::setParams)
+    .def("setParams", &HarmonicAngleForceCompute::setParamsPython)
+    .def("getParams", &HarmonicAngleForceCompute::getParams)
     ;
     }

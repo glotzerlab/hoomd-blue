@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,7 +11,7 @@
 #ifndef MPCD_STREAMING_METHOD_H_
 #define MPCD_STREAMING_METHOD_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -19,7 +19,7 @@
 #include "ExternalField.h"
 #include "SystemData.h"
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -41,10 +41,10 @@ class PYBIND11_EXPORT StreamingMethod
         virtual ~StreamingMethod();
 
         //! Implementation of the streaming rule
-        virtual void stream(unsigned int timestep) { }
+        virtual void stream(uint64_t timestep) { }
 
         //! Peek if the next step requires streaming
-        virtual bool peekStream(unsigned int timestep) const;
+        virtual bool peekStream(uint64_t timestep) const;
 
         //! Sets the profiler for the integration method to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof)
@@ -107,12 +107,12 @@ class PYBIND11_EXPORT StreamingMethod
 
         Scalar m_mpcd_dt;               //!< Integration time step
         unsigned int m_period;          //!< Number of MD timesteps between streaming steps
-        unsigned int m_next_timestep;   //!< Timestep next streaming step should be performed
+        uint64_t m_next_timestep;   //!< Timestep next streaming step should be performed
 
         std::shared_ptr<hoomd::GPUPolymorph<mpcd::ExternalField>> m_field;  //!< External field
 
         //! Check if streaming should occur
-        virtual bool shouldStream(unsigned int timestep);
+        virtual bool shouldStream(uint64_t timestep);
     };
 
 namespace detail

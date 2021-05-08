@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,6 +13,7 @@
 
 #include "ParticleData.cuh"
 #include "GPUPartition.cuh"
+#include "HOOMDMath.h"
 
 //! struct to pack up several force and virial arrays for addition
 /*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this
@@ -51,18 +52,18 @@ struct gpu_force_list
     Scalar *v4;  //!< Pointer to virial array 4
     Scalar *v5;  //!< Pointer to virial array 5
 
-    unsigned int vpitch0; //!< Pitch of virial array 0
-    unsigned int vpitch1; //!< Pitch of virial array 1
-    unsigned int vpitch2; //!< Pitch of virial array 2
-    unsigned int vpitch3; //!< Pitch of virial array 3
-    unsigned int vpitch4; //!< Pitch of virial array 4
-    unsigned int vpitch5; //!< Pitch of virial array 5
+    size_t vpitch0; //!< Pitch of virial array 0
+    size_t vpitch1; //!< Pitch of virial array 1
+    size_t vpitch2; //!< Pitch of virial array 2
+    size_t vpitch3; //!< Pitch of virial array 3
+    size_t vpitch4; //!< Pitch of virial array 4
+    size_t vpitch5; //!< Pitch of virial array 5
  };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()
-cudaError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
+hipError_t gpu_integrator_sum_net_force(Scalar4 *d_net_force,
                                          Scalar *d_net_virial,
-                                         const unsigned int virial_pitch,
+                                         const size_t virial_pitch,
                                          Scalar4 *d_net_torque,
                                          const gpu_force_list& force_list,
                                          unsigned int nparticles,

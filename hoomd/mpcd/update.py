@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2019 The Regents of the University of Michigan
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward
@@ -14,7 +14,7 @@ from hoomd.md import _md
 
 from . import _mpcd
 
-class sort(hoomd.meta._metadata):
+class sort():
     R""" Sorts MPCD particles in memory to improve cache coherency.
 
     Args:
@@ -48,33 +48,26 @@ class sort(hoomd.meta._metadata):
     """
 
     def __init__(self, system, period=50):
-        hoomd.util.print_status_line()
-
-        # base class initialization
-        hoomd.meta._metadata.__init__(self)
 
         # check for mpcd initialization
         if system.sorter is not None:
-            hoomd.context.msg.error('mpcd.update: system already has a sorter created!\n')
+            hoomd.context.current.device.cpp_msg.error('mpcd.update: system already has a sorter created!\n')
             raise RuntimeError('MPCD sorter already created')
 
         # create the c++ mirror class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             cpp_class = _mpcd.Sorter
         else:
             cpp_class = _mpcd.SorterGPU
         self._cpp = cpp_class(system.data, hoomd.context.current.system.getCurrentTimeStep(), period)
 
-        self.metadata_fields = ['period','enabled']
         self.period = period
         self.enabled = True
 
     def disable(self):
-        hoomd.util.print_status_line()
         self.enabled = False
 
     def enable(self):
-        hoomd.util.print_status_line()
         self.enabled = True
 
     def set_period(self, period):
@@ -93,7 +86,6 @@ class sort(hoomd.meta._metadata):
         not change the phase set when the analyzer was first created.
 
         """
-        hoomd.util.print_status_line()
 
         self.period = period
         self._cpp.setPeriod(hoomd.context.current.system.getCurrentTimeStep(), self.period)
@@ -135,10 +127,6 @@ class sort(hoomd.meta._metadata):
             sorter.tune(start=5, stop=50, step=5, tsteps=1000)
 
         """
-        hoomd.util.print_status_line()
-
-        # hide calls to set_period, etc.
-        hoomd.util.quiet_status()
 
         # scan through range of sorting periods and log TPS
         periods = range(start, stop+1, step)
@@ -159,13 +147,10 @@ class sort(hoomd.meta._metadata):
         opt_period = periods[fastest]
         self.set_period(period=opt_period)
 
-        # tuning is done, restore status lines
-        hoomd.util.unquiet_status()
-
         # output results
-        hoomd.context.msg.notice(2, '--- sort.tune() statistics\n')
-        hoomd.context.msg.notice(2, 'Optimal period = {0}\n'.format(opt_period))
-        hoomd.context.msg.notice(2, '        period = ' + str(periods) + '\n')
-        hoomd.context.msg.notice(2, '          TPS  = ' + str(tps) + '\n')
+        hoomd.context.current.device.cpp_msg.notice(2, '--- sort.tune() statistics\n')
+        hoomd.context.current.device.cpp_msg.notice(2, 'Optimal period = {0}\n'.format(opt_period))
+        hoomd.context.current.device.cpp_msg.notice(2, '        period = ' + str(periods) + '\n')
+        hoomd.context.current.device.cpp_msg.notice(2, '          TPS  = ' + str(tps) + '\n')
 
         return opt_period

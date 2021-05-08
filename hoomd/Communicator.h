@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,10 +13,6 @@
 #ifndef __COMMUNICATOR_H__
 #define __COMMUNICATOR_H__
 
-#define NCORNER 8
-#define NEDGE 12
-#define NFACE 6
-
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
 #include "GPUVector.h"
@@ -27,8 +23,8 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 #include "Autotuner.h"
@@ -176,7 +172,7 @@ class PYBIND11_EXPORT Communicator
         /*! This method keeps track of all functions that may request particle migration.
          * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        Nano::Signal<bool(unsigned int timestep)>& getMigrateSignal()
+        Nano::Signal<bool(uint64_t timestep)>& getMigrateSignal()
             {
             return m_migrate_requests;
             }
@@ -186,7 +182,7 @@ class PYBIND11_EXPORT Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        Nano::Signal<Scalar (unsigned int)>& getGhostLayerWidthRequestSignal()
+        Nano::Signal<Scalar (unsigned int type)>& getGhostLayerWidthRequestSignal()
             {
             return m_ghost_layer_width_requests;
             }
@@ -196,7 +192,7 @@ class PYBIND11_EXPORT Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        Nano::Signal<Scalar (unsigned int)>& getExtraGhostLayerWidthRequestSignal()
+        Nano::Signal<Scalar (unsigned int type)>& getExtraGhostLayerWidthRequestSignal()
             {
             return m_extra_ghost_layer_width_requests;
             }
@@ -206,9 +202,15 @@ class PYBIND11_EXPORT Communicator
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
          */
-        Nano::Signal<CommFlags (unsigned int timestep)>& getCommFlagsRequestSignal()
+        Nano::Signal<CommFlags (uint64_t timestep)>& getCommFlagsRequestSignal()
             {
             return m_requested_flags;
+            }
+
+        /// Get the domain decomposition
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
+            {
+            return m_decomposition;
             }
 
 
@@ -233,7 +235,7 @@ class PYBIND11_EXPORT Communicator
          * \param subscriber The callback
          * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        Nano::Signal<void (unsigned int timestep)>& getComputeCallbackSignal()
+        Nano::Signal<void (uint64_t timestep)>& getComputeCallbackSignal()
             {
             return m_compute_callbacks;
             }
@@ -279,7 +281,7 @@ class PYBIND11_EXPORT Communicator
          * This method is supposed to be called every time step and automatically performs all necessary
          * communication steps.
          */
-        void communicate(unsigned int timestep);
+        void communicate(uint64_t timestep);
 
         //@}
 
@@ -304,13 +306,13 @@ class PYBIND11_EXPORT Communicator
          * \pre The ghost exchange list has been constructed in a previous time step, using exchangeGhosts().
          * \post The ghost positions on the neighboring processors are current
          */
-        virtual void beginUpdateGhosts(unsigned int timestep);
+        virtual void beginUpdateGhosts(uint64_t timestep);
 
         /*! Finish ghost update
          *
          * \param timestep The time step
          */
-        virtual void finishUpdateGhosts(unsigned int timestep)
+        virtual void finishUpdateGhosts(uint64_t timestep)
             {
             // the base class implementation is currently empty
             m_comm_pending = false;
@@ -319,7 +321,7 @@ class PYBIND11_EXPORT Communicator
         /*! Communicate the net particle force
          * \parm timestep The time step
          */
-        virtual void updateNetForce(unsigned int timestep);
+        virtual void updateNetForce(uint64_t timestep);
 
         /*! This methods finds all the particles that are no longer inside the domain
          * boundaries and transfers them to neighboring processors.
@@ -527,10 +529,10 @@ class PYBIND11_EXPORT Communicator
         //! Update the ghost width array
         void updateGhostWidth();
 
-        Nano::Signal<bool(unsigned int timestep)>
+        Nano::Signal<bool(uint64_t timestep)>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        Nano::Signal<CommFlags(unsigned int timestep) >
+        Nano::Signal<CommFlags(uint64_t timestep) >
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
         Nano::Signal<Scalar(unsigned int type) >
@@ -539,7 +541,7 @@ class PYBIND11_EXPORT Communicator
         Nano::Signal<Scalar(unsigned int type) >
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
-        Nano::Signal<void (unsigned int timestep)>
+        Nano::Signal<void (uint64_t timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
         Nano::Signal<void (const GlobalArray<unsigned int>& )>
@@ -608,8 +610,24 @@ class PYBIND11_EXPORT Communicator
                 (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
                 (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
-                m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
-                throw std::runtime_error("Error during communication");
+                std::ostringstream msg;
+                msg << "Communication error - " << std::endl;
+                msg << "Simulation box too small for domain decomposition." << std::endl;
+                msg << "r_ghost_max: " << r_ghost_max << std::endl;
+                if (di.getW() > 1)
+                    {
+                    msg << "d.x/2: " << L.x/Scalar(2.0) << std::endl;
+                    }
+                if (di.getH() > 1)
+                    {
+                    msg << "d.y/2: " << L.y/Scalar(2.0) << std::endl;
+                    }
+                if (di.getD() > 1)
+                    {
+                    msg << "d.z/2: " << L.z/Scalar(2.0) << std::endl;
+                    }
+
+                throw std::runtime_error(msg.str());
                 }
             }
 

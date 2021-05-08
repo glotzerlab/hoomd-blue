@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepNVTMTK.h"
@@ -25,14 +25,12 @@ namespace py = pybind11;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
                        std::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
-                       std::shared_ptr<Variant> T,
-                       const std::string& suffix)
+                       std::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T), m_exp_thermo_fac(1.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTMTK" << endl;
@@ -50,8 +48,6 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
         {
         setValidRestart(true);
         }
-
-    m_log_name = string("nvt_mtk_reservoir_energy") + suffix;
     }
 
 TwoStepNVTMTK::~TwoStepNVTMTK()
@@ -59,50 +55,11 @@ TwoStepNVTMTK::~TwoStepNVTMTK()
     m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTMTK" << endl;
     }
 
-/*! Returns a list of log quantities this compute calculates
-*/
-std::vector< std::string > TwoStepNVTMTK::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    result.push_back(m_log_name);
-    return result;
-    }
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quantity logged here
-*/
-
-Scalar TwoStepNVTMTK::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
-    {
-    if (quantity == m_log_name)
-        {
-        my_quantity_flag = true;
-        Scalar g = m_thermo->getNDOF();
-        IntegratorVariables v = getIntegratorVariables();
-        Scalar& xi = v.variable[0];
-        Scalar& eta = v.variable[1];
-        Scalar thermostat_energy = (Scalar) g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
-
-        if (m_aniso)
-            {
-            Scalar& xi_rot = v.variable[2];
-            Scalar& eta_rot = v.variable[3];
-            thermostat_energy += (Scalar)m_thermo->getRotationalNDOF()*m_T->getValue(timestep)
-                                   *(eta_rot + m_tau*m_tau*xi_rot*xi_rot/Scalar(2.0));
-            }
-
-        return thermostat_energy;
-        }
-    else
-        return Scalar(0);
-    }
-
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
+void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
     if (m_group->getNumMembersGlobal() == 0)
         {
@@ -289,7 +246,7 @@ void TwoStepNVTMTK::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
+void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -383,7 +340,7 @@ void TwoStepNVTMTK::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
+void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     {
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -395,8 +352,8 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
-    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/m_T->getValue(timestep) - Scalar(1.0));
-    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/m_T->getValue(timestep) - Scalar(1.0));
+    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
+    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
     eta += xi_prime*m_deltaT;
 
     // update loop-invariant quantity
@@ -418,12 +375,12 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
         Scalar &eta_rot = v.variable[3];
 
         Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
-        unsigned int ndof_rot = m_thermo->getRotationalNDOF();
+        Scalar ndof_rot = m_group->getRotationalDOF();
 
         Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/m_T->getValue(timestep) - Scalar(1.0));
+            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
         xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/m_T->getValue(timestep) - Scalar(1.0));
+            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
 
         eta_rot += xi_prime_rot*m_deltaT;
 
@@ -440,23 +397,26 @@ void TwoStepNVTMTK::advanceThermostat(unsigned int timestep, bool broadcast)
     setIntegratorVariables(v);
     }
 
-void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
+void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     {
-    if (m_shouldRandomize == false)
-        {
-        return;
-        }
-
-    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing velocities" << std::endl;
+    m_exec_conf->msg->notice(6) << "TwoStepNVTMTK randomizing thermostat DOF" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
 
-    unsigned int g = m_thermo->getNDOF();
+    Scalar g = m_group->getTranslationalDOF();
     Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::TwoStepNVTMTK, m_seed_randomize, timestep);
+
+    unsigned int instance_id = 0;
+    if (m_group->getNumMembersGlobal() > 0)
+        instance_id = m_group->getMemberTag(0);
+
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK,
+                                           timestep,
+                                           m_sysdef->getSeed()),
+                                      hoomd::Counter(instance_id));
 
     if (master)
         {
@@ -476,7 +436,7 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         {
         // update thermostat for rotational DOF
         Scalar &xi_rot = v.variable[2];
-        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_thermo->getRotationalNDOF()*m_tau*m_tau);
+        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_group->getRotationalDOF()*m_tau*m_tau);
 
         if (master)
             {
@@ -493,22 +453,111 @@ void TwoStepNVTMTK::randomizeVelocities(unsigned int timestep)
         }
 
     setIntegratorVariables(v);
+    }
 
-    // call base class method
-    IntegrationMethodTwoStep::randomizeVelocities(timestep);
+pybind11::tuple TwoStepNVTMTK::getTranslationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
+    result.append(xi);
+    result.append(eta);
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setTranslationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("translational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    Scalar& xi = vars.variable[0];
+    Scalar& eta = vars.variable[1];
+
+    xi = pybind11::cast<Scalar>(v[0]);
+    eta = pybind11::cast<Scalar>(v[1]);
+
+    setIntegratorVariables(vars);
+    }
+
+pybind11::tuple TwoStepNVTMTK::getRotationalThermostatDOF()
+    {
+    pybind11::list result;
+    IntegratorVariables v = getIntegratorVariables();
+
+    Scalar& xi_rot = v.variable[2];
+    Scalar& eta_rot = v.variable[3];
+
+    result.append(xi_rot);
+    result.append(eta_rot);
+
+    return pybind11::tuple(result);
+    }
+
+void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
+    {
+    if (pybind11::len(v) != 2)
+        {
+        throw std::length_error("rotational_thermostat_dof must have length 2");
+        }
+
+    IntegratorVariables vars = getIntegratorVariables();
+
+    Scalar& xi_rot = vars.variable[2];
+    Scalar& eta_rot = vars.variable[3];
+
+    xi_rot = pybind11::cast<Scalar>(v[0]);
+    eta_rot = pybind11::cast<Scalar>(v[1]);
+
+    setIntegratorVariables(vars);
+    }
+
+Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
+    {
+        Scalar translation_dof = m_group->getTranslationalDOF();
+        IntegratorVariables integrator_variables = getIntegratorVariables();
+        Scalar& xi = integrator_variables.variable[0];
+        Scalar& eta = integrator_variables.variable[1];
+        Scalar thermostat_energy = static_cast<Scalar>(translation_dof)
+            * (*m_T)(timestep) * ((xi * xi* m_tau * m_tau / Scalar(2.0)) + eta);
+
+        if (m_aniso)
+            {
+            Scalar& xi_rot = integrator_variables.variable[2];
+            Scalar& eta_rot = integrator_variables.variable[3];
+            thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF())
+                * (*m_T)(timestep) * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
+            }
+
+        return thermostat_energy;
     }
 
 void export_TwoStepNVTMTK(py::module& m)
     {
-    py::class_<TwoStepNVTMTK, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                        std::shared_ptr<ParticleGroup>,
                        std::shared_ptr<ComputeThermo>,
                        Scalar,
-                       std::shared_ptr<Variant>,
-                       const std::string&
-                       >())
+                       std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
+        .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
+        .def_property("tau", &TwoStepNVTMTK::getTau, &TwoStepNVTMTK::setTau)
+        .def("thermalizeThermostatDOF", &TwoStepNVTMTK::thermalizeThermostatDOF)
+        .def_property("translational_thermostat_dof",
+                      &TwoStepNVTMTK::getTranslationalThermostatDOF,
+                      &TwoStepNVTMTK::setTranslationalThermostatDOF)
+        .def_property("rotational_thermostat_dof",
+                      &TwoStepNVTMTK::getRotationalThermostatDOF,
+                      &TwoStepNVTMTK::setRotationalThermostatDOF)
+        .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy)
         ;
     }

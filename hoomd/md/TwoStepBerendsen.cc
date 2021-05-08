@@ -1,11 +1,11 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
 
 #include "TwoStepBerendsen.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 
@@ -47,7 +47,7 @@ TwoStepBerendsen::~TwoStepBerendsen()
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
+void TwoStepBerendsen::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -67,7 +67,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * (m_T->getValue(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
@@ -110,7 +110,7 @@ void TwoStepBerendsen::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current timestep
     \post particle velocities are moved forward to timestep+1
 */
-void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
+void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -148,14 +148,14 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
 void export_Berendsen(py::module& m)
     {
-    py::class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen", py::base<IntegrationMethodTwoStep>())
+    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                          std::shared_ptr<ParticleGroup>,
                          std::shared_ptr<ComputeThermo>,
                          Scalar,
                          std::shared_ptr<Variant>
                          >())
-        .def("setT", &TwoStepBerendsen::setT)
-        .def("setTau", &TwoStepBerendsen::setTau)
+        .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
+        .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau)
         ;
     }

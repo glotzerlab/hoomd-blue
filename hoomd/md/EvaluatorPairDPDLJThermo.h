@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_DPDLJ_H__
 #define __PAIR_EVALUATOR_DPDLJ_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -22,7 +22,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -52,7 +52,7 @@
     where
      \f{eqnarray*}
     V_{\mathrm{LJ}}(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]  & r < r_{\mathrm{cut}} \\
+                                            \left( \frac{\sigma}{r} \right)^{6} \right]  & r < r_{\mathrm{cut}} \\
                                             = & 0 & r \ge r_{\mathrm{cut}} \\
     \f}
     and
@@ -68,14 +68,54 @@
 
     lj1 and lj2 are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
+    - \a lj2 = 4.0 * epsilon * pow(sigma,6.0);
 
 */
 class EvaluatorPairDPDLJThermo
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar4 param_type;
+        struct param_type
+            {
+            Scalar lj1;
+            Scalar lj2;
+            Scalar gamma;
+
+            #ifdef ENABLE_HIP
+            //! Set CUDA memory hints
+            void set_memory_hint() const
+                {
+                // default implementation does nothing
+                }
+            #endif
+
+            #ifndef __HIPCC__
+            param_type() : lj1(0), lj2(0), gamma(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                auto sigma(v["sigma"].cast<Scalar>());
+                auto epsilon(v["epsilon"].cast<Scalar>());
+                lj1 = 4.0 * epsilon * pow(sigma, 12.0);
+                lj2 = 4.0 * epsilon * pow(sigma, 6.0);
+                gamma = v["gamma"].cast<Scalar>();
+                if (gamma == 0)
+                    throw std::invalid_argument("Cannot set gamma to 0, try using DPDConservative instead.");
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                auto sigma6 = lj1 / lj2;
+                v["sigma"] = pow(sigma6, 1. / 6.);
+                v["epsilon"] = lj2 / (sigma6 * 4);
+                v["gamma"] = gamma;
+                return v;
+                }
+            #endif
+            }
+            __attribute__((aligned(16)));
+
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -83,12 +123,12 @@ class EvaluatorPairDPDLJThermo
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDPDLJThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y), gamma(_params.z)
+            : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.lj1), lj2(_params.lj2), gamma(_params.gamma)
             {
             }
 
         //! Set i and j, (particle indices, or should it be tags), and the timestep
-        DEVICE void set_seed_ij_timestep(unsigned int seed, unsigned int i, unsigned int j, unsigned int timestep)
+        DEVICE void set_seed_ij_timestep(uint16_t seed, unsigned int i, unsigned int j, uint64_t timestep)
             {
             m_seed = seed;
             m_i = i;
@@ -202,7 +242,8 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_timestep, m_seed),
+                                           hoomd::Counter(m_oi, m_oj));
 
 
                 // Generate a single random number
@@ -236,10 +277,9 @@ class EvaluatorPairDPDLJThermo
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
@@ -258,10 +298,10 @@ class EvaluatorPairDPDLJThermo
         Scalar lj1;     //!< lj1 parameter extracted from the params passed to the constructor
         Scalar lj2;     //!< lj2 parameter extracted from the params passed to the constructor
         Scalar gamma;   //!< gamma parameter for potential extracted from params by constructor
-        unsigned int m_seed; //!< User set seed for thermostat PRNG
+        uint16_t m_seed; //!< User set seed for thermostat PRNG
         unsigned int m_i;   //!< index of first particle (should it be tag?).  For use in PRNG
         unsigned int m_j;   //!< index of second particle (should it be tag?). For use in PRNG
-        unsigned int m_timestep; //!< timestep for use in PRNG
+        uint64_t m_timestep; //!< timestep for use in PRNG
         Scalar m_T;         //!< Temperature for Themostat
         Scalar m_dot;       //!< Velocity difference dotted with displacement vector
         Scalar m_deltaT;   //!<  timestep size stored from constructor

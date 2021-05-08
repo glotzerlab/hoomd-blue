@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: Lin Yang, Alex Travesset
@@ -285,32 +285,11 @@ void EAMForceCompute::interpolation(int num_all, int num_per, Scalar delta, Arra
         }
     }
 
-std::vector<std::string> EAMForceCompute::getProvidedLogQuantities()
-    {
-    vector < string > list;
-    list.push_back("pair_eam_energy");
-    return list;
-    }
-
-Scalar EAMForceCompute::getLogValue(const std::string &quantity, unsigned int timestep)
-    {
-    if (quantity == string("pair_eam_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair.eam: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! \post The EAM forces are computed for the given timestep. The neighborlist's
  compute method is called to ensure that it is up to date.
  \param timestep specifies the current time step of the simulation
  */
-void EAMForceCompute::computeForces(unsigned int timestep)
+void EAMForceCompute::computeForces(uint64_t timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
@@ -333,7 +312,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // access potential table
     ArrayHandle<Scalar4> h_F(m_F, access_location::host, access_mode::read);
@@ -599,7 +578,7 @@ Scalar EAMForceCompute::get_r_cut()
 
 void export_EAMForceCompute(py::module &m)
     {
-    py::class_<EAMForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute", py::base<ForceCompute>()).def(
+    py::class_<EAMForceCompute, ForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute").def(
             py::init<std::shared_ptr<SystemDefinition>, char *, int>()).def("set_neighbor_list",
             &EAMForceCompute::set_neighbor_list).def("get_r_cut", &EAMForceCompute::get_r_cut);
     }

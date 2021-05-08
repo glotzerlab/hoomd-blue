@@ -1,4 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+#include "hip/hip_runtime.h"
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,8 +28,8 @@ using namespace hoomd;
     \param d_net_force Net force on each particle
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_lambda If true, gamma = lambda * diameter
-    \param lambda Scale factor to convert diameter to lambda (when use_lambda is true)
+    \param use_alpha If true, gamma = alpha * diameter
+    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -53,10 +54,10 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  Scalar4 *d_net_force,
                                  Scalar *d_gamma,
                                  unsigned int n_types,
-                                 bool use_lambda,
-                                 Scalar lambda,
-                                 unsigned int timestep,
-                                 unsigned int seed,
+                                 bool use_alpha,
+                                 Scalar alpha,
+                                 uint64_t timestep,
+                                 uint16_t seed,
                                  Scalar T,
                                  bool noiseless_t,
                                  Scalar deltaT,
@@ -64,10 +65,10 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
                                  bool tally,
                                  Scalar *d_partial_sum_bdenergy)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *s_gammas = (Scalar *)s_data;
 
-    if (!use_lambda)
+    if (!use_alpha)
         {
         // read in the gammas (1 dimensional array)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -96,11 +97,11 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_lambda)
+        if (use_alpha)
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = lambda*d_diameter[idx];
+            gamma = alpha*d_diameter[idx];
             }
         else
             {
@@ -116,7 +117,8 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        RandomGenerator rng(RNGIdentifier::TwoStepLangevin, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
+                            hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(-1, 1);
 
         Scalar randomx = uniform(rng);
@@ -192,7 +194,7 @@ __global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
                                             unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar *bdtally_sdata = (Scalar *)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
@@ -254,8 +256,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              const unsigned int *d_tag,
                              unsigned int n_types,
                              unsigned int group_size,
-                             unsigned int timestep,
-                             unsigned int seed,
+                             uint64_t timestep,
+                             uint16_t seed,
                              Scalar T,
                              bool noiseless_r,
                              Scalar deltaT,
@@ -263,7 +265,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                              Scalar scale
                             )
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
@@ -306,7 +308,8 @@ __global__ void gpu_langevin_angular_step_two_kernel(
                                            fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
             if (noiseless_r) sigma_r = make_scalar3(0,0,0);
 
-            RandomGenerator rng(RNGIdentifier::TwoStepLangevinAngular, seed, ptag, timestep);
+            RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
+                                hoomd::Counter(ptag));
             Scalar rand_x = NormalDistribution<Scalar>(sigma_r.x)(rng);
             Scalar rand_y = NormalDistribution<Scalar>(sigma_r.y)(rng);
             Scalar rand_z = NormalDistribution<Scalar>(sigma_r.z)(rng);
@@ -380,7 +383,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
     This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
 
 */
-cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                              Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
@@ -400,10 +403,9 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    gpu_langevin_angular_step_two_kernel<<< grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
-                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))
-                                                              ) >>>
-                                       (d_pos,
+    hipLaunchKernelGGL(gpu_langevin_angular_step_two_kernel, grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
+                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
+                                        d_pos,
                                         d_orientation,
                                         d_angmom,
                                         d_inertia,
@@ -422,7 +424,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
                                         scale
                                         );
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 
@@ -440,7 +442,7 @@ cudaError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
 
     This is just a driver for gpu_langevin_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
+hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   Scalar3 *d_accel,
                                   const Scalar *d_diameter,
@@ -460,11 +462,8 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    gpu_langevin_step_two_kernel<<< grid,
-                                 threads,
-                                 max((unsigned int)(sizeof(Scalar)*langevin_args.n_types),
-                                     (unsigned int)(langevin_args.block_size*sizeof(Scalar)))
-                             >>>(d_pos,
+    hipLaunchKernelGGL((gpu_langevin_step_two_kernel), grid, threads, max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
+                                 d_pos,
                                  d_vel,
                                  d_accel,
                                  d_diameter,
@@ -474,8 +473,8 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
                                  d_net_force,
                                  langevin_args.d_gamma,
                                  langevin_args.n_types,
-                                 langevin_args.use_lambda,
-                                 langevin_args.lambda,
+                                 langevin_args.use_alpha,
+                                 langevin_args.alpha,
                                  langevin_args.timestep,
                                  langevin_args.seed,
                                  langevin_args.T,
@@ -487,16 +486,13 @@ cudaError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     // run the summation kernel
     if (langevin_args.tally)
-        gpu_bdtally_reduce_partial_sum_kernel<<<grid1,
-                                                threads1,
-                                                langevin_args.block_size*sizeof(Scalar)
-                                             >>>(&langevin_args.d_sum_bdenergy[0],
+        hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel), dim3(grid1), dim3(threads1), langevin_args.block_size*sizeof(Scalar), 0, &langevin_args.d_sum_bdenergy[0],
                                                  langevin_args.d_partial_sum_bdenergy,
                                                  langevin_args.num_blocks);
 
 
 
-    return cudaSuccess;
+    return hipSuccess;
     }
 
 

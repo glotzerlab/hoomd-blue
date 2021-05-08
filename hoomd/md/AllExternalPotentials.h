@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,7 +13,7 @@
 #include "EvaluatorWalls.h"
 #include "AllPairPotentials.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "PotentialExternalGPU.h"
 #endif
 
@@ -21,7 +21,7 @@
     \brief Handy list of typedefs for all of the templated external potentials in hoomd
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -40,7 +40,7 @@ typedef PotentialExternal<EvaluatorWalls<EvaluatorPairYukawa> > WallsPotentialYu
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMorse> > WallsPotentialMorse;
 
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! External potential to impose periodic structure on the GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
 typedef PotentialExternalGPU<EvaluatorExternalElectricField> PotentialExternalElectricFieldGPU;

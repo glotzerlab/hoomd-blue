@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,11 +13,11 @@
     \brief Declaration of the Berendsen thermostat on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 /*! Implements the Berendsen thermostat on the GPU
 */
@@ -33,10 +33,10 @@ class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
         virtual ~TwoStepBerendsenGPU() {};
 
         //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(uint64_t timestep);
 
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(uint64_t timestep);
 
     protected:
         unsigned int m_block_size; //!< Block size to launch on the GPU

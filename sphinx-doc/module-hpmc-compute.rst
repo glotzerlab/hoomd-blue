@@ -1,17 +1,17 @@
 hpmc.compute
---------------
+------------
 
 .. rubric:: Overview
 
-.. py:currentmodule:: hoomd
+.. py:currentmodule:: hoomd.hpmc.compute
 
 .. autosummary::
     :nosignatures:
 
-    hpmc.compute.free_volume
+    FreeVolume
 
 .. rubric:: Details
 
 .. automodule:: hoomd.hpmc.compute
-    :synopsis: Compute properties of hard particle configurations.
-    :members:
+    :synopsis: Compute system properties.
+    :members: FreeVolume

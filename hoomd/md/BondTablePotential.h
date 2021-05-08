@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -14,11 +14,11 @@
     \brief Declares the BondTablePotential class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __BONDTABLEPOTENTIAL_H__
 #define __BONDTABLEPOTENTIAL_H__
@@ -55,8 +55,7 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
     public:
         //! Constructs the compute
         BondTablePotential(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int table_width,
-                       const std::string& log_suffix="");
+                       unsigned int table_width);
 
         //! Destructor
         virtual ~BondTablePotential();
@@ -68,17 +67,11 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
                               Scalar rmin,
                               Scalar rmax);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step
         */
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
             {
                 CommFlags flags = CommFlags(0);
                 flags[comm_flag::tag] = 1;
@@ -93,10 +86,9 @@ class PYBIND11_EXPORT BondTablePotential : public ForceCompute
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         Index2D m_table_value;                      //!< Index table helper
-        std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TablePotential class to python

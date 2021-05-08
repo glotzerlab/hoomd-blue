@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "GetarInitializer.h"
@@ -104,7 +104,7 @@ namespace getardump{
         restore(sysdef, modes);
         }
 
-    unsigned int GetarInitializer::getTimestep() const
+    uint64_t GetarInitializer::getTimestep() const
         {
         return m_timestep;
         }
@@ -118,8 +118,7 @@ namespace getardump{
     void GetarInitializer::restore(shared_ptr<SystemDefinition> &sysdef,
         const map<set<Record>, string> &modes)
         {
-        shared_ptr<SystemSnapshot> snap(
-            takeSystemSnapshot(sysdef, true, true, true, true, true, true, true, true));
+        shared_ptr<SystemSnapshot> snap(takeSystemSnapshot(sysdef));
         restoreSnapshot(snap, modes);
 
         sysdef->initializeFromSnapshot(snap);
@@ -334,12 +333,12 @@ namespace getardump{
 
         unsigned int maxtype(*std::max_element(snapshot->particle_data.type.begin(),
                 snapshot->particle_data.type.end()));
-        for(unsigned int i(snapshot->particle_data.type_mapping.size()); i < maxtype + 1; ++i)
+        for(unsigned int i((unsigned int)snapshot->particle_data.type_mapping.size()); i < maxtype + 1; ++i)
             {
-            snapshot->particle_data.type_mapping.push_back(string(1, 'A' + (char) i));
+            snapshot->particle_data.type_mapping.push_back(getDefaultTypeName(i));
             }
 
-        unsigned int bond_N(snapshot->bond_data.type_id.size());
+        unsigned int bond_N((unsigned int)snapshot->bond_data.type_id.size());
 
         if(snapshot->bond_data.groups.size() != bond_N)
             {
@@ -354,13 +353,13 @@ namespace getardump{
             {
             unsigned int maxbondtype(*std::max_element(snapshot->bond_data.type_id.begin(),
                     snapshot->bond_data.type_id.end()));
-            for(unsigned int i(snapshot->bond_data.type_mapping.size()); i < maxbondtype + 1; ++i)
+            for(unsigned int i((unsigned int)snapshot->bond_data.type_mapping.size()); i < maxbondtype + 1; ++i)
                 {
-                snapshot->bond_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                snapshot->bond_data.type_mapping.push_back(getDefaultTypeName(i));
                 }
             }
 
-        unsigned int pair_N(snapshot->pair_data.type_id.size());
+        unsigned int pair_N((unsigned int)snapshot->pair_data.type_id.size());
 
         if(snapshot->pair_data.groups.size() != pair_N)
             {
@@ -375,14 +374,14 @@ namespace getardump{
             {
             unsigned int maxpairtype(*std::max_element(snapshot->pair_data.type_id.begin(),
                     snapshot->pair_data.type_id.end()));
-            for(unsigned int i(snapshot->pair_data.type_mapping.size()); i < maxpairtype + 1; ++i)
+            for(unsigned int i((unsigned int)snapshot->pair_data.type_mapping.size()); i < maxpairtype + 1; ++i)
                 {
-                snapshot->pair_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                snapshot->pair_data.type_mapping.push_back(getDefaultTypeName(i));
                 }
             }
 
 
-        unsigned int angle_N(snapshot->angle_data.type_id.size());
+        unsigned int angle_N((unsigned int)snapshot->angle_data.type_id.size());
 
         if(snapshot->angle_data.groups.size() != angle_N)
             {
@@ -397,13 +396,13 @@ namespace getardump{
             {
             unsigned int maxangletype(*std::max_element(snapshot->angle_data.type_id.begin(),
                     snapshot->angle_data.type_id.end()));
-            for(unsigned int i(snapshot->angle_data.type_mapping.size()); i < maxangletype + 1; ++i)
+            for(unsigned int i((unsigned int)snapshot->angle_data.type_mapping.size()); i < maxangletype + 1; ++i)
                 {
-                snapshot->angle_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                snapshot->angle_data.type_mapping.push_back(getDefaultTypeName(i));
                 }
             }
 
-        unsigned int dihedral_N(snapshot->dihedral_data.type_id.size());
+        unsigned int dihedral_N((unsigned int)snapshot->dihedral_data.type_id.size());
 
         if(snapshot->dihedral_data.groups.size() != dihedral_N)
             {
@@ -418,13 +417,13 @@ namespace getardump{
             {
             unsigned int maxdihedraltype(*std::max_element(snapshot->dihedral_data.type_id.begin(),
                     snapshot->dihedral_data.type_id.end()));
-            for(unsigned int i(snapshot->dihedral_data.type_mapping.size()); i < maxdihedraltype + 1; ++i)
+            for(unsigned int i((unsigned int)snapshot->dihedral_data.type_mapping.size()); i < maxdihedraltype + 1; ++i)
                 {
-                snapshot->dihedral_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                snapshot->dihedral_data.type_mapping.push_back(getDefaultTypeName(i));
                 }
             }
 
-        unsigned int improper_N(snapshot->improper_data.type_id.size());
+        unsigned int improper_N((unsigned int)snapshot->improper_data.type_id.size());
 
         if(snapshot->improper_data.groups.size() != improper_N)
             {
@@ -439,9 +438,9 @@ namespace getardump{
             {
             unsigned int maximpropertype(*std::max_element(snapshot->improper_data.type_id.begin(),
                     snapshot->improper_data.type_id.end()));
-            for(unsigned int i(snapshot->improper_data.type_mapping.size()); i < maximpropertype + 1; ++i)
+            for(unsigned int i((unsigned int)snapshot->improper_data.type_mapping.size()); i < maximpropertype + 1; ++i)
                 {
-                snapshot->improper_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                snapshot->improper_data.type_mapping.push_back(getDefaultTypeName(i));
                 }
             }
         }
@@ -522,7 +521,7 @@ namespace getardump{
                 }
             }
 
-        m_timestep = max(m_timestep, (unsigned int) atoi(selectedFrame.c_str()));
+        m_timestep = max(m_timestep, static_cast<uint64_t>(atoi(selectedFrame.c_str())));
 
         for(set<Record>::const_iterator iter(records.begin());
             iter != records.end(); ++iter)
@@ -556,7 +555,7 @@ namespace getardump{
 
                 data = vector<unsigned int>(begin, end);
                 // TODO make sure body -1's here still turn into -1's?
-                // maybe should just store body ID's as int's?
+                // maybe should just store body ID's as integers?
                 }
             else if(rec.getFormat() == UInt64)
                 {
@@ -610,7 +609,7 @@ namespace getardump{
                 else
                     {
                     snap->particle_data.type = data;
-                    snap->particle_data.size = data.size();
+                    snap->particle_data.size = (unsigned int)data.size();
                     }
                 }
             else if(rec.getName() == "tag")
@@ -694,7 +693,7 @@ namespace getardump{
             if(rec.getName() ==  "body")
                 {
                 snap->particle_data.body = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else
                 {
@@ -762,7 +761,7 @@ namespace getardump{
             if(rec.getName() ==  "image")
                 {
                 snap->particle_data.image = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else
                 {
@@ -815,17 +814,17 @@ namespace getardump{
             else if(rec.getName() == "mass")
                 {
                 snap->particle_data.mass = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "charge")
                 {
                 snap->particle_data.charge = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "diameter")
                 {
                 snap->particle_data.diameter = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "moment_inertia_tensor")
                 {
@@ -902,22 +901,22 @@ namespace getardump{
             if(rec.getName() == "position")
                 {
                 snap->particle_data.pos = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "velocity")
                 {
                 snap->particle_data.vel = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "acceleration")
                 {
                 snap->particle_data.accel = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else if(rec.getName() == "moment_inertia")
                 {
                 snap->particle_data.inertia = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else
                 {
@@ -985,7 +984,7 @@ namespace getardump{
             if(rec.getName() == "angular_momentum_quat")
                 {
                 snap->particle_data.angmom = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else
                 {
@@ -1053,7 +1052,7 @@ namespace getardump{
             if(rec.getName() == "orientation")
                 {
                 snap->particle_data.orientation = data;
-                snap->particle_data.size = data.size();
+                snap->particle_data.size = (unsigned int)data.size();
                 }
             else
                 {

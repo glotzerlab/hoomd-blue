@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,11 +13,11 @@
     \brief Declares a class for computing an external potential field on the GPU
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
@@ -30,8 +30,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
         //! Constructs the compute
-        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
-                             const std::string& log_suffix="");
+        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -47,7 +46,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     protected:
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
@@ -56,18 +55,18 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     \param sysdef system definition
  */
 template<class evaluator>
-PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                const std::string& log_suffix)
-    : PotentialExternal<evaluator>(sysdef, log_suffix)
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef)
+    : PotentialExternal<evaluator>(sysdef)
     {
-    this->m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    this->m_tuner.reset(new Autotuner(warp_size, 1024, warp_size, 5, 100000, "external_" + evaluator::getName(), this->m_exec_conf));
     }
 
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
 template<class evaluator>
-void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
+void PotentialExternalGPU<evaluator>::computeForces(uint64_t timestep)
     {
     // start the profile
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "PotentialExternalGPU");
@@ -126,8 +125,8 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
 template < class T, class base >
 void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<base>())
-                .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
+    pybind11::class_<T, base, std::shared_ptr<T> >(m, name.c_str())
+                .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
                 .def("setParams", &T::setParams)
                 .def("setField", &T::setField)
                 ;

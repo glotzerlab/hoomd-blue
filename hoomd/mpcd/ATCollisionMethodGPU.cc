@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -12,20 +12,19 @@
 #include "ATCollisionMethodGPU.cuh"
 
 mpcd::ATCollisionMethodGPU::ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                                                 unsigned int cur_timestep,
-                                                 unsigned int period,
+                                                 uint64_t cur_timestep,
+                                                 uint64_t period,
                                                  int phase,
-                                                 unsigned int seed,
                                                  std::shared_ptr<mpcd::CellThermoCompute> thermo,
                                                  std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
                                                  std::shared_ptr<::Variant> T)
-    : mpcd::ATCollisionMethod(sysdata,cur_timestep,period,phase,seed,thermo,rand_thermo,T)
+    : mpcd::ATCollisionMethod(sysdata,cur_timestep,period,phase,thermo,rand_thermo,T)
     {
     m_tuner_draw.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_draw", m_exec_conf));
     m_tuner_apply.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_at_apply", m_exec_conf));
     }
 
-void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
+void mpcd::ATCollisionMethodGPU::drawVelocities(uint64_t timestep)
     {
     // mpcd particle data
     ArrayHandle<unsigned int> d_tag(m_mpcd_pdata->getTags(), access_location::device, access_mode::read);
@@ -34,7 +33,9 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
     unsigned int N_tot = N_mpcd;
 
     // random velocities are drawn for each particle and stored into the "alternate" arrays
-    const Scalar T = m_T->getValue(timestep);
+    const Scalar T = (*m_T)(timestep);
+
+    uint16_t seed = m_sysdef->getSeed();
 
     if (m_embed_group)
         {
@@ -53,7 +54,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
                                     d_vel_embed.data,
                                     d_tag_embed.data,
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     T,
                                     N_mpcd,
                                     N_tot,
@@ -72,7 +73,7 @@ void mpcd::ATCollisionMethodGPU::drawVelocities(unsigned int timestep)
                                     NULL,
                                     NULL,
                                     timestep,
-                                    m_seed,
+                                    seed,
                                     T,
                                     N_mpcd,
                                     N_tot,
@@ -142,13 +143,12 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
 void mpcd::detail::export_ATCollisionMethodGPU(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::ATCollisionMethodGPU, std::shared_ptr<mpcd::ATCollisionMethodGPU> >
-        (m, "ATCollisionMethodGPU", py::base<mpcd::ATCollisionMethod>())
+    py::class_<mpcd::ATCollisionMethodGPU, mpcd::ATCollisionMethod, std::shared_ptr<mpcd::ATCollisionMethodGPU> >
+        (m, "ATCollisionMethodGPU")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
-                      unsigned int,
-                      unsigned int,
+                      uint64_t,
+                      uint64_t,
                       int,
-                      unsigned int,
                       std::shared_ptr<mpcd::CellThermoCompute>,
                       std::shared_ptr<mpcd::CellThermoCompute>,
                       std::shared_ptr<::Variant>>())

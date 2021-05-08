@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -56,8 +56,8 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
                                     const unsigned int first_tag,
                                     const unsigned int first_idx,
                                     const Scalar vel_factor,
-                                    const unsigned int timestep,
-                                    const unsigned int seed)
+                                    const uint64_t timestep,
+                                    const uint16_t seed)
     {
     // one thread per particle
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -83,7 +83,8 @@ __global__ void slit_draw_particles(Scalar4 *d_pos,
     d_tag[pidx] = tag;
 
     // initialize random number generator for positions and velocity
-    hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SlitGeometryFiller, seed, tag, timestep);
+    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+                               hoomd::Counter(tag));
     d_pos[pidx] = make_scalar4(hoomd::UniformDistribution<Scalar>(lo.x, hi.x)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.y, hi.y)(rng),
                                hoomd::UniformDistribution<Scalar>(lo.z, hi.z)(rng),
@@ -136,8 +137,8 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
                                 const unsigned int first_tag,
                                 const unsigned int first_idx,
                                 const Scalar kT,
-                                const unsigned int timestep,
-                                const unsigned int seed,
+                                const uint64_t timestep,
+                                const uint16_t seed,
                                 const unsigned int block_size)
     {
     const unsigned int N_tot = N_lo + N_hi;

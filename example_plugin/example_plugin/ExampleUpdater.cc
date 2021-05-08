@@ -1,8 +1,8 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "ExampleUpdater.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ExampleUpdater.cuh"
 #endif
 
@@ -24,8 +24,9 @@ ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef)
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void ExampleUpdater::update(unsigned int timestep)
+void ExampleUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ExampleUpdater");
 
     // access the particle data for writing on the CPU
@@ -47,7 +48,7 @@ void ExampleUpdater::update(unsigned int timestep)
  */
 void export_ExampleUpdater(pybind11::module& m)
     {
-    pybind11::class_<ExampleUpdater, std::shared_ptr<ExampleUpdater> >(m, "ExampleUpdater", pybind11::base<Updater>())
+    pybind11::class_<ExampleUpdater, Updater, std::shared_ptr<ExampleUpdater> >(m, "ExampleUpdater")
         .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }
@@ -55,7 +56,7 @@ void export_ExampleUpdater(pybind11::module& m)
 // ********************************
 // here follows the code for ExampleUpdater on the GPU
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 /*! \param sysdef System to zero the velocities of
 */
@@ -68,8 +69,9 @@ ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
 /*! Perform the needed calculations to zero the system's velocity
     \param timestep Current time step of the simulation
 */
-void ExampleUpdaterGPU::update(unsigned int timestep)
+void ExampleUpdaterGPU::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ExampleUpdater");
 
     // access the particle data arrays for writing on the GPU
@@ -89,9 +91,9 @@ void ExampleUpdaterGPU::update(unsigned int timestep)
  */
 void export_ExampleUpdaterGPU(pybind11::module& m)
     {
-    pybind11::class_<ExampleUpdaterGPU, std::shared_ptr<ExampleUpdaterGPU> >(m, "ExampleUpdaterGPU", pybind11::base<ExampleUpdater>())
+    pybind11::class_<ExampleUpdaterGPU, ExampleUpdater, std::shared_ptr<ExampleUpdaterGPU> >(m, "ExampleUpdaterGPU")
         .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP

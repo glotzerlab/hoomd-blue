@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -10,11 +10,11 @@
     \brief Declares a class to implement pairwise distance constraint
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __ForceDistanceConstraint_H__
 #define __ForceDistanceConstraint_H__
@@ -22,8 +22,8 @@
 #include "hoomd/GPUVector.h"
 #include "hoomd/GPUFlags.h"
 
-#include "hoomd/extern/Eigen/Eigen/Dense"
-#include "hoomd/extern/Eigen/Eigen/SparseLU"
+#include <Eigen/Dense>
+#include <Eigen/SparseLU>
 
 /*! Implements a pairwise distance constraint using the algorithm of
 
@@ -42,11 +42,11 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         //! Destructor
         virtual ~ForceDistanceConstraint();
 
-        //! Return the number of DOF removed by this constraint
-        virtual unsigned int getNDOFRemoved()
-            {
-            return m_cdata->getNGlobal();
-            }
+        /** Return the number of DOF removed by this constraint
+
+            @param query The group over which to compute the removed degrees of freedom
+        */
+        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
 
         //! Set the relative tolerance for constraint warnings
         void setRelativeTolerance(Scalar rel_tol)
@@ -56,7 +56,7 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(unsigned int timestep);
+        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
         //! Assign global molecule tags
@@ -84,19 +84,19 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         Scalar m_d_max;                    //!< Maximum constraint extension
 
         //! Compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Populate the quantities in the constraint-force equation
-        virtual void fillMatrixVector(unsigned int timestep);
+        virtual void fillMatrixVector(uint64_t timestep);
 
         //! Check violation of constraints
-        virtual void checkConstraints(unsigned int timestep);
+        virtual void checkConstraints(uint64_t timestep);
 
         //! Solve the constraint matrix equation
-        virtual void solveConstraints(unsigned int timestep);
+        virtual void solveConstraints(uint64_t timestep);
 
         //! Solve the linear matrix-vector equation
-        virtual void computeConstraintForces(unsigned int timestep);
+        virtual void computeConstraintForces(uint64_t timestep);
 
         //! Method called when constraint order changes
         virtual void slotConstraintReorder()

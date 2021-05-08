@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,7 +11,7 @@
 #ifndef MPCD_CELL_LIST_H_
 #define MPCD_CELL_LIST_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -23,7 +23,7 @@
 #include "hoomd/ParticleGroup.h"
 
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 #include <array>
 
@@ -42,7 +42,7 @@ class PYBIND11_EXPORT CellList : public Compute
         virtual ~CellList();
 
         //! Build the cell list
-        virtual void compute(unsigned int timestep);
+        virtual void compute(uint64_t timestep);
 
         //! Sizes the cell list based on the box
         void computeDimensions();
@@ -267,7 +267,7 @@ class PYBIND11_EXPORT CellList : public Compute
         BoxDim m_cover_box;                     //!< Box covered by the cell list
 
         //! Determine if embedded particles require migration
-        virtual bool needsEmbedMigrate(unsigned int timestep);
+        virtual bool needsEmbedMigrate(uint64_t timestep);
         #endif // ENABLE_MPI
 
         //! Check the condition flags
@@ -280,7 +280,7 @@ class PYBIND11_EXPORT CellList : public Compute
         virtual void buildCellList();
 
         //! Callback to sort cell list when particle data is sorted
-        virtual void sort(unsigned int timestep,
+        virtual void sort(uint64_t timestep,
                           const GPUArray<unsigned int>& order,
                           const GPUArray<unsigned int>& rorder);
 

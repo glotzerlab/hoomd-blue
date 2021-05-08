@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -28,8 +28,8 @@ cudaError_t srd_draw_vectors(double3 *d_rotvec,
                              const int3 origin,
                              const uint3 global_dim,
                              const Index3D& global_ci,
-                             const unsigned int timestep,
-                             const unsigned int seed,
+                             const uint64_t timestep,
+                             const uint16_t seed,
                              const Scalar T_set,
                              const unsigned int n_dimensions,
                              const unsigned int block_size);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,16 +13,17 @@
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
+#include <set>
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
@@ -89,7 +90,7 @@
     The CUDA profiler expects the exact same sequence of kernels on every run. Due to the non-deterministic cell list,
     a different sequence of calls may be generated with nlist builds at different times. To work around this problem
     setEvery takes a dist_check parameter. When dist_check=True, the above described behavior is followed. When
-    dist_check is false, the nlist is built exactly m_every steps. This is intended for use in profiling only.
+    dist_check is false, the nlist is built exactly m_rebuild_check_delay steps. This is intended for use in profiling only.
 
     \b Exclusions:
 
@@ -123,7 +124,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
+        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();
@@ -131,11 +132,52 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! \name Set parameters
         // @{
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
+        /** Add a r_cut matrix
 
-        //! Change the cutoff radius by pair
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        @param r_cut_matrix Matrix to add
+
+        NeighborList consumers must provide a per type pair r_cut matrix to the neighbor list so
+        that when one consumer changes a r_cut value, NeighborList can compute the needed minimum
+        and maximum r_cut values across all types.
+
+        Consumers should call notifyRCutMatrixChange() when they any element of of their matrix.
+        They should call removeRCutMatrix() when they no longer need to use the neighbor list.
+        */
+        void addRCutMatrix(const std::shared_ptr<GlobalArray<Scalar>>& r_cut_matrix)
+            {
+            if (r_cut_matrix->getNumElements() != m_r_cut.getNumElements())
+                {
+                throw std::invalid_argument("given r_cut_matrix is not the right size");
+                }
+
+            m_consumer_r_cut.push_back(r_cut_matrix);
+            notifyRCutMatrixChange();
+            forceUpdate();
+            }
+
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_rcut_signal.emit();
+            forceUpdate();
+            }
+
+        /** Remove a r_cut matrix
+
+        @param r_cut_matrix Matrix to remove
+
+        Remove a r_cut matrix from the neighbor list. The given matrix will no longer be included
+        in the min & max r_cuts when computing the neighbor list.
+        */
+        void removeRCutMatrix(const std::shared_ptr<GlobalArray<Scalar>>& r_cut_matrix)
+            {
+            auto p = std::find(m_consumer_r_cut.begin(), m_consumer_r_cut.end(), r_cut_matrix);
+            if (p == m_consumer_r_cut.end())
+                {
+                throw std::invalid_argument("r_cut_matrix not found in neighbor list");
+                }
+            m_consumer_r_cut.erase(p);
+            }
 
         //! Change the global buffer radius
         virtual void setRBuff(Scalar r_buff);
@@ -145,12 +187,17 @@ class PYBIND11_EXPORT NeighborList : public Compute
                    to require a neighbor list update.
             \param dist_check Set to false to enforce nlist builds exactly \a every steps
         */
-        void setEvery(unsigned int every, bool dist_check=true)
+        void setRebuildCheckDelay(uint64_t every)
             {
-            m_every = every;
-            m_dist_check = dist_check;
+            m_rebuild_check_delay = every;
             forceUpdate();
             }
+
+        uint64_t getRebuildCheckDelay() {return m_rebuild_check_delay;}
+
+        void setDistCheck(bool dist_check) {m_dist_check = dist_check;}
+
+        bool getDistCheck(){return m_dist_check;}
 
         //! Set the storage mode
         /*! \param mode Storage mode to set
@@ -218,9 +265,6 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! \name Statistics
         // @{
 
-        //! Print statistics on the neighborlist
-        virtual void printStats();
-
         //! Clear the count of updates the neighborlist has performed
         virtual void resetStats();
 
@@ -269,6 +313,12 @@ class PYBIND11_EXPORT NeighborList : public Compute
             {
             return m_ex_list_indexer;
             }
+
+        void setExclusions(pybind11::list exclusions);
+
+        void setSingleExclusion(std::string exclusion);
+
+        pybind11::tuple getExclusions();
 
         bool getExclusionsSet()
             {
@@ -356,7 +406,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void setDiameterShift(bool diameter_shift)
             {
             m_diameter_shift = diameter_shift;
-            m_rcut_signal.emit();
+            notifyRCutMatrixChange();
             forceUpdate();
             }
 
@@ -374,7 +424,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
-            m_rcut_signal.emit();
+            notifyRCutMatrixChange();
             forceUpdate();
             }
 
@@ -413,7 +463,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         // @}
 
         //! Computes the NeighborList if it needs updating
-        void compute(unsigned int timestep);
+        void compute(uint64_t timestep);
 
         //! Benchmark the neighbor list
         virtual double benchmark(unsigned int num_iters);
@@ -425,7 +475,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
 
         //! Get the number of updates
-        virtual unsigned int getNumUpdates()
+        virtual uint64_t getNumUpdates()
             {
             return m_updates + m_forced_updates;
             }
@@ -440,7 +490,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
         //! Returns true if the particle migration criterion is fulfilled
         /*! \param timestep The current timestep
          */
-        bool peekUpdate(unsigned int timestep);
+        bool peekUpdate(uint64_t timestep);
 #endif
 
         //! Return true if the neighbor list has been updated this time step
@@ -448,7 +498,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
          *
          *  This is supposed to be called after a call to compute().
          */
-        bool hasBeenUpdated(unsigned int timestep)
+        bool hasBeenUpdated(uint64_t timestep)
             {
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
@@ -458,11 +508,21 @@ class PYBIND11_EXPORT NeighborList : public Compute
             return m_rcut_signal;
             }
 
+        /// Index type pairs
+        const Index2D& getTypePairIndexer()
+            {
+            return m_typpair_idx;
+            }
+
    protected:
         Index2D m_typpair_idx;      //!< Indexer for full type pair storage
         GlobalArray<Scalar> m_r_cut;   //!< The potential cutoffs stored by pair type
         GlobalArray<Scalar> m_r_listsq;//!< The neighborlist cutoff radius squared stored by pair type
         GlobalArray<Scalar> m_rcut_max;//!< The maximum value of rcut per particle type
+
+        /// List of r_cut matrices from neighborlist consumers
+        std::vector<std::shared_ptr<GlobalArray<Scalar>>> m_consumer_r_cut;
+
         Scalar m_rcut_max_max;      //!< The maximum cutoff radius of any pair
         Scalar m_rcut_min;          //!< The smallest cutoff radius of any pair (that is > 0)
         Scalar m_r_buff;            //!< The buffer around the cutoff
@@ -491,16 +551,16 @@ class PYBIND11_EXPORT NeighborList : public Compute
         bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
 
         //! Return true if we are supposed to do a distance check in this time step
-        bool shouldCheckDistance(unsigned int timestep);
+        bool shouldCheckDistance(uint64_t timestep);
 
         //! Performs the distance check
-        virtual bool distanceCheck(unsigned int timestep);
+        virtual bool distanceCheck(uint64_t timestep);
 
         //! Updates the previous position table for use in the next distance check
         virtual void setLastUpdatedPos();
 
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
         //! Updates the idx exclusion list
         virtual void updateExListIdx();
@@ -518,10 +578,10 @@ class PYBIND11_EXPORT NeighborList : public Compute
         virtual void buildHeadList();
 
         //! Amortized resizing of the neighborlist
-        void resizeNlist(unsigned int size);
+        void resizeNlist(size_t size);
 
         #ifdef ENABLE_MPI
-        CommFlags getRequestedCommFlags(unsigned int timestep)
+        CommFlags getRequestedCommFlags(uint64_t timestep)
             {
             CommFlags flags(0);
 
@@ -534,7 +594,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             }
         #endif
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Reset memory usage hints
         void unsetMemoryMapping();
 
@@ -552,21 +612,22 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_rcut_changed = true;
             }
 
-        int64_t m_updates;              //!< Number of times the neighbor list has been updated
-        int64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
-        int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
+        uint64_t m_updates;              //!< Number of times the neighbor list has been updated
+        uint64_t m_forced_updates;       //!< Number of times the neighbor list has been forcibly updated
+        uint64_t m_dangerous_updates;    //!< Number of dangerous builds counted
         bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
-        bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_every steps)
+        bool m_dist_check;              //!< Set to false to disable distance checks (nlist always built m_rebuild_check_delay steps)
         bool m_has_been_updated_once;   //!< True if the neighbor list has been updated at least once
 
-        unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
-        unsigned int m_last_checked_tstep; //!< Track the last time step we have checked
+        uint64_t m_last_updated_tstep; //!< Track the last time step we were updated
+        uint64_t m_last_checked_tstep; //!< Track the last time step we have checked
         bool m_last_check_result;          //!< Last result of rebuild check
-        unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
-        std::vector<unsigned int> m_update_periods;    //!< Steps between updates
+        uint64_t m_rebuild_check_delay; //!< No update checks will be performed until m_rebuild_check_delay steps after the last one
+        std::vector<uint64_t> m_update_periods;    //!< Steps between updates
+        std::set<std::string> m_exclusions;        //!< Exclusions that have been set
 
         //! Test if the list needs updating
-        bool needsUpdating(unsigned int timestep);
+        bool needsUpdating(uint64_t timestep);
 
         //! Reallocate internal neighbor list data structures
         void reallocate();
@@ -589,7 +650,7 @@ class PYBIND11_EXPORT NeighborList : public Compute
             m_need_reallocate_exlist = true;
             }
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };

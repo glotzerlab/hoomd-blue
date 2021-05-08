@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,7 +11,7 @@
 #ifndef MPCD_CELL_LIST_GPU_H_
 #define MPCD_CELL_LIST_GPU_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -52,13 +52,13 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
         virtual void buildCellList();
 
         //! Callback to sort cell list on the GPU when particle data is sorted
-        virtual void sort(unsigned int timestep,
+        virtual void sort(uint64_t timestep,
                           const GPUArray<unsigned int>& order,
                           const GPUArray<unsigned int>& rorder);
 
         #ifdef ENABLE_MPI
         //! Determine if embedded particles require migration on the gpu
-        virtual bool needsEmbedMigrate(unsigned int timestep);
+        virtual bool needsEmbedMigrate(uint64_t timestep);
         GPUFlags<unsigned int> m_migrate_flag;  //!< Flag to signal migration is needed
         #endif // ENABLE_MPI
 

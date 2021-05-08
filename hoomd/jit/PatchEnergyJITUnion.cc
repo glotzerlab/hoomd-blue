@@ -3,7 +3,8 @@
 #include "hoomd/hpmc/OBBTree.h"
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
 #endif
 
 //! Set the per-type constituent particles
@@ -36,7 +37,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         throw std::runtime_error("Number of member diameters not equal to number of types");
         }
 
-    unsigned int N = len(positions);
+    unsigned int N = (unsigned int)len(positions);
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
@@ -69,11 +70,11 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         m_diameter[type][i] = diameter;
         m_charge[type][i] = charge;
 
-        // use a point-sized OBB
-        obbs[i] = hpmc::detail::OBB(pos,0.0);
+        // use a spherical OBB of radius 0.5*d
+        obbs[i] = hpmc::detail::OBB(pos,0.5f*diameter);
 
-        Scalar d = sqrt(dot(pos,pos));
-        extent_i = std::max(extent_i, float(2*d));
+        Scalar r = sqrt(dot(pos,pos))+0.5f*diameter;
+        extent_i = std::max(extent_i, float(2*r));
 
         // we do not support exclusions
         obbs[i].mask = 1;
@@ -106,7 +107,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
 
     for (unsigned int i= 0; i < na; i++)
         {
-        unsigned int ileaf = m_tree[type_a].getParticle(cur_node_a, i);
+        unsigned int ileaf = m_tree[type_a].getParticleByNode(cur_node_a, i);
 
         unsigned int type_i = m_type[type_a][ileaf];
         quat<float> orientation_i = conj(quat<float>(orientation_b))*quat<float>(orientation_a) * m_orientation[type_a][ileaf];
@@ -115,14 +116,15 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
         // loop through leaf particles of cur_node_b
         for (unsigned int j= 0; j < nb; j++)
             {
-            unsigned int jleaf = m_tree[type_b].getParticle(cur_node_b, j);
+            unsigned int jleaf = m_tree[type_b].getParticleByNode(cur_node_b, j);
 
             unsigned int type_j = m_type[type_b][jleaf];
             quat<float> orientation_j = m_orientation[type_b][jleaf];
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
-            if (rsq <= m_rcut_union*m_rcut_union)
+            float rcut = float(m_rcut_union+0.5*(m_diameter[type_a][ileaf]+m_diameter[type_b][jleaf]));
+            if (rsq <= rcut*rcut)
                 {
                 // evaluate energy via JIT function
                 energy += m_eval_union(r_ij,
@@ -156,6 +158,10 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
 
     float energy = 0.0;
 
+    #ifdef ENABLE_TBB
+    m_exec_conf->getTaskArena()->execute([&]{
+    #endif
+
     // evaluate isotropic part if necessary
     if (m_r_cut >= 0.0)
         energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
@@ -175,9 +181,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
 
             // add range of interaction
-            obb_a.lengths.x += m_rcut_union;
-            obb_a.lengths.y += m_rcut_union;
-            obb_a.lengths.z += m_rcut_union;
+            obb_a.lengths.x += float(m_rcut_union);
+            obb_a.lengths.y += float(m_rcut_union);
+            obb_a.lengths.z += float(m_rcut_union);
 
             // rotate and translate a's obb into b's body frame
             obb_a.affineTransform(conj(q_j)*q_i, rotate(conj(q_j),-r_ij));
@@ -210,9 +216,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
             // add range of interaction
-            obb_b.lengths.x += m_rcut_union;
-            obb_b.lengths.y += m_rcut_union;
-            obb_b.lengths.z += m_rcut_union;
+            obb_b.lengths.x += float(m_rcut_union);
+            obb_b.lengths.y += float(m_rcut_union);
+            obb_b.lengths.z += float(m_rcut_union);
 
             // rotate and translate b's obb into a's body frame
             obb_b.affineTransform(conj(q_i)*q_j, rotate(conj(q_i),r_ij));
@@ -231,12 +237,16 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
         #endif
         }
 
+    #ifdef ENABLE_TBB
+    }); // end task arena execute()
+    #endif
+
     return energy;
     }
 
 void export_PatchEnergyJITUnion(pybind11::module &m)
     {
-    pybind11::class_<PatchEnergyJITUnion, std::shared_ptr<PatchEnergyJITUnion> >(m, "PatchEnergyJITUnion", pybind11::base< PatchEnergyJIT >())
+    pybind11::class_<PatchEnergyJITUnion, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITUnion> >(m, "PatchEnergyJITUnion")
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&, Scalar, const unsigned int,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,19 +11,19 @@
  * \brief Declaration of mpcd::ParticleData
  */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "ParticleDataSnapshot.h"
 #include "ParticleDataUtilities.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "ParticleData.cuh"
 #ifdef ENABLE_MPI
 #include "hoomd/Autotuner.h"
 #endif // ENABLE_MPI
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 
 #include "hoomd/BoxDim.h"
 #include "hoomd/DomainDecomposition.h"
@@ -36,7 +36,7 @@
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 // pybind11
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -143,7 +143,7 @@ class PYBIND11_EXPORT ParticleData
         //! Get number of MPCD particle types
         unsigned int getNTypes() const
             {
-            return m_type_mapping.size();
+            return (unsigned int)m_type_mapping.size();
             }
 
         //! Get the type-name mapping
@@ -210,7 +210,7 @@ class PYBIND11_EXPORT ParticleData
          */
         void setAutotunerParams(bool enable, unsigned int period)
             {
-            #if defined(ENABLE_MPI) && defined(ENABLE_CUDA)
+            #if defined(ENABLE_MPI) && defined(ENABLE_HIP)
             if (m_mark_tuner)
                 {
                 m_mark_tuner->setEnabled(enable); m_mark_tuner->setPeriod(period);
@@ -223,7 +223,7 @@ class PYBIND11_EXPORT ParticleData
                 {
                 m_add_tuner->setEnabled(enable); m_add_tuner->setPeriod(period);
                 }
-            #endif // ENABLE_MPI && ENABLE_CUDA
+            #endif // ENABLE_MPI && ENABLE_HIP
             }
         //@}
 
@@ -288,7 +288,7 @@ class PYBIND11_EXPORT ParticleData
             }
 
         //! Signature for particle sort signal
-        typedef Nano::Signal<void (unsigned int, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
+        typedef Nano::Signal<void (uint64_t timestep, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
 
         //! Get the sort signal
         /*!
@@ -310,7 +310,7 @@ class PYBIND11_EXPORT ParticleData
          * Subscribers may choose to use \a order and \a rorder to reorder their
          * per-particle data immediately, or delay the sort until their next call.
          */
-        void notifySort(unsigned int timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
+        void notifySort(uint64_t timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
             {
             m_sort_signal.emit(timestep, order, rorder);
             }
@@ -322,7 +322,7 @@ class PYBIND11_EXPORT ParticleData
          * This method notifies the subscribers of the sort occurring at \a timestep.
          * Subscribers are not given the updated particle order.
          */
-        void notifySort(unsigned int timestep)
+        void notifySort(uint64_t timestep)
             {
             GPUArray<unsigned int> order, rorder;
             m_sort_signal.emit(timestep, order, rorder);
@@ -373,18 +373,18 @@ class PYBIND11_EXPORT ParticleData
         //@{
 
         //! Pack particle data into a buffer
-        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
+        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
 
         //! Add new local particles
-        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
+        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
 
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         //! Pack particle data into a buffer (GPU version)
-        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
+        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
 
         //! Add new local particles (GPU version)
-        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
-        #endif // ENABLE_CUDA
+        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
+        #endif // ENABLE_HIP
 
         //! Get the MPCD particle communication flags
         const GPUArray<unsigned int>& getCommFlags() const
@@ -432,14 +432,14 @@ class PYBIND11_EXPORT ParticleData
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
         GPUArray<unsigned int> m_remove_ids;      //!< Partitioned indexes of particles to keep
-        #ifdef ENABLE_CUDA
+        #ifdef ENABLE_HIP
         GPUArray<unsigned char> m_remove_flags;   //!< Temporary flag to mark keeping particle
         GPUFlags<unsigned int> m_num_remove;      //!< Number of particles to remove
 
         std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for marking particles
         std::unique_ptr<Autotuner> m_remove_tuner;  //!< Tuner for removing particles
         std::unique_ptr<Autotuner> m_add_tuner;     //!< Tuner for adding particles
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_HIP
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache

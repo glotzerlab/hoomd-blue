@@ -1,8 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-
-// Maintainer: joaander
 
 #include "TwoStepLangevinGPU.h"
 #include "TwoStepNVEGPU.cuh"
@@ -15,28 +12,14 @@
 namespace py = pybind11;
 using namespace std;
 
-/*! \file TwoStepLangevinGPU.h
-    \brief Contains code for the TwoStepLangevinGPU class
-*/
-
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
-    \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
-    \param lambda Scale factor to convert diameter to gamma
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
-                                       std::shared_ptr<Variant> T,
-                                       unsigned int seed,
-                                       bool use_lambda,
-                                       Scalar lambda,
-                                       bool noiseless_t,
-                                       bool noiseless_r,
-                                       const std::string& suffix)
-    : TwoStepLangevin(sysdef, group, T, seed, use_lambda, lambda, noiseless_t, noiseless_r, suffix)
+                                       std::shared_ptr<Variant> T)
+    : TwoStepLangevin(sysdef, group, T)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -55,7 +38,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar> partial_sum1(m_num_blocks, m_exec_conf);
     m_partial_sum1.swap(partial_sum1);
 
-    cudaDeviceProp dev_prop = m_exec_conf->dev_prop;
+    hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
     m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_nve", this->m_exec_conf));
     m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "langevin_angular", this->m_exec_conf));
     }
@@ -66,7 +49,7 @@ TwoStepLangevinGPU::TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     This method is copied directly from TwoStepNVEGPU::integrateStepOne() and reimplemented here to avoid multiple.
 */
-void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -138,7 +121,7 @@ void TwoStepLangevinGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepLangevinGPU::integrateStepTwo(uint64_t timestep)
     {
     const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
@@ -169,12 +152,12 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
         // perform the update on the GPU
         langevin_step_two_args args;
         args.d_gamma = d_gamma.data;
-        args.n_types = m_gamma.getNumElements();
-        args.use_lambda = m_use_lambda;
-        args.lambda = m_lambda;
-        args.T = m_T->getValue(timestep);
+        args.n_types = (unsigned int)m_gamma.getNumElements();
+        args.use_alpha = m_use_alpha;
+        args.alpha = m_alpha;
+        args.T = (*m_T)(timestep);
         args.timestep = timestep;
-        args.seed = m_seed;
+        args.seed = m_sysdef->getSeed();
         args.d_sum_bdenergy = d_sumBD.data;
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
@@ -249,16 +232,9 @@ void TwoStepLangevinGPU::integrateStepTwo(unsigned int timestep)
 
 void export_TwoStepLangevinGPU(py::module& m)
     {
-    py::class_<TwoStepLangevinGPU, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU", py::base<TwoStepLangevin>())
+    py::class_<TwoStepLangevinGPU, TwoStepLangevin, std::shared_ptr<TwoStepLangevinGPU> >(m, "TwoStepLangevinGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
-                               std::shared_ptr<Variant>,
-                               unsigned int,
-                               bool,
-                               Scalar,
-                               bool,
-                               bool,
-                               const std::string&
-                               >())
+                               std::shared_ptr<Variant>>())
         ;
     }

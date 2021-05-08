@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -72,37 +72,38 @@ void OPLSDihedralForceCompute::setParams(unsigned int type, Scalar k1, Scalar k2
     h_params.data[type] = make_scalar4(k1/2.0, k2/2.0, k3/2.0, k4/2.0);
 }
 
-/*! DihedralForceCompute provides
-    - \c dihedral_opls_energy
-*/
-std::vector< std::string > OPLSDihedralForceCompute::getProvidedLogQuantities()
+void OPLSDihedralForceCompute::setParamsPython(std::string type,
+                                               pybind11::dict params)
     {
-    vector<string> list;
-    list.push_back("dihedral_opls_energy");
-    return list;
+    auto typ = m_dihedral_data->getTypeByName(type);
+    dihedral_opls_params _params(params);
+    setParams(typ, _params.k1, _params.k2, _params.k3, _params.k4);
     }
 
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar OPLSDihedralForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
     {
-    if (quantity == string("dihedral_opls_energy"))
+    auto typ = m_dihedral_data->getTypeByName(type);
+    // make sure the type is valid
+    if (typ >= m_dihedral_data->getNTypes())
         {
-        compute(timestep);
-        return calcEnergySum();
+        m_exec_conf->msg->error() << "dihedral.opls: Invalid dihedral type specified" << endl;
+        throw runtime_error("Error setting parameters in OPLSDihedralForceCompute");
         }
-    else
-        {
-        m_exec_conf->msg->error() << "dihedral.opls: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
+    ArrayHandle<Scalar4> h_params(m_params, access_location::host,
+                                  access_mode::read);
+    auto val = h_params.data[typ];
+    pybind11::dict params;
+    params["k1"] = val.x;
+    params["k2"] = val.y;
+    params["k3"] = val.z;
+    params["k4"] = val.w;
+    return params;
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
+void OPLSDihedralForceCompute::computeForces(uint64_t timestep)
     {
     if (m_prof) m_prof->push("OPLS Dihedral");
 
@@ -128,7 +129,7 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     assert(h_pos.data);
     assert(h_rtag.data);
 
-    unsigned int virial_pitch = m_virial.getPitch();
+    size_t virial_pitch = m_virial.getPitch();
 
     // From LAMMPS OPLS dihedral implementation
     unsigned int i1,i2,i3,i4,n,dihedral_type;
@@ -357,8 +358,9 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
 
 void export_OPLSDihedralForceCompute(py::module& m)
     {
-    py::class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute", py::base<ForceCompute>())
+    py::class_<OPLSDihedralForceCompute, ForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("setParams", &OPLSDihedralForceCompute::setParams)
+    .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
+    .def("getParams", &OPLSDihedralForceCompute::setParams)
     ;
     }

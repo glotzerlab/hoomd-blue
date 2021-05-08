@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_EXTERNAL_FIELD_H_
@@ -16,8 +16,8 @@
 #include "ExternalField.h"
 #include "ExternalFieldWall.h" // do we need anything else?
 
-#ifndef NVCC
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#ifndef __HIPCC__
+#include <pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -31,15 +31,15 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         /*! \param sysdef System definition
             \param mc HPMC integrator object
             \param py_updater Python call back for wall update. Actually UPDATES the wall.
-            \param move_ratio Probability of attempting wall update move
+            \param move_probability Probability of attempting wall update move
             \param seed PRNG seed
         */
         UpdaterExternalFieldWall( std::shared_ptr<SystemDefinition> sysdef,
                       std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                       std::shared_ptr< ExternalFieldWall<Shape> > external,
                       pybind11::object py_updater,
-                      Scalar move_ratio,
-                      unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
+                      Scalar move_probability,
+                      unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_probability(move_probability), m_seed(seed)
                       {
                       // broadcast the seed from rank 0 to all other ranks.
                       #ifdef ENABLE_MPI
@@ -63,49 +63,19 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         virtual ~UpdaterExternalFieldWall(){}
 
         //! Sets parameters
-        /*! \param move_ratio Probability of attempting external field update move
+        /*! \param move_probability Probability of attempting external field update move
         */
-        void setMoveRatio(Scalar move_ratio)
+        void setMoveRatio(Scalar move_probability)
             {
-            m_move_ratio = move_ratio;
+            m_move_probability = move_probability;
             };
 
-        //! Get move_ratio parameter
-        /*! \returns move_ratio parameter
+        //! Get move_probability parameter
+        /*! \returns move_probability parameter
         */
         Scalar getMoveRatio()
             {
-            return m_move_ratio;
-            }
-
-        //! Print statistics
-        void printStats()
-            {
-            }
-
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            // start with the updater provided quantities
-            std::vector< std::string > result = Updater::getProvidedLogQuantities();
-
-            // then add ours
-            result.push_back("hpmc_wall_acceptance_ratio");
-            return result;
-            }
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-            {
-            if (quantity == "hpmc_wall_acceptance_ratio")
-                {
-                return m_count_total_rel ? Scalar(m_count_accepted_rel)/Scalar(m_count_total_rel) : 0;
-                }
-            else
-                {
-                    m_exec_conf->msg->error() << "update.wall: " << quantity << " is not a valid log quantity" << std::endl;
-                    throw std::runtime_error("Error getting log value");
-                }
+            return m_move_probability;
             }
 
         //! Reset statistics counters
@@ -131,17 +101,30 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             else { return m_count_total_tot; }
             }
 
+        /// Set the RNG instance
+        void setInstance(unsigned int instance)
+            {
+            m_instance = instance;
+            }
+
+        /// Get the RNG instance
+        unsigned int getInstance()
+            {
+            return m_instance;
+            }
+
         //! Take one timestep forward
         /*! \param timestep timestep at which update is being evaluated
         */
-        virtual void update(unsigned int timestep)
+        virtual void update(uint64_t timestep)
             {
             // Choose whether or not to update the external field
-            hoomd::RandomGenerator rng(hoomd::RNGIdentifier::UpdaterExternalFieldWall, m_seed, timestep);
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::UpdaterExternalFieldWall, timestep, m_sysdef->getSeed()),
+                                       hoomd::Counter(m_instance));
             unsigned int move_type_select = hoomd::UniformIntDistribution(0xffff)(rng);
-            unsigned int move_ratio = m_move_ratio * 65536;
+            unsigned int move_probability = (unsigned int)(m_move_probability * 65536);
             // Attempt and evaluate a move
-            if (move_type_select < move_ratio)
+            if (move_type_select < move_probability)
                 {
                 m_count_total_rel++;
                 m_count_total_tot++;
@@ -157,9 +140,9 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
                 // the only thing that changed was the external field,
                 // not particle positions or orientations. so all we need to do is
                 // make sure our update didn't result in infinite energy (any overlaps).
-                unsigned int boltz = m_external->calculateBoltzmannWeight(timestep);
+                Scalar boltz = m_external->calculateBoltzmannWeight(timestep);
 
-                if( boltz != 0 )
+                if( boltz != 0.0 )
                     {
                     m_count_accepted_rel++;
                     m_count_accepted_tot++;
@@ -178,7 +161,7 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
         std::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
         pybind11::object m_py_updater;                       //!< Python call back for external field update
-        Scalar m_move_ratio;                                      //!< Ratio of lattice vector length versus shearing move
+        Scalar m_move_probability;                                      //!< Ratio of lattice vector length versus shearing move
         unsigned int m_count_accepted_rel;                        //!< Accepted moves count, relative to start of run
         unsigned int m_count_total_rel;                           //!< Accept/reject total count, relative to start of run
         unsigned int m_count_accepted_tot;                        //!< Accepted moves count, TOTAL
@@ -187,16 +170,21 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
         std::vector<SphereWall> m_CurrSpheres;                    //!< Copy of current sphere walls
         std::vector<CylinderWall> m_CurrCylinders;                //!< Copy of current cylinder walls
         std::vector<PlaneWall> m_CurrPlanes;                      //!< Copy of current plane walls
+
+        unsigned int m_instance=0;                //!< Unique ID for RNG seeding
     };
 
 template< class Shape >
 void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     {
-   pybind11::class_< UpdaterExternalFieldWall<Shape>, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str(), pybind11::base< Updater >())
+   pybind11::class_< UpdaterExternalFieldWall<Shape>, Updater, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str())
     .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, std::shared_ptr< ExternalFieldWall<Shape> >, pybind11::object, Scalar, unsigned int >())
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)
+    .def_property("instance",
+                  &UpdaterExternalFieldWall<Shape>::getInstance,
+                  &UpdaterExternalFieldWall<Shape>::setInstance)
     ;
     }
 } // namespace

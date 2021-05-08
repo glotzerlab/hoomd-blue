@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -16,9 +16,9 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> s
                                              unsigned int cur_timestep,
                                              unsigned int period,
                                              int phase,
-                                             unsigned int seed,
+                                             uint16_t seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
-    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase,seed),
+    : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase),
       m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
@@ -34,7 +34,7 @@ mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     m_thermo->getFlagsSignal().disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
-void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rule(uint64_t timestep)
     {
     m_thermo->compute(timestep);
 
@@ -54,7 +54,7 @@ void mpcd::SRDCollisionMethod::rule(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
+void mpcd::SRDCollisionMethod::drawRotationVectors(uint64_t timestep)
     {
     // cell indexers and rotation vectors
     const Index3D& ci = m_cl->getCellIndexer();
@@ -70,8 +70,10 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
         {
         h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::overwrite));
         h_cell_energy.reset(new ArrayHandle<double3>(m_thermo->getCellEnergies(), access_location::host, access_mode::read));
-        T_set = m_T->getValue(timestep);
+        T_set = (*m_T)(timestep);
         }
+
+    uint16_t seed = m_sysdef->getSeed();
 
     for (unsigned int k=0; k < ci.getD(); ++k)
         {
@@ -84,7 +86,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::SRDCollisionMethod, m_seed, global_idx, timestep);
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SRDCollisionMethod, timestep, seed),
+                                           hoomd::Counter(global_idx));
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;
@@ -119,7 +122,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
         }
     }
 
-void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
+void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
@@ -230,8 +233,8 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
 void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SRDCollisionMethod, std::shared_ptr<mpcd::SRDCollisionMethod> >
-        (m, "SRDCollisionMethod", py::base<mpcd::CollisionMethod>())
+    py::class_<mpcd::SRDCollisionMethod, mpcd::CollisionMethod, std::shared_ptr<mpcd::SRDCollisionMethod> >
+        (m, "SRDCollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       unsigned int,
                       unsigned int,

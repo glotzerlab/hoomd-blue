@@ -1,22 +1,23 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 #ifndef __PAIR_EVALUATOR_ZBL__
 #define __PAIR_EVALUATOR_ZBL__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
 #include "hoomd/HOOMDMath.h"
+#include "EvaluatorPairMoliere.h"
 
 /*! \file EvaluatorPairZBL.h
     \brief Defines the pair evaluator class for ZBL potentials
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -40,7 +41,7 @@ class EvaluatorPairZBL
 {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef EvaluatorPairMoliere::param_type param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles.
@@ -48,7 +49,7 @@ class EvaluatorPairZBL
             \param _params Per type-pair parameters of this potential
         */
         DEVICE EvaluatorPairZBL(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.x), aF(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), Zsq(_params.qi * _params.qj), aF(_params.aF)
             {
             }
 
@@ -105,10 +106,9 @@ class EvaluatorPairZBL
                 return false;
         }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name.  Must be short and all lowercase, as this is the name
-            energies will be logged as via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 #define __POTENTIAL_PAIR_DPDTHERMO_GPU_H__
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
@@ -17,7 +17,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -37,21 +37,20 @@
 
     \sa export_PotentialPairDPDThermoGPU()
 */
-template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
         //! Construct the pair potential
         PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
-                         const std::string& log_suffix="");
+                         std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPairDPDThermoGPU() { };
 
         //! Set the number of threads per particle to execute on the GPU
         /*! \param threads_per_particl Number of threads per particle
-            \a threads_per_particle must be a power of two and smaller than 32.
+            \a threads_per_particle must be a power of two and smaller than the warp size.
          */
         void setTuningParam(unsigned int param)
             {
@@ -76,14 +75,15 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
         unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
-template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_param(0)
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(
+        std::shared_ptr<SystemDefinition> sysdef,
+        std::shared_ptr<NeighborList> nlist)
+    : PotentialPairDPDThermo<evaluator>(sysdef, nlist), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -97,7 +97,8 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std:
     // the full block size and threads_per_particle matrix is searched,
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
-    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+    unsigned int warp_size = this->m_exec_conf->dev_prop.warpSize;
+    for (unsigned int block_size = warp_size; block_size <= 1024; block_size += warp_size)
         {
         for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
             {
@@ -112,9 +113,9 @@ PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std:
     #endif
     }
 
-template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
+template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned int timestep)
+void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
 
@@ -173,12 +174,12 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
                              this->m_nlist->getNListArray().getPitch(),
                              this->m_pdata->getNTypes(),
                              block_size,
-                             this->m_seed,
+                             this->m_sysdef->getSeed(),
                              timestep,
                              this->m_deltaT,
-                             this->m_T->getValue(timestep),
+                             (*this->m_T)(timestep),
                              this->m_shift_mode,
-                             flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                             flags[pdata_flag::pressure_tensor],
                              threads_per_particle),
              d_params.data);
 
@@ -196,11 +197,11 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
 */
 template < class T, class Base > void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& name)
     {
-     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
-              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
               .def("setTuningParam",&T::setTuningParam)
               ;
     }
 
-#endif // ENABLE_CUDA
+#endif // ENABLE_HIP
 #endif // __POTENTIAL_PAIR_DPDTHERMO_GPU_H__

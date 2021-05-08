@@ -1,21 +1,17 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file GSDReader.cc
-    \brief Defines the GSDReader class
-*/
-
+#include "GSD.h"
 #include "GSDReader.h"
 #include "SnapshotSystemData.h"
 #include "ExecutionConfiguration.h"
 #include "hoomd/extern/gsd.h"
 #include <string.h>
+#include <sstream>
 
 #include <stdexcept>
 using namespace std;
+using namespace hoomd::detail;
 
 namespace py = pybind11;
 
@@ -46,7 +42,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     // open the GSD file in read mode
     m_exec_conf->msg->notice(3) << "data.gsd_snapshot: open gsd file " << name << endl;
     int retval = gsd_open(&m_handle, name.c_str(), GSD_OPEN_READONLY);
-    checkError(retval);
+    GSDUtils::checkError(retval, m_name);
 
     // validate schema
     if (string(m_handle.header.schema) != string("hoomd"))
@@ -54,7 +50,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema in " << name << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema version in " << name << endl;
         throw runtime_error("Error opening GSD file");
@@ -125,7 +121,7 @@ bool GSDReader::readChunk(void *data, uint64_t frame, const char *name, size_t e
             throw runtime_error("Error reading GSD file");
             }
         int retval = gsd_read_chunk(&m_handle, data, entry);
-        checkError(retval);
+        GSDUtils::checkError(retval, m_name);
 
         return true;
         }
@@ -160,7 +156,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         std::vector<char> data(actual_size);
         int retval = gsd_read_chunk(&m_handle, &data[0], entry);
-        checkError(retval);
+        GSDUtils::checkError(retval, m_name);
 
         type_mapping.clear();
         for (unsigned int i = 0; i < entry->N; i++)
@@ -202,7 +198,7 @@ void GSDReader::readHeader()
 */
 void GSDReader::readParticles()
     {
-    uint64_t N = m_snapshot->particle_data.size;
+    unsigned int N = m_snapshot->particle_data.size;
     m_snapshot->particle_data.type_mapping = readTypes(m_frame, "particles/types");
 
     // the snapshot already has default values, if a chunk is not found, the value
@@ -224,7 +220,7 @@ void GSDReader::readParticles()
 */
 void GSDReader::readTopology()
     {
-    uint64_t N = 0;
+    unsigned int N = 0;
     readChunk(&N, m_frame, "bonds/N", 4);
     if (N > 0)
         {
@@ -300,60 +296,148 @@ pybind11::list GSDReader::readTypeShapesPy(uint64_t frame)
     return type_shapes;
     }
 
-void GSDReader::checkError(int retval)
+GSDStateReader::GSDStateReader(const std::string &name, const int64_t frame)
+    : m_name(name)
     {
-    // checkError prints errors and then throws exceptions for common gsd error codes
-    if (retval == GSD_ERROR_IO)
+    int retval = gsd_open(&m_handle, name.c_str(), GSD_OPEN_READONLY);
+    GSDUtils::checkError(retval, m_name);
+
+    // validate schema
+    if (string(m_handle.header.schema) != string("hoomd"))
         {
-        m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        ostringstream s;
+        s << "Error opening GSD file " << m_name << ": Invalid schema.";
+        throw runtime_error(s.str());
         }
-    else if (retval == GSD_ERROR_INVALID_ARGUMENT)
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
-        m_exec_conf->msg->error() << "dump.gsd: Invalid argument" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        ostringstream s;
+        s << "Error opening GSD file " << m_name << ": Invalid schema version.";
+        throw runtime_error(s.str());
         }
-    else if (retval == GSD_ERROR_NOT_A_GSD_FILE)
+
+    // set frame from the end of the file if requested
+    uint64_t nframes = gsd_get_nframes(&m_handle);
+    if (frame < 0)
         {
-        m_exec_conf->msg->error() << "dump.gsd: Not a GSD file" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        if (uint64_t(-frame) > nframes)
+            {
+            ostringstream s;
+            s << "Error opening GSD file " << m_name << " - Frame " << m_frame
+              << " is not in the file.";
+            throw runtime_error(s.str());
+            }
+
+        m_frame = nframes + frame;
         }
-    else if (retval == GSD_ERROR_INVALID_GSD_FILE_VERSION)
+    else
         {
-        m_exec_conf->msg->error() << "dump.gsd: Invalid GSD file version" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        m_frame = frame;
         }
-    else if (retval == GSD_ERROR_FILE_CORRUPT)
+
+    // validate number of frames
+    if (m_frame >= nframes)
         {
-        m_exec_conf->msg->error() << "dump.gsd: File corrupt" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        ostringstream s;
+        s << "Error opening GSD file " << m_name << " - Frame " << m_frame
+          << " is not in the file.";
+        throw runtime_error(s.str());
         }
-    else if (retval == GSD_ERROR_MEMORY_ALLOCATION_FAILED)
+    }
+
+GSDStateReader::~GSDStateReader()
+    {
+    gsd_close(&m_handle);
+    }
+
+std::vector<std::string> GSDStateReader::getAvailableChunks(const std::string& base)
+    {
+    const char *match = base.c_str();
+    const char *cur = gsd_find_matching_chunk_name(&m_handle, match, NULL);
+    std::vector<std::string> result;
+
+    while (cur != NULL)
         {
-        m_exec_conf->msg->error() << "dump.gsd: Memory allocation failed" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        // add the chunk to the list if it is present in the given frame or in frame 0
+        if (gsd_find_chunk(&m_handle, m_frame, cur) != NULL
+              || gsd_find_chunk(&m_handle, 0, cur) != NULL)
+            {
+            result.push_back(std::string(cur));
+            }
+        cur = gsd_find_matching_chunk_name(&m_handle, match, cur);
         }
-    else if (retval == GSD_ERROR_NAMELIST_FULL)
+    return result;
+    }
+
+pybind11::array GSDStateReader::readChunk(const std::string& name)
+    {
+    pybind11::array result;
+    const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, m_frame, name.c_str());
+    if (entry == NULL && m_frame != 0)
         {
-        m_exec_conf->msg->error() << "dump.gsd: Namelist full" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        entry = gsd_find_chunk(&m_handle, 0, name.c_str());
         }
-    else if (retval == GSD_ERROR_FILE_MUST_BE_WRITABLE)
+    if (entry == NULL)
         {
-        m_exec_conf->msg->error() << "dump.gsd: File must be writeable" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        throw runtime_error("Could not find GSD chunk: " + name);
         }
-    else if (retval == GSD_ERROR_FILE_MUST_BE_READABLE)
+
+    std::vector<size_t> dims;
+    dims.push_back(entry->N);
+    if (entry->M > 1)
         {
-        m_exec_conf->msg->error() << "dump.gsd: File must be readable" " - " << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        dims.push_back(entry->M);
         }
-    else if (retval != GSD_SUCCESS)
+
+    if (entry->type == GSD_TYPE_UINT8)
         {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " reading: "
-                                  << m_name << endl;
-        throw runtime_error("Error reading GSD file");
+        result = pybind11::array(pybind11::dtype::of<uint8_t>(), dims);
         }
+    else if (entry->type == GSD_TYPE_UINT16)
+        {
+        result = pybind11::array(pybind11::dtype::of<uint16_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_UINT32)
+        {
+        result = pybind11::array(pybind11::dtype::of<uint32_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_UINT64)
+        {
+        result = pybind11::array(pybind11::dtype::of<uint64_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_INT8)
+        {
+        result = pybind11::array(pybind11::dtype::of<int8_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_INT16)
+        {
+        result = pybind11::array(pybind11::dtype::of<int16_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_INT32)
+        {
+        result = pybind11::array(pybind11::dtype::of<int32_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_INT64)
+        {
+        result = pybind11::array(pybind11::dtype::of<int64_t>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_FLOAT)
+        {
+        result = pybind11::array(pybind11::dtype::of<float>(), dims);
+        }
+    else if (entry->type == GSD_TYPE_DOUBLE)
+        {
+        result = pybind11::array(pybind11::dtype::of<double>(), dims);
+        }
+    else
+        {
+        throw runtime_error("Invalid GSD type");
+        }
+
+    int retval = gsd_read_chunk(&m_handle, result.mutable_data(), entry);
+    GSDUtils::checkError(retval, m_name);
+
+    return result;
     }
 
 void export_GSDReader(py::module& m)
@@ -365,4 +449,10 @@ void export_GSDReader(py::module& m)
     .def("clearSnapshot", &GSDReader::clearSnapshot)
     .def("readTypeShapesPy", &GSDReader::readTypeShapesPy)
     ;
+
+    py::class_< GSDStateReader, std::shared_ptr<GSDStateReader> >(m, "GSDStateReader")
+        .def(py::init<const std::string&, int64_t>())
+        .def("getAvailableChunks", &GSDStateReader::getAvailableChunks)
+        .def("readChunk", &GSDStateReader::readChunk)
+        ;
     }

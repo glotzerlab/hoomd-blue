@@ -1,9 +1,9 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 /*!
    \file RandomNumbers.h
-   \brief Declaration of mpcd::RandomNumbers
+   \brief Declaration of hoomd::RandomNumbers
 
    This header includes templated generators for various types of random numbers required used throughout hoomd. These
    work with the RandomGenerator generator that wraps random123's Philox4x32 RNG with an API that handles streams of
@@ -15,23 +15,22 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_CUDA
-// ensure that curand is included before random123. This avoids multiple defiintion issues
-// unfortunately, at the cost of random123 using the coefficients provided by curand
-// for now, they are the same
-#include <curand_kernel.h>
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
 #endif
 
-#include <math.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <hoomd/extern/random123/include/Random123/philox.h>
 #include <type_traits>
+#pragma GCC diagnostic pop
 
 namespace r123 {
-// from random123/examples/uniform.hpp
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__CUDACC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
 //
@@ -74,12 +73,12 @@ template <typename Ftype, typename Itype>
 R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
     {
     typedef typename make_unsigned<Itype>::type Utype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Utype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Utype>()) + Ftype(1.));
     R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
 #if R123_UNIFORM_FLOAT_STORE
     volatile Ftype x = Utype(in)*factor; return x+halffactor;
 #else
-    return Utype(in)*factor + halffactor;
+    return Ftype(Utype(in))*factor + halffactor;
 #endif
     }
 
@@ -101,38 +100,107 @@ template <typename Ftype, typename Itype>
 R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
     {
     typedef typename make_signed<Itype>::type Stype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(maxTvalue<Stype>() + Ftype(1.));
+    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Stype>()) + Ftype(1.));
     R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
 #if R123_UNIFORM_FLOAT_STORE
     volatile Ftype x = Stype(in)*factor; return x+halffactor;
 #else
-    return Stype(in)*factor + halffactor;
+    return Ftype(Stype(in))*factor + halffactor;
 #endif
     }
 
 // end code copied from random123 examples
 }
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif // NVCC
+#endif // __HIPCC__
 
 namespace hoomd
 {
+/** RNG seed
+
+    RandomGenerator initializes with a 64-bit seed and a 128-bit counter. Seed and Counter provide
+    interfaces for common seeding patterns used across HOOMD to prevent code duplication and help
+    ensure that seeds are initialized correctly.
+
+    Seed provides one constructor as we expect this to be used everywhere in HOOMD. The constructor
+    is a function of the class id, the current timestep and the user seed.
+*/
+class Seed
+    {
+    public:
+    /** Construct a Seed from a class ID, timestep and user seed.
+
+        The seed is 8 bytes. Construct this from an 1 byte class id, 2 byte seed, and the lower
+        5 bytes of the timestep.
+
+        When multiple class instances can instantiate RandomGenerator objects, include values in the
+        Counter that are unique to each instance. Otherwise the separate instances will generate
+        identical sequences of random numbers.
+
+        Code inside HOOMD should name the class ID value in RNGIdentifiers.h and ensure that each
+        class has a unique id. External plugins should use values 200 or larger.
+
+        id seed1 seed0 timestep4 | timestep3 timestep2 timestep1 timestep0
+    */
+    DEVICE Seed(uint8_t id, uint64_t timestep, uint16_t seed)
+        {
+        m_key = {{static_cast<uint32_t>(id) << 24 | static_cast<uint32_t>(seed) << 8
+                      | static_cast<uint32_t>((timestep & 0x000000ff00000000) >> 32),
+                  static_cast<uint32_t>(timestep & 0x00000000ffffffff)}};
+        }
+
+    /// Get the key
+    DEVICE const r123::Philox4x32::key_type& getKey() const
+        {
+        return m_key;
+        }
+
+    private:
+    r123::Philox4x32::key_type m_key;
+    };
+
+/** RNG Counter
+
+    Counter provides a number of constructors that support a variety of seeding needs throughought
+    HOOMD.
+*/
+class Counter
+    {
+    public:
+    /** Default constructor.
+
+    Constructs a 0 valued counter.
+
+    Note: Only use the 4th argument when absolutely necessary and when you know that the resulting
+    RNG stream will not need to sample more than 65536 values.
+    */
+    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0, uint16_t d=0) : m_ctr({{static_cast<uint32_t>(d) << 16, c, b, a}})
+        {
+        }
+
+    /// Get the counter
+    DEVICE const r123::Philox4x32::ctr_type& getCounter() const
+        {
+        return m_ctr;
+        }
+
+    const r123::Philox4x32::ctr_type m_ctr;
+    };
+
 //! Philox random number generator
 /*! random123 is a counter based random number generator. Given an input seed vector,
      it produces a random output. Outputs from one seed to the next are not correlated.
      This class implements a convenience API around random123 that allows short streams
-     (less than 2**32-1) of random numbers starting from a seed of up to 5 uint32_t values.
+     (less than 2**32-1) of random numbers starting from a given Seed and Counter.
 
      Internally, we use the philox 4x32 RNG from random123, The first two seeds map to the
      key and the remaining seeds map to the counter. One element from the counter is used
      to generate the stream of values. Constructors provide ways to conveniently initialize
-     the RNG with any number of seeds or counters. Warning! All constructors with fewer
-     than 5 input values are equivalent to the 5-input constructor with 0's for the
-     values not specified.
+     the RNG with any number of seeds or counters.
 
      Counter based RNGs are useful for MD simulations: See
 
@@ -151,42 +219,40 @@ namespace hoomd
 class RandomGenerator
     {
     public:
-        //! Five-value constructor
-        DEVICE inline RandomGenerator(uint32_t seed1=0,
-                                      uint32_t seed2=0,
-                                      uint32_t counter1=0,
-                                      uint32_t counter2=0,
-                                      uint32_t counter3=0);
+        /** Construct a random generator from a Seed and a Counter
 
-        //! Generate uniformly distributed 32-bit values
+            @param seed RNG seed.
+            @param counter Initial value of the RNG counter.
+        */
+        DEVICE inline RandomGenerator(const Seed& seed, const Counter& counter);
+
+        /// Generate uniformly distributed 128-bit values
         DEVICE inline r123::Philox4x32::ctr_type operator()();
+
+        /// Get the key
+        DEVICE inline r123::Philox4x32::key_type getKey()
+            {
+            return m_key;
+            }
+
+        /// Get the counter
+        DEVICE inline r123::Philox4x32::ctr_type getCounter()
+            {
+            return m_ctr;
+            }
 
     private:
         r123::Philox4x32::key_type m_key;   //!< RNG key
         r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
     };
 
-/*! \param seed1 First seed.
-    \param seed2 Second seed.
-    \param counter1 First counter.
-    \param counter2 Second counter
-    \param counter3 Third counter
-
-    Initialize the random number stream with two seeds and up to three counters. Seeds and counters are somewhat
-    interchangeable. Seeds should be more static (i.e. user seed, RNG id) while counters should be more dynamic
-    (i.e. particle tag).
- */
-DEVICE inline RandomGenerator::RandomGenerator(uint32_t seed1,
-                                               uint32_t seed2,
-                                               uint32_t counter1,
-                                               uint32_t counter2,
-                                               uint32_t counter3)
+DEVICE inline RandomGenerator::RandomGenerator(const Seed& seed, const Counter& counter)
     {
-    m_key = {{seed1, seed2}};
-    m_ctr = {{0, counter3, counter2, counter1}};
+    m_key = seed.getKey();
+    m_ctr = counter.getCounter();
     }
 
-/*! \returns A random uniform 32-bit unsigned integer.
+/*! \returns A random uniform 128-bit unsigned integer.
 
     \post The state of the generator is advanced one step.
  */
@@ -194,7 +260,7 @@ DEVICE inline r123::Philox4x32::ctr_type RandomGenerator::operator()()
     {
     r123::Philox4x32 rng;
     r123::Philox4x32::ctr_type u = rng(m_ctr, m_key);
-    m_ctr[0] += 1;
+    m_ctr.v[0] += 1;
     return u;
     }
 
@@ -206,7 +272,7 @@ template <class RNG>
 DEVICE inline uint32_t generate_u32(RNG& rng)
     {
     auto u = rng();
-    return u[0];
+    return u.v[0];
     }
 
 //! Generate a uniform random uint64_t
@@ -214,7 +280,7 @@ template <class RNG>
 DEVICE inline uint64_t generate_u64(RNG& rng)
     {
     auto u = rng();
-    return uint64_t(u[0]) << 32 | u[1];
+    return uint64_t(u.v[0]) << 32 | u.v[1];
     }
 
 //! Generate two uniform random uint64_t
@@ -225,8 +291,8 @@ template <class RNG>
 DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
     {
     auto u = rng();
-    out1 = uint64_t(u[0]) << 32 | u[1];
-    out2 = uint64_t(u[2]) << 32 | u[3];
+    out1 = uint64_t(u.v[0]) << 32 | u.v[1];
+    out2 = uint64_t(u.v[2]) << 32 | u.v[3];
     }
 
 //! Generate a random value in [2**(-65), 1]
@@ -255,7 +321,7 @@ class UniformDistribution
         /*! \param _a Left end point of the interval
             \param _b Right end point of the interval
         */
-        DEVICE explicit UniformDistribution(Real _a=Real(0,0), Real _b=Real(1.0))
+        DEVICE explicit UniformDistribution(Real _a=Real(0.0), Real _b=Real(1.0))
             : a(_a), width(_b - _a)
             {
             }
@@ -362,7 +428,7 @@ class SpherePointGenerator
 
             // project onto the sphere surface
             const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, point.y, point.x);
+            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
             point.x *= sqrtu;
             point.y *= sqrtu;
             point.z = u;
@@ -470,7 +536,7 @@ class UniformIntDistribution
             }
 
         //! Draw a value from the distribution
-        /*! \param rng Saru RNG to utilize in the move
+        /*! \param rng RNG to utilize in the move
             \returns a random number 0 <= i <= m with uniform probability.
 
             **Method**
@@ -562,7 +628,7 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_small(RNG& rng)
+        DEVICE int poissrnd_small(RNG& rng)
             {
             Real L = fast::exp(-mean);
             Real p = 1;
@@ -577,11 +643,11 @@ class PoissonDistribution
             }
 
         template<typename RNG>
-        int poissrnd_large(RNG& rng)
+        DEVICE int poissrnd_large(RNG& rng)
             {
             Real r;
             Real x, m;
-            Real pi = M_PI;
+            Real pi = Real(M_PI);
             Real sqrt_mean = fast::sqrt(mean);
             Real log_mean = fast::log(mean);
             Real g_x;
@@ -596,12 +662,12 @@ class PoissonDistribution
                 g_x = sqrt_mean/(pi*((x-mean)*(x-mean) + mean));
                 m = slow::floor(x);
                 f_m = fast::exp(m*log_mean - mean - lgamma(m + 1));
-                r = f_m / g_x / 2.4;
+                r = f_m / g_x / Real(2.4);
             } while (detail::generate_canonical<Real>(rng) > r);
           return (int)m;
           }
     };
 
-} // end namespace mpcd
-
+} // end namespace hoomd
+#undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

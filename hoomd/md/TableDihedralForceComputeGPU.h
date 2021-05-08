@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Declares the TableDihedralForceComputeGPU class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 #define __TABLEDIHEDRALFORCECOMPUTEGPU_H__
@@ -32,8 +32,7 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
     public:
         //! Constructs the compute
         TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          unsigned int table_width,
-                          const std::string& log_suffix="");
+                          unsigned int table_width);
 
         //! Destructor
         virtual ~TableDihedralForceComputeGPU() { }
@@ -53,7 +52,7 @@ class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCo
         std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TableDihedralForceComputeGPU class to python

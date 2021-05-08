@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <iostream>
@@ -6,30 +6,30 @@
 #include <functional>
 #include <memory>
 
-#include "hoomd/ComputeThermo.h"
+#include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNPTMTK.h"
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/TwoStepNPTMTKGPU.h"
-#include "hoomd/ComputeThermoGPU.h"
+#include "hoomd/md/ComputeThermoGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
 
+#include "hoomd/SnapshotSystemData.h"
 #include "hoomd/CellList.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/deprecated/RandomGenerator.h"
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/AllAnisoPairPotentials.h"
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 #include "hoomd/md/NeighborListGPUBinned.h"
 #include "hoomd/CellListGPU.h"
 #endif
 
 #include "hoomd/RandomNumbers.h"
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
-#include "hoomd/extern/pybind/include/pybind11/embed.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 namespace py = pybind11;
 
 #include "hoomd/Variant.h"
@@ -107,18 +107,15 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -150,7 +147,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
@@ -197,7 +194,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         // before computing averages
 
         std::cout << "Equilibrating 10,000 steps... " << std::endl;
-        unsigned int timestep;
+        uint64_t timestep;
         for (unsigned int i = 0; i < 10000; i++)
             {
             timestep = offs + i;
@@ -228,8 +225,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.02 % accuracy for conserved quantity
@@ -264,8 +261,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 box = pdata->getBox();
                 volume = box.getVolume();
                 enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 MY_CHECK_CLOSE(H_ref,H,H_tol);
 
@@ -281,8 +278,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
@@ -388,18 +385,15 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    // only for output of enthalpy
-    flags[pdata_flag::potential_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -431,10 +425,9 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     fc->setShiftMode(PotentialPairLJ::shift);
 
     std::shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo->setNDOF(3*N-3);
+    group_all->setTranslationalDOF(3*N-3);
 
     std::shared_ptr<ComputeThermo> compute_thermo_t(new ComputeThermo(sysdef, group_all, "name"));
-    compute_thermo_t->setNDOF(3*N-3);
 
     // set up integration without thermostat
     args_t args;
@@ -475,7 +468,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     Scalar3 L = box.getL();
     Scalar volume = L.x*L.y*L.z;
     Scalar enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    Scalar barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
     for (int i = 10001; i < 20000; i++)
@@ -498,7 +491,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     L = box.getL();
     volume = L.x*L.y*L.z;
     enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
@@ -551,12 +544,10 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
-    flags[pdata_flag::isotropic_virial] = 1;
-    flags[pdata_flag::potential_energy] = 1;
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
@@ -568,7 +559,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar r_cut = 2.5;
     Scalar r_buff = 0.3;
 
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
@@ -589,7 +580,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.3);
     Scalar lpar = Scalar(0.5);
-    fc->setParams(0,0,make_scalar3(epsilon,lperp,lpar));
+    fc->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
 
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
@@ -597,7 +588,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_CUDA
+    #ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
@@ -640,7 +631,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         npt_mtk->removeAllIntegrationMethods();
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
 
-        unsigned int ndof_rot = npt_mtk->getRotationalNDOF(group_all);
+        unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
         thermo_group_t->setRotationalNDOF(ndof_rot);
 
@@ -651,7 +642,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
         unsigned int n_equil_steps = 1500;
         std::cout << "Equilibrating " << n_equil_steps << " steps... " << std::endl;
-        unsigned int timestep;
+        uint64_t timestep;
         for (unsigned int i = 0; i < n_equil_steps; i++)
             {
             timestep = offs + i;
@@ -682,8 +673,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
         Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.25 % accuracy for conserved quantity
@@ -719,8 +710,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 Scalar rotational_ke = thermo_group_t->getRotationalKineticEnergy();
                 Scalar pe = thermo_group_t->getPotentialEnergy();
                 enthalpy =  ke + pe + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
                 std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P*volume << std::endl;
                 std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy << " rot KE: " << rotational_ke << std::endl;
@@ -738,8 +729,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         box = pdata->getBox();
         volume = box.getVolume();
         enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
@@ -842,7 +833,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
         args.flags,true));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! NPTMTKIntegratorGPU factory for the unit tests
 std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     {
@@ -908,7 +899,7 @@ UP_TEST( TwoStepNPTMTK_cubic_NPH )
     nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_CUDA
+#ifdef ENABLE_HIP
 //! test case for GPU integration tests
 UP_TEST( TwoStepNPTMTKGPU_tests )
     {

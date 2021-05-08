@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,11 +13,13 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/CachedAllocator.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 #endif
 
-cudaError_t gpu_sort_by_molecule(unsigned int nptl,
+hipError_t
+__attribute__((visibility("default")))
+gpu_sort_by_molecule(unsigned int nptl,
     const unsigned int *d_tag,
     const unsigned int *d_molecule_tag,
     unsigned int *d_local_molecule_tags,
@@ -38,7 +40,9 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     CachedAllocator& alloc,
     bool check_cuda);
 
-cudaError_t gpu_fill_molecule_table(
+hipError_t
+__attribute__((visibility("default")))
+gpu_fill_molecule_table(
     unsigned int nptl,
     unsigned int n_local_ptls_in_molecules,
     Index2D molecule_idx,

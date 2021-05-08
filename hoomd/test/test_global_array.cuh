@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -11,13 +11,15 @@
 #ifndef __GLOBAL_ARRAY_TEST_CUH__
 #define __GLOBAL_ARRAY_TEST_CUH__
 
+#include <hip/hip_runtime.h>
+
 extern "C"
     {
 
 //! Adds one to every value in an array of ints
-    cudaError_t gpu_add_one(int *d_data, unsigned int num);
+    hipError_t gpu_add_one(int *d_data, size_t num);
 //! Fills out the data array with a test pattern
-    cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num);
+    hipError_t gpu_fill_test_pattern(int *d_data, size_t num);
 
     }
 

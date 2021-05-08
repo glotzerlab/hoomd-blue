@@ -1,26 +1,27 @@
-variables:
-  image_root: glotzerlab/ci:2020.01
-  name: hoomd
-
+# Trigger on new tags to build and upload release tarballs.
 trigger:
-  branches:
-    include:
-    - '*'
   tags:
     include:
     - 'v*'
 
-pr: none
+# Trigger on PRs to test that PRs do not break the tarball build. PR builds skip the upload step.
+pr:
+  - maint
+  - master
+
+variables:
+  image_root: glotzerlab/ci:2021.03
+  name: hoomd
 
 jobs:
 - job: release
   displayName: Build release tarball
 
   pool:
-    vmImage: 'ubuntu-16.04'
+    vmImage: 'ubuntu-latest'
 
   container:
-    image: $(image_root)-ubuntu19.10
+    image: $(image_root)-ubuntu20.04
     options: -u 0
 
   steps:
@@ -28,13 +29,18 @@ jobs:
     submodules: true
   - script: echo "##vso[task.setvariable variable=tag;]$(git describe --abbrev=0)"
     displayName: Determine tag
-  - script: .azp/make-changelog-md.sh  $(tag) > $(Pipeline.Workspace)/changelog.md && cat $(Pipeline.Workspace)/changelog.md
+  - script: >-
+      .azp/make-changelog-md.sh $(tag) > $(Pipeline.Workspace)/changelog.md
+      && cat $(Pipeline.Workspace)/changelog.md
     displayName: Write version change log
   - script: cp -R $(Build.SourcesDirectory) $(Pipeline.Workspace)/$(name)-$(tag)
     displayName: Copy source
   - script: rm -rf $(Pipeline.Workspace)/$(name)-$(tag)/.git
     displayName: Remove .git
-  - script: tar -cvzf $(Build.ArtifactStagingDirectory)/$(name)-$(tag).tar.gz -C $(Pipeline.Workspace) $(name)-$(tag)
+  - script: >-
+      tar -cvzf $(Build.ArtifactStagingDirectory)/$(name)-$(tag).tar.gz
+      -C $(Pipeline.Workspace)
+      $(name)-$(tag)
     displayName: Tar source
   - task: GitHubRelease@0
     displayName: Create GitHub release

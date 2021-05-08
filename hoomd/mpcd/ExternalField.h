@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -13,11 +13,11 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 #endif
 
 namespace mpcd
@@ -37,7 +37,7 @@ namespace mpcd
  * as an example.
  *
  * \warning
- * Because of the way NVCC handles compilation (see ExternalField.cu), new ExternalFields
+ * Because of the way __HIPCC__ handles compilation (see ExternalField.cu), new ExternalFields
  * can only be implemented within HOOMD and \b NOT through the plugin interface.
  */
 class ExternalField
@@ -97,7 +97,7 @@ class BlockForce : public ExternalField
         HOSTDEVICE virtual Scalar3 evaluate(const Scalar3& r) const override
             {
             // sign = +1 if in top slab, -1 if in bottom slab, 0 if neither
-            const signed char sign = (r.z >= m_H_minus_w && r.z < m_H_plus_w) - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w);
+            const signed char sign = (char)((r.z >= m_H_minus_w && r.z < m_H_plus_w) - (r.z >= -m_H_plus_w && r.z < -m_H_minus_w));
             return make_scalar3(sign*m_F,0,0);
             }
 
@@ -174,12 +174,12 @@ class SineForce : public ExternalField
         Scalar m_k; //!< Wavenumber for force in z
     };
 
-#ifndef NVCC
+#ifndef __HIPCC__
 namespace detail
 {
 void export_ExternalFieldPolymorph(pybind11::module& m);
 } // end namespace detail
-#endif // NVCC
+#endif // __HIPCC__
 
 } // end namespace mpcd
 

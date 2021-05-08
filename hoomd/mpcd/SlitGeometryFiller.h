@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -11,14 +11,14 @@
 #ifndef MPCD_SLIT_GEOMETRY_FILLER_H_
 #define MPCD_SLIT_GEOMETRY_FILLER_H_
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "VirtualParticleFiller.h"
 #include "SlitGeometry.h"
 
-#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
+#include <pybind11/pybind11.h>
 
 namespace mpcd
 {
@@ -35,7 +35,6 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
                            Scalar density,
                            unsigned int type,
                            std::shared_ptr<::Variant> T,
-                           unsigned int seed,
                            std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
         virtual ~SlitGeometryFiller();
@@ -56,7 +55,7 @@ class PYBIND11_EXPORT SlitGeometryFiller : public mpcd::VirtualParticleFiller
         virtual void computeNumFill();
 
         //! Draw particles within the fill volume
-        virtual void drawParticles(unsigned int timestep);
+        virtual void drawParticles(uint64_t timestep);
     };
 
 namespace detail

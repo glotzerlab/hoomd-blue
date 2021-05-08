@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -13,11 +13,11 @@
     \brief Declares a class for computing an external force field
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __POTENTIAL_EXTERNAL_H__
 #define __POTENTIAL_EXTERNAL_H__
@@ -30,8 +30,7 @@ class PotentialExternal: public ForceCompute
     {
     public:
         //! Constructs the compute
-        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef,
-                                     const std::string& log_suffix="");
+        PotentialExternal<evaluator>(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~PotentialExternal<evaluator>();
 
         //! type of external potential parameters
@@ -42,20 +41,13 @@ class PotentialExternal: public ForceCompute
         void setParams(unsigned int type, param_type params);
         void setField(field_type field);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-
     protected:
 
         GPUArray<param_type>    m_params;        //!< Array of per-type parameters
-        std::string             m_log_name;               //!< Cached log name
         GPUArray<field_type>    m_field;
 
         //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        virtual void computeForces(uint64_t timestep);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -74,14 +66,11 @@ class PotentialExternal: public ForceCompute
 
 /*! Constructor
     \param sysdef system definition
-    \param log_suffix Name given to this instance of the force
 */
 template<class evaluator>
-PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef,
-                         const std::string& log_suffix)
+PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
-    m_log_name = std::string("external_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
@@ -101,40 +90,11 @@ PotentialExternal<evaluator>::~PotentialExternal()
     m_pdata->getNumTypesChangeSignal().template disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
-/*! PotentialExternal provides
-    - \c external_"name"_energy
-*/
-template<class evaluator>
-std::vector< std::string > PotentialExternal<evaluator>::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template<class evaluator>
-Scalar PotentialExternal<evaluator>::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "external." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
-    }
-
 /*! Computes the specified constraint forces
     \param timestep Current timestep
 */
 template<class evaluator>
-void PotentialExternal<evaluator>::computeForces(unsigned int timestep)
+void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     {
 
     if (m_prof) m_prof->push("PotentialExternal");
@@ -246,8 +206,8 @@ void PotentialExternal<evaluator>::setField(field_type field)
 template < class T >
 void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
-                  .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& >())
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
+                  .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
                   .def("setParams", &T::setParams)
                   .def("setField", &T::setField)
                   ;

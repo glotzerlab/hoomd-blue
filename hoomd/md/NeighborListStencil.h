@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -12,11 +12,11 @@
     \brief Declares the NeighborListStencil class
 */
 
-#ifdef NVCC
+#ifdef __HIPCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLISTSTENCIL_H__
 #define __NEIGHBORLISTSTENCIL_H__
@@ -31,20 +31,18 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                            Scalar r_cut,
-                            Scalar r_buff,
-                            std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
-                            std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
+        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborListStencil();
 
-        //! Change the cutoff radius for all pairs
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-
-        //! Set the cutoff radius by pair type
-        virtual void setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut);
+        /// Notify NeighborList that a r_cut matrix value has changed
+        virtual void notifyRCutMatrixChange()
+            {
+            m_update_cell_size = true;
+            m_needs_restencil = true;
+            NeighborList::notifyRCutMatrixChange();
+            }
 
         //! Change the underlying cell width
         void setCellWidth(Scalar cell_width)
@@ -54,23 +52,48 @@ class PYBIND11_EXPORT NeighborListStencil : public NeighborList
             m_cl->setNominalWidth(cell_width);
             }
 
-        //! Set the maximum diameter to use in computing neighbor lists
-        virtual void setMaximumDiameter(Scalar d_max);
+        void setDeterministic(bool deterministic)
+            {
+            m_cl->setSortCellList(deterministic);
+            }
+
+        bool getDeterministic()
+            {
+            return m_cl->getSortCellList();
+            }
+
+        Scalar getCellWidth()
+            {
+            return m_cl->getNominalWidth();
+            }
+
+        #ifdef ENABLE_MPI
+
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+            {
+            // call base class method
+            NeighborList::setCommunicator(comm);
+
+            // set the communicator on the internal cell lists
+            m_cl->setCommunicator(comm);
+            m_cls->setCommunicator(comm);
+            }
+
+        #endif
 
     protected:
         //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
+        virtual void buildNlist(uint64_t timestep);
 
     private:
-        std::shared_ptr<CellList> m_cl;           //!< The cell list
-        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
-        bool m_override_cell_width;                 //!< Flag to override the cell width
+        std::shared_ptr<CellList> m_cl;          //!< The cell list
+        std::shared_ptr<CellListStencil> m_cls;  //!< The cell list stencil
+        bool m_override_cell_width = false;      //!< Flag to override the cell width
 
-        bool m_needs_restencil;                             //!< Flag for updating the stencil
-        void slotRCutChange()
-            {
-            m_needs_restencil = true;
-            }
+        bool m_needs_restencil = true;  //!< Flag for updating the stencil
+
+        /// Track when the cell size needs to be updated
+        bool m_update_cell_size = true;
 
         //! Update the stencil radius
         void updateRStencil();

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -47,10 +47,43 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
     #endif
     }
 
+Scalar ForceDistanceConstraint::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
+    {
+    // the distance constraint removes half a degree of freedom for each particle that is part
+    // of at least one side of the constraint. When both particles of a constraint are in the
+    // query group, this adds to one DOF removed for the pair
+    unsigned int half_dof_removed = 0;
+
+    unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+    unsigned int n_particles = m_pdata->getN();
+
+    for (unsigned int i = 0; i < n_constraint; i++)
+        {
+        auto constraint = m_cdata->getMembersByIndex(i);
+
+        unsigned int idx_a = h_rtag.data[constraint.tag[0]];
+        unsigned int idx_b = h_rtag.data[constraint.tag[1]];
+
+        if (idx_a < n_particles && query->isMember(idx_a))
+            half_dof_removed++;
+        if (idx_b < n_particles && query->isMember(idx_b))
+            half_dof_removed++;
+        }
+
+    #ifdef ENABLE_MPI
+    MPI_Allreduce(MPI_IN_PLACE, &half_dof_removed, 1, MPI_UNSIGNED, MPI_SUM,
+                  m_exec_conf->getMPICommunicator());
+    #endif
+
+    return half_dof_removed * 0.5;
+    }
+
+
 /*! Does nothing in the base class
     \param timestep Current timestep
 */
-void ForceDistanceConstraint::computeForces(unsigned int timestep)
+void ForceDistanceConstraint::computeForces(uint64_t timestep)
     {
     if (m_prof)
         m_prof->push("Dist constraint");
@@ -82,7 +115,7 @@ void ForceDistanceConstraint::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
-void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
+void ForceDistanceConstraint::fillMatrixVector(uint64_t timestep)
     {
     // fill the matrix in column-major order
     unsigned int n_constraint = m_cdata->getN()+m_cdata->getNGhosts();
@@ -236,7 +269,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         }
     }
 
-void ForceDistanceConstraint::checkConstraints(unsigned int timestep)
+void ForceDistanceConstraint::checkConstraints(uint64_t timestep)
     {
     unsigned int n = m_constraint_violated.readFlags();
     if (n > 0)
@@ -262,7 +295,7 @@ void ForceDistanceConstraint::checkConstraints(unsigned int timestep)
         }
     }
 
-void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
+void ForceDistanceConstraint::solveConstraints(uint64_t timestep)
     {
     // use Eigen dense matrix algebra (slow for large matrices)
     typedef Matrix<double, Dynamic, Dynamic, ColMajor> matrix_t;
@@ -372,7 +405,7 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
         m_prof->pop();
     }
 
-void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
+void ForceDistanceConstraint::computeConstraintForces(uint64_t timestep)
     {
     ArrayHandle<double> h_lagrange(m_lagrange, access_location::host, access_mode::read);
 
@@ -458,7 +491,7 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-CommFlags ForceDistanceConstraint::getRequestedCommFlags(unsigned int timestep)
+CommFlags ForceDistanceConstraint::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -593,7 +626,7 @@ void ForceDistanceConstraint::assignMoleculeTags()
 
 void export_ForceDistanceConstraint(py::module& m)
     {
-    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+    py::class_< ForceDistanceConstraint, MolecularForceCompute, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint")
         .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;

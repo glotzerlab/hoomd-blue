@@ -1,4 +1,20 @@
-python:
-   version: 3
-   setup_py_install: false
+version: 2
 
+python:
+  version: 3.7
+
+conda:
+    environment: sphinx-doc/environment.yml
+
+sphinx:
+  configuration: sphinx-doc/conf.py
+  fail_on_warning: true
+
+formats:
+  - htmlzip
+
+build:
+  image: stable
+
+submodules:
+  include: all

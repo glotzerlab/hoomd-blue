@@ -1,4 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+#include "hip/hip_runtime.h"
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -35,8 +36,8 @@ using namespace hoomd;
     \param d_angmom Device array of transformed angular momentum quaternion of each particle (see online documentation)
     \param d_gamma List of per-type gammas
     \param n_types Number of particle types in the simulation
-    \param use_lambda If true, gamma = lambda * diameter
-    \param lambda Scale factor to convert diameter to lambda (when use_lambda is true)
+    \param use_alpha If true, gamma = alpha * diameter
+    \param alpha Scale factor to convert diameter to alpha (when use_alpha is true)
     \param timestep Current timestep of the simulation
     \param seed User chosen random number seed
     \param T Temperature set point
@@ -68,10 +69,10 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   Scalar4 *d_angmom,
                                   const Scalar *d_gamma,
                                   const unsigned int n_types,
-                                  const bool use_lambda,
-                                  const Scalar lambda,
-                                  const unsigned int timestep,
-                                  const unsigned int seed,
+                                  const bool use_alpha,
+                                  const Scalar alpha,
+                                  const uint64_t timestep,
+                                  const uint16_t seed,
                                   const Scalar T,
                                   const bool aniso,
                                   const Scalar deltaT,
@@ -80,12 +81,12 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                                   const bool d_noiseless_r,
                                   const unsigned int offset)
     {
-    extern __shared__ char s_data[];
+    HIP_DYNAMIC_SHARED( char, s_data)
 
     Scalar3 *s_gammas_r = (Scalar3 *)s_data;
     Scalar *s_gammas = (Scalar *)(s_gammas_r + n_types);
 
-    if (!use_lambda)
+    if (!use_alpha)
         {
         // read in the gamma (1 dimensional array), stored in s_gammas[0: n_type] (Pythonic convention)
         for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -123,7 +124,8 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        RandomGenerator rng(RNGIdentifier::TwoStepBD, seed, ptag, timestep);
+        RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+                            hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
         Scalar rx = uniform(rng);
         Scalar ry = uniform(rng);
@@ -131,10 +133,10 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
 
         // calculate the magnitude of the random force
         Scalar gamma;
-        if (use_lambda)
+        if (use_alpha)
             {
             // determine gamma from diameter
-            gamma = lambda*d_diameter[idx];
+            gamma = alpha*d_diameter[idx];
             }
         else
             {
@@ -272,7 +274,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
 
     This is just a driver for gpu_brownian_step_one_kernel(), see it for details.
 */
-cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
+hipError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                   Scalar4 *d_vel,
                                   int3 *d_image,
                                   const BoxDim& box,
@@ -309,8 +311,7 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
         dim3 threads(run_block_size, 1, 1);
 
         // run the kernel
-        gpu_brownian_step_one_kernel<<< grid, threads, (unsigned int)(sizeof(Scalar)*langevin_args.n_types + sizeof(Scalar3)*langevin_args.n_types)>>>
-                                    (d_pos,
+        hipLaunchKernelGGL((gpu_brownian_step_one_kernel), dim3(grid), dim3(threads), (unsigned int)(sizeof(Scalar)*langevin_args.n_types + sizeof(Scalar3)*langevin_args.n_types), 0, d_pos,
                                      d_vel,
                                      d_image,
                                      box,
@@ -326,8 +327,8 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                      d_angmom,
                                      langevin_args.d_gamma,
                                      langevin_args.n_types,
-                                     langevin_args.use_lambda,
-                                     langevin_args.lambda,
+                                     langevin_args.use_alpha,
+                                     langevin_args.alpha,
                                      langevin_args.timestep,
                                      langevin_args.seed,
                                      langevin_args.T,
@@ -339,5 +340,5 @@ cudaError_t gpu_brownian_step_one(Scalar4 *d_pos,
                                      range.first);
         }
 
-    return cudaSuccess;
+    return hipSuccess;
     }

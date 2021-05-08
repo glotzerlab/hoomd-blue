@@ -1,8 +1,5 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-
-// Maintainer: joaander
 
 #include "TwoStepBDGPU.h"
 #include "TwoStepBDGPU.cuh"
@@ -15,26 +12,16 @@ namespace py = pybind11;
 
 using namespace std;
 
-/*! \file TwoStepBDGPU.h
-    \brief Contains code for the TwoStepBDGPU class
-*/
-
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param T Temperature set point as a function of time
-    \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
 */
 TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T,
-                           unsigned int seed,
-                           bool use_lambda,
-                           Scalar lambda,
-                           bool noiseless_t,
-                           bool noiseless_r)
-    : TwoStepBD(sysdef, group, T, seed, use_lambda, lambda, noiseless_t, noiseless_r)
+                           std::shared_ptr<Variant> T)
+    : TwoStepBD(sysdef, group, T)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -48,7 +35,7 @@ TwoStepBDGPU::TwoStepBDGPU(std::shared_ptr<SystemDefinition> sysdef,
 /*! \param timestep Current time step
     \post Particle positions are moved forward a full time step and velocities are redrawn from the proper distribution.
 */
-void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
+void TwoStepBDGPU::integrateStepOne(uint64_t timestep)
     {
     // profile this step
     if (m_prof)
@@ -79,12 +66,12 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     langevin_step_two_args args;
     args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
-    args.use_lambda = m_use_lambda;
-    args.lambda = m_lambda;
-    args.T = m_T->getValue(timestep);
+    args.n_types = (unsigned int)m_gamma.getNumElements();
+    args.use_alpha = m_use_alpha;
+    args.alpha = m_alpha;
+    args.T = (*m_T)(timestep);
     args.timestep = timestep;
-    args.seed = m_seed;
+    args.seed = m_sysdef->getSeed();
     args.d_sum_bdenergy = NULL;
     args.d_partial_sum_bdenergy = NULL;
     args.block_size = m_block_size;
@@ -93,6 +80,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 
     bool aniso = m_aniso;
 
+    #ifdef __HIP_PLATFORM_NVCC__
     if (m_exec_conf->allConcurrentManagedAccess())
         {
         // prefetch gammas
@@ -105,6 +93,7 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
+    #endif
 
     m_exec_conf->beginMultiGPU();
 
@@ -144,21 +133,16 @@ void TwoStepBDGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepBDGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepBDGPU::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2
     }
 
 void export_TwoStepBDGPU(py::module& m)
     {
-    py::class_<TwoStepBDGPU, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU", py::base<TwoStepBD>())
+    py::class_<TwoStepBDGPU, TwoStepBD, std::shared_ptr<TwoStepBDGPU> >(m, "TwoStepBDGPU")
         .def(py::init< std::shared_ptr<SystemDefinition>,
                                std::shared_ptr<ParticleGroup>,
-                               std::shared_ptr<Variant>,
-                               unsigned int,
-                               bool,
-                               Scalar,
-                               bool,
-                               bool>())
+                               std::shared_ptr<Variant>>())
         ;
     }

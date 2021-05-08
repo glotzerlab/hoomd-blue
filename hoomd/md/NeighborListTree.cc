@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -21,9 +21,8 @@ using namespace std;
 using namespace hpmc::detail;
 
 NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_cut,
                                        Scalar r_buff)
-    : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
+    : NeighborList(sysdef, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
       m_type_changed(true), m_n_images(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
@@ -43,7 +42,7 @@ NeighborListTree::~NeighborListTree()
     m_pdata->getParticleSortSignal().disconnect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
-void NeighborListTree::buildNlist(unsigned int timestep)
+void NeighborListTree::buildNlist(uint64_t timestep)
     {
     // allocate the memory as needed and sort particles
     setupTree();
@@ -388,7 +387,7 @@ void NeighborListTree::traverseTree()
 
 void export_NeighborListTree(py::module& m)
     {
-    py::class_<NeighborListTree, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree", py::base<NeighborList>())
-    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListTree, NeighborList, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree")
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
                      ;
     }

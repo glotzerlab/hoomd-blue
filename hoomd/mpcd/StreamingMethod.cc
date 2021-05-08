@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -51,7 +51,7 @@ mpcd::StreamingMethod::~StreamingMethod()
  * Using a multiple allows the streaming method to be disabled and then reenabled later if the \a timestep has already
  * exceeded the \a m_next_timestep.
  */
-bool mpcd::StreamingMethod::peekStream(unsigned int timestep) const
+bool mpcd::StreamingMethod::peekStream(uint64_t timestep) const
     {
     if (timestep < m_next_timestep)
         return false;
@@ -94,7 +94,7 @@ void mpcd::StreamingMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
  * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
  *       If this behavior is not desired, then use peekCollide() instead.
  */
-bool mpcd::StreamingMethod::shouldStream(unsigned int timestep)
+bool mpcd::StreamingMethod::shouldStream(uint64_t timestep)
     {
     if (peekStream(timestep))
         {

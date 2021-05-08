@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -26,80 +26,23 @@ namespace py = pybind11;
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
 NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
-                                         Scalar r_cut,
-                                         Scalar r_buff,
-                                         std::shared_ptr<CellList> cl,
-                                         std::shared_ptr<CellListStencil> cls)
-    : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
-      m_needs_restencil(true)
+                                         Scalar r_buff)
+    : NeighborList(sysdef, r_buff),
+    m_cl(std::make_shared<CellList>(sysdef)),
+    m_cls(std::make_shared<CellListStencil>(sysdef, m_cl))
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListStencil" << endl;
-
-    // create a default cell list if one was not specified
-    if (!m_cl)
-        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
-
-    // construct the cell list stencil generator for the current cell list
-    if (!m_cls)
-        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
     m_cl->setComputeAdjList(false);
 
-    // call this class's special setRCut
-    setRCut(r_cut, r_buff);
-
-    getRCutChangeSignal().connect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
     }
 
 NeighborListStencil::~NeighborListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListStencil" << endl;
-    getRCutChangeSignal().disconnect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
-    }
-
-void NeighborListStencil::setRCut(Scalar r_cut, Scalar r_buff)
-    {
-    NeighborList::setRCut(r_cut, r_buff);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
-    }
-
-void NeighborListStencil::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cut)
-    {
-    NeighborList::setRCutPair(typ1,typ2,r_cut);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
-    }
-
-void NeighborListStencil::setMaximumDiameter(Scalar d_max)
-    {
-    NeighborList::setMaximumDiameter(d_max);
-
-    if (!m_override_cell_width)
-        {
-        Scalar rmin = getMinRCut() + m_r_buff;
-        if (m_diameter_shift)
-            rmin += m_d_max - Scalar(1.0);
-
-        m_cl->setNominalWidth(rmin);
-        }
     }
 
 void NeighborListStencil::updateRStencil()
@@ -120,8 +63,23 @@ void NeighborListStencil::updateRStencil()
     m_cls->setRStencil(rstencil);
     }
 
-void NeighborListStencil::buildNlist(unsigned int timestep)
+void NeighborListStencil::buildNlist(uint64_t timestep)
     {
+    if (m_update_cell_size)
+        {
+        // update the cell size if the user has not forced a specific size
+        if (!m_override_cell_width)
+            {
+            Scalar rmin = getMinRCut() + m_r_buff;
+            if (m_diameter_shift)
+                rmin += m_d_max - Scalar(1.0);
+
+            m_cl->setNominalWidth(rmin);
+            }
+
+        m_update_cell_size = false;
+        }
+
     m_cl->compute(timestep);
 
     // update the stencil radii if there was a change
@@ -165,8 +123,17 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (this->m_sysdef->getNDimensions() == 3 && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
         {
-        m_exec_conf->msg->error() << "nlist: Simulation box is too small! Particles would be interacting with themselves." << endl;
-        throw runtime_error("Error updating neighborlist bins");
+        std::ostringstream oss;
+        oss << "nlist: Simulation box is too small! Particles would be interacting with themselves."
+            << "rmax=" << rmax << std::endl;
+
+        if (box.getPeriodic().x)
+            oss << "nearest_plane_distance.x=" << nearest_plane_distance.x << std::endl;
+        if (box.getPeriodic().y)
+            oss << "nearest_plane_distance.y=" << nearest_plane_distance.y << std::endl;
+        if (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z)
+            oss << "nearest_plane_distance.z=" << nearest_plane_distance.z << std::endl;
+        throw std::runtime_error(oss.str());
         }
 
     // access the rlist data
@@ -343,7 +310,10 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
 
 void export_NeighborListStencil(py::module& m)
     {
-    py::class_<NeighborListStencil, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil", py::base<NeighborList>())
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
-        .def("setCellWidth", &NeighborListStencil::setCellWidth);
+    py::class_<NeighborListStencil, NeighborList, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil")
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar>())
+        .def_property("cell_width", &NeighborListStencil::getCellWidth,
+                      &NeighborListStencil::setCellWidth)
+        .def_property("deterministic", &NeighborListStencil::getDeterministic,
+                &NeighborListStencil::setDeterministic);
     }

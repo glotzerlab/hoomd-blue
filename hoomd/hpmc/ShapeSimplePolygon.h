@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -16,7 +16,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -39,7 +39,10 @@ namespace hpmc
 struct ShapeSimplePolygon
     {
     //! Define the parameter type
-    typedef detail::poly2d_verts param_type;
+    typedef detail::PolygonVertices param_type;
+
+    //! Temporary storage for depletant insertion
+    typedef struct {} depletion_storage_type;
 
     //! Initialize a polygon
     DEVICE ShapeSimplePolygon(const quat<Scalar>& _orientation, const param_type& _params)
@@ -67,7 +70,7 @@ struct ShapeSimplePolygon
         return Scalar(0.0);
         }
 
-    #ifndef NVCC
+    #ifndef __HIPCC__
     std::string getShapeSpec() const
         {
         std::ostringstream shapedef;
@@ -87,12 +90,25 @@ struct ShapeSimplePolygon
         return detail::AABB(pos, verts.diameter/Scalar(2));
         }
 
+    //! Return a tight fitting OBB
+    DEVICE detail::OBB getOBB(const vec3<Scalar>& pos) const
+        {
+        // just use the AABB for now
+        return detail::OBB(getAABB(pos));
+        }
+
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
     HOSTDEVICE static bool isParallel() { return false; }
 
+    //! Retrns true if the overlap check supports sweeping both shapes by a sphere of given radius
+    HOSTDEVICE static bool supportsSweepRadius()
+        {
+        return false;
+        }
+
     quat<Scalar> orientation;    //!< Orientation of the polygon
 
-    const detail::poly2d_verts& verts;     //!< Vertices
+    const detail::PolygonVertices& verts;     //!< Vertices
     };
 
 namespace detail
@@ -107,7 +123,7 @@ namespace detail
 
     \ingroup overlap
 */
-DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const poly2d_verts& verts)
+DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const PolygonVertices& verts)
     {
     // code for concave test from: http://alienryderflex.com/polygon/
     unsigned int nvert = verts.N;
@@ -135,7 +151,7 @@ DEVICE inline bool is_inside(const vec2<OverlapReal>& p, const poly2d_verts& ver
 //! Test if 3 points are in ccw order
 DEVICE inline unsigned int tri_orientation(const vec2<OverlapReal>& a, const vec2<OverlapReal>& b, const vec2<OverlapReal>& c)
     {
-    const OverlapReal precision_tol = 1e-6;
+    const OverlapReal precision_tol = OverlapReal(1e-6);
     OverlapReal v = ((c.y - a.y)*(b.x - a.x) - (b.y - a.y)*(c.x - a.x));
 
     if (fabs(v) < precision_tol)
@@ -219,8 +235,8 @@ DEVICE inline bool segment_intersect(const vec2<OverlapReal>& a, const vec2<Over
 
     \ingroup overlap
 */
-DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
-                                               const poly2d_verts& b,
+DEVICE inline bool test_simple_polygon_overlap(const PolygonVertices& a,
+                                               const PolygonVertices& b,
                                                const vec2<OverlapReal>& dr,
                                                const quat<OverlapReal>& qa,
                                                const quat<OverlapReal>& qb)
@@ -279,24 +295,6 @@ DEVICE inline bool test_simple_polygon_overlap(const poly2d_verts& a,
 
 }; // end namespace detail
 
-//! Check if circumspheres overlap
-/*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
-    \param a first shape
-    \param b second shape
-    \returns true if the circumspheres of both shapes overlap
-
-    \ingroup shape
-*/
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSimplePolygon& a,
-    const ShapeSimplePolygon &b)
-    {
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
-
-    OverlapReal rsq = dot(dr,dr);
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-    }
-
 //! Simple polygon overlap test
 /*!
     \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
@@ -313,7 +311,7 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                                        unsigned int& err)
     {
     // trivial rejection: first check if the circumscribing spheres overlap
-    vec2<OverlapReal> dr(r_ab.x, r_ab.y);
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
     return detail::test_simple_polygon_overlap(a.verts,
                                                b.verts,
@@ -321,6 +319,22 @@ DEVICE inline bool test_overlap<ShapeSimplePolygon,ShapeSimplePolygon>(const vec
                                                quat<OverlapReal>(a.orientation),
                                                quat<OverlapReal>(b.orientation));
     }
+
+#ifndef __HIPCC__
+template<>
+inline std::string getShapeSpec(const ShapeSimplePolygon& poly)
+    {
+    std::ostringstream shapedef;
+    auto& verts = poly.verts;
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << poly.verts.sweep_radius << ", \"vertices\": [";
+    for (unsigned int i = 0; i < verts.N-1; i++)
+        {
+        shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
+        }
+    shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+    return shapedef.str();
+    }
+#endif
 
 }; // end namespace hpmc
 

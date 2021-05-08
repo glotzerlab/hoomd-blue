@@ -1,9 +1,8 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
 // Maintainer: joaander
-
 
 #include "ConstForceCompute.h"
 
@@ -224,13 +223,13 @@ void ConstForceCompute::rearrangeForces()
 /*! This function calls rearrangeForces() whenever the particles have been sorted
     \param timestep Current timestep
 */
-void ConstForceCompute::computeForces(unsigned int timestep)
+void ConstForceCompute::computeForces(uint64_t timestep)
     {
     if (m_particles_sorted || m_need_rearrange_forces)
         rearrangeForces();
 
     // execute python callback to update the forces, if present
-    if (m_callback && m_callback != py::none())
+    if (m_callback && !m_callback.is(py::none()))
         {
         m_callback(timestep);
         }
@@ -239,7 +238,7 @@ void ConstForceCompute::computeForces(unsigned int timestep)
 
 void export_ConstForceCompute(py::module& m)
     {
-    py::class_< ConstForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute",py::base<ForceCompute>())
+    py::class_< ConstForceCompute, ForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute")
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)

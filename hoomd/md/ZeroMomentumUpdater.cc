@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -34,8 +34,9 @@ ZeroMomentumUpdater::~ZeroMomentumUpdater()
 /*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation
 */
-void ZeroMomentumUpdater::update(unsigned int timestep)
+void ZeroMomentumUpdater::update(uint64_t timestep)
     {
+    Updater::update(timestep);
     if (m_prof) m_prof->push("ZeroMomentum");
 
     // calculate the average momentum
@@ -98,7 +99,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 
 void export_ZeroMomentumUpdater(py::module& m)
     {
-    py::class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater", py::base<Updater>())
+    py::class_<ZeroMomentumUpdater, Updater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater")
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

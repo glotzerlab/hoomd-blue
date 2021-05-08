@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,7 @@
 #ifndef __PAIR_EVALUATOR_DPD_H__
 #define __PAIR_EVALUATOR_DPD_H__
 
-#ifndef NVCC
+#ifndef __HIPCC__
 #include <string>
 #endif
 
@@ -23,7 +23,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
-#ifdef NVCC
+#ifdef __HIPCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -73,7 +73,51 @@ class EvaluatorPairDPDThermo
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        struct param_type
+            {
+            Scalar A;
+            Scalar gamma;
+
+            #ifdef ENABLE_HIP
+            // CUDA memory hints
+            void set_memory_hints() const {}
+            #endif
+            #ifndef __HIPCC__
+            param_type() : A(0), gamma(0) {}
+
+            param_type(pybind11::dict v)
+                {
+                A = v["A"].cast<Scalar>();
+                // protect against a user setting gamma to 0 in dpd
+                if (v.contains("gamma"))
+                    {
+                    auto gam = v["gamma"].cast<Scalar>();
+                    if (gam == 0)
+                        throw std::invalid_argument("Cannot set gamma to 0 in DPD, try using DPDConservative instead.");
+                    else
+                        gamma = gam;
+                    }
+                else
+                    gamma = 0;
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict v;
+                v["A"] = A;
+                if (gamma != 0.0)
+                    {
+                    v["gamma"] = gamma;
+                    }
+                return v;
+                }
+            #endif
+            }
+            #ifdef SINGLE_PRECISION
+            __attribute__((aligned(8)));
+            #else
+            __attribute__((aligned(16)));
+            #endif
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance between the particles
@@ -81,12 +125,12 @@ class EvaluatorPairDPDThermo
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairDPDThermo(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), a(_params.x), gamma(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), a(_params.A), gamma(_params.gamma)
             {
             }
 
         //! Set i and j, (particle tags), and the timestep
-        DEVICE void set_seed_ij_timestep(unsigned int seed, unsigned int i, unsigned int j, unsigned int timestep)
+        DEVICE void set_seed_ij_timestep(uint16_t seed, unsigned int i, unsigned int j, uint64_t timestep)
             {
             m_seed = seed;
             m_i = i;
@@ -196,7 +240,8 @@ class EvaluatorPairDPDThermo
                    m_oj = m_j;
                    }
 
-                hoomd::RandomGenerator rng(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_seed, m_oi, m_oj, m_timestep);
+                hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::EvaluatorPairDPDThermo, m_timestep, m_seed),
+                                           hoomd::Counter(m_oi, m_oj));
 
                 // Generate a single random number
                 Scalar alpha = hoomd::UniformDistribution<Scalar>(-1,1)(rng);
@@ -224,10 +269,9 @@ class EvaluatorPairDPDThermo
                 return false;
             }
 
-        #ifndef NVCC
+        #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {
@@ -245,10 +289,10 @@ class EvaluatorPairDPDThermo
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar a;       //!< a parameter for potential extracted from params by constructor
         Scalar gamma;   //!< gamma parameter for potential extracted from params by constructor
-        unsigned int m_seed; //!< User set seed for thermostat PRNG
+        uint16_t m_seed; //!< User set seed for thermostat PRNG
         unsigned int m_i;   //!< index of first particle (should it be tag?).  For use in PRNG
         unsigned int m_j;   //!< index of second particle (should it be tag?). For use in PRNG
-        unsigned int m_timestep; //!< timestep for use in PRNG
+        uint64_t m_timestep; //!< timestep for use in PRNG
         Scalar m_T;         //!< Temperature for Themostat
         Scalar m_dot;       //!< Velocity difference dotted with displacement vector
         Scalar m_deltaT;   //!<  timestep size stored from constructor

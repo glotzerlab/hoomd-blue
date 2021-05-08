@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2019 The Regents of the University of Michigan
+// Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -15,9 +15,8 @@
  * \param sysdef System definition
  * \param cl MPCD cell list
  */
-mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                                                 const std::string& suffix)
-    : mpcd::CellThermoCompute(sysdata, suffix), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
+mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemData> sysdata)
+    : mpcd::CellThermoCompute(sysdata), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
     {
     // construct a range of valid tuner parameters using the block size and number of threads per particle
     std::vector<unsigned int> valid_params;
@@ -329,8 +328,7 @@ void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellThermoComputeGPU, std::shared_ptr<mpcd::CellThermoComputeGPU> >
-        (m, "CellThermoComputeGPU", py::base<mpcd::CellThermoCompute>())
-        .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
+    py::class_<mpcd::CellThermoComputeGPU, mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoComputeGPU> >
+        (m, "CellThermoComputeGPU")
+        .def(py::init< std::shared_ptr<mpcd::SystemData> >());
     }
