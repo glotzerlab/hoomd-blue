@@ -128,9 +128,9 @@ class Rigid(Constraint):
     simulation box. In body space, the center of mass of the body is at 0,0,0
     and the moment of inertia is diagonal. You specify the constituent particles
     to `Rigid` for each type of body in body coordinates. Then,
-    :py:class:`Rigid` takes control of those particles, and sets their position
+    `Rigid` takes control of those particles, and sets their position
     and orientation in the simulation box relative to the position and
-    orientation of the central particle. :py:class:`Rigid` also transfers forces
+    orientation of the central particle. `Rigid` also transfers forces
     and torques from constituent particles to the central particle. Then, MD
     integrators can use these forces and torques to integrate the equations of
     motion of the central particles (representing the whole rigid body) forward
@@ -138,7 +138,7 @@ class Rigid(Constraint):
 
     .. rubric:: Defining bodies
 
-    :py:class:`Rigid` accepts one local body environment per body type. The
+    `Rigid` accepts one local body definition per body type. The
     type of a body is the particle type of the central particle in that body.
     In this way, each particle of type *R* in the system configuration defines
     a body of type *R*.
@@ -146,14 +146,13 @@ class Rigid(Constraint):
     As a convenience, you do not need to create placeholder entries for all of
     the constituent particles in your initial configuration. You only need to
     specify the positions and orientations of all the central particles. When
-    you call :py:meth:`create_bodies()`, it will create all constituent
-    particles that do not exist. (those that already exist e.g. in a restart
-    file are left unchanged).
+    you call `~.create_bodies`, it will create all constituent particles.
 
-    .. danger:: Automatic creation of constituent particles can change particle
-    tags. If bonds have been defined between particles in the initial
-    configuration, or bonds connect to constituent particles, rigid bodies
-    should be created manually.
+    Warning:
+        Automatic creation of constituent particles can change particle tags. If
+        bonds have been defined between particles in the initial configuration,
+        or bonds connect to constituent particles, rigid bodies should be
+        created manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
@@ -164,12 +163,7 @@ class Rigid(Constraint):
     set the ``body`` field for each of the particles in the rigid body to the
     tag of the central particle (for both the central and constituent
     particles). Set ``body`` to -1 for particles that do not belong to a rigid
-    body. After setting an initial configuration that contains properly defined
-    bodies and all their constituent particles, call :py:meth:`validate_bodies`
-    to verify that the bodies are defined and prepare the constraint.
-
-    You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies`
-    prior to starting a simulation :py:meth:`hoomd.Simulation.run`.
+    body.
 
     .. rubric:: Integrating bodies
 
@@ -180,8 +174,9 @@ class Rigid(Constraint):
 
     Example::
 
-        rigid = hoomd.group.rigid_center()
-        hoomd.md.integrate.langevin(group=rigid, kT=1.0)
+        rigid_centers_and_free_filter = hoomd.filter.Rigid(("center", "free"))
+        langevin = hoomd.md.methods.Langevin(
+            filter=rigid_centers_and_free_filter, kT=1.0)
 
 
     .. rubric:: Thermodynamic quantities of bodies
@@ -195,12 +190,12 @@ class Rigid(Constraint):
 
     .. rubric:: Restarting simulations with rigid bodies.
 
-    To restart, use :py:class:`hoomd.write.GSD` to write restart files. GSD
+    To restart, use `hoomd.write.GSD` to write restart files. GSD
     stores all of the particle data fields needed to reconstruct the state of
     the system, including the body tag, rotational momentum, and orientation of
     the body. Restarting from a gsd file is equivalent to manual constituent
     particle creation. You still need to specify the same local body space
-    environment to :py:class:`Rigid` as you did in the earlier simulation.
+    environment to `Rigid` as you did in the earlier simulation.
 
     Set constituent particle types and coordinates for a rigid body.
 
@@ -221,20 +216,25 @@ class Rigid(Constraint):
         If it does not exist, it can be created on the fly using
         ``system.particles.types.add('A_const')``.
 
-    Example::
-
+    Example:
         rigid = constrain.Rigid()
-        rigid.set_param(
-            'A',
-            types = ['A_const', 'A_const'],
-            positions = [(0,0,1),(0,0,-1)]
-            )
-        rigid.set_param(
-            'B',
-            types = ['B_const', 'B_const'],
-            positions = [(0,0,.5),(0,0,-.5)]
-            )
+        rigid.body['A'] = {
+            "types": ['A_const', 'A_const'],
+            "positions": [(0,0,1),(0,0,-1)],
+            "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
+            "charges": [0.0, 0.0],
+            "diameters": [1.0, 1.0]
+            }
+        rigid.body['B'] = {
+            "types": ['B_const', 'B_const'],
+            "positions": [(0,0,.5),(0,0,-.5)],
+            "orientations": [(1.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0, 0.0)],
+            "charges": [0.0, 1.0],
+            "diameters": [1.5, 1.0]
+            }
 
+        # Can set rigid body definition to be None explicitly.
+        rigid.body["A"] = None
     """
 
     _cpp_class_name = "ForceComposite"

@@ -352,6 +352,7 @@ class Active(Force):
         active.active_force['A','B'] = (1,0,0)
         active.active_torque['A','B'] = (0,0,0)
     """
+
     def __init__(self, filter, rotation_diff=0.1):
         # store metadata
         param_dict = ParameterDict(
