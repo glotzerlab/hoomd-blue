@@ -17,7 +17,7 @@
 
 #ifndef NVCC
 #include "hoomd/ExecutionConfiguration.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 #endif
 
 /*! \file EvaluatorPairALJ.h
@@ -524,7 +524,7 @@ class EvaluatorPairALJ
                   alpha(params["alpha"].cast<unsigned int>()),
                   average_simplices(params["average_simplices"].cast<bool>()) {}
 
-			
+
             pybind11::object toPython()
                 {
                 using namespace pybind11::literals;
@@ -625,7 +625,7 @@ class EvaluatorPairALJ
                     face_offsets[i+1] = face_offsets[i] + static_cast<unsigned int>(len(faces_tmp));
                     }
                 pybind11::list faces_tmp = pybind11::cast<pybind11::list>(faces_[N-1]);
-                const unsigned int total_face_indices = face_offsets[N-1] + 
+                const unsigned int total_face_indices = face_offsets[N-1] +
                     static_cast<unsigned int>(len(faces_tmp));
 
                 faces = ManagedArray<unsigned int>(total_face_indices, use_device);
