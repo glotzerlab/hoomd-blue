@@ -50,15 +50,25 @@
 #include "TablePotential.h"
 #include "TempRescaleUpdater.h"
 #include "TwoStepBD.h"
+#include "TwoStepRATTLEBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevinBase.h"
 #include "TwoStepLangevin.h"
+#include "TwoStepRATTLELangevin.h"
 #include "TwoStepNPTMTK.h"
+#include "TwoStepRATTLENVE.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVTMTK.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
+#include "ManifoldZCylinder.h"
+#include "ManifoldDiamond.h"
+#include "ManifoldEllipsoid.h"
+#include "ManifoldGyroid.h"
+#include "ManifoldXYPlane.h"
+#include "ManifoldPrimitive.h"
+#include "ManifoldSphere.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
@@ -93,9 +103,12 @@
 #include "TableDihedralForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "TwoStepBDGPU.h"
+#include "TwoStepRATTLEBDGPU.h"
 #include "TwoStepBerendsenGPU.h"
 #include "TwoStepLangevinGPU.h"
+#include "TwoStepRATTLELangevinGPU.h"
 #include "TwoStepNPTMTKGPU.h"
+#include "TwoStepRATTLENVEGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
 #include "MuellerPlatheFlowGPU.h"
@@ -362,6 +375,31 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
 
+    //RATTLE
+    export_TwoStepRATTLEBD<ManifoldZCylinder>(m,"TwoStepRATTLEBDCylinder");
+    export_TwoStepRATTLEBD<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamond");
+    export_TwoStepRATTLEBD<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoid");
+    export_TwoStepRATTLEBD<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroid");
+    export_TwoStepRATTLEBD<ManifoldXYPlane>(m,"TwoStepRATTLEBDPlane");
+    export_TwoStepRATTLEBD<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitive");
+    export_TwoStepRATTLEBD<ManifoldSphere>(m,"TwoStepRATTLEBDSphere");
+
+    export_TwoStepRATTLELangevin<ManifoldZCylinder>(m,"TwoStepRATTLELangevinCylinder");
+    export_TwoStepRATTLELangevin<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamond");
+    export_TwoStepRATTLELangevin<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoid");
+    export_TwoStepRATTLELangevin<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroid");
+    export_TwoStepRATTLELangevin<ManifoldXYPlane>(m,"TwoStepRATTLELangevinPlane");
+    export_TwoStepRATTLELangevin<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitive");
+    export_TwoStepRATTLELangevin<ManifoldSphere>(m,"TwoStepRATTLELangevinSphere");
+
+    export_TwoStepRATTLENVE<ManifoldZCylinder>(m,"TwoStepRATTLENVECylinder");
+    export_TwoStepRATTLENVE<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamond");
+    export_TwoStepRATTLENVE<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoid");
+    export_TwoStepRATTLENVE<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroid");
+    export_TwoStepRATTLENVE<ManifoldXYPlane>(m,"TwoStepRATTLENVEPlane");
+    export_TwoStepRATTLENVE<ManifoldPrimitive>(m,"TwoStepRATTLENVEPrimitive");
+    export_TwoStepRATTLENVE<ManifoldSphere>(m,"TwoStepRATTLENVESphere");
+
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);
     export_TwoStepNVTMTKGPU(m);
@@ -373,5 +411,39 @@ PYBIND11_MODULE(_md, m)
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
+
+    export_TwoStepRATTLEBDGPU<ManifoldZCylinder>(m,"TwoStepRATTLEBDCylinderGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldDiamond>(m,"TwoStepRATTLEBDDiamondGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldEllipsoid>(m,"TwoStepRATTLEBDEllipsoidGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldGyroid>(m,"TwoStepRATTLEBDGyroidGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldXYPlane>(m,"TwoStepRATTLEBDPlaneGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldPrimitive>(m,"TwoStepRATTLEBDPrimitiveGPU");
+    export_TwoStepRATTLEBDGPU<ManifoldSphere>(m,"TwoStepRATTLEBDSphereGPU");
+
+    export_TwoStepRATTLELangevinGPU<ManifoldZCylinder>(m,"TwoStepRATTLELangevinCylinderGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldDiamond>(m,"TwoStepRATTLELangevinDiamondGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldEllipsoid>(m,"TwoStepRATTLELangevinEllipsoidGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldGyroid>(m,"TwoStepRATTLELangevinGyroidGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldXYPlane>(m,"TwoStepRATTLELangevinPlaneGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldPrimitive>(m,"TwoStepRATTLELangevinPrimitiveGPU");
+    export_TwoStepRATTLELangevinGPU<ManifoldSphere>(m,"TwoStepRATTLELangevinSphereGPU");
+
+    export_TwoStepRATTLENVEGPU<ManifoldZCylinder>(m,"TwoStepRATTLENVECylinderGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldDiamond>(m,"TwoStepRATTLENVEDiamondGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldEllipsoid>(m,"TwoStepRATTLENVEEllipsoidGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldGyroid>(m,"TwoStepRATTLENVEGyroidGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldXYPlane>(m,"TwoStepRATTLENVEPlaneGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldPrimitive>(m,"TwoStepRATTLENVEPrimitiveGPU");
+    export_TwoStepRATTLENVEGPU<ManifoldSphere>(m,"TwoStepRATTLENVESphereGPU");
 #endif
+
+    // manifolds 
+    export_ManifoldZCylinder(m);
+    export_ManifoldDiamond(m);
+    export_ManifoldEllipsoid(m);
+    export_ManifoldGyroid(m);
+    export_ManifoldXYPlane(m);
+    export_ManifoldPrimitive(m);
+    export_ManifoldSphere(m);
+
     }

@@ -20,6 +20,13 @@ set(_md_sources module-md.cc
                    HarmonicImproperForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   ManifoldZCylinder.cc
+                   ManifoldDiamond.cc
+                   ManifoldEllipsoid.cc
+                   ManifoldGyroid.cc
+                   ManifoldXYPlane.cc
+                   ManifoldPrimitive.cc
+                   ManifoldSphere.cc
                    MolecularForceCompute.cc
                    NeighborListBinned.cc
                    NeighborList.cc
@@ -120,6 +127,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                ManifoldZCylinder.h
+                ManifoldDiamond.h
+                ManifoldEllipsoid.h
+                ManifoldGyroid.h
+                ManifoldXYPlane.h
+                ManifoldPrimitive.h
+                ManifoldSphere.h
                 MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h
@@ -159,14 +173,23 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
                 TwoStepBDGPU.h
+                TwoStepRATTLEBDGPU.h
+                TwoStepRATTLEBDGPU.cuh
                 TwoStepBD.h
+                TwoStepRATTLEBD.h
                 TwoStepBerendsenGPU.h
                 TwoStepBerendsen.h
                 TwoStepLangevinBase.h
                 TwoStepLangevinGPU.h
+                TwoStepRATTLELangevinGPU.h
+                TwoStepRATTLELangevinGPU.cuh
                 TwoStepLangevin.h
+                TwoStepRATTLELangevin.h
                 TwoStepNPTMTKGPU.h
                 TwoStepNPTMTK.h
+                TwoStepRATTLENVEGPU.h
+                TwoStepRATTLENVEGPU.cuh
+                TwoStepRATTLENVE.h
                 TwoStepNVEGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
@@ -265,11 +288,20 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepBDGPU.cu
                       TwoStepBerendsenGPU.cu
                       TwoStepLangevinGPU.cu
+		      TwoStepRATTLELangevinGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
+		      TwoStepRATTLENVEGPU.cu
                       TwoStepNVTMTKGPU.cu
                       MuellerPlatheFlowGPU.cu
                       CosineSqAngleForceGPU.cu
+		      all_kernels_diamond_manifold.cu
+		      all_kernels_ellipsoid_manifold.cu
+		      all_kernels_gyroid_manifold.cu
+		      all_kernels_primitive_manifold.cu
+		      all_kernels_sphere_manifold.cu
+		      all_kernels_xyplane_manifold.cu
+		      all_kernels_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
@@ -317,6 +349,7 @@ set(files __init__.py
           force.py
           improper.py
           integrate.py
+          manifold.py
           many_body.py
           methods.py
           nlist.py

@@ -463,7 +463,7 @@ hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     // run the kernel
     hipLaunchKernelGGL((gpu_langevin_step_two_kernel), grid, threads, max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
-                                d_pos,
+                                 d_pos,
                                  d_vel,
                                  d_accel,
                                  d_diameter,
