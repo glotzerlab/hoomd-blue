@@ -11,6 +11,7 @@
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace hpmc {
 
@@ -46,7 +47,7 @@ class UpdaterShape  : public Updater
             {
             Scalar volume = 0.0;
             ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-            for (unsigned int ndx = 0; ndx < m_ntypes; ndx++)
+            for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
                 {
                 detail::MassProperties<Shape> mp(m_mc->getParams()[ndx]);
                 volume += mp.getVolume()*Scalar(h_ntypes.data[ndx]);
@@ -59,18 +60,34 @@ class UpdaterShape  : public Updater
             Scalar energy = 0.0;
             ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-            for (unsigned int ndx = 0; ndx < m_ntypes; ndx++)
+            for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
                 {
                 energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[ndx], ndx, m_mc->getParams()[ndx], h_det.data[ndx]);
                 }
-            return energy
+            return energy;
             }
 
         float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
 
-        unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
+        unsigned int getAcceptedCount(unsigned int ndx)
+            {
+            unsigned int total_accepted = 0;
+            for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
+                {
+                total_accepted += m_count_accepted[ndx];
+                }
+            return total_accepted;
+            }
 
-        unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
+        unsigned int getTotalCount(unsigned int ndx)
+            {
+            unsigned int total_count = 0;
+            for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
+                {
+                total_count += m_count_total[ndx];
+                }
+            return total_count;
+            }
 
         unsigned int getAcceptedBox(unsigned int ndx) { return m_box_accepted[ndx]; }
 
@@ -91,17 +108,6 @@ class UpdaterShape  : public Updater
         void setShapeMove(std::shared_ptr< ShapeMoveBase<Shape> > move);
 
         std::shared_ptr< ShapeMoveBase<Shape> > getShapeMove();
-
-        Scalar getStepSize(unsigned int typ)
-            {
-            if(m_move_function) return m_move_function->getStepSize(typ);
-            return 0.0;
-            }
-
-        void setStepSize(unsigned int typ, Scalar stepsize)
-            {
-            if(m_move_function) m_move_function->setStepSize(typ, stepsize);
-            }
 
         Scalar getMoveRatio()
             {
@@ -183,8 +189,8 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                   bool multiphase,
                                   unsigned int numphase)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_type_select(tselect), m_nsweeps(nsweeps),
-      m_move_ratio(move_ratio*65535), m_mc(mc), m_log_boltz_function(lbf)
-      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move)
+      m_move_ratio(move_ratio*65535), m_mc(mc), m_log_boltz_function(lbf),
+      m_determinant(m_pdata->getNTypes(), m_exec_conf), m_move_function(move),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend),m_initialized(false), m_multi_phase(multiphase),
       m_num_phase(numphase), m_update_order(seed)
@@ -362,12 +368,14 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
         GPUArray< Scalar > determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
+        std::vector<Scalar> stepsize = pybind11::cast<std::vector<Scalar>>(m_move_function->getStepsize());
+
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
             // make a trial move for i
             int typ_i = m_update_order[cur_type];
             // Skip move if step size is smaller than tolerance
-            if (m_move_function->getStepSize(typ_i) < m_tol)
+            if (stepsize[typ_i] < m_tol)
                 {
                 m_exec_conf->msg->notice(5) << " Skipping moves for particle typeid=" << typ_i << ", " << cur_type << std::endl;
                 continue;
@@ -445,12 +453,14 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
         // access parameters and interaction matrix
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
+        std::vector<Scalar> stepsize = pybind11::cast<std::vector<Scalar>>(m_move_function->getStepsize());
+
         // Loop over particles corresponding to m_type_select
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             Scalar4 postype_i = h_postype.data[i];
             int typ_i = __scalar_as_int(postype_i.w);
-            if (m_move_function->getStepSize(typ_i) < m_tol)
+            if (stepsize[typ_i] < m_tol)
                 continue;
             for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
                 {
@@ -738,8 +748,6 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("getShapeParam", &UpdaterShape<Shape>::getShapeParam)
     .def("setLogBoltzmannFunction", &UpdaterShape<Shape>::setLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
-    .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
-    .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
     .def("connectGSDStateSignal", &UpdaterShape<Shape>::connectGSDStateSignal)
     .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
     .def_property("shape_move", &UpdaterShape<Shape>::getShapeMove, &UpdaterShape<Shape>::setShapeMove)
