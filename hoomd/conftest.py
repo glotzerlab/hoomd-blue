@@ -2,14 +2,21 @@ import pickle
 import pytest
 import hoomd
 import atexit
+import os
 import numpy
 import itertools
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
+pytest_plugins = ("hoomd.pytest_plugin_validate",)
+
 devices = [hoomd.device.CPU]
 if (hoomd.device.GPU.is_available()
         and len(hoomd.device.GPU.get_available_devices()) > 0):
+
+    if os.environ.get('_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_') is not None:
+        devices.pop(0)
+
     devices.append(hoomd.device.GPU)
 
 
@@ -189,30 +196,6 @@ def numpy_random_seed():
     numpy.random.seed(42)
 
 
-def pytest_addoption(parser):
-    """Add HOOMD specific options to the pytest command line.
-
-    * validate - run validation tests
-    """
-    parser.addoption(
-        "--validate",
-        action="store_true",
-        default=False,
-        help="Enable long running validation tests.",
-    )
-
-
-@pytest.fixture(autouse=True)
-def skip_validate(request):
-    """Skip validation tests by default.
-
-    Pass the command line option --validate to enable these tests.
-    """
-    if request.node.get_closest_marker('validate'):
-        if not request.config.getoption("validate"):
-            pytest.skip('Validation tests not requested.')
-
-
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
@@ -222,9 +205,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "cupy_optional: tests that should pass with and without CuPy.")
-    config.addinivalue_line(
-        "markers",
-        "validate: Tests that perform long-running validations.")
     config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
     config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
 
