@@ -1,6 +1,8 @@
 ci:
   skip: [clang-format]
 
+exclude: (?:^hoomd/extern/)
+
 repos:
 - repo: local
   hooks:
@@ -15,7 +17,9 @@ repos:
   rev: 'v3.4.0'
   hooks:
   - id: end-of-file-fixer
+    exclude_types: [svg]
   - id: trailing-whitespace
+    exclude_types: [svg]
   - id: check-json
   - id: check-yaml
     exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
@@ -24,7 +28,6 @@ repos:
   rev: 'v0.31.0'
   hooks:
   - id: yapf
-    exclude: (?:^hoomd/extern/)
 - repo: https://gitlab.com/pycqa/flake8
   rev: '3.9.1'
   hooks:
@@ -35,7 +38,6 @@ repos:
     - pep8-naming
     - flake8-docstrings
     - flake8-rst-docstrings
-    exclude: (?:^hoomd/extern/)
 - repo: https://github.com/glotzerlab/pre-commit-clang-format
   rev: v1.0.0
   hooks:
