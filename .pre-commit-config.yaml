@@ -1,5 +1,5 @@
 ci:
-    skip: [clang-format]
+  skip: [clang-format]
 
 repos:
 - repo: local
