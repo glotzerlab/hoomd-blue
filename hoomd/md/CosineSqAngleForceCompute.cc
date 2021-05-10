@@ -102,35 +102,6 @@ pybind11::dict CosineSqAngleForceCompute::getParams(std::string type)
     return params;
     }
 
-/*! AngleForceCompute provides
-    - \c angle_cosinesq_energy
-*/
-std::vector< std::string > CosineSqAngleForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back("angle_cosinesq_energy");
-    return list;
-    }
-
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar CosineSqAngleForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == string("angle_cosinesq_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "angle.cosinesq: "
-            << quantity << " is not a valid log quantity for AngleForceCompute"
-            << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */

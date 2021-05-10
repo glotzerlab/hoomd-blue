@@ -78,12 +78,6 @@ class DEM3DForceCompute : public ForceCompute
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Real getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Find the total number of vertices in the current set of shapes
         size_t numVertices() const;
 

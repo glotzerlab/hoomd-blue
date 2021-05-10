@@ -49,9 +49,6 @@ class Force(_HOOMDBaseObject):
     Initializes some loggable quantities.
     """
 
-    def _attach(self):
-        super()._attach()
-
     @log
     def energy(self):
         """float: Sum of the energy of the whole system."""

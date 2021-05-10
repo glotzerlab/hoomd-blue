@@ -1,3 +1,4 @@
+from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeconverter import RequiredArg
@@ -7,12 +8,16 @@ from copy import deepcopy
 from pytest import fixture
 
 
+def identity(x):
+    return x
+
+
 @fixture(scope='function')
 def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
                          param_dict=TypeParameterDict(
-                             foo=1, bar=lambda x: x,
+                             foo=1, bar=identity,
                              len_keys=1)
                          )
 
@@ -136,3 +141,8 @@ def test_detach(attached):
     assert detached.type_param['B'] == dict(foo=1, bar='hello')
     assert detached.param1 == 1
     assert detached.param2 == 2
+
+
+def test_pickling(full_op, attached):
+    pickling_check(full_op)
+    pickling_check(attached)

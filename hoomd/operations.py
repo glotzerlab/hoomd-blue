@@ -9,9 +9,11 @@ added and removed from a `hoomd.Simulation`.
 # destroying C++ objects) for all hoomd operations.
 
 from collections.abc import Collection
+from copy import copy
 from itertools import chain
+from functools import partial
 import hoomd.integrate
-from hoomd.data.syncedlist import SyncedList
+from hoomd.data import syncedlist
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
@@ -62,15 +64,15 @@ class Operations(Collection):
     """
 
     def __init__(self):
-        self._compute = list()
         self._scheduled = False
         self._simulation = None
-        self._updaters = SyncedList(OnlyTypes(Updater),
-                                    _triggered_op_conversion)
-        self._writers = SyncedList(OnlyTypes(Writer),
-                                   _triggered_op_conversion)
-        self._tuners = SyncedList(OnlyTypes(Tuner), lambda x: x._cpp_obj)
-        self._computes = SyncedList(OnlyTypes(Compute), lambda x: x._cpp_obj)
+        self._updaters = syncedlist.SyncedList(
+            Updater, _triggered_op_conversion)
+        self._writers = syncedlist.SyncedList(Writer, _triggered_op_conversion)
+        self._tuners = syncedlist.SyncedList(
+            Tuner, syncedlist._PartialGetAttr('_cpp_obj'))
+        self._computes = syncedlist.SyncedList(
+            Compute, syncedlist._PartialGetAttr('_cpp_obj'))
         self._integrator = None
         self._tuners.append(ParticleSorter())
 
@@ -193,6 +195,7 @@ class Operations(Collection):
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
+            self._integrator._add(self._simulation)
             self.integrator._attach()
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
@@ -302,3 +305,11 @@ class Operations(Collection):
         be modified as a standard Python list.
         """
         return self._computes
+
+    def __getstate__(self):
+        """Get the current state of the operations container for pickling."""
+        # ensure that top level changes to self.__dict__ are not propagated
+        state = copy(self.__dict__)
+        state['_simulation'] = None
+        state['_scheduled'] = False
+        return state

@@ -56,8 +56,7 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         TableAngleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                       unsigned int table_width,
-                       const std::string& log_suffix="");
+                       unsigned int table_width);
 
         //! Destructor
         virtual ~TableAngleForceCompute();
@@ -67,12 +66,6 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
                               const std::vector<Scalar> &V,
                               const std::vector<Scalar> &T
                               );
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -93,7 +86,6 @@ class PYBIND11_EXPORT TableAngleForceCompute : public ForceCompute
         unsigned int m_table_width;                 //!< Width of the tables in memory
         GPUArray<Scalar2> m_tables;                  //!< Stored V and T tables
         Index2D m_table_value;                      //!< Index table helper
-        std::string m_log_name;                     //!< Cached log name
 
         //! Actually compute the forces
         virtual void computeForces(uint64_t timestep);

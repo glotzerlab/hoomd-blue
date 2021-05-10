@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+#include <stdexcept>
 #include <pybind11/iostream.h>
 
 /** Defines on what time steps operations should be performed
@@ -70,6 +71,10 @@ class PYBIND11_EXPORT PeriodicTrigger : public Trigger
         PeriodicTrigger(uint64_t period, uint64_t phase=0)
             : Trigger(), m_period(period), m_phase(phase)
             {
+            if (m_period == 0)
+                {
+                throw std::runtime_error("Period cannot be set to 0");
+                }
             }
 
         bool compute(uint64_t timestep)

@@ -35,7 +35,7 @@
     EvaluatorPairForceShiftedLJ evaluates the function:
     \f[ V(r) = V_{LJ}(r) + \Delta V(r) \f], where
     \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+                                            \left( \frac{\sigma}{r} \right)^{6} \right] \f]
     is the standard Lennard-Jones pair potential and
     \f[ \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}}) \f].
     The constant value \f$ -\frac{1}{r} \frac{\partial V}{\partial r}(r_{\mathrm{cut}}) \f$ is
@@ -116,8 +116,7 @@ class EvaluatorPairForceShiftedLJ
 
         #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

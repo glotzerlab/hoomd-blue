@@ -35,6 +35,7 @@ class Angle(Force):
 
         super()._attach()
 
+
 class Harmonic(Angle):
     R""" Harmonic angle potential.
 

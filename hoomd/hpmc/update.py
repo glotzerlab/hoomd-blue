@@ -746,6 +746,8 @@ class Clusters(Updater):
         trigger (Trigger): Select the timesteps on which to perform cluster
             moves.
     """
+    _remove_for_pickling = Updater._remove_for_pickling + ('_cpp_cell',)
+    _skip_for_equality = Updater._skip_for_equality | {'_cpp_cell'}
 
     def __init__(self, pivot_move_ratio=0.5, flip_probability=0.5, trigger=1):
         super().__init__(trigger)
@@ -808,6 +810,7 @@ class Clusters(Updater):
             return None
         else:
             return counter.average_cluster_size
+
 
 class QuickCompress(Updater):
     """Quickly compress a hard particle system to a target box.
