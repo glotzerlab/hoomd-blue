@@ -113,6 +113,13 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             {
             }
 
+        //! Calculates force which keeps paricles on manifold in RATTLE integrators
+        /*! \param timestep Current time step
+        */
+        virtual void includeRATTLEForce(uint64_t timestep)
+            {
+            }
+
         //! Sets the profiler for the integration method to use
         void setProfiler(std::shared_ptr<Profiler> prof);
 

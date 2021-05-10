@@ -202,12 +202,15 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
 
     def _setattr_param(self, attr, value):
         old_value = self._param_dict[attr]
+        # Triggers the validation checks and type expansions
         self._param_dict[attr] = value
-        new_value = self._param_dict[attr]
         if self._attached:
+            new_value = self._param_dict[attr]
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
+                # if the parameter cannot be altered, we set it
+                # back to the original value in the dictionary
                 self._param_dict[attr] = old_value
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))

@@ -18,8 +18,8 @@ class AnisotropicPair(Pair):
     separation :math:`\vec r` and on the orientations :math:`\vec q_i`,
     :math:`q_j`, of the particles.
 
-    `AnisotropicPair` is similiar to `Pair` except it does not support the
-    `xplor` shifting mode or `r_on`.
+    `AnisotropicPair` is similar to `hoomd.md.pair.Pair` except it does not
+    support the `xplor` shifting mode or `r_on`.
 
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.
@@ -85,7 +85,7 @@ class Dipole(AnisotropicPair):
 
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
-    See `Pair` for details on how forces are calculated and the
+    See `hoomd.md.pair.Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use ``params`` dictionary to
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
