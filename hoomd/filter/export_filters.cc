@@ -1,15 +1,4 @@
 #include "export_filters.h"
-#include "ParticleFilter.h"
-#include "ParticleFilterAll.h"
-#include "ParticleFilterNull.h"
-#include "ParticleFilterIntersection.h"
-#include "ParticleFilterSetDifference.h"
-#include "ParticleFilterTags.h"
-#include "ParticleFilterType.h"
-#include "ParticleFilterUnion.h"
-#include "ParticleFilterCustom.h"
-
-#include <pybind11/pybind11.h>
 
 void export_ParticleFilters(pybind11::module& m)
     {
@@ -59,4 +48,8 @@ void export_ParticleFilters(pybind11::module& m)
                      std::shared_ptr<ParticleFilterCustom>
                     >(m, "ParticleFilterCustom")
         .def(pybind11::init<pybind11::object, pybind11::object>());
+
+    pybind11::class_<ParticleFilterRigid, ParticleFilter, std::shared_ptr<ParticleFilterRigid>>(
+            m, "ParticleFilterRigid")
+        .def(pybind11::init<pybind11::tuple>());
     };

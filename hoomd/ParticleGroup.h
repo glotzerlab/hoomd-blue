@@ -47,20 +47,6 @@ class PYBIND11_EXPORT ParticleFilterCuboid : public ParticleFilter
         Scalar3 m_max;     //!< Maximum type to select (exclusive)
     };
 
-//! Select particles based on their rigid body
-class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
-    {
-    public:
-        //! Constructs the selector
-        ParticleFilterRigid(bool rigid);
-        virtual ~ParticleFilterRigid() {}
-
-        //! Test if a particle meets the selection criteria
-        virtual std::vector<unsigned int> getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const;
-    protected:
-        bool m_rigid;   //!< true if we should select particles in rigid bodies, false if we should select non-rigid particles
-    };
-
 //! Select particles based on their body
 class PYBIND11_EXPORT ParticleFilterBody : public ParticleFilter
     {
