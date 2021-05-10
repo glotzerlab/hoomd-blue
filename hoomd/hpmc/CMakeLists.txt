@@ -89,6 +89,7 @@ set(_hpmc_headers
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
+    ShapeMoves.h
     ShapePolyhedron.h
     ShapeSimplePolygon.h
     ShapeSphere.h
@@ -103,6 +104,7 @@ set(_hpmc_headers
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
+    UpdaterShape.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
@@ -186,6 +188,7 @@ set(files   analyze.py
             update.py
             util.py
             field.py
+            shape_move.py
     )
 
 install(FILES ${files}
