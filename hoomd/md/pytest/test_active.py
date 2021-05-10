@@ -1,7 +1,5 @@
 import hoomd
-import pytest
-import numpy
-import itertools
+from hoomd.conftest import pickling_check
 
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
@@ -13,3 +11,17 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     sim.operations._schedule()
     sim.run(10)
 
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    active = hoomd.md.force.Active(
+        filter=hoomd.filter.All(), rotation_diff=0.01)
+    pickling_check(active)
+    integrator = hoomd.md.Integrator(
+        .05,
+        methods=[hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0)],
+        forces=[active]
+    )
+    sim.operations.integrator = integrator
+    sim.run(0)
+    pickling_check(active)

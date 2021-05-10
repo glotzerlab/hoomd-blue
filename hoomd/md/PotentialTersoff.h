@@ -41,7 +41,6 @@
     PotentialTersoff handles most of the internal details common to all standard three-body potentials.
      - A cutoff radius to be specified per particle type-pair
      - Per type-pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - All the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     <b>Implementation details</b>
@@ -62,9 +61,8 @@
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, PotentialTersoff needs to know the name of the potential. For now, that will be queried from
-    the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independently.
+    For profiling PotentialTersoff needs to know the name of the potential. For
+    now, that will be queried from the evaluator.
 
     \sa export_PotentialTersoff()
 */
@@ -77,8 +75,7 @@ class PotentialTersoff : public ForceCompute
 
         //! Construct the potential
         PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
-                         const std::string& log_suffix="");
+                         std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialTersoff();
 
@@ -97,10 +94,6 @@ class PotentialTersoff : public ForceCompute
         /// Validate that types are within Ntypes
         virtual void validateTypes(unsigned int typ1, unsigned int typ2,
                                    std::string action);
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         virtual void notifyDetach()
             {
@@ -122,7 +115,6 @@ class PotentialTersoff : public ForceCompute
         GPUArray<Scalar> m_rcutsq;                  //!< Cutoff radius squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
-        std::string m_log_name;                     //!< Cached log name
 
         // track whether we are attached to the simulation
         bool m_attached = true;
@@ -201,12 +193,10 @@ class PotentialTersoff : public ForceCompute
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
+                                                std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoff" << std::endl;
@@ -225,7 +215,6 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
 
     // initialize name
     m_prof_name = std::string("Triplet ") + evaluator::getName();
-    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().template connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
@@ -337,37 +326,6 @@ Scalar PotentialTersoff< evaluator >::getRCut(pybind11::tuple types)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-/*! PotentialTersoff provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with evaluator::getName()
-*/
-template< class evaluator >
-std::vector< std::string > PotentialTersoff< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialTersoff< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "pair." << evaluator::getName() << ": " << quantity << " is not a valid log quantity"
-                                        << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The forces are computed for the given timestep. The neighborlist's compute method is called to ensure
@@ -1043,7 +1001,7 @@ CommFlags PotentialTersoff< evaluator >::getRequestedCommFlags(uint64_t timestep
 template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
     .def("setParams", &T::setParamsPython)
     .def("getParams", &T::getParams)
     .def("setRCut", &T::setRCutPython)

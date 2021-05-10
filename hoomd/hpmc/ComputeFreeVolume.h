@@ -40,8 +40,7 @@ class ComputeFreeVolume : public Compute
         //! Construct the integrator
         ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             std::shared_ptr<CellList> cl,
-                             std::string suffix);
+                             std::shared_ptr<CellList> cl);
         //! Destructor
         virtual ~ComputeFreeVolume() { };
 
@@ -84,19 +83,6 @@ class ComputeFreeVolume : public Compute
             }
 #endif
 
-        /* \returns a list of provided quantities
-        */
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector< std::string> result;
-            result.push_back("hpmc_free_volume"+m_suffix);
-
-            return result;
-            }
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Analyze the current configuration
         virtual void compute(uint64_t timestep);
 
@@ -109,7 +95,6 @@ class ComputeFreeVolume : public Compute
 
         unsigned int m_type;                                     //!< Type of depletant particle to generate
         unsigned int m_n_sample;                                 //!< Number of sampling depletants to generate
-        const std::string m_suffix;                              //!< Log suffix
 
         GPUArray<unsigned int> m_n_overlap_all;                  //!< Number of overlap volume particles in box
 
@@ -121,9 +106,8 @@ class ComputeFreeVolume : public Compute
 template< class Shape >
 ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    std::shared_ptr<CellList> cl,
-                                                    std::string suffix)
-    : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0), m_suffix(suffix)
+                                                    std::shared_ptr<CellList> cl)
+    : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
@@ -293,40 +277,6 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(uint64_t timestep)
     *h_n_overlap_all.data = overlap_count;
     }
 
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \return the requested log quantity.
-*/
-template<class Shape>
-Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == "hpmc_free_volume"+m_suffix)
-        {
-        // perform MC integration
-        compute(timestep);
-
-        // access counters
-        ArrayHandle<unsigned int> h_n_overlap_all(m_n_overlap_all, access_location::host, access_mode::read);
-
-        // generate n_sample random test depletants in the global box
-        unsigned int n_sample = m_n_sample;
-
-        #ifdef ENABLE_MPI
-        // in MPI, for small n_sample we can encounter round-off issues
-        unsigned int n_ranks = this->m_exec_conf->getNRanks();
-        n_sample = (n_sample/n_ranks)*n_ranks;
-        #endif
-
-
-        // total free volume
-        const BoxDim& global_box = this->m_pdata->getGlobalBox();
-        Scalar V_free = (Scalar)(n_sample-*h_n_overlap_all.data)/(Scalar)n_sample*global_box.getVolume();
-
-        return V_free;
-        }
-    throw std::runtime_error("Undefined log quantity");
-    }
-
 // \return the free volume.
 template<class Shape>
 Scalar ComputeFreeVolume<Shape>::getFreeVolume()
@@ -360,8 +310,7 @@ template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, cons
      pybind11::class_<ComputeFreeVolume<Shape>, Compute, std::shared_ptr< ComputeFreeVolume<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                std::shared_ptr<CellList>,
-                std::string >())
+                std::shared_ptr<CellList>>())
         .def_property("num_samples", &ComputeFreeVolume<Shape>::getNumSamples, &ComputeFreeVolume<Shape>::setNumSamples)
         .def_property("test_particle_type", &ComputeFreeVolume<Shape>::getTestParticleType, &ComputeFreeVolume<Shape>::setTestParticleType)
         .def_property_readonly("free_volume", &ComputeFreeVolume<Shape>::getFreeVolume)

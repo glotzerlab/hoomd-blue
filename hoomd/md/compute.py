@@ -47,7 +47,7 @@ class ThermodynamicQuantities(_Thermo):
         else:
             thermo_cls = _md.ComputeThermoGPU
         group = self._simulation.state._get_group(self._filter)
-        self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group, "")
+        self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group)
         super()._attach()
 
     @log
@@ -346,8 +346,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
                                       group,
                                       self.kT,
-                                      self.harmonic_pressure,
-                                      "")
+                                      self.harmonic_pressure)
         super()._attach()
 
     @log

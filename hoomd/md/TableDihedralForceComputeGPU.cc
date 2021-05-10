@@ -18,12 +18,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : TableDihedralForceCompute(sysdef, table_width, log_suffix)
+                                     unsigned int table_width)
+    : TableDihedralForceCompute(sysdef, table_width)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
@@ -101,8 +99,6 @@ void TableDihedralForceComputeGPU::computeForces(uint64_t timestep)
 void export_TableDihedralForceComputeGPU(py::module& m)
     {
     py::class_<TableDihedralForceComputeGPU, TableDihedralForceCompute, std::shared_ptr<TableDihedralForceComputeGPU> >(m, "TableDihedralForceComputeGPU")
-     .def(py::init< std::shared_ptr<SystemDefinition>,
-                             unsigned int,
-                             const std::string& >())
+     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
                             ;
     }

@@ -42,12 +42,6 @@ class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
         //! Set the parameters
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
         /*! \param timestep Current time step

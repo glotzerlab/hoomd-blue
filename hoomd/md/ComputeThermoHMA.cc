@@ -26,21 +26,17 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param temperature The temperature that governs sampling of the integrator
     \param harmonicPressure The contribution to the pressure from harmonic fluctuations
-    \param suffix Suffix to append to all logged quantity names
 */
 ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group, const double temperature,
-                             const double harmonicPressure, const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_logging_enabled(true), m_harmonicPressure(harmonicPressure)
+                             const double harmonicPressure)
+    : Compute(sysdef), m_group(group), m_harmonicPressure(harmonicPressure)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermoHMA" << endl;
 
     assert(m_pdata);
     GPUArray< Scalar > properties(thermoHMA_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
-
-    m_logname_list.push_back(string("potential_energyHMA") + suffix);
-    m_logname_list.push_back(string("pressureHMA") + suffix);
 
     #ifdef ENABLE_MPI
     m_properties_reduced = true;
@@ -93,36 +89,6 @@ void ComputeThermoHMA::compute(uint64_t timestep)
         return;
 
     computeProperties();
-    }
-
-std::vector< std::string > ComputeThermoHMA::getProvidedLogQuantities()
-    {
-    if (m_logging_enabled)
-        {
-        return m_logname_list;
-        }
-    else
-        {
-        return std::vector< std::string >();
-        }
-    }
-
-Scalar ComputeThermoHMA::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    compute(timestep);
-    if (quantity == m_logname_list[0])
-        {
-        return getPotentialEnergyHMA();
-        }
-    else if (quantity == m_logname_list[1])
-        {
-        return getPressureHMA();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "compute.thermoHMA: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
     }
 
 /*! Computes all thermodynamic properties of the system in one fell swoop.
@@ -218,8 +184,7 @@ void ComputeThermoHMA::reduceProperties()
 void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA")
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double,const std::string& >())
-    .def("setLoggingEnabled", &ComputeThermoHMA::setLoggingEnabled)
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double>())
     .def_property("kT", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
     .def_property("harmonic_pressure", &ComputeThermoHMA::getHarmonicPressure, &ComputeThermoHMA::setHarmonicPressure)
     .def_property_readonly("potential_energy", &ComputeThermoHMA::getPotentialEnergyHMA)

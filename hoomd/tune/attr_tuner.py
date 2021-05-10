@@ -323,6 +323,14 @@ class ScaleSolver(SolverStep):
         tunable.x = tunable.clamp_into_domain(scale * x)
         return False
 
+    def __eq__(self, other):
+        if not isinstance(other, SolverStep):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in ('max_scale', 'gamma', 'correlation', 'tol'))
+
 
 class SecantSolver(SolverStep):
     """
@@ -422,3 +430,11 @@ class SecantSolver(SolverStep):
         else:
             self._counters[tunable] = counter
             return x
+
+    def __eq__(self, other):
+        if not isinstance(other, SolverStep):
+            return NotImplemented
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, attr) == getattr(other, attr)
+                   for attr in ('gamma', 'tol', '_counters', '_previous_pair'))
