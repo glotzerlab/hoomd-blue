@@ -1,15 +1,51 @@
+ci:
+    skip: [clang-format]
+
 repos:
-  - repo: https://github.com/google/yapf
-    rev: 'v0.31.0'
-    hooks:
-      - id: yapf
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: '3.9.1'
-    hooks:
-      - id: flake8
-        args:
-        - --show-source
-        additional_dependencies:
-          - pep8-naming
-          - flake8-docstrings
-          - flake8-rst-docstrings
+- repo: local
+  hooks:
+  - id: make_workflows
+    name: make_workflows
+    language: python
+    entry: python3 .github/workflows/make_workflows.py
+    pass_filenames: false
+    always_run: true
+    additional_dependencies: [jinja2==2.11.3, pyyaml==5.4.1]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 'v3.4.0'
+  hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: check-json
+  - id: check-yaml
+    exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
+  - id: check-case-conflict
+- repo: https://github.com/google/yapf
+  rev: 'v0.31.0'
+  hooks:
+  - id: yapf
+    exclude: (?:^hoomd/extern/)
+- repo: https://gitlab.com/pycqa/flake8
+  rev: '3.9.1'
+  hooks:
+  - id: flake8
+    args:
+    - --show-source
+    additional_dependencies:
+    - pep8-naming
+    - flake8-docstrings
+    - flake8-rst-docstrings
+    exclude: (?:^hoomd/extern/)
+- repo: https://github.com/glotzerlab/pre-commit-clang-format
+  rev: v1.0.0
+  hooks:
+  - id: clang-format
+    stages: [manual]
+    exclude: |
+      (?x)(
+        ^CMake/|
+        ^hoomd/extern/|
+        ^hoomd/hpmc/UpdaterClusters\.h|
+        ^hoomd/hpmc/IntegratorHPMCMono\.h|
+        ^doc/dev/
+      )
