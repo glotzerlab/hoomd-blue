@@ -23,7 +23,9 @@ jobs:
     - uses: actions/setup-python@v2.2.2
     - uses: pre-commit/action@v2.0.3
       with:
-        extra_args: --all-files --hook-stage manual clang-format
+        # TODO: Run only clang-format once we can start using pre-commit.ci for the other checks
+        # extra_args: --all-files --hook-stage manual clang-format
+        extra_args: --all-files --hook-stage manual
 
   # This job is used to provide a single requirement for branch merge conditions.
   checks_complete:
