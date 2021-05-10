@@ -26,7 +26,7 @@ class ParticleSorter(Tuner):
     cache hits when computing pair potentials.
 
     Note:
-        New `Operations` instances include a `ParticleSorter`
+        New `hoomd.Operations` instances include a `ParticleSorter`
         constructed with default parameters.
 
     Attributes:
