@@ -209,7 +209,7 @@ class NVT(Method):
 
         .. important::
             You must call `Simulation.run` before `thermalize_extra_dof`.
-            Call ``run(steps=0)`` to prepare a newly created `Simulation`.
+            Call ``run(steps=0)`` to prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
@@ -494,7 +494,7 @@ class NPT(Method):
         .. important::
             You must call `Simulation.run` before
             `thermalize_thermostat_and_barostat_dof`. Call ``run(steps=0)`` to
-            prepare a newly created `Simulation`.
+            prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
@@ -685,7 +685,7 @@ class NPH(Method):
         .. important::
             You must call `Simulation.run` before
             `thermalize_barostat_dof`. Call ``run(steps=0)`` to
-            prepare a newly created `Simulation`.
+            prepare a newly created `hoomd.Simulation`.
 
         .. seealso:: `State.thermalize_particle_momenta`
         """
