@@ -44,8 +44,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     public:
         //! Construct the pair potential
         PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
-                         const std::string& log_suffix="");
+                         std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPairDPDThermoGPU() { };
 
@@ -81,9 +80,10 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
 
 template< class evaluator, hipError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_param(0)
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(
+        std::shared_ptr<SystemDefinition> sysdef,
+        std::shared_ptr<NeighborList> nlist)
+    : PotentialPairDPDThermo<evaluator>(sysdef, nlist), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -198,7 +198,7 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(uint64_t ti
 template < class T, class Base > void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& name)
     {
      pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
-              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
               .def("setTuningParam",&T::setTuningParam)
               ;
     }

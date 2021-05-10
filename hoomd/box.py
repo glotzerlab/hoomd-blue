@@ -434,48 +434,5 @@ class Box:
             return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
-#     def wrap(self, v, image=(0, 0, 0)):
-#         R""" Wrap a vector using the periodic boundary conditions.
-
-#         Args:
-#             v (Sequence[float]): The vector to wrap of length 3.
-#             image (Sequence[float]): A vector of integer image flags that will
-#                 be updated (optional).
-
-#         Returns:
-#             The wrapped vector and the image flags as two numpy arrays.
-#         """
-#         u = _make_scalar3(v)
-#         image = _make_int3(image)
-#         c = _make_char3([0, 0, 0])
-#         self._cpp_obj.wrap(u, image, c)
-#         return _vec3_to_array(u), _vec3_to_array(image)
-
-#     def min_image(self, v):
-#         R""" Apply the minimum image convention to a vector.
-
-#         Args:
-#             v (Sequence[float]): The vector to apply minimum image to.
-
-#         Returns:
-#             The minimum image as a tuple.
-#         """
-#         u = _make_scalar3(v)
-#         return _vec3_to_array(self._cpp_obj.minImage(u))
-
-#     def make_fraction(self, v):
-#         R""" Scale a vector to fractional coordinates.
-
-#         make_fraction takes a vector in a box and computes a vector where all
-#         components are between 0 and 1 representing their scaled position.
-
-#         Args:
-#             v (Sequence[float]): The vector to convert to fractional
-#                 coordinates.
-
-#         Returns:
-#             The scaled vector.
-#         """
-#         u = _make_scalar3(v)
-#         w = _make_scalar3([0., 0., 0.])
-#         return _vec3_to_array(self._cpp_obj.makeFraction(u, w))
+    def __reduce__(self):
+        return (type(self), (*self.L, *self.tilts))

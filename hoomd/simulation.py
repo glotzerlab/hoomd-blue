@@ -228,7 +228,7 @@ class Simulation(metaclass=Loggable):
         # This condition is necessary to allow for += and -= operators to work
         # correctly with simulation.operations (+=/-=).
         if operations is self._operations:
-            self._operations = operations
+            return
         else:
             # Handle error cases first
             if operations._scheduled or operations._simulation is not None:

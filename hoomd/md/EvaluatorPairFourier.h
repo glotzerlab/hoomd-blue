@@ -90,16 +90,8 @@ class EvaluatorPairFourier
             pybind11::dict asDict()
                 {
                 pybind11::dict v;
-                pybind11::list py_a, py_b;
-
-                for (int i=0; i<3; i++)
-                    {
-                    py_a.append(a[i]);
-                    py_b.append(b[i]);
-                    }
-
-                v["a"] = py_a;
-                v["b"] = py_b;
+                v["a"] = pybind11::make_tuple(a[0], a[1], a[2]);
+                v["b"] = pybind11::make_tuple(b[0], b[1], b[2]);
                 return v;
                 }
             #endif
@@ -194,8 +186,7 @@ class EvaluatorPairFourier
 
         #ifndef __HIPCC__
         //! Get the name of this potential
-        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
-            via analyze.log.
+        /*! \returns The potential name.
         */
         static std::string getName()
             {

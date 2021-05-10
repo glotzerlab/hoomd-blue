@@ -13,10 +13,8 @@
 
 /*!
  * \param sysdata MPCD system data
- * \param suffix Suffix for logged quantities
  */
-mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
-                                           const std::string& suffix)
+mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata)
         : Compute(sysdata->getSystemDefinition()),
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),
@@ -527,6 +525,5 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
 
     py::class_<mpcd::CellThermoCompute, Compute, std::shared_ptr<mpcd::CellThermoCompute> >
         (m, "CellThermoCompute")
-        .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
+        .def(py::init< std::shared_ptr<mpcd::SystemData> >());
     }

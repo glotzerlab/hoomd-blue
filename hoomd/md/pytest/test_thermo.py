@@ -1,4 +1,5 @@
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import numpy as np
 
 """ Each entry is a quantity and its type """
@@ -141,3 +142,9 @@ def test_system_rotational_dof(simulation_factory, device):
                               2./3*thermo.translational_kinetic_energy/10.0**3,
                               (0., 0., 0., 2./10**3, 0., 0.))
 
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory):
+    filter_ = hoomd.filter.All()
+    thermo = hoomd.md.compute.ThermodynamicQuantities(filter_)
+    sim = simulation_factory(two_particle_snapshot_factory())
+    operation_pickling_check(thermo, sim)

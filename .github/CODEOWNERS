@@ -1,1 +1,5 @@
+# by default, assign a maintainer and a contributor to review a pull request
 * @glotzerlab/hoomd-maintainers @glotzerlab/hoomd-reviewers
+
+# For changes to github settings and workflows, only assign maintainers
+/.github/ @glotzerlab/hoomd-maintainers

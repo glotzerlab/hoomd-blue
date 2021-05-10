@@ -38,7 +38,7 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
 
-    // initialize logger and stats
+    // initialize stats
     resetStats();
 
     // allocate memory for m_pos_backup
@@ -55,83 +55,6 @@ UpdaterBoxMC::~UpdaterBoxMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying UpdaterBoxMC" << std::endl;
     m_pdata->getMaxParticleNumberChangeSignal().disconnect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
-    }
-
-/*! hpmc::UpdaterBoxMC provides:
-    - hpmc_boxmc_trial_delta (Number of MC box changes attempted during logger interval)
-    - hpmc_boxmc_volume_acceptance (Ratio of volume change trials accepted during logger interval)
-    - hpmc_boxmc_shear_acceptance (Ratio of shear trials accepted during logger interval)
-    - hpmc_boxmc_aspect_acceptance (Ratio of aspect trials accepted during logger interval)
-    - hpmc_boxmc_betaP (Current value of beta*p parameter for the box updater)
-
-    \returns a list of provided quantities
-*/
-std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
-    {
-    // start with the updater provided quantities
-    std::vector< std::string > result = Updater::getProvidedLogQuantities();
-
-    // then add ours
-    result.push_back("hpmc_boxmc_trial_count");
-    result.push_back("hpmc_boxmc_volume_acceptance");
-    result.push_back("hpmc_boxmc_ln_volume_acceptance");
-    result.push_back("hpmc_boxmc_shear_acceptance");
-    result.push_back("hpmc_boxmc_aspect_acceptance");
-    result.push_back("hpmc_boxmc_betaP");
-    return result;
-    }
-
-/*! Get logged quantity
-
-    \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \returns the requested log quantity.
-*/
-Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    hpmc_boxmc_counters_t counters = getCounters(1);
-
-    // return requested log value
-    if (quantity == "hpmc_boxmc_trial_count")
-        {
-        return Scalar(counters.getNMoves());
-        }
-    else if (quantity == "hpmc_boxmc_volume_acceptance")
-        {
-        if (counters.volume_reject_count + counters.volume_accept_count == 0)
-            return 0;
-        else
-            return counters.getVolumeAcceptance();
-        }
-    else if (quantity == "hpmc_boxmc_ln_volume_acceptance")
-        {
-        if (counters.ln_volume_reject_count + counters.ln_volume_accept_count == 0)
-            return 0;
-        else
-            return counters.getLogVolumeAcceptance();
-        }
-    else if (quantity == "hpmc_boxmc_shear_acceptance")
-        {
-        if (counters.shear_reject_count + counters.shear_accept_count == 0)
-            return 0;
-        else
-            return counters.getShearAcceptance();
-        }
-    else if (quantity == "hpmc_boxmc_aspect_acceptance")
-        {
-        if (counters.aspect_reject_count + counters.aspect_accept_count == 0)
-            return 0;
-        else
-            return counters.getAspectAcceptance();
-        }
-    else if (quantity == "hpmc_boxmc_betaP")
-        {
-        return (*m_beta_P)(timestep);
-        }
-    else
-        {
-        return Updater::getLogValue(quantity, timestep);
-        }
     }
 
 /*! Determine if box exceeds a shearing threshold and needs to be lattice reduced.

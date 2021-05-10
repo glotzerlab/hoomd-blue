@@ -192,7 +192,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 m_symmetry.push_back(identity);
                 }
-            reset(0); // initializes all of the energy logging parameters.
+            reset(0); // initializes all of the energy parameters.
             }
 
         ~ExternalFieldLattice()
@@ -395,54 +395,6 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                     scale = pow((newVol/lastVol), Scalar(1.0/3.0));
                 m_latticePositions.scale(scale);
                 m_box = newBox;
-            }
-
-        //! Returns a list of log quantities this compute calculates
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            return m_ProvidedQuantities;
-            }
-
-        //! Calculates the requested log value and returns it
-        Scalar getLogValue(const std::string& quantity, uint64_t timestep)
-            {
-            compute(timestep);
-
-            if( quantity == LATTICE_ENERGY_LOG_NAME )
-                {
-                return m_Energy;
-                }
-            else if( quantity == LATTICE_ENERGY_AVG_LOG_NAME )
-                {
-                if( !m_num_samples )
-                    return 0.0;
-                return m_EnergySum/double(m_num_samples);
-                }
-            else if ( quantity == LATTICE_ENERGY_SIGMA_LOG_NAME )
-                {
-                if( !m_num_samples )
-                    return 0.0;
-                Scalar first_moment = m_EnergySum/double(m_num_samples);
-                Scalar second_moment = m_EnergySqSum/double(m_num_samples);
-                return sqrt(second_moment - (first_moment*first_moment));
-                }
-            else if ( quantity == LATTICE_TRANS_SPRING_CONSTANT_LOG_NAME )
-                {
-                return m_k;
-                }
-            else if ( quantity == LATTICE_ROTAT_SPRING_CONSTANT_LOG_NAME )
-                {
-                return m_q;
-                }
-            else if ( quantity == LATTICE_NUM_SAMPLES_LOG_NAME )
-                {
-                return m_num_samples;
-                }
-            else
-                {
-                m_exec_conf->msg->error() << "field.lattice_field: " << quantity << " is not a valid log quantity" << std::endl;
-                throw std::runtime_error("Error getting log value");
-                }
             }
 
         void setParams(Scalar k, Scalar q)

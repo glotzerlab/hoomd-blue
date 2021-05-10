@@ -44,8 +44,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         //! Construct the integrator
         ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             std::shared_ptr<CellList> cl,
-                             std::string suffix);
+                             std::shared_ptr<CellList> cl);
         //! Destructor
         virtual ~ComputeFreeVolumeGPU();
 
@@ -84,9 +83,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
 template< class Shape >
 ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    std::shared_ptr<CellList> cl,
-                                                    std::string suffix)
-    : ComputeFreeVolume<Shape>(sysdef,mc,cl,suffix)
+                                                    std::shared_ptr<CellList> cl)
+    : ComputeFreeVolume<Shape>(sysdef,mc,cl)
     {
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
@@ -308,8 +306,7 @@ template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, c
      pybind11::class_<ComputeFreeVolumeGPU<Shape>, ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str())
               .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                 std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                std::shared_ptr<CellList>,
-                std::string >())
+                std::shared_ptr<CellList>>())
         ;
     }
 

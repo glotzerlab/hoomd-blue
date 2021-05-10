@@ -32,8 +32,7 @@ class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     public:
         //! Constructs the compute
         BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          unsigned int table_width,
-                          const std::string& log_suffix="");
+                          unsigned int table_width);
 
         //! Destructor
         virtual ~BondTablePotentialGPU();

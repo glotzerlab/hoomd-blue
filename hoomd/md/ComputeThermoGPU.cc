@@ -24,13 +24,11 @@ using namespace std;
 
 /*! \param sysdef System for which to compute thermodynamic properties
     \param group Subset of the system over which properties are calculated
-    \param suffix Suffix to append to all logged quantity names
 */
 
 ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<ParticleGroup> group,
-                                   const std::string& suffix)
-    : ComputeThermo(sysdef, group, suffix), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
+                                   std::shared_ptr<ParticleGroup> group)
+    : ComputeThermo(sysdef, group), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
         m_scratch_rot(m_exec_conf)
     {
     if (!m_exec_conf->isCUDAEnabled())
@@ -199,7 +197,6 @@ void export_ComputeThermoGPU(py::module& m)
     {
     py::class_<ComputeThermoGPU, ComputeThermo, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU")
     .def(py::init< std::shared_ptr<SystemDefinition>,
-         std::shared_ptr<ParticleGroup>,
-         const std::string& >())
+         std::shared_ptr<ParticleGroup>>())
         ;
     }

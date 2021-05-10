@@ -29,7 +29,7 @@ class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
         //! Constructs the compute
         ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysdef,
                          std::shared_ptr<ParticleGroup> group, const double temperature,
-                         const double harmonicPressure, const std::string& suffix = std::string(""));
+                         const double harmonicPressure);
         virtual ~ComputeThermoHMAGPU();
 
     protected:

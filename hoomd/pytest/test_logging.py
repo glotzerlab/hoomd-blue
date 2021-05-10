@@ -1,3 +1,4 @@
+from hoomd.conftest import pickling_check
 from pytest import raises, fixture
 from hoomd.logging import (
     _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, LoggerCategories,
@@ -51,6 +52,9 @@ class DummyLoggable(metaclass=Loggable):
     @log(category='sequence')
     def proplist(self):
         return [1, 2, 3]
+
+    def __eq__(self, other):
+        return isinstance(other, type(self))
 
 
 class TestLoggableMetaclass():
@@ -393,3 +397,7 @@ class TestLogger:
         inner_dict = logged['pytest']['test_logging']['DummyLoggable']
         assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
         assert inner_dict['proplist'] == (logged_obj.proplist, 'sequence')
+
+    def test_pickling(self, blank_logger, logged_obj):
+        blank_logger.add(logged_obj)
+        pickling_check(blank_logger)

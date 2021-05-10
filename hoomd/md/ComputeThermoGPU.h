@@ -28,8 +28,7 @@ class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
     public:
         //! Constructs the compute
         ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group,
-                         const std::string& suffix = std::string(""));
+                         std::shared_ptr<ParticleGroup> group);
         virtual ~ComputeThermoGPU();
 
     protected:
