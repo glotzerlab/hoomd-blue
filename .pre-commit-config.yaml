@@ -32,12 +32,25 @@ repos:
   rev: '3.9.1'
   hooks:
   - id: flake8
-    args:
-    - --show-source
+    # This option may be useful after we get HOOMD to 0 flake8 errors
+    # args:
+    # - --show-source
     additional_dependencies:
     - pep8-naming
     - flake8-docstrings
     - flake8-rst-docstrings
+    # exclude components yet yet ported to hoomd
+    # TODO: Remove these exclusions as components are ported
+    exclude: |
+      (?x)(
+        ^hoomd/extern/|
+        ^hoomd/mpcd/|
+        ^hoomd/dem/|
+        ^hoomd/jit/|
+        ^hoomd/metal/|
+        ^hoomd/minimize/|
+        ^doc/dev/
+      )
 - repo: https://github.com/glotzerlab/pre-commit-clang-format
   rev: v1.0.0
   hooks:
