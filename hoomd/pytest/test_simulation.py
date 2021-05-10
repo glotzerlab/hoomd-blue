@@ -329,3 +329,48 @@ def test_seed(simulation_factory, lattice_snapshot_factory):
 
     sim.seed = 20
     assert sim.seed == 20
+
+
+def test_operations_setting(simulation_factory, lattice_snapshot_factory):
+    sim = simulation_factory()
+    sim.create_state_from_snapshot(lattice_snapshot_factory())
+
+    def check_operation_setting(sim, old_operations, new_operations):
+        assert sim.operations is not new_operations
+        assert new_operations._simulation is None
+        assert old_operations._simulation is sim
+        scheduled = old_operations._scheduled
+        sim.operations = new_operations
+        assert sim.operations is new_operations
+        assert new_operations._simulation is sim
+        assert old_operations._simulation is None
+        if scheduled:
+            assert new_operations._scheduled
+            assert not old_operations._scheduled
+
+    operations = hoomd.Operations()
+    # Add some operations to test the setting
+    operations += hoomd.update.BoxResize(
+        hoomd.Box.cube(10),
+        hoomd.Box.cube(20),
+        hoomd.variant.Ramp(0, 1, 0, 100),
+        40)
+    operations += hoomd.write.GSD("foo.gsd", 10)
+    operations += hoomd.write.Table(
+        10, logger=hoomd.logging.Logger(['scalar']))
+    operations.tuners.clear()
+    # Check setting before scheduling
+    check_operation_setting(sim, sim.operations, operations)
+
+    sim.run(0)
+    # Check setting after scheduling
+    new_operations = hoomd.Operations()
+    new_operations += hoomd.update.BoxResize(
+        hoomd.Box.cube(300),
+        hoomd.Box.cube(20),
+        hoomd.variant.Ramp(0, 1, 0, 100),
+        80)
+    new_operations += hoomd.write.GSD("bar.gsd", 20)
+    new_operations += hoomd.write.Table(
+        20, logger=hoomd.logging.Logger(['scalar']))
+    check_operation_setting(sim, sim.operations, new_operations)
