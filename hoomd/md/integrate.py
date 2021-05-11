@@ -43,7 +43,7 @@ class _DynamicIntegrator(BaseIntegrator):
             Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
 
         self._constraints = syncedlist.SyncedList(
-            Constraint,
+            OnlyTypes(Constraint, disallow_types=(Rigid,)),
             syncedlist._PartialGetAttr('_cpp_obj'),
             iterable=constraints)
 
