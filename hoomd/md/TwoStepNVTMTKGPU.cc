@@ -28,15 +28,13 @@ using namespace std;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
-    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVTMTKGPU::TwoStepNVTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              std::shared_ptr<ComputeThermo> thermo,
                              Scalar tau,
-                             std::shared_ptr<Variant> T,
-                             const std::string& suffix)
-    : TwoStepNVTMTK(sysdef, group, thermo, tau, T, suffix)
+                             std::shared_ptr<Variant> T)
+    : TwoStepNVTMTK(sysdef, group, thermo, tau, T)
     {
     // only one GPU is supported
     if (!m_exec_conf->isCUDAEnabled())
@@ -231,8 +229,6 @@ void export_TwoStepNVTMTKGPU(py::module& m)
                           std::shared_ptr<ParticleGroup>,
                           std::shared_ptr<ComputeThermo>,
                           Scalar,
-                          std::shared_ptr<Variant>,
-                          const std::string&
-                          >())
+                          std::shared_ptr<Variant>>())
         ;
     }

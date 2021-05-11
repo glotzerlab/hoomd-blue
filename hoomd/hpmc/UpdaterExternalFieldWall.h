@@ -78,31 +78,6 @@ class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public 
             return m_move_probability;
             }
 
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities()
-            {
-            // start with the updater provided quantities
-            std::vector< std::string > result = Updater::getProvidedLogQuantities();
-
-            // then add ours
-            result.push_back("hpmc_wall_acceptance_ratio");
-            return result;
-            }
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep)
-            {
-            if (quantity == "hpmc_wall_acceptance_ratio")
-                {
-                return m_count_total_rel ? Scalar(m_count_accepted_rel)/Scalar(m_count_total_rel) : 0;
-                }
-            else
-                {
-                    m_exec_conf->msg->error() << "update.wall: " << quantity << " is not a valid log quantity" << std::endl;
-                    throw std::runtime_error("Error getting log value");
-                }
-            }
-
         //! Reset statistics counters
         void resetStats()
             {

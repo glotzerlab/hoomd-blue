@@ -47,7 +47,6 @@
      - A cutoff radius to be specified per particle type pair
      - The energy can be globally shifted to 0 at the cutoff
      - Per type pair parameters are stored and a set method is provided
-     - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
 
     \note XPLOR switching is not supported
@@ -61,10 +60,8 @@
     potential aniso_evaluator class passed in. See the appropriate documentation for the aniso_evaluator for the definition of each
     element of the parameters.
 
-    For profiling and logging, AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
-    the aniso_evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
-    independently.
-
+    For profiling AnisoPotentialPair needs to know the name of the potential. For now, that will be queried from
+    the aniso_evaluator.
     \sa export_AnisoAnisoPotentialPair()
 */
 
@@ -80,8 +77,7 @@ class AnisoPotentialPair : public ForceCompute
 
         //! Construct the pair potential
         AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<NeighborList> nlist,
-                      const std::string& log_suffix="");
+                      std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~AnisoPotentialPair();
 
@@ -120,11 +116,6 @@ class AnisoPotentialPair : public ForceCompute
         //! Set the shape parameters for a single type through Python
         virtual void setShapePython(std::string typ,
                                     const pybind11::object shape_param);
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         std::vector<std::string> getTypeShapeMapping(const GlobalArray<param_type> &params, const GlobalArray<shape_type> &shape_params) const
             {
@@ -226,7 +217,6 @@ class AnisoPotentialPair : public ForceCompute
         GlobalArray<param_type> m_params;   //!< Pair parameters per type pair
         GlobalArray<shape_type> m_shape_params;   //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
-        std::string m_log_name;                     //!< Cached log name
 
         /// Track whether we have attached to the Simulation object
         bool m_attached = true;
@@ -346,12 +336,11 @@ int AnisoPotentialPair<aniso_evaluator>::slotWriteGSDShapeSpec(gsd_handle& handl
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param log_suffix Name given to this instance of the force
 */
 template < class aniso_evaluator >
-AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
-                                                std::shared_ptr<NeighborList> nlist,
-                                                const std::string& log_suffix)
+AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(
+        std::shared_ptr<SystemDefinition> sysdef,
+        std::shared_ptr<NeighborList> nlist)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
     m_exec_conf->msg->notice(5) << "Constructing AnisoPotentialPair<" << aniso_evaluator::getName() << ">" << std::endl;
@@ -392,7 +381,6 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
 
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
-    m_log_name = std::string("aniso_pair_") + aniso_evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
     m_pdata->getNumTypesChangeSignal().template connect<AnisoPotentialPair<aniso_evaluator>,
@@ -559,36 +547,6 @@ Scalar AnisoPotentialPair< aniso_evaluator >::getRCut(pybind11::tuple types)
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host,
                                  access_mode::read);
     return sqrt(h_rcutsq.data[m_typpair_idx(typ1, typ2)]);
-    }
-
-/*! AnisoPotentialPair provides:
-     - \c pair_"name"_energy
-    where "name" is replaced with aniso_evaluator::getName()
-*/
-template< class aniso_evaluator >
-std::vector< std::string > AnisoPotentialPair< aniso_evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class aniso_evaluator >
-Scalar AnisoPotentialPair< aniso_evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "pair." << aniso_evaluator::getName() << ": " << quantity << " is not a valid log quantity for AnisoPotentialPair"
-                                  << std::endl << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! \post The pair forces are computed for the given timestep. The neighborlist's compute method is called to ensure
@@ -836,7 +794,7 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(uint64_t 
 template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > anisopotentialpair(m, name.c_str());
-    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParamsPython)
         .def("setShape", &T::setShapePython)

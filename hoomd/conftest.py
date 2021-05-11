@@ -1,14 +1,22 @@
+import pickle
 import pytest
 import hoomd
 import atexit
+import os
 import numpy
 import itertools
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
+pytest_plugins = ("hoomd.pytest_plugin_validate",)
+
 devices = [hoomd.device.CPU]
 if (hoomd.device.GPU.is_available()
         and len(hoomd.device.GPU.get_available_devices()) > 0):
+
+    if os.environ.get('_HOOMD_SKIP_CPU_TESTS_WHEN_GPUS_PRESENT_') is not None:
+        devices.pop(0)
+
     devices.append(hoomd.device.GPU)
 
 
@@ -120,25 +128,26 @@ def lattice_snapshot_factory(device):
             s.particles.types = particle_types
 
             # create the lattice
-            range_ = numpy.arange(-n / 2, n / 2)
-            if dimensions == 2:
-                pos = list(itertools.product(range_, range_, [0]))
-            else:
-                pos = list(itertools.product(range_, repeat=3))
-            pos = numpy.array(pos) * a
-            pos[:, 0] += a / 2
-            pos[:, 1] += a / 2
-            if dimensions == 3:
-                pos[:, 2] += a / 2
-
-            # perturb the positions
-            if r > 0:
-                shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+            if n > 0:
+                range_ = numpy.arange(-n / 2, n / 2)
                 if dimensions == 2:
-                    shift[:, 2] = 0
-                pos += shift
+                    pos = list(itertools.product(range_, range_, [0]))
+                else:
+                    pos = list(itertools.product(range_, repeat=3))
+                pos = numpy.array(pos) * a
+                pos[:, 0] += a / 2
+                pos[:, 1] += a / 2
+                if dimensions == 3:
+                    pos[:, 2] += a / 2
 
-            s.particles.position[:] = pos
+                # perturb the positions
+                if r > 0:
+                    shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+                    if dimensions == 2:
+                        shift[:, 2] = 0
+                    pos += shift
+
+                s.particles.position[:] = pos
 
         return s
 
@@ -187,30 +196,6 @@ def numpy_random_seed():
     numpy.random.seed(42)
 
 
-def pytest_addoption(parser):
-    """Add HOOMD specific options to the pytest command line.
-
-    * validate - run validation tests
-    """
-    parser.addoption(
-        "--validate",
-        action="store_true",
-        default=False,
-        help="Enable long running validation tests.",
-    )
-
-
-@pytest.fixture(autouse=True)
-def skip_validate(request):
-    """Skip validation tests by default.
-
-    Pass the command line option --validate to enable these tests.
-    """
-    if request.node.get_closest_marker('validate'):
-        if not request.config.getoption("validate"):
-            pytest.skip('Validation tests not requested.')
-
-
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
@@ -220,9 +205,6 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "cupy_optional: tests that should pass with and without CuPy.")
-    config.addinivalue_line(
-        "markers",
-        "validate: Tests that perform long-running validations.")
     config.addinivalue_line("markers", "cpu: Tests that only run on the CPU.")
     config.addinivalue_line("markers", "gpu: Tests that only run on the GPU.")
 
@@ -277,3 +259,15 @@ def logging_check(cls, expected_namespace, expected_loggables):
 
     for name, properties in expected_loggables.items():
         check_loggable(cls, name, properties)
+
+
+def pickling_check(instance):
+    pkled_instance = pickle.loads(pickle.dumps(instance))
+    assert instance == pkled_instance
+
+
+def operation_pickling_check(instance, sim):
+    pickling_check(instance)
+    sim.operations += instance
+    sim.run(0)
+    pickling_check(instance)

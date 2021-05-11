@@ -9,6 +9,9 @@ assignees: 'joaander'
 
 Release checklist:
 
+- [ ] Update actions versions.
+  - See current actions usage with: `rg --no-filename --hidden uses: | awk '{$1=$1;print}' | sort | uniq`
+  - Use global search and replace to update them to the latest tags
 - [ ] Run *bumpversion*.
 - [ ] Update change log.
   - ``git log --format=oneline --first-parent `git log -n 1 --pretty=format:%H -- CHANGELOG.rst`...``

@@ -81,33 +81,6 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
         m_exec_conf->msg->warning() << "improper.harmonic: specified Chi <= 0" << endl;
     }
 
-/*! ImproperForceCompute provides
-    - \c improper_harmonic_energy
-*/
-std::vector< std::string > HarmonicImproperForceCompute::getProvidedLogQuantities()
-    {
-    vector<string> list;
-    list.push_back("improper_harmonic_energy");
-    return list;
-    }
-
-/*! \param quantity Name of the quantity to get the log value of
-    \param timestep Current time step of the simulation
-*/
-Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == string("improper_harmonic_energy"))
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "improper.harmonic: " << quantity << " is not a valid log quantity" << endl;
-        throw runtime_error("Error getting log value");
-        }
-    }
-
 /*! Actually perform the force computation
     \param timestep Current time step
  */

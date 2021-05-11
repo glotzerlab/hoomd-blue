@@ -17,12 +17,10 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param table_width Width the tables will be in memory
-    \param log_suffix Name given to this instance of the table potential
 */
 TableAngleForceComputeGPU::TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                     unsigned int table_width,
-                                     const std::string& log_suffix)
-    : TableAngleForceCompute(sysdef, table_width, log_suffix)
+                                     unsigned int table_width)
+    : TableAngleForceCompute(sysdef, table_width)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled())
@@ -99,8 +97,6 @@ void TableAngleForceComputeGPU::computeForces(uint64_t timestep)
 void export_TableAngleForceComputeGPU(py::module& m)
     {
     py::class_<TableAngleForceComputeGPU, TableAngleForceCompute, std::shared_ptr<TableAngleForceComputeGPU> >(m, "TableAngleForceComputeGPU")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                         unsigned int,
-                         const std::string& >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int>())
                         ;
     }

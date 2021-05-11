@@ -33,8 +33,7 @@ class PYBIND11_EXPORT TablePotentialGPU : public TablePotential
         //! Constructs the compute
         TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<NeighborList> nlist,
-                          unsigned int table_width,
-                          const std::string& log_suffix="");
+                          unsigned int table_width);
 
         //! Destructor
         virtual ~TablePotentialGPU() { }

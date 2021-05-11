@@ -26,7 +26,7 @@
 #define __COMPUTE_THERMO_H__
 
 //! Computes thermodynamic properties of a group of particles
-/*! ComputeThermo calculates instantaneous thermodynamic properties and provides them for the logger.
+/*! ComputeThermo calculates instantaneous thermodynamic properties and provides them in Python.
     All computed values are stored in a GlobalArray so that they can be accessed on the GPU without intermediate copies.
     Use the enum values in thermo_index to index the array and extract the properties of interest. Convenience functions
     are provided for accessing the values on the CPU. Certain properties, like ndof and num_particles are always known
@@ -48,10 +48,6 @@
     the user desires (the default is one!). In standard usage, the python interface queries the number of degrees
     of freedom from the integrators and sets that value for each ComputeThermo so that it is always correct.
 
-    All quantities are made available for the logger. ComputerThermo can be given a suffix which it will append
-    to each quantity provided to the logger. Typical usage is to provide _groupname as the suffix so that properties
-    of different groups can be logged separately (e.g. temperature_group1 and temperature_group2).
-
     \ingroup computes
 */
 class PYBIND11_EXPORT ComputeThermo : public Compute
@@ -59,8 +55,7 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
     public:
         //! Constructs the compute
         ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<ParticleGroup> group,
-                      const std::string& suffix = std::string(""));
+                      std::shared_ptr<ParticleGroup> group);
 
         //! Destructor
         virtual ~ComputeThermo();
@@ -303,28 +298,9 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
             return m_properties;
             }
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
-        //! Control the enable_logging flag
-        /*! Set this flag to false to prevent this compute from providing logged quantities.
-            This is useful for internal computes that should not appear in the logs.
-
-            \param enable Flag to set
-        */
-        void setLoggingEnabled(bool enable)
-            {
-            m_logging_enabled = enable;
-            }
-
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GlobalArray<Scalar> m_properties;  //!< Stores the computed properties
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
-        bool m_logging_enabled;         //!< Set to false to disable communication with the logger
 
         /// Store the particle data flags used during the last computation
         PDataFlags m_computed_flags;

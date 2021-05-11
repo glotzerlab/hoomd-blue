@@ -2,6 +2,7 @@ from math import isclose
 import pytest
 
 from hoomd import hpmc
+from hoomd.conftest import operation_pickling_check
 from hoomd.hpmc.tune.move_size import (
     _MoveSizeTuneDefinition, MoveSize)
 
@@ -203,3 +204,6 @@ class TestMoveSize:
         tolerance = move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
         print(simulation.timestep)
+
+    def test_pickling(self, move_size_tuner, simulation):
+        operation_pickling_check(move_size_tuner, simulation)
