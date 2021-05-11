@@ -8,10 +8,13 @@ md.constrain
 .. autosummary::
     :nosignatures:
 
+    Constraint
+    Rigid
+
 
 .. rubric:: Details
 
 .. automodule:: hoomd.md.constrain
     :synopsis: Constraints.
     :undoc-members:
-    :members: Rigid,
+    :members: Constraint, Rigid

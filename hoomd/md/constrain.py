@@ -4,16 +4,20 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-R""" Constraints.
+r""" Constraints.
 
-Constraint forces constrain a given set of particle to a given surface, to have
-some relative orientation, or impose some other type of constraint.
+Constraint forces can constrain particles to be a set distance from each other,
+to have some relative orientation, or impose other types of constraint.
 
 As with other force commands in hoomd, multiple constrain commands can be issued
 to specify multiple constraints, which are additively applied.
 
-Warning: Constraints will be invalidated if two separate constraint commands
-apply to the same particle.
+The `Rigid` class is special in that only one is allowed in a system and is set
+to an `hoomd.md.Integator` object separately in the `rigid` attribute.
+
+Warning:
+    Constraints will be invalidated if two separate constraint commands
+    apply to the same particle.
 
 The degrees of freedom removed from the system by constraints are correctly
 taken into account when computing the temperature.
@@ -82,7 +86,7 @@ class distance(Constraint):
     def __init__(self):
 
         # initialize the base class
-        ConstraintForce.__init__(self)
+        Constraint.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -174,7 +178,8 @@ class Rigid(Constraint):
 
     Example::
 
-        rigid_centers_and_free_filter = hoomd.filter.Rigid(("center", "free"))
+        rigid_centers_and_free_filter = hoomd.filter.Rigid(
+            ("center", "free"))
         langevin = hoomd.md.methods.Langevin(
             filter=rigid_centers_and_free_filter, kT=1.0)
 
@@ -185,8 +190,7 @@ class Rigid(Constraint):
     etc...) appropriately when there are rigid bodies present in the system.
     When it does so, it ignores all constituent particles and computes the
     translational and rotational energies of the central particles, which
-    represent the whole body. :py:meth:`hoomd.logging.log` can log the
-    translational and rotational energy terms separately.
+    represent the whole body.
 
     .. rubric:: Restarting simulations with rigid bodies.
 
@@ -212,11 +216,10 @@ class Rigid(Constraint):
             (**optional**)
 
     .. caution::
-        The constituent particle type must be exist.
-        If it does not exist, it can be created on the fly using
-        ``system.particles.types.add('A_const')``.
+        The constituent particle type must exist.
 
-    Example:
+    Example::
+
         rigid = constrain.Rigid()
         rigid.body['A'] = {
             "types": ['A_const', 'A_const'],
@@ -235,6 +238,7 @@ class Rigid(Constraint):
 
         # Can set rigid body definition to be None explicitly.
         rigid.body["A"] = None
+
     """
 
     _cpp_class_name = "ForceComposite"
@@ -257,7 +261,7 @@ class Rigid(Constraint):
         self.body.default = None
 
     def create_bodies(self, state):
-        R"""Create rigid bodies from central particles in state currently.
+        R"""Create rigid bodies from central particles in state.
 
         Args:
             state (hoomd.State): the state to add rigid bodies too.

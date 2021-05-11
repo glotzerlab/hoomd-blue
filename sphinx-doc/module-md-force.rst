@@ -10,7 +10,6 @@ md.force
 
     Force
     Active
-    ConstraintForce
 
 .. rubric:: Details
 
@@ -23,6 +22,3 @@ md.force
     .. autoclass:: Active
         :show-inheritance:
         :no-inherited-members:
-
-    .. autoclass:: ConstraintForce
-        :members:
