@@ -160,20 +160,31 @@ class OnlyTypes(_HelpValidate):
     provided and ``strict`` is ``False``, conversions will be attempted in the
     order of the ``types`` sequence.
     """
-    def __init__(self, *types, strict=False,
-                 preprocess=None, postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 *types,
+                 disallow_types=None,
+                 strict=False,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
         self.types = types
+        if disallow_types is None:
+            self.disallow_types = ()
+        else:
+            self.disallow_types = disallow_types
         self.strict = strict
 
     def _validate(self, value):
+        if isinstance(value, self.disallow_types):
+            raise ValueError(f"Value cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} not instance of any of {self.types}."
-            )
+                f"Value {value} not instance of any of {self.types}.")
         else:
             for type_ in self.types:
                 try:
@@ -182,12 +193,10 @@ class OnlyTypes(_HelpValidate):
                     pass
             raise ValueError(
                 f"Value {value} is not convertable into any of these types "
-                f"{self.types}"
-            )
+                f"{self.types}")
 
     def __str__(self):
         return f"OnlyTypes({str(self.types)})"
-
 
 class OnlyFrom(_HelpValidate):
     """Validates a value against a given set of options.
