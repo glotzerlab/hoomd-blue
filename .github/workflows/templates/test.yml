@@ -151,6 +151,11 @@ env:
       if: ${{ contains(matrix.config, 'mpi') }}
       run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || cat pytest.out.1
 <% endset %>
+<% set prepare_steps %>
+    steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+<% endset %>
 <% block jobs %>
 # Use multiple jobs to reduce the amount of time spent on GPU runners. Use GitHub Hosted runners for
 # compiling all tests configurations (GPU and CPU), then upload the build directory (sans object
@@ -163,47 +168,47 @@ env:
 jobs:
   build:
 << job(name='Build', use_gpu_runners=False, configurations=unit_test_configurations) >>
-    steps:
+<< prepare_steps >>
 << build_steps >>
 << upload_steps >>
 
   pytest:
 << job(name='Run pytest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest:
 << job(name='Run ctest', use_gpu_runners=True, configurations=unit_test_configurations, needs='build') >>
-    steps:
+<< prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
 
   validate:
 << job(name='Validate', use_gpu_runners=True, configurations=validate_configurations, needs='build') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_validate_steps >>
 
   build_release:
 << job(name='Build', use_gpu_runners=False, configurations=release_test_configurations) >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << build_steps >>
 << upload_steps >>
 
   pytest_release:
 << job(name='Run pytest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << download_install_steps >>
 << pytest_steps >>
 
   ctest_release:
 << job(name='Run ctest', use_gpu_runners=True, configurations=release_test_configurations, needs='build_release') >>
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
-    steps:
+<< prepare_steps >>
 << download_build_steps >>
 << ctest_steps >>
 
