@@ -322,6 +322,7 @@ set(files benchmark.py
           integrate.py
           operation.py
           operations.py
+          pytest_plugin_validate.py
           util.py
           variant.py
           simulation.py

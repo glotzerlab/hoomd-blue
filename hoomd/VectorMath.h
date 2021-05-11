@@ -76,7 +76,7 @@ struct vec3
         }
 
     DEVICE Real& operator[](unsigned int i)
-    {
+        {
         switch(i) {
             case 0:
                 return x;
@@ -84,15 +84,23 @@ struct vec3
                 return y;
             case 2:
                 return z;
+            default:
+                #ifdef __HIPCC__
+                // This branch should not be reached, but must include something to avoid
+                // compiler warnings on the GPU and it must be something that can be returned by
+                // reference, so x is as good a choice as any.
+                return x;
+                #else
+                // On the CPU we throw an error to help with debugging any errors in use of the
+                // code.
+                throw std::invalid_argument(
+                    "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+                #endif
+            }
         }
-        // This branch is unreachable, but must include something to avoid
-        // compiler warnings and it must be something that can be returned by
-        // reference, so x is as good a choice as any.
-        return x;
-    }
 
     DEVICE const Real operator[](unsigned int i) const
-    {
+        {
         switch(i) {
             case 0:
                 return x;
@@ -100,12 +108,20 @@ struct vec3
                 return y;
             case 2:
                 return z;
+            default:
+                #ifdef __HIPCC__
+                // This branch should not be reached, but must include something to avoid
+                // compiler warnings on the GPU and returning x matches the non-const version of the
+                // operator.
+                return x;
+                #else
+                // On the CPU we throw an error to help with debugging any errors in use of the
+                // code.
+                throw std::invalid_argument(
+                    "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+                #endif
+            }
         }
-        // This branch is unreachable, but must include something to avoid
-        // compiler warnings. The return value is chosen to match the non-const
-        // version of the operator.
-        return x;
-    }
 
     //! Default construct a 0 vector
     DEVICE vec3() : x(0), y(0), z(0)
