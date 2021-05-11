@@ -38,7 +38,9 @@ class PotentialExternal: public ForceCompute
         typedef typename evaluator::field_type field_type;
 
         //! Sets parameters of the evaluator
-        void setParams(unsigned int type, param_type params);
+        void getParams(pybind11::tuple typ);
+        void setParams(unsigned int type, const param_type& params);
+        void setParamsPython(pybind11::tuple typ, pybind11::dict params);
         void setField(field_type field);
 
     protected:
@@ -179,7 +181,7 @@ void PotentialExternal<evaluator>::computeForces(uint64_t timestep)
     \param params value of parameters
 */
 template<class evaluator>
-void PotentialExternal<evaluator>::setParams(unsigned int type, param_type params)
+void PotentialExternal<evaluator>::setParams(unsigned int type, const param_type& params)
     {
     if (type >= m_pdata->getNTypes())
         {
@@ -190,6 +192,13 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, param_type param
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = params;
+    }
+
+template<class evaluator>
+void PotentialExternal<evaluator>::setParamsPython(pybind11::tuple type, pybind11::dict params)
+    {
+    unsigned int type_idx = m_pdata->getTypeByName(type[0].cast<std::string>());
+    setParams(type_idx, param_type(params));
     }
 
 template<class evaluator>
@@ -208,7 +217,7 @@ void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
                   .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
-                  .def("setParams", &T::setParams)
+                  .def("setParams", &T::setParamsPython)
                   .def("setField", &T::setField)
                   ;
     }
