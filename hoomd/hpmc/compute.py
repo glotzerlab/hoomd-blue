@@ -113,33 +113,40 @@ class SDF(Compute):
     r"""Compute the scale distribution function.
 
     Args:
-        xmax (float): Maximum *x* value at the right hand side of the rightmost bin (distance units).
+        xmax (float): Maximum *x* value at the right hand side of the rightmost
+          bin (distance units).
         dx (float): Bin width (distance units).
 
-    :py:class:`SDF` computes a distribution function of scale parameters :math:`x`. For each particle, it finds the smallest
-    scale factor :math:`1+x` that would cause the particle to touch one of its neighbors and records that in the histogram
-    :math:`s(x)`. The histogram is discrete and :math:`s(x_i) = s[i]` where :math:`x_i = i \cdot dx + dx/2`.
+    :py:class:`SDF` computes a distribution function of scale parameters
+    :math:`x`. For each particle, it finds the smallest scale factor :math:`1+x`
+    that would cause the particle to touch one of its neighbors and records that
+    in the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
+    s[i]` where :math:`x_i = i \cdot dx + dx/2`.
 
-    In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related to the pressure.
+    In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`,
+    :math:`s(0+)` is related to the pressure.
 
     .. math::
         \frac{P}{kT} = \rho \left(1 + \frac{s(0+)}{2d} \right)
 
-    where :math:`d` is the dimensionality of the system and :math:`\rho` is the number density.
+    where :math:`d` is the dimensionality of the system and :math:`\rho` is the
+    number density.
 
-    Extrapolating :math:`s(0+)` is not trivial. Here are some suggested parameters, but they may not work in all cases.
+    Suggested parameters for most systems (assuming particle diameters are ~1):
 
       * *xmax* = 0.02
       * *dx* = 1e-4
-      * Polynomial curve fit of degree 5.
 
-    In systems near densest packings, ``dx=1e-5`` may be needed along with either a smaller xmax or a smaller region to fit.
-    A good rule of thumb might be to fit a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5 - but this needs further testing to
-    confirm.
+    In systems near densest packings, ``dx=1e-5`` may be needed along with
+    either a smaller xmax or a smaller region to fit. A good rule of is to fit
+    a region where ``numpy.sum(s[0:n]*dx)`` ~ 0.5.
 
+    `betaP` performs the curve fit and computes :math:`\frac{P}{kT}` using a
+    polynomial curve fit of degree 5.
 
     Warning:
-        :py:class:`SDF` does not compute correct pressures for simulations with concave particles or enthalpic interactions.
+        :py:class:`SDF` does not compute correct pressures for simulations with
+        concave particles or enthalpic interactions.
 
 
     Examples::
@@ -148,7 +155,8 @@ class SDF(Compute):
 
 
     Attributes:
-        xmax (float): Maximum *x* value at the right hand side of the rightmost bin.
+        xmax (float): Maximum *x* value at the right hand side of the rightmost
+          bin.
 
         dx (float): Bin width.
 
@@ -192,7 +200,13 @@ class SDF(Compute):
 
     @log
     def betaP(self):
-        """Pressure in NVT simulations."""
+        r"""Pressure in NVT simulations.
+
+        Use a polynomial curve fit to estimate :math:`\frac{s(0+)}{2d}` and
+        compute the pressure via:
+        .. math::
+            \frac{P}{kT} = \rho \left(1 + \frac{s(0+)}{2d} \right)
+        """
         if self._attached:
             # get the values to fit
             n_fit = int(numpy.ceil(self.xmax / self.dx))
@@ -202,6 +216,10 @@ class SDF(Compute):
             x_fit += self.dx / 2
             # perform the fit and extrapolation
             p = numpy.polyfit(x_fit, sdf_fit, 5)
-            return numpy.polyval(p, 0.0)
+
+            box = self._simulation.state.box
+            N = self._simulation.state.N_particles
+            rho = N / box.volume
+            return rho * (1 + numpy.polyval(p, 0.0) / (2 * box.dimensions))
         else:
             return None

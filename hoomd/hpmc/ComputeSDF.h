@@ -57,43 +57,47 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
 //! SDF analysis
 /*! **Overview** <br>
 
-    ComputeSDF computes \f$ s(\lambda)/N \f$. \f$ s(\lambda) \f$ is a distribution function like *g(r)*, except that
-    \f$\lambda\f$ is the smallest scale factor that causes a particle to just just touch the closest of its neighbors.
-    The output of ComputeSDF \f$ s(\lambda)/N \f$ is raw data, with the only normalization being a division by the
-    number of particles to compute a count of the average number overlapping particle pairs in a given \f$\lambda\f$
-    histogram bin.
+    ComputeSDF computes \f$ s(\lambda)/N \f$. \f$ s(\lambda) \f$ is a distribution function like
+    *g(r)*, except that \f$\lambda\f$ is the smallest scale factor that causes a particle to just
+    just touch the closest of its neighbors. The output of ComputeSDF \f$ s(\lambda)/N \f$ is raw
+    data, with the only normalization being a division by the number of particles to compute a count
+    of the average number overlapping particle pairs in a given \f$\lambda\f$ histogram bin.
 
-    \f$ s(\lambda)/N \f$ extrapolated out to \f$ \lambda=0 \f$ is directly related by a scale factor to the pressure in
-    an NVT system of hard particles. Performing this extrapolation only needs data very near zero
-    (e.g. up to 0.02 for disks).
+    \f$ s(\lambda)/N \f$ extrapolated out to \f$ \lambda=0 \f$ is directly related by a scale factor
+    to the pressure in an NVT system of hard particles. Performing this extrapolation only needs
+    data very near zero (e.g. up to 0.02 for disks).
 
-    ComputeSDF is implemented as a compute in HPMC (and not in freud) due to the need for high performance evaluation
-    at very small periods. A future module from freud does not conflict with this code, as that would be more general
-    and extend to larger values of \f$\lambda\f$, whereas this code is optimized only for small values.
+    ComputeSDF is implemented as a compute in HPMC (and not in freud) due to the need for high
+    performance evaluation at very small periods. A future module from freud does not conflict with
+    this code, as that would be more general and extend to larger values of \f$\lambda\f$, whereas
+    this code is optimized only for small values.
 
     \b Computing \f$ \lambda \f$ <br>
 
-    In the initial version of the code, a completely general way of computing *\f$ \lambda \f$* is implemented.
-    It uses a binary search tree and the existing test_overlap code to find which bin a given pair of particles sits in.
-    Future versions of the code may use shape specific data to compute *\f$ \lambda \f$* directly.
+    In the initial version of the code, a completely general way of computing *\f$ \lambda \f$* is
+    implemented. It uses a binary search tree and the existing test_overlap code to find which bin a
+    given pair of particles sits in. Future versions of the code may use shape specific data to
+    compute *\f$ \lambda \f$* directly.
 
-    Outside of that ComputeSDF is a pretty basic histogramming code. The only other notable feature in the design
-    is the full use of the MPI domain decomposition to compute the SDF fast in large jobs.
+    Outside of that ComputeSDF is a pretty basic histogramming code. The only other notable feature
+    in the design is the full use of the MPI domain decomposition to compute the SDF fast in large
+    jobs.
 
     \b Storage <br>
 
-    Bin counts are stored in a basic std::vector<unsigned int>. Bin 0 counts \f$ \lambda \f$ values from
-    \f$ \lambda [0,d\lambda) \f$, bin n counts from \f$ [d\lambda \cdot n,d\lambda \cdot (n+1)) \f$. Up to a value of
-    *xmax* for the right hand side of the last bin (a total of *xmax/dx* bins)
+    Bin counts are stored in a basic std::vector<unsigned int>. Bin 0 counts \f$ \lambda \f$ values
+    from \f$ \lambda [0,d\lambda) \f$, bin n counts from \f$ [d\lambda \cdot n,d\lambda \cdot (n+1))
+    \f$. Up to a value of *xmax* for the right hand side of the last bin (a total of *xmax/dx* bins)
 
-    The position of the bin centers needs to be taken into account carefully (see the MPMC paper), but ComputeSDF
-    currently doesn't do that. It just writes out the raw histogram counts.
+    The position of the bin centers needs to be taken into account carefully (see the MPMC paper),
+    but ComputeSDF currently doesn't do that. It just writes out the raw histogram counts.
 
     \b Connection to an integrator <br>
 
-    In MPI, the ghost layer width needs to be increased slightly. This is done by passing the MC integrator into the
-    analyzer which then calls a method to set up the extra ghost width. This connection is also used to get the maximum
-    particle diameter for an input into the cell list size.
+    In MPI, the ghost layer width needs to be increased slightly. This is done by passing the MC
+    integrator into the compute which then calls a method to set up the extra ghost width. This
+    connection is also used to get the maximum particle diameter for an input into the cell list
+    size.
 
     \ingroup hpmc_computes
 */
@@ -240,7 +244,6 @@ void ComputeSDF<Shape>::computeSDF(uint64_t timestep)
         if (m_comm)
             {
             MPI_Reduce(&hist_total[0], &m_hist[0], (unsigned int)m_hist.size(), MPI_UNSIGNED, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
-
             }
     #endif
 
@@ -273,9 +276,10 @@ void ComputeSDF<Shape>::zeroHistogram()
 
 /*! \param timestep current timestep
 
-    countHistogram() loops through all particle pairs *i,j* where *i* is on the local rank, computes the bin in which
-    that pair should be and adds 1 to the bin. countHistogram() can be called multiple times to increment the counters
-    for averaging, and it operates without any communication
+    countHistogram() loops through all particle pairs *i,j* where *i* is on the local rank, computes
+    the bin in which that pair should be and adds 1 to the bin. countHistogram() can be called
+    multiple times to increment the counters for averaging, and it operates without any
+    communication.
       - The integrator performs the ghost exchange (with the ghost width extra that we add)
       - Only on writeOutput() do we need to sum the per-rank histograms into a global histogram
 */
