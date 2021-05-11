@@ -57,7 +57,7 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
 //! SDF analysis
 /*! **Overview** <br>
 
-    ComputeSDF computes \f$ s(\lambda)/N \f$. \f$ s(\lambda) \f$ is a distribution function like *g(r)*, except that 
+    ComputeSDF computes \f$ s(\lambda)/N \f$. \f$ s(\lambda) \f$ is a distribution function like *g(r)*, except that
     \f$\lambda\f$ is the smallest scale factor that causes a particle to just just touch the closest of its neighbors.
     The output of ComputeSDF \f$ s(\lambda)/N \f$ is raw data, with the only normalization being a division by the
     number of particles to compute a count of the average number overlapping particle pairs in a given \f$\lambda\f$
@@ -253,7 +253,7 @@ pybind11::list ComputeSDF<Shape>::getSDF()
     {
     #ifdef ENABLE_MPI
     if (!m_exec_conf->isRoot())
-        return pybind11::none;
+        return pybind11::none();
     #endif
 
     return pybind11::cast(m_hist);
