@@ -17,7 +17,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
         PatchEnergyJITUnionGPU(std::shared_ptr<SystemDefinition> sysdef,
             std::shared_ptr<ExecutionConfiguration> exec_conf,
             const std::string& llvm_ir_iso, Scalar r_cut_iso,
-            const unsigned int array_size_iso,
+            pybind11::array_t<float> param_array,
             const std::string& llvm_ir_union, Scalar r_cut_union,
             const unsigned int array_size_union,
             const std::string& code,
@@ -25,7 +25,7 @@ class PYBIND11_EXPORT PatchEnergyJITUnionGPU : public PatchEnergyJITUnion
             const std::vector<std::string>& options,
             const std::string& cuda_devrt_library_path,
             unsigned int compute_arch)
-            : PatchEnergyJITUnion(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir_union, r_cut_union, array_size_union),
+            : PatchEnergyJITUnion(sysdef, exec_conf, llvm_ir_iso, r_cut_iso, param_array, llvm_ir_union, r_cut_union, array_size_union),
               m_gpu_factory(exec_conf, code, kernel_name, options, cuda_devrt_library_path, compute_arch),
               m_d_union_params(m_sysdef->getParticleData()->getNTypes(), jit::union_params_t(), managed_allocator<jit::union_params_t>(m_exec_conf->isCUDAEnabled()))
             {
