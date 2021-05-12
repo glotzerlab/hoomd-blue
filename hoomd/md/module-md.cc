@@ -284,14 +284,14 @@ PYBIND11_MODULE(_md, m)
         .def(py::init<>());
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
-    export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
-    export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
-    export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
-    export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
-    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
-    export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
-    export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
-    export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
+    //export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
+    //export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    //export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    //export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    //export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    //export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
+    //export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    //export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_HIP
     export_NeighborListGPU(m);
@@ -437,7 +437,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU<ManifoldSphere>(m,"TwoStepRATTLENVESphereGPU");
 #endif
 
-    // manifolds 
+    // manifolds
     export_ManifoldZCylinder(m);
     export_ManifoldDiamond(m);
     export_ManifoldEllipsoid(m);
