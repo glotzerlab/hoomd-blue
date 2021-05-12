@@ -173,14 +173,9 @@ class SDF(Compute):
 
         # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
         integrator_name = integrator.__class__.__name__
-        try:
-            if isinstance(self._simulation.device, hoomd.device.CPU):
-                cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
-            else:
-                raise RuntimeError("SDF currently unsupported on GPU")
 
-        except AttributeError:
-            raise RuntimeError("Unsupported integrator.")
+        # Note: SDF runs on the CPU even in GPU simulations
+        cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj,
