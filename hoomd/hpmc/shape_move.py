@@ -36,7 +36,7 @@ class Constant(ShapeMove):
 
     """
     def __init__(self, shape_params):
-        self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
+        self._param_dict.update(ParameterDict(shape_params=list(shape_params)))
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
