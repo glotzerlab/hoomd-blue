@@ -117,6 +117,12 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
     assert(h_pos.data != NULL);
     assert(h_orientation.data != NULL);
 
+    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+        {
+        throw std::runtime_error("Parts of the manifold are outside the box");
+        }
+
+
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
