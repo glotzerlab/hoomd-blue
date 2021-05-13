@@ -20,8 +20,6 @@ namespace py = pybind11;
 */
 
 /*! \param rotation_diff rotational diffusion constant for all particles.
-    \param constraint specifies a constraint surface, to which particles are confined,
-    such as update.constraint_ellipsoid. Have to replace it with manifolds when implemented
 */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
@@ -292,7 +290,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
         }
     }
 
-/*! This function applies constraints, rotational diffusion, and sets forces for all active particles
+/*! This function applies rotational diffusion and sets forces for all active particles
     \param timestep Current timestep
 */
 void ActiveForceCompute::computeForces(uint64_t timestep)
@@ -325,8 +323,7 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar,
-                    Scalar3, Scalar, Scalar, Scalar >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
     .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)
     .def("getActiveForce", &ActiveForceCompute::getActiveForce)

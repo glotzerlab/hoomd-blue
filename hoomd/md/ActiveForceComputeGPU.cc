@@ -25,12 +25,8 @@ using namespace std;
 */
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                         std::shared_ptr<ParticleGroup> group,
-                                        Scalar rotation_diff,
-                                        Scalar3 P,
-                                        Scalar rx,
-                                        Scalar ry,
-                                        Scalar rz)
-        : ActiveForceCompute(sysdef, group, rotation_diff, P, rx, ry, rz), m_block_size(256)
+                                        Scalar rotation_diff)
+        : ActiveForceCompute(sysdef, group, rotation_diff), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -100,10 +96,6 @@ void ActiveForceComputeGPU::setForces()
                                      d_orientation.data,
                                      d_f_actVec.data,
                                      d_t_actVec.data,
-                                     m_P,
-                                     m_rx,
-                                     m_ry,
-                                     m_rz,
                                      N,
                                      m_block_size);
     }
@@ -132,10 +124,6 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                 d_pos.data,
                                                 d_orientation.data,
                                                 d_f_actVec.data,
-                                                m_P,
-                                                m_rx,
-                                                m_ry,
-                                                m_rz,
                                                 is2D,
                                                 m_rotationConst,
                                                 timestep,
@@ -143,43 +131,12 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                 m_block_size);
     }
 
-/*! This function sets an ellipsoid surface constraint for all active particles
-*/
-void ActiveForceComputeGPU::setConstraint()
-    {
-    EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-
-    //  array handles
-    ArrayHandle<Scalar4> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-
-    assert(d_pos.data != NULL);
-
-    unsigned int group_size = m_group->getNumMembers();
-
-    gpu_compute_active_force_set_constraints(group_size,
-                                             d_index_array.data,
-                                             d_pos.data,
-                                             d_orientation.data,
-                                             d_f_actVec.data,
-                                             m_P,
-                                             m_rx,
-                                             m_ry,
-                                             m_rz,
-                                             m_block_size);
-    }
 
 void export_ActiveForceComputeGPU(py::module& m)
     {
     py::class_< ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU")
         .def(py::init<  std::shared_ptr<SystemDefinition>,
                         std::shared_ptr<ParticleGroup>,
-                        Scalar,
-                        Scalar3,
-                        Scalar,
-                        Scalar,
                         Scalar >())
     ;
     }
