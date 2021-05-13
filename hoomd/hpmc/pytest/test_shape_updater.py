@@ -44,13 +44,8 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     python_move = hoomd.hpmc.shape_move.Python(callback=TruncatedTetrahedron(), params=[[initial_value]], stepsize=[0.05], param_ratio=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=python_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
-    sim.run(0)
-    shape_param_changing = False
-    for _ in range(10):
-        sim.run(1)
-        if shape_updater.shape_param != initial_value:
-            shape_param_changing = True
-    assert shape_param_changing
+    sim.run(10)
+    assert shape_updater.shape_param != initial_value
 
 
 def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
@@ -59,7 +54,7 @@ def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.seed = 0
     sim.operations.add(mc)
-    constant_move = hoomd.hpmc.shape_move.Constant(shape_params=dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0))
+    constant_move = hoomd.hpmc.shape_move.Constant(shape_params=[dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0)])
     shape_updater = hoomd.hpmc.update.Shape(shape_move=constant_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
     sim.run(0)
