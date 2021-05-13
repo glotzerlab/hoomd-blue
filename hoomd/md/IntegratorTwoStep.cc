@@ -379,9 +379,11 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         }
     else
 #endif
-        {
-        updateRigidBodies(timestep);
-        }
+        if (m_rigid_bodies)
+            {
+            m_rigid_bodies->validateRigidBodies();
+            updateRigidBodies(timestep);
+            }
 
         // compute the net force on all particles
 #ifdef ENABLE_HIP
@@ -464,6 +466,7 @@ void IntegratorTwoStep::computeNetForce(uint64_t timestep)
     {
     if (m_rigid_bodies)
         {
+        m_rigid_bodies->validateRigidBodies();
         m_constraint_forces.push_back(m_rigid_bodies);
         }
     Integrator::computeNetForce(timestep);
@@ -479,6 +482,7 @@ void IntegratorTwoStep::computeNetForceGPU(uint64_t timestep)
     {
     if (m_rigid_bodies)
         {
+        m_rigid_bodies->validateRigidBodies();
         m_constraint_forces.push_back(m_rigid_bodies);
         }
     Integrator::computeNetForceGPU(timestep);
