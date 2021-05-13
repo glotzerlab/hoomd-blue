@@ -506,18 +506,6 @@ CommFlags IntegratorTwoStep::determineFlags(uint64_t timestep)
     }
 #endif
 
-/// Count the total number of degrees of freedom removed by all constraint forces
-Scalar IntegratorTwoStep::getNDOFRemoved(std::shared_ptr<ParticleGroup> query)
-    {
-    auto number_degrees_of_freedom = Integrator::getNDOFRemoved(query);
-    if (m_rigid_bodies)
-        {
-        number_degrees_of_freedom += m_rigid_bodies->getNDOFRemoved(query);
-        }
-    return number_degrees_of_freedom;
-    }
-
-
 /// Check if any forces introduce anisotropic degrees of freedom
 bool IntegratorTwoStep::getAnisotropic()
     {

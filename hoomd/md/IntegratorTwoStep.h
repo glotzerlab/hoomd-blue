@@ -91,9 +91,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         /// Get needed pdata flags
         virtual PDataFlags getRequestedPDataFlags();
 
-        /// Count the total number of degrees of freedom removed by all constraint forces
-        virtual Scalar getNDOFRemoved(std::shared_ptr<ParticleGroup> query);
-
         /// helper function to compute net force/virial
         virtual void computeNetForce(uint64_t timestep);
 
