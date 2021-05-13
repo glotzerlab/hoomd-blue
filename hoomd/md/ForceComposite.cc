@@ -520,7 +520,6 @@ void ForceComposite::validateRigidBodies()
 
 void ForceComposite::createRigidBodies()
     {
-
     SnapshotParticleData<Scalar> snap;
 
     // take a snapshot on rank 0
@@ -593,7 +592,9 @@ void ForceComposite::createRigidBodies()
                     m_body_idx(body_type, current_body_index)];
                 snap.body[constituent_particle_tag] = central_particle_tag;
                 snap.charge[constituent_particle_tag] = m_body_charge[
-                    body_type][constituent_particle_tag];
+                    body_type][current_body_index];
+                snap.diameter[constituent_particle_tag] = m_body_diameter[
+                    body_type][current_body_index];
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
