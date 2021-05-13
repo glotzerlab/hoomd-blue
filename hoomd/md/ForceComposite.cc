@@ -502,11 +502,6 @@ void ForceComposite::validateRigidBodies()
         }
     #endif
 
-    if (nbodies == 0)
-        {
-        throw std::runtime_error("Rigid bodies selected, but no rigid bodies were found.");
-        }
-
     // resize Molecular tag member array
     m_molecule_tag.resize(molecule_tag.size());
         {
