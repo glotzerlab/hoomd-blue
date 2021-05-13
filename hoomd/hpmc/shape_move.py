@@ -57,8 +57,7 @@ class Constant(ShapeMove):
                 boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
-
-        ntypes = len(integrator.state["shape"].keys()) - 1
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(ntypes, self.shape_params)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
@@ -116,7 +115,7 @@ class Elastic(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = len(self.mc.state["shape"].keys()) - 1
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._shape_move = move_cls(ntypes, self.stepsize, self.param_ratio)
         ref_shape = shape_cls(self.reference)
         self._log_boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
@@ -203,7 +202,7 @@ class Python(ShapeMove):
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = len(self.mc.state["shape"].keys()) - 1
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(ntypes, self.callback, self.params,
                                  self.stepsize, self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls()
@@ -260,7 +259,7 @@ class Vertex(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = len(self.mc.state["shape"].keys()) - 1
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(ntypes, self.stepsize,
                                  self.param_ratio, self.volume)
         self._log_boltzmann_function = boltzmann_cls()
