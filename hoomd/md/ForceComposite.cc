@@ -668,6 +668,13 @@ CommFlags ForceComposite::getRequestedCommFlags(uint64_t timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(uint64_t timestep)
     {
+    // If no rigid bodies exist return early. This also prevents accessing arrays assuming that this
+    // is non-zero.
+    if (m_n_molecules_global == 0)
+        {
+        return;
+        }
+
     // access local molecule data
     // need to move this on top because of scoping issues
     Index2D molecule_indexer = getMoleculeIndexer();
@@ -834,6 +841,12 @@ void ForceComposite::computeForces(uint64_t timestep)
 
 void ForceComposite::updateCompositeParticles(uint64_t timestep)
     {
+    // If no rigid bodies exist return early. This also prevents accessing arrays assuming that this
+    // is non-zero.
+    if (m_n_molecules_global == 0)
+        {
+        return;
+        }
     // access molecule order (this needs to be on top because of ArrayHandle scope) and its
     // pervasive use across this function.
     ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
