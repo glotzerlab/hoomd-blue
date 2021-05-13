@@ -591,6 +591,21 @@ class Shape(Updater):
         if not self.shape_move._attached:
             self.shape_move._attach()
 
+    def _getattr_param(self, attr):
+        if self._attached:
+            if attr == "shape_move":
+                return self._param_dict["shape_move"]
+            parameter = getattr(self._cpp_obj, attr)
+            return parameter
+        else:
+            return self._param_dict[attr]
+
+    def _setattr_param(self, attr, value):
+        if attr == "shape_move":
+            self._param_dict["shape_move"] = value
+        else:
+            super()._setattr_param(attr, value)
+
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
