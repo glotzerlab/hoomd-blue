@@ -14,6 +14,7 @@ def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
                                            (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5),
                                            (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
+    sim.seed = 0
     sim.operations.add(mc)
     vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize=[0.01], param_ratio=0.2, volume=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=vertex_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
@@ -38,6 +39,7 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     initial_value = 1.0
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(initial_value).vertices / (ttf.get_shape(initial_value).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
+    sim.seed = 0
     sim.operations.add(mc)
     python_move = hoomd.hpmc.shape_move.Python(callback=TruncatedTetrahedron(), params=[[initial_value]], stepsize=[0.05], param_ratio=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=python_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
@@ -55,6 +57,7 @@ def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(0.0).vertices / (ttf.get_shape(0.0).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
+    sim.seed = 0
     sim.operations.add(mc)
     constant_move = hoomd.hpmc.shape_move.Constant(shape_params=dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0))
     shape_updater = hoomd.hpmc.update.Shape(shape_move=constant_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
@@ -66,6 +69,7 @@ def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(0.0).vertices / (ttf.get_shape(0.0).volume**(1/3))).vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
+    sim.seed = 0
     sim.operations.add(mc)
     elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=hoomd.variant.Constant(1.0),
                                                  reference=dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices,
