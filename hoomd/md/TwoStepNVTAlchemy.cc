@@ -8,13 +8,7 @@
 #include "TwoStepNVTAlchemy.h"
 #include "hoomd/VectorMath.h"
 
-#ifdef ENABLE_MPI
-#include "hoomd/Communicator.h"
-#include "hoomd/HOOMDMPI.h"
-#endif
-
-using namespace std;
-// namespace py = pybind11;
+namespace py = pybind11;
 
 /*! \file TwoStepNVTAlchemy.cc
     \brief Contains code for the TwoStepNVTAlchemy class
@@ -25,11 +19,10 @@ using namespace std;
     \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVTAlchemy::TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
-                                     std::shared_ptr<Variant> T,
-                                     const std::string& suffix)
-    : AlchemostatTwoStep(sysdef), m_T(T)
+                                     std::shared_ptr<Variant> T)
+    : AlchemostatTwoStep(sysdef), m_Q(1.0), m_alchem_KE(0.0), m_T(T)
     {
-    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTAlchemy" << endl;
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTAlchemy" << std::endl;
 
     // TODO: alchemy, add restart support, would require alpha matrix to be stored... where?
     // set initial state
@@ -39,58 +32,57 @@ TwoStepNVTAlchemy::TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
     v.variable[0] = Scalar(0.0); // xi
     v.variable[1] = Scalar(0.0); // eta
     setIntegratorVariables(v);
-
-    m_log_name = string("alchemostat_nvt_mtk") + suffix;
     }
 
 TwoStepNVTAlchemy::~TwoStepNVTAlchemy()
     {
-    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTAlchemy" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying TwoStepNVTAlchemy" << std::endl;
     }
 
-/*! Returns a list of log quantities this compute calculates
- */
-std::vector<std::string> TwoStepNVTAlchemy::getProvidedLogQuantities()
-    {
-    vector<string> result;
-    result.push_back(m_log_name + string("_reservoir_energy"));
-    result.push_back(m_log_name + string("_alchemical_kinetic_energy"));
-    return result;
-    }
+// /*! Returns a list of log quantities this compute calculates
+//  */
+// std::vector<std::string> TwoStepNVTAlchemy::getProvidedLogQuantities()
+//     {
+//     vector<string> result;
+//     result.push_back(m_log_name + string("_reservoir_energy"));
+//     result.push_back(m_log_name + string("_alchemical_kinetic_energy"));
+//     return result;
+//     }
 
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quanity logged here
-*/
-Scalar TwoStepNVTAlchemy::getLogValue(const std::string& quantity,
-                                      uint64_t timestep,
-                                      bool& my_quantity_flag)
-    {
-    IntegratorVariables v = getIntegratorVariables();
+// /*! \param quantity Name of the log quantity to get
+//     \param timestep Current time step of the simulation
+//     \param my_quantity_flag passed as false, changed to true if quanity logged here
+// */
+// Scalar TwoStepNVTAlchemy::getLogValue(const std::string& quantity,
+//                                       uint64_t timestep,
+//                                       bool& my_quantity_flag)
+//     {
+//     IntegratorVariables v = getIntegratorVariables();
 
-    if (quantity == m_log_name + string("_reservoir_energy"))
-        {
-        my_quantity_flag = true;
-        IntegratorVariables v = getIntegratorVariables();
+//     if (quantity == m_log_name + string("_reservoir_energy"))
+//         {
+//         my_quantity_flag = true;
+//         IntegratorVariables v = getIntegratorVariables();
 
-        Scalar& xi = v.variable[0];
-        Scalar& eta = v.variable[1];
+//         Scalar& xi = v.variable[0];
+//         Scalar& eta = v.variable[1];
 
-        Scalar thermostat_energy
-            = Scalar(0.5) * xi * xi * m_Q + eta * m_alchemicalParticles.size() * (*m_T)(timestep);
+//         Scalar thermostat_energy
+//             = Scalar(0.5) * xi * xi * m_Q + eta * m_alchemicalParticles.size() *
+//             (*m_T)(timestep);
 
-        return thermostat_energy;
-        }
-    else if (quantity == m_log_name + string("_alchemical_kinetic_energy"))
-        {
-        my_quantity_flag = true;
-        return m_alchem_KE;
-        }
-    else
-        {
-        return Scalar(0);
-        }
-    }
+//         return thermostat_energy;
+//         }
+//     else if (quantity == m_log_name + string("_alchemical_kinetic_energy"))
+//         {
+//         my_quantity_flag = true;
+//         return m_alchem_KE;
+//         }
+//     else
+//         {
+//         return Scalar(0);
+//         }
+//     }
 
 void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
     {
@@ -100,7 +92,9 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
     if (m_prof)
         m_prof->push("NVTalchemo step 1");
 
-    m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 1st Alchemcial Half Step" << endl;
+    m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 1st Alchemcial Half Step" << std::endl;
+
+    m_nextAlchemTimeStep += m_nTimeFactor;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -125,6 +119,8 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
         // rescale velocity
         p *= exp(-m_halfDeltaT * xi);
         m_alchem_KE += Scalar(0.5) * p * p * invM;
+
+        alpha->m_nextTimestep = m_nextAlchemTimeStep;
         }
 
     advanceThermostat(timestep);
@@ -142,7 +138,7 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
     if (m_prof)
         m_prof->push("NVTalchemo step 2");
 
-    m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 2nd Alchemcial Half Step" << endl;
+    m_exec_conf->msg->notice(10) << "TwoStepNVTAlchemy: 2nd Alchemcial Half Step" << std::endl;
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
@@ -188,4 +184,16 @@ void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     xi += half_delta_xi + half_delta_xi;
 
     setIntegratorVariables(v);
+    }
+
+void export_TwoStepNVTAlchemy(py::module& m)
+    {
+    py::class_<TwoStepNVTAlchemy, std::shared_ptr<TwoStepNVTAlchemy>>(
+        m,
+        "TwoStepNVTAlchemy")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Variant>>())
+        .def("setT", &TwoStepNVTAlchemy::setT)
+        .def("setQ", &TwoStepNVTAlchemy::setQ)
+        .def_property("kT", &TwoStepNVTAlchemy::getT, &TwoStepNVTAlchemy::setT)
+        .def_property("Q", &TwoStepNVTAlchemy::getQ, &TwoStepNVTAlchemy::setQ);
     }

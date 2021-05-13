@@ -57,6 +57,9 @@
 #include "TwoStepNPTMTK.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVTMTK.h"
+#include "AlchemostatTwoStep.h"
+#include "TwoStepNVTAlchemy.h"
+#include "TwoStepNVEAlchemy.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
 #include "MuellerPlatheFlow.h"
@@ -249,8 +252,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairOPP>(m, "PotentialPairOPP");
     export_PotentialPair<PotentialPairTWF>(m, "PotentialPairTWF");
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
-    export_AlchemicalPotentialPair<PotentialPairLJGauss>(m, "AlchemicalPotentialPairLJGauss");
-    export_AlchemicalPotentialPair<PotentialPairOPP>(m, "AlchemicalPotentialPairLJGauss");
+    export_AlchemicalPairParticle(m);
+    export_AlchemicalPotentialPair<EvaluatorPairLJGauss>(m, "AlchemicalPotentialPairLJGauss");
+    export_AlchemicalPotentialPair<EvaluatorPairOPP>(m, "AlchemicalPotentialPairLJGauss");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -366,6 +370,9 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
+    // export_AlchemostatTwoStep(m);
+    export_TwoStepNVEAlchemy(m);
+    export_TwoStepNVTAlchemy(m);
 
 #ifdef ENABLE_HIP
     export_TwoStepNVEGPU(m);

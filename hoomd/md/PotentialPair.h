@@ -915,7 +915,7 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i,j,typpair_idx,eval,pkg);
+            pkgPerNeighbor(i,j,(rsq < rcutsq),eval,pkg);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 

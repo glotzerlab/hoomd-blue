@@ -7,7 +7,7 @@
 #include "hoomd/VectorMath.h"
 
 using namespace std;
-// namespace py = pybind11;
+namespace py = pybind11;
 
 /*! \file TwoStepNVEAlchemy.h
     \brief Contains code for the TwoStepNVEAlchemy class
@@ -55,6 +55,8 @@ void TwoStepNVEAlchemy::integrateStepOne(uint64_t timestep)
     if (m_prof)
         m_prof->push("NVT step 1");
 
+    m_nextAlchemTimeStep += m_nTimeFactor;
+
     // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
 
@@ -71,6 +73,8 @@ void TwoStepNVEAlchemy::integrateStepOne(uint64_t timestep)
         q += m_halfDeltaT * p * invM;
         // update velocity
         p += m_halfDeltaT * (netForce - mu - dUextdalpha);
+
+        alpha->m_nextTimestep = m_nextAlchemTimeStep;
         }
 
     // done profiling
@@ -110,4 +114,13 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
     // done profiling
     if (m_prof)
         m_prof->pop();
+    }
+
+void export_TwoStepNVEAlchemy(py::module& m)
+    {
+    py::class_<TwoStepNVEAlchemy, std::shared_ptr<TwoStepNVEAlchemy>>(
+        m,
+        "TwoStepNVEAlchemy")
+        .def(py::init<std::shared_ptr<SystemDefinition> >())
+        ;
     }

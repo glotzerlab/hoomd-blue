@@ -3,10 +3,12 @@
 
 // Maintainer: jproc
 
-#include "AlchemostatTwoStep.h"
 
 #ifndef __TWO_STEP_NVE_ALCHEMY_H__
 #define __TWO_STEP_NVE_ALCHEMY_H__
+
+
+#include "AlchemostatTwoStep.h"
 
 /*! \file TwoStepNVEAlchemy.h
     \brief Declares the TwoStepNVEAlchemy class
@@ -24,18 +26,12 @@
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNVEAlchemy : public AlchemostatTwoStep
+class TwoStepNVEAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
     TwoStepNVEAlchemy(std::shared_ptr<SystemDefinition> sysdef);
     virtual ~TwoStepNVEAlchemy();
-
-    //! Returns a list of log quantities this integrator calculates
-    virtual std::vector<std::string> getProvidedLogQuantities();
-
-    //! Returns logged values
-    Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool& my_quantity_flag);
 
     //! Performs the first step of the integration
     void integrateStepOne(uint64_t timestep) override;

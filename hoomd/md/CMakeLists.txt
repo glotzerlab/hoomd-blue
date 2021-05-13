@@ -38,6 +38,8 @@ set(_md_sources module-md.cc
                    TwoStepNPTMTK.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
+                   TwoStepNVEAlchemy.cc
+                   TwoStepNVTAlchemy.cc
                    ZeroMomentumUpdater.cc
                    MuellerPlatheFlow.cc
                    )
@@ -172,6 +174,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 TwoStepNVE.h
                 TwoStepNVTMTKGPU.h
                 TwoStepNVTMTK.h
+                AlchemostatTwoStep.h
+                TwoStepNVEAlchemy.h
+                TwoStepNVTAlchemy.h
                 WallData.h
                 ZeroMomentumUpdater.h
                 )

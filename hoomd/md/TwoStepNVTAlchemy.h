@@ -1,13 +1,15 @@
+
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jproc
 
+#ifndef __TWOSTEP_NVT_ALCHEMY_H__
+#define __TWOSTEP_NVT_ALCHEMY_H__
+
+
 #include "AlchemostatTwoStep.h"
 #include "hoomd/Variant.h"
-
-#ifndef __TWO_STEP_NVE_ALCHEMO_H__
-#define __TWO_STEP_NVE_ALCHEMO_H__
 
 /*! \file TwoStepNVTAlchemy.h
     \brief Declares the TwoStepNVTAlchemy class
@@ -25,31 +27,34 @@
 
     \ingroup updaters
 */
-class PYBIND11_EXPORT TwoStepNVTAlchemy : public AlchemostatTwoStep
+class TwoStepNVTAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
-    TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<Variant> T,
-                      const std::string& suffix);
+    TwoStepNVTAlchemy(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<Variant> T);
     virtual ~TwoStepNVTAlchemy();
 
     virtual void setQ(Scalar Q)
         {
         m_Q = Q;
         }
+        
+    /// get the Q value
+    Scalar getQ()
+        {
+        return m_Q;
+        }
 
     virtual void setT(std::shared_ptr<Variant> T)
         {
         m_T = T;
         }
-
-
-    //! Returns a list of log quantities this integrator calculates
-    virtual std::vector<std::string> getProvidedLogQuantities();
-
-    //! Returns logged values
-    Scalar getLogValue(const std::string& quantity, uint64_t timestep, bool& my_quantity_flag);
+        
+    /// Get the current temperature variant
+    std::shared_ptr<Variant> getT()
+        {
+        return m_T;
+        }
 
     //! Performs the first step of the integration
     void integrateStepOne(uint64_t timestep) override;
@@ -71,4 +76,4 @@ class PYBIND11_EXPORT TwoStepNVTAlchemy : public AlchemostatTwoStep
 //! Exports the TwoStepNVTAlchemy class to python
 void export_TwoStepNVTAlchemy(pybind11::module& m);
 
-#endif // #ifndef __TWO_STEP_NVE_ALCHEMO_H__
+#endif // __TWOSTEP_NVT_ALCHEMY_H__

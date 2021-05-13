@@ -25,25 +25,24 @@
 class AlchemicalParticle
     {
     public:
-    AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                       std::shared_ptr<Compute> base)
-        : value(Scalar(1.0)), m_exec_conf(exec_conf), m_base(base) {};
+    AlchemicalParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        : value(Scalar(1.0)), m_exec_conf(exec_conf) {};
 
     Scalar value; //!< Alpha space dimensionless position of the particle
+    uint64_t m_nextTimestep;
+
     protected:
     std::shared_ptr<const ExecutionConfiguration>
         m_exec_conf;                 //!< Stored shared ptr to the execution configuration
     std::shared_ptr<Compute> m_base; //!< the associated Alchemical Compute
-    // TODO: decide if velocity or momentum would typically be better for numerical stability
     };
 class AlchemicalMDParticle : public AlchemicalParticle
     {
     public:
-    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                         std::shared_ptr<Compute> base)
-        : AlchemicalParticle(exec_conf, base) {};
+    AlchemicalMDParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+        : AlchemicalParticle(exec_conf) {};
 
-    void zeroForces()
+    void inline zeroForces()
         {
         ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
                                      access_location::host,
@@ -57,6 +56,25 @@ class AlchemicalMDParticle : public AlchemicalParticle
         m_alchemical_derivatives.swap(new_forces);
         }
 
+    void setNetForce(uint64_t timestep)
+        {
+        // TODO: remove this sanity check after we're done making sure timing works
+        zeroForces();
+        m_timestepNetForce.first = timestep;
+        }
+
+    void setNetForce()
+        {
+        Scalar netForce(0.0);
+        ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
+                                     access_location::host,
+                                     access_mode::read);
+        for (unsigned int i = 0; i < m_alchemical_derivatives.getNumElements(); i++)
+            netForce += h_forces.data[i];
+        netForce /= Scalar(m_alchemical_derivatives.getNumElements());
+        m_timestepNetForce.second = netForce;
+        }
+
     Scalar getNetForce(uint64_t timestep)
         {
         // TODO: remove this sanity check after we're done making sure timing works
@@ -64,23 +82,44 @@ class AlchemicalMDParticle : public AlchemicalParticle
         return m_timestepNetForce.second;
         }
 
+    void setMass(Scalar new_mass)
+        {
+        mass.x = new_mass;
+        mass.y = Scalar(1.) / new_mass;
+        }
+
+    Scalar getMass()
+        {
+        return mass.x;
+        }
+
     Scalar momentum; // the momentum of the particle
     Scalar2 mass;    // mass (x) and it's inverse (y) (don't have to recompute constantly)
-    Scalar mu; //!< the alchemical potential of the particle
+    Scalar mu;       //!< the alchemical potential of the particle
+    GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
     // the timestep the net force was computed and the netforce
     std::pair<uint64_t, Scalar> m_timestepNetForce;
-    GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     };
 
 class AlchemicalPairParticle : public AlchemicalMDParticle
     {
     public:
     AlchemicalPairParticle(std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                           std::shared_ptr<Compute> base,
                            int3 type_pair_param)
-        : AlchemicalMDParticle(exec_conf, base), m_type_pair_param(type_pair_param) {};
+        : AlchemicalMDParticle(exec_conf), m_type_pair_param(type_pair_param) {};
     int3 m_type_pair_param;
     };
+
+
+inline void export_AlchemicalPairParticle(pybind11::module& m)
+    {
+    pybind11::class_<AlchemicalPairParticle, std::shared_ptr<AlchemicalPairParticle>>(
+        m,
+        "AlchemicalPairParticle")
+        .def("setMass", &AlchemicalPairParticle::setMass)
+        .def_property_readonly("getMass", &AlchemicalPairParticle::getMass)
+        ;
+    }
 
 #endif
