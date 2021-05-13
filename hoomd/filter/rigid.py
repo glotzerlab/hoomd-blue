@@ -20,7 +20,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
     Base: `ParticleFilter`
     """
 
-    def __init__(self, flags=("centers",)):
+    def __init__(self, flags=("center",)):
         if not all(
                 flag in {"center", "constituent", "free"} for flag in flags):
             raise ValueError(
@@ -39,4 +39,4 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
 
     def __reduce__(self):
         """Enable (deep)copying and pickling of `Rigid` particle filters."""
-        return (type(self), tuple(self._flags,))
+        return (type(self), (self._flags,))

@@ -25,21 +25,14 @@ constexpr enum RigidBodySelection operator|(
     const enum RigidBodySelection flag1, const enum RigidBodySelection flag2)
     {
         return static_cast<enum RigidBodySelection>(
-            static_cast<unsigned short>(flag1) | static_cast<unsigned short>(flag2));
+            static_cast<unsigned int>(flag1) | static_cast<unsigned int>(flag2));
     }
 
 constexpr enum RigidBodySelection operator&(
     const enum RigidBodySelection flag1, const enum RigidBodySelection flag2)
     {
         return static_cast<enum RigidBodySelection>(
-            static_cast<unsigned short>(flag1) & static_cast<unsigned short>(flag2));
-    }
-
-constexpr enum RigidBodySelection operator|=(
-    enum RigidBodySelection& flag1, const enum RigidBodySelection flag2)
-    {
-        return static_cast<enum RigidBodySelection>(
-            static_cast<unsigned short>(flag1) | static_cast<unsigned short>(flag2));
+            static_cast<unsigned int>(flag1) & static_cast<unsigned int>(flag2));
     }
 
 constexpr bool toBool (const enum RigidBodySelection& flag)
@@ -60,15 +53,15 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
                 auto flag = flags[i].cast<std::string>();
                 if (flag == "center")
                     {
-                    m_current_selection |= RigidBodySelection::CENTERS;
+                    m_current_selection = m_current_selection | RigidBodySelection::CENTERS;
                     }
                 else if (flag == "constituent")
                     {
-                    m_current_selection |= RigidBodySelection::CONSTITUENT;
+                    m_current_selection = m_current_selection | RigidBodySelection::CONSTITUENT;
                     }
                 else if (flag == "free")
                     {
-                    m_current_selection |= RigidBodySelection::FREE;
+                    m_current_selection = m_current_selection | RigidBodySelection::FREE;
                     }
                 }
             }
@@ -100,15 +93,16 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
                 bool include_particle = false;
                 if (toBool(m_current_selection & RigidBodySelection::CENTERS))
                     {
-                    include_particle |= tag == body;
+                    include_particle = include_particle || (tag == body);
                     }
                 if (toBool(m_current_selection & RigidBodySelection::CONSTITUENT))
                     {
-                    include_particle |= body < MIN_FLOPPY;
+                    include_particle = include_particle || (
+                        body < MIN_FLOPPY && body != NO_BODY && body != tag);
                     }
                 if (toBool(m_current_selection & RigidBodySelection::FREE))
                     {
-                    include_particle |= body == NO_BODY;
+                    include_particle = include_particle || (body == NO_BODY);
                     }
 
                 if (include_particle)
