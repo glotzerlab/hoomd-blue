@@ -10,9 +10,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-#include "EvaluatorConstraintEllipsoid.h"
-
-
 /*! \file ActiveForceCompute.h
     \brief Declares a class for computing active forces and torques
 */
@@ -35,11 +32,7 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         //! Constructs the compute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             Scalar rotation_diff,
-                             Scalar3 P,
-                             Scalar rx,
-                             Scalar ry,
-                             Scalar rz);
+                             Scalar rotation_diff)
 
         //! Destructor
         ~ActiveForceCompute();
@@ -94,10 +87,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         Scalar m_rotationDiff;
         Scalar m_rotationConst;
-        Scalar3 m_P;          //!< Position of the Ellipsoid
-        Scalar m_rx;          //!< Radius in X direction of the Ellipsoid
-        Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
-        Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         GlobalVector<Scalar4> m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
         GlobalVector<Scalar4> m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
