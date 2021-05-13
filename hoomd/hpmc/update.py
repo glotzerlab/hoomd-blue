@@ -579,6 +579,7 @@ class Shape(Updater):
                                    nsweeps=int(nsweeps),
                                    multi_phase=bool(multi_phase),
                                    num_phase=int(num_phase))
+        param_dict["shape_move"] = shape_move
         self._param_dict.update(param_dict)
 
     def _add(self, sim):
@@ -604,7 +605,7 @@ class Shape(Updater):
                   'Sphinx', 'SphereUnion']
         for shape in shapes:
             if isinstance(integrator, getattr(integrate, shape)):
-                move_cls = getattr(_hpmc, 'UpdaterShape' + shape)
+                updater_cls = getattr(_hpmc, 'UpdaterShape' + shape)
         if updater_cls is None:
             raise RuntimeError("Integrator not supported")
         # TODO: Make this possible
