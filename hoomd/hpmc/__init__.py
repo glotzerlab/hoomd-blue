@@ -14,3 +14,4 @@ from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
 from hoomd.hpmc import tune
+from hoomd.hpmc import shape_move
