@@ -4,6 +4,7 @@ set(files __init__.py
     test_active.py
     test_aniso_pair.py
     test_bond_FENE.py
+    test_external.py
     test_flags.py
     test_potential.py
     test_manifolds.py
