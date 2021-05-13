@@ -113,10 +113,16 @@ class _DynamicIntegrator(BaseIntegrator):
     def _setattr_param(self, attr, value):
         if attr == "rigid":
             self._set_rigid(value)
+            return
         super()._setattr_param(attr, value)
 
     def _set_rigid(self, value):
         """Handles the adding and detaching of potential Rigid objects."""
+        # this generally only happens when attaching and we can ignore it since
+        # we attach the rigid body in _attach.
+        if value is self.rigid:
+            return
+
         old_rigid = self.rigid
         self._param_dict["rigid"] = value
 
