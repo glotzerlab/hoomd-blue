@@ -17,20 +17,8 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.manifold import Manifold
 
-
-def ellip_preprocessing(constraint):
-    if constraint is not None:
-        if constraint.__class__.__name__ == "constraint_ellipsoid":
-            return act_force
-        else:
-            raise RuntimeError(
-                "Active force constraint is not accepted (currently only "
-                "accepts ellipsoids)"
-            )
-    else:
-        return None
 
 
 class _force:
@@ -322,6 +310,8 @@ class Active(Force):
         active_torque (tuple): active torque vector in reference to the
             orientation of a particle. It is defined per particle type and stays
             constant during the simulation.
+        manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
+            constraint. Defaults to None.
 
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where
@@ -334,12 +324,14 @@ class Active(Force):
     particles.  In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and
     diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta
     t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
-    :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence
-    length of an active particle's path is :math:`v_0 / D_r`.  The rotational
-    diffusion is applied to the orientation vector/quaternion of each particle.
-    This implies that both the active force and the active torque vectors in the
-    particle frame stay constant during the simulation. Hence, the active forces
-    in the system frame are composed of the forces in particle frame and the
+    :math:`\hat{p}_r` is an uncorrelated random unit vector. If a manifold
+    constraint is set, `\hat{p}_i` is restricted to the local tangent plane of
+    the manifold at point `{\bf r}_i`. The persistence length of an active
+    particle's path is :math:`v_0 / D_r`.  The rotational diffusion is applied
+    to the orientation vector/quaternion of each particle. This implies that
+    both the active force and the active torque vectors in the particle
+    frame stay constant during the simulation. Hence, the active forces in
+    the system frame are composed of the forces in particle frame and the
     current orientation of the particle.
 
     Examples::
@@ -353,20 +345,18 @@ class Active(Force):
         active.active_torque['A','B'] = (0,0,0)
     """
 
-    def __init__(self, filter, rotation_diff=0.1):
+    def __init__(self, filter, rotation_diff=0.1, manifold_constraint=None):
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             rotation_diff=float(rotation_diff),
-            constraint=OnlyTypes(
-                ConstraintForce, allow_none=True, preprocess=ellip_preprocessing
-            ),
+            manifold_constraint = OnlyTypes(Manifold, allow_none=True)
         )
         param_dict.update(
             dict(
-                constraint=None,
                 rotation_diff=rotation_diff,
                 filter=filter,
+                manifold_constraint=manifold_constraint
             )
         )
         # set defaults
@@ -385,6 +375,21 @@ class Active(Force):
 
         self._extend_typeparam([active_force, active_torque])
 
+    def _getattr_param(self, attr):
+        if self._attached:
+            if attr == "manifold_constraint":
+                return self._param_dict["manifold_constraint"]
+            parameter = getattr(self._cpp_obj, attr)
+            return parameter
+        else:
+            return self._param_dict[attr]
+
+    def _setattr_param(self, attr, value):
+        if attr == "manifold_constraint":
+            raise AttributeError(
+                "Cannot set manifold_constraint after construction.")
+        super()._setattr_param(attr, value)
+
     def _add(self, simulation):
         """Add the operation to a simulation.
 
@@ -393,20 +398,44 @@ class Active(Force):
         if simulation is not None:
             simulation._warn_if_seed_unset()
 
+        if self.manifold_constraint is not None:
+            self.manifold_constraint._add(simulation)
+
         super()._add(simulation)
 
     def _attach(self):
-        # initialize the reflected c++ class
-        if isinstance(self._simulation.device, hoomd.device.CPU):
-            my_class = _md.ActiveForceCompute
-        else:
-            my_class = _md.ActiveForceComputeGPU
 
-        self._cpp_obj = my_class(
-            self._simulation.state._cpp_sys_def,
-            self._simulation.state._get_group(self.filter),
-            self.rotation_diff
-        )
+        # initialize the reflected c++ class
+        sim = self._simulation
+        if self.manifold_constraint is None:
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = _md.ActiveForceCompute
+            else:
+                my_class = _md.ActiveForceComputeGPU
+
+            self._cpp_obj = my_class(
+                sim.state._cpp_sys_def,
+                sim.state._get_group(self.filter),
+                self.rotation_diff
+            )
+        else:
+
+            if not self.manifold_constraint._attached:
+                self.manifold_constraint._attach()
+
+            if isinstance(sim.device, hoomd.device.CPU):
+                my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__)
+            else:
+                 raise AttributeError(
+                   "Cannot set manifold_constraint after construction.")
+                #my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__ + 'GPU')
+
+            self._cpp_obj = my_class(
+                sim.state._cpp_sys_def,
+                sim.state._get_group(self.filter),
+                self.rotation_diff,
+                self.manifold_constraint._cpp_obj
+            )
 
         # Attach param_dict and typeparam_dict
         super()._attach()

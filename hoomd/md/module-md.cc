@@ -5,6 +5,7 @@
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 
 #include "ActiveForceCompute.h"
+#include "ActiveForceConstraintCompute.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -227,6 +228,13 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
+    export_ActiveForceConstraintCompute<ManifoldZCylinder>(m,"ActiveForceConstraintComputeCylinder");
+    export_ActiveForceConstraintCompute<ManifoldDiamond>(m,"ActiveForceConstraintComputeDiamond");
+    export_ActiveForceConstraintCompute<ManifoldEllipsoid>(m,"ActiveForceConstraintComputeEllipsoid");
+    export_ActiveForceConstraintCompute<ManifoldGyroid>(m,"ActiveForceConstraintComputeGyroid");
+    export_ActiveForceConstraintCompute<ManifoldXYPlane>(m,"ActiveForceConstraintComputePlane");
+    export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,"ActiveForceConstraintComputePrimitive");
+    export_ActiveForceConstraintCompute<ManifoldSphere>(m,"ActiveForceConstraintComputeSphere");
     export_ConstExternalFieldDipoleForceCompute(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
@@ -342,7 +350,6 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintSphereGPU(m);
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
-    // export_ConstExternalFieldDipoleForceComputeGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);

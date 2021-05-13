@@ -256,10 +256,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
             quat<Scalar> rot_quat(slow::cos(theta),b);// rotational diffusion quaternion
 
             quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
-            h_orientation.data[idx].x = quati.s;
-            h_orientation.data[idx].y = quati.v.x;
-            h_orientation.data[idx].z = quati.v.y;
-            h_orientation.data[idx].w = quati.v.z;
+            h_orientation.data[idx] = quat_to_scalar4(quati);
             // In 2D, the only meaningful torque vector is out of plane and should not change
             }
         else // 3D: Following Stenhammar, Soft Matter, 2014
@@ -271,14 +268,9 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
             vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
             vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
 
-            vec3<Scalar> aux_vec; // rotation axis
-            aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
-            aux_vec.y = fi.z * rand_vec.x - fi.x * rand_vec.z;
-            aux_vec.z = fi.x * rand_vec.y - fi.y * rand_vec.x;
-            Scalar aux_vec_mag = 1.0/slow::sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
-            aux_vec.x *= aux_vec_mag;
-            aux_vec.y *= aux_vec_mag;
-            aux_vec.z *= aux_vec_mag;
+            vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
+            Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
+            aux_vec *= aux_vec_mag;
 
             Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
             Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation

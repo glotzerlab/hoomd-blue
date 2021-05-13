@@ -4,12 +4,9 @@
 
 // Maintainer: joaander
 
-#include "hoomd/ForceCompute.h"
-#include "hoomd/ParticleGroup.h"
-#include <memory>
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/VectorMath.h"
-
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/RNGIdentifiers.h"
+#include "ActiveForceCompute.h"
 
 /*! \file ActiveForceConstraintCompute.h
     \brief Declares a class for computing active forces and torques
@@ -23,6 +20,9 @@
 
 #ifndef __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_H__
+
+using namespace std;
+namespace py = pybind11;
 
 //! Adds an active force to a number of particles
 /*! \ingroup computes
@@ -58,18 +58,6 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     };
 
 
-/*! \param rotation_diff rotational diffusion constant for all particles.
-    \param manifold specifies a manifold, to which particles are confined.
-*/
-//template < class Manifold>
-//ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
-//                                        std::shared_ptr<ParticleGroup> group,
-//                                        Scalar rotation_diff,
-//                                        Manifold manifold)
-//        : ActiveForceCompute(sysdef,group,rotation_diff), m_manifold(manifold)
-//    {
-//    }
-
 
 /*! This function applies rotational diffusion to the orientations of all active particles. The orientation of any torque vector
  * relative to the force vector is preserved
@@ -92,9 +80,8 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
-        unsigned int type = __scalar_as_int(h_pos.data[idx].w);
         unsigned int ptag = h_tag.data[idx];
-        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceConstraintCompute,
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
                                                timestep,
                                                m_sysdef->getSeed()),
                                                hoomd::Counter(ptag));
@@ -102,15 +89,10 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
         quat<Scalar> quati(h_orientation.data[idx]);
 
         Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        Scalar3 normal_scalar3 = m_manifold.derivative(current_pos);
-        Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
-
+        Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
         Scalar norm_normal = fast::rsqrt(dot(norm_scalar3,norm_scalar3));
         norm_scalar3 *= norm_normal;
         vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
-
-        vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
-        vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
         Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
@@ -142,8 +124,7 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
 
         Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
-        Scalar3 normal_scalar3 = m_manifold.derivative(current_pos);
-        Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
+        Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
         Scalar norm_normal = fast::rsqrt(dot(norm_scalar3,norm_scalar3));
         norm_scalar3 *= norm_normal;
         vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
@@ -165,15 +146,10 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
         fi.z -= norm.z * dot_prod;
 
         Scalar new_norm = fast::rsqrt(dot(fi,fi));
-
-        fi.x *= new_norm;
-        fi.y *= new_norm;
-        fi.z *= new_norm;
+        fi *= new_norm;
 
         vec3<Scalar> rot_vec = cross(norm,fi);
-        rot_vec.x *= fast::sin(phi_half);
-        rot_vec.y *= fast::sin(phi_half);
-        rot_vec.z *= fast::sin(phi_half);
+        rot_vec *= fast::sin(phi_half);
 
         quat<Scalar> rot_quat(cos(phi_half),rot_vec);
 
