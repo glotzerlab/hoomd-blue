@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 import numpy as np
 import pytest
+import rowan
 
 import hoomd
 import hoomd.md as md
@@ -66,37 +67,47 @@ def check_bodies(snapshot, definition):
     assert snapshot.particles.body[1] == 1
     assert all(snapshot.particles.body[6:] == 1)
 
-    # Check positions
-    particle_one = snapshot.particles.position[0]
-    particle_two = snapshot.particles.position[1]
-    for i in range(4):
-        assert np.allclose(snapshot.particles.position[i + 2] - particle_one,
-                           definition["positions"][i])
-
-        assert np.allclose(snapshot.particles.position[i + 6] - particle_two,
-                           definition["positions"][i])
-
-    # check orientation (note since the central particles have the default
-    # orientation no rotation should be needed
-    for i in range(4):
-        assert np.allclose(snapshot.particles.orientation[i + 2],
-                           definition["orientations"][i])
-        assert np.allclose(snapshot.particles.orientation[i + 6],
-                           definition["orientations"][i])
-
     # check charges
     for i in range(4):
-        assert (snapshot.particles.charge[i + 2] ==
-                definition["charges"][i])
-        assert (snapshot.particles.charge[i + 6] ==
-                definition["charges"][i])
+        assert snapshot.particles.charge[i + 2] == definition["charges"][i]
+        assert snapshot.particles.charge[i + 6] == definition["charges"][i]
 
     # check diameters
     for i in range(4):
-        assert (snapshot.particles.diameter[i + 2] ==
-                definition["diameters"][i])
-        assert (snapshot.particles.diameter[i + 6] ==
-                definition["diameters"][i])
+        assert snapshot.particles.diameter[i + 2] == definition["diameters"][i]
+        assert snapshot.particles.diameter[i + 6] == definition["diameters"][i]
+
+    particle_one = (
+        snapshot.particles.position[0], snapshot.particles.orientation[0])
+    particle_two = (
+        snapshot.particles.position[1], snapshot.particles.orientation[1])
+
+    # Check positions
+    def check_position(central_position, central_orientation,
+                       constituent_position, local_position):
+        d_pos = rowan.rotate(central_orientation, local_position)
+        assert np.allclose(central_position + d_pos, constituent_position)
+
+    for i in range(4):
+        check_position(*particle_one, snapshot.particles.position[i + 2],
+                       definition["positions"][i])
+        check_position(*particle_two, snapshot.particles.position[i + 6],
+                       definition["positions"][i])
+
+    # check orientation
+    def check_orientation(central_orientation, constituent_orientation,
+                          local_orientation):
+        expected_orientation = rowan.normalize(
+            rowan.multiply(central_orientation, local_orientation))
+        assert np.allclose(expected_orientation, local_orientation)
+
+    for i in range(4):
+        check_orientation(particle_one[1],
+                          snapshot.particles.orientation[i + 2],
+                          definition["orientations"][i])
+        check_orientation(particle_two[1],
+                          snapshot.particles.orientation[i + 6],
+                          definition["orientations"][i])
 
 
 def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
@@ -172,6 +183,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     initial_snapshot = two_particle_snapshot_factory()
     initial_snapshot.particles.types = ["A", "B"]
     sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
 
     rigid.create_bodies(sim.state)
     sim.operations += integrator
