@@ -40,7 +40,7 @@ void export_union_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoSphereUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeSphereUnion");
-    // export_ComputeSDF< ShapeUnion<ShapeSphere, , > >(m, "ComputeSDFSphereUnion");
+    export_ComputeSDF< ShapeUnion<ShapeSphere> >(m, "ComputeSDFSphereUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSphere> >(m, "UpdaterMuVTSphereUnion");
     export_UpdaterClusters< ShapeUnion<ShapeSphere> >(m, "UpdaterClustersSphereUnion");
 

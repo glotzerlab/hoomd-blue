@@ -40,7 +40,7 @@ void export_spheropolygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygon");
     export_ComputeFreeVolume< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygon");
-    export_ComputeSDF< ShapeSpheropolygon >(m, "ComputeSDFSpheropolygon");
+    export_ComputeSDF< ShapeSpheropolygon >(m, "ComputeSDFConvexSpheropolygon");
     export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTConvexSpheropolygon");
     export_UpdaterClusters< ShapeSpheropolygon >(m, "UpdaterClustersConvexSpheropolygon");
 

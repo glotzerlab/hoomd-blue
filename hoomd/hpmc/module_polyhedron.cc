@@ -40,7 +40,7 @@ void export_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedron");
     export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
-    // export_ComputeSDF< ShapePolyhedron >(m, "ComputeSDFPolyhedron");
+    export_ComputeSDF< ShapePolyhedron >(m, "ComputeSDFPolyhedron");
     export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
     export_UpdaterClusters< ShapePolyhedron >(m, "UpdaterClustersPolyhedron");
 
