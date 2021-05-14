@@ -150,7 +150,7 @@ class SDF(Compute):
 
     Note:
 
-        `SDF` SDF runs on the CPU even in GPU simulations.
+        `SDF` runs on the CPU even in GPU simulations.
 
     Examples::
 
