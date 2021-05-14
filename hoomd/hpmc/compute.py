@@ -148,6 +148,9 @@ class SDF(Compute):
         `SDF` does not compute correct pressures for simulations with
         concave particles or enthalpic interactions.
 
+    Note:
+
+        `SDF` SDF runs on the CPU even in GPU simulations.
 
     Examples::
 
@@ -174,7 +177,6 @@ class SDF(Compute):
         # Extract 'Shape' from '<hoomd.hpmc.integrate.Shape object>'
         integrator_name = integrator.__class__.__name__
 
-        # Note: SDF runs on the CPU even in GPU simulations
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
