@@ -117,7 +117,7 @@ class SDF(Compute):
           bin (distance units).
         dx (float): Bin width (distance units).
 
-    :py:class:`SDF` computes a distribution function of scale parameters
+    `SDF` computes a distribution function of scale parameters
     :math:`x`. For each particle, it finds the smallest scale factor :math:`1+x`
     that would cause the particle to touch one of its neighbors and records that
     in the histogram :math:`s(x)`. The histogram is discrete and :math:`s(x_i) =
