@@ -20,8 +20,8 @@ md.methods
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :undoc-members:
-    :members: _Method,
+    :members: Method,
+              MethodRATTLE,
               Brownian,
               Langevin,
               NPH,

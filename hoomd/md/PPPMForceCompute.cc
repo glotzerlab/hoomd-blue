@@ -53,8 +53,6 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
-    m_log_names.push_back("pppm_energy");
-
     m_mesh_points = make_uint3(0,0,0);
     m_global_dim = make_uint3(0,0,0);
     m_kappa = Scalar(0.0);
@@ -1595,27 +1593,6 @@ void PPPMForceCompute::fixExclusions()
         }
 
     if (m_prof) m_prof->pop();
-    }
-
-Scalar PPPMForceCompute::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_names[0])
-        {
-        // make sure values are current
-        compute(timestep);
-
-        Scalar result = computePE();
-
-        if(m_nlist->getExclusionsSet())
-            {
-            result += calcEnergySum();
-            }
-
-        return result;
-        }
-
-    // nothing found? return base class value
-    return ForceCompute::getLogValue(quantity, timestep);
     }
 
 Scalar PPPMForceCompute::getQSum()

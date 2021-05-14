@@ -39,8 +39,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     public:
         //! Construct the potential
         PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
-                            std::shared_ptr<NeighborList> nlist,
-                            const std::string& log_suffix="");
+                            std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialTersoffGPU();
 
@@ -65,9 +64,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
 template< class evaluator, hipError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
 PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                std::shared_ptr<NeighborList> nlist,
-                                                                const std::string& log_suffix)
-    : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
+                                                                std::shared_ptr<NeighborList> nlist)
+    : PotentialTersoff<evaluator>(sysdef, nlist)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing PotentialTersoffGPU" << std::endl;
 
@@ -186,7 +184,7 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep
 template < class T, class Base > void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
      pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
     ;
     }
 

@@ -51,8 +51,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     public:
         //! Construct the pair potential
         PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<NeighborList> nlist,
-                         const std::string& log_suffix="");
+                         std::shared_ptr<NeighborList> nlist);
         //! Destructor
         virtual ~PotentialPairGPU() {}
 
@@ -90,8 +89,8 @@ class PotentialPairGPU : public PotentialPair<evaluator>
 template< class evaluator, hipError_t gpu_cgpf(const pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params)>
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
-    : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_param(0)
+                                                          std::shared_ptr<NeighborList> nlist)
+    : PotentialPair<evaluator>(sysdef, nlist), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!this->m_exec_conf->isCUDAEnabled())
@@ -209,7 +208,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(uint64_t timestep)
 template < class T, class Base > void export_PotentialPairGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, Base, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("setTuningParam",&T::setTuningParam)
     ;
     }
