@@ -526,6 +526,7 @@ void ForceComposite::createRigidBodies()
     m_pdata->takeSnapshot(snap);
     bool remove_existing_bodies = false;
     unsigned int n_constituent_particles = 0;
+    unsigned int n_free_bodies = 0;
         {
         // We restrict the scope of h_body_len to ensure if we remove_existing_bodies or in any way
         // reallocated m_body_len to a new memory location that we will be forced to reaquire the
@@ -537,9 +538,16 @@ void ForceComposite::createRigidBodies()
             // rigid bodies provided (i.e. if a non-zero length definitions was provided. We set
             // snap.body[i] = NO_BODY to prevent central particles from being removed in
             // initializeFromSnapshot if we must remove rigid bodies.
-            if (h_body_len.data[snap.type[particle_tag]] == 0)
+            if (snap.body[particle_tag] != NO_BODY)
                 {
-                remove_existing_bodies = true;
+                if (h_body_len.data[snap.type[particle_tag]] == 0)
+                    {
+                    remove_existing_bodies = true;
+                    }
+                else
+                    {
+                    n_free_bodies += 1;
+                    }
                 }
             else
                 {
@@ -560,7 +568,8 @@ void ForceComposite::createRigidBodies()
         }
 
     std::vector<unsigned int> molecule_tag;
-    unsigned int n_central_particles = snap.size;
+    unsigned int n_central_particles = snap.size - n_free_bodies;
+    unsigned int n_without_constituent = snap.size;
     snap.insert(snap.size, n_constituent_particles);
 
     if (m_exec_conf->getRank() == 0)
@@ -570,13 +579,19 @@ void ForceComposite::createRigidBodies()
                 m_body_types, access_location::host, access_mode::read);
         molecule_tag.resize(n_central_particles + n_constituent_particles, NO_MOLECULE);
 
-        unsigned int constituent_particle_tag = n_central_particles;
-        for (unsigned int central_particle_tag = 0;
-                central_particle_tag < n_central_particles; ++central_particle_tag)
+        unsigned int constituent_particle_tag = n_without_constituent;
+        unsigned int central_particle_tag = 0;
+        for (unsigned int particle_tag = 0; particle_tag < n_without_constituent; ++particle_tag)
             {
             assert(snap.type[i] < ntypes);
             assert(snap.body[i] == NO_BODY);
 
+            // If the length of the body definition is zero it must be a free body because all
+            // constituent particles have been removed.
+            if (h_body_len.data[snap.type[particle_tag]] == 0)
+                {
+                continue;
+                }
             snap.body[central_particle_tag] = central_particle_tag;
             molecule_tag[central_particle_tag] = central_particle_tag;
 
@@ -602,6 +617,7 @@ void ForceComposite::createRigidBodies()
 
                 ++constituent_particle_tag;
                 }
+            ++central_particle_tag;
             }
         }
 
