@@ -145,7 +145,7 @@ class SDF(Compute):
     polynomial curve fit of degree 5.
 
     Warning:
-        :py:class:`SDF` does not compute correct pressures for simulations with
+        `SDF` does not compute correct pressures for simulations with
         concave particles or enthalpic interactions.
 
 
