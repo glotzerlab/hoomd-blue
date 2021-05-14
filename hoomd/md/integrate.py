@@ -60,9 +60,10 @@ class _DynamicIntegrator(BaseIntegrator):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
+        super()._attach()
         if self.rigid is not None:
             self.rigid._attach()
-        super()._attach()
+            self._cpp_obj.rigid = self.rigid._cpp_obj
 
     def _add(self, simulation):
         super()._add(simulation)
