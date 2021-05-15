@@ -125,9 +125,29 @@ class Elastic(ShapeMove):
         elif isinstance(self.stepsize, list):
             stepsize = self.stepsize
         self._cpp_obj = move_cls(ntypes, stepsize, self.param_ratio)
-        ref_shape = shape_cls(self.reference)
-        self._log_boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
+        self._log_boltzmann_function = boltzmann_cls(self.stiffness, self.reference, self._cpp_obj)
         super()._attach()
+
+    @property
+    def reference(self):
+        if not self._attached:
+            return self._param_dict["reference"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            stepsize = {}
+            for i in range(particle_data.getNTypes()):
+                stepsize[particle_data.getNameByType(i)] = self._cpp_obj.reference[i]
+            return stepsize
+
+    @stepsize.setter
+    def reference(self, new_reference):
+        # if not self._attached:
+        self._param_dict["reference"] = new_reference
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.reference[i] = new_reference[particle_data.getNameByType(i)]
 
     @property
     def stepsize(self):
@@ -353,4 +373,3 @@ class Vertex(ShapeMove):
             particle_data = self._simulation.state._cpp_sys_def.getParticleData()
             for i in range(particle_data.getNTypes()):
                 self._cpp_obj.stepsize[i] = new_stepsize[particle_data.getNameByType(i)]
-
