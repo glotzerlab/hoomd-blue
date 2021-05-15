@@ -11,7 +11,8 @@ class ShapeMove(_HOOMDBaseObject):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
-
+# std::string type = m_sysdef->getParticleData()->getNameByType(m_type);
+# unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
 class Constant(ShapeMove):
     R"""
     Enable constant shape move and set parameters. Changes a particle shape by
@@ -84,7 +85,7 @@ class Elastic(ShapeMove):
     def __init__(self, stiffness, reference, stepsize, param_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
-                                   stepsize=list(stepsize),
+                                   stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
@@ -115,20 +116,52 @@ class Elastic(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._shape_move = move_cls(ntypes, self.stepsize, self.param_ratio)
+        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+        ntypes = particle_data.getNTypes()
+        stepsize = []
+        if isinstance(self.stepsize, dict):
+            for i in range(ntypes):
+                stepsize.append(self.stepsize[particle_data.getNameByType(i)])
+        elif isinstance(self.stepsize, list):
+            stepsize = self.stepsize
+        self._cpp_obj = move_cls(ntypes, stepsize, self.param_ratio)
         ref_shape = shape_cls(self.reference)
         self._log_boltzmann_function = boltzmann_cls(self.stiffness, ref_shape, self._cpp_obj)
         super()._attach()
 
     @property
+    def stepsize(self):
+        if not self._attached:
+            return self._param_dict["stepsize"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            stepsize = {}
+            for i in range(particle_data.getNTypes()):
+                stepsize[particle_data.getNameByType(i)] = self._cpp_obj.stepsize[i]
+            return stepsize
+
+    @stepsize.setter
+    def stepsize(self, new_stepsize):
+        # if not self._attached:
+        self._param_dict["stepsize"] = new_stepsize
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.stepsize[i] = new_stepsize[particle_data.getNameByType(i)]
+
+    @property
     def stiffness(self):
-        return self._log_boltzmann_function.stiffness(self._simulation.timestep)
+        if self._attached:
+            return self._log_boltzmann_function.stiffness(self._simulation.timestep)
+        else:
+            return self._param_dict["stiffness"]
 
     @stiffness.setter
     def stiffness(self, new_stiffness):
         self._param_dict["stiffness"] = new_stiffness
-        self._log_boltzmann_function.stiffness = new_stiffness
+        if self._attached:
+            self._log_boltzmann_function.stiffness = new_stiffness
 
     @log(category="scalar")
     def shape_move_stiffness(self):
@@ -177,7 +210,7 @@ class Python(ShapeMove):
     def __init__(self, callback, params, stepsize, param_ratio):
         param_dict = ParameterDict(callback=callable,
                                    params=list(params),
-                                   stepsize=list(stepsize),
+                                   stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio))
         param_dict["callback"] = callback
         self._param_dict.update(param_dict)
@@ -202,11 +235,39 @@ class Python(ShapeMove):
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
+        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+        ntypes = particle_data.getNTypes()
+        stepsize = []
+        if isinstance(self.stepsize, dict):
+            for i in range(ntypes):
+                stepsize.append(self.stepsize[particle_data.getNameByType(i)])
+        elif isinstance(self.stepsize, list):
+            stepsize = self.stepsize
         self._cpp_obj = move_cls(ntypes, self.callback, self.params,
-                                 self.stepsize, self.param_ratio)
+                                 stepsize, self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
+
+    @property
+    def stepsize(self):
+        if not self._attached:
+            return self._param_dict["stepsize"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            stepsize = {}
+            for i in range(particle_data.getNTypes()):
+                stepsize[particle_data.getNameByType(i)] = self._cpp_obj.stepsize[i]
+            return stepsize
+
+    @stepsize.setter
+    def stepsize(self, new_stepsize):
+        # if not self._attached:
+        self._param_dict["stepsize"] = new_stepsize
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.stepsize[i] = new_stepsize[particle_data.getNameByType(i)]
 
     @log(category='scalar')
     def shape_param(self):
@@ -239,7 +300,7 @@ class Vertex(ShapeMove):
 
     """
     def __init__(self, stepsize, param_ratio, volume):
-        param_dict = ParameterDict(stepsize=list(stepsize),
+        param_dict = ParameterDict(stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio),
                                    volume=float(volume))
         self._param_dict.update(param_dict)
@@ -259,8 +320,37 @@ class Vertex(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(ntypes, self.stepsize,
+        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+        ntypes = particle_data.getNTypes()
+        stepsize = []
+        if isinstance(self.stepsize, dict):
+            for i in range(ntypes):
+                stepsize.append(self.stepsize[particle_data.getNameByType(i)])
+        elif isinstance(self.stepsize, list):
+            stepsize = self.stepsize
+        self._cpp_obj = move_cls(ntypes, stepsize,
                                  self.param_ratio, self.volume)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
+
+    @property
+    def stepsize(self):
+        if not self._attached:
+            return self._param_dict["stepsize"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            stepsize = {}
+            for i in range(particle_data.getNTypes()):
+                stepsize[particle_data.getNameByType(i)] = self._cpp_obj.stepsize[i]
+            return stepsize
+
+    @stepsize.setter
+    def stepsize(self, new_stepsize):
+        # if not self._attached:
+        self._param_dict["stepsize"] = new_stepsize
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.stepsize[i] = new_stepsize[particle_data.getNameByType(i)]
+
