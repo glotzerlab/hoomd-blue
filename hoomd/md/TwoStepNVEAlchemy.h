@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVEAlchemy : public AlchemostatTwoStep
+class TwoStepNVEAlchemy : public AlchemostatTwoStep<TwoStepNVEAlchemy>
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -39,11 +39,11 @@ class TwoStepNVEAlchemy : public AlchemostatTwoStep
     //! Performs the second step of the integration
     void integrateStepTwo(uint64_t timestep) override;
 
+    static unsigned int getIntegraorNDOF()
+        {
+        return 0;
+        }
     //! Alchemical Stuff follows
-
-    protected:
-    // bool m_pre;
-    std::string m_log_name; //!< Name of the reservior quantity that we log
     };
 
 //! Exports the TwoStepNVEAlchemy class to python

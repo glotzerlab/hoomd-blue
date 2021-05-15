@@ -179,7 +179,7 @@ void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     // update the state variables Xi and eta
     Scalar half_delta_xi
         = m_halfDeltaT
-          * ((Scalar(2) * m_alchem_KE) - (m_alchemicalParticles.size() * (*m_T)(timestep))) / m_Q;
+          * ((Scalar(2) * m_alchem_KE) - (Scalar(m_alchemicalParticles.size()) * (*m_T)(timestep))) / m_Q;
     eta += (half_delta_xi + xi) * m_deltaT * m_nTimeFactor;
     xi += half_delta_xi + half_delta_xi;
 

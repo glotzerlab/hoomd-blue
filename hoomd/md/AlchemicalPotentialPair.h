@@ -119,7 +119,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
     bool m_needs_alch_force_resize = true;
 
     //! Method to be called when number of types changes
-    void slotNumTypesChange();
+    void slotNumTypesChange() override;
     void slotNumParticlesChange()
         {
         m_needs_alch_force_resize = true;

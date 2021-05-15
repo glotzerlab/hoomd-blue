@@ -3,15 +3,18 @@
 
 // Maintainer: jproc
 
-
 #ifndef __ALCHEMOSTAT_TWO_STEP__
 #define __ALCHEMOSTAT_TWO_STEP__
 
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/AlchemyData.h"
 
-// #include <pybind11/stl_bind.h>
-// PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<AlchemicalMDParticle>>);
+#include <cstddef>
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<AlchemicalMDParticle>>);
+
+//! all templating can be removed with c++20, virtual constexpr
+template<class T = void>
 class AlchemostatTwoStep : public IntegrationMethodTwoStep
     {
     public:
@@ -19,11 +22,11 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     AlchemostatTwoStep(std::shared_ptr<SystemDefinition> sysdef)
         : IntegrationMethodTwoStep(sysdef, std::make_shared<ParticleGroup>()) {};
     virtual ~AlchemostatTwoStep() { }
-
-    //! Get the number of degrees of freedom granted to a given group
+        
+    //! Get the number of degrees of freedom associated with the alchemostat
     unsigned int getNDOF()
         {
-        return getIntegraorNDOF() + m_alchemicalParticles.size();
+        return T::getIntegraorNDOF() + m_alchemicalParticles.size();
         };
 
     virtual void randomizeVelocities(unsigned int timestep)
@@ -42,11 +45,6 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
     virtual void initializeIntegratorVariables() { }
 
-    static unsigned int getIntegraorNDOF()
-        {
-        return 0;
-        }
-
     virtual void setAlchemTimeFactor(unsigned int alchemTimeFactor)
         {
         m_nTimeFactor = alchemTimeFactor;
@@ -58,12 +56,11 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
         return m_alchemicalParticles;
         }
 
-    // virtual void setPreAlchemTime(unsigned int start_time_step)
-    //     {
-    //     m_nextAlchemTimeStep = start_time_step;
-    //     m_force->setNextAlchemStep(start_time_step);
-    //     m_pre = (start_time_step > 0) ? true : false;
-    //     }
+    void setAlchemicalParticleList(std::vector<std::shared_ptr<AlchemicalMDParticle>> list)
+        {
+        m_alchemicalParticles = list;
+        }
+
 
     protected:
     //!< A vector of all alchemical particles belonging to this integrator
@@ -72,24 +69,26 @@ class AlchemostatTwoStep : public IntegrationMethodTwoStep
     unsigned int m_nTimeFactor = 1; //!< Trotter factorization power
     Scalar m_halfDeltaT;            //!< The time step
     uint64_t m_nextAlchemTimeStep;
-    std::string m_log_name;
+    bool m_validState; //!< Valid states are full alchemical timesteps
     // TODO: general templating possible for two step methods?
     };
+    
+template<> inline unsigned int AlchemostatTwoStep<void>::getNDOF(){return 0;};
 
 // TODO: base alchemostat methods need to be exported
-// void export_AlchemostatTwoStep(pybind11::module& m)
-//     {
-//     // pybind11::bind_vector<std::vector<std::shared_ptr<AlchemicalMDParticle>>>(
-//     //     m,
-//     //     "AlchemicalParticlesList");
+inline void export_AlchemostatTwoStep(pybind11::module& m)
+    {
+    // pybind11::bind_vector<std::vector<std::shared_ptr<AlchemicalMDParticle>>>(
+    //     m,
+    //     "AlchemicalParticlesList");
 
-//     pybind11::class_<AlchemostatTwoStep,
-//                      IntegrationMethodTwoStep,
-//                      std::shared_ptr<AlchemostatTwoStep>>(m, "AlchemostatTwoStep")
-//         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-//         .def("setAlchemTimeFactor", &AlchemostatTwoStep::setAlchemTimeFactor)
-//         .def("getAlchemicalParticleList", &AlchemostatTwoStep::getAlchemicalParticleList)
-//         ;
-//     }
+    pybind11::class_<AlchemostatTwoStep<>,
+                     IntegrationMethodTwoStep, std::shared_ptr<AlchemostatTwoStep<>>>(m, "AlchemostatTwoStep")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setAlchemTimeFactor", &AlchemostatTwoStep<>::setAlchemTimeFactor)
+        .def("getAlchemicalParticleList", &AlchemostatTwoStep<>::getAlchemicalParticleList)
+        .def("getNDOF",&AlchemostatTwoStep<>::getNDOF)
+        ;
+    }
 
 #endif // #ifndef __ALCHEMOSTAT_TWO_STEP__
