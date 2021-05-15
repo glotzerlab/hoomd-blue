@@ -342,6 +342,11 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
         void setShapeParams(std::vector< pybind11::dict > shape_params)
             {
             m_shape_params = shape_params;
+            for (int i = 0; i < m_shape_moves.size(); i++)
+                {
+                typename Shape::param_type pt(m_shape_params[i]);
+                m_shape_moves[i] = pt;
+                }
             }
 
     private:
@@ -844,9 +849,9 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             for (int i = 0; i < reference.size(); i++)
                 {
                 typename Shape::param_type pt(shape_params[i]);
-                m_reference_shapes.push_back(&pt);
+                m_reference_shapes[i] = &pt;
                 detail::MassProperties<Shape> mp(pt);
-                m_volumes.push_back(mp.getVolume());
+                m_volumes[i] = mp.getVolume();
                 }
             }
 
