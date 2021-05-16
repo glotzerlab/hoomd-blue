@@ -63,6 +63,27 @@ class Constant(ShapeMove):
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
+    @property
+    def shape_params(self):
+        if not self._attached:
+            return self._param_dict["shape_params"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            shape_params = {}
+            for i in range(particle_data.getNTypes()):
+                shape_params[particle_data.getNameByType(i)] = self._cpp_obj.shape_params[i]
+            return shape_params
+
+    @stepsize.setter
+    def shape_params(self, new_shape_params):
+        # if not self._attached:
+        self._param_dict["shape_params"] = new_shape_params
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.shape_params[i] = new_shape_params[particle_data.getNameByType(i)]
+
 
 class Elastic(ShapeMove):
     R"""
@@ -134,10 +155,10 @@ class Elastic(ShapeMove):
             return self._param_dict["reference"]
         else:
             particle_data = self._simulation.state._cpp_sys_def.getParticleData()
-            stepsize = {}
+            reference = {}
             for i in range(particle_data.getNTypes()):
-                stepsize[particle_data.getNameByType(i)] = self._cpp_obj.reference[i]
-            return stepsize
+                reference[particle_data.getNameByType(i)] = self._cpp_obj.reference[i]
+            return reference
 
     @stepsize.setter
     def reference(self, new_reference):
@@ -229,7 +250,7 @@ class Python(ShapeMove):
     """
     def __init__(self, callback, params, stepsize, param_ratio):
         param_dict = ParameterDict(callback=callable,
-                                   params=list(params),
+                                   params=dict(params),
                                    stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio))
         param_dict["callback"] = callback
@@ -289,7 +310,28 @@ class Python(ShapeMove):
             for i in range(particle_data.getNTypes()):
                 self._cpp_obj.stepsize[i] = new_stepsize[particle_data.getNameByType(i)]
 
-    @log(category='scalar')
+    @property
+    def params(self):
+        if not self._attached:
+            return self._param_dict["params"]
+        else:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            params = {}
+            for i in range(particle_data.getNTypes()):
+                params[particle_data.getNameByType(i)] = self._cpp_obj.params[i]
+            return params
+
+    @stepsize.setter
+    def params(self, new_params):
+        # if not self._attached:
+        self._param_dict["params"] = new_params
+        # else:
+        if self._attached:
+            particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+            for i in range(particle_data.getNTypes()):
+                self._cpp_obj.params[i] = new_params[particle_data.getNameByType(i)]
+
+    @log(category='object')
     def shape_param(self):
         """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
 
@@ -297,7 +339,7 @@ class Python(ShapeMove):
             The current value of the shape parameter in the user-specified callback
         """
         if self._attached:
-            return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
+            return self._cpp_obj.params
         else:
             return None
 
