@@ -824,7 +824,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             for (int i = 0; i < shape_params.size(); i++)
                 {
                 typename Shape::param_type pt(shape_params[i]);
-                m_reference_shapes.push_back(&pt);
+                m_reference_shapes.push_back(pt);
                 detail::MassProperties<Shape> mp(pt);
                 m_volumes.push_back(mp.getVolume());
                 }
@@ -848,8 +848,8 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             {
             for (int i = 0; i < reference.size(); i++)
                 {
-                typename Shape::param_type pt(shape_params[i]);
-                m_reference_shapes[i] = &pt;
+                typename Shape::param_type pt(reference[i]);
+                m_reference_shapes[i] = pt;
                 detail::MassProperties<Shape> mp(pt);
                 m_volumes[i] = mp.getVolume();
                 }
@@ -860,7 +860,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             std::vector<pybind11::dict> references;
             for (int i = 0; i < m_reference_shapes.size(); i++)
                 {
-                references.push_back(*m_reference_shapes[i].asDict())
+                references.push_back(m_reference_shapes[i].asDict());
                 }
             return references;
             }
@@ -887,7 +887,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             }
     protected:
         std::vector<Scalar> m_volumes;                                               // volume of shape
-        std::vector<std::unique_ptr<typename Shape::param_type>> m_reference_shapes; // shape to reference shape move against
+        std::vector<typename Shape::param_type> m_reference_shapes; // shape to reference shape move against
         std::shared_ptr<Variant> m_k;                                  // shape move stiffness
         using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities; // provided log quantites
     };
