@@ -37,7 +37,7 @@ class Constant(ShapeMove):
 
     """
     def __init__(self, shape_params):
-        self._param_dict.update(ParameterDict(shape_params=list(shape_params)))
+        self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
@@ -58,8 +58,16 @@ class Constant(ShapeMove):
                 boltzmann_cls = getattr(_hpmc, 'AlchemyLogBoltzmann' + shape)
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
-        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
-        self._cpp_obj = move_cls(ntypes, self.shape_params)
+
+        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
+        ntypes = particle_data.getNTypes()
+        shape_params = []
+        if isinstance(self.shape_params, dict):
+            for i in range(particle_data.getNTypes()):
+                shape_params.append(self.shape_params[particle_data.getNameByType(i)])
+        if isinstance(self.shape_params, list):
+            shape_params = self.shape_params
+        self._cpp_obj = move_cls(ntypes, shape_params)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
@@ -74,7 +82,7 @@ class Constant(ShapeMove):
                 shape_params[particle_data.getNameByType(i)] = self._cpp_obj.shape_params[i]
             return shape_params
 
-    @stepsize.setter
+    @shape_params.setter
     def shape_params(self, new_shape_params):
         # if not self._attached:
         self._param_dict["shape_params"] = new_shape_params
@@ -145,8 +153,14 @@ class Elastic(ShapeMove):
                 stepsize.append(self.stepsize[particle_data.getNameByType(i)])
         elif isinstance(self.stepsize, list):
             stepsize = self.stepsize
+        reference = []
+        if isinstance(self.reference, dict):
+            for i in range(ntypes):
+                reference.append(self.reference[particle_data.getNameByType(i)])
+        elif isinstance(self.reference, list):
+            reference = self.reference
         self._cpp_obj = move_cls(ntypes, stepsize, self.param_ratio)
-        self._log_boltzmann_function = boltzmann_cls(self.stiffness, self.reference, self._cpp_obj)
+        self._log_boltzmann_function = boltzmann_cls(self.stiffness, reference, self._cpp_obj)
         super()._attach()
 
     @property
@@ -160,7 +174,7 @@ class Elastic(ShapeMove):
                 reference[particle_data.getNameByType(i)] = self._cpp_obj.reference[i]
             return reference
 
-    @stepsize.setter
+    @reference.setter
     def reference(self, new_reference):
         # if not self._attached:
         self._param_dict["reference"] = new_reference
@@ -284,7 +298,13 @@ class Python(ShapeMove):
                 stepsize.append(self.stepsize[particle_data.getNameByType(i)])
         elif isinstance(self.stepsize, list):
             stepsize = self.stepsize
-        self._cpp_obj = move_cls(ntypes, self.callback, self.params,
+        params = []
+        if isinstance(self.params, dict):
+            for i in range(ntypes):
+                params.append(self.params[particle_data.getNameByType(i)])
+        elif isinstance(self.params, list):
+            params = self.params
+        self._cpp_obj = move_cls(ntypes, self.callback, params,
                                  stepsize, self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
@@ -321,7 +341,7 @@ class Python(ShapeMove):
                 params[particle_data.getNameByType(i)] = self._cpp_obj.params[i]
             return params
 
-    @stepsize.setter
+    @params.setter
     def params(self, new_params):
         # if not self._attached:
         self._param_dict["params"] = new_params
