@@ -338,10 +338,7 @@ class Python(ShapeMove):
         Returns:
             The current value of the shape parameter in the user-specified callback
         """
-        if self._attached:
-            return self._cpp_obj.params
-        else:
-            return None
+        return self.params
 
 
 class Vertex(ShapeMove):
