@@ -296,7 +296,10 @@ class Python(ShapeMove):
         Returns:
             The current value of the shape parameter in the user-specified callback
         """
-        return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
+        if self._attached:
+            return self._cpp_obj.getShapeParam("shape_param-0", self._simulation.timestep)
+        else:
+            return None
 
 
 class Vertex(ShapeMove):

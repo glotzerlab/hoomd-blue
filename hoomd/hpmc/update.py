@@ -650,13 +650,19 @@ class Shape(Updater):
     def total_count(self):
         """Total number of shape moves attempted
         """
-        return self._cpp_obj.total_count
+        if self._attached:
+            return self._cpp_obj.total_count
+        else:
+            return None
 
     @property
     def accepted_count(self):
         """Total number of shape moves accepted
         """
-        return self._cpp_obj.accepted_count
+        if self._attached:
+            return self._cpp_obj.accepted_count
+        else:
+            return None
 
     @log(category='scalar')
     def acceptance_ratio(self):
@@ -665,10 +671,13 @@ class Shape(Updater):
         Returns:
             The combined shape move acceptance ratio for all particle types
         """
-        acc = 0.0
-        if self.total_count > 0:
-            acc = float(self.accepted_count) / float(self.total_count)
-        return acc
+        if self._attached:
+            acc = 0.0
+            if self.total_count > 0:
+                acc = float(self.accepted_count) / float(self.total_count)
+            return acc
+        else:
+            return None
 
     @log(category='scalar')
     def particle_volume(self):
@@ -677,7 +686,10 @@ class Shape(Updater):
         Returns:
             The current value of the total volume occupied by particles
         """
-        return self._cpp_obj.particle_volume
+        if self._attached:
+            return self._cpp_obj.particle_volume
+        else:
+            return None
 
     @log(category="scalar")
     def shape_move_energy(self):
@@ -686,7 +698,10 @@ class Shape(Updater):
         Returns:
             The energy of the shape at the current timestep
         """
-        return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
+        if self._attached:
+            return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
+        else:
+            return None
 
     def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
@@ -705,7 +720,10 @@ class Shape(Updater):
             stepsize = shape_updater.get_step_size(0)
 
         """
-        return self._cpp_obj.getStepSize(typeid)
+        if self._attached:
+            return self._cpp_obj.getStepSize(typeid)
+        else:
+            return None
 
     def reset_statistics(self):
         R""" Reset the acceptance statistics for the updater
@@ -718,8 +736,10 @@ class Shape(Updater):
             shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
             stepsize = shape_updater.reset_statistics()
         """
-
-        self._cpp_obj.resetStatistics()
+        if self._attached:
+            self._cpp_obj.resetStatistics()
+        else:
+            return None
 
 
 class Clusters(Updater):
