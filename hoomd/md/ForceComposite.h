@@ -88,7 +88,7 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
             pybind11::list diameters = v["diameters"];
             auto N = pybind11::len(positions);
             // Ensure proper list lengths
-            for (auto list: {types, orientations, charges, diameters})
+            for (const auto& list: {types, orientations, charges, diameters})
                 {
                 if (pybind11::len(list) != N)
                     {
