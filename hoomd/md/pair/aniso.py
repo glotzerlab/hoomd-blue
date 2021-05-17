@@ -311,7 +311,7 @@ class ALJ(AnisotropicPair):
     threshold to find coplanar faces, in some cases the default value may
     result in not all coplanar faces actually being merged. In such cases,
     users can precompute the faces and provide them. The convenience class
-    method :meth:`~.convexHull` can be used for this purpose.
+    method :meth:`~.get_ordered_vertices` can be used for this purpose.
 
     Example::
 
@@ -340,7 +340,7 @@ class ALJ(AnisotropicPair):
                       [3,1,5],
                       [3,5,7]]
 
-        alj.params[('A')] = dict(epsilon=2.0,
+        alj.params["A"] = dict(epsilon=2.0,
                                       sigma_i=1.0,
                                       sigma_j=1.0,
                                       alpha=1,
@@ -348,6 +348,9 @@ class ALJ(AnisotropicPair):
         alj.shape["A"] = dict(vertices=cube_verts,
                               faces=cube_faces,
                               rounding_radii=[1])
+ 
+        verts, faces = alj(cube_verts)
+
     """
 
     _cpp_class_name = "AnisoPotentialALJ"
@@ -372,3 +375,16 @@ class ALJ(AnisotropicPair):
                               len_keys=1))  # Allen -I do not what to set this to.
 
         self._extend_typeparam((params, shape))
+
+    def get_ordered_vertices(self, vertices, return_faces=True):
+        try:
+            import coxeter
+        except ImportError as error:
+            print("Functionality requires coxeter as a dependency")
+            raise
+        shape =  coxeter.shapes.ConvexPolyhedron(vertices)
+        
+        if return_faces=True:
+            return shape.vertices, shape.faces
+        else:
+            return shape.vertices
