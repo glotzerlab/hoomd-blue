@@ -98,7 +98,7 @@ class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
                 if (toBool(m_current_selection & RigidBodySelection::CONSTITUENT))
                     {
                     include_particle = include_particle || (
-                        body < MIN_FLOPPY && body != NO_BODY && body != tag);
+                        body < MIN_FLOPPY && body != tag);
                     }
                 if (toBool(m_current_selection & RigidBodySelection::FREE))
                     {
