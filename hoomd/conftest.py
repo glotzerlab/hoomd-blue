@@ -1,3 +1,12 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Code to support unit and validation tests.
+
+``conftest`` is not part of HOOMD-blue's public API.
+"""
+
 import pickle
 import pytest
 import hoomd
@@ -8,6 +17,7 @@ import itertools
 import math
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
+
 
 pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
@@ -315,12 +325,14 @@ class BlockAverage:
 
     def get_error_estimate(self, relsigma=1.0):
         """Get the error estimate."""
+        if numpy.all(self.data == self.data[0]):
+            return 0
+
         i = self.n[-1]
         while True:
             # weighted error average
-            avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]
-                                / self.err_err[i:])
-            avg_err /= numpy.sum(1.0 / self.err_err[i:] / self.err_err[i:])
+            avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]**2)
+            avg_err /= numpy.sum(1.0 / self.err_err[i:]**2)
 
             sigma = self.err_err[i]
             cur_err = self.err_est[i]
@@ -363,4 +375,28 @@ class BlockAverage:
         deviation_diff = ((sample_deviation**2
                            + reference_deviation**2)**(1 / 2.))
         mean_diff = math.fabs(sample_mean - reference_mean)
-        assert mean_diff <= z * deviation_diff
+        deviation_allowed = z * deviation_diff
+        assert mean_diff <= deviation_allowed
+
+
+class ListWriter(hoomd.custom.Action):
+    """Log a single quantity to a list.
+
+    On each triggered timestep, access the given attribute and add the value
+    to `data`.
+
+    Args:
+        operation: Operation to log
+        attribute: Name of the attribute to log
+
+    Attributes:
+        data (list): Saved data
+    """
+
+    def __init__(self, operation, attribute):
+        self._operation = operation
+        self._attribute = attribute
+        self.data = []
+
+    def act(self, timestep):
+        self.data.append(getattr(self._operation, self._attribute))
