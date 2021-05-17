@@ -311,7 +311,8 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
     Examples::
 
-        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(filter=hoomd.filter.Type('A'), kT=1.0)
+        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(
+            filter=hoomd.filter.Type('A'), kT=1.0)
 
 
     Attributes:
