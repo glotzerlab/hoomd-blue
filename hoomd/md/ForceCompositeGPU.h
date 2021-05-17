@@ -68,11 +68,14 @@ class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         virtual void checkParticlesSorted()
             {
-            MolecularForceCompute::checkParticlesSorted();
 
             if (m_rebuild_molecules)
                 // identify center particles for use in GPU kernel
                 findRigidCenters();
+
+            // Must be called second since the method sets m_rebuild_molecules
+            // to false if it is true.
+            MolecularForceCompute::checkParticlesSorted();
             }
 
         std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
