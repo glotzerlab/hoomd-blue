@@ -311,5 +311,6 @@ void export_ComputeThermo(py::module& m)
     .def_property_readonly("translational_kinetic_energy", &ComputeThermo::getTranslationalKineticEnergy)
     .def_property_readonly("rotational_kinetic_energy", &ComputeThermo::getRotationalKineticEnergy)
     .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
+    .def_property_readonly("volume", &ComputeThermo::getVolume)
     ;
     }

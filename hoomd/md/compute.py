@@ -282,6 +282,14 @@ class ThermodynamicQuantities(_Thermo):
             return None
 
 
+    @log
+    def volume(self):
+        """:math:`V`, volume of the simulation box (area in 2D). """
+        if self._attached:
+            return self._cpp_obj.volume
+        else:
+            return None
+
 class thermoHMA(Compute):
     R""" Compute HMA thermodynamic properties of a group of particles.
 
