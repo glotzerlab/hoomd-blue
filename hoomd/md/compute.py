@@ -8,6 +8,7 @@
 from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import Compute
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.logging import log
 import hoomd
 
@@ -290,84 +291,86 @@ class ThermodynamicQuantities(_Thermo):
         else:
             return None
 
-class thermoHMA(Compute):
-    R""" Compute HMA thermodynamic properties of a group of particles.
+
+class HarmonicAveragedThermodynamicQuantities(Compute):
+    """Compute harmonic averaged thermodynamic properties of a group of particles.
 
     Args:
-        group (``hoomd.group``): Group to compute thermodynamic properties for.
-        temperature (float): Temperature
-        harmonicPressure (float): Harmonic contribution to the pressure.  If ommitted, the HMA pressure can still be
-            computed, but will be similar in precision to the conventional pressure.
+        filter (``hoomd.filter``): Particle filter to compute thermodynamic
+            properties for.
+        kT (float): Temperature of the system.
+        harmonic_pressure (float): Harmonic contribution to the pressure.
+            If ommitted, the HMA pressure can still be computed, but will be
+            similar in precision to the conventional pressure.
 
-    :py:class:`thermoHMA` acts on a given group of particles and calculates HMA (harmonically mapped
-    averaging) properties of those particles when requested.  HMA computes properties more precisely (with less
-    variance) for atomic crystals in NVT simulations.  The presence of diffusion (vanacy hopping, etc.) will prevent
-    HMA from providing improvement.  HMA tracks displacements from the lattice positions, which are saved when the
-    :py:class:`thermoHMA` is instantiated.
+    :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given group
+    of particles and calculates harmonically mapped average (HMA) properties
+    of those particles when requested. HMA computes properties more precisely
+    (with less variance) for atomic crystals in NVT simulations.  The presence
+    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
+    improvement.  HMA tracks displacements from the lattice positions, which
+    are saved either during first call to `Simulation.run` or when the compute
+    is first added to the simulation, whichever occurs last.
 
-    The specified properties are available for logging via the ``hoomd.analyze.log`` command. Each one provides
-    a set of quantities for logging, suffixed with *_groupname*, so that values for different groups are differentiated
-    in the log file. The default :py:class:`thermoHMA` specified on the group of all particles has no suffix
-    placed on its quantity names.
-
-    The quantities provided are (where **groupname** is replaced with the name of the group):
-
-    * **potential_energyHMA_groupname** - :math:`U` HMA potential energy that the group contributes to the entire
-      system (in energy units)
-    * **pressureHMA_groupname** - :math:`P` HMA pressure that the group contributes to the entire
-      system (in pressure units)
-
-    See Also:
-        ``hoomd.analyze.log``.
+    Note:
+        :py:class:`ThermoHMA` is an implementation of the methods section of
+        Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke. (2015).
+        "Very fast averaging of thermal properties of crystals by molecular
+        simulation". Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
 
     Examples::
 
-        g = group.all()
-        compute.thermoHMA(group=g, temperature=1.0)
+        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(
+            filter=hoomd.filter.Type('A'), kT=1.0)
+
+
+    Attributes:
+        filter (hoomd.filter.ParticleFilter): Subset of particles compute
+            thermodynamic properties for.
+
+        kT (hoomd.variant.Variant): Temperature of the system.
+
+        harmonic_pressure (float): Harmonic contribution to the pressure.
     """
 
-    def __init__(self, group, temperature, harmonicPressure=0):
+    def __init__(self, filter, kT, harmonic_pressure=0):
 
+        # store metadata
+        param_dict = ParameterDict(
+            kT=float(kT),
+            harmonic_pressure=float(harmonic_pressure)
+        )
+        # set defaults
+        self._param_dict.update(param_dict)
+
+        self._filter = filter
         # initialize base class
-        _compute.__init__(self);
+        super().__init__()
 
-        suffix = '';
-        if group.name != 'all':
-            suffix = '_' + group.name;
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_compute = _hoomd.ComputeThermoHMA(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
+    def _attach(self):
+        if isinstance(self._simulation.device, hoomd.device.CPU):
+            thermoHMA_cls = _md.ComputeThermoHMA
         else:
-            self.cpp_compute = _hoomd.ComputeThermoHMAGPU(hoomd.context.current.system_definition, group.cpp_group, temperature, harmonicPressure, suffix);
+            thermoHMA_cls = _md.ComputeThermoHMAGPU
+        group = self._simulation.state._get_group(self._filter)
+        self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
+                                      group,
+                                      self.kT,
+                                      self.harmonic_pressure)
+        super()._attach()
 
-        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
+    @log
+    def potential_energy(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.potential_energy
+        else:
+            return None
 
-        # save the group for later referencing
-        self.group = group;
-
-    def disable(self):
-        R""" Disables the thermoHMA.
-
-        Examples::
-
-            my_thermo.disable()
-
-        Executing the disable command will remove the thermoHMA compute from the system. Any ```hoomd.run``` command
-        executed after disabling a thermoHMA compute will not be able to log computed values with ``hoomd.analyze.log``.
-
-        A disabled thermoHMA compute can be re-enabled with :py:meth:`enable()`.
-        """
-
-        _compute.disable(self)
-
-    def enable(self):
-        R""" Enables the thermoHMA compute.
-
-        Examples::
-
-            my_thermo.enable()
-
-        See ``disable``.
-        """
-        _compute.enable(self)
+    @log
+    def pressure(self):
+        if self._attached:
+            self._cpp_obj.compute(self._simulation.timestep)
+            return self._cpp_obj.pressure
+        else:
+            return None

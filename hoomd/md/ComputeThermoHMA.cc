@@ -49,13 +49,20 @@ ComputeThermoHMA::ComputeThermoHMA(std::shared_ptr<SystemDefinition> sysdef,
     SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
+
+#ifdef ENABLE_MPI
+    // when the simulation is decomposed on multiple ranks
+    if (m_pdata->getDomainDecomposition())
+        {
+        // broadcast the snapshot so the particle positions are available on all ranks
+        snapshot.bcast(0, m_exec_conf->getMPICommunicator());
+        }
+#endif
+
     GlobalArray< Scalar3 > lat(snapshot.size, m_exec_conf);
     m_lattice_site.swap(lat);
     TAG_ALLOCATION(m_lattice_site);
     ArrayHandle<Scalar3> h_lattice_site(m_lattice_site, access_location::host, access_mode::overwrite);
-#ifdef ENABLE_MPI
-    snapshot.bcast(0, m_exec_conf->getMPICommunicator());
-#endif
 
     // for each particle in the data
     for (unsigned int tag = 0; tag < snapshot.size; tag++)
@@ -178,7 +185,9 @@ void export_ComputeThermoHMA(py::module& m)
     {
     py::class_<ComputeThermoHMA, Compute, std::shared_ptr<ComputeThermoHMA> >(m,"ComputeThermoHMA")
     .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const double,const double>())
-    .def("getPotentialEnergyHMA", &ComputeThermoHMA::getPotentialEnergyHMA)
-    .def("getPressureHMA", &ComputeThermoHMA::getPressureHMA)
+    .def_property("kT", &ComputeThermoHMA::getTemperature, &ComputeThermoHMA::setTemperature)
+    .def_property("harmonic_pressure", &ComputeThermoHMA::getHarmonicPressure, &ComputeThermoHMA::setHarmonicPressure)
+    .def_property_readonly("potential_energy", &ComputeThermoHMA::getPotentialEnergyHMA)
+    .def_property_readonly("pressure", &ComputeThermoHMA::getPressureHMA)
     ;
     }
