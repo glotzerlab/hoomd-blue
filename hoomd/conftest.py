@@ -5,6 +5,7 @@ import atexit
 import os
 import numpy
 import itertools
+import math
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -271,3 +272,95 @@ def operation_pickling_check(instance, sim):
     sim.operations += instance
     sim.run(0)
     pickling_check(instance)
+
+
+class BlockAverage:
+    """Block average method for estimating standard deviation of the mean.
+
+    Implements the method of H. Flyvbjerg and H. G. Petersen: doi:
+    10.1063/1.457480
+
+    Args:
+        data: List of values
+        minlen: Minimum block size
+    """
+    def __init__(self, data, minlen=16):
+        block = numpy.array(data)
+        self.err_est = []
+        self.err_err = []
+        self.n = []
+        self.num_samples = []
+        i = 0
+        while (len(block) >= int(minlen)):
+            e = 1.0 / (len(block) - 1) * numpy.var(block)
+            self.err_est.append(math.sqrt(e))
+            self.err_err.append(math.sqrt(e / 2.0 / (len(block) - 1)))
+            self.n.append(i)
+            self.num_samples.append(len(block))
+            block_l = block[1:]
+            block_r = block[:-1]
+            block = 1.0 / 2.0 * (block_l + block_r)
+            block = block[::2]
+            i += 1
+
+        # convert to numpy arrays
+        self.err_est = numpy.array(self.err_est)
+        self.err_err = numpy.array(self.err_err)
+        self.num_samples = numpy.array(self.num_samples)
+        self.data = numpy.array(data)
+
+    def get_hierarchical_errors(self):
+        """Get details on the hierarchical errors."""
+        return (self.n, self.num_samples, self.err_est, self.err_err)
+
+    def get_error_estimate(self, relsigma=1.0):
+        """Get the error estimate."""
+        i = self.n[-1]
+        while True:
+            # weighted error average
+            avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]
+                                / self.err_err[i:])
+            avg_err /= numpy.sum(1.0 / self.err_err[i:] / self.err_err[i:])
+
+            sigma = self.err_err[i]
+            cur_err = self.err_est[i]
+            delta = abs(cur_err - avg_err)
+            if (delta > relsigma * sigma or i == 0):
+                i += 1
+                break
+            i -= 1
+
+        # compute average error in plateau region
+        avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]
+                            / self.err_err[i:])
+        avg_err /= numpy.sum(1.0 / self.err_err[i:] / self.err_err[i:])
+        return avg_err
+
+    def assert_close(self,
+                     reference_mean,
+                     reference_deviation,
+                     z=2.576,
+                     max_relative_error=0.005):
+        """Assert that the distribution is constent with a given reference.
+
+        Also assert that the relative error of the distribution is small.
+        Otherwise, test runs with massive fluctuations would likely lead to
+        passing tests.
+
+        Args:
+            reference_mean: Known good mean value
+            reference_deviation: Standard deviation of the known good value
+            z: Number of standard deviations
+            max_relative_error: Maximum relative error to allow
+        """
+        sample_mean = numpy.mean(self.data)
+        sample_deviation = self.get_error_estimate()
+
+        assert sample_deviation / sample_mean <= max_relative_error
+
+        # compare if 0 is within the confidence interval around the difference
+        # of the means
+        deviation_diff = ((sample_deviation**2
+                           + reference_deviation**2)**(1 / 2.))
+        mean_diff = math.fabs(sample_mean - reference_mean)
+        assert mean_diff <= z * deviation_diff
