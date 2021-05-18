@@ -145,25 +145,12 @@ class Elastic(ShapeMove):
         else:
             raise RuntimeError("Integrator not supported")
 
-        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
-        ntypes = particle_data.getNTypes()
-        stepsize = []
-        if isinstance(self.stepsize, dict):
-            for i in range(ntypes):
-                stepsize.append(self.stepsize[particle_data.getNameByType(i)])
-        elif isinstance(self.stepsize, list):
-            stepsize = self.stepsize
-        reference = []
-        if isinstance(self.reference, dict):
-            for i in range(ntypes):
-                reference.append(self.reference[particle_data.getNameByType(i)])
-        elif isinstance(self.reference, list):
-            reference = self.reference
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
                                  ntypes,
                                  self.stepsize,
                                  self.param_ratio)
-        self._log_boltzmann_function = boltzmann_cls(self.stiffness, reference, self._cpp_obj)
+        self._log_boltzmann_function = boltzmann_cls(self.stiffness, self.reference, self._cpp_obj)
         super()._attach()
 
     @property

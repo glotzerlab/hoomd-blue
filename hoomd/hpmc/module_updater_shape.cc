@@ -61,7 +61,7 @@ void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name)
 //     {
 //     pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> >, ShapeSpringBase<Shape> >(m, name.c_str())
 //     .def(pybind11::init<std::shared_ptr<Variant>,
-//                         std::vector< pybind11::dict >,
+//                         pybind11::dict,
 //                         std::shared_ptr<ElasticShapeMove<Shape> > >())
 //     .def_property("stiffness", &ShapeSpring<Shape>::getStiffness, &ShapeSpring<Shape>::setStiffness)
 //     .def_property("reference", &ShapeSpring<Shape>::getReference, &ShapeSpring<Shape>::setReference)
