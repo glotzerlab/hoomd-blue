@@ -210,6 +210,33 @@ def test_running_without_body_definition(simulation_factory,
     sim = simulation_factory(initial_snapshot)
     sim.seed = 5
 
+    sim.operations += integrator
+    sim.run(1)
+
+
+def test_setting_body_after_attaching(simulation_factory,
+                                      two_particle_snapshot_factory,
+                                      valid_body_definition):
+    rigid = md.constrain.Rigid()
+    langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj.params.default = {"epsilon": 0.0, "sigma": 1}
+    lj.params[("A", "A")] = {"epsilon": 1.0}
+    lj.params[("B", "B")] = {"epsilon": 1.0}
+    lj.r_cut.default = 2 ** (1.0 / 6.0)
+    integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
+    integrator.rigid = rigid
+
+    initial_snapshot = two_particle_snapshot_factory()
+    initial_snapshot.particles.types = ["A", "B"]
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
     rigid.create_bodies(sim.state)
     sim.operations += integrator
     sim.run(1)
+    rigid.body["A"] = valid_body_definition
+    # This should error because the bodies have not been updated, but the
+    # setting should be fine.
+    with pytest.raises(RuntimeError):
+        sim.run(1)
