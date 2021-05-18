@@ -114,7 +114,7 @@ class Elastic(ShapeMove):
     def __init__(self, stiffness, reference, stepsize, param_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
                                    reference=dict(reference),
-                                   stepsize=dict(stepsize),
+                                   stepsize=float(stepsize),
                                    param_ratio=float(param_ratio))
         param_dict["stiffness"] = stiffness
         self._param_dict.update(param_dict)
@@ -161,7 +161,7 @@ class Elastic(ShapeMove):
             reference = self.reference
         self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
                                  ntypes,
-                                 stepsize,
+                                 self.stepsize,
                                  self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls(self.stiffness, reference, self._cpp_obj)
         super()._attach()

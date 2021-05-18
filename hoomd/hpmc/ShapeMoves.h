@@ -64,7 +64,7 @@ class ShapeMoveBase
             }
 
         //! Get the stepsize
-        pybind11::list getStepsize()
+        virtual pybind11::list getStepsize()
             {
             pybind11::list stepsize = pybind11::cast(m_step_size);
             return stepsize;
@@ -77,7 +77,7 @@ class ShapeMoveBase
             }
 
         //! Set the step size
-        void setStepsize(std::vector<Scalar> stepsize)
+        virtual void setStepsize(std::vector<Scalar> stepsize)
             {
             m_step_size = stepsize;
             }
@@ -478,12 +478,12 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
     public:
         ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                          unsigned int ntypes,
-                         std::vector<Scalar> step_size,
+                         Scalar step_size,
                          Scalar move_ratio)
             : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            this->m_step_size = step_size;
+            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
             m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
             this->m_det_inertia_tensor = 1.0;
@@ -563,6 +563,18 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
         void setParamRatio(Scalar param_ratio)
             {
             m_select_ratio = fmin(param_ratio, 1.0)*65535;
+            }
+
+        //! Get the stepsize
+       Scalar getStepsize()
+            {
+            return this->m_step_size[0];
+            }
+
+        //! Set the step size
+        void setStepsize(Scalar stepsize)
+            {
+            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -713,12 +725,12 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
 
         ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                          unsigned int ntypes,
-                         std::vector<Scalar> stepsize,
+                         Scalar stepsize,
                          Scalar move_ratio)
                          : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes),
                          m_mass_props(ntypes)
             {
-            this->m_step_size = stepsize;
+            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
             }
 
@@ -730,6 +742,18 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
         void setParamRatio(Scalar param_ratio)
             {
             m_select_ratio = fmin(param_ratio, 1.0)*65535;
+            }
+
+        //! Get the stepsize
+       Scalar getStepsize()
+            {
+            return this->m_step_size[0];
+            }
+
+        //! Set the step size
+        void setStepsize(Scalar stepsize)
+            {
+            std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             }
 
         void construct(const unsigned int& timestep, const unsigned int& type_id,

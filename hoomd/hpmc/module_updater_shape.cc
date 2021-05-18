@@ -40,7 +40,7 @@ void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
     pybind11::class_< ElasticShapeMove<Shape>, std::shared_ptr< ElasticShapeMove<Shape> >, ShapeMoveBase<Shape> >(m, name.c_str())
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         unsigned int,
-                        std::vector<Scalar>,
+                        Scalar,
                         Scalar >())
     .def_property("stepsize", &ElasticShapeMove<Shape>::getStepsize, &ElasticShapeMove<Shape>::setStepsize)
     .def_property("param_ratio", &ElasticShapeMove<Shape>::getParamRatio, &ElasticShapeMove<Shape>::setParamRatio)
