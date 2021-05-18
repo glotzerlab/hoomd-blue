@@ -363,6 +363,9 @@ void MolecularForceCompute::initMolecules()
     unsigned int i_mol = 0;
     for (auto it_mol = local_molecules_sorted.begin(); it_mol != local_molecules_sorted.end(); ++it_mol)
         {
+        // Since the set is ordered by value, and this orders the particles within the molecule by
+        // tag, and types should have been validated by validateRigidBodies, then this ordering in
+        // h_molecule_order should preserve types even though it is indexed by particle index.
         for (std::set<unsigned int>::iterator it_tag = it_mol->second.begin(); it_tag != it_mol->second.end(); ++it_tag)
             {
             unsigned int particle_index = h_rtag.data[*it_tag];

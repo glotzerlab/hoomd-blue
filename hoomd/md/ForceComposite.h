@@ -13,10 +13,21 @@
     Rigid body data is stored per type. Every rigid body is defined by a unique central particle of
     the rigid body type. A rigid body can only have one particle of that type.
 
-    Nested rigid bodies are not supported, i.e. when a rigid body contains a rigid body particle of another type.
+    Nested rigid bodies are not supported, i.e. when a rigid body contains a rigid body particle of
+    another type.
 
-    The particle data body tag is equal to the tag of central particle, and therefore not-contiguous.
-    The molecule/body id can therefore be used to look up the central particle easily.
+    The particle data body tag is equal to the tag of central particle, and therefore
+    not-contiguous.  The molecule/body id can therefore be used to look up the central particle
+    easily.
+
+    Notes:
+        - All functions that expect molecules must check m_n_molecules_global first to see if any
+        molecules exist. If none exist then, we cannot trust the arrays of MolecularForceCompute to
+        be allocated, and should short-circuit the functions with an early return.
+        - The split between validation, creation, and constituent particle placement is intentional
+        even if it isn't "optimal". Since creation and validation are only called infrequently and
+        updating is efficient, this preserves the most readability without sacrificing meaningfully
+        performance.
 */
 
 #ifdef __HIPCC__
@@ -65,10 +76,12 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         virtual CommFlags getRequestedCommFlags(uint64_t timestep);
         #endif
 
-        //! Update the constituent particles of a composite particle using the position, velocity and orientation of the central particle
+        /// Update the constituent particles of a composite particle using the position, velocity
+        /// and orientation of the central particle.
         virtual void updateCompositeParticles(uint64_t timestep);
 
-        //! Validate rigid body constituent particles
+        /// Validate rigid body constituent particles. The method purposely does not check
+        /// positions or orientation.
         virtual void validateRigidBodies();
 
         //! Create rigid body constituent particles
