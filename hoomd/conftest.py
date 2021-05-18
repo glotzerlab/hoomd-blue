@@ -351,7 +351,7 @@ class BlockAverage:
     def assert_close(self,
                      reference_mean,
                      reference_deviation,
-                     z=2.576,
+                     z=3.291,
                      max_relative_error=0.005):
         """Assert that the distribution is constent with a given reference.
 

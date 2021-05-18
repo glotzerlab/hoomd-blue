@@ -12,7 +12,7 @@ import math
 # cross validation between NPT and NVT in HOOMD.
 statepoints = [
     (8.50E-01, 9.00E-03, -9.3973E-02, 1.29E-04, 7.2152E-03, 6.4e-06),
-    (8.50E-01, 8.60E-01, -6.0305E+00, 2.38E-03, 1.7214E+00, 0.004421),
+    #(8.50E-01, 8.60E-01, -6.0305E+00, 2.38E-03, 1.7214E+00, 0.004421),
 ]
 
 
@@ -31,9 +31,16 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
     V = N / rho_star
     L = V**(1 / 3)
     r_cut = 3.0
+    a = L / n
+    # the low density runs need quite a few timesteps to sample well
+    run_length = 400000*10
+    # the high density runs need fewer because there are more collisions
+    if rho_star > 1e-2:
+        run_length /= 10
 
-    snap = lattice_snapshot_factory(dimensions=3, n=n, a=L / n)
+    snap = lattice_snapshot_factory(dimensions=3, n=n, a=a, r=max((1.0-a)/2, 0))
     sim = simulation_factory(snap)
+    sim.seed = 18
 
     # set the simulation parameters
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -63,7 +70,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
         method.thermalize_thermostat_dof()
     elif method_name == 'NPT':
         method.thermalize_thermostat_and_barostat_dof()
-    sim.run(5000)
+    sim.run(20000)
 
     # log energy and pressure
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
@@ -71,7 +78,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
     energy_log = hoomd.conftest.ListWriter(thermo, 'potential_energy')
     pressure_log = hoomd.conftest.ListWriter(thermo, 'pressure')
     volume_log = hoomd.conftest.ListWriter(thermo, 'volume')
-    log_trigger = hoomd.trigger.Periodic(100)
+    log_trigger = hoomd.trigger.Periodic(int(run_length/500))
     sim.operations.writers.append(
         hoomd.write.CustomWriter(action=energy_log, trigger=log_trigger))
     sim.operations.writers.append(
@@ -80,7 +87,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
         hoomd.write.CustomWriter(action=volume_log, trigger=log_trigger))
 
     sim.always_compute_pressure = True
-    sim.run(20000)
+    sim.run(run_length)
 
     # apply the long range correctionsused in the reference data
     corrected_energy = numpy.array(
@@ -89,6 +96,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
 
     # compute the average and error
     energy = hoomd.conftest.BlockAverage(corrected_energy)
+    print(repr(list(energy.data)))
     pressure = hoomd.conftest.BlockAverage(pressure_log.data)
     rho = hoomd.conftest.BlockAverage(N / numpy.array(volume_log.data))
 
@@ -98,14 +106,17 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
     print("P = ", numpy.mean(pressure.data), '+/-',
           pressure.get_error_estimate())
     print("rho = ", numpy.mean(rho.data), '+/-', rho.get_error_estimate())
+    assert False
 
     energy.assert_close(mean_U_ref, sigma_U_ref)
 
-    # use larger tolerances for pressure and density as these tend to fluctuate
+    # use larger tolerances for pressure and density as these have larger
+    # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
         pressure.assert_close(mean_P_ref,
                               sigma_P_ref,
                               z=5,
                               max_relative_error=0.04)
+
     if method_name == 'NPT':
         rho.assert_close(rho_star, 0, z=5, max_relative_error=0.04)
