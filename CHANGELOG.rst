@@ -4,8 +4,8 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.6 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.6 (2021-05-17)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -16,6 +16,8 @@ v3.0.0-beta.6 (not yet released)
 - Manifold constraints using RATTLE with ``md.methods.NVE``, ``md.methods.Langevin`` and
   ``md.methods.Brownian``
   - Supporting sphere, ellipsoid, plane, cylinder, gyroid, diamond, and primitive manifolds.
+- ``md.compute.HarmonicAveragedThermodynamicQuantities`` - More accurate thermodynamic quantities
+  for crystals
 
 *Changed*
 
