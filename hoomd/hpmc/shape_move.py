@@ -67,7 +67,7 @@ class Constant(ShapeMove):
                 shape_params.append(self.shape_params[particle_data.getNameByType(i)])
         if isinstance(self.shape_params, list):
             shape_params = self.shape_params
-        self._cpp_obj = move_cls(ntypes, shape_params)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes, shape_params)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
@@ -159,7 +159,10 @@ class Elastic(ShapeMove):
                 reference.append(self.reference[particle_data.getNameByType(i)])
         elif isinstance(self.reference, list):
             reference = self.reference
-        self._cpp_obj = move_cls(ntypes, stepsize, self.param_ratio)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 stepsize,
+                                 self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls(self.stiffness, reference, self._cpp_obj)
         super()._attach()
 
@@ -304,8 +307,12 @@ class Python(ShapeMove):
                 params.append(self.params[particle_data.getNameByType(i)])
         elif isinstance(self.params, list):
             params = self.params
-        self._cpp_obj = move_cls(ntypes, self.callback, params,
-                                 stepsize, self.param_ratio)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 self.callback,
+                                 params,
+                                 stepsize,
+                                 self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 
@@ -410,8 +417,11 @@ class Vertex(ShapeMove):
                 stepsize.append(self.stepsize[particle_data.getNameByType(i)])
         elif isinstance(self.stepsize, list):
             stepsize = self.stepsize
-        self._cpp_obj = move_cls(ntypes, stepsize,
-                                 self.param_ratio, self.volume)
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
+                                 ntypes,
+                                 stepsize,
+                                 self.param_ratio,
+                                 self.volume)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 

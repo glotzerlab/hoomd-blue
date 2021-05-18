@@ -19,9 +19,10 @@ template <typename Shape>
 class ShapeMoveBase
     {
     public:
-        ShapeMoveBase(unsigned int ntypes) :
+        ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes) :
             m_det_inertia_tensor(0),
-            m_step_size(ntypes)
+            m_step_size(ntypes),
+            m_sysdef(sysdef)
             {
             }
 
@@ -151,6 +152,7 @@ class ShapeMoveBase
         Scalar                          m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
         Scalar                          m_isoperimetric_quotient; // isoperimetric quotient of the shape
         std::vector<Scalar>             m_step_size;              // maximum stepsize
+        std::shared_ptr<SystemDefinition> m_sysdef
     };   // end class ShapeMoveBase
 
 
@@ -159,12 +161,13 @@ template < typename Shape >
 class PythonShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-        PythonShapeMove(unsigned int ntypes,
+        PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                        unsigned int ntypes,
                         pybind11::object python_function,
                         std::vector< std::vector<Scalar> > params,
                         std::vector<Scalar> stepsize,
                         Scalar mixratio)
-            :  ShapeMoveBase<Shape>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
+            :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
             {
             if(this->m_step_size.size() != stepsize.size())
                 throw std::runtime_error("Must provide a stepsize for each type");
@@ -299,9 +302,10 @@ template< typename Shape >
 class ConstantShapeMove : public ShapeMoveBase<Shape>
     {
     public:
-        ConstantShapeMove(const unsigned int& ntypes,
+        ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                          const unsigned int& ntypes,
                           std::vector<pybind11::dict> shape_params)
-            : ShapeMoveBase<Shape>(ntypes), m_shape_params(shape_params), m_shape_moves({})
+            : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_params(shape_params), m_shape_moves({})
             {
             for (int i = 0; i < ntypes; i++)
                 {
@@ -359,11 +363,12 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
 class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedron>
     {
     public:
-        ConvexPolyhedronVertexShapeMove(unsigned int ntypes,
+        ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                                        unsigned int ntypes,
                                         std::vector<Scalar> step_size,
                                         Scalar mixratio,
                                         Scalar volume)
-            : ShapeMoveBase<ShapeConvexPolyhedron>(ntypes), m_volume(volume)
+            : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
             {
             this->m_det_inertia_tensor = 1.0;
             m_scale = 1.0;
@@ -471,10 +476,11 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
     {
 
     public:
-        ElasticShapeMove(unsigned int ntypes,
+        ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                         unsigned int ntypes,
                          std::vector<Scalar> step_size,
                          Scalar move_ratio)
-            : ShapeMoveBase<Shape>(ntypes), m_mass_props(ntypes)
+            : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
             this->m_step_size = step_size;
@@ -705,10 +711,11 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
 
     public:
 
-        ElasticShapeMove(unsigned int ntypes,
+        ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
+                         unsigned int ntypes,
                          std::vector<Scalar> stepsize,
                          Scalar move_ratio)
-                         : ShapeMoveBase<ShapeEllipsoid>(ntypes),
+                         : ShapeMoveBase<ShapeEllipsoid>(sysdef, ntypes),
                          m_mass_props(ntypes)
             {
             this->m_step_size = stepsize;

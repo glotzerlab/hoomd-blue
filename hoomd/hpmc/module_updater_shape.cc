@@ -38,7 +38,8 @@ template<class Shape>
 void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< ElasticShapeMove<Shape>, std::shared_ptr< ElasticShapeMove<Shape> >, ShapeMoveBase<Shape> >(m, name.c_str())
-    .def(pybind11::init<unsigned int,
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                        unsigned int,
                         std::vector<Scalar>,
                         Scalar >())
     .def_property("stepsize", &ElasticShapeMove<Shape>::getStepsize, &ElasticShapeMove<Shape>::setStepsize)
@@ -80,7 +81,8 @@ template<class Shape>
 void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< ConvexPolyhedronVertexShapeMove, std::shared_ptr< ConvexPolyhedronVertexShapeMove >, ShapeMoveBase<Shape> >(m, name.c_str())
-    .def(pybind11::init<unsigned int,
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                        unsigned int,
                         std::vector<Scalar>,
                         Scalar,
                         Scalar >())
@@ -94,7 +96,8 @@ template<class Shape>
 void export_PythonShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< PythonShapeMove<Shape>, std::shared_ptr< PythonShapeMove<Shape> >, ShapeMoveBase<Shape> >(m, name.c_str())
-    .def(pybind11::init<unsigned int,
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                        unsigned int,
                         pybind11::object,
                         std::vector< std::vector<Scalar> >,
                         std::vector<Scalar>,
@@ -110,7 +113,7 @@ template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< ConstantShapeMove<Shape>, std::shared_ptr< ConstantShapeMove<Shape> >, ShapeMoveBase<Shape> >(m, name.c_str())
-    .def(pybind11::init<unsigned int, std::vector< pybind11::dict > >())
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, std::vector< pybind11::dict > >())
     .def_property("shape_params", &ConstantShapeMove<Shape>::getShapeParams, &ConstantShapeMove<Shape>::setShapeParams)
     ;
     }
