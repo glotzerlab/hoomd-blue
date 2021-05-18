@@ -113,9 +113,12 @@ void IntegratorTwoStep::update(uint64_t timestep)
     // perform the second step of the integration on all groups
     // reversed for integrators so that the half steps will be performed symmetrically 
     // TODO: make sure this is valid for non-alchemical integrators
-    for (auto method = m_methods.rbegin(); method != m_methods.rend(); method++)
-        (*method)->integrateStepTwo(timestep);
-
+    for (auto method_ptr = m_methods.rbegin(); method_ptr != m_methods.rend(); method_ptr++)
+        {
+        auto method = (*method_ptr);
+        method->integrateStepTwo(timestep);
+        method->includeRATTLEForce(timestep+1);
+        }
     /* NOTE: For composite particles, it is assumed that positions and orientations are not updated
        in the second step.
 
@@ -404,6 +407,9 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
         computeAccelerations(timestep);
         m_pdata->notifyAccelSet();
         }
+
+    for (auto& method : m_methods)
+        method->includeRATTLEForce(timestep);
 
     m_prepared = true;
     }

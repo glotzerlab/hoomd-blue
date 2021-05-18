@@ -14,7 +14,7 @@ from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import BaseIntegrator
 from hoomd.data import syncedlist
-from hoomd.md.methods import _Method
+from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import ConstraintForce
 
@@ -47,7 +47,7 @@ class _DynamicIntegrator(BaseIntegrator):
             iterable=constraints)
 
         self._methods = syncedlist.SyncedList(
-            _Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
+            Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
@@ -98,7 +98,7 @@ class Integrator(_DynamicIntegrator):
     Args:
         dt (float): Integrator time step size (in time units).
 
-        methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
+        methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
             subset of particles. The intersection of the subsets must be null.
             The default value of ``None`` initializes an empty list.
@@ -155,7 +155,7 @@ class Integrator(_DynamicIntegrator):
     Attributes:
         dt (float): Integrator time step size (in time units).
 
-        methods (List[hoomd.md.methods._Method]): List of integration methods.
+        methods (List[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
             particles.
 
