@@ -187,7 +187,29 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
 
     rigid.create_bodies(sim.state)
     sim.operations += integrator
-    sim.run(100)
+    sim.run(5)
     snapshot = sim.state.snapshot
     if sim.device.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
+
+
+def test_running_without_body_definition(simulation_factory,
+                                         two_particle_snapshot_factory):
+    rigid = md.constrain.Rigid()
+    langevin = md.methods.Langevin(kT=2.0, filter=hoomd.filter.Rigid())
+    lj = hoomd.md.pair.LJ(nlist=md.nlist.Cell(), mode="shift")
+    lj.params.default = {"epsilon": 0.0, "sigma": 1}
+    lj.params[("A", "A")] = {"epsilon": 1.0}
+    lj.params[("B", "B")] = {"epsilon": 1.0}
+    lj.r_cut.default = 2**(1.0 / 6.0)
+    integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
+    integrator.rigid = rigid
+
+    initial_snapshot = two_particle_snapshot_factory()
+    initial_snapshot.particles.types = ["A", "B"]
+    sim = simulation_factory(initial_snapshot)
+    sim.seed = 5
+
+    rigid.create_bodies(sim.state)
+    sim.operations += integrator
+    sim.run(1)
