@@ -169,6 +169,8 @@ class Snapshot:
             if gsd_snap.configuration.box is not None:
                 snap.configuration.box = gsd_snap.configuration.box
                 if gsd_snap.configuration.dimensions == 2:
-                    snap.configuration.box[2] = 0
+                    box = list(snap.configuration.box)
+                    box[2] = 0
+                    snap.configuration.box = tuple(box)
 
         return snap
