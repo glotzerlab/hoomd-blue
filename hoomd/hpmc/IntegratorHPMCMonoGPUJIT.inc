@@ -4,8 +4,8 @@
 #include "hoomd/VectorMath.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/jit/Evaluator.cuh"
-#include "hoomd/jit/EvaluatorUnionGPU.cuh"
+#include "hoomd/hpmc/Evaluator.cuh"
+#include "hoomd/hpmc/EvaluatorUnionGPU.cuh"
 
 #include "GPUHelpers.cuh"
 #include "hoomd/WarpTools.cuh"
