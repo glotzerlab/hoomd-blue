@@ -22,8 +22,8 @@ class ShapeMoveBase
         ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes) :
             m_det_inertia_tensor(0),
             m_step_size(ntypes),
+            m_sysdef(sysdef)
             {
-            m_sysdef = sysdef;
             }
 
         ShapeMoveBase(const ShapeMoveBase& src) :
@@ -163,7 +163,7 @@ class ShapeMoveBase
         Scalar                          m_det_inertia_tensor;     // determinant of the moment of inertia tensor of the shape
         Scalar                          m_isoperimetric_quotient; // isoperimetric quotient of the shape
         std::vector<Scalar>             m_step_size;              // maximum stepsize
-        std::shared_ptr<SystemDefinition> m_sysdef
+        std::shared_ptr<SystemDefinition> m_sysdef;
     };   // end class ShapeMoveBase
 
 
@@ -192,7 +192,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             std::vector<std::vector<Scalar>> params_vector(ntypes);
             for(auto&& [type_name, type_params] : params)
                 {
-                type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
                 params_vector[type_i] = type_params;
                 }
             m_params = params_vector;
@@ -415,11 +415,11 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
             {
             this->m_det_inertia_tensor = 1.0;
             m_scale = 1.0;
-            m_step_size = step_size;
+            this->m_step_size = step_size;
             m_calculated.resize(ntypes, false);
             m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
             m_select_ratio = fmin(mixratio, 1.0)*65535;
-            m_step_size_backup = m_step_size;
+            m_step_size_backup = this->m_step_size;
             }
 
         Scalar getParamRatio()
