@@ -134,9 +134,9 @@ bool needSnapshot(NeedSnapshotIdx idx, Property prop)
             {
             case BodyAngularMomentum:
             case BodyCOM:
-        // case BodyMomentInertia:
+            // case BodyMomentInertia:
             case BodyImage:
-        // case BodyOrientation:
+            // case BodyOrientation:
             case BodyVelocity:
             return true;
             default:

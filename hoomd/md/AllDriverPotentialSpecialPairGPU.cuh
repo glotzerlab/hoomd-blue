@@ -11,9 +11,9 @@
 #define __ALL_DRIVER_POTENTIAL_SPECIAL_PAIR_GPU_CUH__
 
 // Internally, the GPU kernels for bonds are used
-#include "PotentialBondGPU.cuh"
 #include "EvaluatorSpecialPairCoulomb.h"
 #include "EvaluatorSpecialPairLJ.h"
+#include "PotentialBondGPU.cuh"
 
 //! Compute LJ bond forces on the GPU with BondEvaluatorLJ
 hipError_t __attribute__((visibility("default")))
