@@ -31,8 +31,8 @@ run by `pre-commit`. To make changes to the workflows, edit the templates.
 
 [GitHub Actions]: https://docs.github.com/en/actions
 [workflows]: https://github.com/glotzerlab/hoomd-blue/actions
-[.github/workflows/]: .github/workflows/tempaltes
-[.github/workflows/templates/]: .github/workflows/
+[.github/workflows/]: .github/workflows/
+[.github/workflows/templates/]: .github/workflows/templates/
 
 ## Python
 
