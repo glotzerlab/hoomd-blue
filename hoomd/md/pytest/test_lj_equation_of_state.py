@@ -4,30 +4,21 @@ import hoomd.conftest
 import numpy
 import math
 
-# Selected state points from the reference data at
-# https://mmlapps.nist.gov/srs/LJ_PURE/mc.htm
+# Selected state points in the high density fluid. Both of these state points
+# are in single phase regions of the phase diagram and suitable for NVT/NPT and
+# MC cross validation.
 # T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,
-# log_period, equilibration_steps, run_steps, skip_npt
-
-# JAA - I replaced the pressure values from the reference because I could not
-# get the pressure correction term to validate. These pressure values here were
-# computed in NVT and are used for cross validation between NPT and NVT in
-# HOOMD. The different state points have different log periods and run lengths
-# to properly sample enough autocorrelations of the energy. The higher density
-# state point has particle collisions more often which reduces the
-# autocorrelation time.
+# log_period, equilibration_steps, run_steps
 statepoints = [
-    (8.50E-01, 9.00E-03, -9.3973E-02, 1.29E-04, 7.2042E-03, 2.1e-06, 256, 2**16,
-     2**20, False),
-    (8.50E-01, 8.60E-01, -6.0305E+00, 2.38E-03, 1.7165E+00, 0.00137, 4, 2**15,
-     2**18, True),
+    (1.5, 0.4, -2.5685, 0.00108, 0.3784, 0.00132, 64, 2**10, 2**17),
+    (1.4, 0.8, -4.9489, 0.000982, 3.2507, 0.00523, 64, 2**10, 2**16),
 ]
 
 
 @pytest.mark.validate
 @pytest.mark.parametrize(
     'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
-    'log_period, equilibration_steps, run_steps, skip_npt', statepoints)
+    'log_period, equilibration_steps, run_steps', statepoints)
 @pytest.mark.parametrize('method_name', ['NVT', 'Langevin', 'NPT'])
 def test_lj_equation_of_state(
     T_star,
@@ -39,16 +30,16 @@ def test_lj_equation_of_state(
     log_period,
     equilibration_steps,
     run_steps,
-    skip_npt,
     method_name,
     fcc_snapshot_factory,
     simulation_factory,
+    device,
 ):
-    if skip_npt and method_name == 'NPT':
-        pytest.skip("Statepoint is in a two-phase region in NVT")
-
     # construct the system at the given density
-    n = 5
+    n = 6
+    if device.communicator.num_ranks > 1:
+        # MPI tests need a box large enough to decompose
+        n = 9
     N = n**3 * 4
     V = N / rho_star
     L = V**(1 / 3)
@@ -67,13 +58,13 @@ def test_lj_equation_of_state(
     if method_name == 'NVT':
         method = hoomd.md.methods.NVT(filter=hoomd.filter.All(),
                                       kT=T_star,
-                                      tau=0.5)
+                                      tau=0.1)
     elif method_name == 'Langevin':
         method = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=T_star)
     elif method_name == 'NPT':
         method = hoomd.md.methods.NPT(filter=hoomd.filter.All(),
                                       kT=T_star,
-                                      tau=0.5,
+                                      tau=0.1,
                                       S=mean_P_ref,
                                       tauS=0.5,
                                       couple='xyz')
@@ -106,13 +97,8 @@ def test_lj_equation_of_state(
     sim.always_compute_pressure = True
     sim.run(run_steps)
 
-    # apply the long range correctionsused in the reference data
-    corrected_energy = numpy.array(
-        energy_log.data) / N + 8 / 9.0 * math.pi * rho_star * (
-            (1 / r_cut)**9 - 3 * (1 / r_cut)**3)
-
     # compute the average and error
-    energy = hoomd.conftest.BlockAverage(corrected_energy)
+    energy = hoomd.conftest.BlockAverage(numpy.array(energy_log.data) / N)
     pressure = hoomd.conftest.BlockAverage(pressure_log.data)
     rho = hoomd.conftest.BlockAverage(N / numpy.array(volume_log.data))
 
@@ -130,10 +116,10 @@ def test_lj_equation_of_state(
     # use larger tolerances for pressure and density as these have larger
     # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
-        pressure.assert_close(
-            mean_P_ref,
-            sigma_P_ref,
-        )
+        pressure.assert_close(mean_P_ref,
+                              sigma_P_ref,
+                              max_relative_error=0.01,
+                              z=5)
 
     if method_name == 'NPT':
-        rho.assert_close(rho_star, 0)
+        rho.assert_close(rho_star, 0, max_relative_error=0.01, z=5)

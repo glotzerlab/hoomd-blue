@@ -170,14 +170,17 @@ def lattice_snapshot_factory(device):
 def fcc_snapshot_factory(device):
     """Make a snapshot with particles in a fcc structure
 
-    Args: particle_types: List of particle type names a: Lattice constant n:
-        Number of unit cells along each box edge
+    Args:
+        particle_types: List of particle type names
+        a: Lattice constant
+        n: Number of unit cells along each box edge
+        r: Amount to randomly perturb particles in x,y,z
 
     Place particles in a fcc structure. The box is cubic with a side length of
     ``n * a``. There will be ``4 * n**3`` particles in the snapshot.
     """
 
-    def make_snapshot(particle_types=['A'], a=1, n=7):
+    def make_snapshot(particle_types=['A'], a=1, n=7, r=0):
         s = Snapshot(device.communicator)
 
         if s.exists:
@@ -193,6 +196,11 @@ def fcc_snapshot_factory(device):
             ]
             # and replicate it
             s.replicate(n, n, n)
+
+        # perturb the positions
+        if r > 0:
+            shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+            s.particles.position[:] += shift
 
         return s
 
