@@ -5,42 +5,59 @@ import numpy
 import math
 
 # Selected state points from the reference data at
-# https://mmlapps.nist.gov/srs/LJ_PURE/mc.htm T_star, rho_star, mean_U_ref,
-# sigma_U_ref, mean_P_ref, sigma_P_ref JAA - I replaced the pressure values from
-# the reference because I could not get the pressure correction term to
-# validate. These pressure values here were computed in NVT and are used for
-# cross validation between NPT and NVT in HOOMD.
+# https://mmlapps.nist.gov/srs/LJ_PURE/mc.htm
+# T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,
+# log_period, equilibration_steps, run_steps, skip_npt
+
+# JAA - I replaced the pressure values from the reference because I could not
+# get the pressure correction term to validate. These pressure values here were
+# computed in NVT and are used for cross validation between NPT and NVT in
+# HOOMD. The different state points have different log periods and run lengths
+# to properly sample enough autocorrelations of the energy. The higher density
+# state point has particle collisions more often which reduces the
+# autocorrelation time.
 statepoints = [
-    (8.50E-01, 9.00E-03, -9.3973E-02, 1.29E-04, 7.2152E-03, 6.4e-06),
-    #(8.50E-01, 8.60E-01, -6.0305E+00, 2.38E-03, 1.7214E+00, 0.004421),
+    (8.50E-01, 9.00E-03, -9.3973E-02, 1.29E-04, 7.2042E-03, 2.1e-06, 256, 2**16,
+     2**20, False),
+    (8.50E-01, 8.60E-01, -6.0305E+00, 2.38E-03, 1.7165E+00, 0.00137, 4, 2**15,
+     2**18, True),
 ]
 
 
 @pytest.mark.validate
 @pytest.mark.parametrize(
-    'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref',
-    statepoints)
+    'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
+    'log_period, equilibration_steps, run_steps, skip_npt', statepoints)
 @pytest.mark.parametrize('method_name', ['NVT', 'Langevin', 'NPT'])
-def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
-                              mean_P_ref, sigma_P_ref, method_name,
-                              lattice_snapshot_factory, simulation_factory):
+def test_lj_equation_of_state(
+    T_star,
+    rho_star,
+    mean_U_ref,
+    sigma_U_ref,
+    mean_P_ref,
+    sigma_P_ref,
+    log_period,
+    equilibration_steps,
+    run_steps,
+    skip_npt,
+    method_name,
+    fcc_snapshot_factory,
+    simulation_factory,
+):
+    if skip_npt and method_name == 'NPT':
+        pytest.skip("Statepoint is in a two-phase region in NVT")
 
     # construct the system at the given density
-    n = 8
-    N = n**3
+    n = 5
+    N = n**3 * 4
     V = N / rho_star
     L = V**(1 / 3)
     r_cut = 3.0
     a = L / n
-    # the low density runs need quite a few timesteps to sample well
-    run_length = 400000*10
-    # the high density runs need fewer because there are more collisions
-    if rho_star > 1e-2:
-        run_length /= 10
 
-    snap = lattice_snapshot_factory(dimensions=3, n=n, a=a, r=max((1.0-a)/2, 0))
+    snap = fcc_snapshot_factory(n=n, a=a)
     sim = simulation_factory(snap)
-    sim.seed = 18
+    sim.seed = 10
 
     # set the simulation parameters
     integrator = hoomd.md.Integrator(dt=0.005)
@@ -50,15 +67,15 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
     if method_name == 'NVT':
         method = hoomd.md.methods.NVT(filter=hoomd.filter.All(),
                                       kT=T_star,
-                                      tau=1)
+                                      tau=0.5)
     elif method_name == 'Langevin':
         method = hoomd.md.methods.Langevin(filter=hoomd.filter.All(), kT=T_star)
     elif method_name == 'NPT':
         method = hoomd.md.methods.NPT(filter=hoomd.filter.All(),
                                       kT=T_star,
-                                      tau=1.0,
+                                      tau=0.5,
                                       S=mean_P_ref,
-                                      tauS=1.0,
+                                      tauS=0.5,
                                       couple='xyz')
     integrator.methods.append(method)
     sim.operations.integrator = integrator
@@ -70,7 +87,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
         method.thermalize_thermostat_dof()
     elif method_name == 'NPT':
         method.thermalize_thermostat_and_barostat_dof()
-    sim.run(20000)
+    sim.run(equilibration_steps)
 
     # log energy and pressure
     thermo = hoomd.md.compute.ThermodynamicQuantities(filter=hoomd.filter.All())
@@ -78,7 +95,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
     energy_log = hoomd.conftest.ListWriter(thermo, 'potential_energy')
     pressure_log = hoomd.conftest.ListWriter(thermo, 'pressure')
     volume_log = hoomd.conftest.ListWriter(thermo, 'volume')
-    log_trigger = hoomd.trigger.Periodic(int(run_length/500))
+    log_trigger = hoomd.trigger.Periodic(log_period)
     sim.operations.writers.append(
         hoomd.write.CustomWriter(action=energy_log, trigger=log_trigger))
     sim.operations.writers.append(
@@ -87,7 +104,7 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
         hoomd.write.CustomWriter(action=volume_log, trigger=log_trigger))
 
     sim.always_compute_pressure = True
-    sim.run(run_length)
+    sim.run(run_steps)
 
     # apply the long range correctionsused in the reference data
     corrected_energy = numpy.array(
@@ -96,27 +113,27 @@ def test_lj_equation_of_state(T_star, rho_star, mean_U_ref, sigma_U_ref,
 
     # compute the average and error
     energy = hoomd.conftest.BlockAverage(corrected_energy)
-    print(repr(list(energy.data)))
     pressure = hoomd.conftest.BlockAverage(pressure_log.data)
     rho = hoomd.conftest.BlockAverage(N / numpy.array(volume_log.data))
 
+    # Useful information to know when the test fails
     print("U_ref = ", mean_U_ref, '+/-', sigma_U_ref)
-    print("U = ", numpy.mean(energy.data), '+/-', energy.get_error_estimate())
+    print("U = ", numpy.mean(energy.data), '+/-', energy.standard_deviation,
+          '(', energy.relative_error * 100, '%)')
     print("P_ref = ", mean_P_ref, '+/-', sigma_P_ref)
-    print("P = ", numpy.mean(pressure.data), '+/-',
-          pressure.get_error_estimate())
-    print("rho = ", numpy.mean(rho.data), '+/-', rho.get_error_estimate())
-    assert False
+    print("P = ", numpy.mean(pressure.data), '+/-', pressure.standard_deviation,
+          pressure.standard_deviation, '(', pressure.relative_error * 100, '%)')
+    print("rho = ", numpy.mean(rho.data), '+/-', rho.standard_deviation)
 
     energy.assert_close(mean_U_ref, sigma_U_ref)
 
     # use larger tolerances for pressure and density as these have larger
     # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
-        pressure.assert_close(mean_P_ref,
-                              sigma_P_ref,
-                              z=5,
-                              max_relative_error=0.04)
+        pressure.assert_close(
+            mean_P_ref,
+            sigma_P_ref,
+        )
 
     if method_name == 'NPT':
-        rho.assert_close(rho_star, 0, z=5, max_relative_error=0.04)
+        rho.assert_close(rho_star, 0)

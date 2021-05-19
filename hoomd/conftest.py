@@ -15,6 +15,7 @@ import os
 import numpy
 import itertools
 import math
+import warnings
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -165,6 +166,39 @@ def lattice_snapshot_factory(device):
     return make_snapshot
 
 
+@pytest.fixture(scope='session')
+def fcc_snapshot_factory(device):
+    """Make a snapshot with particles in a fcc structure
+
+    Args: particle_types: List of particle type names a: Lattice constant n:
+        Number of unit cells along each box edge
+
+    Place particles in a fcc structure. The box is cubic with a side length of
+    ``n * a``. There will be ``4 * n**3`` particles in the snapshot.
+    """
+
+    def make_snapshot(particle_types=['A'], a=1, n=7):
+        s = Snapshot(device.communicator)
+
+        if s.exists:
+            # make one unit cell
+            s.configuration.box = [a, a, a, 0, 0, 0]
+            s.particles.N = 4
+            s.particles.types = particle_types
+            s.particles.position[:] = [
+                [0, 0, 0],
+                [0, a / 2, a / 2],
+                [a / 2, 0, a / 2],
+                [a / 2, a / 2, 0],
+            ]
+            # and replicate it
+            s.replicate(n, n, n)
+
+        return s
+
+    return make_snapshot
+
+
 @pytest.fixture(autouse=True)
 def skip_mpi(request):
     if request.node.get_closest_marker('serial'):
@@ -287,66 +321,73 @@ def operation_pickling_check(instance, sim):
 class BlockAverage:
     """Block average method for estimating standard deviation of the mean.
 
-    Implements the method of H. Flyvbjerg and H. G. Petersen: doi:
-    10.1063/1.457480
-
     Args:
         data: List of values
-        minlen: Minimum block size
     """
-    def __init__(self, data, minlen=16):
-        block = numpy.array(data)
-        self.err_est = []
-        self.err_err = []
-        self.n = []
-        self.num_samples = []
-        i = 0
-        while (len(block) >= int(minlen)):
-            e = 1.0 / (len(block) - 1) * numpy.var(block)
-            self.err_est.append(math.sqrt(e))
-            self.err_err.append(math.sqrt(e / 2.0 / (len(block) - 1)))
-            self.n.append(i)
-            self.num_samples.append(len(block))
-            block_l = block[1:]
-            block_r = block[:-1]
-            block = 1.0 / 2.0 * (block_l + block_r)
-            block = block[::2]
-            i += 1
 
-        # convert to numpy arrays
-        self.err_est = numpy.array(self.err_est)
-        self.err_err = numpy.array(self.err_err)
-        self.num_samples = numpy.array(self.num_samples)
+    def __init__(self, data):
+        # round down to the nearest power of 2
+        N = 2**int(math.floor(math.log(len(data)) / math.log(2)))
+        if N != len(data):
+            warnings.warn(
+                "Ignoring some data. Data array should be a power of 2.")
+
+        block_sizes = []
+        block_mean = []
+        block_variance = []
+
+        # take means and averages of blocks, growing blocks by factors of 2
+        block_size = 1
+        while block_size <= N // 8:
+            num_blocks = N // block_size
+            block_data = numpy.zeros(num_blocks)
+
+            for i in range(0, num_blocks):
+                start = i * block_size
+                end = start + block_size
+                block_data[i] = numpy.mean(data[start:end])
+
+            block_mean.append(numpy.mean(block_data))
+            block_variance.append(numpy.var(block_data) / (num_blocks - 1))
+
+            block_sizes.append(block_size)
+            block_size *= 2
+
+        self._block_mean = numpy.array(block_mean)
+        self._block_variance = numpy.array(block_variance)
+        self._block_sizes = numpy.array(block_sizes)
         self.data = numpy.array(data)
+
+        # check for a plateau in the relative error before the last data point
+        block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
+            self._block_mean)
+        relative_error_derivative = (
+            block_relative_error[1:] - block_relative_error[:-1]) / (
+                self._block_sizes[1:] - self._block_sizes[:-1])
+        if numpy.all(relative_error_derivative > 0):
+            warnings.warn("Block averaging failed to plateau, run longer")
 
     def get_hierarchical_errors(self):
         """Get details on the hierarchical errors."""
-        return (self.n, self.num_samples, self.err_est, self.err_err)
+        return (self._block_sizes, self._block_mean, self._block_variance)
 
-    def get_error_estimate(self, relsigma=1.0):
-        """Get the error estimate."""
+    @property
+    def standard_deviation(self):
+        """float: The error estimate on the mean."""
         if numpy.all(self.data == self.data[0]):
             return 0
 
-        i = self.n[-1]
-        while True:
-            # weighted error average
-            avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]**2)
-            avg_err /= numpy.sum(1.0 / self.err_err[i:]**2)
+        return numpy.sqrt(numpy.max(self._block_variance))
 
-            sigma = self.err_err[i]
-            cur_err = self.err_est[i]
-            delta = abs(cur_err - avg_err)
-            if (delta > relsigma * sigma or i == 0):
-                i += 1
-                break
-            i -= 1
+    @property
+    def mean(self):
+        """float: The mean."""
+        return self._block_mean[-1]
 
-        # compute average error in plateau region
-        avg_err = numpy.sum(self.err_est[i:] / self.err_err[i:]
-                            / self.err_err[i:])
-        avg_err /= numpy.sum(1.0 / self.err_err[i:] / self.err_err[i:])
-        return avg_err
+    @property
+    def relative_error(self):
+        """float: The relative error."""
+        return self.standard_deviation / numpy.fabs(self.mean)
 
     def assert_close(self,
                      reference_mean,
@@ -365,8 +406,8 @@ class BlockAverage:
             z: Number of standard deviations
             max_relative_error: Maximum relative error to allow
         """
-        sample_mean = numpy.mean(self.data)
-        sample_deviation = self.get_error_estimate()
+        sample_mean = self.mean
+        sample_deviation = self.standard_deviation
 
         assert sample_deviation / sample_mean <= max_relative_error
 
