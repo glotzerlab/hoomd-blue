@@ -372,28 +372,6 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             // move has been rejected.
             }
 
-    pybind11::dict getParams()
-        {
-        pybind11::dict< std::vector<Scalar> > params;
-        for (int i = 0; i < m_params.size(); i++)
-            {
-            std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
-            params[type_name] = m_params[i];
-            }
-        return params;
-        }
-
-    void setParams(pybind11::dict< std::vector<Scalar> > params)
-        {
-        std::vector<std::vector<Scalar>> params_vector(m_params.size());
-        for(auto&& [type_name, type_params] : params)
-            {
-            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-            params_vector[type_i] = type_params;
-            }
-        m_params = params_vector;
-        }
-
         pybind11::list getShapeParams()
             {
             pybind11::dict< pybind11::dict > shape_params;
