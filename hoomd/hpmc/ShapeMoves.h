@@ -372,7 +372,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             // move has been rejected.
             }
 
-        pybind11::list getShapeParams()
+        pybind11::dict getShapeParams()
             {
             pybind11::dict shape_params;
             for (int i = 0; i < m_shape_params.size(); i++)
@@ -383,7 +383,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             return shape_params;
             }
 
-        void setShapeParams(std::vector< pybind11::dict > shape_params)
+        void setShapeParams(pybind11::dict shape_params)
             {
             std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
             for (auto name_and_params : shape_params)
