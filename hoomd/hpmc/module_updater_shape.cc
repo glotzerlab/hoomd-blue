@@ -30,7 +30,7 @@ template<class Shape>
 void export_ShapeMoveInterface(pybind11::module& m, const std::string& name)
     {
     shape_move_function_python_class<Shape>(m, (name + "Interface").c_str())
-    .def(pybind11::init< unsigned int >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     ;
     }
 

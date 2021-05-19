@@ -69,7 +69,7 @@ class ShapeMoveBase
             pybind11::dict stepsize;
             for (int i = 0; i < m_step_size.size(); i++)
                 {
-                std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+                pybind11::str type_name = m_sysdef->getParticleData()->getNameByType(i);
                 stepsize[type_name] = m_step_size[i];
                 }
             return stepsize;
@@ -85,10 +85,12 @@ class ShapeMoveBase
         void setStepsize(pybind11::dict stepsize)
             {
             std::vector<Scalar> stepsize_vector(m_step_size.size());
-            for (auto name_and_stepsize] : stepsize)
+            for (auto name_and_stepsize : stepsize)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_stepsize.first);
-                stepsize_vector[type_i] = name_and_stepsize.second;
+                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                stepsize_vector[type_i] = type_stepsize;
                 }
             m_step_size = stepsize_vector;
             }
@@ -192,8 +194,10 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             std::vector<std::vector<Scalar>> params_vector(ntypes);
             for (auto name_and_params : params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
-                params_vector[type_i] = name_and_params.second;
+                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+                std::vector<Scalar> type_params = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
+                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+                params_vector[type_i] = type_params;
                 }
             m_params = params_vector;
             }
@@ -279,7 +283,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         pybind11::dict params;
         for (int i = 0; i < m_params.size(); i++)
             {
-            std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+            pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
             params[type_name] = m_params[i];
             }
         return params;
@@ -290,8 +294,10 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         std::vector<std::vector<Scalar>> params_vector(m_params.size());
         for (auto name_and_params : params)
             {
-            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
-            params_vector[type_i] = name_and_params.second;
+            std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+            std::vector<Scalar> type_params = pybind11::cast<std::vector<Scalar>>(name_and_params.second);
+            unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+            params_vector[type_i] = type_params;
             }
         m_params = params_vector;
         }
@@ -338,8 +344,10 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             std::vector<pybind11::dict> shape_params_vector(ntypes);
             for (auto name_and_params: shape_params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
-                shape_params_vector[type_i] = name_and_params.second;
+                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+                pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
+                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+                shape_params_vector[type_i] = type_params;
                 }
             m_shape_params = shape_params_vector;
             for (int i = 0; i < ntypes; i++)
@@ -377,7 +385,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             pybind11::dict shape_params;
             for (int i = 0; i < m_shape_params.size(); i++)
                 {
-                std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+                pybind11::str type_name = this->m_sysdef->getParticleData()->getNameByType(i);
                 shape_params[type_name] = m_shape_params[i];
                 }
             return shape_params;
@@ -388,9 +396,11 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
             for (auto name_and_params : shape_params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
-                shape_params_vector[type_i] = name_and_params.second;
-                typename Shape::param_type pt(name_and_params.second);
+                std::string type_name = pybind11::cast<std::string>(name_and_params.first);
+                pybind11::dict type_params = pybind11::cast<pybind11::dict>(name_and_params.second);
+                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+                shape_params_vector[type_i] = type_params;
+                typename Shape::param_type pt(type_params);
                 m_shape_moves[type_i] = pt;
                 }
             m_shape_params = shape_params_vector;
@@ -790,13 +800,13 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
             }
 
         //! Get the stepsize
-       Scalar getStepsize()
+       Scalar getStepsizeValue()
             {
             return this->m_step_size[0];
             }
 
         //! Set the step size
-        void setStepsize(Scalar stepsize)
+        void setStepsizeValue(Scalar stepsize)
             {
             std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             }
