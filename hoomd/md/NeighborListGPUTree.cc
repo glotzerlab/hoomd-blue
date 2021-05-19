@@ -236,7 +236,10 @@ void NeighborListGPUTree::buildTree()
         if (!box.getPeriodic().y)
             ghost_width.y = ghost_layer_width;
         if (!box.getPeriodic().z && m_sysdef->getNDimensions() == 3)
+            {
             ghost_width.z = ghost_layer_width;
+            }
+
             {
             ArrayHandle<unsigned int> d_types(m_types,
                                               access_location::device,

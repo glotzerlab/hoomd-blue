@@ -12,6 +12,8 @@
 
 // Internally, the GPU kernels for bonds are used
 #include "PotentialBondGPU.cuh"
+#include "EvaluatorSpecialPairCoulomb.h"
+#include "EvaluatorSpecialPairLJ.h"
 
 //! Compute LJ bond forces on the GPU with BondEvaluatorLJ
 hipError_t __attribute__((visibility("default")))

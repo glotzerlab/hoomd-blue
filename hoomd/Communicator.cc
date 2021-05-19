@@ -37,7 +37,9 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
     if (m_gdata->getNGlobal())
         {
         if (m_comm.m_prof)
+            {
             m_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+            }
 
             {
             // wipe out reverse-lookup tag -> idx for old ghost groups
@@ -1613,7 +1615,9 @@ void Communicator::migrateParticles()
     for (unsigned int dir = 0; dir < 6; dir++)
         {
         if (!isCommunicating(dir))
+            {
             continue;
+            }
 
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),

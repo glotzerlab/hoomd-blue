@@ -417,7 +417,9 @@ void PPPMForceComputeGPU::updateMeshes()
 #endif
 
     if (m_prof)
+        {
         m_prof->push(m_exec_conf, "update");
+        }
 
         {
         ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::readwrite);

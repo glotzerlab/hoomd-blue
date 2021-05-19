@@ -408,7 +408,9 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             << "GroupCommunicator<" << m_gdata->getName() << ">: migrate" << std::endl;
 
         if (m_gpu_comm.m_prof)
+            {
             m_gpu_comm.m_prof->push(m_exec_conf, m_gdata->getName());
+            }
 
             {
             // Reset reverse lookup tags of old ghost groups
@@ -2255,7 +2257,9 @@ void CommunicatorGPU::exchangeGhosts()
         if (flags[comm_flag::diameter])
             m_diameter_ghost_sendbuf.resize(n_max);
         if (flags[comm_flag::orientation])
+            {
             m_orientation_ghost_sendbuf.resize(n_max);
+            }
 
             {
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan,
@@ -3047,7 +3051,10 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
     for (unsigned int stage = 0; stage < m_num_stages; ++stage)
         {
         if (m_prof)
+            {
             m_prof->push(m_exec_conf, "pack");
+            }
+
             {
             // access particle data
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
@@ -3327,7 +3334,9 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 }
 
             if (m_prof)
+                {
                 m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
+                }
             } // end ArrayHandle scope
 
         if (!m_comm_pending)
@@ -3335,7 +3344,10 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
 #ifndef ENABLE_MPI_CUDA
             // only unpack in non-CUDA MPI builds
             if (m_prof)
+                {
                 m_prof->push(m_exec_conf, "unpack");
+                }
+
                 {
                 // access receive buffers
                 ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf,
@@ -3417,7 +3429,9 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         std::vector<MPI_Status> stats(m_reqs.size());
         MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
         if (m_prof)
+            {
             m_prof->pop(m_exec_conf);
+            }
 
 #ifdef ENABLE_MPI_CUDA
         // MPI library may use non-zero stream
@@ -3429,7 +3443,10 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         unsigned int first_idx = m_pdata->getN();
         CommFlags flags = m_last_flags;
         if (m_prof)
+            {
             m_prof->push(m_exec_conf, "unpack");
+            }
+
             {
             // access receive buffers
             ArrayHandle<Scalar4> d_pos_ghost_recvbuf(m_pos_ghost_recvbuf,
@@ -3802,11 +3819,15 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
             MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
 
             if (m_prof)
+                {
                 m_prof->pop(m_exec_conf, 0, send_bytes + recv_bytes);
+                }
             } // end ArrayHandle scope
 
         if (m_prof)
+            {
             m_prof->push(m_exec_conf, "unpack");
+            }
 
             {
             // access receive buffers

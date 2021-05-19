@@ -11,6 +11,10 @@
 #ifndef HOOMD_WARP_TOOLS_CUH_
 #define HOOMD_WARP_TOOLS_CUH_
 
+#ifdef ENABLE_HIP
+#include <hip/hip_runtime.h>
+#endif
+
 #ifndef __CUDACC_RTC__
 #include <type_traits>
 #endif
