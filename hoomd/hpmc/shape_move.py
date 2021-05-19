@@ -58,15 +58,8 @@ class Constant(ShapeMove):
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
-        ntypes = particle_data.getNTypes()
-        shape_params = []
-        if isinstance(self.shape_params, dict):
-            for i in range(particle_data.getNTypes()):
-                shape_params.append(self.shape_params[particle_data.getNameByType(i)])
-        if isinstance(self.shape_params, list):
-            shape_params = self.shape_params
-        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes, shape_params)
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
+        self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def, ntypes, self.shape_params)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
 

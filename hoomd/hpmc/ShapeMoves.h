@@ -332,9 +332,16 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
     public:
         ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                           const unsigned int& ntypes,
-                          std::vector<pybind11::dict> shape_params)
-            : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_params(shape_params), m_shape_moves({})
+                          pybind11::dict<pybind11::dict> shape_params)
+            : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
             {
+            std::vector<pybind11::dict> shape_params_vector(ntypes);
+            for(auto&& [type_name, type_params] : shape_params)
+                {
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                shape_params_vector[type_i] = type_params;
+                }
+            m_shape_params = shape_params_vector;
             for (int i = 0; i < ntypes; i++)
                 {
                 typename Shape::param_type pt(m_shape_params[i]);
@@ -365,20 +372,50 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             // move has been rejected.
             }
 
+    pybind11::dict getParams()
+        {
+        pybind11::dict< std::vector<Scalar> > params;
+        for (int i = 0; i < m_params.size(); i++)
+            {
+            std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+            params[type_name] = m_params[i];
+            }
+        return params;
+        }
+
+    void setParams(pybind11::dict< std::vector<Scalar> > params)
+        {
+        std::vector<std::vector<Scalar>> params_vector(m_params.size());
+        for(auto&& [type_name, type_params] : params)
+            {
+            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+            params_vector[type_i] = type_params;
+            }
+        m_params = params_vector;
+        }
+
         pybind11::list getShapeParams()
             {
-            pybind11::list shape_params = pybind11::cast(m_shape_params);
+            pybind11::dict< pybind11::dict > shape_params;
+            for (int i = 0; i < m_shape_params.size(); i++)
+                {
+                std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+                shape_params[type_name] = m_shape_params[i];
+                }
             return shape_params;
             }
 
         void setShapeParams(std::vector< pybind11::dict > shape_params)
             {
-            m_shape_params = shape_params;
-            for (int i = 0; i < m_shape_moves.size(); i++)
+            std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
+            for(auto&& [type_name, type_params] : shape_params)
                 {
-                typename Shape::param_type pt(m_shape_params[i]);
-                m_shape_moves[i] = pt;
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                shape_params_vector[type_i] = type_params;
+                typename Shape::param_type pt(type_params);
+                m_shape_moves[type_i] = pt;
                 }
+            m_shape_params = shape_params_vector;
             }
 
     private:
