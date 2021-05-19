@@ -22,8 +22,8 @@ class ShapeMoveBase
         ShapeMoveBase(std::shared_ptr<SystemDefinition> sysdef, unsigned int ntypes) :
             m_det_inertia_tensor(0),
             m_step_size(ntypes),
-            m_sysdef(sysdef)
             {
+            m_sysdef = sysdef;
             }
 
         ShapeMoveBase(const ShapeMoveBase& src) :
@@ -526,7 +526,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            m_step_size.resize(ntypes);
+            this->m_step_size.resize(ntypes);
             std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
             m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
@@ -916,7 +916,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 
         void setReference(pybind11::dict reference)
             {
-            typename Shape::param_type shape(reference)
+            typename Shape::param_type shape(reference);
             (*m_reference_shape) = shape;
             detail::MassProperties<Shape> mp(*m_reference_shape);
             m_volume = mp.getVolume();
@@ -925,10 +925,6 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
         pybind11::dict getReference() const
             {
             std::vector<pybind11::dict> references;
-            for (int i = 0; i < m_reference_shapes.size(); i++)
-                {
-                references.push_back(m_reference_shapes[i].asDict());
-                }
             return m_reference_shape.asDict();
             }
 
