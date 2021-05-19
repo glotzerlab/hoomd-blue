@@ -93,18 +93,3 @@ jobs:
           body_path: changelog.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Slack notification
-        if: startsWith(github.ref, 'refs/tags/v') && ( cancelled() || failure() )
-        uses: 8398a7/action-slack@v3.9.0
-        with:
-          status: ${{ job.status }}
-          fields: workflow,job,message,commit
-          mention: channel
-          if_mention: failure,cancelled
-          channel: '#dev-hoomd'
-          username: Github Action
-          author_name: ''
-          job_name: Publish [GitHub]
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

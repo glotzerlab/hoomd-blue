@@ -60,6 +60,9 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Checkout
       uses: actions/checkout@v2.3.4
       with:
@@ -124,6 +127,9 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
@@ -164,6 +170,9 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download build
       uses: actions/download-artifact@v2.0.9
       with:
@@ -198,6 +207,9 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
@@ -234,6 +246,9 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Checkout
       uses: actions/checkout@v2.3.4
       with:
@@ -305,6 +320,9 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
@@ -352,6 +370,9 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download build
       uses: actions/download-artifact@v2.0.9
       with:
