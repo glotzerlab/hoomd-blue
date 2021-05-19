@@ -50,7 +50,7 @@ def get_gpu_compilation_settings(gpu):
     # select maximum supported compute capability out of those we compile for
     compute_archs = _jit.__cuda_compute_archs__
     compute_capability = gpu._cpp_exec_conf.getComputeCapability(0)  # GPU 0
-    compute_major, compute_minor = compute_capability.split('.')
+    compute_major, compute_minor = compute_capability[0], compute_capability[1:]#.split('.')
     max_arch = 0
     for a in compute_archs.split('_'):
         if int(a) < int(compute_major) * 10 + int(compute_major):
