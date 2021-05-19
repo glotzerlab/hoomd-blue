@@ -71,7 +71,9 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
     // profile this step
     if (m_prof)
+        {
         m_prof->push("NVT step 1");
+        }
 
     // scope array handles for proper releasing before calling the thermo compute
         {
