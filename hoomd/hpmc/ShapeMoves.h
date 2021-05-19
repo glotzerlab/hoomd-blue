@@ -64,7 +64,7 @@ class ShapeMoveBase
             }
 
         //! Get the stepsize
-        virtual pybind11::dict getStepsize()
+        pybind11::dict getStepsize()
             {
             pybind11::dict stepsize;
             for (int i = 0; i < m_step_size.size(); i++)
@@ -82,7 +82,7 @@ class ShapeMoveBase
             }
 
         //! Set the step size
-        virtual void setStepsize(pybind11::dict stepsize)
+        void setStepsize(pybind11::dict stepsize)
             {
             std::vector<Scalar> stepsize_vector(m_step_size.size());
             for(auto&& [type_name, type_stepsize] : stepsize)
@@ -610,13 +610,13 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
             }
 
         //! Get the stepsize
-       Scalar getStepsize()
+       Scalar getStepsizeValue()
             {
             return this->m_step_size[0];
             }
 
         //! Set the step size
-        void setStepsize(Scalar stepsize)
+        void setStepsizeValue(Scalar stepsize)
             {
             std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             }
