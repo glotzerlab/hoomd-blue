@@ -5,12 +5,11 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairLJ0804.h"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "EvaluatorPairLJ0804.h"
 
 hipError_t gpu_compute_lj0804_forces(const pair_args_t& pair_args,
-                                      const EvaluatorPairLJ0804::param_type *d_params)
+                                     const EvaluatorPairLJ0804::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairLJ0804>(pair_args,
-                                                    d_params);
+    return gpu_compute_pair_forces<EvaluatorPairLJ0804>(pair_args, d_params);
     }

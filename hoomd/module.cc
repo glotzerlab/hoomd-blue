@@ -1,53 +1,52 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
-#include "HOOMDMath.h"
-#include "ExecutionConfiguration.h"
-#include "ClockSource.h"
-#include "Profiler.h"
-#include "ParticleData.h"
-#include "PythonLocalDataAccess.h"
-#include "SystemDefinition.h"
+#include "Analyzer.h"
 #include "BondedGroupData.h"
-#include "Initializers.h"
-#include "GetarInitializer.h"
-#include "GSDReader.h"
-#include "Compute.h"
+#include "BoxResizeUpdater.h"
+#include "CallbackAnalyzer.h"
 #include "CellList.h"
 #include "CellListStencil.h"
+#include "ClockSource.h"
+#include "Compute.h"
+#include "ConstForceCompute.h"
+#include "DCDDumpWriter.h"
+#include "ExecutionConfiguration.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
-#include "ConstForceCompute.h"
-#include "Analyzer.h"
-#include "PythonAnalyzer.h"
-#include "IMDInterface.h"
-#include "DCDDumpWriter.h"
-#include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
-#include "CallbackAnalyzer.h"
-#include "Updater.h"
-#include "PythonUpdater.h"
+#include "GSDReader.h"
+#include "GetarDumpWriter.h"
+#include "GetarInitializer.h"
+#include "HOOMDMath.h"
+#include "IMDInterface.h"
+#include "Initializers.h"
 #include "Integrator.h"
+#include "Messenger.h"
+#include "ParticleData.h"
+#include "Profiler.h"
+#include "PythonAnalyzer.h"
+#include "PythonLocalDataAccess.h"
+#include "PythonTuner.h"
+#include "PythonUpdater.h"
 #include "SFCPackTuner.h"
-#include "BoxResizeUpdater.h"
+#include "SnapshotSystemData.h"
 #include "System.h"
+#include "SystemDefinition.h"
 #include "Trigger.h"
 #include "Tuner.h"
-#include "PythonTuner.h"
+#include "Updater.h"
 #include "Variant.h"
-#include "Messenger.h"
-#include "SnapshotSystemData.h"
 
 // ParticleFilter objects
 #include "filter/export_filters.h"
 
 // include GPU classes
 #ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
 #include "CellListGPU.h"
 #include "SFCPackTunerGPU.h"
+#include <hip/hip_runtime.h>
 #endif
 
 // include MPI classes
@@ -67,9 +66,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 using namespace std;
 using namespace hoomd;
 
@@ -83,9 +82,9 @@ using namespace hoomd;
 
 void mpi_barrier_world()
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     MPI_Barrier(MPI_COMM_WORLD);
-    #endif
+#endif
     }
 
 #ifdef ENABLE_MPI
@@ -95,18 +94,18 @@ char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Initialize the MPI environment
 int initialize_mpi()
     {
-    #ifdef ENABLE_MPI_CUDA
+#ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
     // before the MPI_Init
     putenv(env_enable_mpi_cuda);
-    #endif
+#endif
 
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
     if (!external_init)
         {
-        MPI_Init(0, (char ***) NULL);
+        MPI_Init(0, (char***)NULL);
         }
 
     return external_init;
@@ -131,27 +130,28 @@ void finalize_mpi()
 //! Abort MPI runs
 void abort_mpi(std::shared_ptr<MPIConfiguration> mpi_conf, int errorcode)
     {
-    #ifdef ENABLE_MPI
-    if(mpi_conf->getNRanksGlobal() > 1)
+#ifdef ENABLE_MPI
+    if (mpi_conf->getNRanksGlobal() > 1)
         {
         // delay for a moment to give time for error messages to print
         Sleep(1000);
         MPI_Abort(mpi_conf->getCommunicator(), errorcode);
         }
-    #endif
+#endif
     }
 
 //! broadcast string from root rank to all other ranks
-std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConfiguration> exec_conf)
+std::string mpi_bcast_str(pybind11::object string,
+                          std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::string s = pybind11::str(string).cast<std::string>();
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     std::string result = s;
     bcast(result, 0, exec_conf->getMPICommunicator());
     return result;
-    #else
+#else
     return s;
-    #endif
+#endif
     }
 
 //! Create the python module
@@ -160,7 +160,7 @@ std::string mpi_bcast_str(pybind11::object string, std::shared_ptr<ExecutionConf
 */
 PYBIND11_MODULE(_hoomd, m)
     {
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     // initialize MPI early, unless already initialized by another program
     int external_init = initialize_mpi();
 
@@ -170,7 +170,7 @@ PYBIND11_MODULE(_hoomd, m)
         Py_AtExit(finalize_mpi);
         }
     m.def("get_mpi_proc_name", get_mpi_proc_name);
-    #endif
+#endif
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
@@ -186,17 +186,17 @@ PYBIND11_MODULE(_hoomd, m)
         .def_static("getEnableTBB", BuildInfo::getEnableTBB)
         .def_static("getEnableMPI", BuildInfo::getEnableMPI)
         .def_static("getSourceDir", BuildInfo::getSourceDir)
-        .def_static("getInstallDir", BuildInfo::getInstallDir)
-        ;
+        .def_static("getInstallDir", BuildInfo::getInstallDir);
 
-    pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
-    pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
-    pybind11::bind_vector< std::vector<unsigned int> >(m,"std_vector_uint");
-    pybind11::bind_vector< std::vector<
-        std::pair<unsigned int, unsigned int> > >(m,"std_vector_uint_pair");
-    pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
-    pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
-    pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
+    pybind11::bind_vector<std::vector<Scalar>>(m, "std_vector_scalar");
+    pybind11::bind_vector<std::vector<string>>(m, "std_vector_string");
+    pybind11::bind_vector<std::vector<unsigned int>>(m, "std_vector_uint");
+    pybind11::bind_vector<std::vector<std::pair<unsigned int, unsigned int>>>(
+        m,
+        "std_vector_uint_pair");
+    pybind11::bind_vector<std::vector<int>>(m, "std_vector_int");
+    pybind11::bind_vector<std::vector<Scalar3>>(m, "std_vector_scalar3");
+    pybind11::bind_vector<std::vector<Scalar4>>(m, "std_vector_scalar4");
 
     // utils
     export_hoomd_math_functions(m);
@@ -206,50 +206,46 @@ PYBIND11_MODULE(_hoomd, m)
     // data structures
     export_HOOMDHostBuffer(m);
     export_GhostDataFlag(m);
-    # if ENABLE_HIP
+#if ENABLE_HIP
     export_HOOMDDeviceBuffer(m);
-    # endif
+#endif
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
     export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
-    #if ENABLE_HIP
+#if ENABLE_HIP
     export_LocalParticleData<HOOMDDeviceBuffer>(m, "LocalParticleDataDevice");
-    #endif
+#endif
     export_MPIConfiguration(m);
     export_ExecutionConfiguration(m);
     export_SystemDefinition(m);
     export_SnapshotSystemData(m);
-    export_BondedGroupData<BondData,Bond>(m,"BondData","BondDataSnapshot");
-    export_BondedGroupData<AngleData,Angle>(m,"AngleData","AngleDataSnapshot");
-    export_BondedGroupData<DihedralData,Dihedral>(m,"DihedralData","DihedralDataSnapshot");
-    export_BondedGroupData<ImproperData,Dihedral>(m,"ImproperData","ImproperDataSnapshot",false);
-    export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
-    export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
+    export_BondedGroupData<BondData, Bond>(m, "BondData", "BondDataSnapshot");
+    export_BondedGroupData<AngleData, Angle>(m, "AngleData", "AngleDataSnapshot");
+    export_BondedGroupData<DihedralData, Dihedral>(m, "DihedralData", "DihedralDataSnapshot");
+    export_BondedGroupData<ImproperData, Dihedral>(m,
+                                                   "ImproperData",
+                                                   "ImproperDataSnapshot",
+                                                   false);
+    export_BondedGroupData<ConstraintData, Constraint>(m,
+                                                       "ConstraintData",
+                                                       "ConstraintDataSnapshot");
+    export_BondedGroupData<PairData, Bond>(m, "PairData", "PairDataSnapshot", false);
 
     export_LocalGroupData<HOOMDHostBuffer, BondData>(m, "LocalBondDataHost");
     export_LocalGroupData<HOOMDHostBuffer, AngleData>(m, "LocalAngleDataHost");
-    export_LocalGroupData<HOOMDHostBuffer, DihedralData>(
-        m, "LocalDihedralDataHost");
-    export_LocalGroupData<HOOMDHostBuffer, ImproperData>(
-        m, "LocalImproperDataHost");
-    export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(
-        m, "LocalConstraintDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, DihedralData>(m, "LocalDihedralDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
+    export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
-    #if ENABLE_HIP
-    export_LocalGroupData<HOOMDDeviceBuffer, BondData>(
-        m, "LocalBondDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(
-        m, "LocalAngleDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(
-        m, "LocalDihedralDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(
-        m, "LocalImproperDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(
-        m, "LocalConstraintDataDevice");
-    export_LocalGroupData<HOOMDDeviceBuffer, PairData>(
-        m, "LocalPairDataDevice");
-    #endif
+#if ENABLE_HIP
+    export_LocalGroupData<HOOMDDeviceBuffer, BondData>(m, "LocalBondDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, DihedralData>(m, "LocalDihedralDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ImproperData>(m, "LocalImproperDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, ConstraintData>(m, "LocalConstraintDataDevice");
+    export_LocalGroupData<HOOMDDeviceBuffer, PairData>(m, "LocalPairDataDevice");
+#endif
 
     // initializers
     export_GSDReader(m);

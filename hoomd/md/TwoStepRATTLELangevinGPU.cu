@@ -2,17 +2,15 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TwoStepRATTLELangevinGPU.cuh"
 
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 using namespace hoomd;
 
 #include <assert.h>
-
 
 //! NO_SQUISH angular part of the second half step
 /*!
@@ -33,29 +31,27 @@ using namespace hoomd;
     \param D dimensionality of the system
 */
 
-__global__ void gpu_rattle_langevin_angular_step_two_kernel(
-                             const Scalar4 *d_pos,
-                             Scalar4 *d_orientation,
-                             Scalar4 *d_angmom,
-                             const Scalar3 *d_inertia,
-                             Scalar4 *d_net_torque,
-                             const unsigned int *d_group_members,
-                             const Scalar3 *d_gamma_r,
-                             const unsigned int *d_tag,
-                             size_t n_types,
-                             unsigned int group_size,
-                             uint64_t timestep,
-                             uint16_t seed,
-                             Scalar T,
-                             Scalar tolerance,
-                             bool noiseless_r,
-                             Scalar deltaT,
-                             unsigned int D,
-                             Scalar scale
-                            )
+__global__ void gpu_rattle_langevin_angular_step_two_kernel(const Scalar4* d_pos,
+                                                            Scalar4* d_orientation,
+                                                            Scalar4* d_angmom,
+                                                            const Scalar3* d_inertia,
+                                                            Scalar4* d_net_torque,
+                                                            const unsigned int* d_group_members,
+                                                            const Scalar3* d_gamma_r,
+                                                            const unsigned int* d_tag,
+                                                            size_t n_types,
+                                                            unsigned int group_size,
+                                                            uint64_t timestep,
+                                                            uint16_t seed,
+                                                            Scalar T,
+                                                            Scalar tolerance,
+                                                            bool noiseless_r,
+                                                            Scalar deltaT,
+                                                            unsigned int D,
+                                                            Scalar scale)
     {
-    HIP_DYNAMIC_SHARED( char, s_data)
-    Scalar3 *s_gammas_r = (Scalar3 *)s_data;
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar3* s_gammas_r = (Scalar3*)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -84,14 +80,16 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
             vec3<Scalar> t(d_net_torque[idx]);
             vec3<Scalar> I(d_inertia[idx]);
 
-            vec3<Scalar> s = (Scalar(1./2.) * conj(q) * p).v;
+            vec3<Scalar> s = (Scalar(1. / 2.) * conj(q) * p).v;
 
             // original Gaussian random torque
-            // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-            Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*T/deltaT),
-                                           fast::sqrt(Scalar(2.0)*gamma_r.y*T/deltaT),
-                                           fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
-            if (noiseless_r) sigma_r = make_scalar3(0,0,0);
+            // for future reference: if gamma_r is different for xyz, then we need to generate 3
+            // sigma_r
+            Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * T / deltaT),
+                                           fast::sqrt(Scalar(2.0) * gamma_r.y * T / deltaT),
+                                           fast::sqrt(Scalar(2.0) * gamma_r.z * T / deltaT));
+            if (noiseless_r)
+                sigma_r = make_scalar3(0, 0, 0);
 
             RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
                                 hoomd::Counter(ptag));
@@ -101,7 +99,9 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+            x_zero = (I.x < Scalar(EPSILON));
+            y_zero = (I.y < Scalar(EPSILON));
+            z_zero = (I.z < Scalar(EPSILON));
 
             // first calculate in the body frame random and damping torque imposed by the dynamics
             vec3<Scalar> bf_torque;
@@ -110,9 +110,12 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
             bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
 
             // ignore torque component along an axis for which the moment of inertia zero
-            if (x_zero) bf_torque.x = 0;
-            if (y_zero) bf_torque.y = 0;
-            if (z_zero) bf_torque.z = 0;
+            if (x_zero)
+                bf_torque.x = 0;
+            if (y_zero)
+                bf_torque.y = 0;
+            if (z_zero)
+                bf_torque.z = 0;
 
             // change to lab frame and update the net torque
             bf_torque = rotate(q, bf_torque);
@@ -121,8 +124,10 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
             d_net_torque[idx].z += bf_torque.z;
 
             // with the wishful mind that compiler may use conditional move to avoid branching
-            if (D < 3) d_net_torque[idx].x = 0;
-            if (D < 3) d_net_torque[idx].y = 0;
+            if (D < 3)
+                d_net_torque[idx].x = 0;
+            if (D < 3)
+                d_net_torque[idx].y = 0;
             }
 
         //////////////////////////////
@@ -133,23 +138,26 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
         vec3<Scalar> I(d_inertia[idx]);
 
         // rotate torque into principal frame
-        t = rotate(conj(q),t);
+        t = rotate(conj(q), t);
 
         // check for zero moment of inertia
         bool x_zero = (I.x < Scalar(EPSILON));
-	bool y_zero = (I.y < Scalar(EPSILON));
-	bool z_zero = (I.z < Scalar(EPSILON));
+        bool y_zero = (I.y < Scalar(EPSILON));
+        bool z_zero = (I.z < Scalar(EPSILON));
 
         // ignore torque component along an axis for which the moment of inertia zero
-        if (x_zero) t.x = Scalar(0.0);
-        if (y_zero) t.y = Scalar(0.0);
-        if (z_zero) t.z = Scalar(0.0);
+        if (x_zero)
+            t.x = Scalar(0.0);
+        if (y_zero)
+            t.y = Scalar(0.0);
+        if (z_zero)
+            t.z = Scalar(0.0);
 
         // rescale
-        p = p*scale;
+        p = p * scale;
 
         // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
-        p += deltaT*q*t;
+        p += deltaT * q * t;
 
         d_angmom[idx] = quat_to_scalar4(p);
         }
@@ -164,71 +172,74 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
     \param d_tag array of particle tags
     \param group_size Number of members in the group
-    \param rattle_langevin_args Collected arguments for gpu_rattle_langevin_step_two_kernel() and gpu_rattle_langevin_angular_step_two()
-    \param deltaT timestep
-    \param D dimensionality of the system
+    \param rattle_langevin_args Collected arguments for gpu_rattle_langevin_step_two_kernel() and
+   gpu_rattle_langevin_angular_step_two() \param deltaT timestep \param D dimensionality of the
+   system
 
     This is just a driver for gpu_rattle_langevin_angular_step_two_kernel(), see it for details.
 
 */
-hipError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
-                             Scalar4 *d_orientation,
-                             Scalar4 *d_angmom,
-                             const Scalar3 *d_inertia,
-                             Scalar4 *d_net_torque,
-                             const unsigned int *d_group_members,
-                             const Scalar3 *d_gamma_r,
-                             const unsigned int *d_tag,
-                             unsigned int group_size,
-                             const rattle_langevin_step_two_args& rattle_langevin_args,
-                             Scalar deltaT,
-                             unsigned int D,
-                             Scalar scale)
+hipError_t
+gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
+                                     Scalar4* d_orientation,
+                                     Scalar4* d_angmom,
+                                     const Scalar3* d_inertia,
+                                     Scalar4* d_net_torque,
+                                     const unsigned int* d_group_members,
+                                     const Scalar3* d_gamma_r,
+                                     const unsigned int* d_tag,
+                                     unsigned int group_size,
+                                     const rattle_langevin_step_two_args& rattle_langevin_args,
+                                     Scalar deltaT,
+                                     unsigned int D,
+                                     Scalar scale)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_rattle_langevin_angular_step_two_kernel, grid, threads, max( (unsigned int)(sizeof(Scalar3)*rattle_langevin_args.n_types),
-                                                                (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar))), 0,
-                                        d_pos,
-                                        d_orientation,
-                                        d_angmom,
-                                        d_inertia,
-                                        d_net_torque,
-                                        d_group_members,
-                                        d_gamma_r,
-                                        d_tag,
-                                        rattle_langevin_args.n_types,
-                                        group_size,
-                                        rattle_langevin_args.timestep,
-                                        rattle_langevin_args.seed,
-                                        rattle_langevin_args.T,
-                                        rattle_langevin_args.tolerance,
-                                        rattle_langevin_args.noiseless_r,
-                                        deltaT,
-                                        D,
-                                        scale
-                                        );
+    hipLaunchKernelGGL(gpu_rattle_langevin_angular_step_two_kernel,
+                       grid,
+                       threads,
+                       max((unsigned int)(sizeof(Scalar3) * rattle_langevin_args.n_types),
+                           (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar))),
+                       0,
+                       d_pos,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       d_gamma_r,
+                       d_tag,
+                       rattle_langevin_args.n_types,
+                       group_size,
+                       rattle_langevin_args.timestep,
+                       rattle_langevin_args.seed,
+                       rattle_langevin_args.T,
+                       rattle_langevin_args.tolerance,
+                       rattle_langevin_args.noiseless_r,
+                       deltaT,
+                       D,
+                       scale);
 
     return hipSuccess;
     }
-
 
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
-                                            Scalar* d_partial_sum,
-                                            unsigned int num_blocks)
+__global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                             Scalar* d_partial_sum,
+                                                             unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
     extern __shared__ char s_data[];
-    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
+    Scalar* bdtally_sdata = (Scalar*)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)

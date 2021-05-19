@@ -9,8 +9,8 @@
  */
 
 #include "CollisionMethod.h"
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 /*!
  * \param sysdata MPCD system data
@@ -23,13 +23,10 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
                                        uint64_t cur_timestep,
                                        uint64_t period,
                                        int phase)
-    : m_mpcd_sys(sysdata),
-      m_sysdef(m_mpcd_sys->getSystemDefinition()),
-      m_pdata(m_sysdef->getParticleData()),
-      m_mpcd_pdata(m_mpcd_sys->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()),
-      m_cl(m_mpcd_sys->getCellList()),
-      m_period(period), m_enable_grid_shift(true)
+    : m_mpcd_sys(sysdata), m_sysdef(m_mpcd_sys->getSystemDefinition()),
+      m_pdata(m_sysdef->getParticleData()), m_mpcd_pdata(m_mpcd_sys->getParticleData()),
+      m_exec_conf(m_pdata->getExecConf()), m_cl(m_mpcd_sys->getCellList()), m_period(period),
+      m_enable_grid_shift(true)
     {
     // setup next timestep for collision
     m_next_timestep = cur_timestep;
@@ -43,12 +40,15 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
 
 void mpcd::CollisionMethod::collide(uint64_t timestep)
     {
-    if (!shouldCollide(timestep)) return;
+    if (!shouldCollide(timestep))
+        return;
 
-    if (m_prof) m_prof->push("MPCD collide");
+    if (m_prof)
+        m_prof->push("MPCD collide");
     // set random grid shift
     drawGridShift(timestep);
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
 
     // update cell list
     m_cl->compute(timestep);
@@ -58,10 +58,11 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision
+ * should occur
  *
- * Using a multiple allows the collision method to be disabled and then reenabled later if the \a timestep has already
- * exceeded the \a m_next_timestep.
+ * Using a multiple allows the collision method to be disabled and then reenabled later if the \a
+ * timestep has already exceeded the \a m_next_timestep.
  */
 bool mpcd::CollisionMethod::peekCollide(uint64_t timestep) const
     {
@@ -75,15 +76,18 @@ bool mpcd::CollisionMethod::peekCollide(uint64_t timestep) const
  * \param cur_timestep Current simulation timestep
  * \param period New period
  *
- * The collision method period is updated to \a period only if collision would occur at \a cur_timestep.
- * It is the caller's responsibility to ensure this condition is valid.
+ * The collision method period is updated to \a period only if collision would occur at \a
+ * cur_timestep. It is the caller's responsibility to ensure this condition is valid.
  */
 void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int period)
     {
     if (!peekCollide(cur_timestep))
         {
-        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of original period" << std::endl;
-        throw std::runtime_error("Collision period can only be changed on multiple of original period");
+        m_exec_conf->msg->error()
+            << "MPCD CollisionMethod period can only be changed on multiple of original period"
+            << std::endl;
+        throw std::runtime_error(
+            "Collision period can only be changed on multiple of original period");
         }
 
     // try to update the period
@@ -94,17 +98,20 @@ void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
     if (!peekCollide(cur_timestep))
         {
         m_period = old_period;
-        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of new period" << std::endl;
+        m_exec_conf->msg->error()
+            << "MPCD CollisionMethod period can only be changed on multiple of new period"
+            << std::endl;
         throw std::runtime_error("Collision period can only be changed on multiple of new period");
         }
     }
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision
+ * should occur
  *
- * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
- *       If this behavior is not desired, then use peekCollide() instead.
+ * \post The next timestep is also advanced to the next timestep the collision should occur after \a
+ * timestep. If this behavior is not desired, then use peekCollide() instead.
  */
 bool mpcd::CollisionMethod::shouldCollide(uint64_t timestep)
     {
@@ -136,13 +143,14 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
     // return zeros if shifting is off
     if (!m_enable_grid_shift)
         {
-        m_cl->setGridShift(make_scalar3(0.0,0.0,0.0));
+        m_cl->setGridShift(make_scalar3(0.0, 0.0, 0.0));
         }
     else
         {
         // PRNG using seed and timestep as seeds
-        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
-                                   hoomd::Counter(m_instance));
+        hoomd::RandomGenerator rng(
+            hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
+            hoomd::Counter(m_instance));
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution
@@ -162,13 +170,12 @@ void mpcd::CollisionMethod::drawGridShift(uint64_t timestep)
 void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod> >(m, "CollisionMethod")
+    py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod>>(m, "CollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, uint64_t, uint64_t, int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
         .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
         .def("setPeriod", &mpcd::CollisionMethod::setPeriod)
         .def_property("instance",
                       &mpcd::CollisionMethod::getInstance,
-                      &mpcd::CollisionMethod::setInstance)
-        ;
+                      &mpcd::CollisionMethod::setInstance);
     }

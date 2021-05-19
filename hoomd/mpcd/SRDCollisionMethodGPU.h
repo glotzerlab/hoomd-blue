@@ -19,50 +19,51 @@
 #include "hoomd/Autotuner.h"
 
 namespace mpcd
-{
-
+    {
 class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     {
     public:
-        //! Constructor
-        SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                              unsigned int cur_timestep,
-                              unsigned int period,
-                              int phase,
-                              uint16_t seed,
-                              std::shared_ptr<mpcd::CellThermoCompute> thermo);
+    //! Constructor
+    SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                          unsigned int cur_timestep,
+                          unsigned int period,
+                          int phase,
+                          uint16_t seed,
+                          std::shared_ptr<mpcd::CellThermoCompute> thermo);
 
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable/disable autotuning
-         * \param period period (approximate) in time steps when returning occurs
-         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            mpcd::SRDCollisionMethod::setAutotunerParams(enable, period);
+    //! Set autotuner parameters
+    /*!
+     * \param enable Enable/disable autotuning
+     * \param period period (approximate) in time steps when returning occurs
+     */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        mpcd::SRDCollisionMethod::setAutotunerParams(enable, period);
 
-            m_tuner_rotvec->setPeriod(period); m_tuner_rotvec->setEnabled(enable);
-            m_tuner_rotate->setPeriod(period); m_tuner_rotate->setEnabled(enable);
-            }
+        m_tuner_rotvec->setPeriod(period);
+        m_tuner_rotvec->setEnabled(enable);
+        m_tuner_rotate->setPeriod(period);
+        m_tuner_rotate->setEnabled(enable);
+        }
 
     protected:
-        //! Randomly draw cell rotation vectors
-        virtual void drawRotationVectors(uint64_t timestep);
+    //! Randomly draw cell rotation vectors
+    virtual void drawRotationVectors(uint64_t timestep);
 
-        //! Apply rotation matrix to velocities
-        virtual void rotate(uint64_t timestep);
+    //! Apply rotation matrix to velocities
+    virtual void rotate(uint64_t timestep);
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_rotvec;  //!< Tuner for drawing rotation vectors
-        std::unique_ptr<Autotuner> m_tuner_rotate;  //!< Tuner for rotating velocities
+    std::unique_ptr<Autotuner> m_tuner_rotvec; //!< Tuner for drawing rotation vectors
+    std::unique_ptr<Autotuner> m_tuner_rotate; //!< Tuner for rotating velocities
     };
 
 namespace detail
-{
+    {
 //! Export SRDCollisionMethodGPU to python
 void export_SRDCollisionMethodGPU(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #endif // MPCD_SRD_COLLISION_METHOD_GPU_H_

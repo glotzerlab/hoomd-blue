@@ -1,20 +1,17 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
-#include <math.h>
 #include "hoomd/ClockSource.h"
 #include "hoomd/Profiler.h"
-
+#include <math.h>
 
 #include "upp11_config.h"
 HOOMD_UP_MAIN();
-
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant
@@ -103,16 +100,16 @@ UP_TEST(Profiler_test)
     p.m_children["B"].m_elapsed_time = 7;
     p.m_children["B"].m_flop_count = 8;
     p.m_children["B"].m_mem_byte_count = 9;
-    UP_ASSERT(p.getChildElapsedTime() == 4+7);
-    UP_ASSERT(p.getTotalFlopCount() == 7+8);
-    UP_ASSERT(p.getTotalMemByteCount() == 9+9);
+    UP_ASSERT(p.getChildElapsedTime() == 4 + 7);
+    UP_ASSERT(p.getTotalFlopCount() == 7 + 8);
+    UP_ASSERT(p.getTotalMemByteCount() == 9 + 9);
 
     p.m_children["A"].m_children["C"].m_elapsed_time = 10;
     p.m_children["A"].m_children["C"].m_flop_count = 11;
     p.m_children["A"].m_children["C"].m_mem_byte_count = 12;
-    UP_ASSERT(p.getChildElapsedTime() == 4+7);
-    UP_ASSERT(p.getTotalFlopCount() == 7+8+11);
-    UP_ASSERT(p.getTotalMemByteCount() == 9+9+12);
+    UP_ASSERT(p.getChildElapsedTime() == 4 + 7);
+    UP_ASSERT(p.getTotalFlopCount() == 7 + 8 + 11);
+    UP_ASSERT(p.getTotalMemByteCount() == 9 + 9 + 12);
 
     Profiler prof("Main");
     prof.push("Loading");
@@ -139,9 +136,8 @@ UP_TEST(Profiler_test)
     // This code attempts to reproduce the problem found in ticket #50
     Profiler prof2("test");
     prof2.push("test1");
-    //Changing this slep value much lower than 100 results in the bug.
+    // Changing this slep value much lower than 100 results in the bug.
     Sleep(000);
     prof2.pop(100, 100);
     std::cout << prof2;
-
     }

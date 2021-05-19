@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file SFCPackTuner.cc
@@ -11,11 +10,11 @@
 #include "SFCPackTuner.h"
 #include "Communicator.h"
 
-#include <math.h>
-#include <stdexcept>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <math.h>
+#include <stdexcept>
 
 using namespace std;
 namespace py = pybind11;
@@ -24,7 +23,7 @@ namespace py = pybind11;
  */
 SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<Trigger> trigger)
-        : Tuner(sysdef, trigger), m_last_grid(0), m_last_dim(0)
+    : Tuner(sysdef, trigger), m_last_grid(0), m_last_dim(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing SFCPackTuner" << endl;
 
@@ -35,15 +34,17 @@ SFCPackTuner::SFCPackTuner(std::shared_ptr<SystemDefinition> sysdef,
     m_particle_bins.resize(m_pdata->getMaxN());
 
     // set the default grid
-    // Grid dimension must always be a power of 2 and determines the memory usage for m_traversal_order
-    // To prevent massive overruns of the memory, always use 256 for 3d and 4096 for 2d
+    // Grid dimension must always be a power of 2 and determines the memory usage for
+    // m_traversal_order To prevent massive overruns of the memory, always use 256 for 3d and 4096
+    // for 2d
     if (m_sysdef->getNDimensions() == 2)
         m_grid = 4096;
     else
         m_grid = 256;
 
     // register reallocate method with particle data maximum particle number change signal
-    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackTuner, &SFCPackTuner::reallocate>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackTuner, &SFCPackTuner::reallocate>(
+        this);
     }
 
 /*! reallocate the internal arrays
@@ -59,7 +60,8 @@ void SFCPackTuner::reallocate()
 SFCPackTuner::~SFCPackTuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying SFCPackTuner" << endl;
-    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackTuner, &SFCPackTuner::reallocate>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackTuner, &SFCPackTuner::reallocate>(
+        this);
     }
 
 /*! Performs the sort.
@@ -73,7 +75,7 @@ void SFCPackTuner::update(uint64_t timestep)
     Updater::update(timestep);
     m_exec_conf->msg->notice(6) << "SFCPackTuner: particle sort" << std::endl;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm)
         {
         // make sure all particles that need to be local are
@@ -83,9 +85,10 @@ void SFCPackTuner::update(uint64_t timestep)
         // remove all ghost particles
         m_pdata->removeAllGhostParticles();
         }
-    #endif
+#endif
 
-    if (m_prof) m_prof->push(m_exec_conf, "SFCPack");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "SFCPack");
 
     // figure out the sort order we need to apply
     if (m_sysdef->getNDimensions() == 2)
@@ -99,35 +102,56 @@ void SFCPackTuner::update(uint64_t timestep)
     // trigger sort signal (this also forces particle migration)
     m_pdata->notifyParticleSort();
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm)
         {
         // restore ghosts
         m_comm->communicate(timestep);
         }
-    #endif
+#endif
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 void SFCPackTuner::applySortOrder()
     {
     assert(m_pdata);
     assert(m_sort_order.size() >= m_pdata->getN());
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(),
+                                 access_location::host,
+                                 access_mode::readwrite);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                    access_location::host,
+                                    access_mode::readwrite);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                     access_location::host,
+                                     access_mode::readwrite);
 
     // construct a temporary holding array for the sorted data
-    Scalar4 *scal4_tmp = new Scalar4[m_pdata->getN()];
+    Scalar4* scal4_tmp = new Scalar4[m_pdata->getN()];
 
     // sort positions and types
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -141,14 +165,14 @@ void SFCPackTuner::applySortOrder()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_vel.data[i] = scal4_tmp[i];
 
-    Scalar3 *scal3_tmp = new Scalar3[m_pdata->getN()];
+    Scalar3* scal3_tmp = new Scalar3[m_pdata->getN()];
     // sort accelerations
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal3_tmp[i] = h_accel.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_accel.data[i] = scal3_tmp[i];
 
-    Scalar *scal_tmp  = new Scalar[m_pdata->getN()];
+    Scalar* scal_tmp = new Scalar[m_pdata->getN()];
     // sort charge
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         scal_tmp[i] = h_charge.data[m_sort_order[i]];
@@ -177,21 +201,25 @@ void SFCPackTuner::applySortOrder()
 
     // in case anyone access it from frame to frame, sort the net virial
         {
-        ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(m_pdata->getNetVirial(),
+                                         access_location::host,
+                                         access_mode::readwrite);
         size_t virial_pitch = m_pdata->getNetVirial().getPitch();
 
         for (unsigned int j = 0; j < 6; j++)
             {
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                scal_tmp[i] = h_net_virial.data[j*virial_pitch+m_sort_order[i]];
+                scal_tmp[i] = h_net_virial.data[j * virial_pitch + m_sort_order[i]];
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
-                h_net_virial.data[j*virial_pitch+i] = scal_tmp[i];
+                h_net_virial.data[j * virial_pitch + i] = scal_tmp[i];
             }
         }
 
     // sort net force, net torque, and orientation
         {
-        ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
+                                         access_location::host,
+                                         access_mode::readwrite);
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_net_force.data[m_sort_order[i]];
@@ -200,7 +228,9 @@ void SFCPackTuner::applySortOrder()
         }
 
         {
-        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::host,
+                                          access_mode::readwrite);
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_net_torque.data[m_sort_order[i]];
@@ -209,7 +239,9 @@ void SFCPackTuner::applySortOrder()
         }
 
         {
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::readwrite);
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             scal4_tmp[i] = h_orientation.data[m_sort_order[i]];
@@ -218,14 +250,14 @@ void SFCPackTuner::applySortOrder()
         }
 
     // sort image
-    int3 *int3_tmp = new int3[m_pdata->getN()];
+    int3* int3_tmp = new int3[m_pdata->getN()];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         int3_tmp[i] = h_image.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         h_image.data[i] = int3_tmp[i];
 
     // sort body
-    unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
+    unsigned int* uint_tmp = new unsigned int[m_pdata->getN()];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         uint_tmp[i] = h_body.data[m_sort_order[i]];
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -248,7 +280,6 @@ void SFCPackTuner::applySortOrder()
     delete[] scal3_tmp;
     delete[] uint_tmp;
     delete[] int3_tmp;
-
     }
 
 //! x walking table for the hilbert curve
@@ -257,7 +288,6 @@ static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
 static int jstep[] = {0, 0, 1, 1, 1, 1, 0, 0};
 //! z walking table for the hilbert curve
 static int kstep[] = {0, 1, 1, 0, 0, 1, 1, 0};
-
 
 //! Helper function for recursive hilbert curve generation
 /*! \param result Output sequence to be permuted by rule 1
@@ -376,31 +406,31 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
     switch (p)
         {
         case 0:
-            permute1(result, in);
-            break;
+        permute1(result, in);
+        break;
         case 1:
-            permute2(result, in);
-            break;
+        permute2(result, in);
+        break;
         case 2:
-            permute3(result, in);
-            break;
+        permute3(result, in);
+        break;
         case 3:
-            permute4(result, in);
-            break;
+        permute4(result, in);
+        break;
         case 4:
-            permute5(result, in);
-            break;
+        permute5(result, in);
+        break;
         case 5:
-            permute6(result, in);
-            break;
+        permute6(result, in);
+        break;
         case 6:
-            permute7(result, in);
-            break;
+        permute7(result, in);
+        break;
         case 7:
-            permute8(result, in);
-            break;
+        permute8(result, in);
+        break;
         default:
-            assert(false);
+        assert(false);
         }
     }
 
@@ -413,16 +443,22 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
     \param cell_order Current permutation order to traverse cells along
     \param traversal_order Traversal order to build up
     \pre \a traversal_order.size() == 0
-    \pre Initial call should be with \a i = \a j = \a k = 0, \a w = \a Mx, \a cell_order = (0,1,2,3,4,5,6,7,8)
-    \post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each grid point
-        listed in the order of the hilbert curve
+    \pre Initial call should be with \a i = \a j = \a k = 0, \a w = \a Mx, \a cell_order =
+   (0,1,2,3,4,5,6,7,8) \post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each
+   grid point listed in the order of the hilbert curve
 */
-void SFCPackTuner::generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order)
+void SFCPackTuner::generateTraversalOrder(int i,
+                                          int j,
+                                          int k,
+                                          int w,
+                                          int Mx,
+                                          unsigned int cell_order[8],
+                                          vector<unsigned int>& traversal_order)
     {
     if (w == 1)
         {
         // handle base case
-        traversal_order.push_back(i*Mx*Mx + j*Mx + k);
+        traversal_order.push_back(i * Mx * Mx + j * Mx + k);
         }
     else
         {
@@ -439,7 +475,7 @@ void SFCPackTuner::generateTraversalOrder(int i, int j, int k, int w, int Mx, un
 
             unsigned int child_cell_order[8];
             permute(child_cell_order, cell_order, m);
-            generateTraversalOrder(ic,jc,kc,w,Mx, child_cell_order, traversal_order);
+            generateTraversalOrder(ic, jc, kc, w, Mx, child_cell_order, traversal_order);
             }
         }
     }
@@ -454,31 +490,37 @@ void SFCPackTuner::getSortedOrder2D()
     const BoxDim& box = m_pdata->getBox();
 
     // put the particles in the bins
-    {
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-
-    // for each particle
-    for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        // find the bin each particle belongs in
-        Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
-        int ib = (unsigned int)(f.x * m_grid) % m_grid;
-        int jb = (unsigned int)(f.y * m_grid) % m_grid;
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
 
-        // if the particle is slightly outside, move back into grid
-        if (ib < 0) ib = 0;
-        if (ib >= (int)m_grid) ib = m_grid - 1;
+        // for each particle
+        for (unsigned int n = 0; n < m_pdata->getN(); n++)
+            {
+            // find the bin each particle belongs in
+            Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
+            Scalar3 f = box.makeFraction(p, make_scalar3(0.0, 0.0, 0.0));
+            int ib = (unsigned int)(f.x * m_grid) % m_grid;
+            int jb = (unsigned int)(f.y * m_grid) % m_grid;
 
-        if (jb < 0) jb = 0;
-        if (jb >= (int)m_grid) jb = m_grid - 1;
+            // if the particle is slightly outside, move back into grid
+            if (ib < 0)
+                ib = 0;
+            if (ib >= (int)m_grid)
+                ib = m_grid - 1;
 
-        // record its bin
-        unsigned int bin = ib*m_grid + jb;
+            if (jb < 0)
+                jb = 0;
+            if (jb >= (int)m_grid)
+                jb = m_grid - 1;
 
-        m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
+            // record its bin
+            unsigned int bin = ib * m_grid + jb;
+
+            m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
+            }
         }
-    }
 
     // sort the tuples
     sort(m_particle_bins.begin(), m_particle_bins.begin() + m_pdata->getN());
@@ -505,31 +547,39 @@ void SFCPackTuner::getSortedOrder3D()
         {
         if (m_grid > 256)
             {
-            unsigned int mb = m_grid*m_grid*m_grid*4 / 1024 / 1024;
-            m_exec_conf->msg->warning() << "sorter is about to allocate a very large amount of memory (" << mb << "MB)"
-                 << " and may crash." << endl;
-            m_exec_conf->msg->warning() << "            Reduce the amount of memory allocated to prevent this by decreasing the " << endl;
-            m_exec_conf->msg->warning() << "            grid dimension (i.e. sorter.set_params(grid=128) ) or by disabling it " << endl;
-            m_exec_conf->msg->warning() << "            ( sorter.disable() ) before beginning the run()." << endl;
+            unsigned int mb = m_grid * m_grid * m_grid * 4 / 1024 / 1024;
+            m_exec_conf->msg->warning()
+                << "sorter is about to allocate a very large amount of memory (" << mb << "MB)"
+                << " and may crash." << endl;
+            m_exec_conf->msg->warning() << "            Reduce the amount of memory allocated to "
+                                           "prevent this by decreasing the "
+                                        << endl;
+            m_exec_conf->msg->warning() << "            grid dimension (i.e. "
+                                           "sorter.set_params(grid=128) ) or by disabling it "
+                                        << endl;
+            m_exec_conf->msg->warning()
+                << "            ( sorter.disable() ) before beginning the run()." << endl;
             }
 
         // generate the traversal order
-        GPUArray<unsigned int> traversal_order(m_grid*m_grid*m_grid,m_exec_conf);
+        GPUArray<unsigned int> traversal_order(m_grid * m_grid * m_grid, m_exec_conf);
         m_traversal_order.swap(traversal_order);
 
-        vector< unsigned int > reverse_order(m_grid*m_grid*m_grid);
+        vector<unsigned int> reverse_order(m_grid * m_grid * m_grid);
         reverse_order.clear();
 
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
         unsigned int cell_order[8];
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
-        generateTraversalOrder(0,0,0, m_grid, m_grid, cell_order, reverse_order);
+        generateTraversalOrder(0, 0, 0, m_grid, m_grid, cell_order, reverse_order);
 
         // access traversal order
-        ArrayHandle<unsigned int> h_traversal_order(m_traversal_order, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_traversal_order(m_traversal_order,
+                                                    access_location::host,
+                                                    access_mode::overwrite);
 
-        for (unsigned int i = 0; i < m_grid*m_grid*m_grid; i++)
+        for (unsigned int i = 0; i < m_grid * m_grid * m_grid; i++)
             h_traversal_order.data[reverse_order[i]] = i;
 
         // write the traversal order out to a file for testing/presentations
@@ -542,35 +592,43 @@ void SFCPackTuner::getSortedOrder3D()
 
     // sanity checks
     assert(m_particle_bins.size() >= m_pdata->getN());
-    assert(m_traversal_order.getNumElements() == m_grid*m_grid*m_grid);
+    assert(m_traversal_order.getNumElements() == m_grid * m_grid * m_grid);
 
     // put the particles in the bins
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
 
     // access traversal order
-    ArrayHandle<unsigned int> h_traversal_order(m_traversal_order, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_traversal_order(m_traversal_order,
+                                                access_location::host,
+                                                access_mode::read);
 
     // for each particle
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        Scalar3 f = box.makeFraction(p,make_scalar3(0.0,0.0,0.0));
+        Scalar3 f = box.makeFraction(p, make_scalar3(0.0, 0.0, 0.0));
         int ib = (unsigned int)(f.x * m_grid) % m_grid;
         int jb = (unsigned int)(f.y * m_grid) % m_grid;
         int kb = (unsigned int)(f.z * m_grid) % m_grid;
 
         // if the particle is slightly outside, move back into grid
-        if (ib < 0) ib = 0;
-        if (ib >= (int)m_grid) ib = m_grid - 1;
+        if (ib < 0)
+            ib = 0;
+        if (ib >= (int)m_grid)
+            ib = m_grid - 1;
 
-        if (jb < 0) jb = 0;
-        if (jb >= (int)m_grid) jb = m_grid - 1;
+        if (jb < 0)
+            jb = 0;
+        if (jb >= (int)m_grid)
+            jb = m_grid - 1;
 
-        if (kb < 0) kb = 0;
-        if (kb >= (int)m_grid) kb = m_grid - 1;
+        if (kb < 0)
+            kb = 0;
+        if (kb >= (int)m_grid)
+            kb = m_grid - 1;
 
         // record its bin
-        unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
+        unsigned int bin = ib * (m_grid * m_grid) + jb * m_grid + kb;
 
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(h_traversal_order.data[bin], n);
         }
@@ -585,42 +643,43 @@ void SFCPackTuner::getSortedOrder3D()
         }
     }
 
-void SFCPackTuner::writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order)
+void SFCPackTuner::writeTraversalOrder(const std::string& fname,
+                                       const vector<unsigned int>& reverse_order)
     {
-    m_exec_conf->msg->notice(2) << "sorter: Writing space filling curve traversal order to " << fname << endl;
+    m_exec_conf->msg->notice(2) << "sorter: Writing space filling curve traversal order to "
+                                << fname << endl;
     ofstream f(fname.c_str());
-    f << "@<TRIPOS>MOLECULE" <<endl;
+    f << "@<TRIPOS>MOLECULE" << endl;
     f << "Generated by HOOMD" << endl;
-    f << m_traversal_order.getNumElements() << " " << m_traversal_order.getNumElements()-1 << endl;
+    f << m_traversal_order.getNumElements() << " " << m_traversal_order.getNumElements() - 1
+      << endl;
     f << "NO_CHARGES" << endl;
 
     f << "@<TRIPOS>ATOM" << endl;
     m_exec_conf->msg->notice(2) << "sorter: Writing " << m_grid << "^3 grid cells" << endl;
 
-    for (unsigned int i=0; i < reverse_order.size(); i++)
+    for (unsigned int i = 0; i < reverse_order.size(); i++)
         {
         unsigned int idx = reverse_order[i];
         unsigned int ib = idx / (m_grid * m_grid);
-        unsigned int jb = (idx - ib*m_grid*m_grid) / m_grid;
-        unsigned int kb = (idx - ib*m_grid*m_grid - jb*m_grid);
+        unsigned int jb = (idx - ib * m_grid * m_grid) / m_grid;
+        unsigned int kb = (idx - ib * m_grid * m_grid - jb * m_grid);
 
-        f << i+1 << " B " << ib << " " << jb << " "<< kb << " " << "B" << endl;
+        f << i + 1 << " B " << ib << " " << jb << " " << kb << " "
+          << "B" << endl;
         idx++;
         }
 
     f << "@<TRIPOS>BOND" << endl;
-    for (unsigned int i = 0; i < m_traversal_order.getNumElements()-1; i++)
+    for (unsigned int i = 0; i < m_traversal_order.getNumElements() - 1; i++)
         {
-        f << i+1 << " " << i+1 << " " << i+2 << " 1" << endl;
+        f << i + 1 << " " << i + 1 << " " << i + 2 << " 1" << endl;
         }
     }
 
 void export_SFCPackTuner(py::module& m)
     {
-    py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner> >(m,"SFCPackTuner")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                   std::shared_ptr<Trigger> >())
-    .def_property("grid", &SFCPackTuner::getGrid,
-                          &SFCPackTuner::setGridPython)
-    ;
+    py::class_<SFCPackTuner, Tuner, std::shared_ptr<SFCPackTuner>>(m, "SFCPackTuner")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Trigger>>())
+        .def_property("grid", &SFCPackTuner::getGrid, &SFCPackTuner::setGridPython);
     }

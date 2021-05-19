@@ -8,8 +8,8 @@
 
 #include <stdlib.h>
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 
 using namespace std;
@@ -29,15 +29,17 @@ using namespace std;
     \param spacing Separation between particles
     \param type_name Name of the particle type to create
 */
-SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name)
+SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M,
+                                               Scalar spacing,
+                                               const std::string& type_name)
     : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
     {
     }
 
 /*! initialize a snapshot with a cubic crystal */
-std::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
+std::shared_ptr<SnapshotSystemData<Scalar>> SimpleCubicInitializer::getSnapshot() const
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
@@ -75,7 +77,10 @@ std::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapsho
     \param type_name Name of the particle type to create
     \note assumes particles have a diameter of 1
 */
-RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name)
+RandomInitializer::RandomInitializer(unsigned int N,
+                                     Scalar phi_p,
+                                     Scalar min_dist,
+                                     const std::string& type_name)
     : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
     {
     // sanity checks
@@ -92,7 +97,7 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
         throw runtime_error("RandomInitializer: min_dist <= 0 doesn't make sense");
         }
 
-    Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
+    Scalar L = pow(Scalar(M_PI / 6.0) * Scalar(N) / phi_p, Scalar(1.0 / 3.0));
     m_box = BoxDim(L);
     }
 
@@ -113,9 +118,9 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
+std::shared_ptr<SnapshotSystemData<Scalar>> RandomInitializer::getSnapshot() const
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr<SnapshotSystemData<Scalar>> snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = m_box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
@@ -128,13 +133,13 @@ std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() c
         // criteria
         bool done = false;
         unsigned int tries = 0;
-        Scalar x,y,z;
+        Scalar x, y, z;
         while (!done)
             {
-            //Hack to fix compilation error
-            x = Scalar((rand())/Scalar(RAND_MAX) - 0.5)*L;
-            y = Scalar((rand())/Scalar(RAND_MAX) - 0.5)*L;
-            z = Scalar((rand())/Scalar(RAND_MAX) - 0.5)*L;
+            // Hack to fix compilation error
+            x = Scalar((rand()) / Scalar(RAND_MAX) - 0.5) * L;
+            y = Scalar((rand()) / Scalar(RAND_MAX) - 0.5) * L;
+            z = Scalar((rand()) / Scalar(RAND_MAX) - 0.5) * L;
             // assume we are done unless we are not
             done = true;
             // only do the minimum distance check if the minimum distance is non-zero
@@ -143,36 +148,36 @@ std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() c
                 for (unsigned int j = 0; j < i; j++)
                     {
                     Scalar dx = pdata.pos[j].x - x;
-                    if (dx < -L/Scalar(2.0))
+                    if (dx < -L / Scalar(2.0))
                         dx += L;
-                    if (dx > L/Scalar(2.0))
+                    if (dx > L / Scalar(2.0))
                         dx -= L;
 
                     Scalar dy = pdata.pos[j].y - y;
-                    if (dy < -L/Scalar(2.0))
+                    if (dy < -L / Scalar(2.0))
                         dy += L;
-                    if (dy > L/Scalar(2.0))
+                    if (dy > L / Scalar(2.0))
                         dy -= L;
 
                     Scalar dz = pdata.pos[j].z - z;
-                    if (dz < -L/Scalar(2.0))
+                    if (dz < -L / Scalar(2.0))
                         dz += L;
-                    if (dz > L/Scalar(2.0))
+                    if (dz > L / Scalar(2.0))
                         dz -= L;
 
-                    Scalar dr2 = dx*dx + dy*dy + dz*dz;
+                    Scalar dr2 = dx * dx + dy * dy + dz * dz;
                     if (dr2 <= m_min_dist * m_min_dist)
                         done = false;
                     }
                 }
             tries++;
-            if (tries > m_N*100)
+            if (tries > m_N * 100)
                 {
                 throw runtime_error("Unable to find location for particle after trying many times");
                 }
             }
 
-        pdata.pos[i] = vec3<Scalar>(x,y,z);
+        pdata.pos[i] = vec3<Scalar>(x, y, z);
         }
 
     pdata.type_mapping.push_back(m_type_name);

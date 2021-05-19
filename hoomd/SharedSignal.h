@@ -3,13 +3,13 @@
 
 #ifndef SYSTEM_SIGNAL
 #define SYSTEM_SIGNAL
-#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <functional>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 namespace hoomd
-{
+    {
 namespace detail // Adding namespace to avoid name conflicts with Nano
-{
+    {
 /*! \ingroup hoomd_lib
     @{
 */
@@ -19,10 +19,9 @@ namespace detail // Adding namespace to avoid name conflicts with Nano
 */
 
 /*! @}
-*/
+ */
 
-
-template <typename R> class SharedSignalSlot;
+template<typename R> class SharedSignalSlot;
 
 //! Manages signal lifetime and slot lifetime
 /*! The SharedSignal is a class that wraps the Nano::Signal class that allows for
@@ -35,20 +34,20 @@ template <typename R> class SharedSignalSlot;
 
     \ingroup SharedSignal
 */
-template< class SignalType >
-class SharedSignal : public Nano::Signal<SignalType>
+template<class SignalType> class SharedSignal : public Nano::Signal<SignalType>
     {
     public:
-        SharedSignal(){}
-        virtual ~SharedSignal()
-            {
-            // The shared signal is being destroyed so we need to clean up any
-            // references to the signal before it is freed.
-            disconnect_signal.emit();
-            }
-        friend class SharedSignalSlot<SignalType>;
+    SharedSignal() { }
+    virtual ~SharedSignal()
+        {
+        // The shared signal is being destroyed so we need to clean up any
+        // references to the signal before it is freed.
+        disconnect_signal.emit();
+        }
+    friend class SharedSignalSlot<SignalType>;
+
     private:
-        Nano::Signal<void ()>   disconnect_signal;    //!< Disconnect Signal
+    Nano::Signal<void()> disconnect_signal; //!< Disconnect Signal
     };
 
 //! Manages signal lifetime and slot lifetime
@@ -67,14 +66,17 @@ class SharedSignal : public Nano::Signal<SignalType>
 class SignalSlot
     {
     public:
-        SignalSlot() : m_connected(false) {}
-        virtual ~SignalSlot() {}
-        virtual void disconnect() = 0;
-        bool connected() { return m_connected; }
-        SignalSlot(const SignalSlot&) = delete;             // non-copyable
-        SignalSlot& operator=(const SignalSlot&) = delete;  // non-assignable
+    SignalSlot() : m_connected(false) { }
+    virtual ~SignalSlot() { }
+    virtual void disconnect() = 0;
+    bool connected()
+        {
+        return m_connected;
+        }
+    SignalSlot(const SignalSlot&) = delete;            // non-copyable
+    SignalSlot& operator=(const SignalSlot&) = delete; // non-assignable
     protected:
-        bool m_connected;
+    bool m_connected;
     };
 
 //! Manages signal lifetime and slot lifetime
@@ -87,58 +89,63 @@ class SignalSlot
 
     \ingroup SharedSignal
 */
-template <typename R, typename... Args>
-class SharedSignalSlot<R(Args...)> : public SignalSlot
+template<typename R, typename... Args> class SharedSignalSlot<R(Args...)> : public SignalSlot
     {
     public:
-        // bind to object member function (const)
-        template<typename T>
-        SharedSignalSlot(SharedSignal<R(Args...)>& signal, T* obj, R(T::*f)(Args...)const) : m_signal(signal)
-            {
-            m_func = [obj, f](Args... args) -> R { return (obj->*f)(std::forward<Args>(args)...); };
-            connect();
-            }
-        // bind to object member function (non-const)
-        template<typename T>
-        SharedSignalSlot(SharedSignal<R(Args...)>& signal, T* obj, R(T::*f)(Args...)) : m_signal(signal)
-            {
-            m_func = [obj, f](Args... args) -> R { return (obj->*f)(std::forward<Args>(args)...); };
-            connect();
-            }
-        // bind to general function
-        template<typename Func>
-        SharedSignalSlot(SharedSignal<R(Args...)>& signal, Func&& f) : m_signal(signal)
-            {
-            m_func = [f](Args... args) -> R { return f(std::forward<Args>(args)...); };
-            connect();
-            }
+    // bind to object member function (const)
+    template<typename T>
+    SharedSignalSlot(SharedSignal<R(Args...)>& signal, T* obj, R (T::*f)(Args...) const)
+        : m_signal(signal)
+        {
+        m_func = [obj, f](Args... args) -> R { return (obj->*f)(std::forward<Args>(args)...); };
+        connect();
+        }
+    // bind to object member function (non-const)
+    template<typename T>
+    SharedSignalSlot(SharedSignal<R(Args...)>& signal, T* obj, R (T::*f)(Args...))
+        : m_signal(signal)
+        {
+        m_func = [obj, f](Args... args) -> R { return (obj->*f)(std::forward<Args>(args)...); };
+        connect();
+        }
+    // bind to general function
+    template<typename Func>
+    SharedSignalSlot(SharedSignal<R(Args...)>& signal, Func&& f) : m_signal(signal)
+        {
+        m_func = [f](Args... args) -> R { return f(std::forward<Args>(args)...); };
+        connect();
+        }
 
-        ~SharedSignalSlot()
-            {
-            disconnect();
-            }
+    ~SharedSignalSlot()
+        {
+        disconnect();
+        }
 
-        void disconnect()
-            {
-            if(!m_connected)  // never disconnect more than once
-                return;
-            m_signal.disconnect(m_func);
-            m_signal.disconnect_signal.template disconnect<SharedSignalSlot<R(Args...)>, &SharedSignalSlot<R(Args...)>::disconnect >(this);
-            m_connected = false;
-            }
+    void disconnect()
+        {
+        if (!m_connected) // never disconnect more than once
+            return;
+        m_signal.disconnect(m_func);
+        m_signal.disconnect_signal.template disconnect<SharedSignalSlot<R(Args...)>,
+                                                       &SharedSignalSlot<R(Args...)>::disconnect>(
+            this);
+        m_connected = false;
+        }
 
     private:
-        void connect()
-            {
-            m_signal.disconnect_signal.template connect<SharedSignalSlot<R(Args...)>, &SharedSignalSlot<R(Args...)>::disconnect >(this);
-            m_signal.connect(m_func);
-            m_connected = true;
-            }
+    void connect()
+        {
+        m_signal.disconnect_signal.template connect<SharedSignalSlot<R(Args...)>,
+                                                    &SharedSignalSlot<R(Args...)>::disconnect>(
+            this);
+        m_signal.connect(m_func);
+        m_connected = true;
+        }
 
     protected:
-        SharedSignal<R(Args...)>&   m_signal;
-        std::function<R(Args...)>   m_func;
+    SharedSignal<R(Args...)>& m_signal;
+    std::function<R(Args...)> m_func;
     };
-} // end namespace detail
-} // end namespace hoomd
+    } // end namespace detail
+    } // end namespace hoomd
 #endif

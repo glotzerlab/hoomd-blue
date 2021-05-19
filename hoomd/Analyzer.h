@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file Analyzer.h
@@ -17,10 +16,10 @@
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
-#include "Profiler.h"
-#include "SystemDefinition.h"
-#include "SharedSignal.h"
 #include "Communicator.h"
+#include "Profiler.h"
+#include "SharedSignal.h"
+#include "SystemDefinition.h"
 
 #include <memory>
 #include <typeinfo>
@@ -35,7 +34,7 @@
 */
 
 /*! @}
-*/
+ */
 
 //! Base class for analysis of particle data
 /*! An Analyzer is a concept that encapsulates some process that is performed during
@@ -59,102 +58,107 @@
 class PYBIND11_EXPORT Analyzer
     {
     public:
-        //! Constructs the analyzer and associates it with the ParticleData
-        Analyzer(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Analyzer() {};
+    //! Constructs the analyzer and associates it with the ParticleData
+    Analyzer(std::shared_ptr<SystemDefinition> sysdef);
+    virtual ~Analyzer() {};
 
-        //! Abstract method that performs the analysis
-        /*! Derived classes will implement this method to calculate their results
-            \param timestep Current time step of the simulation
-            */
-        virtual void analyze(uint64_t timestep)
-            {
-            #ifdef ENABLE_MPI
-            if (m_pdata->getDomainDecomposition() && !m_comm)
-                {
-                throw std::runtime_error(
-                    "Bug: m_comm not set for a system with a domain decomposition in " +
-                    std::string(typeid(*this).name()));
-                }
-            #endif
-            }
-
-        //! Sets the profiler for the analyzer to use
-        void setProfiler(std::shared_ptr<Profiler> prof);
-
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-
-            Derived classes should override this to set the parameters of their autotuners.
+    //! Abstract method that performs the analysis
+    /*! Derived classes will implement this method to calculate their results
+        \param timestep Current time step of the simulation
         */
-        virtual void setAutotunerParams(bool enable, unsigned int period){}
-
-        //! Reset stat counters
-        /*! If derived classes provide statistics for the last run, they should resetStats() to
-            clear any counters. System will reset the stats before any run() so that stats printed
-            at the end of the run only apply to that run() alone.
-        */
-        virtual void resetStats(){}
-
-        //! Get needed pdata flags
-        /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
-            fields, they must return the requested fields in getRequestedPDataFlags().
-        */
-        virtual PDataFlags getRequestedPDataFlags()
-            {
-            return PDataFlags(0);
-            }
-
-        std::shared_ptr<const ExecutionConfiguration> getExecConf()
-            {
-            return m_exec_conf;
-            }
-
+    virtual void analyze(uint64_t timestep)
+        {
 #ifdef ENABLE_MPI
-        //! Set the communicator to use
-        /*! \param comm The Communicator
-         */
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        if (m_pdata->getDomainDecomposition() && !m_comm)
             {
-            m_comm = comm;
+            throw std::runtime_error(
+                "Bug: m_comm not set for a system with a domain decomposition in "
+                + std::string(typeid(*this).name()));
             }
 #endif
-        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
-            {
-            m_slots.push_back(slot);
-            }
+        }
 
-        void removeDisconnectedSlots()
+    //! Sets the profiler for the analyzer to use
+    void setProfiler(std::shared_ptr<Profiler> prof);
+
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+
+        Derived classes should override this to set the parameters of their autotuners.
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period) { }
+
+    //! Reset stat counters
+    /*! If derived classes provide statistics for the last run, they should resetStats() to
+        clear any counters. System will reset the stats before any run() so that stats printed
+        at the end of the run only apply to that run() alone.
+    */
+    virtual void resetStats() { }
+
+    //! Get needed pdata flags
+    /*! Not all fields in ParticleData are computed by default. When derived classes need one of
+       these optional fields, they must return the requested fields in getRequestedPDataFlags().
+    */
+    virtual PDataFlags getRequestedPDataFlags()
+        {
+        return PDataFlags(0);
+        }
+
+    std::shared_ptr<const ExecutionConfiguration> getExecConf()
+        {
+        return m_exec_conf;
+        }
+
+#ifdef ENABLE_MPI
+    //! Set the communicator to use
+    /*! \param comm The Communicator
+     */
+    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        {
+        m_comm = comm;
+        }
+#endif
+    void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
+        {
+        m_slots.push_back(slot);
+        }
+
+    void removeDisconnectedSlots()
+        {
+        for (unsigned int i = 0; i < m_slots.size();)
             {
-            for(unsigned int i = 0; i < m_slots.size();)
+            if (!m_slots[i]->connected())
                 {
-                if(!m_slots[i]->connected())
-                    {
-                    m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
-                    m_slots.erase(m_slots.begin()+i);
-                    }
-                else
-                    {
-                    i++;
-                    }
+                m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get()
+                                            << std::dec << std::endl;
+                m_slots.erase(m_slots.begin() + i);
+                }
+            else
+                {
+                i++;
                 }
             }
+        }
 
-        /// Python will notify C++ objects when they are detached from Simulation
-        virtual void notifyDetach() { };
+    /// Python will notify C++ objects when they are detached from Simulation
+    virtual void notifyDetach() {};
 
     protected:
-        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
-        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
-        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
+    const std::shared_ptr<SystemDefinition>
+        m_sysdef; //!< The system definition this analyzer is associated with
+    const std::shared_ptr<ParticleData>
+        m_pdata;                      //!< The particle data this analyzer is associated with
+    std::shared_ptr<Profiler> m_prof; //!< The profiler this analyzer is to use
 
 #ifdef ENABLE_MPI
-        std::shared_ptr<Communicator> m_comm;             //!< The communicator to use
+    std::shared_ptr<Communicator> m_comm; //!< The communicator to use
 #endif
 
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
+    std::shared_ptr<const ExecutionConfiguration>
+        m_exec_conf; //!< Stored shared ptr to the execution configuration
+    std::vector<std::shared_ptr<hoomd::detail::SignalSlot>>
+        m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Analyzer class to python

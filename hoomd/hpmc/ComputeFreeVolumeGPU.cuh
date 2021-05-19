@@ -4,15 +4,15 @@
 #ifndef _COMPUTE_FREE_VOLUME_CUH_
 #define _COMPUTE_FREE_VOLUME_CUH_
 
-#include "hip/hip_runtime.h"
 #include "HPMCCounters.h"
 #include "HPMCPrecisionSetup.h"
+#include "hip/hip_runtime.h"
 
 #include "hoomd/HOOMDMath.h"
-#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/RandomNumbers.h"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 #ifdef __HIPCC__
 #include "Moves.h"
@@ -20,11 +20,9 @@
 #endif
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 /*! \file IntegratorHPMCMonoImplicit.cuh
     \brief Declaration of CUDA kernels drivers
 */
@@ -34,114 +32,90 @@ namespace detail
 struct hpmc_free_volume_args_t
     {
     //! Construct a pair_args_t
-    hpmc_free_volume_args_t(
-                unsigned int _n_sample,
-                unsigned int _type,
-                Scalar4 *_d_postype,
-                Scalar4 *_d_orientation,
-                const unsigned int *_d_cell_idx,
-                const unsigned int *_d_cell_size,
-                const Index3D& _ci,
-                const Index2D& _cli,
-                const unsigned int *_d_excell_idx,
-                const unsigned int *_d_excell_size,
-                const Index2D& _excli,
-                const uint3& _cell_dim,
-                const unsigned int _N,
-                const unsigned int _num_types,
-                const uint16_t _seed,
-                const unsigned int _rank,
-                unsigned int _select,
-                const uint64_t _timestep,
-                const unsigned int _dim,
-                const BoxDim& _box,
-                const unsigned int _block_size,
-                const unsigned int _stride,
-                const unsigned int _group_size,
-                const unsigned int _max_n,
-                unsigned int *_d_n_overlap_all,
-                const Scalar3 _ghost_width,
-                const unsigned int *_d_check_overlaps,
-                Index2D _overlap_idx,
-                const hipDeviceProp_t& _devprop
-                )
-                : n_sample(_n_sample),
-                  type(_type),
-                  d_postype(_d_postype),
-                  d_orientation(_d_orientation),
-                  d_cell_idx(_d_cell_idx),
-                  d_cell_size(_d_cell_size),
-                  ci(_ci),
-                  cli(_cli),
-                  d_excell_idx(_d_excell_idx),
-                  d_excell_size(_d_excell_size),
-                  excli(_excli),
-                  cell_dim(_cell_dim),
-                  N(_N),
-                  num_types(_num_types),
-                  seed(_seed),
-                  rank(_rank),
-                  select(_select),
-                  timestep(_timestep),
-                  dim(_dim),
-                  box(_box),
-                  block_size(_block_size),
-                  stride(_stride),
-                  group_size(_group_size),
-                  max_n(_max_n),
-                  d_n_overlap_all(_d_n_overlap_all),
-                  ghost_width(_ghost_width),
-                  d_check_overlaps(_d_check_overlaps),
-                  overlap_idx(_overlap_idx),
-                  devprop(_devprop)
-        {
-        };
+    hpmc_free_volume_args_t(unsigned int _n_sample,
+                            unsigned int _type,
+                            Scalar4* _d_postype,
+                            Scalar4* _d_orientation,
+                            const unsigned int* _d_cell_idx,
+                            const unsigned int* _d_cell_size,
+                            const Index3D& _ci,
+                            const Index2D& _cli,
+                            const unsigned int* _d_excell_idx,
+                            const unsigned int* _d_excell_size,
+                            const Index2D& _excli,
+                            const uint3& _cell_dim,
+                            const unsigned int _N,
+                            const unsigned int _num_types,
+                            const uint16_t _seed,
+                            const unsigned int _rank,
+                            unsigned int _select,
+                            const uint64_t _timestep,
+                            const unsigned int _dim,
+                            const BoxDim& _box,
+                            const unsigned int _block_size,
+                            const unsigned int _stride,
+                            const unsigned int _group_size,
+                            const unsigned int _max_n,
+                            unsigned int* _d_n_overlap_all,
+                            const Scalar3 _ghost_width,
+                            const unsigned int* _d_check_overlaps,
+                            Index2D _overlap_idx,
+                            const hipDeviceProp_t& _devprop)
+        : n_sample(_n_sample), type(_type), d_postype(_d_postype), d_orientation(_d_orientation),
+          d_cell_idx(_d_cell_idx), d_cell_size(_d_cell_size), ci(_ci), cli(_cli),
+          d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
+          cell_dim(_cell_dim), N(_N), num_types(_num_types), seed(_seed), rank(_rank),
+          select(_select), timestep(_timestep), dim(_dim), box(_box), block_size(_block_size),
+          stride(_stride), group_size(_group_size), max_n(_max_n),
+          d_n_overlap_all(_d_n_overlap_all), ghost_width(_ghost_width),
+          d_check_overlaps(_d_check_overlaps), overlap_idx(_overlap_idx), devprop(_devprop) {};
 
-    unsigned int n_sample;            //!< Number of depletants particles to generate
-    unsigned int type;                //!< Type of depletant particle
-    Scalar4 *d_postype;               //!< postype array
-    Scalar4 *d_orientation;           //!< orientation array
-    const unsigned int *d_cell_idx;   //!< Index data for each cell
-    const unsigned int *d_cell_size;  //!< Number of particles in each cell
-    const Index3D& ci;                //!< Cell indexer
-    const Index2D& cli;               //!< Indexer for d_cell_idx
-    const unsigned int *d_excell_idx; //!< Expanded cell neighbors
-    const unsigned int *d_excell_size; //!< Size of expanded cell list per cell
-    const Index2D excli;              //!< Expanded cell indexer
-    const uint3& cell_dim;            //!< Cell dimensions
-    const unsigned int N;             //!< Number of particles
-    const unsigned int num_types;     //!< Number of particle types
-    const uint16_t seed;          //!< RNG seed
-    const unsigned int rank;          //!< MPI rank
-    unsigned int select;              //!< RNG select value
-    const uint64_t timestep;      //!< Current time step
-    const unsigned int dim;           //!< Number of dimensions
-    const BoxDim& box;                //!< Current simulation box
-    unsigned int block_size;          //!< Block size to execute
-    unsigned int stride;              //!< Number of threads per overlap check
-    unsigned int group_size;          //!< Size of the group to execute
-    const unsigned int max_n;         //!< Maximum size of pdata arrays
-    unsigned int *d_n_overlap_all;    //!< Total number of depletants in overlap volume
-    const Scalar3 ghost_width;       //!< Width of ghost layer
-    const unsigned int *d_check_overlaps;   //!< Interaction matrix
-    Index2D overlap_idx;              //!< Interaction matrix indexer
-    const hipDeviceProp_t& devprop;    //!< CUDA device properties
+    unsigned int n_sample;                //!< Number of depletants particles to generate
+    unsigned int type;                    //!< Type of depletant particle
+    Scalar4* d_postype;                   //!< postype array
+    Scalar4* d_orientation;               //!< orientation array
+    const unsigned int* d_cell_idx;       //!< Index data for each cell
+    const unsigned int* d_cell_size;      //!< Number of particles in each cell
+    const Index3D& ci;                    //!< Cell indexer
+    const Index2D& cli;                   //!< Indexer for d_cell_idx
+    const unsigned int* d_excell_idx;     //!< Expanded cell neighbors
+    const unsigned int* d_excell_size;    //!< Size of expanded cell list per cell
+    const Index2D excli;                  //!< Expanded cell indexer
+    const uint3& cell_dim;                //!< Cell dimensions
+    const unsigned int N;                 //!< Number of particles
+    const unsigned int num_types;         //!< Number of particle types
+    const uint16_t seed;                  //!< RNG seed
+    const unsigned int rank;              //!< MPI rank
+    unsigned int select;                  //!< RNG select value
+    const uint64_t timestep;              //!< Current time step
+    const unsigned int dim;               //!< Number of dimensions
+    const BoxDim& box;                    //!< Current simulation box
+    unsigned int block_size;              //!< Block size to execute
+    unsigned int stride;                  //!< Number of threads per overlap check
+    unsigned int group_size;              //!< Size of the group to execute
+    const unsigned int max_n;             //!< Maximum size of pdata arrays
+    unsigned int* d_n_overlap_all;        //!< Total number of depletants in overlap volume
+    const Scalar3 ghost_width;            //!< Width of ghost layer
+    const unsigned int* d_check_overlaps; //!< Interaction matrix
+    Index2D overlap_idx;                  //!< Interaction matrix indexer
+    const hipDeviceProp_t& devprop;       //!< CUDA device properties
     };
 
-template< class Shape >
-hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t &args, const typename Shape::param_type *d_params);
+template<class Shape>
+hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
+                                const typename Shape::param_type* d_params);
 
 #ifdef __HIPCC__
 
 //! Compute the cell that a particle sits in
 __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
-                                               const BoxDim& box,
-                                               const Scalar3& ghost_width,
-                                               const uint3& cell_dim,
-                                               const Index3D& ci)
+                                                const BoxDim& box,
+                                                const Scalar3& ghost_width,
+                                                const uint3& cell_dim,
+                                                const Index3D& ci)
     {
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(p,ghost_width);
+    Scalar3 f = box.makeFraction(p, ghost_width);
     uchar3 periodic = box.getPeriodic();
     int ib = (unsigned int)(f.x * cell_dim.x);
     int jb = (unsigned int)(f.y * cell_dim.y);
@@ -156,9 +130,8 @@ __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
         kb = 0;
 
     // identify the bin
-    return ci(ib,jb,kb);
+    return ci(ib, jb, kb);
     }
-
 
 //! Kernel to estimate the colloid overlap volume and the depletant free volume
 /*! \param n_sample Number of probe depletant particles to generate
@@ -183,32 +156,32 @@ __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
     \param d_params Per-type shape parameters
     \param d_overlaps Per-type pair interaction matrix
 */
-template< class Shape >
+template<class Shape>
 __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
-                                     unsigned int type,
-                                     Scalar4 *d_postype,
-                                     Scalar4 *d_orientation,
-                                     const unsigned int *d_cell_size,
-                                     const Index3D ci,
-                                     const Index2D cli,
-                                     const unsigned int *d_excell_idx,
-                                     const unsigned int *d_excell_size,
-                                     const Index2D excli,
-                                     const uint3 cell_dim,
-                                     const unsigned int N,
-                                     const unsigned int num_types,
-                                     const uint16_t seed,
-                                     const unsigned int rank,
-                                     const unsigned int select,
-                                     const uint64_t timestep,
-                                     const unsigned int dim,
-                                     const BoxDim box,
-                                     unsigned int *d_n_overlap_all,
-                                     Scalar3 ghost_width,
-                                     const unsigned int *d_check_overlaps,
-                                     Index2D overlap_idx,
-                                     const typename Shape::param_type *d_params,
-                                     unsigned int max_extra_bytes)
+                                            unsigned int type,
+                                            Scalar4* d_postype,
+                                            Scalar4* d_orientation,
+                                            const unsigned int* d_cell_size,
+                                            const Index3D ci,
+                                            const Index2D cli,
+                                            const unsigned int* d_excell_idx,
+                                            const unsigned int* d_excell_size,
+                                            const Index2D excli,
+                                            const uint3 cell_dim,
+                                            const unsigned int N,
+                                            const unsigned int num_types,
+                                            const uint16_t seed,
+                                            const unsigned int rank,
+                                            const unsigned int select,
+                                            const uint64_t timestep,
+                                            const unsigned int dim,
+                                            const BoxDim box,
+                                            unsigned int* d_n_overlap_all,
+                                            Scalar3 ghost_width,
+                                            const unsigned int* d_check_overlaps,
+                                            Index2D overlap_idx,
+                                            const typename Shape::param_type* d_params,
+                                            unsigned int max_extra_bytes)
     {
     unsigned int group = threadIdx.z;
     unsigned int offset = threadIdx.y;
@@ -223,23 +196,24 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     i = blockIdx.x * n_groups + group;
 
     // load the per type pair parameters into shared memory
-    HIP_DYNAMIC_SHARED( char, s_data)
-    typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
-    unsigned int *s_check_overlaps = (unsigned int *) (s_params + num_types);
+    HIP_DYNAMIC_SHARED(char, s_data)
+    typename Shape::param_type* s_params = (typename Shape::param_type*)(&s_data[0]);
+    unsigned int* s_check_overlaps = (unsigned int*)(s_params + num_types);
     unsigned int ntyppairs = overlap_idx.getNumElements();
-    unsigned int *s_overlap = (unsigned int *)(&s_check_overlaps[ntyppairs]);
+    unsigned int* s_overlap = (unsigned int*)(&s_check_overlaps[ntyppairs]);
 
     // copy over parameters one int per thread for fast loads
         {
-        unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
-        unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
-        unsigned int param_size = num_types*sizeof(typename Shape::param_type) / sizeof(int);
+        unsigned int tidx
+            = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
+        unsigned int block_size = blockDim.x * blockDim.y * blockDim.z;
+        unsigned int param_size = num_types * sizeof(typename Shape::param_type) / sizeof(int);
 
         for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
             {
             if (cur_offset + tidx < param_size)
                 {
-                ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
+                ((int*)s_params)[cur_offset + tidx] = ((int*)d_params)[cur_offset + tidx];
                 }
             }
 
@@ -255,7 +229,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     __syncthreads();
 
     // initialize extra shared mem
-    char *s_extra = (char *)(s_overlap + n_groups);
+    char* s_extra = (char*)(s_overlap + n_groups);
 
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
@@ -325,7 +299,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                 unsigned int j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
 
                 Scalar4 postype_j = __ldg(d_postype + j);
-                Scalar4 orientation_j = make_scalar4(1,0,0,0);
+                Scalar4 orientation_j = make_scalar4(1, 0, 0, 0);
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                 Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
                 if (shape_j.hasOrientation())
@@ -336,14 +310,16 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                 r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
                 // check for overlaps
-                OverlapReal rsq = dot(r_ij,r_ij);
-                OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                OverlapReal rsq = dot(r_ij, r_ij);
+                OverlapReal DaDb
+                    = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
 
-                if (rsq*OverlapReal(4.0) <= DaDb * DaDb)
+                if (rsq * OverlapReal(4.0) <= DaDb * DaDb)
                     {
                     // circumsphere overlap
                     unsigned int err_count;
-                    if (s_check_overlaps[overlap_idx(typ_j, type)] && test_overlap(r_ij, shape_i, shape_j, err_count))
+                    if (s_check_overlaps[overlap_idx(typ_j, type)]
+                        && test_overlap(r_ij, shape_i, shape_j, err_count))
                         {
                         s_overlap[group] = 1;
                         break;
@@ -380,46 +356,52 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     \param d_params Per-type shape parameters
     \returns Error codes generated by any CUDA calls, or hipSuccess when there is no error
 
-    This templatized method is the kernel driver for parallel update of any shape. It is instantiated for every shape at the
-    bottom of this file.
+    This templatized method is the kernel driver for parallel update of any shape. It is
+   instantiated for every shape at the bottom of this file.
 
     \ingroup hpmc_kernels
 */
-template< class Shape >
-hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typename Shape::param_type *d_params)
+template<class Shape>
+hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
+                                const typename Shape::param_type* d_params)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
     assert(args.d_cell_size);
     assert(args.group_size >= 1);
-    assert(args.group_size <= 32);  // note, really should be warp size of the device
-    assert(args.block_size%(args.stride*args.group_size)==0);
+    assert(args.group_size <= 32); // note, really should be warp size of the device
+    assert(args.block_size % (args.stride * args.group_size) == 0);
 
     // reset counters
-    hipMemsetAsync(args.d_n_overlap_all,0, sizeof(unsigned int));
+    hipMemsetAsync(args.d_n_overlap_all, 0, sizeof(unsigned int));
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
     static hipFuncAttributes attr;
     if (max_block_size == -1)
         {
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(gpu_hpmc_free_volume_kernel<Shape>));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     // setup the grid to run the kernel
-    unsigned int n_groups = min(args.block_size, (unsigned int)max_block_size) / args.group_size / args.stride;
+    unsigned int n_groups
+        = min(args.block_size, (unsigned int)max_block_size) / args.group_size / args.stride;
 
     dim3 threads(args.stride, args.group_size, n_groups);
-    dim3 grid( args.n_sample / n_groups + 1, 1, 1);
+    dim3 grid(args.n_sample / n_groups + 1, 1, 1);
 
-    unsigned int shared_bytes = (unsigned int)(args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
-        + args.overlap_idx.getNumElements()*sizeof(unsigned int));
+    unsigned int shared_bytes
+        = (unsigned int)(args.num_types * sizeof(typename Shape::param_type)
+                         + n_groups * sizeof(unsigned int)
+                         + args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
-    unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes);
+    unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
+                                                             - attr.sharedSizeBytes - shared_bytes);
 
     // determine dynamically requested shared memory
-    char *ptr = (char *)nullptr;
+    char* ptr = (char*)nullptr;
     unsigned int available_bytes = max_extra_bytes;
     for (unsigned int i = 0; i < args.num_types; ++i)
         {
@@ -429,40 +411,44 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const typen
 
     shared_bytes += extra_bytes;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>), dim3(grid), dim3(threads), shared_bytes, 0,
-                                                     args.n_sample,
-                                                     args.type,
-                                                     args.d_postype,
-                                                     args.d_orientation,
-                                                     args.d_cell_size,
-                                                     args.ci,
-                                                     args.cli,
-                                                     args.d_excell_idx,
-                                                     args.d_excell_size,
-                                                     args.excli,
-                                                     args.cell_dim,
-                                                     args.N,
-                                                     args.num_types,
-                                                     args.seed,
-                                                     args.rank,
-                                                     args.select,
-                                                     args.timestep,
-                                                     args.dim,
-                                                     args.box,
-                                                     args.d_n_overlap_all,
-                                                     args.ghost_width,
-                                                     args.d_check_overlaps,
-                                                     args.overlap_idx,
-                                                     d_params,
-                                                     max_extra_bytes);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_hpmc_free_volume_kernel<Shape>),
+                       dim3(grid),
+                       dim3(threads),
+                       shared_bytes,
+                       0,
+                       args.n_sample,
+                       args.type,
+                       args.d_postype,
+                       args.d_orientation,
+                       args.d_cell_size,
+                       args.ci,
+                       args.cli,
+                       args.d_excell_idx,
+                       args.d_excell_size,
+                       args.excli,
+                       args.cell_dim,
+                       args.N,
+                       args.num_types,
+                       args.seed,
+                       args.rank,
+                       args.select,
+                       args.timestep,
+                       args.dim,
+                       args.box,
+                       args.d_n_overlap_all,
+                       args.ghost_width,
+                       args.d_check_overlaps,
+                       args.overlap_idx,
+                       d_params,
+                       max_extra_bytes);
 
     return hipSuccess;
     }
 
 #endif // __HIPCC__
 
-}; // end namespace detail
+    }; // end namespace detail
 
-} // end namespace hpmc
+    } // end namespace hpmc
 
 #endif // _COMPUTE_FREE_VOLUME_CUH_

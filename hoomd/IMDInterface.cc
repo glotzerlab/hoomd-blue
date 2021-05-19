@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file IMDInterface.cc
@@ -18,9 +17,8 @@
 
 namespace py = pybind11;
 
-
-#include "hoomd/extern/vmdsock.h"
 #include "hoomd/extern/imd.h"
+#include "hoomd/extern/vmdsock.h"
 
 #include <stdexcept>
 
@@ -43,7 +41,8 @@ IMDInterface::IMDInterface(std::shared_ptr<SystemDefinition> sysdef,
                            float force_scale)
     : Analyzer(sysdef)
     {
-    m_exec_conf->msg->notice(5) << "Constructing IMDInterface: " << port << " " << pause << " " << rate << " " << force_scale << endl;
+    m_exec_conf->msg->notice(5) << "Constructing IMDInterface: " << port << " " << pause << " "
+                                << rate << " " << force_scale << endl;
 
     if (port <= 0)
         {
@@ -60,7 +59,7 @@ IMDInterface::IMDInterface(std::shared_ptr<SystemDefinition> sysdef,
     m_force_scale = force_scale;
     m_port = port;
     if (m_force)
-        m_force->setForce(0,0,0);
+        m_force->setForce(0, 0, 0);
 
     // TCP socket will be initialized later
     m_is_initialized = false;
@@ -142,21 +141,21 @@ void IMDInterface::analyze(uint64_t timestep)
     if (m_comm)
         is_root = m_exec_conf->isRoot();
 
-    if (is_root && ! m_is_initialized)
+    if (is_root && !m_is_initialized)
         initConnection();
 
     if (is_root)
 #else
-    if (! m_is_initialized)
+    if (!m_is_initialized)
         initConnection();
 #endif
 
-    if (m_nglobal != m_pdata->getNGlobal())
-        {
-        m_exec_conf->msg->error() << "analyze.imd: Change in number of particles unsupported by IMD."
-            << std::endl;
-        throw std::runtime_error("Error sending IMD data");
-        }
+        if (m_nglobal != m_pdata->getNGlobal())
+            {
+            m_exec_conf->msg->error()
+                << "analyze.imd: Change in number of particles unsupported by IMD." << std::endl;
+            throw std::runtime_error("Error sending IMD data");
+            }
 
         {
         m_count++;
@@ -173,8 +172,7 @@ void IMDInterface::analyze(uint64_t timestep)
                 do
                     {
                     dispatch();
-                    }
-                    while (m_connected_sock && messagesAvailable());
+                    } while (m_connected_sock && messagesAvailable());
                 }
 
             // quit if Ctrl-C was pressed
@@ -183,8 +181,7 @@ void IMDInterface::analyze(uint64_t timestep)
                 g_sigint_recvd = 0;
                 throw runtime_error("SIG INT received while paused in IMD");
                 }
-            }
-            while (m_paused);
+            } while (m_paused);
         }
 
 #ifdef ENABLE_MPI
@@ -210,7 +207,7 @@ void IMDInterface::analyze(uint64_t timestep)
     }
 
 /*! \pre \a m_connected_sock is connected and handshaking has occurred
-*/
+ */
 void IMDInterface::dispatch()
     {
     assert(m_connected_sock != NULL);
@@ -226,7 +223,8 @@ void IMDInterface::dispatch()
     // check to see if there are any errors
     if (res == -1)
         {
-        m_exec_conf->msg->notice(3) << "analyze.imd: connection appears to have been terminated" << endl;
+        m_exec_conf->msg->notice(3)
+            << "analyze.imd: connection appears to have been terminated" << endl;
         processDeadConnection();
         return;
         }
@@ -239,44 +237,46 @@ void IMDInterface::dispatch()
         switch (header)
             {
             case IMD_DISCONNECT:
-                processIMD_DISCONNECT();
-                break;
+            processIMD_DISCONNECT();
+            break;
             case IMD_GO:
-                processIMD_GO();
-                break;
+            processIMD_GO();
+            break;
             case IMD_KILL:
-                processIMD_KILL();
-                break;
+            processIMD_KILL();
+            break;
             case IMD_MDCOMM:
-                processIMD_MDCOMM(length);
-                break;
+            processIMD_MDCOMM(length);
+            break;
             case IMD_TRATE:
-                processIMD_TRATE(length);
-                break;
+            processIMD_TRATE(length);
+            break;
             case IMD_PAUSE:
-                processIMD_PAUSE();
-                break;
+            processIMD_PAUSE();
+            break;
             case IMD_IOERROR:
-                processIMD_IOERROR();
-                break;
+            processIMD_IOERROR();
+            break;
             default:
-                m_exec_conf->msg->notice(3) << "analyze.imd: received an unimplemented command (" << header << "), disconnecting" << endl;
-                processDeadConnection();
-                break;
+            m_exec_conf->msg->notice(3) << "analyze.imd: received an unimplemented command ("
+                                        << header << "), disconnecting" << endl;
+            processDeadConnection();
+            break;
             }
         }
     // otherwise no message was received, do nothing
     }
 
 /*! \pre m_connected_sock is connected
-*/
+ */
 bool IMDInterface::messagesAvailable()
     {
     int res = vmdsock_selread(m_connected_sock, 0);
 
     if (res == -1)
         {
-        m_exec_conf->msg->notice(3) << "analyze.imd: connection appears to have been terminated" << endl;
+        m_exec_conf->msg->notice(3)
+            << "analyze.imd: connection appears to have been terminated" << endl;
         processDeadConnection();
         return false;
         }
@@ -288,8 +288,8 @@ bool IMDInterface::messagesAvailable()
 
 void IMDInterface::processIMD_DISCONNECT()
     {
-    // cleanly disconnect and continue running the simulation. This is no different than what we do with a dead
-    // connection
+    // cleanly disconnect and continue running the simulation. This is no different than what we do
+    // with a dead connection
     processDeadConnection();
     }
 
@@ -306,7 +306,8 @@ void IMDInterface::processIMD_KILL()
     // disconnect (no different from handling a dead connection)
     processDeadConnection();
     // terminate the simulation
-    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_KILL message, stopping the simulation" << endl;
+    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_KILL message, stopping the simulation"
+                                << endl;
     throw runtime_error("Received IMD_KILL message");
     }
 
@@ -314,13 +315,14 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
     {
     // mdcomm is not currently handled
     std::vector<int32> indices(n);
-    std::vector<float> forces(3*n);
+    std::vector<float> forces(3 * n);
 
     int err = imd_recv_mdcomm(m_connected_sock, n, &indices[0], &forces[0]);
 
     if (err)
         {
-        m_exec_conf->msg->error() << "analyze.imd: Error receiving mdcomm data, disconnecting" << endl;
+        m_exec_conf->msg->error() << "analyze.imd: Error receiving mdcomm data, disconnecting"
+                                  << endl;
         processDeadConnection();
         return;
         }
@@ -328,31 +330,37 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
 #ifdef ENABLE_MPI
     if (m_comm)
         {
-        m_exec_conf->msg->warning() << "analyze.imd: mdcomm currently not supported in MPI simulations." << endl;
+        m_exec_conf->msg->warning()
+            << "analyze.imd: mdcomm currently not supported in MPI simulations." << endl;
         }
 #endif
 
     if (m_force)
         {
-        ArrayHandle< unsigned int > h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-        m_force->setForce(0,0,0);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                         access_location::host,
+                                         access_mode::read);
+        m_force->setForce(0, 0, 0);
         for (unsigned int i = 0; i < n; i++)
             {
             m_force->setParticleForce(indices[i],
-                                      forces[3*i+0]*m_force_scale,
-                                      forces[3*i+1]*m_force_scale,
-                                      forces[3*i+2]*m_force_scale);
+                                      forces[3 * i + 0] * m_force_scale,
+                                      forces[3 * i + 1] * m_force_scale,
+                                      forces[3 * i + 2] * m_force_scale);
             }
         }
     else
         {
-        m_exec_conf->msg->warning() << "analyze.imd: Receiving forces over IMD, but no force was given to analyze.imd. Doing nothing" << endl;
+        m_exec_conf->msg->warning() << "analyze.imd: Receiving forces over IMD, but no force was "
+                                       "given to analyze.imd. Doing nothing"
+                                    << endl;
         }
     }
 
 void IMDInterface::processIMD_TRATE(int rate)
     {
-    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_TRATE, setting trate to " << rate << endl;
+    m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_TRATE, setting trate to " << rate
+                                << endl;
     m_trate = rate;
     }
 
@@ -360,12 +368,14 @@ void IMDInterface::processIMD_PAUSE()
     {
     if (!m_paused)
         {
-        m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
+        m_exec_conf->msg->notice(3)
+            << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
         m_paused = true;
         }
     else
         {
-        m_exec_conf->msg->notice(3) << "analyze.imd: Received IMD_PAUSE, unpausing simulation" << endl;
+        m_exec_conf->msg->notice(3)
+            << "analyze.imd: Received IMD_PAUSE, unpausing simulation" << endl;
         m_paused = false;
         }
     }
@@ -375,7 +385,8 @@ void IMDInterface::processIMD_IOERROR()
     // disconnect (no different from handling a dead connection)
     processDeadConnection();
     // terminate the simulation
-    m_exec_conf->msg->error() << "analyze.imd: Received IMD_IOERROR message, dropping the connection" << endl;
+    m_exec_conf->msg->error()
+        << "analyze.imd: Received IMD_IOERROR message, dropping the connection" << endl;
     }
 
 void IMDInterface::processDeadConnection()
@@ -385,14 +396,15 @@ void IMDInterface::processDeadConnection()
     m_active = false;
     m_paused = false;
     if (m_force)
-        m_force->setForce(0,0,0);
+        m_force->setForce(0, 0, 0);
     }
 
 /*! \pre \a m_connected_sock is not connected
     \pre \a m_listen_sock is listening
 
-    \a m_listen_sock is checked for any incoming connections. If an incoming connection is found, a handshake is made
-    and \a m_connected_sock is set. If no connection is established, \a m_connected_sock is set to NULL.
+    \a m_listen_sock is checked for any incoming connections. If an incoming connection is found, a
+   handshake is made and \a m_connected_sock is set. If no connection is established, \a
+   m_connected_sock is set to NULL.
 */
 void IMDInterface::establishConnectionAttempt()
     {
@@ -436,7 +448,8 @@ void IMDInterface::sendCoords(uint64_t timestep)
 #ifdef ENABLE_MPI
     // return now if not root rank
     if (m_comm)
-        if (! m_exec_conf->isRoot()) return;
+        if (!m_exec_conf->isRoot())
+            return;
 #endif
 
     assert(m_connected_sock != NULL);
@@ -457,7 +470,8 @@ void IMDInterface::sendCoords(uint64_t timestep)
     int err = imd_send_energies(m_connected_sock, &energies);
     if (err)
         {
-        m_exec_conf->msg->error() << "analyze.imd: I/O error while sending energies, disconnecting" << endl;
+        m_exec_conf->msg->error() << "analyze.imd: I/O error while sending energies, disconnecting"
+                                  << endl;
         processDeadConnection();
         return;
         }
@@ -465,15 +479,16 @@ void IMDInterface::sendCoords(uint64_t timestep)
     // copy the particle data to the holding array and send it
     for (unsigned int tag = 0; tag < m_pdata->getNGlobal(); tag++)
         {
-        m_tmp_coords[tag*3] = float(snapshot.pos[tag].x);
-        m_tmp_coords[tag*3 + 1] = float(snapshot.pos[tag].y);
-        m_tmp_coords[tag*3 + 2] = float(snapshot.pos[tag].z);
+        m_tmp_coords[tag * 3] = float(snapshot.pos[tag].x);
+        m_tmp_coords[tag * 3 + 1] = float(snapshot.pos[tag].y);
+        m_tmp_coords[tag * 3 + 2] = float(snapshot.pos[tag].z);
         }
     err = imd_send_fcoords(m_connected_sock, m_pdata->getNGlobal(), m_tmp_coords);
 
     if (err)
         {
-        m_exec_conf->msg->error() << "analyze.imd: I/O error while sending coordinates, disconnecting" << endl;
+        m_exec_conf->msg->error()
+            << "analyze.imd: I/O error while sending coordinates, disconnecting" << endl;
         processDeadConnection();
         return;
         }
@@ -481,7 +496,10 @@ void IMDInterface::sendCoords(uint64_t timestep)
 
 void export_IMDInterface(py::module& m)
     {
-    py::class_<IMDInterface, Analyzer, std::shared_ptr<IMDInterface> >(m,"IMDInterface")
-    .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
-        ;
+    py::class_<IMDInterface, Analyzer, std::shared_ptr<IMDInterface>>(m, "IMDInterface")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      int,
+                      bool,
+                      unsigned int,
+                      std::shared_ptr<ConstForceCompute>>());
     }

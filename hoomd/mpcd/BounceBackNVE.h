@@ -20,64 +20,64 @@
 #include <pybind11/pybind11.h>
 
 namespace mpcd
-{
+    {
 //! Integrator that applies bounce-back boundary conditions in NVE.
 /*!
- * This integrator applies "bounce-back" boundary conditions according to a template \a Geometry class.
- * Particles away from the boundary evolve according to the standard velocity Verlet equations. When
- * a particle moves to cross a boundary during the first Verlet step, its position is restored to the boundary.
- * The particle's tangential velocity is then reflected according to the slip or no-slip condition, while the normal
- * velocity is always reflected to maintain the no-penetration condition. The particle velocity during this collision
- * is the halfway point (after the current acceleration has been applied). The final velocity step proceeds as usual
- * for the Verlet algorithm after the reflections are completed. This reflection procedure may induce a small amount of
- * slip near the surface from the acceleration.
+ * This integrator applies "bounce-back" boundary conditions according to a template \a Geometry
+ * class. Particles away from the boundary evolve according to the standard velocity Verlet
+ * equations. When a particle moves to cross a boundary during the first Verlet step, its position
+ * is restored to the boundary. The particle's tangential velocity is then reflected according to
+ * the slip or no-slip condition, while the normal velocity is always reflected to maintain the
+ * no-penetration condition. The particle velocity during this collision is the halfway point (after
+ * the current acceleration has been applied). The final velocity step proceeds as usual for the
+ * Verlet algorithm after the reflections are completed. This reflection procedure may induce a
+ * small amount of slip near the surface from the acceleration.
  */
-template<class Geometry>
-class PYBIND11_EXPORT BounceBackNVE : public ::IntegrationMethodTwoStep
+template<class Geometry> class PYBIND11_EXPORT BounceBackNVE : public ::IntegrationMethodTwoStep
     {
     public:
-        //! Constructor
-        BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
-                      std::shared_ptr<ParticleGroup> group,
-                      std::shared_ptr<const Geometry> geom);
+    //! Constructor
+    BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<ParticleGroup> group,
+                  std::shared_ptr<const Geometry> geom);
 
-        //! Destructor
-        virtual ~BounceBackNVE();
+    //! Destructor
+    virtual ~BounceBackNVE();
 
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(uint64_t timestep);
+    //! Performs the first step of the integration
+    virtual void integrateStepOne(uint64_t timestep);
 
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(uint64_t timestep);
+    //! Performs the second step of the integration
+    virtual void integrateStepTwo(uint64_t timestep);
 
-        //! Get the streaming geometry
-        std::shared_ptr<const Geometry> getGeometry()
-            {
-            return m_geom;
-            }
+    //! Get the streaming geometry
+    std::shared_ptr<const Geometry> getGeometry()
+        {
+        return m_geom;
+        }
 
-        //! Set the streaming geometry
-        void setGeometry(std::shared_ptr<const Geometry> geom)
-            {
-            requestValidate();
-            m_geom = geom;
-            }
+    //! Set the streaming geometry
+    void setGeometry(std::shared_ptr<const Geometry> geom)
+        {
+        requestValidate();
+        m_geom = geom;
+        }
 
     protected:
-        std::shared_ptr<const Geometry> m_geom;  //!< Bounce-back geometry
-        bool m_validate_geom;   //!< If true, run a validation check on the geometry
+    std::shared_ptr<const Geometry> m_geom; //!< Bounce-back geometry
+    bool m_validate_geom;                   //!< If true, run a validation check on the geometry
 
-        //! Validate the system with the streaming geometry
-        void validate();
+    //! Validate the system with the streaming geometry
+    void validate();
 
     private:
-        void requestValidate()
-            {
-            m_validate_geom = true;
-            }
+    void requestValidate()
+        {
+        m_validate_geom = true;
+        }
 
-        //! Check that particles lie inside the geometry
-        bool validateParticles();
+    //! Check that particles lie inside the geometry
+    bool validateParticles();
     };
 
 template<class Geometry>
@@ -86,42 +86,57 @@ BounceBackNVE<Geometry>::BounceBackNVE(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<const Geometry> geom)
     : IntegrationMethodTwoStep(sysdef, group), m_geom(geom), m_validate_geom(true)
     {
-    m_exec_conf->msg->notice(5) << "Constructing BounceBackNVE + " << Geometry::getName() << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing BounceBackNVE + " << Geometry::getName()
+                                << std::endl;
 
-    m_pdata->getBoxChangeSignal().template connect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
+    m_pdata->getBoxChangeSignal()
+        .template connect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
     }
 
-template<class Geometry>
-BounceBackNVE<Geometry>::~BounceBackNVE()
+template<class Geometry> BounceBackNVE<Geometry>::~BounceBackNVE()
     {
-    m_exec_conf->msg->notice(5) << "Destroying BounceBackNVE + " << Geometry::getName() << std::endl;
+    m_exec_conf->msg->notice(5) << "Destroying BounceBackNVE + " << Geometry::getName()
+                                << std::endl;
 
-    m_pdata->getBoxChangeSignal().template disconnect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(this);
+    m_pdata->getBoxChangeSignal()
+        .template disconnect<BounceBackNVE<Geometry>, &BounceBackNVE<Geometry>::requestValidate>(
+            this);
     }
 
-template<class Geometry>
-void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
+template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
     {
     if (m_aniso)
         {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with bounce-back integrators." << std::endl;
+        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
+                                     "bounce-back integrators."
+                                  << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
 
-    if (m_prof) m_prof->push("Bounce NVE step 1");
+    if (m_prof)
+        m_prof->push("Bounce NVE step 1");
 
-    if (m_validate_geom) validate();
+    if (m_validate_geom)
+        validate();
 
     // particle data
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::read);
     const BoxDim& box = m_pdata->getBox();
 
     // group members
     const unsigned int group_size = m_group->getNumMembers();
-    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(),
+                                      access_location::host,
+                                      access_mode::read);
 
     for (unsigned int idx = 0; idx < group_size; ++idx)
         {
@@ -148,8 +163,7 @@ void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
             {
             pos += dt_remain * vel;
             collide = m_geom->detectCollision(pos, vel, dt_remain);
-            }
-        while (dt_remain > 0 && collide);
+            } while (dt_remain > 0 && collide);
 
         // wrap final position
         box.wrap(pos, h_image.data[pid]);
@@ -159,25 +173,36 @@ void BounceBackNVE<Geometry>::integrateStepOne(uint64_t timestep)
         h_vel.data[pid] = make_scalar4(vel.x, vel.y, vel.z, mass);
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
-template<class Geometry>
-void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
+template<class Geometry> void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
     {
     if (m_aniso)
         {
-        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with bounce-back integrators." << std::endl;
+        m_exec_conf->msg->error() << "mpcd.integrate: anisotropic particles are not supported with "
+                                     "bounce-back integrators."
+                                  << std::endl;
         throw std::runtime_error("Anisotropic integration not supported with bounce-back");
         }
-    if (m_prof) m_prof->push("Bounce NVE step 2");
+    if (m_prof)
+        m_prof->push("Bounce NVE step 2");
 
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(),
+                                     access_location::host,
+                                     access_mode::read);
 
     const unsigned int group_size = m_group->getNumMembers();
-    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(),
+                                      access_location::host,
+                                      access_mode::read);
 
     for (unsigned int idx = 0; idx < group_size; ++idx)
         {
@@ -200,26 +225,32 @@ void BounceBackNVE<Geometry>::integrateStepTwo(uint64_t timestep)
         h_accel.data[pid] = accel;
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
-template<class Geometry>
-void BounceBackNVE<Geometry>::validate()
+template<class Geometry> void BounceBackNVE<Geometry>::validate()
     {
     // ensure that the global box is padded enough for periodic boundaries
     const BoxDim& box = m_pdata->getGlobalBox();
     if (!m_geom->validateBox(box, 0.))
         {
-        m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName() << " geometry. Increase box size." << std::endl;
+        m_exec_conf->msg->error() << "BounceBackNVE: box too small for " << Geometry::getName()
+                                  << " geometry. Increase box size." << std::endl;
         throw std::runtime_error("Simulation box too small for bounce back method");
         }
 
     // check that no particles are out of bounds
     unsigned char error = !validateParticles();
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_exec_conf->getNRanks() > 1)
-        MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_UNSIGNED_CHAR, MPI_LOR, m_exec_conf->getMPICommunicator());
-    #endif // ENABLE_MPI
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &error,
+                      1,
+                      MPI_UNSIGNED_CHAR,
+                      MPI_LOR,
+                      m_exec_conf->getMPICommunicator());
+#endif // ENABLE_MPI
     if (error)
         throw std::runtime_error("Invalid particle configuration for bounce back geometry");
 
@@ -231,13 +262,14 @@ void BounceBackNVE<Geometry>::validate()
  * Checks each particle position to determine if it lies within the geometry. If any particle is
  * out of bounds, an error is raised.
  */
-template<class Geometry>
-bool BounceBackNVE<Geometry>::validateParticles()
+template<class Geometry> bool BounceBackNVE<Geometry>::validateParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group(m_group->getIndexArray(),
+                                      access_location::host,
+                                      access_mode::read);
     const unsigned int group_size = m_group->getNumMembers();
 
     for (unsigned int idx = 0; idx < group_size; ++idx)
@@ -248,8 +280,10 @@ bool BounceBackNVE<Geometry>::validateParticles()
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
         if (m_geom->isOutside(pos))
             {
-            m_exec_conf->msg->errorAllRanks() << "Particle with tag " << h_tag.data[pid] << " at (" << pos.x << "," << pos.y << "," << pos.z
-                                      << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
+            m_exec_conf->msg->errorAllRanks()
+                << "Particle with tag " << h_tag.data[pid] << " at (" << pos.x << "," << pos.y
+                << "," << pos.z << ") lies outside the " << Geometry::getName()
+                << " geometry. Fix configuration." << std::endl;
             return false;
             }
         }
@@ -258,20 +292,23 @@ bool BounceBackNVE<Geometry>::validateParticles()
     }
 
 namespace detail
-{
+    {
 //! Exports the BounceBackNVE class to python
-template<class Geometry>
-void export_BounceBackNVE(pybind11::module& m)
+template<class Geometry> void export_BounceBackNVE(pybind11::module& m)
     {
     namespace py = pybind11;
     const std::string name = "BounceBackNVE" + Geometry::getName();
 
-    py::class_<BounceBackNVE<Geometry>, IntegrationMethodTwoStep, std::shared_ptr<BounceBackNVE<Geometry>>>
-        (m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, std::shared_ptr<const Geometry>>())
-        .def_property("geometry", &BounceBackNVE<Geometry>::getGeometry, &BounceBackNVE<Geometry>::setGeometry)
-        ;
+    py::class_<BounceBackNVE<Geometry>,
+               IntegrationMethodTwoStep,
+               std::shared_ptr<BounceBackNVE<Geometry>>>(m, name.c_str())
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<const Geometry>>())
+        .def_property("geometry",
+                      &BounceBackNVE<Geometry>::getGeometry,
+                      &BounceBackNVE<Geometry>::setGeometry);
     }
-} // end namespace detail
-} // end namespace mpcd
+    }      // end namespace detail
+    }      // end namespace mpcd
 #endif // #ifndef MPCD_BOUNCE_BACK_NVE_H_

@@ -1,14 +1,13 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: pschoenhoefer
 
 #ifndef __MANIFOLD_CLASS_ELLIPSOID_H__
 #define __MANIFOLD_CLASS_ELLIPSOID_H__
 
-#include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldEllipsoid.h
@@ -16,7 +15,8 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #else
@@ -26,7 +26,8 @@
 //! Class for constructing the Ellipsoid surface
 /*! <b>General Overview</b>
 
-    ManifoldEllipsoid is a low level computation class that computes the distance and normal vector to the Ellipsoid surface.
+    ManifoldEllipsoid is a low level computation class that computes the distance and normal vector
+   to the Ellipsoid surface.
 
     <b>Ellipsoid specifics</b>
 
@@ -46,82 +47,96 @@
 class ManifoldEllipsoid
     {
     public:
+    //! Constructs the manifold class
+    /*! \param _Px center position in x-direction
+        \param _Py center position in y-direction
+        \param _Pz center position in z-direction
+        \param _a x-axis
+        \param _b y-axis
+        \param _c z-axis
+    */
+    DEVICE ManifoldEllipsoid(Scalar _a, Scalar _b, Scalar _c, Scalar3 _P)
+        : Px(_P.x), Py(_P.y), Pz(_P.z), a(_a), b(_b), c(_c), inv_a2(Scalar(1.0) / (_a * _a)),
+          inv_b2(Scalar(1.0) / (_b * _b)), inv_c2(Scalar(1.0) / (_c * _c))
+        {
+        }
 
-        //! Constructs the manifold class
-        /*! \param _Px center position in x-direction
-            \param _Py center position in y-direction
-            \param _Pz center position in z-direction
-            \param _a x-axis
-            \param _b y-axis
-            \param _c z-axis
-        */
-        DEVICE ManifoldEllipsoid(Scalar _a, Scalar _b, Scalar _c, Scalar3 _P)
-            : Px(_P.x), Py(_P.y), Pz(_P.z), a(_a), b(_b), c(_c), inv_a2(Scalar(1.0)/(_a*_a)), inv_b2(Scalar(1.0)/(_b*_b)), inv_c2(Scalar(1.0)/(_c*_c))
+    //! Evaluate implicit function
+    /*! \param point Point at which surface is calculated
+
+        \return result of the nodal function at input point
+    */
+
+    DEVICE Scalar implicitFunction(const Scalar3& point)
+        {
+        return inv_a2 * (point.x - Px) * (point.x - Px) + inv_b2 * (point.y - Py) * (point.y - Py)
+               + inv_c2 * (point.z - Pz) * (point.z - Pz) - 1;
+        }
+
+    //! Evaluate derivative of implicit function
+    /*! \param point Point at surface is calculated
+
+        \return normal of the Ellipsoid surface at input point
+    */
+
+    DEVICE Scalar3 derivative(const Scalar3& point)
+        {
+        return make_scalar3(2 * inv_a2 * (point.x - Px),
+                            2 * inv_b2 * (point.y - Py),
+                            2 * inv_c2 * (point.z - Pz));
+        }
+
+    DEVICE bool fitsInsideBox(const BoxDim& box)
+        {
+        Scalar3 lo = box.getLo();
+        Scalar3 hi = box.getHi();
+
+        if (Px + a > hi.x || Px - a < lo.x || Py + b > hi.y || Py - b < lo.y || Pz + c > hi.z
+            || Pz - c < lo.z)
             {
+            return false; // Ellipsoid does not fit inside box
             }
-
-        //! Evaluate implicit function
-        /*! \param point Point at which surface is calculated
-
-            \return result of the nodal function at input point
-        */
-
-        DEVICE Scalar implicitFunction(const Scalar3& point)
-        {
-            return inv_a2*(point.x - Px)*(point.x - Px) + inv_b2*(point.y - Py)*(point.y - Py) + inv_c2*(point.z - Pz)*(point.z - Pz) - 1;
-        }
-
-        //! Evaluate derivative of implicit function
-        /*! \param point Point at surface is calculated
-
-            \return normal of the Ellipsoid surface at input point
-        */
-
-        DEVICE Scalar3 derivative(const Scalar3& point)
-        {
-            return make_scalar3(2*inv_a2*(point.x - Px), 2*inv_b2*(point.y - Py), 2*inv_c2*(point.z - Pz));
-        }
-
-        DEVICE bool fitsInsideBox(const BoxDim& box)
-        {
-            Scalar3 lo = box.getLo();
-            Scalar3 hi = box.getHi();
-
-            if (Px + a > hi.x || Px - a < lo.x ||
-                Py + b > hi.y || Py - b < lo.y ||
-                Pz + c > hi.z || Pz - c < lo.z)
-                {
-                return false; // Ellipsoid does not fit inside box
-                }
-                else
-                {
-                return true;
-                }
-        }
-
-        Scalar getA(){ return a;};
-
-        Scalar getB(){ return b;};
-
-        Scalar getC(){ return c;};
-
-        pybind11::tuple getP(){ return pybind11::make_tuple(Px, Py, Pz);}
-
-        static unsigned int dimension()
+        else
             {
-            return 2;
+            return true;
             }
+        }
+
+    Scalar getA()
+        {
+        return a;
+        };
+
+    Scalar getB()
+        {
+        return b;
+        };
+
+    Scalar getC()
+        {
+        return c;
+        };
+
+    pybind11::tuple getP()
+        {
+        return pybind11::make_tuple(Px, Py, Pz);
+        }
+
+    static unsigned int dimension()
+        {
+        return 2;
+        }
 
     protected:
-        Scalar Px;
-        Scalar Py;
-        Scalar Pz;
-        Scalar a;
-        Scalar b;
-        Scalar c;
-        Scalar inv_a2;
-        Scalar inv_b2;
-        Scalar inv_c2;
+    Scalar Px;
+    Scalar Py;
+    Scalar Pz;
+    Scalar a;
+    Scalar b;
+    Scalar c;
+    Scalar inv_a2;
+    Scalar inv_b2;
+    Scalar inv_c2;
     };
 
 //! Exports the Ellipsoid manifold class to python

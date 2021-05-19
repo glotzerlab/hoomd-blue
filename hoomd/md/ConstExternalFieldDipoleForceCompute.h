@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: grva
 
 #include "hoomd/ForceCompute.h"
@@ -23,22 +22,26 @@
 
 //! Adds the force of a constant external field on a dipole for each particle
 /*! \ingroup computes
-*/
+ */
 class PYBIND11_EXPORT ConstExternalFieldDipoleForceCompute : public ForceCompute
     {
     public:
-        //! Constructs the compute
-        ConstExternalFieldDipoleForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
+    //! Constructs the compute
+    ConstExternalFieldDipoleForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                         Scalar field_x,
+                                         Scalar field_y,
+                                         Scalar field_z,
+                                         Scalar p);
 
-        //! Set the force to a new value
-        void setParams(Scalar field_x,Scalar field_y, Scalar field_z,Scalar p);
+    //! Set the force to a new value
+    void setParams(Scalar field_x, Scalar field_y, Scalar field_z, Scalar p);
 
     protected:
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
 
     private:
-    Scalar4 field;  //!< Electric field
+    Scalar4 field; //!< Electric field
     };
 
 //! Exports the ConstExternalFieldDipoleForceComputeClass to python

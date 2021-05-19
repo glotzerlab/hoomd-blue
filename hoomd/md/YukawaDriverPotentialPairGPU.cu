@@ -5,11 +5,10 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairYukawa.h"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "EvaluatorPairYukawa.h"
 hipError_t gpu_compute_yukawa_forces(const pair_args_t& pair_args,
-                                      const EvaluatorPairYukawa::param_type *d_params)
+                                     const EvaluatorPairYukawa::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairYukawa>(pair_args,
-                                                        d_params);
+    return gpu_compute_pair_forces<EvaluatorPairYukawa>(pair_args, d_params);
     }

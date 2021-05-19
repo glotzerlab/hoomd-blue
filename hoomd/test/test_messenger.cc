@@ -1,31 +1,27 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Filesystem.h"
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 
 #include "hoomd/Messenger.h"
 
 using namespace std;
-
 
 /*! \file test_messenger.cc
     \brief Unit test for Messenger
     \ingroup unit_tests
 */
 
-
 #include "upp11_config.h"
 HOOMD_UP_MAIN();
 
-
-UP_TEST( Messenger_basic )
+UP_TEST(Messenger_basic)
     {
     Messenger msg;
 
@@ -43,8 +39,7 @@ UP_TEST( Messenger_basic )
     UP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)10);
     }
 
-
-UP_TEST( Messenger_print )
+UP_TEST(Messenger_print)
     {
     Messenger msg;
 
@@ -57,7 +52,7 @@ UP_TEST( Messenger_print )
     msg.notice(1) << "Notice level 1" << endl;
     }
 
-UP_TEST( Messenger_null )
+UP_TEST(Messenger_null)
     {
     Messenger msg;
 
@@ -75,7 +70,7 @@ UP_TEST( Messenger_null )
     msg.notice(1) << "But this one should not" << endl;
     }
 
-UP_TEST( Messenger_prefix )
+UP_TEST(Messenger_prefix)
     {
     Messenger msg;
 
@@ -123,7 +118,7 @@ UP_TEST( Messenger_prefix )
     UP_ASSERT_EQUAL(strm.str(), string("err: 1\nwarn: 2\n3\nnote(5): 4\n"));
     }
 
-UP_TEST( Messenger_file )
+UP_TEST(Messenger_file)
     {
     // scope the messengers so that the file is closed and written
         {

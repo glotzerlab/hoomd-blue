@@ -1,13 +1,11 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file TempRescaleUpdater.cc
     \brief Defines the TempRescaleUpdater class
 */
-
 
 #include "TempRescaleUpdater.h"
 
@@ -26,7 +24,7 @@ using namespace std;
 TempRescaleUpdater::TempRescaleUpdater(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ComputeThermo> thermo,
                                        std::shared_ptr<Variant> tset)
-        : Updater(sysdef), m_thermo(thermo), m_tset(tset)
+    : Updater(sysdef), m_thermo(thermo), m_tset(tset)
     {
     m_exec_conf->msg->notice(5) << "Constructing TempRescaleUpdater" << endl;
 
@@ -38,7 +36,6 @@ TempRescaleUpdater::~TempRescaleUpdater()
     {
     m_exec_conf->msg->notice(5) << "Destroying TempRescaleUpdater" << endl;
     }
-
 
 /*! Perform the proper velocity rescaling
     \param timestep Current time step of the simulation
@@ -52,11 +49,14 @@ void TempRescaleUpdater::update(uint64_t timestep)
     m_thermo->compute(timestep);
     Scalar cur_temp = m_thermo->getTranslationalTemperature();
 
-    if (m_prof) m_prof->push("TempRescale");
+    if (m_prof)
+        m_prof->push("TempRescale");
 
     if (cur_temp < 1e-3)
         {
-        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 translational temperature to anything but 0, skipping this step" << endl;
+        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 translational "
+                                       "temperature to anything but 0, skipping this step"
+                                    << endl;
         }
     else
         {
@@ -66,7 +66,9 @@ void TempRescaleUpdater::update(uint64_t timestep)
         // scale the free particle velocities
         assert(m_pdata);
             {
-            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
@@ -75,16 +77,17 @@ void TempRescaleUpdater::update(uint64_t timestep)
                 h_vel.data[i].z *= fraction;
                 }
             }
-
         }
 
     cur_temp = m_thermo->getRotationalTemperature();
-    if (! std::isnan(cur_temp))
+    if (!std::isnan(cur_temp))
         {
         // only rescale if we have rotational degrees of freedom
         if (cur_temp < 1e-3)
             {
-            m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 rotational temperature to anything but 0, skipping this step" << endl;
+            m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 rotational "
+                                           "temperature to anything but 0, skipping this step"
+                                        << endl;
             }
         else
             {
@@ -94,7 +97,9 @@ void TempRescaleUpdater::update(uint64_t timestep)
             // scale the free particle velocities
             assert(m_pdata);
                 {
-                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                              access_location::host,
+                                              access_mode::readwrite);
 
                 for (unsigned int i = 0; i < m_pdata->getN(); i++)
                     {
@@ -103,11 +108,11 @@ void TempRescaleUpdater::update(uint64_t timestep)
                     h_angmom.data[i].z *= fraction;
                     }
                 }
-
             }
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param tset New temperature set point
@@ -120,10 +125,11 @@ void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
 
 void export_TempRescaleUpdater(py::module& m)
     {
-    py::class_<TempRescaleUpdater, Updater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                                 std::shared_ptr<ComputeThermo>,
-                                 std::shared_ptr<Variant> >())
-    .def("setT", &TempRescaleUpdater::setT)
-    ;
+    py::class_<TempRescaleUpdater, Updater, std::shared_ptr<TempRescaleUpdater>>(
+        m,
+        "TempRescaleUpdater")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ComputeThermo>,
+                      std::shared_ptr<Variant>>())
+        .def("setT", &TempRescaleUpdater::setT);
     }

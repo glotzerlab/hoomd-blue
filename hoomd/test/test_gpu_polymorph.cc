@@ -38,8 +38,8 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
     UP_ASSERT_EQUAL(add_op.get(access_location::host)->call(3), 10);
     UP_ASSERT_EQUAL(times_op->get(access_location::host)->call(3), 21);
 
-    // check device polymorphism
-    #ifdef ENABLE_HIP
+// check device polymorphism
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
         UP_ASSERT(add_op.get(access_location::device) != nullptr);
@@ -72,18 +72,18 @@ void test_gpu_polymorph(const ExecutionConfiguration::executionMode mode)
         UP_ASSERT(add_op.get(access_location::device) == nullptr);
         UP_ASSERT(times_op->get(access_location::device) == nullptr);
         }
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
     }
 
 //! Test polymorphism on CPU
-UP_TEST( test_gpu_polymorph_cpu )
+UP_TEST(test_gpu_polymorph_cpu)
     {
     test_gpu_polymorph(ExecutionConfiguration::CPU);
     }
 
 #ifdef ENABLE_HIP
 //! Test polymorphism on GPU
-UP_TEST( test_gpu_polymorph_gpu )
+UP_TEST(test_gpu_polymorph_gpu)
     {
     test_gpu_polymorph(ExecutionConfiguration::GPU);
     }

@@ -4,13 +4,11 @@
 /*! \file MorseDriverPotentialPairGPU.cu
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
-#include "EvaluatorPairMorse.h"
 #include "AllDriverPotentialPairGPU.cuh"
-
+#include "EvaluatorPairMorse.h"
 
 hipError_t gpu_compute_morse_forces(const pair_args_t& pair_args,
-                                      const EvaluatorPairMorse::param_type *d_params)
+                                    const EvaluatorPairMorse::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairMorse>(pair_args,
-                                                       d_params);
+    return gpu_compute_pair_forces<EvaluatorPairMorse>(pair_args, d_params);
     }

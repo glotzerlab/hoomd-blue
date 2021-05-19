@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file ClockSource.cc
@@ -10,13 +9,14 @@
 
 #include "ClockSource.h"
 
-#include <sstream>
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 namespace py = pybind11;
 
-/*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way to reset the clock*/
+/*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way
+ * to reset the clock*/
 ClockSource::ClockSource() : m_start_time(0)
     {
     // take advantage of the initial 0 start time to assign a new start time
@@ -24,7 +24,7 @@ ClockSource::ClockSource() : m_start_time(0)
     }
 
 /*! \param t the time to format
-*/
+ */
 std::string ClockSource::formatHMS(int64_t t)
     {
     // separate out into hours minutes and seconds
@@ -36,15 +36,14 @@ std::string ClockSource::formatHMS(int64_t t)
 
     // format the string
     ostringstream str;
-    str <<  setfill('0') << setw(2) << hours << ":" << setw(2) << minutes << ":" << setw(2) << seconds;
+    str << setfill('0') << setw(2) << hours << ":" << setw(2) << minutes << ":" << setw(2)
+        << seconds;
     return str.str();
     }
 
 #ifndef __HIP_DEVICE_COMPILE__
 void export_ClockSource(py::module& m)
     {
-    py::class_<ClockSource>(m,"ClockSource")
-    .def("getTime", &ClockSource::getTime)
-    ;
+    py::class_<ClockSource>(m, "ClockSource").def("getTime", &ClockSource::getTime);
     }
 #endif

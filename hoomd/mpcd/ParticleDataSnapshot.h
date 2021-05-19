@@ -24,8 +24,7 @@
 #include <vector>
 
 namespace mpcd
-{
-
+    {
 //! Container for all MPCD particle data
 /*!
  * A mpcd::ParticleDataSnapshot is useful for manipulation / analysis of the
@@ -52,43 +51,42 @@ namespace mpcd
 class PYBIND11_EXPORT ParticleDataSnapshot
     {
     public:
-        //! Default constructor
-        ParticleDataSnapshot();
+    //! Default constructor
+    ParticleDataSnapshot();
 
-        //! Constructor
-        ParticleDataSnapshot(unsigned int N);
+    //! Constructor
+    ParticleDataSnapshot(unsigned int N);
 
-        //! Destructor
-        ~ParticleDataSnapshot() {};
+    //! Destructor
+    ~ParticleDataSnapshot() {};
 
-        //! Resize the snapshot
-        void resize(unsigned int N);
+    //! Resize the snapshot
+    void resize(unsigned int N);
 
-        //! Validate snapshot data
-        bool validate() const;
+    //! Validate snapshot data
+    bool validate() const;
 
-        //! Replicate the snapshot data
-        void replicate(unsigned int nx,
-                       unsigned int ny,
-                       unsigned int nz,
-                       const BoxDim& old_box,
-                       const BoxDim& new_box);
+    //! Replicate the snapshot data
+    void replicate(unsigned int nx,
+                   unsigned int ny,
+                   unsigned int nz,
+                   const BoxDim& old_box,
+                   const BoxDim& new_box);
 
-        unsigned int size;                      //!< Number of particles
-        std::vector< vec3<Scalar> > position;   //!< MPCD particle positions
-        std::vector< vec3<Scalar> > velocity;   //!< MPCD particle velocities
-        std::vector<unsigned int> type;         //!< MPCD particle type IDs
-        Scalar mass;                            //!< MPCD particle mass
-        std::vector<std::string> type_mapping;  //!< Type name mapping
+    unsigned int size;                     //!< Number of particles
+    std::vector<vec3<Scalar>> position;    //!< MPCD particle positions
+    std::vector<vec3<Scalar>> velocity;    //!< MPCD particle velocities
+    std::vector<unsigned int> type;        //!< MPCD particle type IDs
+    Scalar mass;                           //!< MPCD particle mass
+    std::vector<std::string> type_mapping; //!< Type name mapping
     };
 
 namespace detail
-{
-
+    {
 //! Export mpcd::ParticleDataSnapshot to python
 void export_ParticleDataSnapshot(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #endif // MPCD_PARTICLE_DATA_SNAPSHOT_H_

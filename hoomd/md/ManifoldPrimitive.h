@@ -1,14 +1,13 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: pschoenhoefer
 
 #ifndef __MANIFOLD_CLASS_PRIMITIVE_H__
 #define __MANIFOLD_CLASS_PRIMITIVE_H__
 
-#include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
 #include <pybind11/pybind11.h>
 
 /*! \file ManifoldPrimitive.h
@@ -16,7 +15,8 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #else
@@ -26,7 +26,8 @@
 //! Class for constructing the Primitive minimal surface
 /*! <b>General Overview</b>
 
-    ManifoldPrimitive is a low level computation class that computes the distance and normal vector to the Primitive surface.
+    ManifoldPrimitive is a low level computation class that computes the distance and normal vector
+   to the Primitive surface.
 
     <b>Primitive specifics</b>
 
@@ -44,65 +45,75 @@
 class ManifoldPrimitive
     {
     public:
-        //! Constructs the manifold class
-         /* \param _N vector determining the number of unitcells in x-, y-, and z-direction
-            \param _epsilon Defines the specific constant mean curvture companion
-        */
-        DEVICE ManifoldPrimitive(const int3 _N, const Scalar _epsilon)
-            : Nx(_N.x), Ny(_N.y), Nz(_N.z), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
-            {
-            }
-
-        //! Evaluate implicit function
-        /*! \param point Point at which surface is calculated
-
-            \return result of the nodal function at input point
-        */
-
-        DEVICE Scalar implicitFunction(const Scalar3& point)
+    //! Constructs the manifold class
+    /* \param _N vector determining the number of unitcells in x-, y-, and z-direction
+       \param _epsilon Defines the specific constant mean curvture companion
+   */
+    DEVICE ManifoldPrimitive(const int3 _N, const Scalar _epsilon)
+        : Nx(_N.x), Ny(_N.y), Nz(_N.z), Lx(0), Ly(0), Lz(0), epsilon(_epsilon)
         {
-            return  fast::cos(Lx*point.x) + fast::cos(Ly*point.y) + fast::cos(Lz*point.z) - epsilon;
         }
 
-        //! Evaluate derivative of implicit function
-        /*! \param point Point at surface is calculated
+    //! Evaluate implicit function
+    /*! \param point Point at which surface is calculated
 
-            \return normal of the Primitive surface at input point
-        */
+        \return result of the nodal function at input point
+    */
 
-        DEVICE Scalar3 derivative(const Scalar3& point)
+    DEVICE Scalar implicitFunction(const Scalar3& point)
         {
-            return make_scalar3(-Lx*fast::sin(Lx*point.x),-Ly*fast::sin(Ly*point.y), -Lz*fast::sin(Lz*point.z));
+        return fast::cos(Lx * point.x) + fast::cos(Ly * point.y) + fast::cos(Lz * point.z)
+               - epsilon;
         }
 
-        DEVICE bool fitsInsideBox(const BoxDim& box)
+    //! Evaluate derivative of implicit function
+    /*! \param point Point at surface is calculated
+
+        \return normal of the Primitive surface at input point
+    */
+
+    DEVICE Scalar3 derivative(const Scalar3& point)
         {
-            Scalar3 box_length = box.getHi() - box.getLo();
-
-            Lx = 2*M_PI*Nx/box_length.x;
-            Ly = 2*M_PI*Ny/box_length.y;
-            Lz = 2*M_PI*Nz/box_length.z;
-
-            return true; //Primitive surface is adjusted to box automatically and, therefore, is always accepted
+        return make_scalar3(-Lx * fast::sin(Lx * point.x),
+                            -Ly * fast::sin(Ly * point.y),
+                            -Lz * fast::sin(Lz * point.z));
         }
 
-        pybind11::tuple getN(){ return pybind11::make_tuple(Nx, Ny, Nz);}
+    DEVICE bool fitsInsideBox(const BoxDim& box)
+        {
+        Scalar3 box_length = box.getHi() - box.getLo();
 
-        Scalar getEpsilon(){ return epsilon;};
+        Lx = 2 * M_PI * Nx / box_length.x;
+        Ly = 2 * M_PI * Ny / box_length.y;
+        Lz = 2 * M_PI * Nz / box_length.z;
 
-        static unsigned int dimension()
-            {
-            return 2;
-            }
+        return true; // Primitive surface is adjusted to box automatically and, therefore, is always
+                     // accepted
+        }
+
+    pybind11::tuple getN()
+        {
+        return pybind11::make_tuple(Nx, Ny, Nz);
+        }
+
+    Scalar getEpsilon()
+        {
+        return epsilon;
+        };
+
+    static unsigned int dimension()
+        {
+        return 2;
+        }
 
     protected:
-        int Nx;
-        int Ny;
-        int Nz;
-        Scalar Lx;
-        Scalar Ly;
-        Scalar Lz;
-        Scalar epsilon;
+    int Nx;
+    int Ny;
+    int Nz;
+    Scalar Lx;
+    Scalar Ly;
+    Scalar Lz;
+    Scalar epsilon;
     };
 
 //! Exports the Primitive manifold class to python

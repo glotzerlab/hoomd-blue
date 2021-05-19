@@ -23,16 +23,18 @@ struct reduce_params
                   unsigned int width_,
                   unsigned int tpp_,
                   const Index2D& reduce_idx_)
-        : data(data_), reduce(reduce_), sum(sum_), N(N_), width(width_), tpp(tpp_), reduce_idx(reduce_idx_)
-        {}
+        : data(data_), reduce(reduce_), sum(sum_), N(N_), width(width_), tpp(tpp_),
+          reduce_idx(reduce_idx_)
+        {
+        }
 
-    const int* data;        //!< Data to scan as a N x width matrix
-    int* reduce;            //!< Output of the reduction at each step
-    int* sum;               //!< Total sum for each row of data
-    const unsigned int N;       //!< Number of rows in data
-    const unsigned int width;   //!< Number of entries to reduce
-    const unsigned int tpp;     //!< Number of threads to scan with per particle
-    const Index2D reduce_idx;   //!< Indexer for saving intermediate results of reduction
+    const int* data;          //!< Data to scan as a N x width matrix
+    int* reduce;              //!< Output of the reduction at each step
+    int* sum;                 //!< Total sum for each row of data
+    const unsigned int N;     //!< Number of rows in data
+    const unsigned int width; //!< Number of entries to reduce
+    const unsigned int tpp;   //!< Number of threads to scan with per particle
+    const Index2D reduce_idx; //!< Indexer for saving intermediate results of reduction
     };
 
 //! Calls the warp reduce kernel
@@ -49,15 +51,16 @@ struct scan_params
                 unsigned int tpp_,
                 const Index3D& scan_idx_)
         : data(data_), scan(scan_), sum(sum_), N(N_), width(width_), tpp(tpp_), scan_idx(scan_idx_)
-        {}
+        {
+        }
 
-    const int* data;    //!< Data to scan as a N x width matrix
-    int* scan;          //!< Output of the scan at each step of sum
-    int* sum;           //!< Total sum for each row of data
-    const unsigned int N;       //!< Number of rows in data
-    const unsigned int width;   //!< Number of entries to scan
-    const unsigned int tpp;     //!< Number of threads to scan with per particle
-    const Index3D scan_idx;     //!< Indexer for saving intermediate results of scan
+    const int* data;          //!< Data to scan as a N x width matrix
+    int* scan;                //!< Output of the scan at each step of sum
+    int* sum;                 //!< Total sum for each row of data
+    const unsigned int N;     //!< Number of rows in data
+    const unsigned int width; //!< Number of entries to scan
+    const unsigned int tpp;   //!< Number of threads to scan with per particle
+    const Index3D scan_idx;   //!< Indexer for saving intermediate results of scan
     };
 
 //! Calls the warp scan kernel

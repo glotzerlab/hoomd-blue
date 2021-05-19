@@ -3,15 +3,14 @@
 
 #include "TwoStepNVTMTK.h"
 
-#include "hoomd/VectorMath.h"
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
+#include "hoomd/VectorMath.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
 #endif
-
 
 using namespace std;
 namespace py = pybind11;
@@ -27,11 +26,12 @@ namespace py = pybind11;
     \param T Temperature set point
 */
 TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo,
-                       Scalar tau,
-                       std::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T), m_exp_thermo_fac(1.0)
+                             std::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<ComputeThermo> thermo,
+                             Scalar tau,
+                             std::shared_ptr<Variant> T)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
+      m_exp_thermo_fac(1.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNVTMTK" << endl;
 
@@ -56,8 +56,8 @@ TwoStepNVTMTK::~TwoStepNVTMTK()
     }
 
 /*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
-          method.
+    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
+   velocity verlet method.
 */
 void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
     {
@@ -74,50 +74,59 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
         m_prof->push("NVT step 1");
 
     // scope array handles for proper releasing before calling the thermo compute
-    {
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
+        ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                     access_location::host,
+                                     access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
 
-        // load variables
-        Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        Scalar3 pos = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
-        Scalar3 accel = h_accel.data[j];
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
 
-        // update velocity and position
-        v = v + Scalar(1.0/2.0)*accel*m_deltaT;
+            // load variables
+            Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
+            Scalar3 pos = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
+            Scalar3 accel = h_accel.data[j];
 
-        // rescale velocity
-        v *= m_exp_thermo_fac;
+            // update velocity and position
+            v = v + Scalar(1.0 / 2.0) * accel * m_deltaT;
 
-        pos += m_deltaT * v;
+            // rescale velocity
+            v *= m_exp_thermo_fac;
 
-        // store updated variables
-        h_vel.data[j].x = v.x;
-        h_vel.data[j].y = v.y;
-        h_vel.data[j].z = v.z;
+            pos += m_deltaT * v;
 
-        h_pos.data[j].x = pos.x;
-        h_pos.data[j].y = pos.y;
-        h_pos.data[j].z = pos.z;
+            // store updated variables
+            h_vel.data[j].x = v.x;
+            h_vel.data[j].y = v.y;
+            h_vel.data[j].z = v.z;
+
+            h_pos.data[j].x = pos.x;
+            h_pos.data[j].y = pos.y;
+            h_pos.data[j].z = pos.z;
+            }
+
+        // particles may have been moved slightly outside the box by the above steps, wrap them back
+        // into place
+        const BoxDim& box = m_pdata->getBox();
+
+        ArrayHandle<int3> h_image(m_pdata->getImages(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            // wrap the particles around the box
+            box.wrap(h_pos.data[j], h_image.data[j]);
+            }
         }
-
-    // particles may have been moved slightly outside the box by the above steps, wrap them back into place
-    const BoxDim& box = m_pdata->getBox();
-
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        // wrap the particles around the box
-        box.wrap(h_pos.data[j], h_image.data[j]);
-        }
-    }
 
     // Integration of angular degrees of freedom using symplectic and
     // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
@@ -126,12 +135,20 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
         // thermostat factor
         IntegratorVariables v = getIntegratorVariables();
         Scalar xi_rot = v.variable[2];
-        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::readwrite);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
@@ -143,23 +160,28 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
             vec3<Scalar> I(h_inertia.data[j]);
 
             // rotate torque into principal frame
-            t = rotate(conj(q),t);
+            t = rotate(conj(q), t);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+            x_zero = (I.x < EPSILON);
+            y_zero = (I.y < EPSILON);
+            z_zero = (I.z < EPSILON);
 
             // ignore torque component along an axis for which the moment of inertia zero
-            if (x_zero) t.x = 0;
-            if (y_zero) t.y = 0;
-            if (z_zero) t.z = 0;
+            if (x_zero)
+                t.x = 0;
+            if (y_zero)
+                t.y = 0;
+            if (z_zero)
+                t.z = 0;
 
             // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
             // using Trotter factorization of rotation Liouvillian
-            p += m_deltaT*q*t;
+            p += m_deltaT * q * t;
 
             // apply thermostat
-            p = p*exp_fac;
+            p = p * exp_fac;
 
             quat<Scalar> p1, p2, p3; // permutated quaternions
             quat<Scalar> q1, q2, q3;
@@ -169,66 +191,66 @@ void TwoStepNVTMTK::integrateStepOne(uint64_t timestep)
 
             if (!z_zero)
                 {
-                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
-                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
-                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
-                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
-                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+                p3 = quat<Scalar>(-p.v.z, vec3<Scalar>(p.v.y, -p.v.x, p.s));
+                q3 = quat<Scalar>(-q.v.z, vec3<Scalar>(q.v.y, -q.v.x, q.s));
+                phi3 = Scalar(1. / 4.) / I.z * dot(p, q3);
+                cphi3 = slow::cos(Scalar(1. / 2.) * m_deltaT * phi3);
+                sphi3 = slow::sin(Scalar(1. / 2.) * m_deltaT * phi3);
 
-                p=cphi3*p+sphi3*p3;
-                q=cphi3*q+sphi3*q3;
+                p = cphi3 * p + sphi3 * p3;
+                q = cphi3 * q + sphi3 * q3;
                 }
 
             if (!y_zero)
                 {
-                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
-                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
-                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
-                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
-                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+                p2 = quat<Scalar>(-p.v.y, vec3<Scalar>(-p.v.z, p.s, p.v.x));
+                q2 = quat<Scalar>(-q.v.y, vec3<Scalar>(-q.v.z, q.s, q.v.x));
+                phi2 = Scalar(1. / 4.) / I.y * dot(p, q2);
+                cphi2 = slow::cos(Scalar(1. / 2.) * m_deltaT * phi2);
+                sphi2 = slow::sin(Scalar(1. / 2.) * m_deltaT * phi2);
 
-                p=cphi2*p+sphi2*p2;
-                q=cphi2*q+sphi2*q2;
+                p = cphi2 * p + sphi2 * p2;
+                q = cphi2 * q + sphi2 * q2;
                 }
 
-           if (!x_zero)
+            if (!x_zero)
                 {
-                p1 = quat<Scalar>(-p.v.x,vec3<Scalar>(p.s,p.v.z,-p.v.y));
-                q1 = quat<Scalar>(-q.v.x,vec3<Scalar>(q.s,q.v.z,-q.v.y));
-                phi1 = Scalar(1./4.)/I.x*dot(p,q1);
-                cphi1 = slow::cos(m_deltaT*phi1);
-                sphi1 = slow::sin(m_deltaT*phi1);
+                p1 = quat<Scalar>(-p.v.x, vec3<Scalar>(p.s, p.v.z, -p.v.y));
+                q1 = quat<Scalar>(-q.v.x, vec3<Scalar>(q.s, q.v.z, -q.v.y));
+                phi1 = Scalar(1. / 4.) / I.x * dot(p, q1);
+                cphi1 = slow::cos(m_deltaT * phi1);
+                sphi1 = slow::sin(m_deltaT * phi1);
 
-                p=cphi1*p+sphi1*p1;
-                q=cphi1*q+sphi1*q1;
+                p = cphi1 * p + sphi1 * p1;
+                q = cphi1 * q + sphi1 * q1;
                 }
 
-            if (! y_zero)
+            if (!y_zero)
                 {
-                p2 = quat<Scalar>(-p.v.y,vec3<Scalar>(-p.v.z,p.s,p.v.x));
-                q2 = quat<Scalar>(-q.v.y,vec3<Scalar>(-q.v.z,q.s,q.v.x));
-                phi2 = Scalar(1./4.)/I.y*dot(p,q2);
-                cphi2 = slow::cos(Scalar(1./2.)*m_deltaT*phi2);
-                sphi2 = slow::sin(Scalar(1./2.)*m_deltaT*phi2);
+                p2 = quat<Scalar>(-p.v.y, vec3<Scalar>(-p.v.z, p.s, p.v.x));
+                q2 = quat<Scalar>(-q.v.y, vec3<Scalar>(-q.v.z, q.s, q.v.x));
+                phi2 = Scalar(1. / 4.) / I.y * dot(p, q2);
+                cphi2 = slow::cos(Scalar(1. / 2.) * m_deltaT * phi2);
+                sphi2 = slow::sin(Scalar(1. / 2.) * m_deltaT * phi2);
 
-                p=cphi2*p+sphi2*p2;
-                q=cphi2*q+sphi2*q2;
+                p = cphi2 * p + sphi2 * p2;
+                q = cphi2 * q + sphi2 * q2;
                 }
 
-            if (! z_zero)
+            if (!z_zero)
                 {
-                p3 = quat<Scalar>(-p.v.z,vec3<Scalar>(p.v.y,-p.v.x,p.s));
-                q3 = quat<Scalar>(-q.v.z,vec3<Scalar>(q.v.y,-q.v.x,q.s));
-                phi3 = Scalar(1./4.)/I.z*dot(p,q3);
-                cphi3 = slow::cos(Scalar(1./2.)*m_deltaT*phi3);
-                sphi3 = slow::sin(Scalar(1./2.)*m_deltaT*phi3);
+                p3 = quat<Scalar>(-p.v.z, vec3<Scalar>(p.v.y, -p.v.x, p.s));
+                q3 = quat<Scalar>(-q.v.z, vec3<Scalar>(q.v.y, -q.v.x, q.s));
+                phi3 = Scalar(1. / 4.) / I.z * dot(p, q3);
+                cphi3 = slow::cos(Scalar(1. / 2.) * m_deltaT * phi3);
+                sphi3 = slow::sin(Scalar(1. / 2.) * m_deltaT * phi3);
 
-                p=cphi3*p+sphi3*p3;
-                q=cphi3*q+sphi3*q3;
+                p = cphi3 * p + sphi3 * p3;
+                q = cphi3 * q + sphi3 * q3;
                 }
 
             // renormalize (improves stability)
-            q = q*(Scalar(1.0)/slow::sqrt(norm2(q)));
+            q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
 
             h_orientation.data[j] = quat_to_scalar4(q);
             h_angmom.data[j] = quat_to_scalar4(p);
@@ -250,14 +272,18 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
 
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
@@ -270,18 +296,19 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
         // load velocity
         Scalar3 v = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
         Scalar3 accel = h_accel.data[j];
-        Scalar3 net_force = make_scalar3(h_net_force.data[j].x,h_net_force.data[j].y,h_net_force.data[j].z);
+        Scalar3 net_force
+            = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
 
         // first, calculate acceleration from the net force
         Scalar m = h_vel.data[j].w;
         Scalar minv = Scalar(1.0) / m;
-        accel = net_force*minv;
+        accel = net_force * minv;
 
         // rescale velocity
         v *= m_exp_thermo_fac;
 
         // update velocity
-        v += Scalar(1.0/2.0) * m_deltaT * accel;
+        v += Scalar(1.0 / 2.0) * m_deltaT * accel;
 
         // store velocity
         h_vel.data[j].x = v.x;
@@ -296,13 +323,21 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
         {
         IntegratorVariables v = getIntegratorVariables();
         Scalar xi_rot = v.variable[2];
-        Scalar exp_fac = exp(-m_deltaT/Scalar(2.0)*xi_rot);
+        Scalar exp_fac = exp(-m_deltaT / Scalar(2.0) * xi_rot);
 
         // angular degrees of freedom
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::read);
+        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                      access_location::host,
+                                      access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::host,
+                                          access_mode::read);
+        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
@@ -314,22 +349,27 @@ void TwoStepNVTMTK::integrateStepTwo(uint64_t timestep)
             vec3<Scalar> I(h_inertia.data[j]);
 
             // rotate torque into principal frame
-            t = rotate(conj(q),t);
+            t = rotate(conj(q), t);
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+            x_zero = (I.x < EPSILON);
+            y_zero = (I.y < EPSILON);
+            z_zero = (I.z < EPSILON);
 
             // ignore torque component along an axis for which the moment of inertia zero
-            if (x_zero) t.x = 0;
-            if (y_zero) t.y = 0;
-            if (z_zero) t.z = 0;
+            if (x_zero)
+                t.x = 0;
+            if (y_zero)
+                t.y = 0;
+            if (z_zero)
+                t.z = 0;
 
             // apply thermostat
-            p = p*exp_fac;
+            p = p * exp_fac;
 
             // advance p(t+deltaT/2)->p(t+deltaT)
-            p += m_deltaT*q*t;
+            p += m_deltaT * q * t;
 
             h_angmom.data[j] = quat_to_scalar4(p);
             }
@@ -347,51 +387,58 @@ void TwoStepNVTMTK::advanceThermostat(uint64_t timestep, bool broadcast)
     Scalar& eta = v.variable[1];
 
     // compute the current thermodynamic properties
-    m_thermo->compute(timestep+1);
+    m_thermo->compute(timestep + 1);
 
     Scalar curr_T_trans = m_thermo->getTranslationalTemperature();
 
     // update the state variables Xi and eta
-    Scalar xi_prime = xi + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
-    xi = xi_prime + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*(curr_T_trans/(*m_T)(timestep) - Scalar(1.0));
-    eta += xi_prime*m_deltaT;
+    Scalar xi_prime = xi
+                      + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                            * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
+    xi = xi_prime
+         + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+               * (curr_T_trans / (*m_T)(timestep)-Scalar(1.0));
+    eta += xi_prime * m_deltaT;
 
     // update loop-invariant quantity
-    m_exp_thermo_fac = exp(-Scalar(1.0/2.0)*xi*m_deltaT);
+    m_exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * xi * m_deltaT);
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm && broadcast)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         MPI_Bcast(&eta, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
 
     if (m_aniso)
         {
         // update thermostat for rotational DOF
-        Scalar &xi_rot = v.variable[2];
-        Scalar &eta_rot = v.variable[3];
+        Scalar& xi_rot = v.variable[2];
+        Scalar& eta_rot = v.variable[3];
 
         Scalar curr_ke_rot = m_thermo->getRotationalKineticEnergy();
         Scalar ndof_rot = m_group->getRotationalDOF();
 
-        Scalar xi_prime_rot = xi_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
-        xi_rot = xi_prime_rot + Scalar(1.0/2.0)*m_deltaT/m_tau/m_tau*
-            (Scalar(2.0)*curr_ke_rot/ndof_rot/(*m_T)(timestep) - Scalar(1.0));
+        Scalar xi_prime_rot
+            = xi_rot
+              + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                    * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
+        xi_rot = xi_prime_rot
+                 + Scalar(1.0 / 2.0) * m_deltaT / m_tau / m_tau
+                       * (Scalar(2.0) * curr_ke_rot / ndof_rot / (*m_T)(timestep)-Scalar(1.0));
 
-        eta_rot += xi_prime_rot*m_deltaT;
+        eta_rot += xi_prime_rot * m_deltaT;
 
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         if (m_comm)
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
             MPI_Bcast(&eta_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
             }
-        #endif
+#endif
         }
 
     setIntegratorVariables(v);
@@ -405,7 +452,7 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     Scalar& xi = v.variable[0];
 
     Scalar g = m_group->getTranslationalDOF();
-    Scalar sigmasq_t = Scalar(1.0)/((Scalar) g*m_tau*m_tau);
+    Scalar sigmasq_t = Scalar(1.0) / ((Scalar)g * m_tau * m_tau);
 
     bool master = m_exec_conf->getRank() == 0;
 
@@ -413,10 +460,9 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
     if (m_group->getNumMembersGlobal() > 0)
         instance_id = m_group->getMemberTag(0);
 
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK,
-                                           timestep,
-                                           m_sysdef->getSeed()),
-                                      hoomd::Counter(instance_id));
+    hoomd::RandomGenerator rng(
+        hoomd::Seed(hoomd::RNGIdentifier::TwoStepNVTMTK, timestep, m_sysdef->getSeed()),
+        hoomd::Counter(instance_id));
 
     if (master)
         {
@@ -424,32 +470,32 @@ void TwoStepNVTMTK::thermalizeThermostatDOF(uint64_t timestep)
         xi = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_t))(rng);
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm)
         {
         // broadcast integrator variables from rank 0 to other processors
         MPI_Bcast(&xi, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
 
     if (m_aniso)
         {
         // update thermostat for rotational DOF
-        Scalar &xi_rot = v.variable[2];
-        Scalar sigmasq_r = Scalar(1.0)/((Scalar)m_group->getRotationalDOF()*m_tau*m_tau);
+        Scalar& xi_rot = v.variable[2];
+        Scalar sigmasq_r = Scalar(1.0) / ((Scalar)m_group->getRotationalDOF() * m_tau * m_tau);
 
         if (master)
             {
             xi_rot = hoomd::NormalDistribution<Scalar>(sqrt(sigmasq_r))(rng);
             }
 
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         if (m_comm)
             {
             // broadcast integrator variables from rank 0 to other processors
             MPI_Bcast(&xi_rot, 1, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
             }
-        #endif
+#endif
         }
 
     setIntegratorVariables(v);
@@ -521,32 +567,34 @@ void TwoStepNVTMTK::setRotationalThermostatDOF(pybind11::tuple v)
 
 Scalar TwoStepNVTMTK::getThermostatEnergy(uint64_t timestep)
     {
-        Scalar translation_dof = m_group->getTranslationalDOF();
-        IntegratorVariables integrator_variables = getIntegratorVariables();
-        Scalar& xi = integrator_variables.variable[0];
-        Scalar& eta = integrator_variables.variable[1];
-        Scalar thermostat_energy = static_cast<Scalar>(translation_dof)
-            * (*m_T)(timestep) * ((xi * xi* m_tau * m_tau / Scalar(2.0)) + eta);
+    Scalar translation_dof = m_group->getTranslationalDOF();
+    IntegratorVariables integrator_variables = getIntegratorVariables();
+    Scalar& xi = integrator_variables.variable[0];
+    Scalar& eta = integrator_variables.variable[1];
+    Scalar thermostat_energy = static_cast<Scalar>(translation_dof) * (*m_T)(timestep)
+                               * ((xi * xi * m_tau * m_tau / Scalar(2.0)) + eta);
 
-        if (m_aniso)
-            {
-            Scalar& xi_rot = integrator_variables.variable[2];
-            Scalar& eta_rot = integrator_variables.variable[3];
-            thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF())
-                * (*m_T)(timestep) * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
-            }
+    if (m_aniso)
+        {
+        Scalar& xi_rot = integrator_variables.variable[2];
+        Scalar& eta_rot = integrator_variables.variable[3];
+        thermostat_energy += static_cast<Scalar>(m_group->getRotationalDOF()) * (*m_T)(timestep)
+                             * (eta_rot + (m_tau * m_tau * xi_rot * xi_rot / Scalar(2.0)));
+        }
 
-        return thermostat_energy;
+    return thermostat_energy;
     }
 
 void export_TwoStepNVTMTK(py::module& m)
     {
-    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK> >(m, "TwoStepNVTMTK")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                       std::shared_ptr<ParticleGroup>,
-                       std::shared_ptr<ComputeThermo>,
-                       Scalar,
-                       std::shared_ptr<Variant>>())
+    py::class_<TwoStepNVTMTK, IntegrationMethodTwoStep, std::shared_ptr<TwoStepNVTMTK>>(
+        m,
+        "TwoStepNVTMTK")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<ComputeThermo>,
+                      Scalar,
+                      std::shared_ptr<Variant>>())
         .def("setT", &TwoStepNVTMTK::setT)
         .def("setTau", &TwoStepNVTMTK::setTau)
         .def_property("kT", &TwoStepNVTMTK::getT, &TwoStepNVTMTK::setT)
@@ -558,6 +606,5 @@ void export_TwoStepNVTMTK(py::module& m)
         .def_property("rotational_thermostat_dof",
                       &TwoStepNVTMTK::getRotationalThermostatDOF,
                       &TwoStepNVTMTK::setRotationalThermostatDOF)
-        .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy)
-        ;
+        .def("getThermostatEnergy", &TwoStepNVTMTK::getThermostatEnergy);
     }

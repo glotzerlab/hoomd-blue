@@ -2,28 +2,28 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
+#include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "ComputeFreeVolume.h"
 
-#include "ShapeSphere.h"
 #include "AnalyzerSDF.h"
+#include "ShapeSphere.h"
 #include "ShapeUnion.h"
 
-#include "ExternalField.h"
-#include "ExternalFieldWall.h"
-#include "ExternalFieldLattice.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalCallback.h"
+#include "ExternalField.h"
+#include "ExternalFieldComposite.h"
+#include "ExternalFieldLattice.h"
+#include "ExternalFieldWall.h"
 
-#include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
-#include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
+#include "UpdaterExternalFieldWall.h"
+#include "UpdaterMuVT.h"
+#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
-#include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterClustersGPU.h"
 #endif
 
@@ -33,16 +33,15 @@ using namespace hpmc;
 using namespace hpmc::detail;
 
 namespace hpmc
-{
-
+    {
 //! Export the base HPMCMono integrators
 void export_sphere(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
-    export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
-    export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
-    export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
-    export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
+    export_IntegratorHPMCMono<ShapeSphere>(m, "IntegratorHPMCMonoSphere");
+    export_ComputeFreeVolume<ShapeSphere>(m, "ComputeFreeVolumeSphere");
+    export_AnalyzerSDF<ShapeSphere>(m, "AnalyzerSDFSphere");
+    export_UpdaterMuVT<ShapeSphere>(m, "UpdaterMuVTSphere");
+    export_UpdaterClusters<ShapeSphere>(m, "UpdaterClustersSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
@@ -52,11 +51,11 @@ void export_sphere(py::module& m)
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
     export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
-    #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoSphereGPU");
-    export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeSphereGPU");
-    export_UpdaterClustersGPU< ShapeSphere >(m, "UpdaterClustersSphereGPU");
-    #endif
+#ifdef ENABLE_HIP
+    export_IntegratorHPMCMonoGPU<ShapeSphere>(m, "IntegratorHPMCMonoSphereGPU");
+    export_ComputeFreeVolumeGPU<ShapeSphere>(m, "ComputeFreeVolumeSphereGPU");
+    export_UpdaterClustersGPU<ShapeSphere>(m, "UpdaterClustersSphereGPU");
+#endif
     }
 
-}
+    } // namespace hpmc

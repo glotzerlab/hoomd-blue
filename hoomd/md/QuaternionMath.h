@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file QuaternionMath.h
@@ -14,7 +13,8 @@
 #include "hoomd/HOOMDMath.h"
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #else
@@ -25,7 +25,7 @@
 /*!
     \param q Quaternion to be normalized
 */
-DEVICE inline void normalize(Scalar4 &q)
+DEVICE inline void normalize(Scalar4& q)
     {
     Scalar norm = fast::rsqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     q.x *= norm;
@@ -42,7 +42,8 @@ DEVICE inline void normalize(Scalar4 &q)
     \param inertia Moment of inertia
     \param dt Time step
 */
-DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt)
+DEVICE inline void
+no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt)
     {
     Scalar phi, c_phi, s_phi;
     Scalar4 kp, kq;
@@ -50,31 +51,47 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     // apply permutation operator on p and q, get kp and kq
     if (k == 1)
         {
-        kq.x = -q.y;  kp.x = -p.y;
-        kq.y =  q.x;  kp.y =  p.x;
-        kq.z =  q.w;  kp.z =  p.w;
-        kq.w = -q.z;  kp.w = -p.z;
+        kq.x = -q.y;
+        kp.x = -p.y;
+        kq.y = q.x;
+        kp.y = p.x;
+        kq.z = q.w;
+        kp.z = p.w;
+        kq.w = -q.z;
+        kp.w = -p.z;
         }
     else if (k == 2)
         {
-        kq.x = -q.z;  kp.x = -p.z;
-        kq.y = -q.w;  kp.y = -p.w;
-        kq.z =  q.x;  kp.z =  p.x;
-        kq.w =  q.y;  kp.w =  p.y;
+        kq.x = -q.z;
+        kp.x = -p.z;
+        kq.y = -q.w;
+        kp.y = -p.w;
+        kq.z = q.x;
+        kp.z = p.x;
+        kq.w = q.y;
+        kp.w = p.y;
         }
     else if (k == 3)
         {
-        kq.x = -q.w;  kp.x = -p.w;
-        kq.y =  q.z;  kp.y =  p.z;
-        kq.z = -q.y;  kp.z = -p.y;
-        kq.w =  q.x;  kp.w =  p.x;
+        kq.x = -q.w;
+        kp.x = -p.w;
+        kq.y = q.z;
+        kp.y = p.z;
+        kq.z = -q.y;
+        kp.z = -p.y;
+        kq.w = q.x;
+        kp.w = p.x;
         }
     else
         {
-        kq.x = Scalar(0.0);  kp.x = Scalar(0.0);
-        kq.y = Scalar(0.0);  kp.y = Scalar(0.0);
-        kq.z = Scalar(0.0);  kp.z = Scalar(0.0);
-        kq.w = Scalar(0.0);  kp.w = Scalar(0.0);
+        kq.x = Scalar(0.0);
+        kp.x = Scalar(0.0);
+        kq.y = Scalar(0.0);
+        kp.y = Scalar(0.0);
+        kq.z = Scalar(0.0);
+        kp.z = Scalar(0.0);
+        kq.w = Scalar(0.0);
+        kp.w = Scalar(0.0);
         }
 
     // obtain phi, cosines and sines
@@ -82,12 +99,18 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     phi = p.x * kq.x + p.y * kq.y + p.z * kq.z + p.w * kq.w;
 
     Scalar inertia_t;
-    if (k == 1) inertia_t = inertia.x;
-    else if (k == 2) inertia_t = inertia.y;
-    else if (k == 3) inertia_t = inertia.z;
-    else inertia_t = Scalar(0.0);
-    if (fabs(inertia_t) < EPSILON) phi *= Scalar(0.0);
-    else phi /= (Scalar(4.0) * inertia_t);
+    if (k == 1)
+        inertia_t = inertia.x;
+    else if (k == 2)
+        inertia_t = inertia.y;
+    else if (k == 3)
+        inertia_t = inertia.z;
+    else
+        inertia_t = Scalar(0.0);
+    if (fabs(inertia_t) < EPSILON)
+        phi *= Scalar(0.0);
+    else
+        phi /= (Scalar(4.0) * inertia_t);
 
     c_phi = fast::cos(dt * phi);
     s_phi = fast::sin(dt * phi);
@@ -105,13 +128,15 @@ DEVICE inline void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scal
     normalize(q);
     }
 
-//! Compute orientation (ex_space, ey_space, ez_space) from quaternion- re-implement from RigidData for self-containing purposes
+//! Compute orientation (ex_space, ey_space, ez_space) from quaternion- re-implement from RigidData
+//! for self-containing purposes
 /*! \param quat Quaternion
     \param ex_space x-axis unit vector
     \param ey_space y-axis unit vector
     \param ez_space z-axis unit vector
 */
-DEVICE inline void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space)
+DEVICE inline void
+exyzFromQuaternion(Scalar4& quat, Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space)
     {
     // ex_space
     ex_space.x = quat.x * quat.x + quat.y * quat.y - quat.z * quat.z - quat.w * quat.w;
@@ -158,17 +183,23 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     Scalar angbody[3];
 
     // angbody = angmom_body / moment_inertia = transpose(rotation_matrix) * angmom / moment_inertia
-    if (moment_inertia.x < EPSILON) angbody[0] = Scalar(0.0);
-    else angbody[0] = (ex_space.x * angmom.x + ex_space.y * angmom.y
-                           + ex_space.z * angmom.z) / moment_inertia.x;
+    if (moment_inertia.x < EPSILON)
+        angbody[0] = Scalar(0.0);
+    else
+        angbody[0] = (ex_space.x * angmom.x + ex_space.y * angmom.y + ex_space.z * angmom.z)
+                     / moment_inertia.x;
 
-    if (moment_inertia.y < EPSILON) angbody[1] = Scalar(0.0);
-    else angbody[1] = (ey_space.x * angmom.x + ey_space.y * angmom.y
-                           + ey_space.z * angmom.z) / moment_inertia.y;
+    if (moment_inertia.y < EPSILON)
+        angbody[1] = Scalar(0.0);
+    else
+        angbody[1] = (ey_space.x * angmom.x + ey_space.y * angmom.y + ey_space.z * angmom.z)
+                     / moment_inertia.y;
 
-    if (moment_inertia.z < EPSILON) angbody[2] = Scalar(0.0);
-    else angbody[2] = (ez_space.x * angmom.x + ez_space.y * angmom.y
-                           + ez_space.z * angmom.z) / moment_inertia.z;
+    if (moment_inertia.z < EPSILON)
+        angbody[2] = Scalar(0.0);
+    else
+        angbody[2] = (ez_space.x * angmom.x + ez_space.y * angmom.y + ez_space.z * angmom.z)
+                     / moment_inertia.z;
 
     // Convert to angbody to the space frame: angvel = rotation_matrix * angbody
     angvel.x = angbody[0] * ex_space.x + angbody[1] * ey_space.x + angbody[2] * ez_space.x;
@@ -181,12 +212,12 @@ DEVICE inline void computeAngularVelocity(Scalar4& angmom,
     \param b Quaternion
     \param c Returned quaternion
 */
-DEVICE inline void vecquat(Scalar4 &a, Scalar4 &b, Scalar4 &c)
+DEVICE inline void vecquat(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -(a.x * b.y + a.y * b.z + a.z * b.w);
-    c.y =   b.x * a.x + a.y * b.w - a.z * b.z;
-    c.z =   b.x * a.y + a.z * b.y - a.x * b.w;
-    c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
+    c.y = b.x * a.x + a.y * b.w - a.z * b.z;
+    c.z = b.x * a.y + a.z * b.y - a.x * b.w;
+    c.w = b.x * a.z + a.x * b.z - a.y * b.y;
     }
 
 //! Advance the quaternion using angular momentum and angular velocity
@@ -200,13 +231,13 @@ DEVICE inline void vecquat(Scalar4 &a, Scalar4 &b, Scalar4 &c)
     \param quat Returned quaternion
 */
 DEVICE inline void advanceQuaternion(Scalar4& angmom,
-                                     Scalar4 &moment_inertia,
-                                     Scalar4 &angvel,
+                                     Scalar4& moment_inertia,
+                                     Scalar4& angvel,
                                      Scalar4& ex_space,
                                      Scalar4& ey_space,
                                      Scalar4& ez_space,
                                      Scalar deltaT,
-                                     Scalar4 &quat)
+                                     Scalar4& quat)
     {
     Scalar4 qhalf, qfull, omegaq;
     Scalar dtq = Scalar(0.5) * deltaT;
@@ -264,8 +295,8 @@ DEVICE inline void advanceQuaternion(Scalar4& angmom,
 DEVICE inline void quatvec(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
-    c.y =  a.x * b.x - a.w * b.y + a.z * b.z;
-    c.z =  a.w * b.x + a.x * b.y - a.y * b.z;
+    c.y = a.x * b.x - a.w * b.y + a.z * b.z;
+    c.z = a.w * b.x + a.x * b.y - a.y * b.z;
     c.w = -a.z * b.x + a.y * b.y + a.x * b.z;
     }
 
@@ -281,19 +312,18 @@ DEVICE inline void invquatvec(Scalar4& a, Scalar4& b, Scalar4& c)
     c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
     }
 
-
 //! Quaternion quaternion multiply: c = a * b
 /*! \param a Quaternion
     \param b Quaternion
     \param c Quaternion
 */
 DEVICE inline void quatquat(const Scalar4& a, const Scalar4& b, Scalar4& c)
-{
-  c.x = a.x*b.x - a.y*b.y - a.z*b.z - a.w*b.w;
-  c.y = a.x*b.y + a.y*b.x + a.z*b.w - a.w*b.z;
-  c.z = a.x*b.z - a.y*b.w + a.z*b.x + a.w*b.y;
-  c.w = a.x*b.w + a.y*b.z - a.z*b.y + a.w*b.x;
-}
+    {
+    c.x = a.x * b.x - a.y * b.y - a.z * b.z - a.w * b.w;
+    c.y = a.x * b.y + a.y * b.x + a.z * b.w - a.w * b.z;
+    c.z = a.x * b.z - a.y * b.w + a.z * b.x + a.w * b.y;
+    c.w = a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x;
+    }
 
 //! Matrix dot: c = dot(A, b)
 /*! \param ax The first row of A
@@ -341,18 +371,18 @@ DEVICE inline void quatconj(const Scalar4& a, Scalar4& b)
     \param psi Rotation angle about intrinsic z axis
     \param q Output quaternion
 */
-DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar psi, Scalar4& q)
+DEVICE inline void eulerToQuat(const Scalar phi, const Scalar theta, const Scalar psi, Scalar4& q)
     {
-    Scalar cosphi_2 = fast::cos(0.5*phi);
-    Scalar sinphi_2 = fast::sin(0.5*phi);
-    Scalar costheta_2 = fast::cos(0.5*theta);
-    Scalar sintheta_2 = fast::sin(0.5*theta);
-    Scalar cospsi_2 = fast::cos(0.5*psi);
-    Scalar sinpsi_2 = fast::sin(0.5*psi);
-    q.x =  cosphi_2*costheta_2*cospsi_2 + sinphi_2*sintheta_2*sinpsi_2;
-    q.y =  sinphi_2*costheta_2*cospsi_2 - cosphi_2*sintheta_2*sinpsi_2;
-    q.z =  cosphi_2*sintheta_2*cospsi_2 + sinphi_2*costheta_2*sinpsi_2;
-    q.w =  cosphi_2*costheta_2*sinpsi_2 - sinphi_2*sintheta_2*cospsi_2;
+    Scalar cosphi_2 = fast::cos(0.5 * phi);
+    Scalar sinphi_2 = fast::sin(0.5 * phi);
+    Scalar costheta_2 = fast::cos(0.5 * theta);
+    Scalar sintheta_2 = fast::sin(0.5 * theta);
+    Scalar cospsi_2 = fast::cos(0.5 * psi);
+    Scalar sinpsi_2 = fast::sin(0.5 * psi);
+    q.x = cosphi_2 * costheta_2 * cospsi_2 + sinphi_2 * sintheta_2 * sinpsi_2;
+    q.y = sinphi_2 * costheta_2 * cospsi_2 - cosphi_2 * sintheta_2 * sinpsi_2;
+    q.z = cosphi_2 * sintheta_2 * cospsi_2 + sinphi_2 * costheta_2 * sinpsi_2;
+    q.w = cosphi_2 * costheta_2 * sinpsi_2 - sinphi_2 * sintheta_2 * cospsi_2;
     normalize(q);
     }
 
@@ -364,9 +394,9 @@ DEVICE inline void eulerToQuat(const Scalar phi,const Scalar theta, const Scalar
 */
 DEVICE inline void quatToEuler(const Scalar4 q, Scalar& phi, Scalar& theta, Scalar& psi)
     {
-    phi = atan2(q.x*q.y+q.z*q.w,Scalar(0.5)-q.x*q.x-q.y*q.y);
-    theta = asin(Scalar(2.0)*(q.x*q.z-q.w*q.y));
-    psi = atan2(q.x*q.w+q.y*q.z,Scalar(0.5)-q.y*q.y-q.z*q.z);
+    phi = atan2(q.x * q.y + q.z * q.w, Scalar(0.5) - q.x * q.x - q.y * q.y);
+    theta = asin(Scalar(2.0) * (q.x * q.z - q.w * q.y));
+    psi = atan2(q.x * q.w + q.y * q.z, Scalar(0.5) - q.y * q.y - q.z * q.z);
     }
 
 //! Rotate a vector with a quaternion
@@ -391,18 +421,16 @@ DEVICE inline void quatrot(const Scalar3& a, const Scalar4& q, Scalar3& b)
     b.z = b4.w;
     }
 
-//! Rotate a vector with three Euler angles: http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+//! Rotate a vector with three Euler angles:
+//! http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 /*! \param a Three-component vector to be rotated
     \param phi (or gamma) in radian
     \param theta (or beta) in radian
     \param psi (or alpha) in radian
     \param b Resulted three-component vector
 */
-DEVICE inline void eulerrot(const Scalar3& a,
-                            const Scalar& phi,
-                            const Scalar& theta,
-                            const Scalar& psi,
-                            Scalar3& b)
+DEVICE inline void
+eulerrot(const Scalar3& a, const Scalar& phi, const Scalar& theta, const Scalar& psi, Scalar3& b)
     {
     // rotation matrix R with the columns are ex, ey and ez
     Scalar3 ex, ey, ez;
@@ -410,12 +438,14 @@ DEVICE inline void eulerrot(const Scalar3& a,
     ex.y = fast::cos(theta) * fast::sin(psi);
     ex.z = Scalar(-1.0) * fast::sin(theta);
 
-    ey.x = Scalar(-1.0) * fast::cos(phi) * fast::sin(psi) + fast::sin(phi) * fast::sin(theta) * fast::cos(psi);
+    ey.x = Scalar(-1.0) * fast::cos(phi) * fast::sin(psi)
+           + fast::sin(phi) * fast::sin(theta) * fast::cos(psi);
     ey.y = fast::cos(theta) * fast::cos(psi) + fast::sin(phi) * fast::sin(theta) * fast::sin(psi);
     ey.z = fast::sin(phi) * fast::cos(theta);
 
     ez.x = fast::sin(phi) * fast::sin(psi) + fast::cos(phi) * fast::sin(theta) * fast::cos(psi);
-    ez.y = Scalar(-1.0) * fast::sin(phi) * fast::cos(psi) + fast::cos(phi) * fast::sin(theta) * fast::sin(psi);
+    ez.y = Scalar(-1.0) * fast::sin(phi) * fast::cos(psi)
+           + fast::cos(phi) * fast::sin(theta) * fast::sin(psi);
     ez.z = fast::cos(phi) * fast::cos(theta);
 
     // rotate b using the rotation matrix: b = R a
@@ -440,7 +470,7 @@ DEVICE inline void quatToR(const Scalar4& q, Scalar* R)
     Scalar two_q1q3 = Scalar(2.0) * q.y * q.w;
     Scalar two_q2q3 = Scalar(2.0) * q.z * q.w;
 
-    R[0] = q0_2 + q1_2 - q2_2 -q3_2;
+    R[0] = q0_2 + q1_2 - q2_2 - q3_2;
     R[1] = two_q1q2 - two_q0q3;
     R[2] = two_q0q2 + two_q1q3;
 
