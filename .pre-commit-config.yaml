@@ -39,7 +39,7 @@ repos:
     - pep8-naming
     - flake8-docstrings
     - flake8-rst-docstrings
-    # exclude components yet yet ported to hoomd
+    # Exclude components not yet ported to hoomd v3
     # TODO: Remove these exclusions as components are ported
     exclude: |
       (?x)(
