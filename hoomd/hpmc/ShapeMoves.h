@@ -85,10 +85,10 @@ class ShapeMoveBase
         void setStepsize(pybind11::dict stepsize)
             {
             std::vector<Scalar> stepsize_vector(m_step_size.size());
-            for(auto&& [type_name, type_stepsize] : stepsize)
+            for (auto name_and_stepsize] : stepsize)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-                stepsize_vector[type_i] = type_stepsize;
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_stepsize.first);
+                stepsize_vector[type_i] = name_and_stepsize.second;
                 }
             m_step_size = stepsize_vector;
             }
@@ -190,10 +190,10 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
                 this->m_provided_quantities.push_back(getParamName(i));
                 }
             std::vector<std::vector<Scalar>> params_vector(ntypes);
-            for(auto&& [type_name, type_params] : params)
+            for (auto name_and_params : params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-                params_vector[type_i] = type_params;
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
+                params_vector[type_i] = name_and_params.second;
                 }
             m_params = params_vector;
             }
@@ -288,10 +288,10 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
     void setParams(pybind11::dict params)
         {
         std::vector<std::vector<Scalar>> params_vector(m_params.size());
-        for(auto&& [type_name, type_params] : params)
+        for (auto name_and_params : params)
             {
-            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-            params_vector[type_i] = type_params;
+            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
+            params_vector[type_i] = name_and_params.second;
             }
         m_params = params_vector;
         }
@@ -336,10 +336,10 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
             : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
             {
             std::vector<pybind11::dict> shape_params_vector(ntypes);
-            for(auto&& [type_name, type_params] : shape_params)
+            for (auto name_and_params: shape_params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-                shape_params_vector[type_i] = type_params;
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
+                shape_params_vector[type_i] = name_and_params.second;
                 }
             m_shape_params = shape_params_vector;
             for (int i = 0; i < ntypes; i++)
@@ -386,11 +386,11 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
         void setShapeParams(std::vector< pybind11::dict > shape_params)
             {
             std::vector<pybind11::dict> shape_params_vector(m_shape_params.size());
-            for(auto&& [type_name, type_params] : shape_params)
+            for (auto name_and_params : shape_params)
                 {
-                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
-                shape_params_vector[type_i] = type_params;
-                typename Shape::param_type pt(type_params);
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(name_and_params.first);
+                shape_params_vector[type_i] = name_and_params.second;
+                typename Shape::param_type pt(name_and_params.second);
                 m_shape_moves[type_i] = pt;
                 }
             m_shape_params = shape_params_vector;
@@ -895,7 +895,7 @@ template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
     {
     public:
-    ShapeSpringBase(std::shared_ptr<Variant> k, pybind11::dict shape_params) : m_reference_shape(new typename Shape::param_type), m_k(k)
+    ShapeSpringBase(std::shared_ptr<Variant> k, pybind11::dict shape_params) : m_k(k)
             {
             typename Shape::param_type shape(shape_params);
             m_reference_shape = shape;
