@@ -164,14 +164,13 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                         unsigned int ntypes,
                         pybind11::object python_function,
-                        std::vector< std::vector<Scalar> > params,
+                        pybind11::dict< std::vector<Scalar> > params,
                         std::vector<Scalar> stepsize,
                         Scalar mixratio)
-            :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
+            :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
             {
             if(this->m_step_size.size() != stepsize.size())
                 throw std::runtime_error("Must provide a stepsize for each type");
-
             this->m_step_size = stepsize;
             m_select_ratio = fmin(mixratio, 1.0)*65535;
             this->m_det_inertia_tensor = 1.0;
@@ -179,6 +178,13 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
                 {
                 this->m_provided_quantities.push_back(getParamName(i));
                 }
+            std::vector<std::vector<Scalar>> params_vector(ntypes);
+            for(auto&& [type_name, type_params] : dict)
+                {
+                type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                params_vector[type_i] = type_params;
+                }
+            m_params = params_vector;
             }
 
         void prepare(unsigned int timestep)
@@ -257,15 +263,26 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
             return 0.0;
             }
 
-    pybind11::list getParams()
+    pybind11::dict getParams()
         {
-        pybind11::list params = pybind11::cast(m_params);
+        pybind11::dict< std::vector<Scalar> > params;
+        for (int i = 0; i < m_params.size(); i++)
+            {
+            std::string type_name = m_sysdef->getParticleData()->getNameByType(m_type);
+            params[type_name] = m_params[i];
+            }
         return params;
         }
 
-    void setParams(std::vector< std::vector<Scalar> > params)
+    void setParams(pybind11::dict< std::vector<Scalar> > params)
         {
-        m_params = params;
+        std::vector<std::vector<Scalar>> params_vector(ntypes);
+        for(auto&& [type_name, type_params] : dict)
+            {
+            unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+            params_vector[type_i] = type_params;
+            }
+        m_params = params_vector;
         }
 
     Scalar getParamRatio()
@@ -275,7 +292,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
     void setParamRatio(Scalar select_ratio)
         {
-        m_select_ratio = select_ratio;
+        m_select_ratio = fmin(select_ratio, 1.0)*65535;
         }
 
     pybind11::object getCallback()

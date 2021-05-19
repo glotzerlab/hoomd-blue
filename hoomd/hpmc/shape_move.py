@@ -11,8 +11,7 @@ class ShapeMove(_HOOMDBaseObject):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
-# std::string type = m_sysdef->getParticleData()->getNameByType(m_type);
-# unsigned int type_int = m_sysdef->getParticleData()->getTypeByName(type);
+
 class Constant(ShapeMove):
     R"""
     Enable constant shape move and set parameters. Changes a particle shape by
@@ -280,25 +279,12 @@ class Python(ShapeMove):
         if move_cls is None or boltzmann_cls is None:
             raise RuntimeError("Integrator not supported")
 
-        particle_data = self._simulation.state._cpp_sys_def.getParticleData()
-        ntypes = particle_data.getNTypes()
-        stepsize = []
-        if isinstance(self.stepsize, dict):
-            for i in range(ntypes):
-                stepsize.append(self.stepsize[particle_data.getNameByType(i)])
-        elif isinstance(self.stepsize, list):
-            stepsize = self.stepsize
-        params = []
-        if isinstance(self.params, dict):
-            for i in range(ntypes):
-                params.append(self.params[particle_data.getNameByType(i)])
-        elif isinstance(self.params, list):
-            params = self.params
+        ntypes = self._simulation.state._cpp_sys_def.getParticleData().getNTypes()
         self._cpp_obj = move_cls(self._simulation.state._cpp_sys_def,
                                  ntypes,
                                  self.callback,
-                                 params,
-                                 stepsize,
+                                 self.params,
+                                 self.stepsize,
                                  self.param_ratio)
         self._log_boltzmann_function = boltzmann_cls()
         super()._attach()
