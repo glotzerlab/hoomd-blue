@@ -175,7 +175,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         PythonShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                         unsigned int ntypes,
                         pybind11::object python_function,
-                        pybind11::dict< std::vector<Scalar> > params,
+                        pybind11::dict params,
                         std::vector<Scalar> stepsize,
                         Scalar mixratio)
             :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
@@ -276,7 +276,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
     pybind11::dict getParams()
         {
-        pybind11::dict< std::vector<Scalar> > params;
+        pybind11::dict params;
         for (int i = 0; i < m_params.size(); i++)
             {
             std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
@@ -285,7 +285,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         return params;
         }
 
-    void setParams(pybind11::dict< std::vector<Scalar> > params)
+    void setParams(pybind11::dict params)
         {
         std::vector<std::vector<Scalar>> params_vector(m_params.size());
         for(auto&& [type_name, type_params] : params)
@@ -332,7 +332,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
     public:
         ConstantShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                           const unsigned int& ntypes,
-                          pybind11::dict<pybind11::dict> shape_params)
+                          pybind11::dict shape_params)
             : ShapeMoveBase<Shape>(sysdef, ntypes), m_shape_moves({})
             {
             std::vector<pybind11::dict> shape_params_vector(ntypes);
@@ -374,7 +374,7 @@ class ConstantShapeMove : public ShapeMoveBase<Shape>
 
         pybind11::list getShapeParams()
             {
-            pybind11::dict< pybind11::dict > shape_params;
+            pybind11::dict shape_params;
             for (int i = 0; i < m_shape_params.size(); i++)
                 {
                 std::string type_name = m_sysdef->getParticleData()->getNameByType(i);

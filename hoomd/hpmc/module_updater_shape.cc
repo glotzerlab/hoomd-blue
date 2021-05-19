@@ -99,7 +99,7 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         unsigned int,
                         pybind11::object,
-                        pybind11::dict< std::vector<Scalar> >,
+                        pybind11::dict,
                         std::vector<Scalar>,
                         Scalar >())
     .def_property("params", &PythonShapeMove<Shape>::getParams, &PythonShapeMove<Shape>::setParams)
@@ -113,7 +113,7 @@ template<class Shape>
 void export_ConstantShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< ConstantShapeMove<Shape>, std::shared_ptr< ConstantShapeMove<Shape> >, ShapeMoveBase<Shape> >(m, name.c_str())
-    .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, pybind11::dict< pybind11::dict > >())
+    .def(pybind11::init<std::shared_ptr<SystemDefinition>, unsigned int, pybind11::dict >())
     .def_property("shape_params", &ConstantShapeMove<Shape>::getShapeParams, &ConstantShapeMove<Shape>::setShapeParams)
     ;
     }
