@@ -64,9 +64,14 @@ class ShapeMoveBase
             }
 
         //! Get the stepsize
-        virtual pybind11::list getStepsize()
+        virtual pybind11::dict getStepsize()
             {
-            pybind11::list stepsize = pybind11::cast(m_step_size);
+            pybind11::dict stepsize;
+            for (int i = 0; i < m_step_size.size(); i++)
+                {
+                std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
+                stepsize[type_name] = m_step_size[i];
+                }
             return stepsize;
             }
 
@@ -77,9 +82,15 @@ class ShapeMoveBase
             }
 
         //! Set the step size
-        virtual void setStepsize(std::vector<Scalar> stepsize)
+        virtual void setStepsize(pybind11::dict stepsize)
             {
-            m_step_size = stepsize;
+            std::vector<Scalar> stepsize_vector(m_step_size.size());
+            for(auto&& [type_name, type_stepsize] : stepsize)
+                {
+                unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
+                stepsize_vector[type_i] = type_stepsize;
+                }
+            m_step_size = stepsize_vector;
             }
 
         //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -179,7 +190,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
                 this->m_provided_quantities.push_back(getParamName(i));
                 }
             std::vector<std::vector<Scalar>> params_vector(ntypes);
-            for(auto&& [type_name, type_params] : dict)
+            for(auto&& [type_name, type_params] : params)
                 {
                 type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
                 params_vector[type_i] = type_params;
@@ -268,7 +279,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
         pybind11::dict< std::vector<Scalar> > params;
         for (int i = 0; i < m_params.size(); i++)
             {
-            std::string type_name = m_sysdef->getParticleData()->getNameByType(m_type);
+            std::string type_name = m_sysdef->getParticleData()->getNameByType(i);
             params[type_name] = m_params[i];
             }
         return params;
@@ -276,8 +287,8 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
     void setParams(pybind11::dict< std::vector<Scalar> > params)
         {
-        std::vector<std::vector<Scalar>> params_vector(ntypes);
-        for(auto&& [type_name, type_params] : dict)
+        std::vector<std::vector<Scalar>> params_vector(m_params.size());
+        for(auto&& [type_name, type_params] : params)
             {
             unsigned int type_i = m_sysdef->getParticleData()->getTypeByName(type_name);
             params_vector[type_i] = type_params;
