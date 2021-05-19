@@ -494,5 +494,3 @@ hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
 
     return hipSuccess;
     }
-
-

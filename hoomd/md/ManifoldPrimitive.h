@@ -78,7 +78,7 @@ class ManifoldPrimitive
         DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
-        
+
             Lx = 2*M_PI*Nx/box_length.x;
             Ly = 2*M_PI*Ny/box_length.y;
             Lz = 2*M_PI*Nz/box_length.z;

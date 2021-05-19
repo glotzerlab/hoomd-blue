@@ -29,12 +29,8 @@ def _create_domain_decomposition(device, box):
         return None
 
     # create a default domain decomposition
-    result = _hoomd.DomainDecomposition(device._cpp_exec_conf,
-                                        box.getL(),
-                                        0,
-                                        0,
-                                        0,
-                                        False)
+    result = _hoomd.DomainDecomposition(device._cpp_exec_conf, box.getL(), 0, 0,
+                                        0, False)
 
     return result
 
@@ -63,8 +59,7 @@ class State:
         self._simulation = simulation
         snapshot._broadcast_box()
         domain_decomp = _create_domain_decomposition(
-            simulation.device,
-            snapshot._cpp_obj._global_box)
+            simulation.device, snapshot._cpp_obj._global_box)
 
         if domain_decomp is not None:
             self._cpp_sys_def = _hoomd.SystemDefinition(
@@ -127,8 +122,7 @@ class State:
             if len(snapshot.bonds.types) != len(self.bond_types):
                 raise RuntimeError("Number of bond types must remain the same")
             if len(snapshot.angles.types) != len(self.angle_types):
-                raise RuntimeError(
-                    "Number of angle types must remain the same")
+                raise RuntimeError("Number of angle types must remain the same")
             if len(snapshot.dihedrals.types) != len(self.dihedral_types):
                 raise RuntimeError(
                     "Number of dihedral types must remain the same")
@@ -184,8 +178,7 @@ class State:
                     angle_types=self.angle_types,
                     dihedral_types=self.dihedral_types,
                     improper_types=self.improper_types,
-                    special_pair_types=self.special_pair_types
-                    )
+                    special_pair_types=self.special_pair_types)
 
     @property
     def N_particles(self):
@@ -242,8 +235,7 @@ class State:
         if value.dimensions != self._cpp_sys_def.getNDimensions():
             self._simulation.device._cpp_msg.warning(
                 "Box changing dimensions from {} to {}."
-                "".format(self._cpp_sys_def.getNDimensions(),
-                          value.dimensions))
+                "".format(self._cpp_sys_def.getNDimensions(), value.dimensions))
             self._cpp_sys_def.setNDimensions(value.dimensions)
         self._cpp_sys_def.getParticleData().setGlobalBox(value._cpp_obj)
 

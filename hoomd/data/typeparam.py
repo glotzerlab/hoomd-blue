@@ -38,11 +38,9 @@ class TypeParameter:
         self.param_dict.default = value
 
     def _attach(self, cpp_obj, sim):
-        self.param_dict = AttachedTypeParameterDict(cpp_obj,
-                                                    self.name,
+        self.param_dict = AttachedTypeParameterDict(cpp_obj, self.name,
                                                     self.type_kind,
-                                                    self.param_dict,
-                                                    sim)
+                                                    self.param_dict, sim)
         return self
 
     def _detach(self):
@@ -56,10 +54,11 @@ class TypeParameter:
         yield from self.param_dict.keys()
 
     def __getstate__(self):
-        state = {'name': self.name,
-                 'type_kind': self.type_kind,
-                 'param_dict': self.param_dict
-                 }
+        state = {
+            'name': self.name,
+            'type_kind': self.type_kind,
+            'param_dict': self.param_dict
+        }
         if isinstance(self.param_dict, AttachedTypeParameterDict):
             state['param_dict'] = self.param_dict.to_detached()
         return state

@@ -9,6 +9,7 @@ class _PartialIsInstance:
     This is a solution to avoid lambdas to enable pickling. We cannot use
     functools.partial since we need to partially apply the second argument.
     """
+
     def __init__(self, classes):
         self.classes = classes
 
@@ -22,6 +23,7 @@ class _PartialGetAttr:
     This is a solution to avoid lambdas to enable pickling. We cannot use
     functools.partial since we need to partially apply the second argument.
     """
+
     def __init__(self, attr):
         self.attr = attr
 
@@ -61,9 +63,11 @@ class SyncedList(MutableSequence):
         this is `True` (defaults to `False`), then the class will be treated as
         a callable and not used for type checking.
     """
+
     # Also guarantees that lists remain in same order when using the public API.
 
-    def __init__(self, validation,
+    def __init__(self,
+                 validation,
                  to_synced_list=None,
                  iterable=None,
                  callable_class=False):
@@ -161,8 +165,7 @@ class SyncedList(MutableSequence):
             if -integer > len(self):
                 raise IndexError(
                     f"Negative index {integer} is too small for list of length "
-                    f"{len(self)}"
-                )
+                    f"{len(self)}")
             return integer % max(1, len(self))
         return integer
 
@@ -234,15 +237,13 @@ class SyncedList(MutableSequence):
         if abs(index) > len(self):
             raise IndexError(
                 f"Cannot insert {value} to index {index} for a list of length "
-                f"{len(self)}"
-            )
+                f"{len(self)}")
         # Wrap index like normal but allow for inserting a new element to the
         # end of the list.
         index = self._handle_int(index)
         if self._synced:
             self._synced_list.insert(index,
-                                     self._to_synced_list_conversion(value)
-                                     )
+                                     self._to_synced_list_conversion(value))
         self._list.insert(index, value)
 
     def __getstate__(self):
@@ -252,7 +253,5 @@ class SyncedList(MutableSequence):
         return state
 
     def __eq__(self, other):
-        return (
-            len(self) == len(other)
-            and all(a == b for a, b in zip(self, other))
-        )
+        return (len(self) == len(other)
+                and all(a == b for a, b in zip(self, other)))

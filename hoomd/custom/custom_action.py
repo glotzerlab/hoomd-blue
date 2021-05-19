@@ -6,6 +6,7 @@ from hoomd.operation import _HOOMDGetSetAttrBase
 
 class _AbstractLoggable(Loggable, ABCMeta):
     """Allows the use of abstractmethod with log."""
+
     def __init__(cls, name, base, dct):
         Loggable.__init__(cls, name, base, dct)
         ABCMeta.__init__(cls, name, base, dct)
@@ -76,6 +77,7 @@ class Action(metaclass=_AbstractLoggable):
             `hoomd.custom.Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
     """
+
     class Flags(IntEnum):
         """Flags to indictate the integrator should calcuate certain quantities.
 
@@ -145,6 +147,7 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     should be specified in the subclass. No other methods or attributes should
     be created.
     """
+
     def _setattr_param(self, attr, value):
         """Necessary to prevent errors on setting after attaching.
 

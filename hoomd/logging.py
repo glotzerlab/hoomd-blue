@@ -75,7 +75,8 @@ class LoggerCategories(Flag):
             `LoggerCategories`: the `LoggerCategories` object that represents any of the given
             categories.
         """
-        categories = cls.__members__.values() if categories is None else categories
+        categories = cls.__members__.values(
+        ) if categories is None else categories
 
         return reduce(cls._combine_flags, categories, LoggerCategories.NONE)
 
@@ -102,12 +103,15 @@ LoggerCategories.ALL = LoggerCategories.any()
 # loggables property
 def _loggables(self):
     """dict[str, str]: Return a name, category mapping of loggable quantities."""
-    return {name: quantity.category.name
-            for name, quantity in self._export_dict.items()}
+    return {
+        name: quantity.category.name
+        for name, quantity in self._export_dict.items()
+    }
 
 
 class _LoggableEntry:
     """Stores entries for _Loggable's store of a class's loggable quantities."""
+
     def __init__(self, category, default):
         self.category = category
         self.default = default
@@ -268,8 +272,8 @@ class Loggable(type):
         # already. We can speed this up by just removing the check and
         # overwriting the property every time, but lose the ability to error on
         # improper class definitions.
-        if log_dict == {} and not any(issubclass(type(c), Loggable)
-                                      for c in cls.__mro__[1:]):
+        if log_dict == {} and not any(
+                issubclass(type(c), Loggable) for c in cls.__mro__[1:]):
             Loggable._add_property_for_displaying_loggables(cls)
 
         # grab the current class's loggable quantities
@@ -300,9 +304,10 @@ class Loggable(type):
             # new_cls has a metaclass (or type) which is a subclass of Loggable
             # or one of its subclasses.
             if issubclass(type(base_cls), Loggable):
-                inherited_loggables.update(
-                    {name: deepcopy(quantity).update_cls(new_cls)
-                     for name, quantity in base_cls._export_dict.items()})
+                inherited_loggables.update({
+                    name: deepcopy(quantity).update_cls(new_cls)
+                    for name, quantity in base_cls._export_dict.items()
+                })
         return inherited_loggables
 
     @classmethod
@@ -310,10 +315,11 @@ class Loggable(type):
         """Gets the current class's new loggables (not inherited)."""
         current_loggables = {}
         for name, entry in cls._meta_export_dict.items():
-            current_loggables[name] = _LoggerQuantity(
-                name, new_cls, entry.category, entry.default)
-            cls._add_loggable_docstring_info(
-                new_cls, name, entry.category, entry.default)
+            current_loggables[name] = _LoggerQuantity(name, new_cls,
+                                                      entry.category,
+                                                      entry.default)
+            cls._add_loggable_docstring_info(new_cls, name, entry.category,
+                                             entry.default)
         return current_loggables
 
     @classmethod
@@ -421,8 +427,8 @@ class _LoggerEntry:
     def from_tuple(cls, entry):
         err_msg = "Expected either (callable, category) or \
                    (obj, method/property, category)."
-        if (not isinstance(entry, Sequence)
-                or len(entry) <= 1
+
+        if (not isinstance(entry, Sequence) or len(entry) <= 1
                 or len(entry) > 3):
             raise ValueError(err_msg)
 
@@ -447,7 +453,8 @@ class _LoggerEntry:
             category = LoggerCategories[category]
         elif not isinstance(category, LoggerCategories):
             raise ValueError(
-                "category must be a string or hoomd.logging.LoggerCategories object.")
+                "category must be a string or hoomd.logging.LoggerCategories object."
+            )
         return cls(entry[0], method, category)
 
     def __call__(self):
@@ -460,11 +467,11 @@ class _LoggerEntry:
             return (attr, self.category.name)
 
     def __eq__(self, other):
-        return (self.obj == other.obj and
-                self.attr == other.attr and
-                self.category == other.category)
-        return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in ['obj', 'attr', 'category'])
+        return (self.obj == other.obj and self.attr == other.attr
+                and self.category == other.category)
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ['obj', 'attr', 'category'])
 
 
 class Logger(SafeNamespaceDict):
@@ -547,7 +554,8 @@ class Logger(SafeNamespaceDict):
     '''
 
     def __init__(self, categories=None, only_default=True):
-        self._categories = LoggerCategories.ALL if categories is None else LoggerCategories.any(categories)
+        self._categories = LoggerCategories.ALL if categories is None else LoggerCategories.any(
+            categories)
         self._only_default = only_default
         super().__init__()
 

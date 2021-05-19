@@ -391,4 +391,3 @@ void hpmc_depletants_accept(
     }
 } // end namespace gpu
 } // end namespace hpmc
-

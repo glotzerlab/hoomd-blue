@@ -17,8 +17,9 @@ import sys
 import re
 
 #replace range with xrange for python3 compatibility
-if sys.version_info[0]==2:
-    range=xrange
+if sys.version_info[0] == 2:
+    range = xrange
+
 
 # Multiply two quaternions
 # Apply quaternion multiplication per http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
@@ -32,9 +33,10 @@ def quatMult(q1, q2):
     t = q2[0]
     w = q2[1:]
     q = np.empty((4,), dtype=float)
-    q[0] = s*t - np.dot(v, w)
-    q[1:] = s*w + t*v + np.cross(v,w)
+    q[0] = s * t - np.dot(v, w)
+    q[1:] = s * w + t * v + np.cross(v, w)
     return q
+
 
 # Rotate a vector by a unit quaternion
 # Quaternion rotation per http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
@@ -49,8 +51,9 @@ def quatRot(q, v):
     w = q[0]
     r = q[1:]
     vnew = np.empty((3,), dtype=v.dtype)
-    vnew = v + 2*np.cross(r, np.cross(r,v) + w*v)
+    vnew = v + 2 * np.cross(r, np.cross(r, v) + w * v)
     return vnew
+
 
 # Given a set of lattice vectors, rotate to produce an upper triangular right-handed box
 # as a hoomd boxdim object and a rotation quaternion that brings particles in the original coordinate system to the new one.
@@ -61,7 +64,7 @@ def quatRot(q, v):
 # \param a2 second lattice vector
 # \param a3 third lattice vector
 # \returns (box, q) tuple of boxdim object and rotation quaternion
-def latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
+def latticeToHoomd(a1, a2, a3=[0., 0., 1.], ndim=3):
     from hoomd.data import boxdim
 
     a1 = np.array(a1)
@@ -70,42 +73,43 @@ def latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
     a1.resize((3,))
     a2.resize((3,))
     a3.resize((3,))
-    xhat = np.array([1.,0.,0.])
-    yhat = np.array([0.,1.,0.])
-    zhat = np.array([0.,0.,1.])
+    xhat = np.array([1., 0., 0.])
+    yhat = np.array([0., 1., 0.])
+    zhat = np.array([0., 0., 1.])
 
     # Find quaternion to rotate first lattice vector to x axis
-    a1mag = np.sqrt(np.dot(a1,a1))
-    v1 = a1/a1mag + xhat
-    v1mag = np.sqrt(np.dot(v1,v1))
+    a1mag = np.sqrt(np.dot(a1, a1))
+    v1 = a1 / a1mag + xhat
+    v1mag = np.sqrt(np.dot(v1, v1))
     if v1mag > 1e-6:
-        u1 = v1/v1mag
+        u1 = v1 / v1mag
     else:
         # a1 is antialigned with xhat, so rotate around any unit vector perpendicular to xhat
         u1 = yhat
-    q1 = np.concatenate(([np.cos(np.pi/2)], np.sin(np.pi/2)*u1))
+    q1 = np.concatenate(([np.cos(np.pi / 2)], np.sin(np.pi / 2) * u1))
 
     # Find quaternion to rotate second lattice vector to xy plane after applying above rotation
     a2prime = quatRot(q1, a2)
-    angle = -1*np.arctan2(a2prime[2], a2prime[1])
-    q2 = np.concatenate(([np.cos(angle/2)], np.sin(angle/2)*xhat))
+    angle = -1 * np.arctan2(a2prime[2], a2prime[1])
+    q2 = np.concatenate(([np.cos(angle / 2)], np.sin(angle / 2) * xhat))
 
-    q = quatMult(q2,q1)
+    q = quatMult(q2, q1)
 
     Lx = np.sqrt(np.dot(a1, a1))
     a2x = np.dot(a1, a2) / Lx
-    Ly = np.sqrt(np.dot(a2,a2) - a2x*a2x)
+    Ly = np.sqrt(np.dot(a2, a2) - a2x * a2x)
     xy = a2x / Ly
     v0xv1 = np.cross(a1, a2)
     v0xv1mag = np.sqrt(np.dot(v0xv1, v0xv1))
     Lz = np.dot(a3, v0xv1) / v0xv1mag
     a3x = np.dot(a1, a3) / Lx
     xz = a3x / Lz
-    yz = (np.dot(a2, a3) - a2x*a3x) / (Ly*Lz)
+    yz = (np.dot(a2, a3) - a2x * a3x) / (Ly * Lz)
 
     box = boxdim(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz, dimensions=ndim)
 
     return box, q
+
 
 ## Read a single (final) frame pos file and return some data structures.
 # Returns particle positions, orientations, types, definitions, and a hoomd.data.boxdim object,
@@ -118,43 +122,52 @@ def latticeToHoomd(a1, a2, a3=[0.,0.,1.], ndim=3):
 # \returns dict with keys positions,orientations,types,param_dict,box,q
 def read_pos(fname, ndim=3):
     from hoomd.data import boxdim
-    Lx=0; Ly=0; Lz=0; xy=0; xz=0; yz=0;
+    Lx = 0
+    Ly = 0
+    Lz = 0
+    xy = 0
+    xz = 0
+    yz = 0
 
     f_in = open(fname)
 
-    positions=[] # list of particle positions
-    orientations=[] # list of particle orientations
-    types=[] # list of particle types
+    positions = []  # list of particle positions
+    orientations = []  # list of particle orientations
+    types = []  # list of particle types
 
-    t_rs={} # dictionary of position lists for defined particle types
-    t_qs={} # dictionary of orientation lists for defined particle types
-    t_params={} # additional particle parameters
+    t_rs = {}  # dictionary of position lists for defined particle types
+    t_qs = {}  # dictionary of orientation lists for defined particle types
+    t_params = {}  # additional particle parameters
 
-    eof = 0 # count the number of frames
+    eof = 0  # count the number of frames
     for line in f_in:
         # get tokens on line
         tokens = line.split()
-        if len(tokens)>2: # definition line
+        if len(tokens) > 2:  # definition line
             if re.match('^def', line) is not None:
                 # get particle type definition
                 t = tokens[1]
                 # add new definitions
-                t_rs[t]=[]
-                t_qs[t]=[]
-                t_params[t]={}
+                t_rs[t] = []
+                t_qs[t] = []
+                t_params[t] = {}
 
-                tokens[2]=tokens[2].split('"')[-1]
-                tokens[-1]=tokens[-1].split('"')[0]
+                tokens[2] = tokens[2].split('"')[-1]
+                tokens[-1] = tokens[-1].split('"')[0]
                 shape = tokens[2]
                 t_params[t]['shape'] = shape
                 if shape == "poly3d":
-                    num_verts=int(tokens[3])
-                    t_params[t]['verts']=np.array([float(n) for n in tokens[4:num_verts*3+4]]).reshape(num_verts,3)
+                    num_verts = int(tokens[3])
+                    t_params[t]['verts'] = np.array([
+                        float(n) for n in tokens[4:num_verts * 3 + 4]
+                    ]).reshape(num_verts, 3)
                 if shape == "spoly3d":
                     radius = float(tokens[3])
                     t_params[t]['radius'] = radius
                     num_verts = int(tokens[4])
-                    t_params[t]['verts']=np.array([float(n) for n in tokens[5:num_verts*3+5]]).reshape(num_verts,3)
+                    t_params[t]['verts'] = np.array([
+                        float(n) for n in tokens[5:num_verts * 3 + 5]
+                    ]).reshape(num_verts, 3)
                 if shape == "sphere":
                     diameter = float(tokens[3])
                     t_params[t]['diameter'] = diameter
@@ -163,26 +176,27 @@ def read_pos(fname, ndim=3):
                     t_params[t]['diameter'] = diameter
                     t_params[t]['length'] = float(tokens[4])
         if re.match('^box ', line) is not None:
-            Lx=float(tokens[-3])
-            Ly=float(tokens[-2])
-            Lz=float(tokens[-1])
+            Lx = float(tokens[-3])
+            Ly = float(tokens[-2])
+            Lz = float(tokens[-1])
             box = boxdim(Lx, Ly, Lz)
-            q = np.array([1,0,0,0])
-        elif re.match('^boxMatrix',line) is not None:
+            q = np.array([1, 0, 0, 0])
+        elif re.match('^boxMatrix', line) is not None:
             # rotate the box matrix to be upper triangular
-            pbox=np.array([float(f) for f in tokens[1:10]]).reshape(3,3)
-            a1 = pbox[:,0]
-            a2 = pbox[:,1]
-            a3 = pbox[:,2]
+            pbox = np.array([float(f) for f in tokens[1:10]]).reshape(3, 3)
+            a1 = pbox[:, 0]
+            a2 = pbox[:, 1]
+            a3 = pbox[:, 2]
             box, q = latticeToHoomd(a1, a2, a3, ndim)
-        elif re.match('^eof',line) is not None: # clean up at the end of the frame
+        elif re.match('^eof',
+                      line) is not None:  # clean up at the end of the frame
             eof += 1
             positions = np.concatenate([t_rs[t] for t in t_rs])
             orientations = np.concatenate([t_qs[t] for t in t_rs])
             types = []
             for t in t_rs:
                 # build list of particle types with indices corresponding to other data structures
-                types.extend([t]*len(t_rs[t]))
+                types.extend([t] * len(t_rs[t]))
 
             # reset data structures for next frame
             t_rs = {}
@@ -197,7 +211,7 @@ def read_pos(fname, ndim=3):
                         t_qs[t].append([float(f) for f in tokens[-4:]])
                     else:
                         t_rs[t].append([float(f) for f in tokens[-3:]])
-                        t_qs[t].append([1.,0,0,0])
+                        t_qs[t].append([1., 0, 0, 0])
 
     # Try to recover from missing 'eof' string in single-frame files
     if eof == 0:
@@ -206,9 +220,10 @@ def read_pos(fname, ndim=3):
         types = []
         for t in t_rs:
             # build list of particle types with indices corresponding to other data structures
-            types.extend([t]*len(t_rs[t]))
+            types.extend([t] * len(t_rs[t]))
         if len(positions) == 0:
-            raise ValueError("No frames read from {}. Invalid pos file?".format(fname))
+            raise ValueError(
+                "No frames read from {}. Invalid pos file?".format(fname))
 
     # rotate particles and positions, then wrap back into box just in case
     for i in range(len(positions)):
@@ -216,7 +231,15 @@ def read_pos(fname, ndim=3):
         positions[i], img = box.wrap(positions[i])
         orientations[i] = quatMult(q, orientations[i])
     f_in.close()
-    return {'positions':positions, 'orientations':orientations, 'types':types, 'param_dict':t_params, 'box':box, 'q':q}
+    return {
+        'positions': positions,
+        'orientations': orientations,
+        'types': types,
+        'param_dict': t_params,
+        'box': box,
+        'q': q
+    }
+
 
 ## Given an HPMC NPT system as input, perform compression to search for dense packings
 # This class conveniently encapsulates the scripting and heuristics to search
@@ -242,24 +265,25 @@ class compress:
     # \param tuner_period interval sufficient to get statistics on at least ~10,000 particle overlaps and ~100 box changes (default 1000)
     # \param relax number of steps to run at initial box size at each sweep before starting pressure schedule (default 10,000)
     # \param quiet suppress the noisier aspects of hoomd during compression (default True)
-    def __init__(self,
-                 mc=None,
-                 npt_updater=None,
-                 ptypes=None,
-                 pnums=None,
-                 pvolumes=None,
-                 pverts=None,
-                 num_comp_steps=int(1e6),
-                 refine_steps=None,
-                 log_file="densest_packing.txt",
-                 pmin=10,
-                 pmax=1e6,
-                 pf_tol=0,
-                 allowShearing=True,
-                 tuner_period=10000,
-                 relax=int(1e4),
-                 quiet=True,
-                 ):
+    def __init__(
+            self,
+            mc=None,
+            npt_updater=None,
+            ptypes=None,
+            pnums=None,
+            pvolumes=None,
+            pverts=None,
+            num_comp_steps=int(1e6),
+            refine_steps=None,
+            log_file="densest_packing.txt",
+            pmin=10,
+            pmax=1e6,
+            pf_tol=0,
+            allowShearing=True,
+            tuner_period=10000,
+            relax=int(1e4),
+            quiet=True,
+    ):
 
         # Gather and check arguments
         self.mc = mc
@@ -282,7 +306,7 @@ class compress:
         self.pmin = float(pmin)
         self.pmax = float(pmax)
         self.pf_tol = float(pf_tol)
-        self.allowShearing=bool(allowShearing)
+        self.allowShearing = bool(allowShearing)
         self.ptypes = ptypes
         if self.ptypes is None:
             raise TypeError("Needs ptypes")
@@ -320,22 +344,30 @@ class compress:
             particle_tunables.append('d')
             max_part_moves.append(0.25)
         #if all particles are spheres, don't tune rotation
-        if any([len(vert)>1 and n>0 for n,vert in zip(self.pnums,self.pverts)]):
+        if any([
+                len(vert) > 1 and n > 0
+                for n, vert in zip(self.pnums, self.pverts)
+        ]):
             particle_tunables.append('a')
             max_part_moves.append(0.5)
         if len(particle_tunables) > 0:
-            particle_tuner = tune(obj=self.mc, tunables=particle_tunables, max_val=max_part_moves, gamma=0.3)
+            particle_tuner = tune(obj=self.mc,
+                                  tunables=particle_tunables,
+                                  max_val=max_part_moves,
+                                  gamma=0.3)
             self.tuners.append(particle_tuner)
 
         box_tunables = ['dLx', 'dLy']
-        if self.dim==3:
+        if self.dim == 3:
             box_tunables += ['dLz']
         if self.allowShearing:
             box_tunables += ['dxy']
-            if self.dim==3:
+            if self.dim == 3:
                 box_tunables += ['dxz', 'dyz']
 
-        box_tuner = tune_npt(obj=self.npt_updater, tunables=box_tunables, gamma=1.0)
+        box_tuner = tune_npt(obj=self.npt_updater,
+                             tunables=box_tunables,
+                             gamma=1.0)
         self.tuners.append(box_tuner)
 
         #
@@ -343,15 +375,19 @@ class compress:
         #
 
         log_values = [
-                    'hpmc_boxmc_betaP',
-                    'volume',
-                    'hpmc_d',
-                    'hpmc_a',
-                    'hpmc_boxmc_volume_acceptance',
-                    'hpmc_boxmc_shear_acceptance',
-                    ]
-        self.mclog = hoomd.analyze.log(filename=self.log_file, quantities=log_values , period=self.tuner_period, header_prefix='#', overwrite=True)
-        self.mclog.disable() # will be enabled and disabled by call to run()
+            'hpmc_boxmc_betaP',
+            'volume',
+            'hpmc_d',
+            'hpmc_a',
+            'hpmc_boxmc_volume_acceptance',
+            'hpmc_boxmc_shear_acceptance',
+        ]
+        self.mclog = hoomd.analyze.log(filename=self.log_file,
+                                       quantities=log_values,
+                                       period=self.tuner_period,
+                                       header_prefix='#',
+                                       overwrite=True)
+        self.mclog.disable()  # will be enabled and disabled by call to run()
 
     ## Run one or more compression cycles
     # \param num_comp_cycles number of compression cycles to run (default 1)
@@ -363,10 +399,11 @@ class compress:
         # \param pmax maximum pressure
         # \returns P pressure variant for use in NPT updater
         def makePvariant(num_comp_steps, pmin, pmax):
-            num_points = 101 # number of points defining the curve
+            num_points = 101  # number of points defining the curve
             interval = num_comp_steps / num_points
-            pressures=np.logspace(np.log10(pmin), np.log10(pmax), num_points)
-            P = hoomd.variant.linear_interp(points = [(i*interval, prs) for i,prs in enumerate(pressures)])
+            pressures = np.logspace(np.log10(pmin), np.log10(pmax), num_points)
+            P = hoomd.variant.linear_interp(
+                points=[(i * interval, prs) for i, prs in enumerate(pressures)])
             return P
 
         num_comp_cycles = int(num_comp_cycles)
@@ -397,8 +434,8 @@ class compress:
 
         Lscale = 0.001
         Ascale = A3scale = 0.01
-        if (dim==2):
-            A3scale=0.0
+        if (dim == 2):
+            A3scale = 0.0
 
         self.npt_updater.set_betap(pmin)
         self.npt_updater.length(delta=Lscale)
@@ -406,19 +443,23 @@ class compress:
             self.npt_updater.shear(delta=A3scale, reduce=0.6)
 
         #calculate initial packing fraction
-        volume = Lx*Ly if dim==2 else Lx*Ly*Lz
+        volume = Lx * Ly if dim == 2 else Lx * Ly * Lz
         last_eta = tot_pvol / volume
-        hoomd.context.current.device.cpp_msg.notice(5,'Starting eta = {}. '.format(last_eta))
-        hoomd.context.current.device.cpp_msg.notice(5,'Starting volume = {}. '.format(volume))
-        hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}.\n'.format(self.mc.count_overlaps()))
+        hoomd.context.current.device.cpp_msg.notice(
+            5, 'Starting eta = {}. '.format(last_eta))
+        hoomd.context.current.device.cpp_msg.notice(
+            5, 'Starting volume = {}. '.format(volume))
+        hoomd.context.current.device.cpp_msg.notice(
+            5, 'overlaps={}.\n'.format(self.mc.count_overlaps()))
 
         for i in range(num_comp_cycles):
-            hoomd.context.current.device.cpp_msg.notice(5,'Compressor sweep {}. '.format(i))
+            hoomd.context.current.device.cpp_msg.notice(
+                5, 'Compressor sweep {}. '.format(i))
 
             # if not first sweep, relax the system
             if i != 0:
                 # set box volume to original
-                hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
+                hoomd.update.box_resize(Lx=Lx, Ly=Ly, Lz=Lz, period=None)
                 # reset tunables
                 self.npt_updater.set_betap(pmin)
                 self.npt_updater.length(delta=Lscale)
@@ -428,13 +469,17 @@ class compress:
 
             noverlaps = self.mc.count_overlaps()
             if noverlaps != 0:
-                hoomd.context.current.device.cpp_msg.warning("Tuner cannot run properly if overlaps exist in the system. Expanding box...\n")
+                hoomd.context.current.device.cpp_msg.warning(
+                    "Tuner cannot run properly if overlaps exist in the system. Expanding box...\n"
+                )
                 while noverlaps != 0:
-                    hoomd.context.current.device.cpp_msg.notice(5,"{} overlaps at step {}... ".format(noverlaps, hoomd.get_step()))
-                    Lx *= 1.0+Lscale
-                    Ly *= 1.0+Lscale
-                    Lz *= 1.0+Lscale
-                    hoomd.update.box_resize(Lx = Lx, Ly = Ly, Lz = Lz, period=None)
+                    hoomd.context.current.device.cpp_msg.notice(
+                        5, "{} overlaps at step {}... ".format(
+                            noverlaps, hoomd.get_step()))
+                    Lx *= 1.0 + Lscale
+                    Ly *= 1.0 + Lscale
+                    Lz *= 1.0 + Lscale
+                    hoomd.update.box_resize(Lx=Lx, Ly=Ly, Lz=Lz, period=None)
                     noverlaps = self.mc.count_overlaps()
 
             #randomize the initial configuration
@@ -460,12 +505,16 @@ class compress:
                     tuner.update()
 
             #calculate packing fraction for zeroth iteration
-            hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
-            L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
-            volume = L.x * L.y if dim==2 else L.x*L.y*L.z
+            hoomd.context.current.device.cpp_msg.notice(
+                5, "Checking eta at step {0}. ".format(hoomd.get_step()))
+            L = hoomd.context.current.system_definition.getParticleData(
+            ).getGlobalBox().getL()
+            volume = L.x * L.y if dim == 2 else L.x * L.y * L.z
             eta = tot_pvol / volume
-            hoomd.context.current.device.cpp_msg.notice(5,'eta = {}, '.format(eta))
-            hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
+            hoomd.context.current.device.cpp_msg.notice(
+                5, 'eta = {}, '.format(eta))
+            hoomd.context.current.device.cpp_msg.notice(
+                5, "volume: {0}\n".format(volume))
 
             step = hoomd.get_step()
             last_step = step
@@ -476,23 +525,34 @@ class compress:
             while (eta - last_eta) > pf_tol:
                 hoomd.run(refine_steps, quiet=quiet)
                 # check eta
-                hoomd.context.current.device.cpp_msg.notice(5,"Checking eta at step {0}. ".format(hoomd.get_step()))
+                hoomd.context.current.device.cpp_msg.notice(
+                    5, "Checking eta at step {0}. ".format(hoomd.get_step()))
                 #calculate the new packing fraction
-                L = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL()
-                volume = L.x * L.y if dim==2 else L.x*L.y*L.z
+                L = hoomd.context.current.system_definition.getParticleData(
+                ).getGlobalBox().getL()
+                volume = L.x * L.y if dim == 2 else L.x * L.y * L.z
                 last_eta = eta
                 eta = tot_pvol / volume
-                hoomd.context.current.device.cpp_msg.notice(5,"eta: {0}, ".format(eta))
-                hoomd.context.current.device.cpp_msg.notice(5,"volume: {0}\n".format(volume))
+                hoomd.context.current.device.cpp_msg.notice(
+                    5, "eta: {0}, ".format(eta))
+                hoomd.context.current.device.cpp_msg.notice(
+                    5, "volume: {0}\n".format(volume))
                 last_step = step
                 step = hoomd.get_step()
                 # Check if we've gone too far
                 if j == max_eta_checks:
-                    hoomd.context.current.device.cpp_msg.notice(5,"Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n".format(max_eta_checks))
+                    hoomd.context.current.device.cpp_msg.notice(
+                        5,
+                        "Eta did not converge in {0} iterations. Continuing to next cycle anyway.\n"
+                        .format(max_eta_checks))
                 j += 1
 
-            hoomd.context.current.device.cpp_msg.notice(5,"Step: {step}, Packing fraction: {eta}, ".format(step=last_step, eta=last_eta))
-            hoomd.context.current.device.cpp_msg.notice(5,'overlaps={}\n'.format(self.mc.count_overlaps()))
+            hoomd.context.current.device.cpp_msg.notice(
+                5,
+                "Step: {step}, Packing fraction: {eta}, ".format(step=last_step,
+                                                                 eta=last_eta))
+            hoomd.context.current.device.cpp_msg.notice(
+                5, 'overlaps={}\n'.format(self.mc.count_overlaps()))
             self.eta_list.append(last_eta)
 
             #take a snapshot of the system
@@ -500,7 +560,7 @@ class compress:
             self.snap_list.append(snap)
 
         self.mclog.disable()
-        return (self.eta_list,self.snap_list)
+        return (self.eta_list, self.snap_list)
 
 
 ## snapshot is a python struct for now, will eventually be replaced with by the hoomd snapshot
@@ -535,8 +595,10 @@ class snapshot:
         self.ptypes = [p.type for p in system.particles]
         self.ntypes = system.sysdef.getParticleData().getNTypes()
         self.type_list = []
-        for i in range(0,self.ntypes):
-            self.type_list.append(system.sysdef.getParticleData().getNameByType(i));
+        for i in range(0, self.ntypes):
+            self.type_list.append(
+                system.sysdef.getParticleData().getNameByType(i))
+
 
 class tune(object):
     R""" Tune mc parameters.
@@ -614,7 +676,18 @@ class tune(object):
     the ``tune`` object.
 
     """
-    def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+
+    def __init__(self,
+                 obj=None,
+                 tunables=[],
+                 max_val=[],
+                 target=0.2,
+                 max_scale=2.0,
+                 gamma=2.0,
+                 type=None,
+                 tunable_map=None,
+                 *args,
+                 **kwargs):
         # The *args and **kwargs parameters allow derived tuners to be sloppy
         # with forwarding initialization, but that is not a good excuse and
         # makes it harder to catch usage errors. They should probably be deprecated...
@@ -622,37 +695,62 @@ class tune(object):
         # Ensure that max_val conforms to the tunable list provided
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
-            raise ValueError("If provided, max_val must be same length as tunables.")
+            raise ValueError(
+                "If provided, max_val must be same length as tunables.")
 
         # Use the default tunable map if none is provided
         if (tunable_map is None):
             tunable_map = dict()
             if type is None:
-                tunable_map.update({'d': {
-                                                     'get': lambda: getattr(obj, 'get_d')(),
-                                                     'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
-                                                     'set': lambda x: getattr(obj, 'set_params')(d=x),
-                                                     'maximum': 1.0
-                                                      },
-                                          'a': {
-                                                     'get': lambda: getattr(obj, 'get_a')(),
-                                                     'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
-                                                     'set': lambda x: getattr(obj, 'set_params')(a=x),
-                                                     'maximum': 0.5
-                                                      }})
+                tunable_map.update({
+                    'd': {
+                        'get':
+                            lambda: getattr(obj, 'get_d')(),
+                        'acceptance':
+                            lambda: getattr(obj, 'get_translate_acceptance')(),
+                        'set':
+                            lambda x: getattr(obj, 'set_params')(d=x),
+                        'maximum':
+                            1.0
+                    },
+                    'a': {
+                        'get':
+                            lambda: getattr(obj, 'get_a')(),
+                        'acceptance':
+                            lambda: getattr(obj, 'get_rotate_acceptance')(),
+                        'set':
+                            lambda x: getattr(obj, 'set_params')(a=x),
+                        'maximum':
+                            0.5
+                    }
+                })
             else:
-                tunable_map.update({'d': {
-                                                 'get': lambda: getattr(obj, 'get_d')(type),
-                                                 'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
-                                                 'set': lambda x: getattr(obj, 'set_params')(d={type: x}),
-                                                 'maximum': 1.0
-                                                 },
-                                              'a': {
-                                                 'get': lambda: getattr(obj, 'get_a')(type),
-                                                 'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
-                                                 'set': lambda x: getattr(obj, 'set_params')(a={type: x}),
-                                                 'maximum': 0.5
-                                                 }})
+                tunable_map.update({
+                    'd': {
+                        'get':
+                            lambda: getattr(obj, 'get_d')(type),
+                        'acceptance':
+                            lambda: getattr(obj, 'get_translate_acceptance')(),
+                        'set':
+                            lambda x: getattr(obj, 'set_params')(d={
+                                type: x
+                            }),
+                        'maximum':
+                            1.0
+                    },
+                    'a': {
+                        'get':
+                            lambda: getattr(obj, 'get_a')(type),
+                        'acceptance':
+                            lambda: getattr(obj, 'get_rotate_acceptance')(),
+                        'set':
+                            lambda x: getattr(obj, 'set_params')(a={
+                                type: x
+                            }),
+                        'maximum':
+                            0.5
+                    }
+                })
 
         #init rest of tuner
         self.target = float(target)
@@ -677,7 +775,7 @@ class tune(object):
                     self.tunables[item]['maximum'] = max_val[i]
                 self.maxima.append(self.tunables[item]['maximum'])
             else:
-                raise ValueError( "Unknown tunable {0}".format(item))
+                raise ValueError("Unknown tunable {0}".format(item))
 
     def update(self):
         R""" Calculate and set tunable parameters using statistics from the run just completed.
@@ -691,7 +789,8 @@ class tune(object):
             max_val = self.tunables[tunable]['maximum']
             if (acceptance > 0.0):
                 # find (damped) scale somewhere between 1.0 and acceptance/target
-                scale = ((1.0 + self.gamma) * acceptance) / (self.target + self.gamma * acceptance)
+                scale = ((1.0 + self.gamma)
+                         * acceptance) / (self.target + self.gamma * acceptance)
             else:
                 # acceptance rate was zero. Try a parameter value an order of magnitude smaller
                 scale = 0.1
@@ -700,7 +799,9 @@ class tune(object):
             # find new value
             if (oldval == 0):
                 newval = 1e-5
-                hoomd.context.current.device.cpp_msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
+                hoomd.context.current.device.cpp_msg.warning(
+                    "Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n"
+                    .format(tunable, newval))
             else:
                 newval = float(scale * oldval)
                 # perform sanity checking on newval
@@ -710,6 +811,7 @@ class tune(object):
                     newval = max_val
 
             self.tunables[tunable]['set'](float(newval))
+
 
 class tune_npt(tune):
     R""" Tune the HPMC :py:class:`hoomd.hpmc.update.boxmc` using :py:class:`.tune`.
@@ -749,55 +851,98 @@ class tune_npt(tune):
             tuner.update()
 
     """
-    def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
+
+    def __init__(self,
+                 obj=None,
+                 tunables=[],
+                 max_val=[],
+                 target=0.2,
+                 max_scale=2.0,
+                 gamma=2.0,
+                 type=None,
+                 tunable_map=None,
+                 *args,
+                 **kwargs):
         tunable_map = {
-                    'dLx': {
-                          'get': lambda: obj.length()['delta'][0],
-                          'acceptance': obj.get_volume_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(x, obj.length()['delta'][1], obj.length()['delta'][2]))
-                          },
-                    'dLy': {
-                          'get': lambda: obj.length()['delta'][1],
-                          'acceptance': obj.get_volume_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], x, obj.length()['delta'][2]))
-                          },
-                    'dLz': {
-                          'get': lambda: obj.length()['delta'][2],
-                          'acceptance': obj.get_volume_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.length(delta=(obj.length()['delta'][0], obj.length()['delta'][1], x))
-                          },
-                    'dV': {
-                          'get': lambda: obj.volume()['delta'],
-                          'acceptance': obj.get_volume_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.volume(delta=x)
-                          },
-                    'dlnV': {
-                          'get': lambda: obj.ln_volume()['delta'],
-                          'acceptance': obj.get_ln_volume_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.ln_volume(delta=x)
-                          },
-                    'dxy': {
-                          'get': lambda: obj.shear()['delta'][0],
-                          'acceptance': obj.get_shear_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(x, obj.shear()['delta'][1], obj.shear()['delta'][2]))
-                          },
-                    'dxz': {
-                          'get': lambda: obj.shear()['delta'][1],
-                          'acceptance': obj.get_shear_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], x, obj.shear()['delta'][2]))
-                          },
-                    'dyz': {
-                          'get': lambda: obj.shear()['delta'][2],
-                          'acceptance': obj.get_shear_acceptance,
-                          'maximum': 1.0,
-                          'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
-                          },
-                    }
-        super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
+            'dLx': {
+                'get':
+                    lambda: obj.length()['delta'][0],
+                'acceptance':
+                    obj.get_volume_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.length(delta=(x, obj.length()['delta'][1],
+                                                obj.length()['delta'][2]))
+            },
+            'dLy': {
+                'get':
+                    lambda: obj.length()['delta'][1],
+                'acceptance':
+                    obj.get_volume_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.length(delta=(obj.length()['delta'][0], x,
+                                                obj.length()['delta'][2]))
+            },
+            'dLz': {
+                'get':
+                    lambda: obj.length()['delta'][2],
+                'acceptance':
+                    obj.get_volume_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.length(delta=(obj.length()['delta'][0],
+                                                obj.length()['delta'][1], x))
+            },
+            'dV': {
+                'get': lambda: obj.volume()['delta'],
+                'acceptance': obj.get_volume_acceptance,
+                'maximum': 1.0,
+                'set': lambda x: obj.volume(delta=x)
+            },
+            'dlnV': {
+                'get': lambda: obj.ln_volume()['delta'],
+                'acceptance': obj.get_ln_volume_acceptance,
+                'maximum': 1.0,
+                'set': lambda x: obj.ln_volume(delta=x)
+            },
+            'dxy': {
+                'get':
+                    lambda: obj.shear()['delta'][0],
+                'acceptance':
+                    obj.get_shear_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.shear(delta=(x, obj.shear()['delta'][1],
+                                               obj.shear()['delta'][2]))
+            },
+            'dxz': {
+                'get':
+                    lambda: obj.shear()['delta'][1],
+                'acceptance':
+                    obj.get_shear_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.shear(delta=(obj.shear()['delta'][0], x,
+                                               obj.shear()['delta'][2]))
+            },
+            'dyz': {
+                'get':
+                    lambda: obj.shear()['delta'][2],
+                'acceptance':
+                    obj.get_shear_acceptance,
+                'maximum':
+                    1.0,
+                'set':
+                    lambda x: obj.shear(delta=(obj.shear()['delta'][0],
+                                               obj.shear()['delta'][1], x))
+            },
+        }
+        super(tune_npt,
+              self).__init__(obj, tunables, max_val, target, max_scale, gamma,
+                             type, tunable_map, *args, **kwargs)

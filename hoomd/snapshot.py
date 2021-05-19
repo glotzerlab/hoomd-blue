@@ -4,6 +4,7 @@ from hoomd import _hoomd
 
 
 class _ConfigurationData:
+
     def __init__(self, cpp_obj):
         self._cpp_obj = cpp_obj
 
@@ -15,9 +16,7 @@ class _ConfigurationData:
     def box(self):
         b = self._cpp_obj._global_box
         L = b.getL()
-        return (L.x, L.y, L.z,
-                b.getTiltFactorXY(),
-                b.getTiltFactorXZ(),
+        return (L.x, L.y, L.z, b.getTiltFactorXY(), b.getTiltFactorXZ(),
                 b.getTiltFactorYZ())
 
     @box.setter
@@ -33,6 +32,7 @@ class _ConfigurationData:
 
 
 class Snapshot:
+
     def __init__(self, communicator=None):
         if communicator is None:
             self._comm = hoomd.communicator.Communicator()
@@ -126,8 +126,8 @@ class Snapshot:
         gsd_snap.validate()
         snap = cls(communicator=communicator)
 
-        def set_properties(
-                snap_section, gsd_snap_section, properties, array_properties):
+        def set_properties(snap_section, gsd_snap_section, properties,
+                           array_properties):
             for prop in properties:
                 gsd_prop = getattr(gsd_snap_section, prop, None)
                 if gsd_prop is not None:
@@ -139,31 +139,19 @@ class Snapshot:
 
         if communicator.rank == 0:
 
-            set_properties(
-                snap.particles,
-                gsd_snap.particles,
-                ('N', 'types'),
-                ('angmom', 'body', 'charge', 'diameter', 'image', 'mass',
-                 'moment_inertia', 'orientation', 'position', 'typeid',
-                 'velocity')
-            )
+            set_properties(snap.particles, gsd_snap.particles, ('N', 'types'),
+                           ('angmom', 'body', 'charge', 'diameter', 'image',
+                            'mass', 'moment_inertia', 'orientation', 'position',
+                            'typeid', 'velocity'))
 
-            for section in (
-                    'angles', 'bonds', 'dihedrals', 'impropers', 'pairs'
-                    ):
-                set_properties(
-                    getattr(snap, section),
-                    getattr(gsd_snap, section),
-                    ('N', 'types'),
-                    ('group', 'typeid')
-                )
+            for section in ('angles', 'bonds', 'dihedrals', 'impropers',
+                            'pairs'):
+                set_properties(getattr(snap,
+                                       section), getattr(gsd_snap, section),
+                               ('N', 'types'), ('group', 'typeid'))
 
-            set_properties(
-                snap.constraints,
-                gsd_snap.constraints,
-                ('N',),
-                ('group', 'value')
-            )
+            set_properties(snap.constraints, gsd_snap.constraints, ('N',),
+                           ('group', 'value'))
 
             # Set box attribute
             if gsd_snap.configuration.box is not None:

@@ -181,6 +181,7 @@ def test_state_from_gsd(simulation_factory, lattice_snapshot_factory,
         assert box == sim.state.box
         assert_equivalent_snapshots(snap, sim.state.snapshot)
 
+
 @skip_gsd
 def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
                                  device, state_args, tmp_path):
@@ -196,8 +197,8 @@ def test_state_from_gsd_snapshot(simulation_factory, lattice_snapshot_factory,
     for _ in range(1, nsteps):
         particle_type = np.random.choice(snap_params[1])
         snap = update_positions(sim.state.snapshot)
-        set_types(snap, random_inds(snap_params[0]),
-                  snap_params[1], particle_type)
+        set_types(snap, random_inds(snap_params[0]), snap_params[1],
+                  particle_type)
         snap = make_gsd_snapshot(snap)
         gsd_snapshot_list.append(snap)
 
@@ -350,14 +351,10 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
 
     operations = hoomd.Operations()
     # Add some operations to test the setting
-    operations += hoomd.update.BoxResize(
-        hoomd.Box.cube(10),
-        hoomd.Box.cube(20),
-        hoomd.variant.Ramp(0, 1, 0, 100),
-        40)
+    operations += hoomd.update.BoxResize(hoomd.Box.cube(10), hoomd.Box.cube(20),
+                                         hoomd.variant.Ramp(0, 1, 0, 100), 40)
     operations += hoomd.write.GSD("foo.gsd", 10)
-    operations += hoomd.write.Table(
-        10, logger=hoomd.logging.Logger(['scalar']))
+    operations += hoomd.write.Table(10, logger=hoomd.logging.Logger(['scalar']))
     operations.tuners.clear()
     # Check setting before scheduling
     check_operation_setting(sim, sim.operations, operations)
@@ -365,12 +362,11 @@ def test_operations_setting(simulation_factory, lattice_snapshot_factory):
     sim.run(0)
     # Check setting after scheduling
     new_operations = hoomd.Operations()
-    new_operations += hoomd.update.BoxResize(
-        hoomd.Box.cube(300),
-        hoomd.Box.cube(20),
-        hoomd.variant.Ramp(0, 1, 0, 100),
-        80)
+    new_operations += hoomd.update.BoxResize(hoomd.Box.cube(300),
+                                             hoomd.Box.cube(20),
+                                             hoomd.variant.Ramp(0, 1, 0, 100),
+                                             80)
     new_operations += hoomd.write.GSD("bar.gsd", 20)
-    new_operations += hoomd.write.Table(
-        20, logger=hoomd.logging.Logger(['scalar']))
+    new_operations += hoomd.write.Table(20,
+                                        logger=hoomd.logging.Logger(['scalar']))
     check_operation_setting(sim, sim.operations, new_operations)

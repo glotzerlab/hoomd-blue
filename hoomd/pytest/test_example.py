@@ -1,8 +1,8 @@
 import hoomd
 import pytest
-
 """ This script demonstrates how to test HOOMD classes with pytest
 """
+
 
 def test_typical(device):
     """ Typical hoomd test execute on both the CPU and GPU. This example test uses the ``device`` fixture to provide
@@ -12,11 +12,13 @@ def test_typical(device):
 
     assert True
 
+
 @pytest.mark.serial
 def test_serial(device):
     """ Some tests will not run in MPI. Skip these with the `serial` mark.
     """
     assert True
+
 
 @pytest.mark.cpu
 def test_cpu_only(device):
@@ -27,6 +29,7 @@ def test_cpu_only(device):
 
     assert isinstance(device, hoomd.device.CPU)
 
+
 @pytest.mark.gpu
 def test_gpu_only(device):
     """ Some tests need a device but only operate correctly on the GPU.
@@ -36,8 +39,9 @@ def test_gpu_only(device):
 
     assert isinstance(device, hoomd.device.GPU)
 
+
 def test_python_only():
     """ Python only tests operate in pure python without a device or simulation context
     """
 
-    assert 2*2 == 4
+    assert 2 * 2 == 4

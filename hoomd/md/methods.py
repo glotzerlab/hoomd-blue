@@ -5,7 +5,6 @@
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-
 from hoomd.md import _md
 import hoomd
 from hoomd.md.manifold import Manifold
@@ -53,15 +52,16 @@ class MethodRATTLE(Method):
         Users should use the subclasses and not instantiate `MethodRATTLE`
         directly.
     """
+
     def __init__(self, manifold_constraint, tolerance):
 
         if manifold_constraint == None and tolerance != 1e-6:
-            raise TypeError("The tolerance for RATTLE integration has been changed but "
-                               "manifold_constraint is not specified!")
-        param_dict = ParameterDict(
-            manifold_constraint = OnlyTypes(Manifold, allow_none=True),
-            tolerance=float(tolerance)
-            )
+            raise TypeError(
+                "The tolerance for RATTLE integration has been changed but "
+                "manifold_constraint is not specified!")
+        param_dict = ParameterDict(manifold_constraint=OnlyTypes(
+            Manifold, allow_none=True),
+                                   tolerance=float(tolerance))
         param_dict['manifold_constraint'] = manifold_constraint
         # set defaults
         self._param_dict.update(param_dict)
@@ -164,13 +164,11 @@ class NVT(Method):
     def __init__(self, filter, kT, tau):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau),
-            translational_thermostat_dof=(float, float),
-            rotational_thermostat_dof=(float, float)
-        )
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau),
+                                   translational_thermostat_dof=(float, float),
+                                   rotational_thermostat_dof=(float, float))
         param_dict.update(
             dict(kT=kT,
                  filter=filter,
@@ -192,11 +190,7 @@ class NVT(Method):
         group = self._simulation.state._get_group(self.filter)
         cpp_sys_def = self._simulation.state._cpp_sys_def
         thermo = thermo_cls(cpp_sys_def, group)
-        self._cpp_obj = my_class(cpp_sys_def,
-                                 group,
-                                 thermo,
-                                 self.tau,
-                                 self.kT)
+        self._cpp_obj = my_class(cpp_sys_def, group, thermo, self.tau, self.kT)
         super()._attach()
 
     def thermalize_thermostat_dof(self):
@@ -409,24 +403,35 @@ class NPT(Method):
             :math:`\nu_{xy}`, :math:`\nu_{xz}`, :math:`\nu_{yy}`,
             :math:`\nu_{yz}`, :math:`\nu_{zz}`)
     """
-    def __init__(self, filter, kT, tau, S, tauS, couple, box_dof=[True,True,True,False,False,False], rescale_all=False, gamma=0.0):
 
+    def __init__(self,
+                 filter,
+                 kT,
+                 tau,
+                 S,
+                 tauS,
+                 couple,
+                 box_dof=[True, True, True, False, False, False],
+                 rescale_all=False,
+                 gamma=0.0):
 
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau),
-            S=OnlyIf(to_type_converter((Variant,)*6), preprocess=self._preprocess_stress),
-            tauS=float(tauS),
-            couple=str(couple),
-            box_dof=[bool,]*6,
-            rescale_all=bool(rescale_all),
-            gamma=float(gamma),
-            translational_thermostat_dof=(float, float),
-            rotational_thermostat_dof=(float, float),
-            barostat_dof=(float, float, float, float, float, float)
-            )
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau),
+                                   S=OnlyIf(to_type_converter((Variant,) * 6),
+                                            preprocess=self._preprocess_stress),
+                                   tauS=float(tauS),
+                                   couple=str(couple),
+                                   box_dof=[
+                                       bool,
+                                   ] * 6,
+                                   rescale_all=bool(rescale_all),
+                                   gamma=float(gamma),
+                                   translational_thermostat_dof=(float, float),
+                                   rotational_thermostat_dof=(float, float),
+                                   barostat_dof=(float, float, float, float,
+                                                 float, float))
         param_dict.update(
             dict(filter=filter,
                  kT=kT,
@@ -439,7 +444,6 @@ class NPT(Method):
 
         # set defaults
         self._param_dict.update(param_dict)
-
 
     def _attach(self):
         # initialize the reflected c++ class
@@ -457,29 +461,21 @@ class NPT(Method):
 
         thermo_full_step = thermo_cls(cpp_sys_def, thermo_group)
 
-        self._cpp_obj = cpp_cls(cpp_sys_def,
-                                 thermo_group,
-                                 thermo_half_step,
-                                 thermo_full_step,
-                                 self.tau,
-                                 self.tauS,
-                                 self.kT,
-                                 self.S,
-                                 self.couple,
-                                 self.box_dof,
-                                 False)
+        self._cpp_obj = cpp_cls(cpp_sys_def, thermo_group, thermo_half_step,
+                                thermo_full_step, self.tau, self.tauS, self.kT,
+                                self.S, self.couple, self.box_dof, False)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
 
-    def _preprocess_stress(self,value):
+    def _preprocess_stress(self, value):
         if isinstance(value, Sequence):
             if len(value) != 6:
                 raise ValueError(
                     "Expected a single hoomd.variant.Variant / float or six.")
             return tuple(value)
         else:
-            return (value,value,value,0,0,0)
+            return (value, value, value, 0, 0, 0)
 
     def thermalize_thermostat_and_barostat_dof(self):
         r"""Set the thermostat and barostat momenta to random values.
@@ -499,9 +495,8 @@ class NPT(Method):
         .. seealso:: `State.thermalize_particle_momenta`
         """
         if not self._attached:
-            raise RuntimeError(
-                "Call Simulation.run(0) before"
-                "thermalize_thermostat_and_barostat_dof")
+            raise RuntimeError("Call Simulation.run(0) before"
+                               "thermalize_thermostat_and_barostat_dof")
 
         self._simulation._warn_if_seed_unset()
         self._cpp_obj.thermalizeThermostatAndBarostatDOF(
@@ -615,17 +610,16 @@ class NPH(Method):
                  rescale_all=False,
                  gamma=0.0):
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            S=OnlyIf(to_type_converter((Variant,) * 6),
-                     preprocess=self._preprocess_stress),
-            tauS=float,
-            couple=str,
-            box_dof=(bool,) * 6,
-            rescale_all=bool,
-            gamma=float,
-            barostat_dof=(float,) * 6)
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   S=OnlyIf(to_type_converter((Variant,) * 6),
+                                            preprocess=self._preprocess_stress),
+                                   tauS=float,
+                                   couple=str,
+                                   box_dof=(bool,) * 6,
+                                   rescale_all=bool,
+                                   gamma=float,
+                                   barostat_dof=(float,) * 6)
 
         param_dict.update(
             dict(filter=filter,
@@ -761,7 +755,11 @@ class NVE(MethodRATTLE):
 
     """
 
-    def __init__(self, filter, limit=None, manifold_constraint=None, tolerance=0.000001):
+    def __init__(self,
+                 filter,
+                 limit=None,
+                 manifold_constraint=None,
+                 tolerance=0.000001):
 
         # store metadata
         param_dict = ParameterDict(
@@ -774,7 +772,7 @@ class NVE(MethodRATTLE):
         # set defaults
         self._param_dict.update(param_dict)
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _attach(self):
 
@@ -782,26 +780,33 @@ class NVE(MethodRATTLE):
         if self.manifold_constraint is None:
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
-                self._cpp_obj = _md.TwoStepNVE(sim.state._cpp_sys_def,
-                                            sim.state._get_group(self.filter), False)
+                self._cpp_obj = _md.TwoStepNVE(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+                    False)
             else:
-                self._cpp_obj = _md.TwoStepNVEGPU(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter))
+                self._cpp_obj = _md.TwoStepNVEGPU(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter))
         else:
             self._attach_constraint(sim)
 
             # initialize the reflected c++ class
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLENVE'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLENVE' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLENVE'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
-            self._cpp_obj = my_class(self._simulation.state._cpp_sys_def,
-                                     self._simulation.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj, False, self.tolerance)
+            self._cpp_obj = my_class(
+                self._simulation.state._cpp_sys_def,
+                self._simulation.state._get_group(self.filter),
+                self.manifold_constraint._cpp_obj, False, self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
+
 
 class Langevin(MethodRATTLE):
     R""" Langevin dynamics with or without RATTLE
@@ -931,8 +936,12 @@ class Langevin(MethodRATTLE):
 
     """
 
-    def __init__(self, filter, kT, alpha=None,
-                 tally_reservoir_energy=False, manifold_constraint=None,
+    def __init__(self,
+                 filter,
+                 kT,
+                 alpha=None,
+                 tally_reservoir_energy=False,
+                 manifold_constraint=None,
                  tolerance=0.000001):
 
         # store metadata
@@ -941,23 +950,23 @@ class Langevin(MethodRATTLE):
             kT=Variant,
             alpha=OnlyTypes(float, allow_none=True),
             tally_reservoir_energy=bool(tally_reservoir_energy),
-            )
+        )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
         # set defaults
         self._param_dict.update(param_dict)
 
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
 
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
                                 param_dict=TypeParameterDict((1., 1., 1.),
-                                                             len_keys=1)
-                                )
+                                                             len_keys=1))
 
-        self._extend_typeparam([gamma,gamma_r])
+        self._extend_typeparam([gamma, gamma_r])
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -979,23 +988,27 @@ class Langevin(MethodRATTLE):
                 my_class = _md.TwoStepLangevinGPU
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
-                                 sim.state._get_group(self.filter),
-                                 self.kT)
+                                     sim.state._get_group(self.filter), self.kT)
         else:
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLELangevin'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLELangevin' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLELangevin'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj,
-                                     self.kT, self.tolerance)
+                                     self.manifold_constraint._cpp_obj, self.kT,
+                                     self.tolerance)
 
             # Attach param_dict and typeparam_dict
         super()._attach()
+
 
 class Brownian(MethodRATTLE):
     R""" Brownian dynamics with and without RATTLE.
@@ -1123,29 +1136,35 @@ class Brownian(MethodRATTLE):
             tuple is either positive float or zero.
     """
 
-    def __init__(self, filter, kT, manifold_constraint=None, tolerance=0.000001, alpha=None):
+    def __init__(self,
+                 filter,
+                 kT,
+                 manifold_constraint=None,
+                 tolerance=0.000001,
+                 alpha=None):
 
         # store metadata
         param_dict = ParameterDict(
             filter=ParticleFilter,
             kT=Variant,
             alpha=OnlyTypes(float, allow_none=True),
-            )
+        )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
         #set defaults
         self._param_dict.update(param_dict)
 
-        gamma = TypeParameter('gamma', type_kind='particle_types',
-                              param_dict=TypeParameterDict(1., len_keys=1)
-                              )
+        gamma = TypeParameter('gamma',
+                              type_kind='particle_types',
+                              param_dict=TypeParameterDict(1., len_keys=1))
 
-        gamma_r = TypeParameter('gamma_r', type_kind='particle_types',
-                                param_dict=TypeParameterDict((1., 1., 1.), len_keys=1)
-                                )
-        self._extend_typeparam([gamma,gamma_r])
+        gamma_r = TypeParameter('gamma_r',
+                                type_kind='particle_types',
+                                param_dict=TypeParameterDict((1., 1., 1.),
+                                                             len_keys=1))
+        self._extend_typeparam([gamma, gamma_r])
 
-        super().__init__(manifold_constraint,tolerance)
+        super().__init__(manifold_constraint, tolerance)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -1166,21 +1185,25 @@ class Brownian(MethodRATTLE):
                                               sim.state._get_group(self.filter),
                                               self.kT)
             else:
-                self._cpp_obj = _md.TwoStepBDGPU(sim.state._cpp_sys_def,
-                                                 sim.state._get_group(self.filter),
-                                                 self.kT)
+                self._cpp_obj = _md.TwoStepBDGPU(
+                    sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+                    self.kT)
         else:
             self._attach_constraint(sim)
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'TwoStepRATTLEBD'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'TwoStepRATTLEBD' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'TwoStepRATTLEBD'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(sim.state._cpp_sys_def,
                                      sim.state._get_group(self.filter),
-                                     self.manifold_constraint._cpp_obj,
-                                     self.kT, self.tolerance)
+                                     self.manifold_constraint._cpp_obj, self.kT,
+                                     self.tolerance)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
@@ -1231,10 +1254,9 @@ class Berendsen(Method):
 
     def __init__(self, filter, kT, tau):
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            kT=Variant,
-            tau=float(tau))
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   kT=Variant,
+                                   tau=float(tau))
         param_dict.update(dict(filter=filter, kT=kT))
 
         # set defaults
@@ -1245,7 +1267,9 @@ class Berendsen(Method):
         # Error out in MPI simulations
         if hoomd.version.mpi_enabled:
             if sim.device._comm.num_ranks > 1:
-                raise RuntimeError("hoomd.md.methods.Berendsen is not supported in multi-processor simulations.")
+                raise RuntimeError(
+                    "hoomd.md.methods.Berendsen is not supported in multi-processor simulations."
+                )
 
         group = sim.state._get_group(self.filter)
         if isinstance(sim.device, hoomd.device.CPU):
@@ -1254,9 +1278,7 @@ class Berendsen(Method):
         else:
             cpp_method = _md.TwoStepBerendsenGPU
             thermo_cls = _md.ComputeThermoGPU
-        self._cpp_obj = cpp_method(sim.state._cpp_sys_def,
-                                   group,
+        self._cpp_obj = cpp_method(sim.state._cpp_sys_def, group,
                                    thermo_cls(sim.state._cpp_sys_def, group),
-                                   self.tau,
-                                   self.kT)
+                                   self.tau, self.kT)
         super()._attach()

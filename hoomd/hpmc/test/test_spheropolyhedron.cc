@@ -922,4 +922,3 @@ UP_TEST( closest_pt_rounded_cube_no_rot )
     MY_CHECK_CLOSE(p.y,0,tol);
     MY_CHECK_CLOSE(p.z,0,tol);
     }
-

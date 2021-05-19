@@ -202,9 +202,7 @@ class ManualTuneDefinition(_TuneDefinition):
         self._target = value
 
     def __hash__(self):
-        return hash((self._user_get_x,
-                     self._user_set_x,
-                     self._user_get_y,
+        return hash((self._user_get_x, self._user_set_x, self._user_get_y,
                      self._target))
 
     def __eq__(self, other):
@@ -230,6 +228,7 @@ class SolverStep(metaclass=ABCMeta):
         be used in `hoomd.custom.Action` subclasses for user defined tuners and
         updaters.
     """
+
     @abstractmethod
     def solve_one(self, tunable):
         """Takes in a tunable object and attempts to solve x for a specified y.
@@ -292,8 +291,11 @@ class ScaleSolver(SolverStep):
         This solver is only usable when quantities are strictly positive.
     """
 
-    def __init__(self, max_scale=2.0, gamma=2.0,
-                 correlation='positive', tol=1e-5):
+    def __init__(self,
+                 max_scale=2.0,
+                 gamma=2.0,
+                 correlation='positive',
+                 tol=1e-5):
         self.max_scale = max_scale
         self.gamma = gamma
         self.correlation = correlation.lower()
@@ -328,8 +330,9 @@ class ScaleSolver(SolverStep):
             return NotImplemented
         if not isinstance(other, type(self)):
             return False
-        return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in ('max_scale', 'gamma', 'correlation', 'tol'))
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ('max_scale', 'gamma', 'correlation', 'tol'))
 
 
 class SecantSolver(SolverStep):
@@ -436,5 +439,6 @@ class SecantSolver(SolverStep):
             return NotImplemented
         if not isinstance(other, type(self)):
             return False
-        return all(getattr(self, attr) == getattr(other, attr)
-                   for attr in ('gamma', 'tol', '_counters', '_previous_pair'))
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in ('gamma', 'tol', '_counters', '_previous_pair'))

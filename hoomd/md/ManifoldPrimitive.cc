@@ -15,4 +15,3 @@ void export_ManifoldPrimitive(pybind11::module& m)
     .def_property_readonly("epsilon", &ManifoldPrimitive::getEpsilon)
     ;
     }
-

@@ -42,10 +42,13 @@ class Dihedral(Force):
         :py:class:`Dihedral` is the base class for all dihedral potentials.
         Users should not instantiate this class directly.
     """
+
     def _attach(self):
         # check that some dihedrals are defined
-        if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal() == 0:
-            self._simulation.device._cpp_msg.warning("No dihedrals are defined.\n")
+        if self._simulation.state._cpp_sys_def.getDihedralData().getNGlobal(
+        ) == 0:
+            self._simulation.device._cpp_msg.warning(
+                "No dihedrals are defined.\n")
 
         # create the c++ mirror class
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -98,17 +101,18 @@ class Harmonic(Dihedral):
     _cpp_class_name = "HarmonicDihedralForceCompute"
 
     def __init__(self):
-        params = TypeParameter('params', 'dihedral_types',
-                               TypeParameterDict(k=float, d=float,
-                                                 n=float, phi0=float,
-                                                 len_keys=1))
+        params = TypeParameter(
+            'params', 'dihedral_types',
+            TypeParameterDict(k=float, d=float, n=float, phi0=float,
+                              len_keys=1))
         self._add_typeparam(params)
 
 
 def _table_eval(theta, V, T, width):
-      dth = (2*math.pi) / float(width-1);
-      i = int(round((theta+math.pi)/dth))
-      return (V[i], T[i])
+    dth = (2 * math.pi) / float(width - 1)
+    i = int(round((theta + math.pi) / dth))
+    return (V[i], T[i])
+
 
 class table(force._force):
     R""" Tabulated dihedral potential.
@@ -154,66 +158,69 @@ class table(force._force):
         dtable.set_from_file('polymer', 'dihedral.dat')
 
     """
+
     def __init__(self, width, name=None):
 
         # initialize the base class
-        force._force.__init__(self, name);
-
+        force._force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.TableDihedralForceCompute(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableDihedralForceCompute(
+                hoomd.context.current.system_definition, int(width), self.name)
         else:
-            self.cpp_force = _md.TableDihedralForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableDihedralForceComputeGPU(
+                hoomd.context.current.system_definition, int(width), self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient matrix
-        self.dihedral_coeff = coeff();
+        self.dihedral_coeff = coeff()
 
         # stash the width for later use
-        self.width = width;
+        self.width = width
 
     def update_dihedral_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar();
-        Ttable = _hoomd.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar()
+        Ttable = _hoomd.std_vector_scalar()
 
         # calculate dth
-        dth = 2.0*math.pi / float(self.width-1);
+        dth = 2.0 * math.pi / float(self.width - 1)
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            theta = -math.pi+dth * i;
-            (V,T) = func(theta, **coeff);
+            theta = -math.pi + dth * i
+            (V, T) = func(theta, **coeff)
 
             # fill out the tables
-            Vtable.append(V);
-            Ttable.append(T);
+            Vtable.append(V)
+            Ttable.append(T)
 
         # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(atype, Vtable, Ttable);
-
+        self.cpp_force.setTable(atype, Vtable, Ttable)
 
     def update_coeffs(self):
         # check that the dihedral coefficients are valid
         if not self.dihedral_coeff.verify(["func", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error("Not all dihedral coefficients are set for dihedral.table\n");
-            raise RuntimeError("Error updating dihedral coefficients");
+            hoomd.context.current.device.cpp_msg.error(
+                "Not all dihedral coefficients are set for dihedral.table\n")
+            raise RuntimeError("Error updating dihedral coefficients")
 
         # set all the params
-        ntypes = hoomd.context.current.system_definition.getDihedralData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getDihedralData().getNameByType(i));
-
+        ntypes = hoomd.context.current.system_definition.getDihedralData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getDihedralData().getNameByType(i))
 
         # loop through all of the unique type dihedrals and evaluate the table
-        for i in range(0,ntypes):
-            func = self.dihedral_coeff.get(type_list[i], "func");
-            coeff = self.dihedral_coeff.get(type_list[i], "coeff");
+        for i in range(0, ntypes):
+            func = self.dihedral_coeff.get(type_list[i], "func")
+            coeff = self.dihedral_coeff.get(type_list[i], "coeff")
 
-            self.update_dihedral_table(i, func, coeff);
+            self.update_dihedral_table(i, func, coeff)
 
     def set_from_file(self, dihedralname, filename):
         R"""  Set a dihedral pair interaction from a file.
@@ -241,49 +248,62 @@ class table(force._force):
         """
 
         # open the file
-        f = open(filename);
+        f = open(filename)
 
-        theta_table = [];
-        V_table = [];
-        T_table = [];
+        theta_table = []
+        V_table = []
+        T_table = []
 
         # read in lines from the file
         for line in f.readlines():
-            line = line.strip();
+            line = line.strip()
 
             # skip comment lines
             if line[0] == '#':
-                continue;
+                continue
 
             # split out the columns
-            cols = line.split();
-            values = [float(f) for f in cols];
+            cols = line.split()
+            values = [float(f) for f in cols]
 
             # validate the input
             if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error("dihedral.table: file must have exactly 3 columns\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "dihedral.table: file must have exactly 3 columns\n")
+                raise RuntimeError("Error reading table file")
 
             # append to the tables
-            theta_table.append(values[0]);
-            V_table.append(values[1]);
-            T_table.append(values[2]);
+            theta_table.append(values[0])
+            V_table.append(values[1])
+            T_table.append(values[2])
 
         # validate input
         if self.width != len(T_table):
-            hoomd.context.current.device.cpp_msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
-            raise RuntimeError("Error reading table file");
-
+            hoomd.context.current.device.cpp_msg.error(
+                "dihedral.table: file must have exactly " + str(self.width)
+                + " rows\n")
+            raise RuntimeError("Error reading table file")
 
         # check for even spacing
-        dth = 2.0*math.pi / float(self.width-1);
-        for i in range(0,self.width):
-            theta =  -math.pi+dth * i;
+        dth = 2.0 * math.pi / float(self.width - 1)
+        for i in range(0, self.width):
+            theta = -math.pi + dth * i
             if math.fabs(theta - theta_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi\n");
-                hoomd.context.current.device.cpp_msg.error("row: " + str(i) + " expected: " + str(theta) + " got: " + str(theta_table[i]) + "\n");
+                hoomd.context.current.device.cpp_msg.error(
+                    "dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi\n"
+                )
+                hoomd.context.current.device.cpp_msg.error("row: " + str(i)
+                                                           + " expected: "
+                                                           + str(theta)
+                                                           + " got: "
+                                                           + str(theta_table[i])
+                                                           + "\n")
 
-        self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
+        self.dihedral_coeff.set(dihedralname,
+                                func=_table_eval,
+                                coeff=dict(V=V_table,
+                                           T=T_table,
+                                           width=self.width))
 
     ## \internal
     # \brief Get metadata
@@ -342,8 +362,11 @@ class OPLS(Dihedral):
 
     def __init__(self):
         # check that some dihedrals are defined
-        params = TypeParameter('params', 'dihedral_types',
-                               TypeParameterDict(k1=float, k2=float,
-                                                 k3=float, k4=float,
-                                                 len_keys=1))
+        params = TypeParameter(
+            'params', 'dihedral_types',
+            TypeParameterDict(k1=float,
+                              k2=float,
+                              k3=float,
+                              k4=float,
+                              len_keys=1))
         self._add_typeparam(params)

@@ -337,7 +337,7 @@ hipError_t gpu_rattle_nve_angular_step_one(Scalar4 *d_orientation,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
- 
+
 extern "C" __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
                              Scalar4 *d_angmom,
                              const Scalar3 *d_inertia,
@@ -429,4 +429,3 @@ hipError_t gpu_rattle_nve_angular_step_two(const Scalar4 *d_orientation,
 
     return hipSuccess;
     }
-

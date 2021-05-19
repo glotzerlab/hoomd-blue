@@ -103,7 +103,7 @@ def test_volume(base_box):
     assert isclose(base_box.volume, np.product(base_box.L))
     for L in np.linspace(1, 10, 10):
         box = Box.cube(L)
-        assert isclose(box.volume, L ** 3)
+        assert isclose(box.volume, L**3)
         box = Box(L, L + 1, L + 2)
         assert isclose(box.volume, L * (L + 1) * (L + 2))
 
@@ -123,11 +123,13 @@ def test_periodic(base_box):
 @fixture
 def expected_matrix(box_dict):
     return np.array([
-        [box_dict['Lx'],
-         box_dict['Ly'] * box_dict['xy'],
-         box_dict['Lz'] * box_dict['xz']],
+        [
+            box_dict['Lx'], box_dict['Ly'] * box_dict['xy'],
+            box_dict['Lz'] * box_dict['xz']
+        ],
         [0, box_dict['Ly'], box_dict['Lz'] * box_dict['yz']],
-        [0, 0, box_dict['Lz']], ])
+        [0, 0, box_dict['Lz']],
+    ])
 
 
 def test_matrix(base_box, expected_matrix):
@@ -144,21 +146,22 @@ def test_matrix(base_box, expected_matrix):
 def new_box_matrix_dict():
     Lx, Ly, Lz = 2, 4, 8
     xy, xz, yz = 1, 3, 5
-    new_box_matrix = np.array([
-        [Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz], [0, 0, Lz]])
-    return dict(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz,
-                matrix=new_box_matrix)
+    new_box_matrix = np.array([[Lx, Ly * xy, Lz * xz], [0, Ly, Lz * yz],
+                               [0, 0, Lz]])
+    return dict(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz, matrix=new_box_matrix)
 
 
 def test_matrix_setting(base_box, new_box_matrix_dict):
     base_box.matrix = new_box_matrix_dict['matrix']
     assert np.allclose(new_box_matrix_dict['matrix'], base_box.matrix)
-    assert np.allclose(base_box.L, [new_box_matrix_dict['Lx'],
-                                    new_box_matrix_dict['Ly'],
-                                    new_box_matrix_dict['Lz']])
-    assert np.allclose(base_box.tilts, [new_box_matrix_dict['xy'],
-                                        new_box_matrix_dict['xz'],
-                                        new_box_matrix_dict['yz']])
+    assert np.allclose(base_box.L, [
+        new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
+        new_box_matrix_dict['Lz']
+    ])
+    assert np.allclose(base_box.tilts, [
+        new_box_matrix_dict['xy'], new_box_matrix_dict['xz'],
+        new_box_matrix_dict['yz']
+    ])
 
 
 def test_cube():
@@ -178,12 +181,14 @@ def test_square():
 def test_from_matrix(new_box_matrix_dict):
     box = Box.from_matrix(new_box_matrix_dict['matrix'])
     assert np.allclose(new_box_matrix_dict['matrix'], box.matrix)
-    assert np.allclose(box.L, [new_box_matrix_dict['Lx'],
-                               new_box_matrix_dict['Ly'],
-                               new_box_matrix_dict['Lz']])
-    assert np.allclose(box.tilts, [new_box_matrix_dict['xy'],
-                                   new_box_matrix_dict['xz'],
-                                   new_box_matrix_dict['yz']])
+    assert np.allclose(box.L, [
+        new_box_matrix_dict['Lx'], new_box_matrix_dict['Ly'],
+        new_box_matrix_dict['Lz']
+    ])
+    assert np.allclose(box.tilts, [
+        new_box_matrix_dict['xy'], new_box_matrix_dict['xz'],
+        new_box_matrix_dict['yz']
+    ])
 
 
 def test_eq(base_box, box_dict):

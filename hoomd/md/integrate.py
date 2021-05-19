@@ -34,6 +34,7 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
+
     def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
@@ -168,17 +169,20 @@ class Integrator(_DynamicIntegrator):
             constraint forces applied to the particles in the system.
     """
 
-    def __init__(self, dt, aniso='auto', forces=None, constraints=None,
+    def __init__(self,
+                 dt,
+                 aniso='auto',
+                 forces=None,
+                 constraints=None,
                  methods=None):
 
         super().__init__(forces, constraints, methods)
 
-        self._param_dict = ParameterDict(
-            dt=float(dt),
-            aniso=OnlyFrom(['true', 'false', 'auto'],
-                           preprocess=_preprocess_aniso),
-            _defaults=dict(aniso="auto")
-            )
+        self._param_dict = ParameterDict(dt=float(dt),
+                                         aniso=OnlyFrom(
+                                             ['true', 'false', 'auto'],
+                                             preprocess=_preprocess_aniso),
+                                         _defaults=dict(aniso="auto"))
         if aniso is not None:
             self.aniso = aniso
 

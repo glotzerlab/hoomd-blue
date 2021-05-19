@@ -66,8 +66,8 @@ class Operations(Collection):
     def __init__(self):
         self._scheduled = False
         self._simulation = None
-        self._updaters = syncedlist.SyncedList(
-            Updater, _triggered_op_conversion)
+        self._updaters = syncedlist.SyncedList(Updater,
+                                               _triggered_op_conversion)
         self._writers = syncedlist.SyncedList(Writer, _triggered_op_conversion)
         self._tuners = syncedlist.SyncedList(
             Tuner, syncedlist._PartialGetAttr('_cpp_obj'))
@@ -86,8 +86,7 @@ class Operations(Collection):
         elif isinstance(operation, Compute):
             return self._computes
         else:
-            raise TypeError(
-                f"{type(operation)} is not a valid operation type.")
+            raise TypeError(f"{type(operation)} is not a valid operation type.")
 
     def add(self, operation):
         """Add an operation to this container.
@@ -229,9 +228,8 @@ class Operations(Collection):
     def __iter__(self):
         """Iterates through all contained operations."""
         integrator = (self._integrator,) if self._integrator else []
-        yield from chain(
-            self._tuners, self._updaters, integrator, self._writers,
-            self._computes)
+        yield from chain(self._tuners, self._updaters, integrator,
+                         self._writers, self._computes)
 
     def __len__(self):
         """Return the number of operations contained in this collection."""

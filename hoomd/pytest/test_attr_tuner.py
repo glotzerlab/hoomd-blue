@@ -1,7 +1,7 @@
 import pytest
 
-from hoomd.tune.attr_tuner import (
-    ManualTuneDefinition, ScaleSolver, SecantSolver)
+from hoomd.tune.attr_tuner import (ManualTuneDefinition, ScaleSolver,
+                                   SecantSolver)
 
 
 @pytest.fixture
@@ -11,13 +11,11 @@ def attr_dict():
 
 @pytest.fixture
 def attr_definition(attr_dict):
-    return ManualTuneDefinition(
-        get_y=lambda: attr_dict['y'],
-        get_x=lambda: attr_dict['x'],
-        set_x=lambda x: attr_dict.__setitem__('x', x),
-        target=attr_dict['target'],
-        domain=attr_dict['domain']
-        )
+    return ManualTuneDefinition(get_y=lambda: attr_dict['y'],
+                                get_x=lambda: attr_dict['x'],
+                                set_x=lambda x: attr_dict.__setitem__('x', x),
+                                target=attr_dict['target'],
+                                domain=attr_dict['domain'])
 
 
 @pytest.fixture
@@ -27,10 +25,11 @@ def alternate_definition():
         get_x=lambda: 1293,
         set_x=lambda x: None,
         target='foo',
-        )
+    )
 
 
 class TestManualTuneDefinition:
+
     def test_getting_attrs(self, attr_dict, attr_definition):
         assert attr_dict['x'] == attr_definition.x
         assert attr_dict['y'] == attr_definition.y
@@ -54,11 +53,11 @@ class TestManualTuneDefinition:
             attr_definition.y = 43
 
     def test_domain_wrapping(self, attr_definition):
-        domain_clamped_pairs = [
-            ((0, None), [(1, 1), (2, 2), (-1, 0), (1000, 1000)]),
-            ((None, 5), [(-1, -1), (-1000, -1000), (4.9, 4.9), (5.01, 5)]),
-            (None, [(1000, 1000), (-1000, -1000)])
-            ]
+        domain_clamped_pairs = [((0, None), [(1, 1), (2, 2), (-1, 0),
+                                             (1000, 1000)]),
+                                ((None, 5), [(-1, -1), (-1000, -1000),
+                                             (4.9, 4.9), (5.01, 5)]),
+                                (None, [(1000, 1000), (-1000, -1000)])]
         for domain, value_pairs in domain_clamped_pairs:
             attr_definition.domain = domain
             for x, clamped_x in value_pairs:
@@ -72,12 +71,11 @@ class TestManualTuneDefinition:
         assert attr_definition.x == 5
 
     def test_in_domain(self, attr_definition):
-        domain_check_pairs = [
-            ((0, None), [(1, True), (2, True), (-1, False), (1000, True)]),
-            ((None, 5), [(-1, True), (-1000, True),
-                         (4.9, True), (5.01, False)]),
-            (None, [(1000, True), (-1000, True)])
-            ]
+        domain_check_pairs = [((0, None), [(1, True), (2, True), (-1, False),
+                                           (1000, True)]),
+                              ((None, 5), [(-1, True), (-1000, True),
+                                           (4.9, True), (5.01, False)]),
+                              (None, [(1000, True), (-1000, True)])]
         for domain, check_pairs in domain_check_pairs:
             attr_definition.domain = domain
             for x, in_domain in check_pairs:
@@ -102,16 +100,15 @@ def solver(request):
 def equation_definition():
     """x^2 - 1, x = (1, -1)"""
     equation = dict(x=4)
-    equation['y'] = lambda: equation['x'] ** 2
-    return ManualTuneDefinition(
-        get_x=lambda: equation['x'],
-        set_x=lambda x: equation.__setitem__('x', x),
-        get_y=lambda: equation['y'](),
-        target=1
-        )
+    equation['y'] = lambda: equation['x']**2
+    return ManualTuneDefinition(get_x=lambda: equation['x'],
+                                set_x=lambda x: equation.__setitem__('x', x),
+                                get_y=lambda: equation['y'](),
+                                target=1)
 
 
 class TestSolvers:
+
     def test_solving(self, solver, equation_definition):
         cnt = 0
         complete = False
@@ -125,5 +122,5 @@ class TestSolvers:
         err = equation_definition.y - equation_definition.target
         solutions = (-1, 1)
         assert abs(err) <= solver.tol
-        assert any(abs(equation_definition.x - sol) <= 1e-3
-                   for sol in solutions)
+        assert any(
+            abs(equation_definition.x - sol) <= 1e-3 for sol in solutions)

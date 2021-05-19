@@ -1,9 +1,9 @@
-from hoomd.custom import (
-    CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Updater
 
 
 class _UpdaterProperty:
+
     @property
     def updater(self):
         return self._action
@@ -26,7 +26,7 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
     _cpp_class_name = 'PythonUpdater'
 
 
-class _InternalCustomUpdater(
-        _InternalCustomOperation, _UpdaterProperty, Updater):
+class _InternalCustomUpdater(_InternalCustomOperation, _UpdaterProperty,
+                             Updater):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'

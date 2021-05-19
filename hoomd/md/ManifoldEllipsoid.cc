@@ -18,5 +18,3 @@ void export_ManifoldEllipsoid(pybind11::module& m)
     .def_property_readonly("P", &ManifoldEllipsoid::getP)
     ;
     }
-
-

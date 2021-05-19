@@ -14,5 +14,3 @@ hipError_t gpu_compute_gauss_forces(const pair_args_t& pair_args,
     return gpu_compute_pair_forces<EvaluatorPairGauss>(pair_args,
                                                        d_params);
     }
-
-

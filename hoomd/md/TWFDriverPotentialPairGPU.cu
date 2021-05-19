@@ -11,5 +11,3 @@ hipError_t gpu_compute_twf_forces(
     return gpu_compute_pair_forces<EvaluatorPairTWF>(pair_args,
                                                      d_params);
     }
-
-

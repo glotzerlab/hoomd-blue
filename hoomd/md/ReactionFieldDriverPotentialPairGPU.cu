@@ -13,4 +13,3 @@ hipError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,
                                                      d_params);
     }
-

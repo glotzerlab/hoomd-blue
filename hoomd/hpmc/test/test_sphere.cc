@@ -109,6 +109,3 @@ UP_TEST( overlap_boundaries )
     UP_ASSERT(test_overlap(rij,a,c,err_count));
     UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }
-
-
-

@@ -12,6 +12,7 @@ from hoomd.example_plugin import _example_plugin
 # hoomd_script
 import hoomd
 
+
 ## Zeroes all particle velocities
 #
 # Every \a period time steps, particle velocities are modified so that they are all zero
@@ -30,12 +31,14 @@ class example(hoomd.update._updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         # initialize base class
-        hoomd.update._updater.__init__(self);
+        hoomd.update._updater.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _example_plugin.ExampleUpdater(hoomd.context.current.system_definition);
+            self.cpp_updater = _example_plugin.ExampleUpdater(
+                hoomd.context.current.system_definition)
         else:
-            self.cpp_updater = _example_plugin.ExampleUpdaterGPU(hoomd.context.current.system_definition);
+            self.cpp_updater = _example_plugin.ExampleUpdaterGPU(
+                hoomd.context.current.system_definition)
 
-        self.setupUpdater(period);
+        self.setupUpdater(period)

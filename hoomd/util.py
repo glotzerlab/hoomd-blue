@@ -22,6 +22,7 @@ def listify(s):
     else:
         return list(s)
 
+
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted
 _status_quiet_count = 0
@@ -97,6 +98,7 @@ def dict_filter(dict_, filter_):
 
 
 class NamespaceDict:
+
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
 
@@ -181,6 +183,7 @@ class NamespaceDict:
 
 
 class SafeNamespaceDict(NamespaceDict):
+
     def __setitem__(self, namespace, value):
         if namespace in self:
             raise KeyError("Namespace {} is being used. Remove before "
@@ -198,8 +201,17 @@ def _escaped_character(string, end):
     return _escaped_character.dict.get(esc_char, esc_char)
 
 
-_escaped_character.dict = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b',
-                           'f': '\f', 'v': '\v', '0': '\0', "'": "'", '"': '"'}
+_escaped_character.dict = {
+    'n': '\n',
+    't': '\t',
+    'r': '\r',
+    'b': '\b',
+    'f': '\f',
+    'v': '\v',
+    '0': '\0',
+    "'": "'",
+    '"': '"'
+}
 
 
 def str_to_tuple_parse(string):
@@ -234,8 +246,7 @@ def str_to_tuple_parse(string):
 
 
 def str_to_tuple_keys(dict_):
-    return {str_to_tuple_parse(key): value
-            for key, value in dict_.items()}
+    return {str_to_tuple_parse(key): value for key, value in dict_.items()}
 
 
 def array_to_strings(value):
@@ -243,9 +254,8 @@ def array_to_strings(value):
         string_list = []
         for string in value:
             string_list.append(
-                string.view(dtype='|S{}'.format(value.shape[1])
-                            ).decode('UTF-8')
-                )
+                string.view(
+                    dtype='|S{}'.format(value.shape[1])).decode('UTF-8'))
         return string_list
     else:
         return value
@@ -256,6 +266,7 @@ class GPUNotAvailableError(NotImplementedError):
 
 
 class NoGPU:
+
     def __init__(self, *args, **kwargs):
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")

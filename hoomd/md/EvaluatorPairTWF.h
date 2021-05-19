@@ -208,9 +208,9 @@ class EvaluatorPairTWF
                 if (energy_shift)
                     {
                     Scalar common_term_shift = 1.0 / (sigma2 / rcutsq - 1.0);
-                    Scalar common_term3_shift = common_term_shift 
+                    Scalar common_term3_shift = common_term_shift
                         * common_term_shift * common_term_shift;
-                    Scalar common_term6_shift = 
+                    Scalar common_term6_shift =
                         common_term3_shift * common_term3_shift;
                     pair_eng -= params.prefactor * (
                         common_term6_shift - params.alpha * common_term3_shift);

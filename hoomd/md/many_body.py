@@ -51,9 +51,9 @@ class Triplet(Force):
 
     def __init__(self, nlist, r_cut=None):
         self._nlist = validate_nlist(nlist)
-        r_cut_param = TypeParameter('r_cut', 'particle_types',
-                                    TypeParameterDict(positive_real, len_keys=2)
-                                    )
+        r_cut_param = TypeParameter(
+            'r_cut', 'particle_types',
+            TypeParameterDict(positive_real, len_keys=2))
         if r_cut is not None:
             r_cut_param.default = r_cut
         self._add_typeparam(r_cut_param)
@@ -67,16 +67,15 @@ class Triplet(Force):
                                    "different simulation.".format(type(self)))
         if not self.nlist._attached:
             self.nlist._attach()
-        self.nlist._cpp_obj.setStorageMode(
-            _md.NeighborList.storageMode.full)
+        self.nlist._cpp_obj.setStorageMode(_md.NeighborList.storageMode.full)
 
         if isinstance(self._simulation.device, hoomd.device.CPU):
             cls = getattr(_md, self._cpp_class_name)
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cls(
-            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
+                            self.nlist._cpp_obj)
 
         super()._attach()
 
@@ -191,24 +190,23 @@ class Tersoff(Triplet):
         tersoff.params[('A', 'B')] = dict(magnitudes=(2.0, 1.0), lambda3=5.0)
     """
     _cpp_class_name = "PotentialTersoff"
+
     def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut);
+        super().__init__(nlist, r_cut)
         params = TypeParameter(
-                'params',
-                'particle_types',
-                TypeParameterDict(cutoff_thickness=0.2,
-                    magnitudes=(1.0, 1.0),
-                    exp_factors=(2.0, 1.0),
-                    lambda3=0.0,
-                    dimer_r=1.5,
-                    n=0.0,
-                    gamma=0.0,
-                    c=0.0,
-                    d=1.0,
-                    m=0.0,
-                    alpha=3.0,
-                    len_keys=2)
-                )
+            'params', 'particle_types',
+            TypeParameterDict(cutoff_thickness=0.2,
+                              magnitudes=(1.0, 1.0),
+                              exp_factors=(2.0, 1.0),
+                              lambda3=0.0,
+                              dimer_r=1.5,
+                              n=0.0,
+                              gamma=0.0,
+                              c=0.0,
+                              d=1.0,
+                              m=0.0,
+                              alpha=3.0,
+                              len_keys=2))
         self._add_typeparam(params)
 
 
@@ -314,11 +312,16 @@ class RevCross(Triplet):
         bond_swap.params[('A','B')] = dict(sigma=1,n=100,epsilon=10,lambda3=1)
     """
     _cpp_class_name = "PotentialRevCross"
+
     def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut);
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(sigma=2.0, n=1.0, epsilon=1.0,
-                                   lambda3=1.0, len_keys=2))
+        super().__init__(nlist, r_cut)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(sigma=2.0,
+                              n=1.0,
+                              epsilon=1.0,
+                              lambda3=1.0,
+                              len_keys=2))
         self._add_typeparam(params)
 
 
@@ -381,10 +384,9 @@ class SquareDensity(Triplet):
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
     """
     _cpp_class_name = "PotentialSquareDensity"
+
     def __init__(self, nlist, r_cut=None):
-        super().__init__(nlist, r_cut);
-        params = TypeParameter(
-                'params',
-                'particle_types',
-                TypeParameterDict(A=0.0, B=float, len_keys=2))
+        super().__init__(nlist, r_cut)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(A=0.0, B=float, len_keys=2))
         self._add_typeparam(params)

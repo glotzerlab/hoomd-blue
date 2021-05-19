@@ -1,6 +1,6 @@
 from hoomd.conftest import pickling_check
-from hoomd.data.parameterdicts import (
-    TypeParameterDict, AttachedTypeParameterDict)
+from hoomd.data.parameterdicts import (TypeParameterDict,
+                                       AttachedTypeParameterDict)
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
 from hoomd.data.typeconverter import TypeConversionError, RequiredArg
 from pytest import fixture, raises
@@ -12,11 +12,8 @@ def identity(x):
 
 @fixture(scope='function')
 def typedict_singleton_keys():
-    return TypeParameterDict(**dict(foo=1,
-                                    bar=identity,
-                                    baz='hello'),
-                             len_keys=1
-                             )
+    return TypeParameterDict(**dict(foo=1, bar=identity, baz='hello'),
+                             len_keys=1)
 
 
 @fixture(scope='module')
@@ -34,8 +31,7 @@ def single_keys_generator():
 
 
 def test_typeparamdict_key_validation_single(typedict_singleton_keys,
-                                             valid_single_keys,
-                                             valid_pair_keys,
+                                             valid_single_keys, valid_pair_keys,
                                              invalid_keys):
     '''Test the validation step of type parameter dictionaries.'''
 
@@ -48,29 +44,22 @@ def test_typeparamdict_key_validation_single(typedict_singleton_keys,
 
 @fixture(scope='function')
 def typedict_pair_keys():
-    return TypeParameterDict(**dict(foo=1,
-                                    bar=identity,
-                                    baz='hello'),
-                             len_keys=2
-                             )
+    return TypeParameterDict(**dict(foo=1, bar=identity, baz='hello'),
+                             len_keys=2)
 
 
 @fixture(scope='module')
 def valid_pair_keys():
     return [('A', 'B'), (['A', 'B'], 'B'), ('B', ['A', 'B']),
-            [('A', 'B'), ('A', 'A')],
-            (['A', 'C'], ['B', 'D'])
-            ]
+            [('A', 'B'), ('A', 'A')], (['A', 'C'], ['B', 'D'])]
 
 
 def pair_keys_generator():
     yield from [('A', 'B'), ('B', 'C'), ('C', 'D')]
 
 
-def test_key_validation_pairs(typedict_pair_keys,
-                              valid_single_keys,
-                              valid_pair_keys,
-                              invalid_keys):
+def test_key_validation_pairs(typedict_pair_keys, valid_single_keys,
+                              valid_pair_keys, invalid_keys):
     '''Test the validation step of pair keys in type parameter dictionaries.
     '''
     for valid_key in valid_pair_keys + [pair_keys_generator()]:
@@ -85,47 +74,37 @@ def expanded_single_keys():
     return [['A'], ['A', 'B']]
 
 
-def test_key_expansion_single(typedict_singleton_keys,
-                              valid_single_keys,
+def test_key_expansion_single(typedict_singleton_keys, valid_single_keys,
                               expanded_single_keys):
     '''Test expansion of single type keys.'''
     for expanded_keys, valid_key in zip(expanded_single_keys,
                                         valid_single_keys):
         for expected_key, given_key in zip(
-                expanded_keys,
-                typedict_singleton_keys._yield_keys(valid_key)
-        ):
+                expanded_keys, typedict_singleton_keys._yield_keys(valid_key)):
             if expected_key != given_key:
-                raise Exception("Key {} != Key {}".format(expected_key,
-                                                          given_key))
+                raise Exception("Key {} != Key {}".format(
+                    expected_key, given_key))
 
 
 @fixture(scope='module')
 def expanded_pair_keys():
-    return [[('A', 'B')], [('A', 'B'), ('B', 'B')],
-            [('A', 'B'), ('B', 'B')],
+    return [[('A', 'B')], [('A', 'B'), ('B', 'B')], [('A', 'B'), ('B', 'B')],
             [('A', 'B'), ('A', 'A')],
-            [('A', 'B'), ('A', 'D'), ('B', 'C'), ('C', 'D')]
-            ]
+            [('A', 'B'), ('A', 'D'), ('B', 'C'), ('C', 'D')]]
 
 
-def test_key_expansion_pair(typedict_pair_keys,
-                            valid_pair_keys,
+def test_key_expansion_pair(typedict_pair_keys, valid_pair_keys,
                             expanded_pair_keys):
     '''Test key expansion of pair type keys.'''
-    for expanded_keys, valid_key in zip(expanded_pair_keys,
-                                        valid_pair_keys):
+    for expanded_keys, valid_key in zip(expanded_pair_keys, valid_pair_keys):
         for expected_key, given_key in zip(
-                expanded_keys,
-                typedict_pair_keys._yield_keys(valid_key)
-        ):
+                expanded_keys, typedict_pair_keys._yield_keys(valid_key)):
             if expected_key != given_key:
-                raise Exception("Key {} != Key {}".format(expected_key,
-                                                          given_key))
+                raise Exception("Key {} != Key {}".format(
+                    expected_key, given_key))
 
 
-def test_setting_dict_values(typedict_pair_keys,
-                             valid_pair_keys):
+def test_setting_dict_values(typedict_pair_keys, valid_pair_keys):
     '''Test setting type parameter dicts with dict values.'''
     # Valid setting
     for ind, valid_key in enumerate(valid_pair_keys):
@@ -144,8 +123,7 @@ def typedict_with_int():
     return TypeParameterDict(100., len_keys=1)
 
 
-def test_setting_arg_values(typedict_with_int,
-                            valid_single_keys):
+def test_setting_arg_values(typedict_with_int, valid_single_keys):
     '''Test setting typeparam_dicts with non dict values.'''
     # Valid setting
     for ind, valid_key in enumerate(valid_single_keys):
@@ -186,8 +164,7 @@ def test_singleton_keys(typedict_singleton_keys, valid_single_keys,
     assert list(typedict_singleton_keys.keys()) == expanded_single_keys[-1]
 
 
-def test_pair_keys(typedict_pair_keys, valid_pair_keys,
-                   expanded_pair_keys):
+def test_pair_keys(typedict_pair_keys, valid_pair_keys, expanded_pair_keys):
     '''Test the keys function.'''
     assert list(typedict_pair_keys.keys()) == []
     typedict_pair_keys[valid_pair_keys[-1]] = dict(bar=2)
@@ -205,11 +182,11 @@ def test_attaching(typedict_singleton_keys):
     cpp_obj = DummyCppObj()
     typedict_singleton_keys['A'] = dict(bar='first')
     typedict_singleton_keys['B'] = dict(bar='second')
-    return AttachedTypeParameterDict(
-        cpp_obj, param_name='type_param',
-        type_kind='particle_types',
-        type_param_dict=typedict_singleton_keys,
-        sim=sim)
+    return AttachedTypeParameterDict(cpp_obj,
+                                     param_name='type_param',
+                                     type_kind='particle_types',
+                                     type_param_dict=typedict_singleton_keys,
+                                     sim=sim)
 
 
 @fixture(scope='function')

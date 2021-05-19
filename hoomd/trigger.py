@@ -28,7 +28,6 @@ Example:
 
 from hoomd import _hoomd
 
-
 # Note: We use pybind11's pickling infrastructure for simple triggers like
 # Periodic, Before, After, and On. However, we use __reduce__ for classes with
 # that are composed by other triggers. We do this not because we can't do this
@@ -46,7 +45,8 @@ from hoomd import _hoomd
 # instead and instantiate _hoomd.Trigger in __setstate__ (which has not already
 # been called as __init__ was not called).
 
-class Trigger(_hoomd.Trigger): # noqa D214
+
+class Trigger(_hoomd.Trigger):  # noqa D214
     """Base class trigger.
 
     Provides methods common to all triggers.
@@ -79,6 +79,7 @@ class Trigger(_hoomd.Trigger): # noqa D214
             Returns:
                 bool: `True` when the trigger is active, `False` when it is not.
     """
+
     def __getstate__(self):
         """Get the state of the trigger object."""
         return self.__dict__
@@ -122,11 +123,8 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
     def __eq__(self, other):
         """Return a Boolean indicating whether the two triggers are equivalent.
         """
-        return (
-            isinstance(other, Periodic)
-            and self.period == other.period
-            and self.phase == other.phase
-        )
+        return (isinstance(other, Periodic) and self.period == other.period
+                and self.phase == other.phase)
 
 
 class Before(_hoomd.BeforeTrigger, Trigger):
@@ -150,6 +148,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
     Attributes:
         timestep (int): The step after the trigger ends.
     """
+
     def __init__(self, timestep):
         Trigger.__init__(self)
         if timestep < 0:
@@ -224,6 +223,7 @@ class After(_hoomd.AfterTrigger, Trigger):
     Attributes:
         timestep (int): The step before the trigger will start.
     """
+
     def __init__(self, timestep):
         Trigger.__init__(self)
         if timestep < 0:
@@ -258,6 +258,7 @@ class Not(_hoomd.NotTrigger, Trigger):
     Attributes:
         trigger (hoomd.trigger.Trigger): The trigger object to negate.
     """
+
     def __init__(self, trigger):
         Trigger.__init__(self)
         _hoomd.NotTrigger.__init__(self, trigger)
@@ -356,6 +357,7 @@ class Or(_hoomd.OrTrigger, Trigger):
     Attributes:
         triggers (`list` [`hoomd.trigger.Trigger`]): List of triggers.
     """
+
     def __init__(self, triggers):
         Trigger.__init__(self)
         triggers = tuple(triggers)

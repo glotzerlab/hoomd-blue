@@ -9,11 +9,10 @@ from hoomd.md import nlist as nl
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (
-    OnlyFrom, OnlyTypes, positive_real, nonnegative_real)
+from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
+                                      nonnegative_real)
 
 import math
-
 
 validate_nlist = OnlyTypes(NList)
 
@@ -111,13 +110,11 @@ class Pair(force.Force):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2)
-                                 )
+                                 TypeParameterDict(positive_real, len_keys=2))
         if r_cut is not None:
             tp_r_cut.default = r_cut
         tp_r_on = TypeParameter('r_on', 'particle_types',
-                                TypeParameterDict(nonnegative_real, len_keys=2)
-                                )
+                                TypeParameterDict(nonnegative_real, len_keys=2))
         if r_on is not None:
             tp_r_on.default = r_on
         self._extend_typeparam([tp_r_cut, tp_r_on])
@@ -179,8 +176,8 @@ class Pair(force.Force):
             cls = getattr(_md, self._cpp_class_name + "GPU")
             self.nlist._cpp_obj.setStorageMode(
                 _md.NeighborList.storageMode.full)
-        self._cpp_obj = cls(
-            self._simulation.state._cpp_sys_def, self.nlist._cpp_obj)
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def,
+                            self.nlist._cpp_obj)
 
         super()._attach()
 
@@ -250,10 +247,9 @@ class LJ(Pair):
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 len_keys=2)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -305,11 +301,12 @@ class Gauss(Pair):
         gauss.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairGauss"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -379,15 +376,15 @@ class SLJ(Pair):
         slj.r_cut[('B', 'B')] = 2**(1.0/6.0)
     """
     _cpp_class_name = 'PotentialPairSLJ'
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         if mode == 'xplor':
             raise ValueError("xplor is not a valid mode for SLJ potential")
 
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 len_keys=2)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
@@ -448,11 +445,12 @@ class Yukawa(Pair):
         yukawa.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairYukawa"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(kappa=float, epsilon=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(kappa=float, epsilon=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -509,17 +507,18 @@ class Ewald(Pair):
         ewald.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairEwald"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(kappa=float, alpha=0.0,
-                                             len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
         self._add_typeparam(params)
 
 
 def _table_eval(r, rmin, rmax, V, F, width):
-    dr = (rmax - rmin) / float(width-1);
-    i = int(round((r - rmin)/dr))
+    dr = (rmax - rmin) / float(width - 1)
+    i = int(round((r - rmin) / dr))
     return (V[i], F[i])
 
 
@@ -603,49 +602,55 @@ class table(force._force):
         not diverge near r=0, then a setting of *rmin=0* is valid.
 
     """
+
     def __init__(self, width, nlist, name=None):
 
         # initialize the base class
-        force._force.__init__(self, name);
+        force._force.__init__(self, name)
 
         # setup the coefficient matrix
-        self.pair_coeff = coeff();
+        self.pair_coeff = coeff()
 
         self.nlist = nlist
-        self.nlist.subscribe(lambda:self.get_rcut())
+        self.nlist.subscribe(lambda: self.get_rcut())
         self.nlist.update_rcut()
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.TablePotential(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
+            self.cpp_force = _md.TablePotential(
+                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
+                int(width), self.name)
         else:
-            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
-            self.cpp_force = _md.TablePotentialGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, int(width), self.name);
+            self.nlist.cpp_nlist.setStorageMode(
+                _md.NeighborList.storageMode.full)
+            self.cpp_force = _md.TablePotentialGPU(
+                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
+                int(width), self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # stash the width for later use
-        self.width = width;
+        self.width = width
 
     def update_pair_table(self, typei, typej, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar();
-        Ftable = _hoomd.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar()
+        Ftable = _hoomd.std_vector_scalar()
 
         # calculate dr
-        dr = (rmax - rmin) / float(self.width-1);
+        dr = (rmax - rmin) / float(self.width - 1)
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            r = rmin + dr * i;
-            (V,F) = func(r, rmin, rmax, **coeff);
+            r = rmin + dr * i
+            (V, F) = func(r, rmin, rmax, **coeff)
 
             # fill out the tables
-            Vtable.append(V);
-            Ftable.append(F);
+            Vtable.append(V)
+            Ftable.append(F)
 
         # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
+        self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax)
 
     ## \internal
     # \brief Get the r_cut pair dictionary
@@ -655,60 +660,67 @@ class table(force._force):
             return None
 
         # go through the list of only the active particle types in the sim
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getParticleData().getNameByType(i))
 
         # update the rcut by pair type
-        r_cut_dict = nl.rcut();
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
+        r_cut_dict = nl.rcut()
+        for i in range(0, ntypes):
+            for j in range(i, ntypes):
                 # get the r_cut value
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], 'rmax');
-                r_cut_dict.set_pair(type_list[i],type_list[j], rmax);
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], 'rmax')
+                r_cut_dict.set_pair(type_list[i], type_list[j], rmax)
 
-        return r_cut_dict;
+        return r_cut_dict
 
     def get_max_rcut(self):
         # loop only over current particle types
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getParticleData().getNameByType(i))
 
         # find the maximum rmax to update the neighbor list with
-        maxrmax = 0.0;
+        maxrmax = 0.0
 
         # loop through all of the unique type pairs and find the maximum rmax
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax");
-                maxrmax = max(maxrmax, rmax);
+        for i in range(0, ntypes):
+            for j in range(i, ntypes):
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax")
+                maxrmax = max(maxrmax, rmax)
 
-        return maxrmax;
+        return maxrmax
 
     def update_coeffs(self):
         # check that the pair coefficients are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error("Not all pair coefficients are set for pair.table\n");
-            raise RuntimeError("Error updating pair coefficients");
+            hoomd.context.current.device.cpp_msg.error(
+                "Not all pair coefficients are set for pair.table\n")
+            raise RuntimeError("Error updating pair coefficients")
 
         # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getParticleData().getNameByType(i))
 
         # loop through all of the unique type pairs and evaluate the table
-        for i in range(0,ntypes):
-            for j in range(i,ntypes):
-                func = self.pair_coeff.get(type_list[i], type_list[j], "func");
-                rmin = self.pair_coeff.get(type_list[i], type_list[j], "rmin");
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax");
-                coeff = self.pair_coeff.get(type_list[i], type_list[j], "coeff");
+        for i in range(0, ntypes):
+            for j in range(i, ntypes):
+                func = self.pair_coeff.get(type_list[i], type_list[j], "func")
+                rmin = self.pair_coeff.get(type_list[i], type_list[j], "rmin")
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax")
+                coeff = self.pair_coeff.get(type_list[i], type_list[j], "coeff")
 
-                self.update_pair_table(i, j, func, rmin, rmax, coeff);
+                self.update_pair_table(i, j, func, rmin, rmax, coeff)
 
     def set_from_file(self, a, b, filename):
         R""" Set a pair interaction from a file.
@@ -736,52 +748,62 @@ class table(force._force):
         """
 
         # open the file
-        f = open(filename);
+        f = open(filename)
 
-        r_table = [];
-        V_table = [];
-        F_table = [];
+        r_table = []
+        V_table = []
+        F_table = []
 
         # read in lines from the file
         for line in f.readlines():
-            line = line.strip();
+            line = line.strip()
 
             # skip comment lines
             if line[0] == '#':
-                continue;
+                continue
 
             # split out the columns
-            cols = line.split();
-            values = [float(f) for f in cols];
+            cols = line.split()
+            values = [float(f) for f in cols]
 
             # validate the input
             if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error("pair.table: file must have exactly 3 columns\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "pair.table: file must have exactly 3 columns\n")
+                raise RuntimeError("Error reading table file")
 
             # append to the tables
-            r_table.append(values[0]);
-            V_table.append(values[1]);
-            F_table.append(values[2]);
+            r_table.append(values[0])
+            V_table.append(values[1])
+            F_table.append(values[2])
 
         # validate input
         if self.width != len(r_table):
-            hoomd.context.current.device.cpp_msg.error("pair.table: file must have exactly " + str(self.width) + " rows\n");
-            raise RuntimeError("Error reading table file");
+            hoomd.context.current.device.cpp_msg.error(
+                "pair.table: file must have exactly " + str(self.width)
+                + " rows\n")
+            raise RuntimeError("Error reading table file")
 
         # extract rmin and rmax
-        rmin_table = r_table[0];
-        rmax_table = r_table[-1];
+        rmin_table = r_table[0]
+        rmax_table = r_table[-1]
 
         # check for even spacing
-        dr = (rmax_table - rmin_table) / float(self.width-1);
-        for i in range(0,self.width):
-            r = rmin_table + dr * i;
+        dr = (rmax_table - rmin_table) / float(self.width - 1)
+        for i in range(0, self.width):
+            r = rmin_table + dr * i
             if math.fabs(r - r_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error("pair.table: r must be monotonically increasing and evenly spaced\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "pair.table: r must be monotonically increasing and evenly spaced\n"
+                )
+                raise RuntimeError("Error reading table file")
 
-        self.pair_coeff.set(a, b, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        self.pair_coeff.set(a,
+                            b,
+                            func=_table_eval,
+                            rmin=rmin_table,
+                            rmax=rmax_table,
+                            coeff=dict(V=V_table, F=F_table, width=self.width))
 
 
 class Morse(Pair):
@@ -835,11 +857,12 @@ class Morse(Pair):
     """
 
     _cpp_class_name = "PotentialPairMorse"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(D0=float, alpha=float, r0=float,
-                                             len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(D0=float, alpha=float, r0=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -928,10 +951,12 @@ class DPD(Pair):
         dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
+
     def __init__(self, nlist, kT, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(A=float, gamma=float, len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
         d = ParameterDict(kT=hoomd.variant.Variant)
@@ -997,11 +1022,12 @@ class DPDConservative(Pair):
         dpdc.params[(['A', 'B'], ['C', 'D'])] = dict(A=3.0)
     """
     _cpp_class_name = "PotentialPairDPD"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
-        params =  TypeParameter('params', 'particle_types',
-                                TypeParameterDict(A=float, len_keys=2))
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1098,14 +1124,18 @@ class DPDLJ(Pair):
         dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
+
     def __init__(self, nlist, kT, r_cut=None, r_on=0., mode='none'):
         if mode == 'xplor':
             raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types', TypeParameterDict(
-            epsilon=float, sigma=float, gamma=float,
-            len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              gamma=float,
+                              len_keys=2))
         self._add_typeparam(params)
 
         d = ParameterDict(kT=hoomd.variant.Variant,
@@ -1124,6 +1154,7 @@ class DPDLJ(Pair):
             simulation._warn_if_seed_unset()
 
         super()._add(simulation)
+
 
 class ForceShiftedLJ(Pair):
     """Force-shifted Lennard-Jones pair potential.
@@ -1184,13 +1215,14 @@ class ForceShiftedLJ(Pair):
         fslj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     """
     _cpp_class_name = "PotentialPairForceShiftedLJ"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
 
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(sigma=float, epsilon=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(sigma=float, epsilon=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1264,11 +1296,12 @@ class Moliere(Pair):
         moliere.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
     """
     _cpp_class_name = "PotentialPairMoliere"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(qi=float, qj=float, aF=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(qi=float, qj=float, aF=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1340,12 +1373,13 @@ class ZBL(Pair):
         zbl.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
     """
     _cpp_class_name = "PotentialPairZBL"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
-        super().__init__(nlist, r_cut, r_on, mode);
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(qi=float, qj=float, aF=float,
-                                                 len_keys=2))
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(qi=float, qj=float, aF=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1408,9 +1442,13 @@ class Mie(Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 n=float, m=float, len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              n=float,
+                              m=float,
+                              len_keys=2))
 
         self._add_typeparam(params)
 
@@ -1481,11 +1519,15 @@ class ReactionField(Pair):
         reaction_field.params[('B', 'B')] = dict(epsilon=1.0, eps_rf=0.0, use_charge=True)
     """
     _cpp_class_name = "PotentialPairReactionField"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, eps_rf=float,
-                                                 use_charge=False, len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              eps_rf=float,
+                              use_charge=False,
+                              len_keys=2))
 
         self._add_typeparam(params)
 
@@ -1559,19 +1601,19 @@ class DLVO(Pair):
         DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
     """
     _cpp_class_name = "PotentialPairDLVO"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        if mode=='xplor':
+        if mode == 'xplor':
             raise ValueError("xplor is not a valid mode for the DLVO potential")
 
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(kappa=float, Z=float, A=float,
-                                                 len_keys=2)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(kappa=float, Z=float, A=float, len_keys=2))
         self._add_typeparam(params)
 
         # mode not allowed to be xplor, so re-do param dict entry without that option
-        param_dict = ParameterDict(mode=OnlyFrom(['none','shift']))
+        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(param_dict)
         self.mode = mode
 
@@ -1626,11 +1668,12 @@ class Buckingham(Pair):
     """
 
     _cpp_class_name = "PotentialPairBuckingham"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(A=float, rho=float, C=float,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(A=float, rho=float, C=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1681,11 +1724,12 @@ class LJ1208(Pair):
         lj1208.params[('A', 'B')] = dict(epsilon=2.0, sigma=1.0)
     """
     _cpp_class_name = "PotentialPairLJ1208"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 len_keys=2))
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1738,11 +1782,12 @@ class LJ0804(Pair):
         lj0804.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairLJ0804"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        super().__init__(nlist, r_cut, r_on, mode);
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 len_keys=2))
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1880,13 +1925,18 @@ class OPP(Pair):
         opp.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairOPP"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(
-                                   C1=float, C2=float, eta1=float, eta2=float,
-                                   k=float, phi=float, len_keys=2)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(C1=float,
+                              C2=float,
+                              eta1=float,
+                              eta2=float,
+                              k=float,
+                              phi=float,
+                              len_keys=2))
         self._add_typeparam(params)
 
 
@@ -1938,8 +1988,10 @@ class TWF(Pair):
 
     def __init__(self, nlist, r_cut=None, r_on=0.0, mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 alpha=float, len_keys=2)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              alpha=float,
+                              len_keys=2))
         self._add_typeparam(params)

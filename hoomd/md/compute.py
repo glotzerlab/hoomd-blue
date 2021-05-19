@@ -327,10 +327,8 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     def __init__(self, filter, kT, harmonic_pressure=0):
 
         # store metadata
-        param_dict = ParameterDict(
-            kT=float(kT),
-            harmonic_pressure=float(harmonic_pressure)
-        )
+        param_dict = ParameterDict(kT=float(kT),
+                                   harmonic_pressure=float(harmonic_pressure))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -345,9 +343,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             thermoHMA_cls = _md.ComputeThermoHMAGPU
         group = self._simulation.state._get_group(self._filter)
         self._cpp_obj = thermoHMA_cls(self._simulation.state._cpp_sys_def,
-                                      group,
-                                      self.kT,
-                                      self.harmonic_pressure)
+                                      group, self.kT, self.harmonic_pressure)
         super()._attach()
 
     @log

@@ -136,8 +136,8 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(
         t = rotate(conj(q),t);
 
         // check for zero moment of inertia
-        bool x_zero = (I.x < Scalar(EPSILON)); 
-	bool y_zero = (I.y < Scalar(EPSILON)); 
+        bool x_zero = (I.x < Scalar(EPSILON));
+	bool y_zero = (I.y < Scalar(EPSILON));
 	bool z_zero = (I.z < Scalar(EPSILON));
 
         // ignore torque component along an axis for which the moment of inertia zero

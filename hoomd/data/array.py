@@ -12,8 +12,10 @@ class HOOMDArrayError(RuntimeError):
     pass
 
 
-def _WrapClassFactory(
-        methods_wrap_func_list, *args, allow_exceptions=False, **kwargs):
+def _WrapClassFactory(methods_wrap_func_list,
+                      *args,
+                      allow_exceptions=False,
+                      **kwargs):
     """Factory function for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
@@ -31,7 +33,9 @@ def _WrapClassFactory(
             class methods, and the method raising the error is skipped.
         **kwargs (Any): Required key word arugments for the functors.
     """
+
     class _WrapClass(type):
+
         def __new__(cls, name, bases, class_dict):
             for methods, functor in methods_wrap_func_list:
                 for method in methods:
@@ -63,13 +67,13 @@ original array is gathered from the methods' documentation of which a list is
 found https://numpy.org/doc/stable/reference/arrays.ndarray.html.
 """
 
-
 # Operations that return an new array pointing to a new buffer.
 # -----------------------------------------------------------
 # These are safe to just use the internal buffer and return the new array
 # without check for shared memory or wrapping the returned array into an
 # HOOMDArray. These all involve mutation or transformation of initial arrays
 # into a new array.
+
 
 def _op_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
@@ -82,20 +86,40 @@ def _op_wrap(method, cls=np.ndarray):
     return wrapped
 
 
-_ndarray_ops_ = ([
-    # Comparison
-    '__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__', '__bool__',
-    # Unary
-    '__neg__', '__pos__', '__abs__', '__invert__',
-    # Arithmetic
-    '__add__', '__sub__', '__mul__', '__truediv__', '__floordiv__', '__mod__',
-    '__divmod__', '__pow__',
-    # Bitwise
-    '__lshift__', '__rshift__', '__and__', '__or__', '__xor__',
-    # Matrix
-    '__matmul__',
-], _op_wrap)
-
+_ndarray_ops_ = (
+    [
+        # Comparison
+        '__lt__',
+        '__le__',
+        '__gt__',
+        '__ge__',
+        '__eq__',
+        '__ne__',
+        '__bool__',
+        # Unary
+        '__neg__',
+        '__pos__',
+        '__abs__',
+        '__invert__',
+        # Arithmetic
+        '__add__',
+        '__sub__',
+        '__mul__',
+        '__truediv__',
+        '__floordiv__',
+        '__mod__',
+        '__divmod__',
+        '__pow__',
+        # Bitwise
+        '__lshift__',
+        '__rshift__',
+        '__and__',
+        '__or__',
+        '__xor__',
+        # Matrix
+        '__matmul__',
+    ],
+    _op_wrap)
 
 # Magic methods that never return an array to the same memory buffer
 # ----------------------------------------------------------------------
@@ -105,17 +129,24 @@ _ndarray_ops_ = ([
 
 _magic_wrap = _op_wrap
 
-_ndarray_magic_safe_ = ([
-    # Copy
-    '__copy__', '__deepcopy__',
-    # Pickling
-    '__reduce__', '__setstate__',
-    # Container based
-    '__len__', '__setitem__', '__contains__',
-    # Conversion
-    '__int__', '__float__', '__complex__'
-], _magic_wrap)
-
+_ndarray_magic_safe_ = (
+    [
+        # Copy
+        '__copy__',
+        '__deepcopy__',
+        # Pickling
+        '__reduce__',
+        '__setstate__',
+        # Container based
+        '__len__',
+        '__setitem__',
+        '__contains__',
+        # Conversion
+        '__int__',
+        '__float__',
+        '__complex__'
+    ],
+    _magic_wrap)
 
 # Magic methods that may return an array pointing to the same buffer
 # ------------------------------------------------------------------
@@ -123,6 +154,7 @@ _ndarray_magic_safe_ = ([
 # original array. We need to check the returned array for potential shared
 # memory, and if any may be shared (we cannot be sure that they do, but we won't
 # get any false negatives), we wrap the returned array with HOOMDArray.
+
 
 def _magic_wrap_with_check(method, cls=np.ndarray):
     func = getattr(cls, method)
@@ -139,17 +171,19 @@ def _magic_wrap_with_check(method, cls=np.ndarray):
     return wrapped
 
 
-_ndarray_magic_unsafe_ = ([
-    # Container based
-    '__getitem__',
-], _magic_wrap_with_check)
-
+_ndarray_magic_unsafe_ = (
+    [
+        # Container based
+        '__getitem__',
+    ],
+    _magic_wrap_with_check)
 
 # Operations that return an array pointing to the same buffer
 # ----------------------------------------------------------
 # These operation are guarenteed to return an array pointing to the same memory
 # buffer. They all modify arrays in place (e.g. +=). We always return a
 # HOOMDArray for these methods that return anything.
+
 
 def _iop_wrap(method, cls=np.ndarray):
     func = getattr(cls, method)
@@ -164,13 +198,24 @@ def _iop_wrap(method, cls=np.ndarray):
     return wrapped
 
 
-_ndarray_iops_ = ([
-    # Inplace Arithmetic
-    '__iadd__', '__isub__', '__imul__', '__itruediv__', '__ifloordiv__',
-    '__imod__', '__ipow__',
-    # Inplace Bitwise
-    '__ilshift__', '__irshift__', '__iand__', '__ior__', '__ixor__'
-], _iop_wrap)
+_ndarray_iops_ = (
+    [
+        # Inplace Arithmetic
+        '__iadd__',
+        '__isub__',
+        '__imul__',
+        '__itruediv__',
+        '__ifloordiv__',
+        '__imod__',
+        '__ipow__',
+        # Inplace Bitwise
+        '__ilshift__',
+        '__irshift__',
+        '__iand__',
+        '__ior__',
+        '__ixor__'
+    ],
+    _iop_wrap)
 
 # Regular methods that may return an array pointing to the same buffer
 # --------------------------------------------------------------------
@@ -179,13 +224,18 @@ _ndarray_iops_ = ([
 # it may share memory with the original HOOMDArray object.
 _std_func_with_check = _magic_wrap_with_check
 
-_ndarray_std_funcs_ = ([
-    # Select subset of array
-    'diagonal',
-    # Reshapes array
-    'reshape', 'transpose', 'swapaxes', 'ravel', 'squeeze',
-], _std_func_with_check)
-
+_ndarray_std_funcs_ = (
+    [
+        # Select subset of array
+        'diagonal',
+        # Reshapes array
+        'reshape',
+        'transpose',
+        'swapaxes',
+        'ravel',
+        'squeeze',
+    ],
+    _std_func_with_check)
 
 # Functions that we disallow
 # --------------------------
@@ -193,7 +243,9 @@ _ndarray_std_funcs_ = ([
 # underlying array, reshape the array inplace, or would have a non-intuitive
 # wrapper (view).
 
+
 def _disallowed_wrap(method):
+
     def raise_error(*args, **kwargs):
         raise HOOMDArrayError(
             "The {} method is not allowed for {} objects.".format(
@@ -202,15 +254,14 @@ def _disallowed_wrap(method):
     return raise_error
 
 
-_ndarray_disallow_funcs_ = ([
-    'view', 'resize', 'flat', 'flatiter'
-], _disallowed_wrap)
-
+_ndarray_disallow_funcs_ = (['view', 'resize', 'flat',
+                             'flatiter'], _disallowed_wrap)
 
 # Properties that can return an array pointing to the same buffer
 # ---------------------------------------------------------------
 # Like before we must check these to ensure we don't leak an ndarray pointing to
 # the original buffer.
+
 
 def _wrap_properties_with_check(prop, cls=np.ndarray):
     prop = getattr(cls, prop)
@@ -233,15 +284,13 @@ def _wrap_properties_with_check(prop, cls=np.ndarray):
     return wrapped
 
 
-_ndarray_properties_ = ([
-    'T'
-], _wrap_properties_with_check)
-
+_ndarray_properties_ = (['T'], _wrap_properties_with_check)
 
 # Properties we disallow
 # --------------------------------
 # We disallow data and base since we do not want users trying to get at the
 # underlying memory buffer of a HOOMDArray.
+
 
 def _disallowed_property_wrap(method):
 
@@ -254,10 +303,7 @@ def _disallowed_property_wrap(method):
     return raise_error
 
 
-_ndarray_disallow_properties_ = ([
-    'data', 'base'
-], _disallowed_property_wrap)
-
+_ndarray_disallow_properties_ = (['data', 'base'], _disallowed_property_wrap)
 
 _wrap_list = [
     _ndarray_ops_,
@@ -479,6 +525,7 @@ if hoomd.version.gpu_enabled:
                 does not support read only arrays (although the
                 ``__cuda_array_interface__`` does).
         """
+
         def __init__(self, buffer, callback, read_only=None):
             self._buffer = buffer
             self._callback = callback
@@ -504,6 +551,7 @@ if hoomd.version.gpu_enabled:
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase,
                             metaclass=_WrapClassFactory(_wrap_gpu_array_list)):
+
             def __len__(self):
                 return self.shape[0]
 
@@ -558,25 +606,22 @@ if hoomd.version.gpu_enabled:
                     return "<emph>" + name + "</emph>(<strong>INVALID</strong>)"
     else:
         _cupy_ndarray_magic_safe_ = ([
-            item for item in _ndarray_magic_safe_[0]
-            if item not in {
-                '__copy__', '__setstate__', '__contains__', '__setitem__'}],
-            _ndarray_magic_safe_[1])
+            item for item in _ndarray_magic_safe_[0] if item not in
+            {'__copy__', '__setstate__', '__contains__', '__setitem__'}
+        ], _ndarray_magic_safe_[1])
 
         _wrap_gpu_array_list = [
-            _ndarray_iops_,
-            _cupy_ndarray_magic_safe_,
-            _ndarray_std_funcs_,
-            _ndarray_disallow_funcs_,
-            _ndarray_properties_,
+            _ndarray_iops_, _cupy_ndarray_magic_safe_, _ndarray_std_funcs_,
+            _ndarray_disallow_funcs_, _ndarray_properties_,
             _ndarray_disallow_properties_
         ]
 
         _GPUArrayMeta = _WrapClassFactory(_wrap_gpu_array_list,
-                                         allow_exceptions=True,
-                                         cls=cupy.ndarray)
+                                          allow_exceptions=True,
+                                          cls=cupy.ndarray)
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=_GPUArrayMeta):
+
             def __getattr__(self, item):
                 return getattr(self._coerce_to_ndarray(), item)
 

@@ -31,10 +31,11 @@ class _LocalAccess(ABC):
             if raw_attr in self._fields:
                 buff = getattr(self._cpp_obj, self._fields[raw_attr])(flag)
             else:
-                raise AttributeError(
-                    "{} object has no attribute {}".format(type(self), attr))
+                raise AttributeError("{} object has no attribute {}".format(
+                    type(self), attr))
 
-        self._accessed_fields[attr] = arr = self._array_cls(buff, lambda: self._entered)
+        self._accessed_fields[attr] = arr = self._array_cls(
+            buff, lambda: self._entered)
         return arr
 
     def _get_raw_attr_and_flag(self, attr):
@@ -58,9 +59,8 @@ class _LocalAccess(ABC):
             try:
                 arr = getattr(self, attr)
             except AttributeError:
-                raise AttributeError(
-                    "{} object has no attribute {}.".format(
-                        self.__class__, attr))
+                raise AttributeError("{} object has no attribute {}.".format(
+                    self.__class__, attr))
             else:
                 if arr.read_only:
                     raise RuntimeError(
@@ -133,6 +133,7 @@ class ParticleLocalAccessBase(_LocalAccess):
         directly. This is also true in HOOMD-blue's MD integration methods (see
         `hoomd.md.methods`)
     """
+
     @property
     @abstractmethod
     def _cpp_cls(self):
@@ -156,7 +157,8 @@ class ParticleLocalAccessBase(_LocalAccess):
         'net_force': 'getNetForce',
         'net_torque': 'getNetTorque',
         'net_virial': 'getNetVirial',
-        'net_energy': 'getNetEnergy'}
+        'net_energy': 'getNetEnergy'
+    }
 
     def __init__(self, state):
         super().__init__()
@@ -164,6 +166,7 @@ class ParticleLocalAccessBase(_LocalAccess):
 
 
 class _GroupLocalAccess(_LocalAccess):
+
     @property
     @abstractmethod
     def _cpp_cls(self):
@@ -327,6 +330,7 @@ class PairLocalAccessBase(_GroupLocalAccess):
 
 
 class _LocalSnapshot:
+
     def __init__(self, state):
         self._state = state
         self._box = state.box

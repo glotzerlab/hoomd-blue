@@ -27,6 +27,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
+
 class _force():
     r""" Base external force field.
 
@@ -37,17 +38,24 @@ class _force():
     the python level by a deriving type. Use :py:class:`constant` as an example.
 
     """
+
     def __init__(self):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
-            raise RuntimeError('mpcd.force: system must be initialized before the external force.\n')
+            raise RuntimeError(
+                'mpcd.force: system must be initialized before the external force.\n'
+            )
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.current.device.cpp_msg.error('mpcd.force: an MPCD system must be initialized before the external force.\n')
+            hoomd.context.current.device.cpp_msg.error(
+                'mpcd.force: an MPCD system must be initialized before the external force.\n'
+            )
             raise RuntimeError('MPCD system not initialized')
 
-        self._cpp = _mpcd.ExternalField(hoomd.context.current.device.cpp_exec_conf)
+        self._cpp = _mpcd.ExternalField(
+            hoomd.context.current.device.cpp_exec_conf)
+
 
 class block(_force):
     r""" Block force.
@@ -98,26 +106,34 @@ class block(_force):
     .. versionadded:: 2.6
 
     """
+
     def __init__(self, F, H=None, w=None):
 
         # current box size
-        Lz = hoomd.context.current.system_definition.getParticleData().getGlobalBox().getL().z
+        Lz = hoomd.context.current.system_definition.getParticleData(
+        ).getGlobalBox().getL().z
 
         # setup default blocks if needed
         if H is None:
-            H = Lz/4
+            H = Lz / 4
         if w is None:
-            w = Lz/4
+            w = Lz / 4
 
         # validate block positions
-        if H <= 0 or H > Lz/2:
-            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: H = {} should be nonzero and inside box.\n'.format(H))
+        if H <= 0 or H > Lz / 2:
+            hoomd.context.current.device.cpp_msg.error(
+                'mpcd.force.block: H = {} should be nonzero and inside box.\n'
+                .format(H))
             raise ValueError('Invalid block spacing')
-        if w <= 0 or w > (Lz/2-H):
-            hoomd.context.current.device.cpp_msg.error('mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'.format(w,H))
+        if w <= 0 or w > (Lz / 2 - H):
+            hoomd.context.current.device.cpp_msg.error(
+                'mpcd.force.block: w = {} should be nonzero and keep block in box (H = {}).\n'
+                .format(w, H))
             raise ValueError('Invalid block width')
         if w > H:
-            hoomd.context.current.device.cpp_msg.warning('mpcd.force.block: blocks overlap with H = {} < w = {}.\n'.format(H,w))
+            hoomd.context.current.device.cpp_msg.warning(
+                'mpcd.force.block: blocks overlap with H = {} < w = {}.\n'
+                .format(H, w))
 
         # initialize python level
         _force.__init__(self)
@@ -139,6 +155,7 @@ class block(_force):
     @property
     def w(self):
         return self._w
+
 
 class constant(_force):
     r""" Constant force.
@@ -172,14 +189,18 @@ class constant(_force):
     .. versionadded:: 2.6
 
     """
+
     def __init__(self, F):
 
         try:
             if len(F) != 3:
-                hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+                hoomd.context.current.device.cpp_msg.error(
+                    'mpcd.force.constant: field must be a 3-component vector.\n'
+                )
                 raise ValueError('External field must be a 3-component vector')
         except TypeError:
-            hoomd.context.current.device.cpp_msg.error('mpcd.force.constant: field must be a 3-component vector.\n')
+            hoomd.context.current.device.cpp_msg.error(
+                'mpcd.force.constant: field must be a 3-component vector.\n')
             raise ValueError('External field must be a 3-component vector')
 
         # initialize python level
@@ -187,11 +208,13 @@ class constant(_force):
         self._F = F
 
         # initialize c++
-        self._cpp.ConstantForce(_hoomd.make_scalar3(self.F[0], self.F[1], self.F[2]))
+        self._cpp.ConstantForce(
+            _hoomd.make_scalar3(self.F[0], self.F[1], self.F[2]))
 
     @property
     def F(self):
         return self._F
+
 
 class sine(_force):
     r""" Sine force.
@@ -232,6 +255,7 @@ class sine(_force):
     .. versionadded:: 2.6
 
     """
+
     def __init__(self, F, k):
 
         # initialize python level

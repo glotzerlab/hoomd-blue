@@ -40,6 +40,7 @@ from hoomd import _hoomd
 
 from . import _mpcd
 
+
 class _bounce_back(hoomd.integrate._integration_method):
     """ NVE integration with bounce-back rules.
 
@@ -55,6 +56,7 @@ class _bounce_back(hoomd.integrate._integration_method):
     A :py:class:`hoomd.md.compute.ThermodynamicQuantities` is automatically specified and associated with *group*.
 
     """
+
     def __init__(self, group):
         # initialize base class
         hoomd.integrate._integration_method.__init__(self)
@@ -65,7 +67,7 @@ class _bounce_back(hoomd.integrate._integration_method):
         # store metadata
         self.group = group
         self.boundary = None
-        self.metadata_fields = ['group','boundary']
+        self.metadata_fields = ['group', 'boundary']
 
     def _process_boundary(self, bc):
         """ Process boundary condition string into enum
@@ -86,9 +88,12 @@ class _bounce_back(hoomd.integrate._integration_method):
         elif bc == "slip":
             return _mpcd.boundary.slip
         else:
-            hoomd.context.current.device.cpp_msg.error("mpcd.integrate: boundary condition " + bc + " not recognized.\n")
+            hoomd.context.current.device.cpp_msg.error(
+                "mpcd.integrate: boundary condition " + bc
+                + " not recognized.\n")
             raise ValueError("Unrecognized streaming boundary condition")
             return None
+
 
 class slit(_bounce_back):
     """ NVE integration with bounce-back rules in a slit channel.
@@ -112,10 +117,11 @@ class slit(_bounce_back):
     .. versionadded:: 2.7
 
     """
+
     def __init__(self, group, H, V=0.0, boundary="no_slip"):
         # initialize base class
-        _bounce_back.__init__(self,group)
-        self.metadata_fields += ['H','V']
+        _bounce_back.__init__(self, group)
+        self.metadata_fields += ['H', 'V']
 
         # initialize the c++ class
         if not hoomd.context.current.device.mode == 'gpu':
@@ -130,7 +136,8 @@ class slit(_bounce_back):
         bc = self._process_boundary(boundary)
         geom = _mpcd.SlitGeometry(H, V, bc)
 
-        self.cpp_method = cpp_class(hoomd.context.current.system_definition, group.cpp_group, geom)
+        self.cpp_method = cpp_class(hoomd.context.current.system_definition,
+                                    group.cpp_group, geom)
         self.cpp_method.validateGroup()
 
     def set_params(self, H=None, V=None, boundary=None):
@@ -160,7 +167,8 @@ class slit(_bounce_back):
             self.boundary = boundary
 
         bc = self._process_boundary(self.boundary)
-        self.cpp_method.geometry = _mpcd.SlitGeometry(self.H,self.V,bc)
+        self.cpp_method.geometry = _mpcd.SlitGeometry(self.H, self.V, bc)
+
 
 class slit_pore(_bounce_back):
     """ NVE integration with bounce-back rules in a slit pore channel.
@@ -183,10 +191,11 @@ class slit_pore(_bounce_back):
     .. versionadded:: 2.7
 
     """
+
     def __init__(self, group, H, L, boundary="no_slip"):
         # initialize base class
-        _bounce_back.__init__(self,group)
-        self.metadata_fields += ['H','L']
+        _bounce_back.__init__(self, group)
+        self.metadata_fields += ['H', 'L']
 
         # initialize the c++ class
         if not hoomd.context.current.device.mode == 'gpu':
@@ -201,7 +210,8 @@ class slit_pore(_bounce_back):
         bc = self._process_boundary(boundary)
         geom = _mpcd.SlitPoreGeometry(H, L, bc)
 
-        self.cpp_method = cpp_class(hoomd.context.current.system_definition, group.cpp_group, geom)
+        self.cpp_method = cpp_class(hoomd.context.current.system_definition,
+                                    group.cpp_group, geom)
         self.cpp_method.validateGroup()
 
     def set_params(self, H=None, L=None, boundary=None):
@@ -230,4 +240,4 @@ class slit_pore(_bounce_back):
             self.boundary = boundary
 
         bc = self._process_boundary(self.boundary)
-        self.cpp_method.geometry = _mpcd.SlitPoreGeometry(self.H,self.L,bc)
+        self.cpp_method.geometry = _mpcd.SlitPoreGeometry(self.H, self.L, bc)

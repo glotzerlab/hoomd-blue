@@ -11,5 +11,3 @@ hipError_t gpu_compute_opp_forces(
     return gpu_compute_pair_forces<EvaluatorPairOPP>(
         pair_args, d_params);
     }
-
-

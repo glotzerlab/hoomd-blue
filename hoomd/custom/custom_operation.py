@@ -63,8 +63,8 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
             try:
                 return getattr(self._action, attr)
             except AttributeError:
-                raise AttributeError(
-                    "{} object has no attribute {}".format(type(self), attr))
+                raise AttributeError("{} object has no attribute {}".format(
+                    type(self), attr))
 
     def _setattr_hook(self, attr, value):
         """This implements the __setattr__ pass through to the Action."""
@@ -109,6 +109,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
 
 
 class _AbstractLoggableWithPassthrough(_AbstractLoggable):
+
     def __getattr__(self, attr):
         try:
             # This will not work with classmethods that are constructors. We
@@ -123,8 +124,8 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
                 type(self), self, attr))
 
 
-class _InternalCustomOperation(
-        CustomOperation, metaclass=_AbstractLoggableWithPassthrough):
+class _InternalCustomOperation(CustomOperation,
+                               metaclass=_AbstractLoggableWithPassthrough):
     """Internal class for Python ``Action``s. Offers a streamlined __init__.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
@@ -153,5 +154,7 @@ class _InternalCustomOperation(
 
     def __init__(self, trigger, *args, **kwargs):
         super().__init__(self._internal_class(*args, **kwargs), trigger)
-        self._export_dict = {key: value.update_cls(self.__class__)
-                             for key, value in self._export_dict.items()}
+        self._export_dict = {
+            key: value.update_cls(self.__class__)
+            for key, value in self._export_dict.items()
+        }

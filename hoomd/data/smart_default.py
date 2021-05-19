@@ -11,6 +11,7 @@ class NoDefault:
 
 
 class SmartDefault(ABC):
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -25,13 +26,15 @@ class SmartDefault(ABC):
 
 
 class SmartDefaultSequence(SmartDefault):
+
     def __init__(self, sequence, default):
         if is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = [toDefault(item, dft)
-                        for item, dft in zip(sequence, dft_iter)]
+        self.default = [
+            toDefault(item, dft) for item, dft in zip(sequence, dft_iter)
+        ]
 
     def __call__(self, sequence):
         if sequence is None:
@@ -70,13 +73,14 @@ class SmartDefaultSequence(SmartDefault):
 
 
 class SmartDefaultFixedLengthSequence(SmartDefault):
+
     def __init__(self, sequence, default):
         if is_iterable(default):
             dft_iter = cycle(default)
         else:
             dft_iter = repeat(default)
-        self.default = tuple([toDefault(item, dft)
-                              for item, dft in zip(sequence, dft_iter)])
+        self.default = tuple(
+            [toDefault(item, dft) for item, dft in zip(sequence, dft_iter)])
 
     def __call__(self, sequence):
         if sequence is None:
@@ -105,13 +109,18 @@ class SmartDefaultFixedLengthSequence(SmartDefault):
 
 
 class SmartDefaultMapping(SmartDefault):
+
     def __init__(self, mapping, defaults):
         if defaults is NoDefault:
-            self.default = {key: toDefault(value, NoDefault)
-                            for key, value in mapping.items()}
+            self.default = {
+                key: toDefault(value, NoDefault)
+                for key, value in mapping.items()
+            }
         else:
-            self.default = {key: toDefault(value, defaults.get(key, NoDefault))
-                            for key, value in mapping.items()}
+            self.default = {
+                key: toDefault(value, defaults.get(key, NoDefault))
+                for key, value in mapping.items()
+            }
 
     def __call__(self, mapping):
         if mapping is None:
@@ -184,8 +193,8 @@ def to_base_defaults(value, _defaults=NoDefault):
             if isinstance(_defaults, Mapping):
                 for key, dft in value.items():
                     sub_explicit_default = _defaults.get(key, NoDefault)
-                    new_default[key] = to_base_defaults(
-                        dft, sub_explicit_default)
+                    new_default[key] = to_base_defaults(dft,
+                                                        sub_explicit_default)
             else:
                 return None
         else:

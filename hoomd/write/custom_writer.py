@@ -1,9 +1,9 @@
-from hoomd.custom import (
-    CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Writer
 
 
 class _WriterProperty:
+
     @property
     def analyzer(self):
         return self._action
@@ -26,7 +26,6 @@ class CustomWriter(CustomOperation, _WriterProperty, Writer):
     _cpp_class_name = 'PythonAnalyzer'
 
 
-class _InternalCustomWriter(
-        _InternalCustomOperation, _WriterProperty, Writer):
+class _InternalCustomWriter(_InternalCustomOperation, _WriterProperty, Writer):
     _cpp_list_name = 'analyzers'
     _cpp_class_name = 'PythonAnalyzer'

@@ -16,4 +16,3 @@ void export_ManifoldDiamond(pybind11::module& m)
     .def_property_readonly("epsilon", &ManifoldDiamond::getEpsilon)
     ;
     }
-

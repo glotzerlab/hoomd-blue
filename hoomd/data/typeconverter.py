@@ -48,9 +48,8 @@ def box_preprocessing(box):
         try:
             return hoomd.Box.from_box(box)
         except Exception:
-            raise ValueError(
-                "{} is not convertible into a hoomd.Box object. "
-                "using hoomd.Box.from_box".format(box))
+            raise ValueError("{} is not convertible into a hoomd.Box object. "
+                             "using hoomd.Box.from_box".format(box))
 
 
 def positive_real(number):
@@ -87,6 +86,7 @@ class _HelpValidate(ABC):
     `TypeConverterValue` if validation fails, else it should return the
     validated/transformed value.
     """
+
     def __init__(self, preprocess=None, postprocess=None, allow_none=False):
         self._preprocess = identity if preprocess is None else preprocess
         self._postprocess = identity if postprocess is None else postprocess
@@ -116,6 +116,7 @@ class Either(_HelpValidate):
 
     would allow either value to pass.
     """
+
     def __init__(self, specs, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
         self.specs = specs
@@ -139,8 +140,12 @@ class OnlyIf(_HelpValidate):
     Not strictly necessary, but keeps the theme of the other classes, and allows
     pre/post-processing and optionally allows None.
     """
-    def __init__(self, cond,
-                 preprocess=None, postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 cond,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.cond = cond
 
@@ -160,8 +165,13 @@ class OnlyTypes(_HelpValidate):
     provided and ``strict`` is ``False``, conversions will be attempted in the
     order of the ``types`` sequence.
     """
-    def __init__(self, *types, strict=False,
-                 preprocess=None, postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 *types,
+                 strict=False,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
         self.types = types
@@ -172,8 +182,7 @@ class OnlyTypes(_HelpValidate):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} not instance of any of {self.types}."
-            )
+                f"Value {value} not instance of any of {self.types}.")
         else:
             for type_ in self.types:
                 try:
@@ -182,8 +191,7 @@ class OnlyTypes(_HelpValidate):
                     pass
             raise ValueError(
                 f"Value {value} is not convertable into any of these types "
-                f"{self.types}"
-            )
+                f"{self.types}")
 
     def __str__(self):
         return f"OnlyTypes({str(self.types)})"
@@ -196,7 +204,10 @@ class OnlyFrom(_HelpValidate):
     that generator expressions are fine.
     """
 
-    def __init__(self, options,preprocess=None, postprocess=None,
+    def __init__(self,
+                 options,
+                 preprocess=None,
+                 postprocess=None,
                  allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.options = set(options)
@@ -205,8 +216,8 @@ class OnlyFrom(_HelpValidate):
         if value in self:
             return value
         else:
-            raise ValueError("Value {} not in options: {}".format(value,
-                                                                  self.options))
+            raise ValueError("Value {} not in options: {}".format(
+                value, self.options))
 
     def __contains__(self, value):
         return value in self.options
@@ -217,6 +228,7 @@ class OnlyFrom(_HelpValidate):
 
 class SetOnce:
     """Used to make properties read-only after setting."""
+
     def __init__(self, validation):
         if isclass(validation):
             self._validation = OnlyTypes(validation)
@@ -243,6 +255,7 @@ class TypeConverter(ABC):
         Subclasses should not be instantiated directly. Instead use
         `to_type_converter`.
     """
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
@@ -328,8 +341,8 @@ class TypeConverterValue(TypeConverter):
                 raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
                 "Value {} of type {} cannot be converted using {}. Raised "
-                "error: {}".format(
-                    value, type(value), str(self.converter), str(err)))
+                "error: {}".format(value, type(value), str(self.converter),
+                                   str(err)))
 
 
 class TypeConverterSequence(TypeConverter):
@@ -358,6 +371,7 @@ class TypeConverterSequence(TypeConverter):
             # All elements should be in a float int ordering
             TypeConverterSequence([float, int])
     """
+
     def __init__(self, sequence):
         self.converter = [to_type_converter(item) for item in sequence]
 
@@ -372,9 +386,8 @@ class TypeConverterSequence(TypeConverter):
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
-                raise TypeConversionError(
-                    "In list item number {}: {}"
-                    "".format(i, str(err)))
+                raise TypeConversionError("In list item number {}: {}"
+                                          "".format(i, str(err)))
             return new_sequence
 
     def __iter__(self):
@@ -407,6 +420,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
             # a string followed for a float and int
             TypeConverterFixedLengthSequence((string, float, int))
     """
+
     def __init__(self, sequence):
         self.converter = tuple([to_type_converter(item) for item in sequence])
 
@@ -425,9 +439,8 @@ class TypeConverterFixedLengthSequence(TypeConverter):
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
-                raise TypeConversionError(
-                    "In tuple item number {}: {}"
-                    "".format(i, str(err)))
+                raise TypeConversionError("In tuple item number {}: {}"
+                                          "".format(i, str(err)))
             return tuple(new_sequence)
 
     def __iter__(self):
@@ -461,9 +474,11 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
             # invalid
             t({'new_key': None})
     """
+
     def __init__(self, mapping):
-        self.converter = {key: to_type_converter(value)
-                          for key, value in mapping.items()}
+        self.converter = {
+            key: to_type_converter(value) for key, value in mapping.items()
+        }
 
     def __call__(self, mapping):
         if not isinstance(mapping, Mapping):

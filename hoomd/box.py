@@ -24,8 +24,7 @@ def _make_vec3(vec, vec_factory, scalar_type):
             return vec_factory(v, v, v)
     if l_vec == 3:
         try:
-            return vec_factory(scalar_type(vec[0]),
-                               scalar_type(vec[1]),
+            return vec_factory(scalar_type(vec[0]), scalar_type(vec[1]),
                                scalar_type(vec[2]))
         except (ValueError, TypeError):
             raise ValueError("Expected values of type {}.".format(scalar_type))
@@ -38,9 +37,7 @@ _make_scalar3 = partial(_make_vec3,
                         vec_factory=_hoomd.make_scalar3,
                         scalar_type=float)
 
-_make_int3 = partial(_make_vec3,
-                     vec_factory=_hoomd.make_int3,
-                     scalar_type=int)
+_make_int3 = partial(_make_vec3, vec_factory=_hoomd.make_int3, scalar_type=int)
 
 _make_char3 = partial(_make_vec3,
                       vec_factory=_hoomd.make_char3,
@@ -101,7 +98,7 @@ class Box:
 
     # Constructors
     def __init__(self, Lx, Ly, Lz=0, xy=0, xz=0, yz=0):
-        if Lz == 0 and (xz != 0 or yz !=0):
+        if Lz == 0 and (xz != 0 or yz != 0):
             raise ValueError("Cannot set the xz or yz tilt factor on a 2D box.")
         self._cpp_obj = _hoomd.BoxDim(Lx, Ly, Lz)
         self._cpp_obj.setTiltFactors(xy, xz, yz)
@@ -356,9 +353,9 @@ class Box:
 
         The lattice vectors are read-only.
         """
-        return np.concatenate(
-            [_vec3_to_array(self._cpp_obj.getLatticeVector(i))
-             for i in range(3)]).reshape(3, 3)
+        return np.concatenate([
+            _vec3_to_array(self._cpp_obj.getLatticeVector(i)) for i in range(3)
+        ]).reshape(3, 3)
 
     @property
     def volume(self):

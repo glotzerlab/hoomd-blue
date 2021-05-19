@@ -536,4 +536,3 @@ UP_TEST( rng_seeding )
 //         std::cout << i+1 << " "  << small[i] << " " << large[i] << std::endl;
 //         }
 //     }
-

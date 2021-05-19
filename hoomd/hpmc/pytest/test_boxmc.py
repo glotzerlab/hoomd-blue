@@ -10,8 +10,7 @@ import pytest
 import numpy as np
 
 valid_constructor_args = [
-    dict(trigger=hoomd.trigger.Periodic(10),
-         betaP=hoomd.variant.Constant(10)),
+    dict(trigger=hoomd.trigger.Periodic(10), betaP=hoomd.variant.Constant(10)),
     dict(trigger=hoomd.trigger.After(100),
          betaP=hoomd.variant.Ramp(1, 5, 0, 100)),
     dict(trigger=hoomd.trigger.Before(100),

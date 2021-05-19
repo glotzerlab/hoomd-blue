@@ -10,6 +10,7 @@ Commands that help in benchmarking HOOMD-blue performance.
 
 import hoomd
 
+
 def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     R""" Perform a series of benchmark runs.
 
@@ -24,15 +25,15 @@ def series(warmup=100000, repeat=20, steps=10000, limit_hours=None):
     """
     # check if initialization has occurred
     if not hoomd.init.is_initialized():
-        raise RuntimeError("Cannot tune r_buff before initialization\n");
+        raise RuntimeError("Cannot tune r_buff before initialization\n")
 
-    tps_list = [];
+    tps_list = []
 
     if warmup > 0:
-        hoomd.run(warmup);
+        hoomd.run(warmup)
 
-    for i in range(0,repeat):
-        hoomd.run(steps, limit_hours=limit_hours);
-        tps_list.append(hoomd.context.current.system.getLastTPS());
+    for i in range(0, repeat):
+        hoomd.run(steps, limit_hours=limit_hours)
+        tps_list.append(hoomd.context.current.system.getLastTPS())
 
-    return tps_list;
+    return tps_list

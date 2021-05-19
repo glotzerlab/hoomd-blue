@@ -8,6 +8,7 @@ from hoomd.data.array import HOOMDGPUArray
 import hoomd
 
 if hoomd.version.gpu_enabled:
+
     class ParticleLocalAccessGPU(ParticleLocalAccessBase):
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
@@ -37,6 +38,7 @@ if hoomd.version.gpu_enabled:
         _array_cls = HOOMDGPUArray
 
     class LocalSnapshotGPU(_LocalSnapshot):
+
         def __init__(self, state):
             super().__init__(state)
             self._particles = ParticleLocalAccessGPU(state)
@@ -73,6 +75,7 @@ else:
 
     class LocalSnapshotGPU(NoGPU, _LocalSnapshot):
         pass
+
 
 _gpu_snapshot_docs = """
 Provides context manager access to HOOMD-blue GPU data buffers.

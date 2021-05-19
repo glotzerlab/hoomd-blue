@@ -1,11 +1,11 @@
 from hoomd import _hoomd
 from hoomd.operation import Operation
-from hoomd.custom import (
-    CustomOperation, _InternalCustomOperation, Action)
+from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Tuner
 
 
 class _TunerProperty:
+
     @property
     def tuner(self):
         return self._action
@@ -34,8 +34,7 @@ class CustomTuner(CustomOperation, _TunerProperty, Tuner):
         Operation._attach(self)
 
 
-class _InternalCustomTuner(
-        _InternalCustomOperation, _TunerProperty, Tuner):
+class _InternalCustomTuner(_InternalCustomOperation, _TunerProperty, Tuner):
     _cpp_list_name = 'tuners'
     _cpp_class_name = 'PythonTuner'
 

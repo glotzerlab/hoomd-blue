@@ -163,10 +163,10 @@ __global__ void gpu_rattle_nve_step_two_kernel(
 	inv_alpha = Scalar(1.0)/inv_alpha;
 	Scalar mass = vel.w;
 	Scalar inv_mass = Scalar(1.0)/mass;
-   
+
         Scalar3 normal = manifold.derivative(pos);
-   
-        Scalar3 next_vel; 
+
+        Scalar3 next_vel;
         next_vel.x = vel.x + Scalar(1.0/2.0)*deltaT*accel.x;
         next_vel.y = vel.y + Scalar(1.0/2.0)*deltaT*accel.y;
         next_vel.z = vel.z + Scalar(1.0/2.0)*deltaT*accel.z;
@@ -174,7 +174,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
         Scalar3 residual;
         Scalar resid;
         Scalar3 vel_dot;
-   
+
         const unsigned int maxiteration = 10;
         unsigned int iteration = 0;
         do
@@ -202,7 +202,7 @@ __global__ void gpu_rattle_nve_step_two_kernel(
             if ( vec_norm > resid) resid =  vec_norm;
 
 	    } while (resid*mass > tolerance && iteration < maxiteration );
-	
+
 
         vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * inv_mass * normal.x) * deltaT;
         vel.y += (Scalar(1.0)/Scalar(2.0)) * (accel.y - mu * inv_mass * normal.y) * deltaT;
@@ -371,9 +371,9 @@ __global__ void gpu_include_rattle_force_nve_kernel(const Scalar4 *d_pos,
 	        Scalar nndotn = dot(next_normal,normal);
 	        Scalar beta = (resid + nndotr)/nndotn;
 
-                next_pos = next_pos - beta*normal + residual;   
+                next_pos = next_pos - beta*normal + residual;
 	        lambda = lambda - beta*inv_alpha;
-	     
+
 	        resid = fabs(resid);
                 Scalar vec_norm = sqrt(dot(residual,residual));
                 if ( vec_norm > resid) resid =  vec_norm;

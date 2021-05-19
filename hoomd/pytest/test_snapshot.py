@@ -8,8 +8,8 @@ try:
 except ImportError:
     skip_gsd = True
 
-skip_gsd = pytest.mark.skipif(
-    skip_gsd, reason="gsd Python package was not found.")
+skip_gsd = pytest.mark.skipif(skip_gsd,
+                              reason="gsd Python package was not found.")
 
 
 def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
@@ -66,7 +66,8 @@ def s():
 
 def test_empty_snapshot(s):
     if s.exists:
-        numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0], atol=1e-7)
+        numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0],
+                                      atol=1e-7)
         assert s.configuration.dimensions == 3
 
         assert s.particles.N == 0
@@ -117,7 +118,8 @@ def test_empty_snapshot(s):
 def test_configuration(s):
     if s.exists:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        numpy.testing.assert_allclose(s.configuration.box, [10, 12, 7, 0.1, 0.4, 0.2])
+        numpy.testing.assert_allclose(s.configuration.box,
+                                      [10, 12, 7, 0.1, 0.4, 0.2])
 
         with pytest.raises(AttributeError):
             s.configuration.dimensions = 2
@@ -160,7 +162,7 @@ def test_particles(s):
         assert s.particles.diameter.dtype == numpy.float64
         assert s.particles.diameter.shape == (5,)
         assert s.particles.image.dtype == numpy.int32
-        assert s.particles.image.shape == (5,  3)
+        assert s.particles.image.shape == (5, 3)
         assert s.particles.body.dtype == numpy.int32
         assert s.particles.body.shape == (5,)
         assert s.particles.orientation.dtype == numpy.float64
@@ -281,8 +283,8 @@ def test_from_gsd_snapshot_empty(s, device):
 def test_from_gsd_snapshot_populated(s, device):
     if s.exists:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
-        for section in ('particles', 'bonds', 'angles', 'dihedrals', 'impropers',
-                        'pairs'):
+        for section in ('particles', 'bonds', 'angles', 'dihedrals',
+                        'impropers', 'pairs'):
             setattr(getattr(s, section), 'N', 5)
             setattr(getattr(s, section), 'types', ['A', 'B'])
 

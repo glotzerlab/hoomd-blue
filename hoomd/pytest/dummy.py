@@ -3,6 +3,7 @@ from hoomd.operation import Operation, _TriggeredOperation
 
 
 class DummySimulation:
+
     def __init__(self):
         self.state = DummyState()
         self.operations = DummyOperations()
@@ -11,11 +12,13 @@ class DummySimulation:
 
 
 class DummySystem:
+
     def __init__(self):
         self.dummy_list = []
 
 
 class DummyState:
+
     def __init__(self):
         pass
 
@@ -29,6 +32,7 @@ class DummyOperations:
 
 
 class DummyCppObj:
+
     def __init__(self):
         self._dict = dict()
 
@@ -60,11 +64,13 @@ class DummyCppObj:
     def notifyDetach(self):
         pass
 
+
 class DummyOperation(Operation):
     '''Requires that user manually add param_dict and typeparam_dict items.
 
     This is for testing purposes.
     '''
+
     def _attach(self):
         self._cpp_obj = DummyCppObj()
 
@@ -78,5 +84,6 @@ class DummyTriggeredOp(_TriggeredOperation):
 
 
 class DummyTrigger(Trigger):
+
     def __call__(self, ts):
         return True

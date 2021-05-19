@@ -16,10 +16,9 @@ def identity(x):
 def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=TypeParameterDict(
-                             foo=1, bar=identity,
-                             len_keys=1)
-                         )
+                         param_dict=TypeParameterDict(foo=1,
+                                                      bar=identity,
+                                                      len_keys=1))
 
 
 @fixture(scope='function')
@@ -42,9 +41,11 @@ def test_adding_params(base_op):
 
 
 def test_extending_typeparams(base_op):
-    type_params = [TypeParameter('1', 'fake1', dict(a=1)),
-                   TypeParameter('2', 'fake2', dict(a=2)),
-                   TypeParameter('3', 'fake3', dict(a=3))]
+    type_params = [
+        TypeParameter('1', 'fake1', dict(a=1)),
+        TypeParameter('2', 'fake2', dict(a=2)),
+        TypeParameter('3', 'fake3', dict(a=3))
+    ]
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
     expected_keys = set(['1', '2', '3'])

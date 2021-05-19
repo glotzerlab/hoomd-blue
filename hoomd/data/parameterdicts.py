@@ -3,10 +3,10 @@ from itertools import product, combinations_with_replacement
 from copy import copy
 
 from hoomd.util import to_camel_case, is_iterable
-from hoomd.data.typeconverter import (
-    to_type_converter, TypeConversionError, RequiredArg)
-from hoomd.data.smart_default import (
-    to_base_defaults, toDefault, SmartDefault, NoDefault)
+from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
+                                      RequiredArg)
+from hoomd.data.smart_default import (to_base_defaults, toDefault, SmartDefault,
+                                      NoDefault)
 
 
 def has_str_elems(obj):
@@ -97,8 +97,10 @@ class _ValidatedDefaultDict:
         '''
         if isinstance(key, tuple) and len(key) == self._len_keys:
             fst, snd = key
-            if any([not is_good_iterable(v) and not isinstance(v, str)
-                    for v in key]):
+            if any([
+                    not is_good_iterable(v) and not isinstance(v, str)
+                    for v in key
+            ]):
                 raise KeyError("The key {} is not valid.".format(key))
             key = list(key)
             for ind in range(len(key)):
@@ -130,8 +132,7 @@ class _ValidatedDefaultDict:
             return NotImplemented
         return (self.default == other.default
                 and set(self.keys()) == set(other.keys())
-                and all(self[key] == other[key] for key in self.keys())
-                )
+                and all(self[key] == other[key] for key in self.keys()))
 
     @property
     def default(self):
@@ -178,8 +179,8 @@ class TypeParameterDict(_ValidatedDefaultDict):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError(
-                "For types {}, error {}.".format(list(keys), str(err)))
+            raise TypeConversionError("For types {}, error {}.".format(
+                list(keys), str(err)))
         for key in keys:
             self._dict[key] = val
 
@@ -196,8 +197,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
-    def __init__(self, cpp_obj, param_name,
-                 type_kind, type_param_dict, sim):
+    def __init__(self, cpp_obj, param_name, type_kind, type_param_dict, sim):
         # store info to communicate with c++
         self._cpp_obj = cpp_obj
         self._param_name = param_name
@@ -234,8 +234,8 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         try:
             val = self._validate_values(val)
         except TypeConversionError as err:
-            raise TypeConversionError(
-                "For types {}, error {}.".format(list(keys), str(err)))
+            raise TypeConversionError("For types {}, error {}.".format(
+                list(keys), str(err)))
 
         for key in keys:
             getattr(self._cpp_obj, self._setter)(key, val)
@@ -286,6 +286,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
 
 class ParameterDict(MutableMapping):
+
     def __init__(self, _defaults=NoDefault, **kwargs):
         self._type_converter = to_type_converter(kwargs)
         self._dict = {**to_base_defaults(kwargs, _defaults)}

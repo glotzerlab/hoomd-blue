@@ -16,6 +16,7 @@
 import sys
 import os
 import sphinx
+
 sphinx_ver = tuple(map(int, sphinx.__version__.split('.')))
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -37,24 +38,19 @@ suppress_warnings = ['ref.any']
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'nbsphinx',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.todo',
-    'IPython.sphinxext.ipython_console_highlighting'
+    'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
+    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting'
 ]
 
 napoleon_include_special_with_doc = True
 
 intersphinx_mapping = {
-        'python': ('https://docs.python.org/3', None),
-        'numpy': ('https://docs.scipy.org/doc/numpy', None),
-        'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
-        }
-autodoc_docstring_signature = True;
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'gsd': ('https://gsd.readthedocs.io/en/stable/', None)
+}
+autodoc_docstring_signature = True
 
 # Commenting out inherited-members by default. Leaving the code here in case we
 # decide to go back to this setting after making more progress in the
@@ -65,20 +61,20 @@ autodoc_docstring_signature = True;
 # else:
 #     autodoc_default_options = {'inherited-members': None};
 
-autodoc_mock_imports = ['hoomd._hoomd',
-                        'hoomd.md._md',
-                        'hoomd.metal._metal',
-                        'hoomd.mpcd._mpcd',
-                        'hoomd.dem._dem',
-                        'hoomd.minimize._minimize',
-                        'hoomd.jit._jit',
-                        'hoomd.hpmc._hpmc',
-                        ]
+autodoc_mock_imports = [
+    'hoomd._hoomd',
+    'hoomd.md._md',
+    'hoomd.metal._metal',
+    'hoomd.mpcd._mpcd',
+    'hoomd.dem._dem',
+    'hoomd.minimize._minimize',
+    'hoomd.jit._jit',
+    'hoomd.hpmc._hpmc',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-exclude_patterns = ['_build',
-                    'figures']
+exclude_patterns = ['_build', 'figures']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -144,7 +140,6 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
-
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -248,17 +243,17 @@ htmlhelp_basename = 'HOOMD-blue-doc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -289,19 +284,15 @@ latex_documents = [
 # If false, no module index is generated.
 #latex_domain_indices = True
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'hoomd-blue', 'HOOMD-blue Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, 'hoomd-blue', 'HOOMD-blue Documentation', [author], 1)
+             ]
 
 # If true, show URL addresses after external links.
 #man_show_urls = False
-
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -309,9 +300,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'HOOMD-blue', 'HOOMD-blue Documentation',
-     author, 'HOOMD-blue', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'HOOMD-blue', 'HOOMD-blue Documentation', author, 'HOOMD-blue',
+     'One line description of project.', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -326,5 +316,5 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
-ipython_mplbackend = None;
+ipython_mplbackend = None
 # ipython_execlines = ['import gsd.fl', 'import gsd.hoomd', 'import gsd.pygsd', 'import numpy']

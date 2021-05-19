@@ -91,7 +91,7 @@ class ManifoldDiamond
         DEVICE bool fitsInsideBox(const BoxDim& box)
         {
             Scalar3 box_length = box.getHi() - box.getLo();
-        
+
             Lx = M_PI*Nx/box_length.x;
             Ly = M_PI*Ny/box_length.y;
             Lz = M_PI*Nz/box_length.z;

@@ -88,7 +88,7 @@ class EvaluatorPairMie
 
                 Scalar sigma = fast::pow(m1 / m2, 1 / (m3 - m4));
                 Scalar epsilon = m1 / fast::pow(sigma, m3) * (m3 - m4) / m3 * fast::pow(m3 / m4, m4 / (m4 - m3));
-		
+
                 v["epsilon"] = epsilon;
                 v["sigma"] = sigma;
                 return v;

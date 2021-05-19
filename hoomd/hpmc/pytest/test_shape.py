@@ -481,21 +481,23 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
     assert mc.overlaps > 0
 
 
-_union_shapes = [({
-    'diameter': 1
-}, hoomd.hpmc.integrate.SphereUnion),
-                 ({
-                     "vertices": _tetrahedron_verts
-                 }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
-                 ({
-                     "normals": [(0, 0, 1)],
-                     "a": 0.5,
-                     "b": 0.5,
-                     "c": 1,
-                     "vertices": [],
-                     "origin": (0, 0, 0),
-                     "offsets": [0]
-                 }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),]
+_union_shapes = [
+    ({
+        'diameter': 1
+    }, hoomd.hpmc.integrate.SphereUnion),
+    ({
+        "vertices": _tetrahedron_verts
+    }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
+    ({
+        "normals": [(0, 0, 1)],
+        "a": 0.5,
+        "b": 0.5,
+        "c": 1,
+        "vertices": [],
+        "origin": (0, 0, 0),
+        "offsets": [0]
+    }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),
+]
 
 
 @pytest.fixture(scope="function", params=_union_shapes)

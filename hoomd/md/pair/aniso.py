@@ -31,12 +31,10 @@ class AnisotropicPair(Pair):
     def __init__(self, nlist, r_cut=None, mode="none"):
         self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2)
-                                 )
+                                 TypeParameterDict(positive_real, len_keys=2))
         if r_cut is not None:
             tp_r_cut.default = r_cut
-        self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shift'])))
+        self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
         self.mode = mode
         self._add_typeparam(tp_r_cut)
 
@@ -123,9 +121,8 @@ class Dipole(AnisotropicPair):
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, kappa=float, len_keys=2))
-        mu = TypeParameter(
-            'mu', 'particle_types',
-            TypeParameterDict((float, float, float), len_keys=1))
+        mu = TypeParameter('mu', 'particle_types',
+                           TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
 
 

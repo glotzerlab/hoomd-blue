@@ -262,4 +262,3 @@ void hpmc_check_convergence(const unsigned int *d_trial_move_type,
 
 } // end namespace gpu
 } // end namespace hpmc
-

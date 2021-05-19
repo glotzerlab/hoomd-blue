@@ -430,4 +430,3 @@ class GlobalVector : public GPUVectorBase<T, GlobalArray<T> >
             return static_cast<GlobalArray<T> const&>(*this).get();
             }
     };
-

@@ -27,6 +27,7 @@ class BaseIntegrator(Operation):
     organizes the forces, equations of motion, and other factors of the given
     simulation.
     """
+
     def _attach(self):
         self._simulation._cpp_sys.setIntegrator(self._cpp_obj)
         super()._attach()

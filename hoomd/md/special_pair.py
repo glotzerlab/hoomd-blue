@@ -29,6 +29,7 @@ class SpecialPair(Force):
         Users should not instantiate this class directly.
 
     """
+
     def _attach(self):
         # check that some bonds are defined
         if self._simulation.state._cpp_sys_def.getPairData().getNGlobal() == 0:
@@ -96,10 +97,9 @@ class LJ(SpecialPair):
 
     def __init__(self):
         # setup the coefficient options
-        params = TypeParameter("params", "special_pair_types",
-                               TypeParameterDict(
-                                   epsilon=float, sigma=float,
-                                   len_keys=1))
+        params = TypeParameter(
+            "params", "special_pair_types",
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=1))
         r_cut = TypeParameter("r_cut", "special_pair_types",
                               TypeParameterDict(float, len_keys=1))
 

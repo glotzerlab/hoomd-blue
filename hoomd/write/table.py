@@ -165,11 +165,12 @@ class _TableInternal(_InternalAction):
                                    delimiter=str,
                                    min_column_width=int,
                                    max_header_len=OnlyTypes(int,
-                                                           allow_none=True),
+                                                            allow_none=True),
                                    pretty=bool,
                                    max_precision=int,
-                                   output=OnlyTypes(_OutputWriter,
-                                                    postprocess=_ensure_writable),
+                                   output=OnlyTypes(
+                                       _OutputWriter,
+                                       postprocess=_ensure_writable),
                                    logger=Logger)
 
         param_dict.update(

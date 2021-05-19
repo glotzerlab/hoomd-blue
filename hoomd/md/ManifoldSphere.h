@@ -90,7 +90,7 @@ class ManifoldSphere
                 return false; // Sphere does not fit inside box
                 }
                 else
-                { 
+                {
                 return true;
                 }
         }

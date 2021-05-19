@@ -1,5 +1,6 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 """Angle potentials."""
 
 from hoomd import _hoomd
@@ -20,6 +21,7 @@ class Angle(Force):
         :py:class:`Angle` is the base class for all angular potentials.
         Users should not instantiate this class directly.
     """
+
     def _attach(self):
         # check that some angles are defined
         if self._simulation.state._cpp_sys_def.getAngleData().getNGlobal() == 0:
@@ -122,9 +124,9 @@ class Cosinesq(Angle):
 
 
 def _table_eval(theta, V, T, width):
-      dth = (math.pi) / float(width-1);
-      i = int(round((theta)/dth))
-      return (V[i], T[i])
+    dth = (math.pi) / float(width - 1)
+    i = int(round((theta) / dth))
+    return (V[i], T[i])
 
 
 class table(force._force):
@@ -184,66 +186,69 @@ class table(force._force):
         btable.set_from_file('polymer', 'angle.dat')
 
     """
+
     def __init__(self, width, name=None):
 
         # initialize the base class
-        force._force.__init__(self, name);
-
+        force._force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.TableAngleForceCompute(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableAngleForceCompute(
+                hoomd.context.current.system_definition, int(width), self.name)
         else:
-            self.cpp_force = _md.TableAngleForceComputeGPU(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.TableAngleForceComputeGPU(
+                hoomd.context.current.system_definition, int(width), self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient matrix
-        self.angle_coeff = coeff();
+        self.angle_coeff = coeff()
 
         # stash the width for later use
-        self.width = width;
+        self.width = width
 
     def update_angle_table(self, atype, func, coeff):
         # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar();
-        Ttable = _hoomd.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar()
+        Ttable = _hoomd.std_vector_scalar()
 
         # calculate dth
-        dth = math.pi / float(self.width-1);
+        dth = math.pi / float(self.width - 1)
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            theta = dth * i;
-            (V,T) = func(theta, **coeff);
+            theta = dth * i
+            (V, T) = func(theta, **coeff)
 
             # fill out the tables
-            Vtable.append(V);
-            Ttable.append(T);
+            Vtable.append(V)
+            Ttable.append(T)
 
         # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(atype, Vtable, Ttable);
-
+        self.cpp_force.setTable(atype, Vtable, Ttable)
 
     def update_coeffs(self):
         # check that the angle coefficients are valid
         if not self.angle_coeff.verify(["func", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error("Not all angle coefficients are set for angle.table\n");
-            raise RuntimeError("Error updating angle coefficients");
+            hoomd.context.current.device.cpp_msg.error(
+                "Not all angle coefficients are set for angle.table\n")
+            raise RuntimeError("Error updating angle coefficients")
 
         # set all the params
-        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getAngleData().getNameByType(i));
-
+        ntypes = hoomd.context.current.system_definition.getAngleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getAngleData().getNameByType(i))
 
         # loop through all of the unique type angles and evaluate the table
-        for i in range(0,ntypes):
-            func = self.angle_coeff.get(type_list[i], "func");
-            coeff = self.angle_coeff.get(type_list[i], "coeff");
+        for i in range(0, ntypes):
+            func = self.angle_coeff.get(type_list[i], "func")
+            coeff = self.angle_coeff.get(type_list[i], "coeff")
 
-            self.update_angle_table(i, func, coeff);
+            self.update_angle_table(i, func, coeff)
 
     def set_from_file(self, anglename, filename):
         R""" Set a angle pair interaction from a file.
@@ -267,49 +272,55 @@ class table(force._force):
         """
 
         # open the file
-        f = open(filename);
+        f = open(filename)
 
-        theta_table = [];
-        V_table = [];
-        T_table = [];
+        theta_table = []
+        V_table = []
+        T_table = []
 
         # read in lines from the file
         for line in f.readlines():
-            line = line.strip();
+            line = line.strip()
 
             # skip comment lines
             if line[0] == '#':
-                continue;
+                continue
 
             # split out the columns
-            cols = line.split();
-            values = [float(f) for f in cols];
+            cols = line.split()
+            values = [float(f) for f in cols]
 
             # validate the input
             if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error("angle.table: file must have exactly 3 columns\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "angle.table: file must have exactly 3 columns\n")
+                raise RuntimeError("Error reading table file")
 
             # append to the tables
-            theta_table.append(values[0]);
-            V_table.append(values[1]);
-            T_table.append(values[2]);
+            theta_table.append(values[0])
+            V_table.append(values[1])
+            T_table.append(values[2])
 
         # validate input
         if self.width != len(theta_table):
-            hoomd.context.current.device.cpp_msg.error("angle.table: file must have exactly " + str(self.width) + " rows\n");
-            raise RuntimeError("Error reading table file");
-
+            hoomd.context.current.device.cpp_msg.error(
+                "angle.table: file must have exactly " + str(self.width)
+                + " rows\n")
+            raise RuntimeError("Error reading table file")
 
         # check for even spacing
-        dth = math.pi / float(self.width-1);
-        for i in range(0,self.width):
-            theta =  dth * i;
+        dth = math.pi / float(self.width - 1)
+        for i in range(0, self.width):
+            theta = dth * i
             if math.fabs(theta - theta_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error("angle.table: theta must be monotonically increasing and evenly spaced\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "angle.table: theta must be monotonically increasing and evenly spaced\n"
+                )
+                raise RuntimeError("Error reading table file")
 
-        self.angle_coeff.set(anglename, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
+        self.angle_coeff.set(anglename,
+                             func=_table_eval,
+                             coeff=dict(V=V_table, T=T_table, width=self.width))
 
     ## \internal
     # \brief Get metadata

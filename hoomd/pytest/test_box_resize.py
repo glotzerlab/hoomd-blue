@@ -111,9 +111,9 @@ def variant():
 def box_resize(sys, trigger, variant):
     sys1, _, sys2 = sys
     b = hoomd.update.BoxResize(box1=sys1[0],
-                                  box2=sys2[0],
-                                  variant=variant,
-                                  trigger=trigger)
+                               box2=sys2[0],
+                               variant=variant,
+                               trigger=trigger)
     return b
 
 
@@ -121,11 +121,15 @@ def assert_positions(sim, reference_points, filter=None):
     with sim.state.cpu_local_snapshot as data:
         if filter is not None:
             filter_tags = np.copy(filter(sim.state)).astype(int)
-            is_particle_local = np.isin(data.particles.tag, filter_tags, assume_unique=True)
-            reference_point = reference_points[data.particles.tag[is_particle_local]]
+            is_particle_local = np.isin(data.particles.tag,
+                                        filter_tags,
+                                        assume_unique=True)
+            reference_point = reference_points[
+                data.particles.tag[is_particle_local]]
             pos = data.particles.position[is_particle_local]
         else:
-            pos = data.particles.position[data.particles.rtag[data.particles.tag]]
+            pos = data.particles.position[data.particles.rtag[
+                data.particles.tag]]
             reference_point = reference_points[data.particles.tag]
         npt.assert_allclose(pos, reference_point)
 
@@ -163,14 +167,13 @@ def test_update(simulation_factory, get_snapshot, sys):
     assert_positions(sim, sys2[1])
 
 
-_filter = (
-    [
-        [hoomd.filter.All(), hoomd.filter.Null()],
-        [hoomd.filter.Null(), hoomd.filter.All()],
-        [hoomd.filter.Tags([0, 5]),
-         hoomd.filter.SetDifference(hoomd.filter.Tags([0]), hoomd.filter.All())]
-    ]
-)
+_filter = ([[hoomd.filter.All(), hoomd.filter.Null()],
+            [hoomd.filter.Null(), hoomd.filter.All()],
+            [
+                hoomd.filter.Tags([0, 5]),
+                hoomd.filter.SetDifference(hoomd.filter.Tags([0]),
+                                           hoomd.filter.All())
+            ]])
 
 
 @pytest.fixture(scope="function", params=_filter, ids=["All", "None", "Tags"])

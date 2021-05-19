@@ -350,6 +350,3 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
                                                                     seed);
     return hipSuccess;
     }
-
-
-

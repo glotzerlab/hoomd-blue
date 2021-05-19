@@ -23,6 +23,7 @@ class Bond(Force):
         :py:class:`Bond` is the base class for all bond potentials.
         Users should not instantiate this class directly.
     """
+
     def _attach(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -67,10 +68,10 @@ class Harmonic(Bond):
         harmonic.params['backbone'] = dict(k=10.0, r0=1.0)
     """
     _cpp_class_name = "PotentialBondHarmonic"
+
     def __init__(self):
         params = TypeParameter("params", "bond_types",
-                               TypeParameterDict(k=float, r0=float, len_keys=1)
-                               )
+                               TypeParameterDict(k=float, r0=float, len_keys=1))
         self._add_typeparam(params)
 
 
@@ -128,20 +129,21 @@ class FENE(Bond):
     _cpp_class_name = "PotentialBondFENE"
 
     def __init__(self):
-        params = TypeParameter("params", "bond_types",
-                               TypeParameterDict(k=float,
-                                                 r0=float,
-                                                 epsilon=float,
-                                                 sigma=float,
-                                                 len_keys=1)
-                               )
+        params = TypeParameter(
+            "params", "bond_types",
+            TypeParameterDict(k=float,
+                              r0=float,
+                              epsilon=float,
+                              sigma=float,
+                              len_keys=1))
         self._add_typeparam(params)
 
 
 def _table_eval(r, rmin, rmax, V, F, width):
-      dr = (rmax - rmin) / float(width-1);
-      i = int(round((r - rmin)/dr))
-      return (V[i], F[i])
+    dr = (rmax - rmin) / float(width - 1)
+    i = int(round((r - rmin) / dr))
+    return (V[i], F[i])
+
 
 class table(force._force):
     R""" Tabulated bond potential.
@@ -218,68 +220,71 @@ class table(force._force):
         Ensure that ``rmin`` and ``rmax`` cover the range of possible bond lengths. When gpu error checking is on, a error will
         be thrown if a bond distance is outside than this range.
     """
+
     def __init__(self, width, name=None):
 
         # initialize the base class
-        force._force.__init__(self, name);
-
+        force._force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.BondTablePotential(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.BondTablePotential(
+                hoomd.context.current.system_definition, int(width), self.name)
         else:
-            self.cpp_force = _md.BondTablePotentialGPU(hoomd.context.current.system_definition, int(width), self.name);
+            self.cpp_force = _md.BondTablePotentialGPU(
+                hoomd.context.current.system_definition, int(width), self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficients matrix
-        self.bond_coeff = coeff();
+        self.bond_coeff = coeff()
 
         # stash the width for later use
-        self.width = width;
+        self.width = width
 
     def update_bond_table(self, btype, func, rmin, rmax, coeff):
         # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar();
-        Ftable = _hoomd.std_vector_scalar();
+        Vtable = _hoomd.std_vector_scalar()
+        Ftable = _hoomd.std_vector_scalar()
 
         # calculate dr
-        dr = (rmax - rmin) / float(self.width-1);
+        dr = (rmax - rmin) / float(self.width - 1)
 
         # evaluate each point of the function
         for i in range(0, self.width):
-            r = rmin + dr * i;
-            (V,F) = func(r, rmin, rmax, **coeff);
+            r = rmin + dr * i
+            (V, F) = func(r, rmin, rmax, **coeff)
 
             # fill out the tables
-            Vtable.append(V);
-            Ftable.append(F);
+            Vtable.append(V)
+            Ftable.append(F)
 
         # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax);
-
+        self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax)
 
     def update_coeffs(self):
         # check that the bond coefficients are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error("Not all bond coefficients are set for bond.table\n");
-            raise RuntimeError("Error updating bond coefficients");
+            hoomd.context.current.device.cpp_msg.error(
+                "Not all bond coefficients are set for bond.table\n")
+            raise RuntimeError("Error updating bond coefficients")
 
         # set all the params
-        ntypes = hoomd.context.current.system_definition.getBondData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getBondData().getNameByType(i));
-
+        ntypes = hoomd.context.current.system_definition.getBondData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getBondData().getNameByType(i))
 
         # loop through all of the unique type bonds and evaluate the table
-        for i in range(0,ntypes):
-            func = self.bond_coeff.get(type_list[i], "func");
-            rmin = self.bond_coeff.get(type_list[i], "rmin");
-            rmax = self.bond_coeff.get(type_list[i], "rmax");
-            coeff = self.bond_coeff.get(type_list[i], "coeff");
+        for i in range(0, ntypes):
+            func = self.bond_coeff.get(type_list[i], "func")
+            rmin = self.bond_coeff.get(type_list[i], "rmin")
+            rmax = self.bond_coeff.get(type_list[i], "rmax")
+            coeff = self.bond_coeff.get(type_list[i], "coeff")
 
-            self.update_bond_table(i, func, rmin, rmax, coeff);
+            self.update_bond_table(i, func, rmin, rmax, coeff)
 
     def set_from_file(self, bondname, filename):
         R""" Set a bond pair interaction from a file.
@@ -305,49 +310,58 @@ class table(force._force):
         """
 
         # open the file
-        f = open(filename);
+        f = open(filename)
 
-        r_table = [];
-        V_table = [];
-        F_table = [];
+        r_table = []
+        V_table = []
+        F_table = []
 
         # read in lines from the file
         for line in f.readlines():
-            line = line.strip();
+            line = line.strip()
 
             # skip comment lines
             if line[0] == '#':
-                continue;
+                continue
 
             # split out the columns
-            cols = line.split();
-            values = [float(f) for f in cols];
+            cols = line.split()
+            values = [float(f) for f in cols]
 
             # validate the input
             if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error("bond.table: file must have exactly 3 columns\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "bond.table: file must have exactly 3 columns\n")
+                raise RuntimeError("Error reading table file")
 
             # append to the tables
-            r_table.append(values[0]);
-            V_table.append(values[1]);
-            F_table.append(values[2]);
+            r_table.append(values[0])
+            V_table.append(values[1])
+            F_table.append(values[2])
 
         # validate input
         if self.width != len(r_table):
-            hoomd.context.current.device.cpp_msg.error("bond.table: file must have exactly " + str(self.width) + " rows\n");
-            raise RuntimeError("Error reading table file");
+            hoomd.context.current.device.cpp_msg.error(
+                "bond.table: file must have exactly " + str(self.width)
+                + " rows\n")
+            raise RuntimeError("Error reading table file")
 
         # extract rmin and rmax
-        rmin_table = r_table[0];
-        rmax_table = r_table[-1];
+        rmin_table = r_table[0]
+        rmax_table = r_table[-1]
 
         # check for even spacing
-        dr = (rmax_table - rmin_table) / float(self.width-1);
-        for i in range(0,self.width):
-            r = rmin_table + dr * i;
+        dr = (rmax_table - rmin_table) / float(self.width - 1)
+        for i in range(0, self.width):
+            r = rmin_table + dr * i
             if math.fabs(r - r_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error("bond.table: r must be monotonically increasing and evenly spaced\n");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.current.device.cpp_msg.error(
+                    "bond.table: r must be monotonically increasing and evenly spaced\n"
+                )
+                raise RuntimeError("Error reading table file")
 
-        self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
+        self.bond_coeff.set(bondname,
+                            func=_table_eval,
+                            rmin=rmin_table,
+                            rmax=rmax_table,
+                            coeff=dict(V=V_table, F=F_table, width=self.width))

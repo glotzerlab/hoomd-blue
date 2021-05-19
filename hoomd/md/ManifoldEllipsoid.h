@@ -86,14 +86,14 @@ class ManifoldEllipsoid
         {
             Scalar3 lo = box.getLo();
             Scalar3 hi = box.getHi();
-            
+
             if (Px + a > hi.x || Px - a < lo.x ||
                 Py + b > hi.y || Py - b < lo.y ||
                 Pz + c > hi.z || Pz - c < lo.z)
                 {
                 return false; // Ellipsoid does not fit inside box
                 }
-                else 
+                else
                 {
                 return true;
                 }

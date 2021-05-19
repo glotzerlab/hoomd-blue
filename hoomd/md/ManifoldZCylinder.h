@@ -88,7 +88,7 @@ class ManifoldZCylinder
             return false; // Cylinder does not fit inside box
             }
             else
-            { 
+            {
             return true;
             }
         }

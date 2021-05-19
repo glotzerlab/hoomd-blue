@@ -371,4 +371,3 @@ __global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
 } // end namespace gpu
 
 } // end namespace hpmc
-
