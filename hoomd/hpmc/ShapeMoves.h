@@ -898,8 +898,8 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
     ShapeSpringBase(std::shared_ptr<Variant> k, pybind11::dict shape_params) : m_reference_shape(new typename Shape::param_type), m_k(k)
             {
             typename Shape::param_type shape(shape_params);
-            (*m_reference_shape) = shape;
-            detail::MassProperties<Shape> mp(*m_reference_shape);
+            m_reference_shape = shape;
+            detail::MassProperties<Shape> mp(m_reference_shape);
             m_volume = mp.getVolume();
             m_provided_quantities.push_back("shape_move_stiffness");
             }
@@ -917,8 +917,8 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
         void setReference(pybind11::dict reference)
             {
             typename Shape::param_type shape(reference);
-            (*m_reference_shape) = shape;
-            detail::MassProperties<Shape> mp(*m_reference_shape);
+            m_reference_shape = shape;
+            detail::MassProperties<Shape> mp(m_reference_shape);
             m_volume = mp.getVolume();
             }
 
