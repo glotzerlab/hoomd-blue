@@ -2614,7 +2614,9 @@ void Communicator::exchangeGhosts()
 
             // exchange particle data, write directly to the particle data arrays
             if (m_prof)
+                {
                 m_prof->push("MPI send/recv");
+                }
 
             // Now forward the ghosts
                 {
