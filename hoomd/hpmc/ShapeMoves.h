@@ -521,12 +521,12 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
     public:
         ElasticShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                          unsigned int ntypes,
-                         Scalar step_size,
+                         Scalar stepsize,
                          Scalar move_ratio)
             : ShapeMoveBase<Shape>(sysdef, ntypes), m_mass_props(ntypes)
             {
             m_select_ratio = fmin(move_ratio, 1.0)*65535;
-            m_step_size.resize(ntypes, stepsize);
+            m_step_size.resize(ntypes);
             std::fill(this->m_step_size.begin(), this->m_step_size.end(), stepsize);
             m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
             m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
@@ -897,7 +897,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
     public:
     ShapeSpringBase(std::shared_ptr<Variant> k, pybind11::dict shape_params) : m_reference_shape(new typename Shape::param_type), m_k(k)
             {
-            typename Shape::param_type shape(shape_params)
+            typename Shape::param_type shape(shape_params);
             (*m_reference_shape) = shape;
             detail::MassProperties<Shape> mp(*m_reference_shape);
             m_volume = mp.getVolume();
