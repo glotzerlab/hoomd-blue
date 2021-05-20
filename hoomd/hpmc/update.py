@@ -190,7 +190,7 @@ class BoxMC(Updater):
             return counter.aspect
 
 
-class wall(_updater):  # noqa - will be rewritten for v3
+class wall:  # noqa - will be rewritten for v3
     """Apply wall updates with a user-provided python callback.
 
     Args:
@@ -491,7 +491,7 @@ class MuVT(Updater):
         return N_dict
 
 
-class remove_drift(_updater):  # noqa - will be rewritten for v3
+class remove_drift:  # noqa - will be rewritten for v3
     """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:

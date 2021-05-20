@@ -12,12 +12,11 @@ it in some way. See the documentation of specific updaters to find out what they
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
-from hoomd.update import _updater
 from hoomd.operation import Updater
 import sys
 
 
-class rescale_temp(_updater):
+class rescale_temp:
     r""" Rescales particle velocities.
 
     Args:
@@ -114,7 +113,7 @@ class ZeroMomentum(Updater):
         super()._attach()
 
 
-class enforce2d(_updater):
+class enforce2d:
     R""" Enforces 2D simulation.
 
     Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
@@ -143,7 +142,7 @@ class enforce2d(_updater):
         self.setupUpdater(period)
 
 
-class constraint_ellipsoid(_updater):
+class constraint_ellipsoid:
     R""" Constrain particles to the surface of a ellipsoid.
 
     Args:
@@ -222,7 +221,7 @@ class constraint_ellipsoid(_updater):
         self.metadata_fields = ['group', 'P', 'rx', 'ry', 'rz']
 
 
-class mueller_plathe_flow(_updater):
+class mueller_plathe_flow:
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
 
