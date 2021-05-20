@@ -351,7 +351,10 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
 
         // wrap received particles through the global boundary
         if (m_prof)
+            {
             m_prof->push(m_exec_conf, "wrap");
+            }
+
             {
             ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf,
                                                                access_location::device,

@@ -9,8 +9,6 @@
 */
 
 #include "AllDriverPotentialSpecialPairGPU.cuh"
-#include "EvaluatorSpecialPairCoulomb.h"
-#include "EvaluatorSpecialPairLJ.h"
 
 //! LJ special pair potential, internal
 hipError_t gpu_compute_lj_forces(const bond_args_t& bond_args,

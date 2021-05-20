@@ -6,6 +6,7 @@
 #include "hoomd/VectorMath.h"
 
 #include "hoomd/AABB.h"
+#include "hoomd/BoxDim.h"
 #include "hoomd/hpmc/HPMCPrecisionSetup.h"
 #include "hoomd/hpmc/OBB.h"
 

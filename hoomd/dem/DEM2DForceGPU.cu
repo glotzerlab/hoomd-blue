@@ -285,7 +285,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4* d_pos,
                                     }
                                 }
                             else // threadIdx.z == 0: treat this
-                            // vertex as a vertex
+                                 // vertex as a vertex
                                 {
                                 const unsigned int nextVert((neighVertex + 1)
                                                             % numShapeVerts[neigh_type]);

@@ -446,7 +446,10 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
 
     // fill particle data with wrapped, received particles
     if (m_prof)
+        {
         m_prof->push("unpack");
+        }
+
         {
         ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf,
                                                            access_location::host,

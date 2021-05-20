@@ -20,7 +20,6 @@
 #include "GetarDumpWriter.h"
 #include "GetarInitializer.h"
 #include "HOOMDMath.h"
-#include "IMDInterface.h"
 #include "Initializers.h"
 #include "Integrator.h"
 #include "Messenger.h"
@@ -266,7 +265,6 @@ PYBIND11_MODULE(_hoomd, m)
     // analyzers
     export_Analyzer(m);
     export_PythonAnalyzer(m);
-    export_IMDInterface(m);
     export_DCDDumpWriter(m);
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);

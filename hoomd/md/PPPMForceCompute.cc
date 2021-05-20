@@ -994,7 +994,9 @@ void PPPMForceCompute::updateMeshes()
 #endif
 
     if (m_prof)
+        {
         m_prof->push("update");
+        }
 
         {
         ArrayHandle<Scalar3> h_k(m_k, access_location::host, access_mode::read);

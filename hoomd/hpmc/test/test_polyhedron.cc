@@ -1,5 +1,4 @@
 #include "hoomd/AABBTree.h"
-#include "hoomd/extern/quickhull/QuickHull.hpp"
 #include "hoomd/hpmc/IntegratorHPMC.h"
 #include "hoomd/hpmc/Moves.h"
 #include "hoomd/hpmc/ShapePolyhedron.h"
