@@ -8,7 +8,6 @@ from . import _hpmc
 from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
-from hoomd.update import _updater
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
