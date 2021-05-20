@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Action."""
+
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 from hoomd.logging import Loggable
@@ -133,7 +139,7 @@ class Action(metaclass=_AbstractLoggable):
 
 
 class _InternalAction(Action, _HOOMDGetSetAttrBase):
-    """An internal class for Python ``Action``s.
+    """An internal class for Python Actions.
 
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
     and ``TypeParameters``.
