@@ -230,7 +230,9 @@ void NeighborListGPU::buildHeadList()
         return;
 
     if (m_prof)
+        {
         m_prof->push(m_exec_conf, "head-list");
+        }
 
         {
         ArrayHandle<unsigned int> h_req_size_nlist(m_req_size_nlist,
