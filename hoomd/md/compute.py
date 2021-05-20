@@ -304,7 +304,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     is first added to the simulation, whichever occurs last.
 
     Note:
-        :py:class:`ThermoHMA` is an implementation of the methods section of
+        `HarmonicAveragedThermodynamicQuantities` is an implementation of the methods section of
         Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke. (2015).
         "Very fast averaging of thermal properties of crystals by molecular
         simulation". Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303

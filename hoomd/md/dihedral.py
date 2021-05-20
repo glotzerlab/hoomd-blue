@@ -17,8 +17,10 @@ where vectors are defined from the central particles to the outer particles.
 These vectors correspond to a stretched state (phi=180 deg) when they are
 anti-parallel and a compact state (phi=0 deg) when they are parallel.
 
-.. image:: dihedral-angle-definition.png :width: 400 px :align: center :alt:
-    Dihedral angle definition
+.. image:: dihedral-angle-definition.png
+    :width: 400 px
+    :align: center
+    :alt: Dihedral angle definition
 """
 
 from hoomd import _hoomd
@@ -102,7 +104,7 @@ def _table_eval(theta, V, T, width):
     return (V[i], T[i])
 
 
-class table(force._force): # noqa
+class table(force._force):  # noqa
     r"""Tabulated dihedral potential.
 
     Args:
@@ -169,12 +171,12 @@ class table(force._force): # noqa
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient matrix
-        self.dihedral_coeff = coeff() # noqa
+        self.dihedral_coeff = coeff()  # noqa
 
         # stash the width for later use
         self.width = width
 
-    def update_dihedral_table(self, atype, func, coeff): # noqa
+    def update_dihedral_table(self, atype, func, coeff):  # noqa
         # allocate arrays to store V and F
         Vtable = _hoomd.std_vector_scalar()
         Ttable = _hoomd.std_vector_scalar()
@@ -194,7 +196,7 @@ class table(force._force): # noqa
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(atype, Vtable, Ttable)
 
-    def update_coeffs(self): # noqa
+    def update_coeffs(self):  # noqa
         # check that the dihedral coefficients are valid
         if not self.dihedral_coeff.verify(["func", "coeff"]):
             hoomd.context.current.device.cpp_msg.error(
@@ -287,8 +289,7 @@ class table(force._force): # noqa
             if math.fabs(theta - theta_table[i]) > 1e-3:
                 hoomd.context.current.device.cpp_msg.error(
                     "dihedral.table: theta must be monotonically increasing and"
-                    "evenly spaced, going from -pi to pi\n"
-                )
+                    "evenly spaced, going from -pi to pi\n")
                 hoomd.context.current.device.cpp_msg.error("row: " + str(i)
                                                            + " expected: "
                                                            + str(theta)
@@ -302,7 +303,7 @@ class table(force._force): # noqa
                                            T=T_table,
                                            width=self.width))
 
-    def get_metadata(self): # noqa
+    def get_metadata(self):  # noqa
         data = force._force.get_metadata(self)
 
         # make sure coefficients are up-to-date
