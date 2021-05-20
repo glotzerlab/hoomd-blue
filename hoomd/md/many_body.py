@@ -26,12 +26,15 @@ class Triplet(Force):
         :nowrap:
 
         \\begin{eqnarray}
-        \\vec{F_i} = & -\\nabla V(\\vec r_{ij}, \\vec r_{ik}) & r_{ij} < r_{\\mathrm{cut}}
-            \\textrm{ and } r_{ik} < r_{\\mathrm{cut}} \\\\
-                   = & 0 & else
+        \\vec{F_i}
+            =& -\\nabla V(\\vec r_{ij}, \\vec r_{ik})
+             & r_{ij} < r_{\\mathrm{cut}}
+                \\textrm{ and } r_{ik} < r_{\\mathrm{cut}} \\\\
+           =& 0 & else
         \\end{eqnarray}
 
-    Where :math:`\\vec r_{\\alpha \\beta} = \\vec r_{\\alpha} - \\vec r_{\\beta}`.
+    Where
+    :math:`\\vec r_{\\alpha \\beta} = \\vec r_{\\alpha} - \\vec r_{\\beta}`.
 
     The following coefficients must be set per unique pair of particle types.
     See :class:`hoomd.md.many_body` for information on how to set coefficients.
@@ -108,8 +111,9 @@ class Tersoff(Triplet):
     term of the potential. The modifier contains the effects of third-bodies on
     the bond energies. The potential also includes a smoothing function around
     the cutoff. The smoothing function used in this work is exponential in
-    nature as opposed to the sinusoid used by
-    `J. Tersoff 1988 <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902>`_.
+    nature as opposed to the sinusoid used by J. Tersoff 1988 (`paper`_).
+
+    .. _paper: https://journals.aps.org/prb/abstract/10.1103/PhysRevB.38.9902
 
     :py:class:`Tersoff` specifies that the Tersoff three-body potential should
     be applied to every non-bonded particle pair in the simulation. Despite the
@@ -119,7 +123,8 @@ class Tersoff(Triplet):
 
     .. math::
 
-        V_{ij}(r) = \\frac{1}{2} f_C(r_{ij})\\left[f_R(r_{ij}) + b_{ij}f_A(r_{ij})\\right]
+        V_{ij}(r) = \\frac{1}{2} f_C(r_{ij})
+            \\left[f_R(r_{ij}) + b_{ij}f_A(r_{ij})\\right]
 
     where
 
@@ -136,7 +141,8 @@ class Tersoff(Triplet):
             f_C(r) =
             \\begin{cases}
                 1 & r < r_{\\mathrm{cut}} - r_{CT} \\\\
-                exp\\left[-\\alpha\\frac{x(r)^3}{x(r)^3 - 1} \\right] & r_{\\mathrm{cut}} - r_{CT} < r < r_{\\mathrm{cut}} \\\\
+                \\exp \\left[-\\alpha\\frac{x(r)^3}{x(r)^3 - 1} \\right]
+                  & r_{\\mathrm{cut}} - r_{CT} < r < r_{\\mathrm{cut}} \\\\
                 0 & r > r_{\\mathrm{cut}}
             \\end{cases}
         \\end{equation}
@@ -158,30 +164,48 @@ class Tersoff(Triplet):
 
     .. math::
 
-        \\chi_{ij} = \\sum_{k \\neq i,j} f_C(r_{ik}) \\cdot e^{\\lambda_3^3 |r_{ij} - r_{ik}|^3}
+        \\chi_{ij} = \\sum_{k \\neq i,j} f_C(r_{ik})
+                     \\cdot e^{\\lambda_3^3 |r_{ij} - r_{ik}|^3}
         \\cdot g(\\theta_{ijk})
 
-        g(\\theta_{ijk}) = 1 + \\frac{c^2}{d^2} - \\frac{c^2}{d^2 + |m - \\cos(\\theta_{ijk})|^2}
+        g(\\theta_{ijk}) = 1 + \\frac{c^2}{d^2}
+                           - \\frac{c^2}{d^2 + |m - \\cos(\\theta_{ijk})|^2}
 
     The parameters of this potential are set via the ``params`` dictionary, they
     must be set for each unique pair of particle types.
 
     Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+        params (TypeParameter[\
+                tuple[``particle_type``, ``particle_type``], dict]):
             The Tersoff potential parameters. The dictionary has the following
             keys:
 
-            * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -  Magnitudes of the repulsive and attractive terms (dimensionless, *default*: (1.0, 1.0))
-            * ``exp_factors`` (tuple[`float`, `float`]) - :math:`(\\lambda_1, \\lambda_2)` - exponential factors of the repulsive and attractive terms (in units of 1/length, *default*: 2.0)
-            * ``lambda3`` (`float`) - :math:`\\lambda_3` - exponential factor in :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
-            * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive and repulsive terms (in units of length, *default*: 1.5)
-            * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which defines the different regions of the potential (in units of length, *default*: 0.2)
-            * ``alpha`` (`float`) - :math:`\\alpha` - decay rate of the cutoff term :math:`f_C(r)` (dimensionless, *default*: 3.0)
-            * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}` (dimensionless, *default*: 0.0)
-            * ``gamma`` (`float`) - :math:`\\gamma` - coefficient in :math:`b_{ij}` (dimensionless, *default*: 0.0)
-            * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
-            * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 1.0)
-            * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\\theta)` (dimensionless, *default*: 0.0)
+            * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
+              Magnitudes of the repulsive and attractive terms (dimensionless,
+              *default*: (1.0, 1.0))
+            * ``exp_factors`` (tuple[`float`, `float`]) -
+              :math:`(\\lambda_1, \\lambda_2)` - exponential factors of the
+              repulsive and attractive terms (in units of 1/length, *default*:
+              2.0)
+            * ``lambda3`` (`float`) - :math:`\\lambda_3` - exponential factor in
+              :math:`\\chi_{ij}` (in units of 1/length, *default*: 0.0)
+            * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive
+              and repulsive terms (in units of length, *default*: 1.5)
+            * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which
+              defines the different regions of the potential (in units of
+              length, *default*: 0.2)
+            * ``alpha`` (`float`) - :math:`\\alpha` - decay rate of the cutoff
+              term :math:`f_C(r)` (dimensionless, *default*: 3.0)
+            * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}`
+              (dimensionless, *default*: 0.0)
+            * ``gamma`` (`float`) - :math:`\\gamma` - coefficient in
+              :math:`b_{ij}` (dimensionless, *default*: 0.0)
+            * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\\theta)`
+              (dimensionless, *default*: 0.0)
+            * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\\theta)`
+              (dimensionless, *default*: 1.0)
+            * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\\theta)`
+              (dimensionless, *default*: 0.0)
 
     Example::
 
@@ -221,7 +245,8 @@ class RevCross(Triplet):
     should be applied to every non-bonded particle pair in the simulation.
     Despite the fact that the revcross potential accounts for the effects of
     third bodies, it is actually just a combination of two body potential terms.
-    It can thus use type-pair parameters similar to those of the pair potentials.
+    It can thus use type-pair parameters similar to those of the pair
+    potentials.
 
     The RevCross potential has been described in detail in
     `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_.
@@ -232,8 +257,10 @@ class RevCross(Triplet):
         :nowrap:
 
         \\begin{eqnarray*}
-        V_{ij}(r)  =  4 \\varepsilon \\left[ \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{2n}
-        - \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{n} \\right] \\qquad r<r_{cut}
+        V_{ij}(r)  =  4 \\varepsilon \\left[
+            \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{2n}
+            - \\left( \\dfrac{ \\sigma}{r_{ij}} \\right)^{n}
+        \\right] \\qquad r<r_{cut}
         \\end{eqnarray*}
 
     Then an additional three-body repulsion is evaluated to compensate the bond
@@ -243,8 +270,10 @@ class RevCross(Triplet):
         :nowrap:
 
             \\begin{eqnarray*}
-            v^{\\left( 3b \\right)}_{ijk}=\\lambda \\epsilon\\,\\hat{v}^{ \\left( 2b \\right)}_{ij}
-            \\left(\\vec{r}_{ij}\\right) \\cdot \\hat{v}^{ \\left( 2b \\right)}_{ik}
+            v^{\\left( 3b \\right)}_{ijk} = \\lambda \\epsilon\\,
+                \\hat{v}^{ \\left( 2b \\right)}_{ij}
+            \\left(\\vec{r}_{ij}\\right)
+                \\cdot \\hat{v}^{ \\left( 2b \\right)}_{ik}
             \\left(\\vec{r}_{ik}\\right)~,\\
             \\end{eqnarray*}
 
@@ -257,7 +286,8 @@ class RevCross(Triplet):
             \\hat{v}^{ \\left( 2b \\right)}_{ij}\\left(\\vec{r}_{ij}\\right) =
             \\begin{cases}
             1 & r \\le r_{min} \\\\
-            - \\dfrac{v_{ij}\\left(\\vec{r}_{ij}\\right)}{\\epsilon} & r > r_{min} \\\\
+            - \\dfrac{v_{ij}\\left(\\vec{r}_{ij}\\right)}{\\epsilon}
+              & r > r_{min} \\\\
             \\end{cases}
             \\end{eqnarray*}
 
@@ -269,16 +299,19 @@ class RevCross(Triplet):
         A reversible bond is only possible between two different species,
         otherwise :math:`v^{\\left( 3b \\right)}_{ijk}`, would prevent any bond.
         In our example we then set the interactions for types A and B with
-        ``rev_c.params[[('A','B'),('A','B')]] =`` ``dict(sigma=0.0,n=0,epsilon=0,lambda3=0)``
-        and the only non-zero energy only between the different types
-        ``rev_c.params[('A','B')] =`` ``dict(sigma=1,n=100,epsilon=100,lambda3=1)``.
+        ``rev_c.params[[('A','B'),('A','B')]]`` to
+        ``{"sigma": 0.0, "n": 0, "epsilon": 0, "lambda3": 0}``
+        and the only non-zero energy only between the different types with
+        setting ``rev_c.params[('A','B')]`` to
+        ``{"sigma":1, "n": 100, "epsilon": 100, "lambda3": 1}``.
         Notice that the number of the minority species corresponds to the
         maximum number of bonds.
 
 
     This three-body term also tunes the energy required for a bond swap through
     the coefficient:- :math:`\\lambda` - *lambda3* (unitless)
-    in `S. Ciarella and W.G. Ellenbroek 2019 <https://arxiv.org/abs/1912.08569>`_
+    in S. Ciarella and W.G. Ellenbroek 2019
+    (`paper link <https://arxiv.org/abs/1912.08569>`__)
     is explained that setting :math:`\\lambda=1` corresponds to no energy
     requirement to initiate bond swap, while this energy barrier scales roughly
     as :math:`\\beta \\Delta E_\\text{sw} =\\beta \\varepsilon(\\lambda-1)`.
@@ -292,24 +325,31 @@ class RevCross(Triplet):
     must be set per unique pair of particle types.
 
     Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The revcross potential parameters. The dictionary has the following keys:
+        params (TypeParameter[\
+                tuple[``particle_type``, ``particle_type``], dict]):
+            The revcross potential parameters. The dictionary has the following
+            keys:
 
-            * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units of energy)
+            * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in
+              units of energy)
 
-            * ``sigma`` (`float`, **required**) - :math:`\\sigma` - (in distance units)
+            * ``sigma`` (`float`, **required**) - :math:`\\sigma` - (in distance
+              units)
 
             * ``n`` (`float`, **required**) - :math:`n` - (unitless)
 
-            * ``lambda3`` (`float`, **required**) - :math:`\\lambda_3` - (unitless)
+            * ``lambda3`` (`float`, **required**) - :math:`\\lambda_3` -
+              (unitless)
 
     Example::
 
         nl = md.nlist.Cell()
         bond_swap = md.many_body.RevCross(r_cut=1.3,nlist=nl)
-        bond_swap.params[(['A','B'],['A','B'])] = dict(sigma=0,n=0,epsilon=0,lambda3=0)
+        bond_swap.params[(['A','B'],['A','B'])] = {
+            "sigma":0,"n": 0, "epsilon": 0, "lambda3": 0}
         # a bond can be made only between A-B and not A-A or B-B
-        bond_swap.params[('A','B')] = dict(sigma=1,n=100,epsilon=10,lambda3=1)
+        bond_swap.params[('A','B')] = {
+            "sigma": 1, "n": 100, "epsilon": 10, "lambda3": 1}
     """
     _cpp_class_name = "PotentialRevCross"
 
@@ -353,23 +393,29 @@ class SquareDensity(Triplet):
 
     .. math::
 
-        w(x) = \\frac{15}{2 \\pi r_{c,\\mathrm{weight}}^3} (1-r/r_{c,\\mathrm{weight}})^2
+        w(x) = \\frac{15}{2 \\pi r_{c,\\mathrm{weight}}^3}
+               (1-r/r_{c,\\mathrm{weight}})^2
 
     The local density at the location of particle *i* is defined as
 
     .. math::
 
-        n_i = \\sum\\limits_{j\\neq i} w_{ij}\\left(\\big| \\vec r_i - \\vec r_j \\big|\\right)
+        n_i = \\sum\\limits_{j\\neq i} w_{ij}
+              \\left(\\big| \\vec r_i - \\vec r_j \\big|\\right)
 
-    Use `params` dictionary to set potential coefficients. The coefficients must be set per unique pair of particle types.
+    Use `params` dictionary to set potential coefficients. The coefficients must
+    be set per unique pair of particle types.
 
     Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+        params (TypeParameter[\
+                tuple[``particle_type``, ``particle_type``], dict]):
             The SquareDensity potential parameters. The dictionary has the
             following keys:
 
-            * ``A`` (`float`, **required**) - :math:`A` - mean density (in units of volume^-1, *default*:0)
-            * ``B`` (`float`, **required**) - :math:`B` - coefficient of the harmonic density term (in units of energy*volumne^2)
+            * ``A`` (`float`, **required**) - :math:`A` - mean density (in units
+              of volume^-1, *default*:0)
+            * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
+              harmonic density term (in units of energy*volumne^2)
 
     Example::
 
@@ -380,8 +426,9 @@ class SquareDensity(Triplet):
 
     For further details regarding this multibody potential, see
 
-    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
-    Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
+    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative
+    particle dynamics" Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68,
+    no. 6 Pt 2, p. 066702, 2003.
     """
     _cpp_class_name = "PotentialSquareDensity"
 

@@ -1,11 +1,12 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+# Maintainer: joaander / All Developers are free to add commands for new
+# features
 
 """Compute system properties."""
 
-from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.operation import Compute
 from hoomd.data.parameterdicts import ParameterDict
@@ -14,7 +15,6 @@ import hoomd
 
 
 class _Thermo(Compute):
-
     def __init__(self, filter):
         self._filter = filter
 
@@ -236,7 +236,8 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            N_{\\mathrm{dof}} = N_{\\mathrm{dof, trans}} + N_{\\mathrm{dof, rot}}
+            N_{\\mathrm{dof}} = N_{\\mathrm{dof, trans}}
+                                + N_{\\mathrm{dof, rot}}
         """
         if self._attached:
             return self._cpp_obj.degrees_of_freedom
@@ -284,7 +285,7 @@ class ThermodynamicQuantities(_Thermo):
 
 
 class HarmonicAveragedThermodynamicQuantities(Compute):
-    """Compute harmonic averaged thermodynamic properties of a group of particles.
+    """Compute harmonic averaged thermodynamic properties of particles.
 
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
@@ -298,16 +299,17 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     of particles and calculates harmonically mapped average (HMA) properties
     of those particles when requested. HMA computes properties more precisely
     (with less variance) for atomic crystals in NVT simulations.  The presence
-    of diffusion (vacancy hopping, etc.) will prevent HMA from providing
+    of dffusion (vacancy hopping, etc.) will prevent HMA from providing
     improvement.  HMA tracks displacements from the lattice positions, which
     are saved either during first call to `Simulation.run` or when the compute
     is first added to the simulation, whichever occurs last.
 
     Note:
-        `HarmonicAveragedThermodynamicQuantities` is an implementation of the methods section of
-        Sabry G. Moustafa, Andrew J. Schultz, and David A. Kofke. (2015).
-        "Very fast averaging of thermal properties of crystals by molecular
-        simulation". Phys. Rev. E 92, 043303 doi:10.1103/PhysRevE.92.043303
+        `HarmonicAveragedThermodynamicQuantities` is an implementation of the
+        methods section of Sabry G. Moustafa, Andrew J. Schultz, and David A.
+        Kofke. (2015).  "Very fast averaging of thermal properties of crystals
+        by molecular simulation". Phys. Rev. E 92, 043303
+        doi:10.1103/PhysRevE.92.043303
 
     Examples::
 

@@ -13,7 +13,6 @@ neighbor lists are shared, they find neighbors within the the maximum
 """
 
 import hoomd
-from hoomd import _hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
 from hoomd.logging import log
