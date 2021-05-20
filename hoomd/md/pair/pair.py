@@ -1,18 +1,16 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 import hoomd
-from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
-from hoomd.md import nlist as nl
 from hoomd.md.nlist import NList
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
                                       nonnegative_real)
 
-import math
 
 validate_nlist = OnlyTypes(NList)
 
@@ -387,7 +385,8 @@ class SLJ(Pair):
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
-        # mode not allowed to be xplor, so re-do param dict entry without that option
+        # mode not allowed to be xplor, so re-do param dict entry without that
+        # option
         param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(param_dict)
         self.mode = mode
@@ -395,7 +394,8 @@ class SLJ(Pair):
         # this potential needs diameter shifting on
         self._nlist.diameter_shift = True
 
-        # NOTE do we need something to automatically set the max_diameter correctly?
+        # NOTE do we need something to automatically set the max_diameter
+        # correctly?
 
 
 class Yukawa(Pair):
@@ -514,296 +514,6 @@ class Ewald(Pair):
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
         self._add_typeparam(params)
-
-
-def _table_eval(r, rmin, rmax, V, F, width):
-    dr = (rmax - rmin) / float(width - 1)
-    i = int(round((r - rmin) / dr))
-    return (V[i], F[i])
-
-
-class table(force._force):
-    R""" Tabulated pair potential.
-
-    Args:
-        width (int): Number of points to use to interpolate V and F.
-        nlist (`hoomd.md.nlist.NList`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-        name (str): Name of the force instance
-
-    :py:class:`table` specifies that a tabulated pair potential should be applied between every
-    non-excluded particle pair in the simulation.
-
-    The force :math:`\vec{F}` is (in force units):
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
-                             = & F_{\mathrm{user}}(r)\hat{r} & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
-                             = & 0                           & r \ge r_{\mathrm{max}} \\
-        \end{eqnarray*}
-
-    and the potential :math:`V(r)` is (in energy units)
-
-    .. math::
-        :nowrap:
-
-        \begin{eqnarray*}
-        V(r)       = & 0                    & r < r_{\mathrm{min}} \\
-                   = & V_{\mathrm{user}}(r) & r_{\mathrm{min}} \le r < r_{\mathrm{max}} \\
-                   = & 0                    & r \ge r_{\mathrm{max}} \\
-        \end{eqnarray*}
-
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the pair.
-
-    :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated on *width* grid points between
-    :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
-    For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`.
-
-    The following coefficients must be set per unique pair of particle types:
-
-    - :math:`V_{\mathrm{user}}(r)` and :math:`F_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
-    - coefficients passed to ``func`` - *coeff* (see example)
-    - :math:`_{\mathrm{min}}` - *rmin* (in distance units)
-    - :math:`_{\mathrm{max}}` - *rmax* (in distance units)
-
-    .. rubric:: Set table from a given function
-
-    When you have a functional form for V and F, you can enter that
-    directly into python. :py:class:`table` will evaluate the given function over *width* points between
-    *rmin* and *rmax* and use the resulting values in the table::
-
-        def lj(r, rmin, rmax, epsilon, sigma):
-            V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
-            F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
-            return (V, F)
-
-        nl = nlist.cell()
-        table = pair.table(width=1000, nlist=nl)
-        table.pair_coeff.set('A', 'A', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.5, sigma=1.0))
-        table.pair_coeff.set('A', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=2.0, sigma=1.2))
-        table.pair_coeff.set('B', 'B', func=lj, rmin=0.8, rmax=3.0, coeff=dict(epsilon=0.5, sigma=1.0))
-
-    .. rubric:: Set a table from a file
-
-    When you have no function for for *V* or *F*, or you otherwise have the data listed in a file,
-    :py:class:`table` can use the given values directly. You must first specify the number of rows
-    in your tables when initializing pair.table. Then use :py:meth:`set_from_file()` to read the file::
-
-        nl = nlist.cell()
-        table = pair.table(width=1000, nlist=nl)
-        table.set_from_file('A', 'A', filename='table_AA.dat')
-        table.set_from_file('A', 'B', filename='table_AB.dat')
-        table.set_from_file('B', 'B', filename='table_BB.dat')
-
-    Note:
-        For potentials that diverge near r=0, make sure to set *rmin* to a reasonable value. If a potential does
-        not diverge near r=0, then a setting of *rmin=0* is valid.
-
-    """
-
-    def __init__(self, width, nlist, name=None):
-
-        # initialize the base class
-        force._force.__init__(self, name)
-
-        # setup the coefficient matrix
-        self.pair_coeff = coeff()
-
-        self.nlist = nlist
-        self.nlist.subscribe(lambda: self.get_rcut())
-        self.nlist.update_rcut()
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.TablePotential(
-                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
-                int(width), self.name)
-        else:
-            self.nlist.cpp_nlist.setStorageMode(
-                _md.NeighborList.storageMode.full)
-            self.cpp_force = _md.TablePotentialGPU(
-                hoomd.context.current.system_definition, self.nlist.cpp_nlist,
-                int(width), self.name)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # stash the width for later use
-        self.width = width
-
-    def update_pair_table(self, typei, typej, func, rmin, rmax, coeff):
-        # allocate arrays to store V and F
-        Vtable = _hoomd.std_vector_scalar()
-        Ftable = _hoomd.std_vector_scalar()
-
-        # calculate dr
-        dr = (rmax - rmin) / float(self.width - 1)
-
-        # evaluate each point of the function
-        for i in range(0, self.width):
-            r = rmin + dr * i
-            (V, F) = func(r, rmin, rmax, **coeff)
-
-            # fill out the tables
-            Vtable.append(V)
-            Ftable.append(F)
-
-        # pass the tables on to the underlying cpp compute
-        self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax)
-
-    ## \internal
-    # \brief Get the r_cut pair dictionary
-    # \returns rcut(i,j) dict if logging is on, and None otherwise
-    def get_rcut(self):
-        if not self.log:
-            return None
-
-        # go through the list of only the active particle types in the sim
-        ntypes = hoomd.context.current.system_definition.getParticleData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getParticleData().getNameByType(i))
-
-        # update the rcut by pair type
-        r_cut_dict = nl.rcut()
-        for i in range(0, ntypes):
-            for j in range(i, ntypes):
-                # get the r_cut value
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], 'rmax')
-                r_cut_dict.set_pair(type_list[i], type_list[j], rmax)
-
-        return r_cut_dict
-
-    def get_max_rcut(self):
-        # loop only over current particle types
-        ntypes = hoomd.context.current.system_definition.getParticleData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getParticleData().getNameByType(i))
-
-        # find the maximum rmax to update the neighbor list with
-        maxrmax = 0.0
-
-        # loop through all of the unique type pairs and find the maximum rmax
-        for i in range(0, ntypes):
-            for j in range(i, ntypes):
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax")
-                maxrmax = max(maxrmax, rmax)
-
-        return maxrmax
-
-    def update_coeffs(self):
-        # check that the pair coefficients are valid
-        if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
-            hoomd.context.current.device.cpp_msg.error(
-                "Not all pair coefficients are set for pair.table\n")
-            raise RuntimeError("Error updating pair coefficients")
-
-        # set all the params
-        ntypes = hoomd.context.current.system_definition.getParticleData(
-        ).getNTypes()
-        type_list = []
-        for i in range(0, ntypes):
-            type_list.append(hoomd.context.current.system_definition
-                             .getParticleData().getNameByType(i))
-
-        # loop through all of the unique type pairs and evaluate the table
-        for i in range(0, ntypes):
-            for j in range(i, ntypes):
-                func = self.pair_coeff.get(type_list[i], type_list[j], "func")
-                rmin = self.pair_coeff.get(type_list[i], type_list[j], "rmin")
-                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax")
-                coeff = self.pair_coeff.get(type_list[i], type_list[j], "coeff")
-
-                self.update_pair_table(i, j, func, rmin, rmax, coeff)
-
-    def set_from_file(self, a, b, filename):
-        R""" Set a pair interaction from a file.
-
-        Args:
-            a (str): Name of type A in pair
-            b (str): Name of type B in pair
-            filename (str): Name of the file to read
-
-        The provided file specifies V and F at equally spaced r values.
-
-        Example::
-
-            #r  V    F
-            1.0 2.0 -3.0
-            1.1 3.0 -4.0
-            1.2 2.0 -3.0
-            1.3 1.0 -2.0
-            1.4 0.0 -1.0
-            1.5 -1.0 0.0
-
-        The first r value sets *rmin*, the last sets *rmax*. Any line with # as the first non-whitespace character is
-        is treated as a comment. The *r* values must monotonically increase and be equally spaced. The table is read
-        directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`_{\mathrm{user}}(r)`.
-        """
-
-        # open the file
-        f = open(filename)
-
-        r_table = []
-        V_table = []
-        F_table = []
-
-        # read in lines from the file
-        for line in f.readlines():
-            line = line.strip()
-
-            # skip comment lines
-            if line[0] == '#':
-                continue
-
-            # split out the columns
-            cols = line.split()
-            values = [float(f) for f in cols]
-
-            # validate the input
-            if len(values) != 3:
-                hoomd.context.current.device.cpp_msg.error(
-                    "pair.table: file must have exactly 3 columns\n")
-                raise RuntimeError("Error reading table file")
-
-            # append to the tables
-            r_table.append(values[0])
-            V_table.append(values[1])
-            F_table.append(values[2])
-
-        # validate input
-        if self.width != len(r_table):
-            hoomd.context.current.device.cpp_msg.error(
-                "pair.table: file must have exactly " + str(self.width)
-                + " rows\n")
-            raise RuntimeError("Error reading table file")
-
-        # extract rmin and rmax
-        rmin_table = r_table[0]
-        rmax_table = r_table[-1]
-
-        # check for even spacing
-        dr = (rmax_table - rmin_table) / float(self.width - 1)
-        for i in range(0, self.width):
-            r = rmin_table + dr * i
-            if math.fabs(r - r_table[i]) > 1e-3:
-                hoomd.context.current.device.cpp_msg.error(
-                    "pair.table: r must be monotonically increasing and evenly spaced\n"
-                )
-                raise RuntimeError("Error reading table file")
-
-        self.pair_coeff.set(a,
-                            b,
-                            func=_table_eval,
-                            rmin=rmin_table,
-                            rmax=rmax_table,
-                            coeff=dict(V=V_table, F=F_table, width=self.width))
 
 
 class Morse(Pair):
@@ -1120,7 +830,8 @@ class DPDLJ(Pair):
         nl = nlist.Cell()
         dpdlj = pair.DPDLJ(nlist=nl, kT=1.0, r_cut=2.5)
         dpdlj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0, gamma=4.5)
-        dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=3.0, sigma=1.0, gamma=1.2)
+        dpdlj.params[(['A', 'B'], ['C', 'D'])] = dict(
+            epsilon=3.0, sigma=1.0, gamma=1.2)
         dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
@@ -1516,7 +1227,8 @@ class ReactionField(Pair):
         nl = nlist.Cell()
         reaction_field = pair.reaction_field(nl, r_cut=3.0)
         reaction_field.params[('A', 'B')] = dict(epsilon=1.0, eps_rf=1.0)
-        reaction_field.params[('B', 'B')] = dict(epsilon=1.0, eps_rf=0.0, use_charge=True)
+        reaction_field.params[('B', 'B')] = dict(
+            epsilon=1.0, eps_rf=0.0, use_charge=True)
     """
     _cpp_class_name = "PotentialPairReactionField"
 
@@ -1596,9 +1308,11 @@ class DLVO(Pair):
     Example::
 
         nl = nlist.cell()
-        DLVO.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
-        DLVO.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
-        DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
+        dlvo = hoomd.md.pair.DLVO(nlist=nl)
+        dlvo.params[('A', 'A')] = {"epsilon": 1.0, "kappa": 1.0}
+        dlvo.params[('A', 'B')] = {
+            "epsilon": 2.0, "kappa": 0.5, "r_cut": 3.0, "r_on": 2.0}
+        dlvo.params[(['A', 'B'], ['C', 'D'])] = {"epsilon": 0.5, "kappa": 3.0}
     """
     _cpp_class_name = "PotentialPairDLVO"
 
@@ -1612,7 +1326,8 @@ class DLVO(Pair):
             TypeParameterDict(kappa=float, Z=float, A=float, len_keys=2))
         self._add_typeparam(params)
 
-        # mode not allowed to be xplor, so re-do param dict entry without that option
+        # mode not allowed to be xplor, so re-do param dict entry without that
+        # option
         param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
         self._param_dict.update(param_dict)
         self.mode = mode
@@ -1835,7 +1550,8 @@ class Fourier(Pair):
         params (`TypeParameter` [\
           `tuple` [``particle_type``, ``particle_type``],\
           `dict`]):
-          The Fourier potential parameters. The dictionary has the following keys:
+          The Fourier potential parameters. The dictionary has the following
+          keys:
 
           * ``a`` (`float`, **required**) - array of 3 values corresponding to
             a2, a3 and a4 in the Fourier series, unitless)
@@ -1886,8 +1602,10 @@ class OPP(Pair):
     coefficients. The coefficients must be set per unique pair of particle
     types.
 
-    The potential comes from
-    `Marek Mihalkovič and C. L. Henley 2012 <https://dx.doi.org/10.1103/PhysRevB.85.092102>`_.
+    The potential comes from Marek Mihalkovič and C. L. Henley 2012
+    `paper link`_.
+
+    .. _paper link: https://dx.doi.org/10.1103/PhysRevB.85.092102
 
     Attributes:
         params (`TypeParameter` [\
@@ -1961,8 +1679,10 @@ class TWF(Pair):
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
-    The potential comes from
-    `Pieter Rein ten Wolde and Daan Frenkel 1997 <https://dx.doi.org/10.1126/science.277.5334.1975 >`_.
+    The potential comes from Pieter Rein ten Wolde and Daan Frenkel 1997
+    `paper link`_.
+
+    .. _paper link: https://dx.doi.org/10.1126/science.277.5334.1975
 
     Attributes:
         params (`TypeParameter` [\

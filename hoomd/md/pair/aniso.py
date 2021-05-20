@@ -1,3 +1,5 @@
+import json
+
 from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
@@ -92,7 +94,8 @@ class Dipole(AnisotropicPair):
        All units are given for electronic dipole moments.
 
     Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+        params (TypeParameter[\
+                tuple[``particle_type``, ``particle_type``], dict]):
             The dipole potential parameters. The dictionary has the following
             keys:
 
@@ -141,10 +144,12 @@ class GayBerne(AnisotropicPair):
     particles.
 
     This version of the Gay-Berne potential supports identical pairs of uniaxial
-    ellipsoids, with orientation-independent energy-well depth.
+    ellipsoids, with orientation-independent energy-well depth. The potential
+    comes from the following paper Allen et. al. 2006 `paper link`_.
+
+    .. _paper link: http://dx.doi.org/10.1080/00268970601075238
 
     The interaction energy for this anisotropic pair potential is
-    (`Allen et. al. 2006 <http://dx.doi.org/10.1080/00268970601075238>`_):
 
     .. math::
         :nowrap:
@@ -183,7 +188,8 @@ class GayBerne(AnisotropicPair):
     must be set per unique pair of particle types.
 
     Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
+        params (TypeParameter[\
+                tuple[``particle_type``, ``particle_type``], dict]):
             The Gay-Berne potential parameters. The dictionary has the following
             keys:
 
