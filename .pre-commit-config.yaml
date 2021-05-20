@@ -42,6 +42,7 @@ repos:
     - flake8-rst-docstrings==0.2.3
     # Exclude components not yet ported to hoomd v3
     # TODO: Remove these exclusions as components are ported
+    # These also need to be removed in setup.cfg
     exclude: |
       (?x)(
         ^hoomd/md/charge.py|
