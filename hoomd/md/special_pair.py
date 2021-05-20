@@ -55,6 +55,7 @@ class LJ(SpecialPair):
     The pair potential uses the standard LJ definition.
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
@@ -116,6 +117,7 @@ class Coulomb(SpecialPair):
     OPLS where both the 1-4 LJ and Coulomb interactions are scaled by 0.5.
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         V_{\mathrm{Coulomb}}(r)  = & \alpha \cdot

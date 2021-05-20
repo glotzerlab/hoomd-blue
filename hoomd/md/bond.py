@@ -90,6 +90,7 @@ class FENE(Bond):
     of particle :math:`i`, and
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r -
@@ -159,6 +160,7 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
     is (in energy units):
 
     .. math::
+        :nowrap:
 
         \begin{eqnarray*}
         \vec{F}(\vec{r})     = & 0
