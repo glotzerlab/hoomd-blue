@@ -36,7 +36,7 @@ class Angle(Force):
 
 
 class Harmonic(Angle):
-    R""" Harmonic angle potential.
+    r"""Harmonic angle potential.
 
     The command angle.harmonic specifies a harmonic potential energy between
     every triplet of particles with an angle specified between them.
@@ -75,7 +75,7 @@ class Harmonic(Angle):
 
 
 class Cosinesq(Angle):
-    R""" Cosine squared angle potential.
+    r"""Cosine squared angle potential.
 
     The command angle.cosinesq specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.

@@ -120,7 +120,7 @@ class NList(_HOOMDBaseObject):
 
 
 class Cell(NList):
-    r"""Cell list based neighbor list
+    r"""Neighbor list computed via a cell list.
 
     Args:
         buffer (float): Buffer width.

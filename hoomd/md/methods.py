@@ -1,11 +1,8 @@
-# coding: utf-8
-
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
+"""MD integration methods."""
 
 from hoomd.md import _md
 import hoomd
@@ -219,6 +216,7 @@ class NVT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
+        """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -226,7 +224,7 @@ class NVT(Method):
 
 
 class NPT(Method):
-    R""" NPT Integration via MTK barostat-thermostat.
+    r"""NPT Integration via MTK barostat-thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -509,6 +507,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
+        """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -516,6 +515,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
+        """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -701,6 +701,7 @@ class NPH(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
+        """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -708,7 +709,7 @@ class NPH(Method):
 
 
 class NVE(MethodRATTLE):
-    R""" NVE Integration via Velocity-Verlet with or without RATTLE
+    r"""NVE Integration via Velocity-Verlet with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -821,7 +822,7 @@ class NVE(MethodRATTLE):
 
 
 class Langevin(MethodRATTLE):
-    R""" Langevin dynamics with or without RATTLE
+    r"""Langevin dynamics with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -1025,7 +1026,7 @@ class Langevin(MethodRATTLE):
 
 
 class Brownian(MethodRATTLE):
-    R""" Brownian dynamics with and without RATTLE.
+    r"""Brownian dynamics with and without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to

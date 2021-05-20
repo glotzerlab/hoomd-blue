@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Anisotropic potentials."""
+
 import json
 
 from hoomd import md
@@ -9,7 +15,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyFrom, positive_real
 
 
 class AnisotropicPair(Pair):
-    R"""Generic anisotropic pair potential.
+    r"""Generic anisotropic pair potential.
 
     Users should not instantiate `AnisotropicPair` directly. It is a base
     class that provides common features to all anisotropic pair forces.
@@ -47,7 +53,7 @@ class AnisotropicPair(Pair):
 
 
 class Dipole(AnisotropicPair):
-    R""" Screened dipole-dipole interactions.
+    r"""Screened dipole-dipole interactions.
 
     Implements the force and energy calculations for both magnetic and
     electronic dipole-dipole interactions. When particles have charge as well as
@@ -130,7 +136,7 @@ class Dipole(AnisotropicPair):
 
 
 class GayBerne(AnisotropicPair):
-    R""" Gay-Berne anisotropic pair potential.
+    r"""Gay-Berne anisotropic pair potential.
 
     Warning: The code has yet to be updated to the current API.
 

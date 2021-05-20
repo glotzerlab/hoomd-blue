@@ -2,6 +2,8 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""Pair potentials."""
+
 import hoomd
 from hoomd.md import _md
 from hoomd.md import force
@@ -16,7 +18,7 @@ validate_nlist = OnlyTypes(NList)
 
 
 class Pair(force.Force):
-    """Common pair potential documentation.
+    r"""Common pair potential documentation.
 
     Users should not invoke `Pair` directly. It is a base command
     that provides common features to all standard pair forces. Common
@@ -24,69 +26,69 @@ class Pair(force.Force):
 
     All pair force commands specify that a given potential energy and force be
     computed on all non-excluded particle pairs in the system within a short
-    range cutoff distance :math:`r_{\\mathrm{cut}}`.
+    range cutoff distance :math:`r_{\mathrm{cut}}`.
 
-    The force :math:`\\vec{F}` applied between each pair of particles is:
+    The force :math:`\vec{F}` applied between each pair of particles is:
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        \\vec{F}  = & -\\nabla V(r) & r < r_{\\mathrm{cut}} \\\\
-                  = & 0           & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+                  = & 0           & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
-    where :math:`\\vec{r}` is the vector pointing from one particle to the other
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
     in the pair, and :math:`V(r)` is chosen by a mode switch:
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V(r)  = & V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\ no\\_shift} \\\\
-              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
-              & \\mathrm{mode\\ is\\ shift} \\\\
-              = & S(r) \\cdot V_{\\mathrm{pair}}(r) & \\mathrm{mode\\ is\\
-              xplor\\ and\\ } r_{\\mathrm{on}} < r_{\\mathrm{cut}} \\\\
-              = & V_{\\mathrm{pair}}(r) - V_{\\mathrm{pair}}(r_{\\mathrm{cut}})
-              & \\mathrm{mode\\ is\\ xplor\\ and\\ } r_{\\mathrm{on}} \\ge
-              r_{\\mathrm{cut}}
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V(r)  = & V_{\mathrm{pair}}(r) & \mathrm{mode\ is\ no\_shift} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
+              & \mathrm{mode\ is\ shift} \\
+              = & S(r) \cdot V_{\mathrm{pair}}(r) & \mathrm{mode\ is\
+              xplor\ and\ } r_{\mathrm{on}} < r_{\mathrm{cut}} \\
+              = & V_{\mathrm{pair}}(r) - V_{\mathrm{pair}}(r_{\mathrm{cut}})
+              & \mathrm{mode\ is\ xplor\ and\ } r_{\mathrm{on}} \ge
+              r_{\mathrm{cut}}
+        \end{eqnarray*}
 
     :math:`S(r)` is the XPLOR smoothing function:
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        S(r) = & 1 & r < r_{\\mathrm{on}} \\\\
-             = & \\frac{(r_{\\mathrm{cut}}^2 - r^2)^2 \\cdot
-             (r_{\\mathrm{cut}}^2 + 2r^2 -
-             3r_{\\mathrm{on}}^2)}{(r_{\\mathrm{cut}}^2 -
-             r_{\\mathrm{on}}^2)^3}
-               & r_{\\mathrm{on}} \\le r \\le r_{\\mathrm{cut}} \\\\
-             = & 0 & r > r_{\\mathrm{cut}} \\\\
-         \\end{eqnarray*}
+        \begin{eqnarray*}
+        S(r) = & 1 & r < r_{\mathrm{on}} \\
+             = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot
+             (r_{\mathrm{cut}}^2 + 2r^2 -
+             3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 -
+             r_{\mathrm{on}}^2)^3}
+               & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+             = & 0 & r > r_{\mathrm{cut}} \\
+         \end{eqnarray*}
 
-    and :math:`V_{\\mathrm{pair}}(r)` is the specific pair potential chosen by
+    and :math:`V_{\mathrm{pair}}(r)` is the specific pair potential chosen by
     the respective command.
 
     Enabling the XPLOR smoothing function :math:`S(r)` results in both the
     potential energy and the force going smoothly to 0 at :math:`r =
-    r_{\\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
-    :math:`r_{\\mathrm{on}}` controls the point at which the smoothing starts,
+    r_{\mathrm{cut}}`, reducing the rate of energy drift in long simulations.
+    :math:`r_{\mathrm{on}}` controls the point at which the smoothing starts,
     so it can be set to only slightly modify the tail of the potential. It is
     suggested that you plot your potentials with various values of
-    :math:`r_{\\mathrm{on}}` in order to find a good balance between a smooth
+    :math:`r_{\mathrm{on}}` in order to find a good balance between a smooth
     potential function and minimal modification of the original
-    :math:`V_{\\mathrm{pair}}(r)`. A good value for the LJ potential is
-    :math:`r_{\\mathrm{on}} = 2 \\cdot \\sigma`.
+    :math:`V_{\mathrm{pair}}(r)`. A good value for the LJ potential is
+    :math:`r_{\mathrm{on}} = 2 \cdot \sigma`.
 
     The split smoothing / shifting of the potential when the mode is ``xplor``
     is designed for use in mixed WCA / LJ systems. The WCA potential and it's
     first derivative already go smoothly to 0 at the cutoff, so there is no need
     to apply the smoothing function. In such mixed systems, set
-    :math:`r_{\\mathrm{on}}` to a value greater than :math:`r_{\\mathrm{cut}}`
+    :math:`r_{\mathrm{on}}` to a value greater than :math:`r_{\mathrm{cut}}`
     for those pairs that interact via WCA in order to enable shifting of the WCA
     potential to 0 at the cutoff.
 
@@ -121,7 +123,7 @@ class Pair(force.Force):
         self.mode = mode
 
     def compute_energy(self, tags1, tags2):
-        R""" Compute the energy between two sets of particles.
+        r"""Compute the energy between two sets of particles.
 
         Args:
             tags1 (``ndarray<int32>``): a numpy array of particle tags in the
@@ -181,6 +183,7 @@ class Pair(force.Force):
 
     @property
     def nlist(self):
+        """Neighbor list used to compute the pair potential."""
         return self._nlist
 
     @nlist.setter
@@ -196,7 +199,7 @@ class Pair(force.Force):
 
 
 class LJ(Pair):
-    """ Lennard-Jones pair potential.
+    r"""Lennard-Jones pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -210,12 +213,12 @@ class LJ(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{LJ}}(r)  = & 4 \\varepsilon \\left[ \\left(
-        \\frac{\\sigma}{r} \\right)^{12} - \\left( \\frac{\\sigma}{r}
-        \\right)^{6} \\right] & r < r_{\\mathrm{cut}} \\\\
-        = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left(
+        \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r}
+        \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+        = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use `params` dictionary
@@ -229,10 +232,10 @@ class LJ(Pair):
             The LJ potential parameters. The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\\varepsilon` (in energy units)
+              energy parameter :math:`\varepsilon` (in energy units)
 
             * ``sigma`` (`float`, **required**) -
-              particle size :math:`\\sigma` (in distance units)
+              particle size :math:`\sigma` (in distance units)
 
     Example::
 
@@ -252,7 +255,7 @@ class LJ(Pair):
 
 
 class Gauss(Pair):
-    """ Gaussian pair potential.
+    r"""Gaussian pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -266,12 +269,12 @@ class Gauss(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{gauss}}(r)  = & \\varepsilon \\exp \\left[ -\\frac{1}{2}
-                                  \\left( \\frac{r}{\\sigma} \\right)^2 \\right]
-                                  & r < r_{\\mathrm{cut}} \\\\
-                                 = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{gauss}}(r)  = & \varepsilon \exp \left[ -\frac{1}{2}
+                                  \left( \frac{r}{\sigma} \right)^2 \right]
+                                  & r < r_{\mathrm{cut}} \\
+                                 = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
@@ -286,9 +289,9 @@ class Gauss(Pair):
           keys:
 
           * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\\varepsilon` (in energy units)
+            :math:`\varepsilon` (in energy units)
 
-          * ``sigma`` (`float`, **required**) - particle size :math:`\\sigma`
+          * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
             (in distance units)
 
     Example::
@@ -309,7 +312,7 @@ class Gauss(Pair):
 
 
 class SLJ(Pair):
-    """Shifted Lennard-Jones pair potential.
+    r"""Shifted Lennard-Jones pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -324,16 +327,16 @@ class SLJ(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{SLJ}}(r)  = & 4 \\varepsilon \\left[ \\left(
-                                \\frac{\\sigma}{r - \\Delta} \\right)^{12} -
-                                \\left( \\frac{\\sigma}{r - \\Delta}
-                                \\right)^{6} \\right] & r < (r_{\\mathrm{cut}}
-                                + \\Delta) \\\\
-                             = & 0 & r \\ge (r_{\\mathrm{cut}} + \\Delta) \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left(
+                                \frac{\sigma}{r - \Delta} \right)^{12} -
+                                \left( \frac{\sigma}{r - \Delta}
+                                \right)^{6} \right] & r < (r_{\mathrm{cut}}
+                                + \Delta) \\
+                             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
+        \end{eqnarray*}
 
-    where :math:`\\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
+    where :math:`\Delta = (d_i + d_j)/2 - 1` and :math:`d_i` is the diameter of
     particle :math:`i`.
 
     See `Pair` for details on how forces are calculated and the
@@ -360,9 +363,9 @@ class SLJ(Pair):
             The potential parameters. The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) - energy parameter
-              :math:`\\varepsilon` (in energy units)
+              :math:`\varepsilon` (in energy units)
 
-            * ``sigma`` (`float`, **required**) - particle size :math:`\\sigma`
+            * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
               (in distance units)
 
     Example::
@@ -399,7 +402,7 @@ class SLJ(Pair):
 
 
 class Yukawa(Pair):
-    """Yukawa pair potential.
+    r"""Yukawa pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -413,11 +416,11 @@ class Yukawa(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-          V_{\\mathrm{yukawa}}(r) = & \\varepsilon \\frac{ \\exp \\left(
-          -\\kappa r \\right) }{r} & r < r_{\\mathrm{cut}} \\\\
-                                  = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+          V_{\mathrm{yukawa}}(r) = & \varepsilon \frac{ \exp \left(
+          -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
+                                  = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
@@ -432,10 +435,10 @@ class Yukawa(Pair):
           keys:
 
           * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\\varepsilon` (in energy units)
+            :math:`\varepsilon` (in energy units)
 
           * ``kappa`` (`float`, **required**) - scaling parameter
-            :math:`\\kappa` (in units of 1/distance)
+            :math:`\kappa` (in units of 1/distance)
 
     Example::
 
@@ -455,7 +458,7 @@ class Yukawa(Pair):
 
 
 class Ewald(Pair):
-    """Ewald pair potential.
+    r"""Ewald pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -469,16 +472,16 @@ class Ewald(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-         V_{\\mathrm{ewald}}(r)  = & q_i q_j \\left[\\mathrm{erfc}\\left(\\kappa
-                                    r + \\frac{\\alpha}{2\\kappa}\\right)
-                                    \\exp(\\alpha r) \\\\
-                                    + \\mathrm{erfc}\\left(\\kappa r -
-                                    \\frac{\\alpha}{2 \\kappa}\\right)
-                                    \\exp(-\\alpha r)\\right]
-                                    & r < r_{\\mathrm{cut}} \\\\
-                            = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+         V_{\mathrm{ewald}}(r)  = & q_i q_j \left[\mathrm{erfc}\left(\kappa
+                                    r + \frac{\alpha}{2\kappa}\right)
+                                    \exp(\alpha r) \\
+                                    + \mathrm{erfc}\left(\kappa r -
+                                    \frac{\alpha}{2 \kappa}\right)
+                                    \exp(-\alpha r)\right]
+                                    & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     The Ewald potential is designed to be used in conjunction with PPPM.
 
@@ -494,10 +497,10 @@ class Ewald(Pair):
           The Ewald potential parameters. The dictionary has the following keys:
 
           * ``kappa`` (`float`, **required**) - Splitting parameter
-            :math:`\\kappa` (in units of 1/distance)
+            :math:`\kappa` (in units of 1/distance)
 
           * ``alpha`` (`float`, **required**) - Debye screening length
-            :math:`\\alpha` (in units of 1/distance)
+            :math:`\alpha` (in units of 1/distance)
 
     Example::
 
@@ -517,7 +520,7 @@ class Ewald(Pair):
 
 
 class Morse(Pair):
-    """Morse pair potential.
+    r"""Morse pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -531,12 +534,12 @@ class Morse(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{morse}}(r) = & D_0 \\left[ \\exp \\left(-2\\alpha\\left(
-            r-r_0\\right)\\right) -2\\exp \\left(-\\alpha\\left(r-r_0\\right)
-            \\right) \\right] & r < r_{\\mathrm{cut}} \\\\
-            = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{morse}}(r) = & D_0 \left[ \exp \left(-2\alpha\left(
+            r-r_0\right)\right) -2\exp \left(-\alpha\left(r-r_0\right)
+            \right) \right] & r < r_{\mathrm{cut}} \\
+            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
@@ -553,7 +556,7 @@ class Morse(Pair):
             minimum :math:`D_0` (in energy units)
 
           * ``alpha`` (`float`, **required**) - the width of the potential well
-            :math:`\\alpha` (in units of 1/distance)
+            :math:`\alpha` (in units of 1/distance)
 
           * ``r0`` (`float`, **required**) - position of the minimum
             :math:`r_0` (in distance units)
@@ -577,7 +580,7 @@ class Morse(Pair):
 
 
 class DPD(Pair):
-    """Dissipative Particle Dynamics.
+    r"""Dissipative Particle Dynamics.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -594,33 +597,33 @@ class DPD(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        F = F_{\\mathrm{C}}(r) + F_{\\mathrm{R,ij}}(r_{ij}) +
-        F_{\\mathrm{D,ij}}(v_{ij}) \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        F = F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +
+        F_{\mathrm{D,ij}}(v_{ij}) \\
+        \end{eqnarray*}
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        F_{\\mathrm{C}}(r) = & A \\cdot  w(r_{ij}) \\\\
-        F_{\\mathrm{R, ij}}(r_{ij}) = & - \\theta_{ij}\\sqrt{3}
-        \\sqrt{\\frac{2k_b\\gamma T}{\\Delta t}}\\cdot w(r_{ij})  \\\\
-        F_{\\mathrm{D, ij}}(r_{ij}) = & - \\gamma w^2(r_{ij})\\left(
-        \\hat r_{ij} \\circ v_{ij} \\right)  \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        F_{\mathrm{C}}(r) = & A \cdot  w(r_{ij}) \\
+        F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3}
+        \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+        F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})\left(
+        \hat r_{ij} \circ v_{ij} \right)  \\
+        \end{eqnarray*}
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        w(r_{ij}) = &\\left( 1 - r/r_{\\mathrm{cut}} \\right)
-        & r < r_{\\mathrm{cut}} \\\\
-                  = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)
+        & r < r_{\mathrm{cut}} \\
+                  = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
-    where :math:`\\hat r_{ij}` is a normalized vector from particle i to
-    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\\theta_{ij}` is a
+    where :math:`\hat r_{ij}` is a normalized vector from particle i to
+    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
     uniformly distributed random number in the range [-1, 1].
 
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_
@@ -638,7 +641,7 @@ class DPD(Pair):
     unphysical behavior. To use pair.dpd with a different conservative potential
     than :math:`F_C`, set A to zero and define the conservative pair potential
     separately.  Note that DPD thermostats are often defined in terms of
-    :math:`\\sigma` where :math:`\\sigma = \\sqrt{2k_b\\gamma T}`.
+    :math:`\sigma` where :math:`\sigma = \sqrt{2k_b\gamma T}`.
 
     Attributes:
         params (`TypeParameter` [\
@@ -648,7 +651,7 @@ class DPD(Pair):
 
           * ``A`` (`float`, **required**) - :math:`A` (in force units)
 
-          * ``gamma`` (`float`, **required**) - :math:`\\gamma` (in units of
+          * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
             force/velocity)
 
     Example::
@@ -686,7 +689,7 @@ class DPD(Pair):
 
 
 class DPDConservative(Pair):
-    """DPD Conservative pair force.
+    r"""DPD Conservative pair force.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -701,13 +704,13 @@ class DPDConservative(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{DPD-C}}(r) = & A \\cdot \\left( r_{\\mathrm{cut}} - r
-          \\right) - \\frac{1}{2} \\cdot \\frac{A}{r_{\\mathrm{cut}}} \\cdot
-          \\left(r_{\\mathrm{cut}}^2 - r^2 \\right)
-          & r < r_{\\mathrm{cut}} \\\\
-                              = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{DPD-C}}(r) = & A \cdot \left( r_{\mathrm{cut}} - r
+          \right) - \frac{1}{2} \cdot \frac{A}{r_{\mathrm{cut}}} \cdot
+          \left(r_{\mathrm{cut}}^2 - r^2 \right)
+          & r < r_{\mathrm{cut}} \\
+                              = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
 
     `DPDConservative` does not implement and energy shift / smoothing modes due
@@ -742,7 +745,7 @@ class DPDConservative(Pair):
 
 
 class DPDLJ(Pair):
-    """Dissipative Particle Dynamics with a LJ conservative force.
+    r"""Dissipative Particle Dynamics with a LJ conservative force.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -762,44 +765,44 @@ class DPDLJ(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        F = F_{\\mathrm{C}}(r) + F_{\\mathrm{R,ij}}(r_{ij}) +
-            F_{\\mathrm{D,ij}}(v_{ij}) \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        F = F_{\mathrm{C}}(r) + F_{\mathrm{R,ij}}(r_{ij}) +
+            F_{\mathrm{D,ij}}(v_{ij}) \\
+        \end{eqnarray*}
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        F_{\\mathrm{C}}(r) = & \\partial V_{\\mathrm{LJ}} / \\partial r \\\\
-        F_{\\mathrm{R, ij}}(r_{ij}) = & - \\theta_{ij}\\sqrt{3}
-            \\sqrt{\\frac{2k_b\\gamma T}{\\Delta t}}\\cdot w(r_{ij})  \\\\
-        F_{\\mathrm{D, ij}}(r_{ij}) = & - \\gamma w^2(r_{ij})
-            \\left( \\hat r_{ij} \\circ v_{ij} \\right)  \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        F_{\mathrm{C}}(r) = & \partial V_{\mathrm{LJ}} / \partial r \\
+        F_{\mathrm{R, ij}}(r_{ij}) = & - \theta_{ij}\sqrt{3}
+            \sqrt{\frac{2k_b\gamma T}{\Delta t}}\cdot w(r_{ij})  \\
+        F_{\mathrm{D, ij}}(r_{ij}) = & - \gamma w^2(r_{ij})
+            \left( \hat r_{ij} \circ v_{ij} \right)  \\
+        \end{eqnarray*}
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{LJ}}(r) = & 4 \\varepsilon \\left[ \\left(
-            \\frac{\\sigma}{r} \\right)^{12} -
-             \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]
-            & r < r_{\\mathrm{cut}} \\\\
-                            = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r) = & 4 \varepsilon \left[ \left(
+            \frac{\sigma}{r} \right)^{12} -
+             \left( \frac{\sigma}{r} \right)^{6} \right]
+            & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        w(r_{ij}) = &\\left( 1 - r/r_{\\mathrm{cut}} \\right)
-            & r < r_{\\mathrm{cut}} \\\\
-                  = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        w(r_{ij}) = &\left( 1 - r/r_{\mathrm{cut}} \right)
+            & r < r_{\mathrm{cut}} \\
+                  = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
-    where :math:`\\hat r_{ij}` is a normalized vector from particle i to
-    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\\theta_{ij}` is a
+    where :math:`\hat r_{ij}` is a normalized vector from particle i to
+    particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
     uniformly distributed random number in the range [-1, 1].
 
     Use `params` dictionary to set potential coefficients. The coefficients must
@@ -816,13 +819,13 @@ class DPDLJ(Pair):
           `dict`]):
           The DPDLJ potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon`
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
             (in energy units)
 
-          * ``sigma`` (`float`, **required**) - :math:`\\sigma`
+          * ``sigma`` (`float`, **required**) - :math:`\sigma`
             (in distance units)
 
-          * ``gamma`` (`float`, **required**) - :math:`\\gamma` (in units of
+          * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
             force/velocity)
 
     Example::
@@ -868,7 +871,7 @@ class DPDLJ(Pair):
 
 
 class ForceShiftedLJ(Pair):
-    """Force-shifted Lennard-Jones pair potential.
+    r"""Force-shifted Lennard-Jones pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -879,7 +882,7 @@ class ForceShiftedLJ(Pair):
     `ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should
     be applied between non-excluded particle pair in the simulation. The force
     differs from the one calculated by  `LJ` by the subtraction of the
-    value of the force at :math:`r_{\\mathrm{cut}}`, such that the force
+    value of the force at :math:`r_{\mathrm{cut}}`, such that the force
     smoothly goes to zero at the cut-off. The potential is modified by a linear
     function. This potential can be used as a substitute for `LJ`,
     when the exact analytical form of the latter is not required but a smaller
@@ -890,17 +893,17 @@ class ForceShiftedLJ(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V(r) = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r}
-          \\right)^{12} - \\left( \\frac{\\sigma}{r} \\right)^{6}
-          \\right] + \\Delta V(r) & r < r_{\\mathrm{cut}}\\\\
-             = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
+          \right)^{12} - \left( \frac{\sigma}{r} \right)^{6}
+          \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
+             = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     .. math::
 
-        \\Delta V(r) = -(r - r_{\\mathrm{cut}}) \\frac{\\partial
-          V_{\\mathrm{LJ}}}{\\partial r}(r_{\\mathrm{cut}})
+        \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial
+          V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes. Use `params` dictionary to
@@ -913,10 +916,10 @@ class ForceShiftedLJ(Pair):
           `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon`
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
             (in energy units)
 
-          * ``sigma`` (`float`, **required**) - :math:`\\sigma`
+          * ``sigma`` (`float`, **required**) - :math:`\sigma`
             (in distance units)
 
     Example::
@@ -938,7 +941,7 @@ class ForceShiftedLJ(Pair):
 
 
 class Moliere(Pair):
-    """Moliere pair potential.
+    r"""Moliere pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -952,23 +955,23 @@ class Moliere(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{Moliere}}(r)
-          = & \\frac{Z_i Z_j e^2}{4 \\pi \\epsilon_0 r_{ij}} \\left[ 0.35 \\exp
-          \\left( -0.3 \\frac{r_{ij}}{a_F} \\right) + \\\\
-          0.55 \\exp \\left( -1.2 \\frac{r_{ij}}{a_F} \\right) + 0.10 \\exp
-          \\left( -6.0 \\frac{r_{ij}}{a_F} \\right) \\right]
-          & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r > r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{Moliere}}(r)
+          = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp
+          \left( -0.3 \frac{r_{ij}}{a_F} \right) + \\
+          0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp
+          \left( -6.0 \frac{r_{ij}}{a_F} \right) \right]
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r > r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     Where each parameter is defined as:
 
     - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
     - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
     - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
-    - :math:`a_F = \\frac{0.8853 a_0}{\\left( \\sqrt{Z_i} + \\sqrt{Z_j}
-      \\right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
+    - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
+      \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
@@ -982,16 +985,16 @@ class Moliere(Pair):
           The potential parameters. The dictionary has the following keys:
 
           * ``qi`` (`float`, **required**) -
-            :math:`q_i = Z_i \\frac{e}{\\sqrt{4 \\pi \\epsilon_0}}`
+            :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}`
             (in charge units)
 
           * ``qj`` (`float`, **required**) -
-            :math:`q_j = Z_j \\frac{e}{\\sqrt{4 \\pi \\epsilon_0}}`
+            :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}`
             (in charge units)
 
           * ``aF`` (`float`, **required**) -
-            :math:`a_F = \\frac{0.8853 a_0}{\\left( \\sqrt{Z_i} + \\sqrt{Z_j}
-            \\right)^{2/3}}`
+            :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
+            \right)^{2/3}}`
 
     Example::
 
@@ -1017,7 +1020,7 @@ class Moliere(Pair):
 
 
 class ZBL(Pair):
-    """ZBL pair potential.
+    r"""ZBL pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1032,23 +1035,23 @@ class ZBL(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{ZBL}}(r) =
-          & \\frac{Z_i Z_j e^2}{4 \\pi \\epsilon_0 r_{ij}} \\left[ 0.1818
-          \\exp \\left( -3.2 \\frac{r_{ij}}{a_F} \\right) \\\\
-          + 0.5099 \\exp \\left( -0.9423 \\frac{r_{ij}}{a_F} \\right) \\\\
-          + 0.2802 \\exp \\left( -0.4029 \\frac{r_{ij}}{a_F} \\right) \\\\
-          + 0.02817 \\exp \\left( -0.2016 \\frac{r_{ij}}{a_F} \\right) \\right],
-          & r < r_{\\mathrm{cut}} \\\\
-          = & 0, & r > r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{ZBL}}(r) =
+          & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818
+          \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \\
+          + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) \\
+          + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) \\
+          + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right],
+          & r < r_{\mathrm{cut}} \\
+          = & 0, & r > r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     Where each parameter is defined as:
 
     - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
     - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
     - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
-    - :math:`a_F = \\frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
+    - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
       :math:`a_0` is the Bohr radius (in distance units)
 
     See `Pair` for details on how forces are calculated and the available
@@ -1061,14 +1064,14 @@ class ZBL(Pair):
           dict]):
           The ZBL potential parameters. The dictionary has the following keys:
 
-          * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \\frac{e}{\\sqrt{4
-            \\pi \\epsilon_0}}` (in charge units)
+          * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
+            \pi \epsilon_0}}` (in charge units)
 
-          * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \\frac{e}{\\sqrt{4
-            \\pi \\epsilon_0}}` (in charge units)
+          * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
+            \pi \epsilon_0}}` (in charge units)
 
           * ``a_F`` (`float`, **required**) -
-            :math:`a_F = \\frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
+            :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
 
     Example::
 
@@ -1095,7 +1098,7 @@ class ZBL(Pair):
 
 
 class Mie(Pair):
-    """Mie pair potential.
+    r"""Mie pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1109,14 +1112,14 @@ class Mie(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{mie}}(r)
-          = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
-          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
-          \\frac{\\sigma}{r} \\right)^{n} - \\left( \\frac{\\sigma}{r}
-          \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{mie}}(r)
+          = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
+          \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left(
+          \frac{\sigma}{r} \right)^{n} - \left( \frac{\sigma}{r}
+          \right)^{m} \right] & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     `Pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes. Use the `params` dictionary to set potential
@@ -1129,10 +1132,10 @@ class Mie(Pair):
           `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
             of energy)
 
-          * ``sigma`` (`float`, **required**) - :math:`\\sigma` (in distance
+          * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance
             units)
 
           * ``n`` (`float`, **required**) - :math:`n` (unitless)
@@ -1165,7 +1168,7 @@ class Mie(Pair):
 
 
 class ReactionField(Pair):
-    """Onsager reaction field pair potential.
+    r"""Onsager reaction field pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1179,26 +1182,26 @@ class ReactionField(Pair):
 
     Reaction field electrostatics is an approximation to the screened
     electrostatic interaction, which assumes that the medium can be treated as
-    an electrostatic continuum of dielectric constant :math:`\\epsilon_{RF}`
-    outside the cutoff sphere of radius :math:`r_{\\mathrm{cut}}`. See: `Barker
+    an electrostatic continuum of dielectric constant :math:`\epsilon_{RF}`
+    outside the cutoff sphere of radius :math:`r_{\mathrm{cut}}`. See: `Barker
     et. al. 1973 <http://dx.doi.org/10.1080/00268977300102101>`_.
 
     .. math::
 
-       V_{\\mathrm{RF}}(r) = \\varepsilon \\left[ \\frac{1}{r} +
-           \\frac{(\\epsilon_{RF}-1) r^2}{(2 \\epsilon_{RF} + 1) r_c^3} \\right]
+       V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
+           \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
 
     By default, the reaction field potential does not require charge or diameter
-    to be set. Two parameters, :math:`\\varepsilon` and :math:`\\epsilon_{RF}`
-    are needed. If :math:`\\epsilon_{RF}` is specified as zero, it will
+    to be set. Two parameters, :math:`\varepsilon` and :math:`\epsilon_{RF}`
+    are needed. If :math:`\epsilon_{RF}` is specified as zero, it will
     represent infinity.
 
     If *use_charge* is set to True, the following formula is evaluated instead:
 
     .. math::
 
-        V_{\\mathrm{RF}}(r) = q_i q_j \\varepsilon \\left[ \\frac{1}{r} +
-          \\frac{(\\epsilon_{RF}-1) r^2}{(2 \\epsilon_{RF} + 1) r_c^3} \\right]
+        V_{\mathrm{RF}}(r) = q_i q_j \varepsilon \left[ \frac{1}{r} +
+          \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
 
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
@@ -1213,10 +1216,10 @@ class ReactionField(Pair):
           `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
             of energy*distance)
 
-          * ``eps_rf`` (`float`, **required**) - :math:`\\epsilon_{RF}`
+          * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
             (dimensionless)
 
           * ``use_charge`` (`boolean`, **optional**) - evaluate pair potntial
@@ -1245,7 +1248,7 @@ class ReactionField(Pair):
 
 
 class DLVO(Pair):
-    """DLVO colloidal interaction
+    r"""DLVO colloidal interaction.
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
@@ -1260,19 +1263,19 @@ class DLVO(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{DLVO}}(r)  = & - \\frac{A}{6} \\left[
-            \\frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
-            \\frac{2a_1a_2}{r^2 - (a_1-a_2)^2} \\\\
-            + \\log \\left(
-            \\frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \\right) \\right]
-            & \\\\
-            & + \\frac{a_1 a_2}{a_1+a_2} Z e^{-\\kappa(r - (a_1+a_2))}
-            & r < (r_{\\mathrm{cut}} + \\Delta) \\\\
-            = & 0 & r \\ge (r_{\\mathrm{cut}} + \\Delta)
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[
+            \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} +
+            \frac{2a_1a_2}{r^2 - (a_1-a_2)^2} \\
+            + \log \left(
+            \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1-a_2)^2} \right) \right]
+            & \\
+            & + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))}
+            & r < (r_{\mathrm{cut}} + \Delta) \\
+            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
+        \end{eqnarray*}
 
-    where :math:`a_i` is the radius of particle :math:`i`, :math:`\\Delta = (d_i
+    where :math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i
     + d_j)/2` and :math:`d_i` is the diameter of particle :math:`i`.
 
     The first term corresponds to the attractive van der Waals interaction with
@@ -1295,11 +1298,11 @@ class DLVO(Pair):
           `dict`]):
           The potential parameters. The dictionary has the following keys:
 
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units
+          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
             of energy)
 
           * ``kappa`` (`float`, **required**) - scaling parameter
-            :math:`\\kappa` (in units of 1/distance)
+            :math:`\kappa` (in units of 1/distance)
 
           * ``Z`` (`float`, **required**) - :math:`Z` (in units of 1/distance)
 
@@ -1337,7 +1340,7 @@ class DLVO(Pair):
 
 
 class Buckingham(Pair):
-    """Buckingham pair potential.
+    r"""Buckingham pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1351,11 +1354,11 @@ class Buckingham(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{Buckingham}}(r) = & A \\exp\\left(-\\frac{r}{\\rho}\\right)
-          - \\frac{C}{r^6} & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{Buckingham}}(r) = & A \exp\left(-\frac{r}{\rho}\right)
+          - \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
@@ -1369,7 +1372,7 @@ class Buckingham(Pair):
 
           * ``A`` (`float`, **required**) - :math:`A` (in energy units)
 
-          * ``rho`` (`float`, **required**) - :math:`\\rho` (in distance units)
+          * ``rho`` (`float`, **required**) - :math:`\rho` (in distance units)
 
           * ``C`` (`float`, **required**) - :math:`C` (in energy units)
 
@@ -1393,7 +1396,7 @@ class Buckingham(Pair):
 
 
 class LJ1208(Pair):
-    """Lennard-Jones 12-8 pair potential.
+    r"""Lennard-Jones 12-8 pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1407,13 +1410,13 @@ class LJ1208(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{LJ}}(r)
-          = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{12} -
-          \\left( \\frac{\\sigma}{r} \\right)^{8} \\right]
-          & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)
+          = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+          \left( \frac{\sigma}{r} \right)^{8} \right]
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes.  Use the `params` dictionary to set
@@ -1426,9 +1429,9 @@ class LJ1208(Pair):
           The potential parameters. The dictionary has the following keys:
 
           * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\\varepsilon` (in energy units)
+            :math:`\varepsilon` (in energy units)
 
-          * ``sigma`` (`float`, **required**) - particle size :math:`\\sigma`
+          * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
             (in distance units)
 
     Example::
@@ -1449,7 +1452,7 @@ class LJ1208(Pair):
 
 
 class LJ0804(Pair):
-    """Lennard-Jones 8-4 pair potential.
+    r"""Lennard-Jones 8-4 pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1463,13 +1466,13 @@ class LJ0804(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{LJ}}(r)
-          = & 4 \\varepsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{8} -
-          \\left( \\frac{\\sigma}{r} \\right)^{4} \\right]
-          & r < r_{\\mathrm{cut}} \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)
+          = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{8} -
+          \left( \frac{\sigma}{r} \right)^{4} \right]
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use the `params` dictionary
@@ -1483,10 +1486,10 @@ class LJ0804(Pair):
             The LJ potential parameters. The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\\varepsilon` (in energy units)
+              energy parameter :math:`\varepsilon` (in energy units)
 
             * ``sigma`` (`float`, **required**) -
-              particle size :math:`\\sigma` (in distance units)
+              particle size :math:`\sigma` (in distance units)
 
     Example::
 
@@ -1507,7 +1510,7 @@ class LJ0804(Pair):
 
 
 class Fourier(Pair):
-    """Fourier pair potential.
+    r"""Fourier pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1521,23 +1524,23 @@ class Fourier(Pair):
     .. math::
         :nowrap:
 
-        \\begin{eqnarray*}
-        V_{\\mathrm{Fourier}}(r)
-          = & \\frac{1}{r^{12}} + \\frac{1}{r^2}\\sum_{n=1}^4
-          [a_n cos(\\frac{n \\pi r}{r_{cut}}) +
-          b_n sin(\\frac{n \\pi r}{r_{cut}})]
-          & r < r_{\\mathrm{cut}}  \\\\
-          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        V_{\mathrm{Fourier}}(r)
+          = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4
+          [a_n cos(\frac{n \pi r}{r_{cut}}) +
+          b_n sin(\frac{n \pi r}{r_{cut}})]
+          & r < r_{\mathrm{cut}}  \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
 
         where:
-        \\begin{eqnarray*}
-        a_1 = \\sum_{n=2}^4 (-1)^n a_n
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        a_1 = \sum_{n=2}^4 (-1)^n a_n
+        \end{eqnarray*}
 
-        \\begin{eqnarray*}
-        b_1 = \\sum_{n=2}^4 n (-1)^n b_n
-        \\end{eqnarray*}
+        \begin{eqnarray*}
+        b_1 = \sum_{n=2}^4 n (-1)^n b_n
+        \end{eqnarray*}
 
         is calculated to enforce close to zero value at r_cut.
 
@@ -1577,7 +1580,7 @@ class Fourier(Pair):
 
 
 class OPP(Pair):
-    """Oscillating pair potential.
+    r"""Oscillating pair potential.
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
@@ -1592,10 +1595,10 @@ class OPP(Pair):
     .. math::
         :nowrap:
 
-        \\begin{equation*}
-        V_{\\mathrm{OPP}}(r) = C_1 r^{-\\eta_1}
-            + C_2 r^{-\\eta_2} \\cos{\\left(k r - \\phi\\right)}
-        \\end{equation*}
+        \begin{equation*}
+        V_{\mathrm{OPP}}(r) = C_1 r^{-\eta_1}
+            + C_2 r^{-\eta_2} \cos{\left(k r - \phi\right)}
+        \end{equation*}
 
     See `Pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes.  Use `params` dictionary to set potential
@@ -1621,17 +1624,17 @@ class OPP(Pair):
 
             * ``eta1`` (`float`, **required**) -
               The inverse power to take :math:`r` to in the first term,
-              :math:`\\eta_1` (unitless).
+              :math:`\eta_1` (unitless).
 
             * ``eta2`` (`float`, **required**) -
               The inverse power to take :math:`r` to in the second term
-              :math:`\\eta_2` (unitless).
+              :math:`\eta_2` (unitless).
 
             * ``k`` (`float`, **required**) -
               oscillation frequency :math:`k` (inverse distance units)
 
             * ``phi`` (`float`, **required**) -
-              potential phase shift :math:`\\phi` (unitless)
+              potential phase shift :math:`\phi` (unitless)
 
     Example::
 
@@ -1668,11 +1671,11 @@ class TWF(Pair):
     .. math::
         :nowrap:
 
-        \\begin{equation}
-        V_{\\mathrm{TWF}}(r) = \\frac{4 \\epsilon}{\\alpha^2} {\\left[
-        {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^6 -
-        \\alpha {\\left(\\frac{\\sigma^2}{r^2} - 1 \\right)}^3\\right]}
-        \\end{equation}
+        \begin{equation}
+        V_{\mathrm{TWF}}(r) = \frac{4 \epsilon}{\alpha^2} {\left[
+        {\left(\frac{\sigma^2}{r^2} - 1 \right)}^6 -
+        \alpha {\left(\frac{\sigma^2}{r^2} - 1 \right)}^3\right]}
+        \end{equation}
 
     See `hoomd.md.pair.Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.  Use `params` dictionary
@@ -1691,11 +1694,11 @@ class TWF(Pair):
             The LJ potential parameters. The dictionary has the following keys:
 
             * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\\varepsilon` (units: [energy])
+              energy parameter :math:`\varepsilon` (units: [energy])
             * ``sigma`` (`float`, **required**) -
-              particle size :math:`\\sigma` (units: [length])
+              particle size :math:`\sigma` (units: [length])
             * ``alpha`` (`float`, **required**) -
-              controls well-width :math:`\\alpha` (unitless)
+              controls well-width :math:`\alpha` (unitless)
 
     Example::
 

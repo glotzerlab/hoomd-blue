@@ -2,8 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
+"""Manifolds."""
 
 from hoomd.md import _md
 from hoomd import _hoomd
@@ -51,6 +50,7 @@ class Manifold(_HOOMDBaseObject):
             return (value, value, value)
 
     def __eq__(self, other):
+        """Test for equality."""
         if not isinstance(other, type(self)):
             return NotImplemented
         return all(
@@ -63,7 +63,7 @@ class Manifold(_HOOMDBaseObject):
 
 
 class Cylinder(Manifold):
-    R""" Cylinder manifold.
+    r"""Cylinder manifold.
 
     Args:
         r (`float`): radius of the cylinder constraint (in distance units).
@@ -105,7 +105,7 @@ class Cylinder(Manifold):
 
 
 class Diamond(Manifold):
-    R""" Triply periodic diamond manifold.
+    r"""Triply periodic diamond manifold.
 
     Args:
         N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
@@ -166,7 +166,7 @@ class Diamond(Manifold):
 
 
 class Ellipsoid(Manifold):
-    """ Ellipsoid manifold.
+    r"""Ellipsoid manifold.
 
     Args:
         a (`float`): length of the a-axis of the ellipsoidal constraint (in
@@ -184,9 +184,9 @@ class Ellipsoid(Manifold):
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \\frac{x^{2}}{a^{2}}
-                 + \\frac{y^{2}}{b^{2}}
-                 + \\frac{z^{2}}{c^{2}} - 1
+        F(x,y,z) = \frac{x^{2}}{a^{2}}
+                 + \frac{y^{2}}{b^{2}}
+                 + \frac{z^{2}}{c^{2}} - 1
 
     Example::
 
@@ -215,7 +215,7 @@ class Ellipsoid(Manifold):
 
 
 class Gyroid(Manifold):
-    R""" Triply periodic gyroid manifold.
+    r"""Triply periodic gyroid manifold.
 
     Args:
         N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
@@ -276,7 +276,7 @@ class Gyroid(Manifold):
 
 
 class Plane(Manifold):
-    R""" Plane manifold.
+    r"""Plane manifold.
 
     Args:
         shift (`float`): z-shift of the xy-plane (in distance units).
@@ -307,7 +307,7 @@ class Plane(Manifold):
 
 
 class Primitive(Manifold):
-    R""" Triply periodic primitive manifold.
+    r"""Triply periodic primitive manifold.
 
     Args:
         N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
@@ -365,7 +365,7 @@ class Primitive(Manifold):
 
 
 class Sphere(Manifold):
-    """ Sphere manifold.
+    """Sphere manifold.
 
     Args:
         r (`float`): raduis of the a-axis of the spherical constraint (in
