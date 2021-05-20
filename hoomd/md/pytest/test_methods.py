@@ -250,9 +250,9 @@ def test_rattle_missing_manifold(method_base_params):
 
     all_ = hoomd.filter.All()
     with pytest.raises(TypeError):
-        method = method_base_params.method(**method_base_params.setup_params,
-                                           filter=all_,
-                                           tolerance=1e-5)
+        method_base_params.method(**method_base_params.setup_params,
+                                  filter=all_,
+                                  tolerance=1e-5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
