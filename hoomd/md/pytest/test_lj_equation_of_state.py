@@ -105,8 +105,8 @@ def test_lj_equation_of_state(
 
     # Useful information to know when the test fails
     print('U_ref = ', mean_U_ref, '+/-', sigma_U_ref)
-    print('U = ', energy.mean, '+/-', energy.standard_deviation,
-          '(', energy.relative_error * 100, '%)')
+    print('U = ', energy.mean, '+/-', energy.standard_deviation, '(',
+          energy.relative_error * 100, '%)')
     print('P_ref = ', mean_P_ref, '+/-', sigma_P_ref)
     print('P = ', pressure.mean, '+/-', pressure.standard_deviation,
           pressure.standard_deviation, '(', pressure.relative_error * 100, '%)')
@@ -121,7 +121,10 @@ def test_lj_equation_of_state(
     # use larger tolerances for pressure and density as these have larger
     # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
-        pressure.assert_close(mean_P_ref, sigma_P_ref)
+        pressure.assert_close(mean_P_ref,
+                              sigma_P_ref,
+                              max_relative_error=0.01,
+                              z=5)
 
     if method_name == 'NPT':
-        rho.assert_close(rho_star, 0)
+        rho.assert_close(rho_star, 0, max_relative_error=0.01, z=5)
