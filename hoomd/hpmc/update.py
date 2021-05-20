@@ -255,7 +255,7 @@ class wall:  # noqa - will be rewritten for v3
     def __init__(self, mc, walls, py_updater, move_probability, seed, period=1):
 
         # initialize base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         cls = None
         if isinstance(mc, integrate.sphere):
@@ -516,7 +516,7 @@ class remove_drift:  # noqa - will be rewritten for v3
 
     def __init__(self, mc, external_lattice, period=1):
         # initialize base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
         cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
