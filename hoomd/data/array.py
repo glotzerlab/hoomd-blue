@@ -252,7 +252,7 @@ _ndarray_std_funcs_ = (
 
 def _disallowed_wrap(method):
 
-    def raise_error(*args, **kwargs):
+    def raise_error(self, *args, **kwargs):
         raise HOOMDArrayError(
             "The {} method is not allowed for {} objects.".format(
                 method, self.__class__))
