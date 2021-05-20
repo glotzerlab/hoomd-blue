@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement CustomOperation."""
+
 from abc import abstractmethod
 
 from hoomd.operation import _TriggeredOperation
@@ -52,8 +58,7 @@ class CustomOperation(_TriggeredOperation, metaclass=_AbstractLoggable):
         self._param_dict.update(param_dict)
 
     def __getattr__(self, attr):
-        """Allows pass through to grab attributes/methods of the wrapped object.
-        """
+        """Pass through attributes/methods of the wrapped object."""
         if attr == '_action':
             raise AttributeError(
                 f"{type(self).__name__} object has no attribute _action")
@@ -126,11 +131,11 @@ class _AbstractLoggableWithPassthrough(_AbstractLoggable):
 
 class _InternalCustomOperation(CustomOperation,
                                metaclass=_AbstractLoggableWithPassthrough):
-    """Internal class for Python ``Action``s. Offers a streamlined __init__.
+    """Internal class for Python `Action`s. Offers a streamlined ``__init__``.
 
     Adds a wrapper around an hoomd Python action. This extends the attribute
     getting and setting wrapper of `hoomd.CustomOperation` with a wrapping of
-    the `__init__` method as well as a error raised if the ``action`` is
+    the ``__init__`` method as well as a error raised if the ``action`` is
     attempted to be accessed directly.
     """
 

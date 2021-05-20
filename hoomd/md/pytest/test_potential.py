@@ -43,24 +43,6 @@ def _equivalent_data_structures(reference, struct_2):
         return math.isclose(reference, struct_2)
 
 
-def _assert_equivalent_type_params(type_param0, type_param2):
-    """
-    Compare entries in type_param1 and type_param2.
-
-    type_param1 is the dictionary used to set the potential
-    arguments, whereas type_param2 is the dictionary returned
-    from the potential's to_dict method. This means type_param2
-    includes default arguments in addition to all keys in type_param1
-    """
-    for pair in type_param1:
-        if isinstance(type_param1[pair], dict):
-            for key in type_param1[pair]:
-                np.testing.assert_allclose(type_param1[pair][key],
-                                           type_param2[pair][key])
-        else:
-            assert type_param1[pair] == type_param2[pair]
-
-
 def _assert_equivalent_parameter_dicts(param_dict1, param_dict2):
     for key in param_dict1:
         assert param_dict1[key] == param_dict2[key]
@@ -93,7 +75,7 @@ def test_invalid_mode():
     cell = md.nlist.Cell()
     for invalid_mode in [1, 'str', [1, 2, 3]]:
         with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
-            lj = md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
+            md.pair.LJ(nlist=cell, r_cut=2.5, mode=invalid_mode)
 
 
 @pytest.mark.parametrize("mode", ['none', 'shift', 'xplor'])
@@ -137,7 +119,7 @@ def test_ron(simulation_factory, two_particle_snapshot_factory):
 
 
 def _make_invalid_param_dict(valid_dict):
-    """This could potential be fragile if multiple types are allowed for a key."""
+    """This could is fragile if multiple types are allowed for a key."""
     invalid_dicts = [valid_dict] * len(valid_dict.keys()) * 2
     count = 0
     for key in valid_dict.keys():
@@ -358,8 +340,7 @@ def test_invalid_pair_key():
 
 
 def _make_valid_param_dicts(arg_dict):
-    """
-    Unpack dictionary of lists of numbers into dictionary of numbers.
+    """Unpack dictionary of lists of numbers into dictionary of numbers.
 
     Ex: turn {'a': [0, 1], 'b':[2, 3]} into [{'a': 0, 'b': 2}, {'a': 1, 'b': 3}]
     """
@@ -613,9 +594,9 @@ def _update_snap(pair_potential, snap):
 
 def _skip_if_triplet_gpu_mpi(sim, pair_potential):
     """Determines if the simulation is able to run this pair potential."""
-
-    if isinstance(sim.device, hoomd.device.GPU) and sim.device.communicator.num_ranks > 1 and \
-            issubclass(pair_potential, hoomd.md.many_body.Triplet):
+    if (isinstance(sim.device, hoomd.device.GPU)
+            and sim.device.communicator.num_ranks > 1
+            and issubclass(pair_potential, hoomd.md.many_body.Triplet)):
         pytest.skip("Cannot run triplet potentials with GPU+MPI enabled")
 
 
@@ -687,7 +668,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     # mode fell through. This means the actual shift mode was not set.
     pytest.skip("Test is broken.")
 
-    def S_r(r, r_cut, r_on):
+    def S_r(r, r_cut, r_on):  # noqa: N802 - allow uppercase function name
         if r < r_on:
             return 1
         elif r > r_cut:
@@ -765,8 +746,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
 
 
 def _calculate_force(sim):
-    """
-    Calculate the forces in a two particle simulation frame.
+    """Calculate the forces in a two particle simulation frame.
 
     Finds the negative derivative of energy divided by inter-particle distance
     """
@@ -848,8 +828,7 @@ def test_force_energy_relationship(simulation_factory,
 
 
 def _forces_and_energies():
-    """
-    Return reference force and energy values.
+    """Return reference force and energy values.
 
     Reference force and energy values were calculated using Mathematica 12.1.1
     and then stored in the json file below. Values were calculated at

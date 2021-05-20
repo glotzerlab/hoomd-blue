@@ -3,7 +3,7 @@ import numpy
 import pytest
 from hoomd.pytest.test_simulation import make_gsd_snapshot
 try:
-    import gsd.hoomd
+    import gsd.hoomd  # noqa: F401 - need to know if the import fails
     skip_gsd = False
 except ImportError:
     skip_gsd = True
@@ -39,7 +39,6 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                 x = getattr(getattr(gsd_snap, attr), prop)
                 y = getattr(getattr(hoomd_snap, attr), prop)
                 x_box = getattr(getattr(gsd_snap, attr), 'box')
-                y_box = getattr(getattr(hoomd_snap, attr), 'box')
                 if x_box is None or x_box.all() == 0:
                     # if the box is all zeros, the dimensions won't match
                     # hoomd dimensions will be 2 and gsd will be 3

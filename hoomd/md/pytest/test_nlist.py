@@ -7,7 +7,7 @@ from hoomd.md.nlist import Cell, Stencil, Tree
 
 
 def _nlist_params():
-    """ Each entry in the lsit is a tuple (class_obj, dict(required_args)). """
+    """Each entry in the lsit is a tuple (class_obj, dict(required_args))."""
     nlists = []
     nlists.append((Cell, {}))
     nlists.append((Tree, {}))

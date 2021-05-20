@@ -17,7 +17,7 @@ import hoomd
 #
 # Every \a period time steps, particle velocities are modified so that they are all zero
 #
-class example(hoomd.update._updater):
+class example():
     ## Initialize the velocity zeroer
     #
     # \param period Velocities will be zeroed every \a period time steps
@@ -31,7 +31,7 @@ class example(hoomd.update._updater):
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, period=1):
         # initialize base class
-        hoomd.update._updater.__init__(self)
+        # hoomd.update._updater.__init__(self)
 
         # initialize the reflected c++ class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():

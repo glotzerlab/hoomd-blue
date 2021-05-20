@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Box."""
+
 import numpy as np
 from functools import partial
 import hoomd._hoomd as _hoomd
@@ -49,7 +55,7 @@ def _vec3_to_array(vec, dtype=None):
 
 
 class Box:
-    R""" Define box dimensions.
+    """Define box dimensions.
 
     Args:
         Lx (float): box extent in the x direction (distance units).
@@ -88,7 +94,6 @@ class Box:
     usage.
 
     Examples:
-
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
@@ -152,7 +157,7 @@ class Box:
         return b
 
     @classmethod
-    def _from_cpp(self, cpp_obj):
+    def _from_cpp(cls, cpp_obj):
         """Wrap a C++ BoxDim.
 
         Does not copy the C++ object.
@@ -235,7 +240,7 @@ class Box:
         return 2 if self.is2D else 3
 
     @property
-    def is2D(self):
+    def is2D(self):  # noqa: N802 - allow function name
         """bool: Flag whether the box is 2D.
 
         If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
@@ -245,7 +250,7 @@ class Box:
 
     # Length based properties
     @property
-    def L(self):
+    def L(self):  # noqa: N802 - allow function name
         """(3) `numpy.ndarray` of `float`: The box lengths,
         ``[Lx, Ly, Lz]``.
 
@@ -418,18 +423,22 @@ class Box:
 
     # Magic Methods
     def __repr__(self):
+        """Executable representation of the object."""
         return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        """Test if boxes are equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        """Test if boxes are not equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
     def __reduce__(self):
+        """Reduce values to picklable format."""
         return (type(self), (*self.L, *self.tilts))

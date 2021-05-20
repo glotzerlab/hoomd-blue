@@ -1,10 +1,8 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander
-
-R""" Utilities.
-"""
+"""Utilities."""
 
 import io
 from numpy import ndarray
@@ -12,33 +10,17 @@ from collections.abc import Iterable, Mapping
 from copy import deepcopy
 
 
-## \internal
-# \brief Checks if a variable is an instance of a string and always returns a list.
-# \param s Variable to turn into a list
-# \returns A list
-def listify(s):
-    if isinstance(s, _basestring):
-        return [s]
-    else:
-        return list(s)
-
-
-## \internal
-# \brief Internal flag tracking if status lines should be quieted
-_status_quiet_count = 0
-
-
 def to_camel_case(string):
     return string.replace('_', ' ').title().replace(' ', '')
 
 
 def is_iterable(obj):
-    '''Returns True if object is iterable and not a str or dict.'''
+    """Returns True if object is iterable and not a str or dict."""
     return isinstance(obj, Iterable) and not bad_iterable_type(obj)
 
 
 def bad_iterable_type(obj):
-    '''Returns True if str, dict, or IO (file) type.'''
+    """Returns True if str, dict, or IO (file) type."""
     return isinstance(obj, (str, dict, io.IOBase))
 
 

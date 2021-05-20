@@ -41,7 +41,7 @@ from hoomd import _hoomd
 from . import _mpcd
 
 
-class _bounce_back(hoomd.integrate._integration_method):
+class _bounce_back():
     """ NVE integration with bounce-back rules.
 
     Args:
@@ -59,7 +59,7 @@ class _bounce_back(hoomd.integrate._integration_method):
 
     def __init__(self, group):
         # initialize base class
-        hoomd.integrate._integration_method.__init__(self)
+        # hoomd.integrate._integration_method.__init__(self)
 
         # create the compute thermo
         hoomd.compute._get_unique_thermo(group=group)

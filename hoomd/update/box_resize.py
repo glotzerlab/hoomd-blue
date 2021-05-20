@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement BoxResize."""
+
 from hoomd.operation import Updater
 from hoomd.box import Box
 from hoomd.data.parameterdicts import ParameterDict
@@ -33,8 +39,8 @@ class BoxResize(Updater):
         variant (hoomd.variant.Variant): A variant used to interpolate between
             the two boxes.
         trigger (hoomd.trigger.Trigger): The trigger to activate this updater.
-        filter (hoomd.filter.ParticleFilter): The subset of particle positions to
-            update.
+        filter (hoomd.filter.ParticleFilter): The subset of particle positions
+            to update.
 
     Attributes:
         box1 (hoomd.Box): The box associated with the minimum of the

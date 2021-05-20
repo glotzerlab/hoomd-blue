@@ -189,7 +189,8 @@ class GSD(Writer):
         Args:
             state (State): Simulation state.
             filename (str): File name to write.
-            filter (`hoomd.filter.ParticleFilter`): Select the particles to write.
+            filter (`hoomd.filter.ParticleFilter`): Select the particles to
+              write.
             mode (str): The file open mode. Defaults to ``'wb'``.
             log (`hoomd.logging.Logger`): Provide log quantities to write.
 

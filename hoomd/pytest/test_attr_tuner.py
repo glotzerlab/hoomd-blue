@@ -98,7 +98,7 @@ def solver(request):
 
 @pytest.fixture
 def equation_definition():
-    """x^2 - 1, x = (1, -1)"""
+    """Evaluate: x^2 - 1, x = (1, -1)."""
     equation = dict(x=4)
     equation['y'] = lambda: equation['x']**2
     return ManualTuneDefinition(get_x=lambda: equation['x'],

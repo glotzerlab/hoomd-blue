@@ -1,6 +1,5 @@
 import hoomd
 import numpy as np
-import pytest
 
 
 def test_before_attaching():
