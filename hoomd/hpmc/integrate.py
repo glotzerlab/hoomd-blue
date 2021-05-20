@@ -189,11 +189,11 @@ class HPMCIntegrator(BaseIntegrator):
         super()._attach()
 
     # Set the external field
-    def set_external(self, ext): # noqa - to be rewritten
+    def set_external(self, ext):  # noqa - to be rewritten
         self._cpp_obj.setExternalField(ext.cpp_compute)
 
     # Set the patch
-    def set_PatchEnergyEvaluator(self, patch): # noqa - to be rewritten
+    def set_PatchEnergyEvaluator(self, patch):  # noqa - to be rewritten
         self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
 
     # TODO need to validate somewhere that quaternions are normalized

@@ -373,8 +373,7 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
             if math.fabs(r - r_table[i]) > 1e-3:
                 hoomd.context.current.device.cpp_msg.error(
                     "bond.table: r must be monotonically increasing and evenly "
-                    "spaced\n"
-                )
+                    "spaced\n")
                 raise RuntimeError("Error reading table file")
 
         self.bond_coeff.set(bondname,

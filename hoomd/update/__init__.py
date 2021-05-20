@@ -6,5 +6,5 @@
 
 # these imports move one class per file into a flatter namspace, so ignore
 # F401 - imported but unused
-from hoomd.update.box_resize import BoxResize # noqa F401
-from hoomd.update.custom_updater import CustomUpdater # noqa F401
+from hoomd.update.box_resize import BoxResize  # noqa F401
+from hoomd.update.custom_updater import CustomUpdater  # noqa F401

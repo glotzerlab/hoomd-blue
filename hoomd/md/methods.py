@@ -1289,8 +1289,7 @@ class Berendsen(Method):
             if sim.device._comm.num_ranks > 1:
                 raise RuntimeError(
                     "hoomd.md.methods.Berendsen is not supported in "
-                    "multi-processor simulations."
-                )
+                    "multi-processor simulations.")
 
         group = sim.state._get_group(self.filter)
         if isinstance(sim.device, hoomd.device.CPU):

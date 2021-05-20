@@ -112,10 +112,8 @@ def install_cmake_package(url, cmake_options):
         log.debug(cmake_out.stdout.strip())
 
         if cmake_out.returncode != 0:
-            log.error(
-                f"Error configuring {root} (run with -v to see detailed "
-                "error messages)"
-            )
+            log.error(f"Error configuring {root} (run with -v to see detailed "
+                      "error messages)")
             raise RuntimeError('Failed to configure package')
 
         log.info(f"Installing {root}")
@@ -130,10 +128,8 @@ def install_cmake_package(url, cmake_options):
         log.debug(cmake_out.stdout.strip())
 
         if cmake_out.returncode != 0:
-            log.error(
-                f"Error installing {root} (run with -v to see detailed "
-                "error messages)"
-            )
+            log.error(f"Error installing {root} (run with -v to see detailed "
+                      "error messages)")
             raise RuntimeError('Failed to install package')
 
 

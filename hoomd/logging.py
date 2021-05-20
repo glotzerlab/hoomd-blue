@@ -460,8 +460,7 @@ class _LoggerEntry:
         elif not isinstance(category, LoggerCategories):
             raise ValueError(
                 "category must be a string or hoomd.logging.LoggerCategories "
-                "object."
-            )
+                "object.")
         return cls(entry[0], method, category)
 
     def __call__(self):

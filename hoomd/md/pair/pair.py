@@ -13,7 +13,6 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, positive_real,
                                       nonnegative_real)
 
-
 validate_nlist = OnlyTypes(NList)
 
 

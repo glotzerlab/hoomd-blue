@@ -13,6 +13,7 @@ import hoomd
 
 class Example():
     """Example updater."""
+
     def __init__(self, period=1):
         # initialize base class
         # hoomd.update._updater.__init__(self)

@@ -28,7 +28,7 @@ def _ellip_preprocessing(constraint):
         return None
 
 
-class _force: # noqa - This will be removed eventually. Needed to build docs.
+class _force:  # noqa - This will be removed eventually. Needed to build docs.
     pass
 
 
@@ -94,7 +94,7 @@ class Force(_HOOMDBaseObject):
             return None
 
 
-class constant(Force): # noqa - this will be renamed when it is ported to v3
+class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
     Args:
@@ -214,7 +214,7 @@ class constant(Force): # noqa - this will be renamed when it is ported to v3
         const.setForce(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
     """
 
-    def setForce( # noqa - this will be documented when it is ported to v3
+    def setForce(  # noqa - this will be documented when it is ported to v3
         self,
         fx=None,
         fy=None,
@@ -292,11 +292,11 @@ class constant(Force): # noqa - this will be renamed when it is ported to v3
         const.set_callback(None)
     """
 
-    def set_callback(self, callback=None): # noqa - will be ported to v3
+    def set_callback(self, callback=None):  # noqa - will be ported to v3
         self.cppForce.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
-    def update_coeffs(self): # noqa - will be ported to v3
+    def update_coeffs(self):  # noqa - will be ported to v3
         pass
 
 
