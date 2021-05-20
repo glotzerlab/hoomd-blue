@@ -121,10 +121,7 @@ def test_lj_equation_of_state(
     # use larger tolerances for pressure and density as these have larger
     # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
-        pressure.assert_close(mean_P_ref,
-                              sigma_P_ref,
-                              max_relative_error=0.01,
-                              z=5)
+        pressure.assert_close(mean_P_ref, sigma_P_ref)
 
     if method_name == 'NPT':
-        rho.assert_close(rho_star, 0, max_relative_error=0.01, z=5)
+        rho.assert_close(rho_star, 0)
