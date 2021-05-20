@@ -1,3 +1,7 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
 """Implement a storage and management class for HOOMD-blue operations.
 
 Defines the `Operations` class which serves as the main class for storing and
@@ -11,10 +15,8 @@ added and removed from a `hoomd.Simulation`.
 from collections.abc import Collection
 from copy import copy
 from itertools import chain
-from functools import partial
 import hoomd.integrate
 from hoomd.data import syncedlist
-from hoomd.data.typeconverter import OnlyTypes
 from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
 

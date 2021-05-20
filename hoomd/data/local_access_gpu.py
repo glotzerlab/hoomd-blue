@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement local access classes for the GPU."""
+
 from hoomd import _hoomd
 from hoomd.data.local_access import (
     ParticleLocalAccessBase, BondLocalAccessBase, ConstraintLocalAccessBase,
@@ -10,34 +16,42 @@ import hoomd
 if hoomd.version.gpu_enabled:
 
     class ParticleLocalAccessGPU(ParticleLocalAccessBase):
+        """Access particle data on the GPU."""
         _cpp_cls = _hoomd.LocalParticleDataDevice
         _array_cls = HOOMDGPUArray
 
     class BondLocalAccessGPU(BondLocalAccessBase):
+        """Access bond data on the GPU."""
         _cpp_cls = _hoomd.LocalBondDataDevice
         _array_cls = HOOMDGPUArray
 
     class AngleLocalAccessGPU(AngleLocalAccessBase):
+        """Access angle data on the GPU."""
         _cpp_cls = _hoomd.LocalAngleDataDevice
         _array_cls = HOOMDGPUArray
 
     class DihedralLocalAccessGPU(DihedralLocalAccessBase):
+        """Access dihedral data on the GPU."""
         _cpp_cls = _hoomd.LocalDihedralDataDevice
         _array_cls = HOOMDGPUArray
 
     class ImproperLocalAccessGPU(ImproperLocalAccessBase):
+        """Access improper data on the GPU."""
         _cpp_cls = _hoomd.LocalImproperDataDevice
         _array_cls = HOOMDGPUArray
 
     class ConstraintLocalAccessGPU(ConstraintLocalAccessBase):
+        """Access constraint data on the GPU."""
         _cpp_cls = _hoomd.LocalConstraintDataDevice
         _array_cls = HOOMDGPUArray
 
     class PairLocalAccessGPU(PairLocalAccessBase):
+        """Access special pair data on the GPU."""
         _cpp_cls = _hoomd.LocalPairDataDevice
         _array_cls = HOOMDGPUArray
 
     class LocalSnapshotGPU(_LocalSnapshot):
+        """Access system state data on the GPU."""
 
         def __init__(self, state):
             super().__init__(state)
@@ -53,27 +67,35 @@ else:
     from hoomd.util import NoGPU
 
     class BondLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class AngleLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class DihedralLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class ImproperLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class ConstraintLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class PairLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class ParticleLocalAccessGPU(NoGPU):
+        """GPU data access is not available in CPU builds."""
         pass
 
     class LocalSnapshotGPU(NoGPU, _LocalSnapshot):
+        """GPU data access is not available in CPU builds."""
         pass
 
 

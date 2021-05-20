@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement type conversion helpers."""
+
 from numpy import array, ndarray
 from itertools import repeat, cycle
 from abc import ABC, abstractmethod
@@ -11,16 +17,20 @@ import hoomd
 
 
 class RequiredArg:
+    """Define a parameter as required."""
     pass
 
 
 class TypeConversionError(ValueError):
-    """An error class for errors in the validation of TypeConverter subclasses.
-    """
+    """Error when validatimg TypeConverter subclasses."""
     pass
 
 
 def trigger_preprocessing(trigger):
+    """Process triggers.
+
+    Convert integers to periodic triggers.
+    """
     if isinstance(trigger, Trigger):
         return trigger
     else:
@@ -31,6 +41,10 @@ def trigger_preprocessing(trigger):
 
 
 def variant_preprocessing(variant):
+    """Process variants.
+
+    Convert floats to constant variants.
+    """
     if isinstance(variant, Variant):
         return variant
     else:
@@ -42,6 +56,10 @@ def variant_preprocessing(variant):
 
 
 def box_preprocessing(box):
+    """Process boxes.
+
+    Convert values that `Box.from_box` handles.
+    """
     if isinstance(box, hoomd.Box):
         return box
     else:
@@ -53,6 +71,7 @@ def box_preprocessing(box):
 
 
 def positive_real(number):
+    """Ensure that a value is positive."""
     try:
         float_number = float(number)
     except Exception as err:
@@ -64,6 +83,7 @@ def positive_real(number):
 
 
 def nonnegative_real(number):
+    """Ensure that a value is not negative."""
     try:
         float_number = float(number)
     except Exception as err:
@@ -75,6 +95,7 @@ def nonnegative_real(number):
 
 
 def identity(value):
+    """Return the given value."""
     return value
 
 
@@ -131,6 +152,7 @@ class Either(_HelpValidate):
             value, [str(spec) for spec in self.specs]))
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "Either({})".format([str(spec) for spec in self.specs])
 
 
@@ -153,6 +175,7 @@ class OnlyIf(_HelpValidate):
         return self.cond(value)
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "OnlyIf({})".format(str(self.cond))
 
 
@@ -194,6 +217,7 @@ class OnlyTypes(_HelpValidate):
                 f"{self.types}")
 
     def __str__(self):
+        """str: String representation of the validator."""
         return f"OnlyTypes({str(self.types)})"
 
 
@@ -220,9 +244,11 @@ class OnlyFrom(_HelpValidate):
                 value, self.options))
 
     def __contains__(self, value):
+        """bool: True when value is in the options."""
         return value in self.options
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "OnlyFrom[{}]".format(self.options)
 
 
@@ -236,6 +262,7 @@ class SetOnce:
             self._validation = validation
 
     def __call__(self, value):
+        """Handle setting values."""
         if self._validation is not None:
             val = self._validation(value)
             self._validation = None
@@ -262,11 +289,12 @@ class TypeConverter(ABC):
 
     @abstractmethod
     def __call__(self, value):
+        """Called when values are set."""
         pass
 
 
 class TypeConverterValue(TypeConverter):
-    """Represents a scalar value of some kind (or not represented structures.)
+    """Represents a scalar value of some kind.
 
     Parameters:
         value (Any): Whatever defines the validation. Many ways to specify the
@@ -334,6 +362,7 @@ class TypeConverterValue(TypeConverter):
             self.converter = OnlyTypes(type(value))
 
     def __call__(self, value):
+        """Called when the value is set."""
         try:
             return self.converter(value)
         except (TypeError, ValueError, TypeConversionError) as err:
@@ -376,6 +405,7 @@ class TypeConverterSequence(TypeConverter):
         self.converter = [to_type_converter(item) for item in sequence]
 
     def __call__(self, sequence):
+        """Called when the value is set."""
         if not is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a sequence like instance. Received {} of type {}."
@@ -391,6 +421,7 @@ class TypeConverterSequence(TypeConverter):
             return new_sequence
 
     def __iter__(self):
+        """Iterate over converters in the sequence."""
         if len(self.converter) == 1:
             yield from repeat(self.converter[0])
         else:
@@ -425,6 +456,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
         self.converter = tuple([to_type_converter(item) for item in sequence])
 
     def __call__(self, sequence):
+        """Called when the value is set."""
         if not is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a tuple like object. Received {} of type {}."
@@ -444,6 +476,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
             return tuple(new_sequence)
 
     def __iter__(self):
+        """Iterate over converters in the sequence."""
         yield from self.converter
 
 
@@ -481,6 +514,7 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         }
 
     def __call__(self, mapping):
+        """Called when the value is set."""
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
                 "Expected a dict like value. Recieved {} of type {}."
@@ -499,18 +533,23 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         return new_mapping
 
     def __iter__(self):
+        """Iterate over converters in the mapping."""
         yield from self.converter
 
     def __getitem__(self, key):
+        """Get a converter by key."""
         return self.converter[key]
 
     def __setitem__(self, key, value):
+        """Set a converter by key."""
         self.converter[key] = value
 
     def __delitem__(self, key):
+        """Remove a converter by key."""
         del self.converter[key]
 
     def __len__(self):
+        """int: Number of converters."""
         return len(self.converter)
 
 

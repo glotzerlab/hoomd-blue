@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement zero-copy array."""
+
 from copy import deepcopy
 import functools
 from collections.abc import Iterable
@@ -8,14 +14,14 @@ import hoomd
 
 
 class HOOMDArrayError(RuntimeError):
-    """Represents errors in accessing HOOMD buffers outside a context manager."""
+    """Error when accessing HOOMD buffers outside a context manager."""
     pass
 
 
-def _WrapClassFactory(methods_wrap_func_list,
-                      *args,
-                      allow_exceptions=False,
-                      **kwargs):
+def _wrap_class_factory(methods_wrap_func_list,
+                        *args,
+                        allow_exceptions=False,
+                        **kwargs):
     """Factory function for metaclasses that produce methods via a functor.
 
     Applies the functor to each method given in methods. This occurs before
@@ -27,11 +33,11 @@ def _WrapClassFactory(methods_wrap_func_list,
             sequence of method names, functor pairs. For each tuple in the list,
             the provided callable is used to wrap all the methods listed in the
             tuple.
-        *args (Any): Required position arguments for the functors.
-        allow_exceptions (bool, optional): A key word only arugment that
+        ``*args`` (Any): Required position arguments for the functors.
+        allow_exceptions (bool, optional): A key word only argument that
             defaults to False. When True exceptions are ignored when setting
             class methods, and the method raising the error is skipped.
-        **kwargs (Any): Required key word arugments for the functors.
+        ``**kwargs`` (Any): Required key word arguments for the functors.
     """
 
     class _WrapClass(type):
@@ -328,7 +334,7 @@ def coerce_mock_to_array(val):
     return val if not isinstance(val, HOOMDArray) else val._coerce_to_ndarray()
 
 
-class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
+class HOOMDArray(metaclass=_wrap_class_factory(_wrap_list)):
     """A NumPy like interface to internal HOOMD-blue data.
 
     These objects are returned by HOOMD-blue's zero copy local snapshot API
@@ -473,6 +479,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
 
     @property
     def shape(self):
+        """tuple: Array shape."""
         return self._coerce_to_ndarray().shape
 
     @shape.setter
@@ -483,9 +490,11 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
 
     @property
     def read_only(self):
+        """bool: Array read only flag."""
         return self._read_only
 
     def __str__(self):
+        """str: Convert array to a string."""
         name = self.__class__.__name__
         if self._callback():
             return name + "(" + str(self._coerce_to_ndarray()) + ")"
@@ -493,6 +502,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
             return name + "(INVALID)"
 
     def __repr__(self):
+        """str: Convert array to an string that can be evaluated."""
         name = self.__class__.__name__
         if self._callback():
             return name + "(" + str(self._coerce_to_ndarray()) + ")"
@@ -500,6 +510,7 @@ class HOOMDArray(metaclass=_WrapClassFactory(_wrap_list)):
             return name + "(INVALID)"
 
     def _repr_html_(self):
+        """str: Format the array in HTML."""
         name = self.__class__.__name__
         if self._callback():
             return "<emph>" + name + "</emph>" \
@@ -550,13 +561,17 @@ if hoomd.version.gpu_enabled:
         _wrap_gpu_array_list = []
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase,
-                            metaclass=_WrapClassFactory(_wrap_gpu_array_list)):
+                            metaclass=_wrap_class_factory(_wrap_gpu_array_list)
+                            ):
+            """Zero copy access to HOOMD data on the GPU."""
 
             def __len__(self):
+                """int: Length of the array."""
                 return self.shape[0]
 
             @property
             def shape(self):
+                """tuple: Array shape."""
                 protocol = self._buffer.__cuda_array_interface__
                 return protocol['shape']
 
@@ -568,19 +583,23 @@ if hoomd.version.gpu_enabled:
 
             @property
             def strides(self):
+                """tuple: Array strides."""
                 protocol = self._buffer.__cuda_array_interface__
                 return protocol['strides']
 
             @property
             def ndim(self):
+                """int: Number of dimensions."""
                 return len(self.shape)
 
             @property
             def dtype(self):
+                """Data type."""
                 protocol = self._buffer.__cuda_array_interface__
                 return protocol['typestr']
 
             def __str__(self):
+                """str: Convert array to a string."""
                 name = self.__class__
                 if self._callback():
                     return name + "(shape=(" + str(self.shape) \
@@ -589,6 +608,7 @@ if hoomd.version.gpu_enabled:
                     return name + "(INVALID)"
 
             def __repr__(self):
+                """str: Convert array to an string that can be evaluated."""
                 name = self.__class__.__name__
                 if self._callback():
                     return name + "(shape=(" + str(self.shape) \
@@ -597,6 +617,7 @@ if hoomd.version.gpu_enabled:
                     return name + "(INVALID)"
 
             def _repr_html_(self):
+                """str: Format the array in HTML."""
                 name = self.__class__.__name__
                 if self._callback():
                     return "<emph>" + name + "</emph>" + "(shape=(" \
@@ -616,21 +637,25 @@ if hoomd.version.gpu_enabled:
             _ndarray_disallow_properties_
         ]
 
-        _GPUArrayMeta = _WrapClassFactory(_wrap_gpu_array_list,
-                                          allow_exceptions=True,
-                                          cls=cupy.ndarray)
+        _GPUArrayMeta = _wrap_class_factory(_wrap_gpu_array_list,
+                                            allow_exceptions=True,
+                                            cls=cupy.ndarray)
 
         class HOOMDGPUArray(_HOOMDGPUArrayBase, metaclass=_GPUArrayMeta):
+            """Zero copy access to HOOMD data on the GPU."""
 
             def __getattr__(self, item):
+                """Attribute pass through."""
                 return getattr(self._coerce_to_ndarray(), item)
 
             def __setitem__(self, index, value):
+                """Attribute pass through."""
                 if self.read_only:
                     raise ValueError("assignment destination is read-only.")
                 self._coerce_to_ndarray()[index] = value
 
             def __getitem__(self, index):
+                """Indexing pass through."""
                 if isinstance(index, HOOMDGPUArray):
                     arr = self._coerce_to_ndarray()[index._coerce_to_ndarray()]
                 else:
@@ -639,6 +664,7 @@ if hoomd.version.gpu_enabled:
 
             @property
             def shape(self):
+                """tuple: Array shape."""
                 return self._coerce_to_ndarray().shape
 
             @shape.setter
@@ -662,6 +688,7 @@ if hoomd.version.gpu_enabled:
                         "instead.".format(self.__class__.__name__))
 
             def __str__(self):
+                """str: Convert array to a string."""
                 name = self.__class__.__name__
                 if self._callback():
                     return name + "(" \
@@ -670,6 +697,7 @@ if hoomd.version.gpu_enabled:
                     return name + "(INVALID)"
 
             def __repr__(self):
+                """str: Convert array to an string that can be evaluated."""
                 name = self.__class__.__name__
                 if self._callback():
                     return name + "(" + str(self._coerce_to_ndarray()) \
@@ -678,6 +706,7 @@ if hoomd.version.gpu_enabled:
                     return name + "(INVALID)"
 
             def _repr_html_(self):
+                """str: Format the array in HTML."""
                 name = self.__class__.__name__
                 if self._callback():
                     return "<emph>" + name + "</emph>" \
@@ -689,6 +718,7 @@ else:
     from hoomd.util import NoGPU
 
     class HOOMDGPUArray(NoGPU):
+        """GPU arrays are not available on the CPU."""
         pass
 
 
