@@ -10,8 +10,7 @@ import math
 # T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,
 # log_period, equilibration_steps, run_steps
 statepoints = [
-    (1.5, 0.4, -2.5685, 0.00108, 0.3784, 0.00132, 64, 2**10, 2**17),
-    (1.4, 0.8, -4.9489, 0.000982, 3.2507, 0.00523, 64, 2**10, 2**16),
+    (1.4, 0.9, -4.6622, 0.0006089, 6.6462, 0.00328, 64, 2**10, 2**16),
 ]
 
 
@@ -19,7 +18,7 @@ statepoints = [
 @pytest.mark.parametrize(
     'T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,'
     'log_period, equilibration_steps, run_steps', statepoints)
-@pytest.mark.parametrize('method_name', ['NVT', 'Langevin', 'NPT'])
+@pytest.mark.parametrize('method_name', ['Langevin', 'NVT', 'NPT'])
 def test_lj_equation_of_state(
     T_star,
     rho_star,
@@ -39,11 +38,11 @@ def test_lj_equation_of_state(
     n = 6
     if device.communicator.num_ranks > 1:
         # MPI tests need a box large enough to decompose
-        n = 9
+        n = 8
     N = n**3 * 4
     V = N / rho_star
     L = V**(1 / 3)
-    r_cut = 3.0
+    r_cut = 2.5
     a = L / n
 
     snap = fcc_snapshot_factory(n=n, a=a)
@@ -52,7 +51,9 @@ def test_lj_equation_of_state(
 
     # set the simulation parameters
     integrator = hoomd.md.Integrator(dt=0.005)
-    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(), r_cut=r_cut)
+    lj = hoomd.md.pair.LJ(nlist=hoomd.md.nlist.Cell(),
+                          r_cut=r_cut,
+                          mode='shift')
     lj.params.default = {'sigma': 1, 'epsilon': 1}
     integrator.forces.append(lj)
     if method_name == 'NVT':
@@ -103,23 +104,24 @@ def test_lj_equation_of_state(
     rho = hoomd.conftest.BlockAverage(N / numpy.array(volume_log.data))
 
     # Useful information to know when the test fails
-    print("U_ref = ", mean_U_ref, '+/-', sigma_U_ref)
-    print("U = ", numpy.mean(energy.data), '+/-', energy.standard_deviation,
+    print('U_ref = ', mean_U_ref, '+/-', sigma_U_ref)
+    print('U = ', energy.mean, '+/-', energy.standard_deviation,
           '(', energy.relative_error * 100, '%)')
-    print("P_ref = ", mean_P_ref, '+/-', sigma_P_ref)
-    print("P = ", numpy.mean(pressure.data), '+/-', pressure.standard_deviation,
+    print('P_ref = ', mean_P_ref, '+/-', sigma_P_ref)
+    print('P = ', pressure.mean, '+/-', pressure.standard_deviation,
           pressure.standard_deviation, '(', pressure.relative_error * 100, '%)')
-    print("rho = ", numpy.mean(rho.data), '+/-', rho.standard_deviation)
+    print('rho = ', rho.mean, '+/-', rho.standard_deviation)
+
+    print(f'Statepoint entry: {T_star:0.4}, {rho_star:0.4}, '
+          f'{energy.mean:0.5}, {energy.standard_deviation:0.4}, '
+          f'{pressure.mean:0.5}, {pressure.standard_deviation:0.4}')
 
     energy.assert_close(mean_U_ref, sigma_U_ref)
 
     # use larger tolerances for pressure and density as these have larger
     # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
-        pressure.assert_close(mean_P_ref,
-                              sigma_P_ref,
-                              max_relative_error=0.01,
-                              z=5)
+        pressure.assert_close(mean_P_ref, sigma_P_ref)
 
     if method_name == 'NPT':
-        rho.assert_close(rho_star, 0, max_relative_error=0.01, z=5)
+        rho.assert_close(rho_star, 0)
