@@ -16,4 +16,4 @@ hpmc.update
 
 .. automodule:: hoomd.hpmc.update
     :synopsis: HPMC updaters.
-    :members: BoxMC, Clusters, QuickCompress
+    :members: BoxMC, Clusters, QuickCompress, ShapeUpdater, Alchemy, ElasticShape

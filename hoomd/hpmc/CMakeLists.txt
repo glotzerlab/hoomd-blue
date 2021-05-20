@@ -24,18 +24,30 @@ set(_hpmc_gpu_union_shapes ShapeSphere
 set(_hpmc_sources   module.cc
                     module_external_field.cc
                     module_sphere.cc
+                    module_sphere_alchemy.cc
                     module_convex_polygon.cc
+                    module_convex_polygon_alchemy.cc
                     module_simple_polygon.cc
+                    module_simple_polygon_alchemy.cc
                     module_spheropolygon.cc
+                    module_spheropolygon_alchemy.cc
                     module_polyhedron.cc
+                    module_polyhedron_alchemy.cc
                     module_ellipsoid.cc
+                    module_ellipsoid_alchemy.cc
                     module_faceted_ellipsoid.cc
                     module_sphinx.cc
+                    module_sphinx_alchemy.cc
                     module_union_convex_polyhedron.cc
                     module_union_faceted_ellipsoid.cc
                     module_union_sphere.cc
+                    module_union_sphere_alchemy.cc
                     module_convex_polyhedron.cc
+                    module_convex_polyhedron_alchemy.cc
                     module_convex_spheropolyhedron.cc
+                    module_convex_spheropolyhedron_alchemy.cc
+                    module_updater_shape.cc
+                    ShapeUtils.cc
                     UpdaterBoxMC.cc
                     UpdaterQuickCompress.cc
                     IntegratorHPMC.cc
@@ -77,6 +89,7 @@ set(_hpmc_headers
     ShapeConvexPolyhedron.h
     ShapeEllipsoid.h
     ShapeFacetedEllipsoid.h
+    ShapeMoves.h
     ShapePolyhedron.h
     ShapeSimplePolygon.h
     ShapeSphere.h
@@ -91,6 +104,7 @@ set(_hpmc_headers
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterQuickCompress.h
+    UpdaterShape.h
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
@@ -174,6 +188,7 @@ set(files   analyze.py
             update.py
             util.py
             field.py
+            shape_move.py
     )
 
 install(FILES ${files}
