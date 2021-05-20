@@ -46,6 +46,7 @@ repos:
       (?x)(
         ^hoomd/util.py|
         ^hoomd/md/external.py|
+        ^hoomd/hpmc/analyze.py|
         ^hoomd/hpmc/field.py|
         ^hoomd/extern/|
         ^hoomd/mpcd/|

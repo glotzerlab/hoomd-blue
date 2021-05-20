@@ -15,12 +15,12 @@ _n_points = 10
 
 @pytest.fixture(scope="function")
 def fractional_coordinates(n=_n_points):
-    """
+    """Return fractional coordinates for testing.
+
     Args:
         n: number of particles
 
     Returns: absolute fractional coordinates
-
     """
     return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
@@ -41,11 +41,11 @@ def sys(request, fractional_coordinates):
     """System box sizes and particle positions.
 
     Args:
+        request: Fixture request information.
         fractional_coordinates: Array of fractional coordinates
 
     Returns: HOOMD box object and points for the initial and final system.
              Function to generate system at halfway point of the simulation.
-
     """
     box_start = request.param[0]
     box_end = request.param[1]

@@ -33,12 +33,11 @@ def single_keys_generator():
 def test_typeparamdict_key_validation_single(typedict_singleton_keys,
                                              valid_single_keys, valid_pair_keys,
                                              invalid_keys):
-    '''Test the validation step of type parameter dictionaries.'''
-
+    """Test the validation step of type parameter dictionaries."""
     for valid_key in valid_single_keys + [single_keys_generator()]:
         typedict_singleton_keys._validate_and_split_key(valid_key)
     for invalid_key in invalid_keys:
-        with raises(KeyError) as err_info:
+        with raises(KeyError):
             typedict_singleton_keys._validate_and_split_key(invalid_key)
 
 
@@ -60,12 +59,11 @@ def pair_keys_generator():
 
 def test_key_validation_pairs(typedict_pair_keys, valid_single_keys,
                               valid_pair_keys, invalid_keys):
-    '''Test the validation step of pair keys in type parameter dictionaries.
-    '''
+    """Test the validation step of pair keys in type parameter dictionaries."""
     for valid_key in valid_pair_keys + [pair_keys_generator()]:
         typedict_pair_keys._validate_and_split_key(valid_key)
     for invalid_key in valid_single_keys + [single_keys_generator()]:
-        with raises(KeyError) as err_info:
+        with raises(KeyError):
             typedict_pair_keys._validate_and_split_key(invalid_key)
 
 
@@ -76,7 +74,7 @@ def expanded_single_keys():
 
 def test_key_expansion_single(typedict_singleton_keys, valid_single_keys,
                               expanded_single_keys):
-    '''Test expansion of single type keys.'''
+    """Test expansion of single type keys."""
     for expanded_keys, valid_key in zip(expanded_single_keys,
                                         valid_single_keys):
         for expected_key, given_key in zip(
@@ -95,7 +93,7 @@ def expanded_pair_keys():
 
 def test_key_expansion_pair(typedict_pair_keys, valid_pair_keys,
                             expanded_pair_keys):
-    '''Test key expansion of pair type keys.'''
+    """Test key expansion of pair type keys."""
     for expanded_keys, valid_key in zip(expanded_pair_keys, valid_pair_keys):
         for expected_key, given_key in zip(
                 expanded_keys, typedict_pair_keys._yield_keys(valid_key)):
@@ -105,7 +103,7 @@ def test_key_expansion_pair(typedict_pair_keys, valid_pair_keys,
 
 
 def test_setting_dict_values(typedict_pair_keys, valid_pair_keys):
-    '''Test setting type parameter dicts with dict values.'''
+    """Test setting type parameter dicts with dict values."""
     # Valid setting
     for ind, valid_key in enumerate(valid_pair_keys):
         typedict_pair_keys[valid_key] = dict(foo=ind)
@@ -124,7 +122,7 @@ def typedict_with_int():
 
 
 def test_setting_arg_values(typedict_with_int, valid_single_keys):
-    '''Test setting typeparam_dicts with non dict values.'''
+    """Test setting typeparam_dicts with non dict values."""
     # Valid setting
     for ind, valid_key in enumerate(valid_single_keys):
         typedict_with_int[valid_key] = ind
@@ -138,7 +136,7 @@ def test_setting_arg_values(typedict_with_int, valid_single_keys):
 
 
 def test_invalid_value_setting(typedict_with_int, typedict_singleton_keys):
-    '''Test value validation on new dict keys and wrong types.'''
+    """Test value validation on new dict keys and wrong types."""
     # New dict key
     with raises(ValueError):
         typedict_singleton_keys['A'] = dict(boo=None)
@@ -158,14 +156,14 @@ def test_defaults(typedict_singleton_keys):
 
 def test_singleton_keys(typedict_singleton_keys, valid_single_keys,
                         expanded_single_keys):
-    '''Test the keys function.'''
+    """Test the keys function."""
     assert list(typedict_singleton_keys.keys()) == []
     typedict_singleton_keys[valid_single_keys[-1]] = dict(bar=2)
     assert list(typedict_singleton_keys.keys()) == expanded_single_keys[-1]
 
 
 def test_pair_keys(typedict_pair_keys, valid_pair_keys, expanded_pair_keys):
-    '''Test the keys function.'''
+    """Test the keys function."""
     assert list(typedict_pair_keys.keys()) == []
     typedict_pair_keys[valid_pair_keys[-1]] = dict(bar=2)
     assert list(typedict_pair_keys.keys()) == expanded_pair_keys[-1]

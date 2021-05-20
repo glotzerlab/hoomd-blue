@@ -36,10 +36,10 @@ class DummyCppObj:
     def __init__(self):
         self._dict = dict()
 
-    def setTypeParam(self, type_, value):
+    def setTypeParam(self, type_, value):  # noqa: N802 - this mimics C++ naming
         self._dict[type_] = value
 
-    def getTypeParam(self, type_):
+    def getTypeParam(self, type_):  # noqa: N802
         return self._dict[type_]
 
     @property
@@ -58,18 +58,18 @@ class DummyCppObj:
     def param2(self, value):
         self._param2 = value
 
-    def setCommunicator(self, communicator):
+    def setCommunicator(self, communicator):  # noqa: N802
         pass
 
-    def notifyDetach(self):
+    def notifyDetach(self):  # noqa: N802
         pass
 
 
 class DummyOperation(Operation):
-    '''Requires that user manually add param_dict and typeparam_dict items.
+    """Requires that user manually add param_dict and typeparam_dict items.
 
     This is for testing purposes.
-    '''
+    """
 
     def _attach(self):
         self._cpp_obj = DummyCppObj()

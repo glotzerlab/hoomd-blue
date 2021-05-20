@@ -31,7 +31,7 @@ def test_cpp_python_correspondence(base_box):
     assert base_box.yz == cpp_obj.getTiltFactorYZ()
 
 
-def test_setting_Ls(base_box):
+def test_setting_lengths(base_box):
     for attr in ['Lx', 'Ly', 'Lz']:
         for L in np.linspace(1, 100, 10):
             setattr(base_box, attr, L)
@@ -55,7 +55,7 @@ def test_setting_tilts(base_box):
     assert all(base_box.tilts == [3, 2, 1])
 
 
-def test_is2D(base_box):
+def test_is2D(base_box):  # noqa: N802 - allow function name
     base_box.Lz = 0
     assert base_box.is2D
     for L in np.linspace(1, 100, 10):
