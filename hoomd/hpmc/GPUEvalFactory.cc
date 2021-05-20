@@ -52,6 +52,11 @@ void GPUEvalFactory::compileGPU(
                  compile_options[i].c_str());
         }
 
+    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
+    for (unsigned int i = 0; i < compile_options.size(); ++i)
+        {
+        m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
+        }
     m_exec_conf->msg->notice(5) << code << std::endl;
 
     // compile on each GPU, substituting common headers with fake headers
@@ -64,11 +69,6 @@ void GPUEvalFactory::compileGPU(
         m_program.push_back(m_cache[idev].program(code, 0, compile_options));
         }
 
-    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
-    for (unsigned int i = 0; i < compile_options.size(); ++i)
-        {
-        m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
-        }
     #endif
     }
 #endif

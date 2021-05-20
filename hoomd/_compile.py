@@ -3,6 +3,7 @@
 # License.
 
 import hoomd
+from hoomd.hpmc import _jit
 import subprocess
 import os
 
@@ -42,14 +43,16 @@ def get_gpu_compilation_settings(gpu):
     """Helper function to set CUDA libraries for GPU execution. """
     includes = [
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
-        "-I" + hoomd.version.source_dir,
-        "-I" + _jit.__cuda_include_path__
+        "-I" + _jit.__cuda_include_path__,
+        "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/HIP/include',
+        "-UENABLE_HIP",
     ]
     cuda_devrt_lib_path = _jit.__cuda_devrt_library_path__
 
     # select maximum supported compute capability out of those we compile for
     compute_archs = _jit.__cuda_compute_archs__
     compute_capability = gpu._cpp_exec_conf.getComputeCapability(0)  # GPU 0
+    compute_capability = str(compute_capability)
     compute_major, compute_minor = compute_capability[0], compute_capability[1:]#.split('.')
     max_arch = 0
     for a in compute_archs.split('_'):
