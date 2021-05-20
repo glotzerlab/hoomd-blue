@@ -8,6 +8,7 @@
 
 #ifdef ENABLE_HIP
 
+#include "hoomd/Autoruner.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 
