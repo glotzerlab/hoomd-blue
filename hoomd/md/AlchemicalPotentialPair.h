@@ -311,7 +311,6 @@ inline void AlchemicalPotentialPair<evaluator, extra_pkg>::pkgPerNeighbor(const 
         }
     }
 
-// TODO: This is a literal copy paste, should be improved
 //! Export this pair potential to python
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
@@ -319,8 +318,10 @@ inline void AlchemicalPotentialPair<evaluator, extra_pkg>::pkgPerNeighbor(const 
 template<class evaluator>
 void export_AlchemicalPotentialPair(pybind11::module& m, const std::string& name)
     {
+    typedef PotentialPair<evaluator, AlchemyPackage<evaluator>> base;
+    export_PotentialPair<base>(m,name+std::string("Base").c_str());
     typedef AlchemicalPotentialPair<evaluator> T;
-    pybind11::class_<T, PotentialPair<evaluator, AlchemyPackage<evaluator>>, std::shared_ptr<T>>
+    pybind11::class_<T, base, std::shared_ptr<T>>
         alchemicalpotentialpair(m, name.c_str());
     alchemicalpotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())

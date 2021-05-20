@@ -984,7 +984,8 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
 */
-template < class T > void export_PotentialPair(pybind11::module& m, const std::string& name)
+template < class T >
+void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, ForceCompute, std::shared_ptr<T> > potentialpair(m, name.c_str());
     potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())

@@ -267,7 +267,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPair<PotentialPairLJGauss>(m, "PotentialPairLJGauss");
     export_AlchemicalPairParticle(m);
     export_AlchemicalPotentialPair<EvaluatorPairLJGauss>(m, "AlchemicalPotentialPairLJGauss");
-    export_AlchemicalPotentialPair<EvaluatorPairOPP>(m, "AlchemicalPotentialPairLJGauss");
+    // export_AlchemicalPotentialPair<EvaluatorPairOPP>(m, "AlchemicalPotentialPairLJGauss");
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
     export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
@@ -383,7 +383,7 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
-    // export_AlchemostatTwoStep(m);
+    export_AlchemostatTwoStep(m);
     export_TwoStepNVEAlchemy(m);
     export_TwoStepNVTAlchemy(m);
 
