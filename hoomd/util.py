@@ -148,6 +148,7 @@ def dict_filter(dict_, filter_):
 
 class _NamespaceDict:
     """A nested dictionary when can be nested indexed by tuples."""
+
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
 
@@ -230,6 +231,7 @@ class _NamespaceDict:
 
 class _SafeNamespaceDict(_NamespaceDict):
     """A _NamespaceDict where keys cannot be overwritten."""
+
     def __setitem__(self, namespace, value):
         if namespace in self:
             raise KeyError("Namespace {} is being used. Remove before "
@@ -248,6 +250,7 @@ class GPUNotAvailableError(NotImplementedError):
 
 class _NoGPU:
     """Used in nonGPU builds of hoomd to raise errors for attempted use."""
+
     def __init__(self, *args, **kwargs):
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")
