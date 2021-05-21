@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Box."""
+
 import numpy as np
 from functools import partial
 import hoomd._hoomd as _hoomd
@@ -49,7 +55,7 @@ def _vec3_to_array(vec, dtype=None):
 
 
 class Box:
-    R""" Define box dimensions.
+    """Define box dimensions.
 
     Args:
         Lx (float): box extent in the x direction (distance units).
@@ -88,12 +94,10 @@ class Box:
     usage.
 
     Examples:
-
     * Cubic box with given length: ``hoomd.Box.cube(L=1)``
     * Square box with given length: ``hoomd.Box.square(L=1)``
     * From an upper triangular matrix: ``hoomd.Box.from_matrix(matrix)``
-    * Specify all values: ``hoomd.Box(Lx=1., Ly=2., Lz=3., xy=1., xz=2.,
-      yz=3.)``
+    * Specify values: ``hoomd.Box(Lx=1., Ly=2., Lz=3., xy=1., xz=2., yz=3.)``
     """
 
     # Constructors
@@ -152,7 +156,7 @@ class Box:
         return b
 
     @classmethod
-    def _from_cpp(self, cpp_obj):
+    def _from_cpp(cls, cpp_obj):
         """Wrap a C++ BoxDim.
 
         Does not copy the C++ object.
@@ -169,22 +173,19 @@ class Box:
             box:
                 A box-like object
 
-        .. note:: Objects that can be converted to HOOMD-blue boxes include
-                  lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
-                  dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
-                  objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz,
-                  3x3 matrices (see `from_matrix`),
-                  or existing :class:`hoomd.Box` objects.
+        Note:
+           Objects that can be converted to HOOMD-blue boxes include lists like
+           ``[Lx, Ly, Lz, xy, xz, yz]``, dictionaries with keys ``'Lx',
+           'Ly', 'Lz', 'xy', 'xz', 'yz'``, objects with attributes ``Lx, Ly,
+           Lz, xy, xz, yz``, 3x3 matrices (see `from_matrix`), or existing
+           `hoomd.Box` objects.
 
-                  If any of :code:`Lz, xy, xz, yz` are not provided, they will
-                  be set to 0.
+           If any of ``Lz, xy, xz, yz`` are not provided, they will be set to 0.
 
-                  If all values are provided, a triclinic box will be
-                  constructed. If only :code:`Lx, Ly, Lz` are provided, an
-                  orthorhombic box will be constructed. If only :code:`Lx, Ly`
-                  are provided, a rectangular (2D) box will be constructed.
+           If all values are provided, a triclinic box will be constructed.
+           If only ``Lx, Ly, Lz`` are provided, an orthorhombic box will
+           be constructed. If only ``Lx, Ly`` are provided, a rectangular
+           (2D) box will be constructed.
 
         Returns:
             :class:`hoomd.Box`: The resulting box object.
@@ -235,7 +236,7 @@ class Box:
         return 2 if self.is2D else 3
 
     @property
-    def is2D(self):
+    def is2D(self):  # noqa: N802 - allow function name
         """bool: Flag whether the box is 2D.
 
         If ``Lz == 0``, the box is treated as 2D, otherwise it is 3D. This
@@ -245,50 +246,49 @@ class Box:
 
     # Length based properties
     @property
-    def L(self):
-        """(3) `numpy.ndarray` of `float`: The box lengths,
-        ``[Lx, Ly, Lz]``.
+    def L(self):  # noqa: N802 - allow function name
+        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]``.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
         """
         return _vec3_to_array(self._cpp_obj.getL())
 
     @L.setter
-    def L(self, new_L):
+    def L(self, new_L):  # noqa: N802: Allow function name
         newL = _make_scalar3(new_L)
         if newL.z == 0 and not self.is2D:
             self.tilts = [self.xy, 0, 0]
         self._cpp_obj.setL(newL)
 
     @property
-    def Lx(self):
+    def Lx(self):  # noqa: N802: Allow function name
         """float: The length of the box in the x dimension."""
         return self.L[0]
 
     @Lx.setter
-    def Lx(self, value):
+    def Lx(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[0] = float(value)
         self.L = L
 
     @property
-    def Ly(self):
+    def Ly(self):  # noqa: N802: Allow function name
         """float: The length of the box in the y dimension."""
         return self.L[1]
 
     @Ly.setter
-    def Ly(self, value):
+    def Ly(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[1] = float(value)
         self.L = L
 
     @property
-    def Lz(self):
+    def Lz(self):  # noqa: N802: Allow function name
         """float: The length of the box in the z dimension."""
         return self.L[2]
 
     @Lz.setter
-    def Lz(self, value):
+    def Lz(self, value):  # noqa: N802: Allow function name
         L = self.L
         L[2] = float(value)
         self.L = L
@@ -299,7 +299,8 @@ class Box:
         """(3) `numpy.ndarray` of `float`: The box tilts, ``[xy, xz, yz]``.
 
         Can be set using one tilt for all axes or three tilts. If the box is 2D
-        ``xz`` and ``yz`` will automatically be set to zero."""
+        ``xz`` and ``yz`` will automatically be set to zero.
+        """
         return np.array([self.xy, self.xz, self.yz])
 
     @tilts.setter
@@ -343,8 +344,7 @@ class Box:
     # Misc. properties
     @property
     def periodic(self):
-        """(3) `numpy.ndarray` of `bool`: The periodicity of
-        each dimension."""
+        """(3) `numpy.ndarray` of `bool`: The periodicity of each dimension."""
         return _vec3_to_array(self._cpp_obj.getPeriodic(), bool)
 
     @property
@@ -359,7 +359,7 @@ class Box:
 
     @property
     def volume(self):
-        """float: The current volume (area in 2D) of the box.
+        """float: Volume of the box (area in 2D).
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.
@@ -372,7 +372,7 @@ class Box:
 
     @property
     def matrix(self):
-        """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that
+        """(3, 3) `numpy.ndarray` `float`: The upper triangular matrix that \
         defines the box.
 
         Can be used to set the box to one defined by an upper triangular
@@ -418,18 +418,22 @@ class Box:
 
     # Magic Methods
     def __repr__(self):
+        """Executable representation of the object."""
         return "hoomd.box.Box(Lx={}, Ly={}, Lz={}, xy={}, xz={}, yz={})".format(
             self.Lx, self.Ly, self.Lz, self.xy, self.xz, self.yz)
 
     def __eq__(self, other):
+        """Test if boxes are equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj == other._cpp_obj
 
     def __neq__(self, other):
+        """Test if boxes are not equal."""
         if not isinstance(other, Box):
             return NotImplemented
         return self._cpp_obj != other._cpp_obj
 
     def __reduce__(self):
+        """Reduce values to picklable format."""
         return (type(self), (*self.L, *self.tilts))

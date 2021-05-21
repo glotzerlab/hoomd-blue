@@ -1,32 +1,34 @@
 # Copyright (c) 2009-2019 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+"""Manifolds."""
 
-import hoomd
 from hoomd.md import _md
 from hoomd import _hoomd
 from hoomd.operation import _HOOMDBaseObject
-from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
+from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from collections.abc import Sequence
 
 
-# A manifold in hoomd reflects a Manifold in c++. It is responsible to define the manifold
-# used for RATTLE integrators and the active force constraints.
+# A manifold in hoomd reflects a Manifold in c++. It is responsible to define
+# the manifold used for RATTLE integrators and the active force constraints.
 class Manifold(_HOOMDBaseObject):
     r"""Base class manifold object.
 
-    Manifold defines a positional constraint to a given set of particles. A manifold can
-    be applied to a RATTLE method and/or the active force class. The degrees of freedom removed from
-    the system by constraints are correctly taken into account, i.e. when computing temperature
-    for thermostatting and/or logging.
+    Manifold defines a positional constraint to a given set of particles. A
+    manifold can be applied to a RATTLE method and/or the active force class.
+    The degrees of freedom removed from the system by constraints are correctly
+    taken into account, i.e. when computing temperature for thermostatting
+    and/or logging.
 
     All manifolds are described by implicit functions.
 
     Note:
-        Users should not instantiate :py:class:`Manifold` directly, but should instead instantiate
-        one of its subclasses defining a specific manifold geometry.
+        Users should not instantiate :py:class:`Manifold` directly, but should
+        instead instantiate one of its subclasses defining a specific manifold
+        geometry.
 
     Warning:
         Only one manifold can be applied to the methods/active forces.
@@ -48,6 +50,7 @@ class Manifold(_HOOMDBaseObject):
             return (value, value, value)
 
     def __eq__(self, other):
+        """Test for equality."""
         if not isinstance(other, type(self)):
             return NotImplemented
         return all(
@@ -60,11 +63,12 @@ class Manifold(_HOOMDBaseObject):
 
 
 class Cylinder(Manifold):
-    R""" Cylinder manifold.
+    r"""Cylinder manifold.
 
     Args:
         r (`float`): radius of the cylinder constraint (in distance units).
-        P (`tuple` [`float`, `float`, `float`]): point defining position of the cylinder axis (default origin).
+        P (`tuple` [`float`, `float`, `float`]): point defining position of the
+            cylinder axis (default origin).
 
     :py:class:`Cylinder` specifies that a cylindric manifold is defined as
     a constraint.
@@ -101,32 +105,42 @@ class Cylinder(Manifold):
 
 
 class Diamond(Manifold):
-    R""" Triply periodic diamond manifold.
+    r"""Triply periodic diamond manifold.
 
     Args:
-        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
-            :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
-            direction the same (:math:`[u, u, u]`), use ``N = u``.
-        epsilon (`float`): defines CMC companion of the Diamond surface (default 0)
+        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
+            3 directions.  :math:`[N_x, N_y, N_z]`. In case number of unit cells
+            u in all direction the same (:math:`[u, u, u]`), use ``N = u``.
+        epsilon (`float`): defines CMC companion of the Diamond surface (default
+            0)
 
     :py:class:`Diamond` specifies a periodic diamond surface as a constraint.
-    The diamond (or Schwarz D) belongs to the family of triply periodic minimal surfaces.
+    The diamond (or Schwarz D) belongs to the family of triply periodic minimal
+    surfaces.
 
 
     For the diamond surface, see:
-    * `A. H. Schoen 1970  <https://ntrs.nasa.gov/citations/19700020472>`_
-    * `P. J. F. Gandy et. al. 1999  <https://doi.org/10.1016/S0009-2614(99)01000-3>`_
-    * `H. G. von Schnering and R. Nesper 1991  <https://doi.org/10.1007/BF01313411>`_
+
+    * A. H. Schoen 1970
+      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
+    * P. J. F. Gandy et. al. 1999
+      (`paper link <https://doi.org/10.1016/S0009-2614(99)01000-3>`__)
+    * H. G. von Schnering and R. Nesper 1991
+      (`paper link <https://doi.org/10.1007/BF01313411>`__)
 
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} - \sin{\frac{2 \pi}{L_x} x}\cdot\sin{\frac{2 \pi}{L_y} y}\cdot\sin{\frac{2 \pi}{L_z} z} - \epsilon
 
-    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]`
-    is the periodicity length in the x, y and z direction. The periodicity length
-    L is defined by the current box size B and the number of unit cells N.
-    :math:`L=\frac{B}{N}`
+        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} \cdot \cos{\frac{2 \pi}{L_y} y}
+                   \cdot \cos{\frac{2 \pi}{L_z} z} - \sin{\frac{2 \pi}{L_x} x}
+                   \cdot \sin{\frac{2 \pi}{L_y} y}
+                   \cdot \sin{\frac{2 \pi}{L_z} z} - \epsilon
+
+    is the nodal approximation of the diamond surface where
+    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length L is defined by the current box size B and the number
+    of unit cells N.  :math:`L=\frac{B}{N}`
 
     Example::
 
@@ -153,20 +167,27 @@ class Diamond(Manifold):
 
 
 class Ellipsoid(Manifold):
-    """ Ellipsoid manifold.
+    r"""Ellipsoid manifold.
 
     Args:
-        a (`float`): length of the a-axis of the ellipsoidal constraint (in distance units).
-        b (`float`): length of the b-axis of the ellipsoidal constraint (in distance units).
-        c (`float`): length of the c-axis of the ellipsoidal constraint (in distance units).
-        P (`tuple` [`float`, `float`, `float`]): center of the ellipsoidal constraint (default origin).
+        a (`float`): length of the a-axis of the ellipsoidal constraint (in
+            distance units).
+        b (`float`): length of the b-axis of the ellipsoidal constraint (in
+            distance units).
+        c (`float`): length of the c-axis of the ellipsoidal constraint (in
+            distance units).
+        P (`tuple` [`float`, `float`, `float`]): center of the ellipsoidal
+            constraint (default origin).
 
-    :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a constraint.
+    :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a
+    constraint.
 
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \\frac{x^{2}}{a^{2}} + \\frac{y^{2}}{b^{2}} + \\frac{z^{2}}{c^{2}} - 1
+        F(x,y,z) = \frac{x^{2}}{a^{2}}
+                 + \frac{y^{2}}{b^{2}}
+                 + \frac{z^{2}}{c^{2}} - 1
 
     Example::
 
@@ -195,32 +216,39 @@ class Ellipsoid(Manifold):
 
 
 class Gyroid(Manifold):
-    R""" Triply periodic gyroid manifold.
+    r"""Triply periodic gyroid manifold.
 
     Args:
-        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
-            :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
-            direction the same (:math:`[u, u, u]`), use ``N = u``.
-        epsilon (`float`): defines CMC companion of the Gyroid surface (default 0)
+        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
+            3 directions.  :math:`[N_x, N_y, N_z]`. In case number of unit cells
+            u in all direction the same (:math:`[u, u, u]`), use ``N = u``.
+        epsilon (`float`): defines CMC companion of the Gyroid surface (default
+            0)
 
     :py:class:`Gyroid` specifies a periodic gyroid surface as a constraint.
     The gyroid belongs to the family of triply periodic minimal surfaces.
 
     For the gyroid surface, see:
 
-    * `A. H. Schoen 1970  <https://ntrs.nasa.gov/citations/19700020472>`_
-    * `P. J.F. Gandy et. al. 2000  <https://doi.org/10.1016/S0009-2614(00)00373-0>`_
-    * `H. G. von Schnering and R. Nesper 1991  <https://doi.org/10.1007/BF01313411>`_
+    * A. H. Schoen 1970
+      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
+    * P. J.F. Gandy et. al. 2000
+      (`paper link <https://doi.org/10.1016/S0009-2614(00)00373-0>`__)
+    * H. G. von Schnering and R. Nesper 1991
+      (`paper link <https://doi.org/10.1007/BF01313411>`__)
 
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \sin{\frac{2 \pi}{L_x} x}\cdot\cos{\frac{2 \pi}{L_y} y} + \sin{\frac{2 \pi}{L_y} y}\cdot\cos{\frac{2 \pi}{L_z} z} + \sin{\frac{2 \pi}{L_z} z}\cdot\cos{\frac{2 \pi}{L_x} x} - \epsilon
+        F(x,y,z) = \sin{\frac{2 \pi}{L_x} x} \cdot \cos{\frac{2 \pi}{L_y} y}
+                 + \sin{\frac{2 \pi}{L_y} y} \cdot \cos{\frac{2 \pi}{L_z} z}
+                 + \sin{\frac{2 \pi}{L_z} z} \cdot \cos{\frac{2 \pi}{L_x} x}
+                 - \epsilon
 
-    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]`
-    is the periodicity length in the x, y and z direction. The periodicity length
-    L is defined by the current box size B and the number of unit cells N.
-    :math:`L=\frac{B}{N}`
+    is the nodal approximation of the diamond surface where
+    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length L is defined by the current box size B and the number
+    of unit cells N.  :math:`L=\frac{B}{N}`
 
     Example::
 
@@ -249,7 +277,7 @@ class Gyroid(Manifold):
 
 
 class Plane(Manifold):
-    R""" Plane manifold.
+    r"""Plane manifold.
 
     Args:
         shift (`float`): z-shift of the xy-plane (in distance units).
@@ -280,32 +308,38 @@ class Plane(Manifold):
 
 
 class Primitive(Manifold):
-    R""" Triply periodic primitive manifold.
+    r"""Triply periodic primitive manifold.
 
     Args:
-        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all 3 directions.
-            :math:`[N_x, N_y, N_z]`. In case number of unit cells u in all
-            direction the same (:math:`[u, u, u]`), use ``N = u``.
-        epsilon (`float`): defines CMC companion of the Primitive surface (default 0)
+        N (`tuple` [`int`, `int`, `int`] or `int`): number of unit cells in all
+            3 directions.  :math:`[N_x, N_y, N_z]`. In case number of unit cells
+            u in all direction the same (:math:`[u, u, u]`), use ``N = u``.
+        epsilon (`float`): defines CMC companion of the Primitive surface
+            (default 0)
 
-    :py:class:`Primitive` specifies a periodic primitive surface as a constraint.
-    The primitive (or Schwarz P) belongs to the family of triply periodic minimal surfaces.
+    :py:class:`Primitive` specifies a periodic primitive surface as a
+    constraint.  The primitive (or Schwarz P) belongs to the family of triply
+    periodic minimal surfaces.
 
     For the primitive surface, see:
 
-    * `A. H. Schoen 1970  <https://ntrs.nasa.gov/citations/19700020472>`_
-    * `P. J. F. Gandy et. al. 2000  <https://doi.org/10.1016/S0009-2614(00)00453-X>`_
-    * `H. G. von Schnering and R. Nesper 1991  <https://doi.org/10.1007/BF01313411>`_
+    * A. H. Schoen 1970
+      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
+    * P. J.F. Gandy et. al. 2000
+      (`paper link <https://doi.org/10.1016/S0009-2614(00)00373-0>`__)
+    * H. G. von Schnering and R. Nesper 1991
+      (`paper link <https://doi.org/10.1007/BF01313411>`__)
 
     .. rubric:: Implicit function
 
     .. math::
-        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} + \cos{\frac{2 \pi}{L_y} y} + \cos{\frac{2 \pi}{L_z} z} - \epsilon
+        F(x,y,z) = \cos{\frac{2 \pi}{L_x} x} + \cos{\frac{2 \pi}{L_y} y}
+                 + \cos{\frac{2 \pi}{L_z} z} - \epsilon
 
-    is the nodal approximation of the diamond surface where :math:`[L_x,L_y,L_z]`
-    is the periodicity length in the x, y and z direction. The periodicity length
-    L is defined by the current box size B and the number of unit cells N.
-    :math:`L=\frac{B}{N}`
+    is the nodal approximation of the diamond surface where
+    :math:`[L_x,L_y,L_z]` is the periodicity length in the x, y and z direction.
+    The periodicity length L is defined by the current box size B and the number
+    of unit cells N. :math:`L=\frac{B}{N}`
 
     Example::
 
@@ -332,11 +366,13 @@ class Primitive(Manifold):
 
 
 class Sphere(Manifold):
-    """ Sphere manifold.
+    """Sphere manifold.
 
     Args:
-        r (`float`): raduis of the a-axis of the spherical constraint (in distance units).
-        P (`tuple` [`float`, `float`, `float`] ): center of the spherical constraint (default origin).
+        r (`float`): raduis of the a-axis of the spherical constraint (in
+            distance units).
+        P (`tuple` [`float`, `float`, `float`] ): center of the spherical
+            constraint (default origin).
 
     :py:class:`Sphere` specifies that a spherical manifold is defined as
     a constraint.

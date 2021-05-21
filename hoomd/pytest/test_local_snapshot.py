@@ -1,5 +1,9 @@
-"""Test that `hoomd.data.LocalSnapshot` and hoomd.data.LocalSnapshotGPU` work.
-"""
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Test that `LocalSnapshot` and `LocalSnapshotGPU` work."""
+
 from copy import deepcopy
 import hoomd
 from hoomd.data.array import HOOMDGPUArray
@@ -331,7 +335,8 @@ def check_getting(data, prop_dict, tags):
 def check_setting(data, prop_dict, tags):
     """Checks setting properties of the state through a local snapshot.
 
-    Also tests error raising for read only arrays."""
+    Also tests error raising for read only arrays.
+    """
     # Test if test should be skipped or just return
     if isinstance(data, HOOMDGPUArray) and not CUPY_IMPORTED:
         pytest.skip("Not available for HOOMDGPUArray without CuPy.")
@@ -471,14 +476,14 @@ class TestLocalSnapshots:
     def test_run_failure(self, base_simulation):
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
-            with getattr(sim.state, lcl_snapshot_attr) as data:
+            with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
                     sim.run(1)
 
     def test_setting_snapshot_failure(self, base_simulation, base_snapshot):
         sim = base_simulation()
         for lcl_snapshot_attr in self.get_snapshot_attr(sim):
-            with getattr(sim.state, lcl_snapshot_attr) as data:
+            with getattr(sim.state, lcl_snapshot_attr):
                 with pytest.raises(RuntimeError):
                     sim.state.snapshot = base_snapshot
 

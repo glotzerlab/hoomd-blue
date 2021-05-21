@@ -26,7 +26,7 @@ def simulation(simulation_factory, lattice_snapshot_factory):
     return sim
 
 
-class Test_MoveSizeTuneDefinition:
+class TestMoveSizeTuneDefinition:
 
     def test_getting_attrs(self, move_definition_dict, move_size_definition):
         for attr in move_definition_dict:

@@ -13,7 +13,6 @@ from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
-import math
 
 
 class HPMCIntegrator(BaseIntegrator):
@@ -94,11 +93,11 @@ class HPMCIntegrator(BaseIntegrator):
             is temporary and will be removed in the release version.
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
-            Multiplicative factor for the number of times a depletant is inserted.
-            This factor is accounted for in the acceptance criterion so that detailed
-            balance is unchanged. Higher values of ntrial (than one) can be used
-            to reduce the variance of the free energy estimate and
-            improve the acceptance rate of the Markov chain.
+            Multiplicative factor for the number of times a depletant is
+            inserted. This factor is accounted for in the acceptance criterion
+            so that detailed balance is unchanged. Higher values of ntrial (than
+            one) can be used to reduce the variance of the free energy estimate
+            and improve the acceptance rate of the Markov chain.
 
         interaction_matrix (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
@@ -190,11 +189,11 @@ class HPMCIntegrator(BaseIntegrator):
         super()._attach()
 
     # Set the external field
-    def set_external(self, ext):
+    def set_external(self, ext):  # noqa - to be rewritten
         self._cpp_obj.setExternalField(ext.cpp_compute)
 
     # Set the patch
-    def set_PatchEnergyEvaluator(self, patch):
+    def set_PatchEnergyEvaluator(self, patch):  # noqa - to be rewritten
         self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
 
     # TODO need to validate somewhere that quaternions are normalized

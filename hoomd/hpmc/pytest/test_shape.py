@@ -8,8 +8,7 @@ from copy import deepcopy
 
 
 def check_dict(shape_dict, args):
-    """
-    check_dict: Function to check that two dictionaries are equivalent
+    """Check that two dictionaries are equivalent.
 
     Arguments: shape_dict and args - dictionaries to test
 

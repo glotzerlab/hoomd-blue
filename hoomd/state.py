@@ -75,8 +75,8 @@ class State:
 
         # self._groups provides a cache of C++ group objects of the form:
         # {type(filter): {filter: C++ group}}
-        # The first layer is to prevent user created filters with poorly implemented
-        # __hash__ and __eq__ from causing cache errors.
+        # The first layer is to prevent user created filters with poorly
+        # implemented __hash__ and __eq__ from causing cache errors.
         self._groups = defaultdict(dict)
 
     @property
@@ -181,32 +181,32 @@ class State:
                     special_pair_types=self.special_pair_types)
 
     @property
-    def N_particles(self):
+    def N_particles(self):  # noqa: N802 - allow N in name
         """int: The number of particles in the simulation."""
         return self._cpp_sys_def.getParticleData().getNGlobal()
 
     @property
-    def N_bonds(self):
+    def N_bonds(self):  # noqa: N802 - allow N in name
         """int: The number of bonds in the simulation."""
         return self._cpp_sys_def.getBondData().getNGlobal()
 
     @property
-    def N_angles(self):
+    def N_angles(self):  # noqa: N802 - allow N in name
         """int: The number of angles in the simulation."""
         return self._cpp_sys_def.getAngleData().getNGlobal()
 
     @property
-    def N_impropers(self):
+    def N_impropers(self):  # noqa: N802 - allow N in name
         """int: The number of impropers in the simulation."""
         return self._cpp_sys_def.getImproperData().getNGlobal()
 
     @property
-    def N_special_pairs(self):
+    def N_special_pairs(self):  # noqa: N802 - allow N in name
         """int: The number of special pairs in the simulation."""
         return self._cpp_sys_def.getPairData().getNGlobal()
 
     @property
-    def N_dihedrals(self):
+    def N_dihedrals(self):  # noqa: N802 - allow N in name
         """int: The number of dihedrals in the simulation."""
         return self._cpp_sys_def.getDihedralData().getNGlobal()
 
@@ -398,9 +398,9 @@ class State:
         Each particle can have 0, 1, 2, or 3 rotational degrees of freedom.
 
         .. seealso::
-            `md.methods.NVT.thermalize_extra_dof`
+            `md.methods.NVT.thermalize_thermostat_dof`
 
-            `md.methods.NPT.thermalize_extra_dof`
+            `md.methods.NPT.thermalize_thermostat_and_barostat_dof`
         """
         self._simulation._warn_if_seed_unset()
         group = self._get_group(filter)

@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Pytest fixtures and common test functions."""
+
 import pickle
 import pytest
 import hoomd
@@ -61,20 +67,21 @@ def simulation_factory(device):
 
 @pytest.fixture(scope='session')
 def two_particle_snapshot_factory(device):
-    """Make a snapshot with two particles.
-
-    Args:
-        particle_types: List of particle type names
-        dimensions: Number of dimensions (2 or 3)
-        d: Distance apart to place particles
-        L: Box length
-
-    The two particles are placed at (-d/2, 0, 0) and (d/2,0,0). When,
-    dimensions==3, the box is L by L by L. When dimensions==2, the box is L by L
-    by 1.
-    """
+    """Make a snapshot with two particles."""
 
     def make_snapshot(particle_types=['A'], dimensions=3, d=1, L=20):
+        """Make the snapshot.
+
+        Args:
+            particle_types: List of particle type names
+            dimensions: Number of dimensions (2 or 3)
+            d: Distance apart to place particles
+            L: Box length
+
+        The two particles are placed at (-d/2, 0, 0) and (d/2,0,0). When,
+        dimensions==3, the box is L by L by L. When dimensions==2, the box is
+        L by L by 0.
+        """
         s = Snapshot(device.communicator)
         N = 2
 
@@ -98,24 +105,26 @@ def two_particle_snapshot_factory(device):
 
 @pytest.fixture(scope='session')
 def lattice_snapshot_factory(device):
-    """Make a snapshot with particles on a cubic/square lattice.
-
-    Args:
-        particle_types: List of particle type names
-        dimensions: Number of dimensions (2 or 3)
-        a: Lattice constant
-        n: Number of particles along each box edge
-        r: Fraction of `a` to randomly perturb particles
-
-    Place particles on a simple cubic (dimensions==3) or square (dimensions==2)
-    lattice. The box is cubic (or square) with a side length of `n * a`.
-
-    Set `r` to randomly perturb particles a small amount off their lattice
-    positions. This is useful in MD simulation testing so that forces do not
-    cancel out by symmetry.
-    """
+    """Make a snapshot with particles on a cubic/square lattice."""
 
     def make_snapshot(particle_types=['A'], dimensions=3, a=1, n=7, r=0):
+        """Make the snapshot.
+
+        Args:
+            particle_types: List of particle type names
+            dimensions: Number of dimensions (2 or 3)
+            a: Lattice constant
+            n: Number of particles along each box edge
+            r: Fraction of `a` to randomly perturb particles
+
+        Place particles on a simple cubic (dimensions==3) or square
+        (dimensions==2) lattice. The box is cubic (or square) with a side length
+        of `n * a`.
+
+        Set `r` to randomly perturb particles a small amount off their lattice
+        positions. This is useful in MD simulation testing so that forces do not
+        cancel out by symmetry.
+        """
         s = Snapshot(device.communicator)
 
         if s.exists:
@@ -156,6 +165,7 @@ def lattice_snapshot_factory(device):
 
 @pytest.fixture(autouse=True)
 def skip_mpi(request):
+    """Skip tests marked ``serial`` when running with MPI."""
     if request.node.get_closest_marker('serial'):
         if 'device' in request.fixturenames:
             if request.getfixturevalue('device').communicator.num_ranks > 1:
@@ -166,6 +176,7 @@ def skip_mpi(request):
 
 @pytest.fixture(autouse=True)
 def only_gpu(request):
+    """Skip CPU tests marked ``gpu``."""
     if request.node.get_closest_marker('gpu'):
         if 'device' in request.fixturenames:
             if not isinstance(request.getfixturevalue('device'),
@@ -177,6 +188,7 @@ def only_gpu(request):
 
 @pytest.fixture(autouse=True)
 def only_cpu(request):
+    """Skip GPU tests marked ``cpu``."""
     if request.node.get_closest_marker('cpu'):
         if 'device' in request.fixturenames:
             if not isinstance(request.getfixturevalue('device'),
@@ -197,6 +209,7 @@ def numpy_random_seed():
 
 
 def pytest_configure(config):
+    """Add markers to pytest configuration."""
     config.addinivalue_line(
         "markers",
         "serial: Tests that will not execute with more than 1 MPI process")
@@ -210,6 +223,7 @@ def pytest_configure(config):
 
 
 def abort(exitstatus):
+    """Call MPI_Abort when pytest tests fail."""
     # get a default mpi communicator
     communicator = hoomd.communicator.Communicator()
     # abort the deadlocked ranks
@@ -217,14 +231,13 @@ def abort(exitstatus):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    """ Finalize pytest session
+    """Finalize pytest session.
 
     MPI tests may fail on one rank but not others. To prevent deadlocks in these
     situations, this code calls ``MPI_Abort`` when pytest is exiting with a
     non-zero exit code. **pytest** should be run with the ``-x`` option so that
     it exits on the first error.
     """
-
     if exitstatus != 0 and hoomd.version.mpi_enabled:
         atexit.register(abort, exitstatus)
 
@@ -262,11 +275,13 @@ def logging_check(cls, expected_namespace, expected_loggables):
 
 
 def pickling_check(instance):
+    """Test that an instance can be pickled and unpickled."""
     pkled_instance = pickle.loads(pickle.dumps(instance))
     assert instance == pkled_instance
 
 
 def operation_pickling_check(instance, sim):
+    """Test that an operation can be pickled and unpickled."""
     pickling_check(instance)
     sim.operations += instance
     sim.run(0)

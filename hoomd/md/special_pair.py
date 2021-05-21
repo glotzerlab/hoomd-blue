@@ -1,17 +1,16 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: jglaser / All Developers are free to add commands for new features
+"""Potentials between special pairs of particles.
 
-R""" Potentials between special pairs of particles
+Special pairs are used to implement interactions between designated pairs of
+particles. They act much like bonds, except that the interaction potential is
+typically a pair potential, such as LJ.
 
-Special pairs are used to implement interactions between designated pairs of particles.
-They act much like bonds, except that the interaction potential is typically a pair potential,
-such as LJ.
-
-By themselves, special pairs that have been specified in an initial configuration do nothing. Only when you
-specify an force (i.e. special_pairs.lj), are forces actually calculated between the
-listed particles.
+By themselves, special pairs that have been specified in an initial
+configuration do nothing. Only when you specify an force (i.e.
+special_pairs.lj), are forces actually calculated between the listed particles.
 """
 
 from hoomd.md import _md
@@ -25,8 +24,8 @@ class SpecialPair(Force):
     """Base class special pair forces.
 
     Note:
-        :py:class:`SpecialPair` is the base class for all special pair potentials.
-        Users should not instantiate this class directly.
+        :py:class:`SpecialPair` is the base class for all special pair
+        potentials. Users should not instantiate this class directly.
 
     """
 
@@ -45,7 +44,7 @@ class SpecialPair(Force):
 
 
 class LJ(SpecialPair):
-    R""" LJ special pair potential.
+    r"""LJ special pair potential.
 
     :py:class:`LJ` specifies a Lennard-Jones potential energy between the two
     particles in each defined pair.
@@ -107,7 +106,7 @@ class LJ(SpecialPair):
 
 
 class Coulomb(SpecialPair):
-    R""" Coulomb special pair potential.
+    r"""Coulomb special pair potential.
 
     :py:class:`Coulomb` specifies a Coulomb potential energy between the two
     particles in each defined pair.

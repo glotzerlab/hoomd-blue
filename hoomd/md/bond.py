@@ -1,9 +1,8 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
-
-R""" Bond potentials."""
+"""Bond potentials."""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -38,7 +37,7 @@ class Bond(Force):
 
 
 class Harmonic(Bond):
-    R""" Harmonic bond potential.
+    r"""Harmonic bond potential.
 
     :py:class:`Harmonic` specifies a harmonic potential energy between the two
     particles in each defined bond.
@@ -76,7 +75,7 @@ class Harmonic(Bond):
 
 
 class FENE(Bond):
-    R""" FENE bond potential.
+    r"""FENE bond potential.
 
     :py:class:`FENE` specifies a FENE potential energy between the two particles
     in each defined bond.
@@ -116,14 +115,16 @@ class FENE(Bond):
             * ``epsilon`` (`float`, **required**) - repulsive force strength
               (in units of energy)
 
-            * ``sigma`` (`float`, **required**) - repulsive force interaction distance
-              (in units of distance)
+            * ``sigma`` (`float`, **required**) - repulsive force interaction
+              distance (in units of distance)
 
     Examples::
 
         bond_potential = bond.FENE()
-        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0)
-        bond_potential.params['backbone'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2)
+        bond_potential.params['molecule'] = dict(k=3.0, r0=2.38,
+                                                 epsilon=1.0, sigma=1.0)
+        bond_potential.params['backbone'] = dict(k=10.0, r0=1.0,
+                                                 epsilon=0.8, sigma=1.2)
 
     """
     _cpp_class_name = "PotentialBondFENE"
@@ -145,42 +146,51 @@ def _table_eval(r, rmin, rmax, V, F, width):
     return (V[i], F[i])
 
 
-class table(force._force):
-    R""" Tabulated bond potential.
+class table(force._force):  # noqa - Will be renamed when updated for v3
+    r"""Tabulated bond potential.
 
     Args:
         width (int): Number of points to use to interpolate V and F
         name (str): Name of the potential instance
 
-    :py:class:`table` specifies that a tabulated bond potential should be applied between the two particles in each
-    defined bond.
+    :py:class:`table` specifies that a tabulated bond potential should be
+    applied between the two particles in each defined bond.
 
-    The force :math:`\vec{F}` is (in force units) and the potential :math:`V(r)` is (in energy units):
+    The force :math:`\vec{F}` is (in force units) and the potential :math:`V(r)`
+    is (in energy units):
 
     .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
-                             = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
-                             = & 0                           & r \ge r_{\mathrm{max}} \\
+        \vec{F}(\vec{r})     = & 0
+                               & r < r_{\mathrm{min}} \\
+                             = & F_{\mathrm{user}}(r)\hat{r}
+                               & r < r_{\mathrm{max}} \\
+                             = & 0
+                               & r \ge r_{\mathrm{max}} \\
                              \\
         V(r)       = & 0                    & r < r_{\mathrm{min}} \\
                    = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
                    = & 0                    & r \ge r_{\mathrm{max}} \\
         \end{eqnarray*}
 
-    where :math:`\vec{r}` is the vector pointing from one particle to the other in the bond.  Care should be taken to
-    define the range of the bond so that it is not possible for the distance between two bonded particles to be outside the
-    specified range.  On the CPU, this will throw an error.  On the GPU, this will throw an error if GPU error checking is enabled.
+    where :math:`\vec{r}` is the vector pointing from one particle to the other
+    in the bond.  Care should be taken to define the range of the bond so that
+    it is not possible for the distance between two bonded particles to be
+    outside the specified range.  On the CPU, this will throw an error.  On the
+    GPU, this will throw an error if GPU error checking is enabled.
 
-    :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated on *width* grid points between
-    :math:`r_{\mathrm{min}}` and :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid points.
-    For correctness, you must specify the force defined by: :math:`F = -\frac{\partial V}{\partial r}`
+    :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` are evaluated
+    on *width* grid points between :math:`r_{\mathrm{min}}` and
+    :math:`r_{\mathrm{max}}`. Values are interpolated linearly between grid
+    points. For correctness, you must specify the force defined by: :math:`F =
+    -\frac{\partial V}{\partial r}`
 
     The following coefficients must be set for each bond type:
 
-    - :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` - evaluated by ``func`` (see example)
+    - :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` - evaluated
+      by ``func`` (see example)
     - coefficients passed to ``func`` - ``coeff`` (see example)
     - :math:`r_{\mathrm{min}}` - ``rmin`` (in distance units)
     - :math:`r_{\mathrm{max}}` - ``rmax`` (in distance units)
@@ -190,9 +200,9 @@ class table(force._force):
 
     .. rubric:: Set table from a given function
 
-    When you have a functional form for V and F, you can enter that
-    directly into python. :py:class:`table` will evaluate the given function over *width* points between *rmin* and *rmax*
-    and use the resulting values in the table::
+    When you have a functional form for V and F, you can enter that directly
+    into python. :py:class:`table` will evaluate the given function over *width*
+    points between *rmin* and *rmax* and use the resulting values in the table::
 
         def harmonic(r, rmin, rmax, kappa, r0):
            V = 0.5 * kappa * (r-r0)**2;
@@ -200,24 +210,29 @@ class table(force._force):
            return (V, F)
 
         btable = bond.table(width=1000)
-        btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=330, r0=0.84))
-        btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0, coeff=dict(kappa=30, r0=1.0))
+        btable.bond_coeff.set('bond1', func=harmonic, rmin=0.2, rmax=5.0,
+                              coeff=dict(kappa=330, r0=0.84))
+        btable.bond_coeff.set('bond2', func=harmonic, rmin=0.2, rmax=5.0,
+                              coeff=dict(kappa=30, r0=1.0))
 
     .. rubric:: Set a table from a file
 
-    When you have no function for for *V* or *F*, or you otherwise have the data listed in a file, :py:class:`table` can use the given
-    values directly. You must first specify the number of rows in your tables when initializing bond.table. Then use
-    :py:meth:`set_from_file()` to read the file::
+    When you have no function for for *V* or *F*, or you otherwise have the data
+    listed in a file, :py:class:`table` can use the given values directly. You
+    must first specify the number of rows in your tables when initializing
+    bond.table. Then use :py:meth:`set_from_file()` to read the file::
 
         btable = bond.table(width=1000)
         btable.set_from_file('polymer', 'btable.file')
 
     Note:
-        For potentials that diverge near r=0, make sure to set ``rmin`` to a reasonable value. If a potential does
+        For potentials that diverge near r=0, make sure to set ``rmin`` to a
+        reasonable value. If a potential does
         not diverge near r=0, then a setting of ``rmin=0`` is valid.
 
     Note:
-        Ensure that ``rmin`` and ``rmax`` cover the range of possible bond lengths. When gpu error checking is on, a error will
+        Ensure that ``rmin`` and ``rmax`` cover the range of possible bond
+        lengths. When gpu error checking is on, a error will
         be thrown if a bond distance is outside than this range.
     """
 
@@ -237,12 +252,12 @@ class table(force._force):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficients matrix
-        self.bond_coeff = coeff()
+        self.bond_coeff = coeff()  # noqa - this will be rewritten for v3
 
         # stash the width for later use
         self.width = width
 
-    def update_bond_table(self, btype, func, rmin, rmax, coeff):
+    def update_bond_table(self, btype, func, rmin, rmax, coeff):  # noqa
         # allocate arrays to store V and F
         Vtable = _hoomd.std_vector_scalar()
         Ftable = _hoomd.std_vector_scalar()
@@ -262,7 +277,7 @@ class table(force._force):
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(btype, Vtable, Ftable, rmin, rmax)
 
-    def update_coeffs(self):
+    def update_coeffs(self):  # noqa
         # check that the bond coefficients are valid
         if not self.bond_coeff.verify(["func", "rmin", "rmax", "coeff"]):
             hoomd.context.current.device.cpp_msg.error(
@@ -286,12 +301,11 @@ class table(force._force):
 
             self.update_bond_table(i, func, rmin, rmax, coeff)
 
-    def set_from_file(self, bondname, filename):
-        R""" Set a bond pair interaction from a file.
+    def set_from_file(self, bondname, filename):  # noqa
+        r"""Set a bond pair interaction from a file.
 
-        Args:
-            bondname (str): Name of bond
-            filename (str): Name of the file to read
+        Args: bondname (str): Name of bond filename (str): Name of the file to
+            read
 
         The provided file specifies V and F at equally spaced r values.
         Example::
@@ -304,11 +318,13 @@ class table(force._force):
             1.4 0.0 -1.0
             1.5 -1.0 0.0
 
-        The first r value sets ``rmin``, the last sets ``rmax``. Any line with # as the first non-whitespace character is
-        is treated as a comment. The ``r`` values must monotonically increase and be equally spaced. The table is read
-        directly into the grid points used to evaluate :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)`.
+        The first r value sets ``rmin``, the last sets ``rmax``. Any line with
+        # as the first non-whitespace character is
+        is treated as a comment. The ``r`` values must monotonically increase
+        and be equally spaced. The table is read directly into the grid points
+        used to evaluate :math:`F_{\mathrm{user}}(r)` and
+        :math:`V_{\mathrm{user}}(r)`.
         """
-
         # open the file
         f = open(filename)
 
@@ -356,8 +372,8 @@ class table(force._force):
             r = rmin_table + dr * i
             if math.fabs(r - r_table[i]) > 1e-3:
                 hoomd.context.current.device.cpp_msg.error(
-                    "bond.table: r must be monotonically increasing and evenly spaced\n"
-                )
+                    "bond.table: r must be monotonically increasing and evenly "
+                    "spaced\n")
                 raise RuntimeError("Error reading table file")
 
         self.bond_coeff.set(bondname,

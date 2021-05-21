@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Access simulation state data directly."""
+
 from abc import ABC, abstractmethod
 from hoomd import Box
 from hoomd import _hoomd
@@ -106,9 +112,11 @@ class ParticleLocalAccessBase(_LocalAccess):
             particles' masses
         orientation ((N_particles, 4) `hoomd.data.array` object of ``float``):
             particle orientations expressed as quaternions
-        angular_momentum ((N_particles, 4) `hoomd.data.array` object of ``float``):
+        angular_momentum ((N_particles, 4) `hoomd.data.array` object of \
+            ``float``):
             particle angular momenta expressed as quaternions
-        moment_of_inertia ((N_particles, 3) `hoomd.data.array` object of ``float``):
+        moment_of_inertia ((N_particles, 3) `hoomd.data.array` object of \
+            ``float``):
             particle principal moments of inertia
         charge ((N_particles) `hoomd.data.array` object of ``float``):
             particle electrical charges
@@ -204,8 +212,8 @@ class BondLocalAccessBase(_GroupLocalAccess):
             array changes.  However, bond tags remain constant. This means that
             if ``bond.tag[0]`` is 1, then later whatever bond has a tag of 1
             later in the simulation is the same bond.
-        rtag ((N_bonds_global) `hoomd.data.array` object of ``int``): the reverse
-            tag of a bond. This means that the value ``bond.rtag[0]``
+        rtag ((N_bonds_global) `hoomd.data.array` object of ``int``): the
+            reverse tag of a bond. This means that the value ``bond.rtag[0]``
             represents the current index to access data for the bond with tag 0.
     """
     _cpp_get_data_method_name = "getBondData"
@@ -296,7 +304,7 @@ class ConstraintLocalAccessBase(_GroupLocalAccess):
             The reverse tag of a constraint. This means that the value
             ``constraint.rtag[0]`` represents the current index for accessing
             data for the constraint with tag 0.
-        """
+    """
     _fields = {
         'value': 'getTypeVal',
         'group': 'getMembers',
@@ -373,8 +381,7 @@ class _LocalSnapshot:
 
     @property
     def constraints(self):
-        """hoomd.data.ConstraintLocalAccessBase: Local constraint data.
-        """
+        """hoomd.data.ConstraintLocalAccessBase: Local constraint data."""
         return self._constraints
 
     @property

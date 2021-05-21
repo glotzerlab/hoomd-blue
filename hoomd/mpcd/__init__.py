@@ -107,7 +107,7 @@ from hoomd.mpcd import stream
 from hoomd.mpcd import update
 
 
-class integrator(hoomd.integrate._integrator):
+class integrator():
     """ MPCD integrator
 
     Args:
@@ -154,7 +154,7 @@ class integrator(hoomd.integrate._integrator):
             )
             raise RuntimeError('MPCD system not initialized')
 
-        hoomd.integrate._integrator.__init__(self)
+        # hoomd.integrate._integrator.__init__(self)
 
         self.supports_methods = True
         self.dt = dt

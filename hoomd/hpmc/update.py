@@ -8,7 +8,6 @@ from . import _hpmc
 from . import integrate
 from hoomd import _hoomd
 from hoomd.logging import log
-from hoomd.update import _updater
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
@@ -159,7 +158,10 @@ class BoxMC(Updater):
         if counter is None:
             return (0, 0)
         else:
-            attr = "volume" if self.volume["mode"] == "standard" else "ln_volume"
+            if self.volume["mode"] == "standard":
+                attr = "volume"
+            else:
+                attr = "ln_volume"
             return getattr(counter, attr)
 
     @log(category="sequence")
@@ -187,52 +189,73 @@ class BoxMC(Updater):
             return counter.aspect
 
 
-class wall(_updater):
-    R""" Apply wall updates with a user-provided python callback.
+class wall:  # noqa - will be rewritten for v3
+    """Apply wall updates with a user-provided python callback.
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be updated
-        py_updater (`callable`): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
-               It must actually update the :py:class:`hoomd.hpmc.field.wall`) managed object.
-        move_probability (float): the probability with which an update move is attempted
-        seed (int): the seed of the pseudo-random number generator that determines whether or not an update move is attempted
-        period (int): the number of timesteps between update move attempt attempts
-               Every *period* steps, a walls update move is tried with probability *move_probability*. This update move is provided by the *py_updater* callback.
-               Then, update.wall only accepts an update move provided by the python callback if it maintains confinement conditions associated with all walls. Otherwise,
-               it reverts back to a non-updated copy of the walls.
+        walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be
+          updated
+        py_updater (`callable`): the python callback that performs the update
+          moves. This must be a python method that is a function of the
+          timestep of the simulation. It must actually update the
+          :py:class:`hoomd.hpmc.field.wall`) managed object.
+        move_probability (float): the probability with which an update move is
+          attempted
+        seed (int): the seed of the pseudo-random number generator that
+          determines whether or not an update move is attempted
+        period (int): the number of timesteps between update move attempt
+          attempts Every *period* steps, a walls update move is tried with
+          probability *move_probability*. This update move is provided by the
+          *py_updater* callback. Then, update.wall only accepts an update move
+          provided by the python callback if it maintains confinement conditions
+          associated with all walls. Otherwise, it reverts back to a non-updated
+          copy of the walls.
 
-    Once initialized, the update provides the following log quantities that can be logged via ``hoomd.analyze.log``:
+    Once initialized, the update provides the following log quantities that can
+    be logged via ``hoomd.analyze.log``:
 
-    * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update moves
+    * **hpmc_wall_acceptance_ratio** - the acceptance ratio for wall update
+      moves
 
     Example::
 
         mc = hpmc.integrate.sphere(seed = 415236);
         ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
+                                 inside = True);
         def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
-        log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'], period=100, filename='log.dat', overwrite=True);
+          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
+                                                     param = "rsq"));
+          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
+                                   origin = [0, 0, 0], inside = True);
+        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
+                                        move_probability = 0.5, seed = 27,
+                                        period = 50);
+        log = analyze.log(quantities=['hpmc_wall_acceptance_ratio'],
+                          period=100, filename='log.dat', overwrite=True);
 
     Example::
 
         mc = hpmc.integrate.sphere(seed = 415236);
         ext_wall = hpmc.compute.wall(mc);
-        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+        ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
+                                 inside = True);
         def perturb(timestep):
-          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
-          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-        wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
+          r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
+                                                     param = "rsq"));
+          ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
+                                   origin = [0, 0, 0], inside = True);
+        wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
+                                        move_probability = 0.5,
+                                        seed = 27, period = 50);
 
     """
 
     def __init__(self, mc, walls, py_updater, move_probability, seed, period=1):
 
         # initialize base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         cls = None
         if isinstance(mc, integrate.sphere):
@@ -252,11 +275,12 @@ class wall(_updater):
         self.setupUpdater(period)
 
     def get_accepted_count(self, mode=0):
-        R""" Get the number of accepted wall update moves.
+        r"""Get the number of accepted wall update moves.
 
         Args:
-            mode (int): specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run.
-                        DEFAULTS to 0.
+            mode (int): specify the type of count to return. If mode!=0,
+              return absolute quantities. If mode=0, return quantities relative
+              to the start of the run. DEFAULTS to 0.
 
         Returns:
            the number of accepted wall update moves
@@ -265,22 +289,28 @@ class wall(_updater):
 
             mc = hpmc.integrate.sphere(seed = 415236);
             ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
+                                     inside = True);
             def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
+              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
+                                                         param = "rsq"));
+              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
+                                       origin = [0, 0, 0], inside = True);
+            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
+                                            move_probability = 0.5, seed = 27,
+                                            period = 50);
             run(100);
             acc_count = wall_updater.get_accepted_count(mode = 0);
         """
         return self.cpp_updater.getAcceptedCount(mode)
 
     def get_total_count(self, mode=0):
-        R""" Get the number of attempted wall update moves.
+        r"""Get the number of attempted wall update moves.
 
         Args:
-            mode (int): specify the type of count to return. If mode!=0, return absolute quantities. If mode=0, return quantities relative to the start of the run.
-                        DEFAULTS to 0.
+            mode (int): specify the type of count to return. If mode!=0,
+              return absolute quantities. If mode=0, return quantities relative
+              to the start of the run. DEFAULTS to 0.
 
         Returns:
            the number of attempted wall update moves
@@ -289,49 +319,59 @@ class wall(_updater):
 
             mc = hpmc.integrate.sphere(seed = 415236);
             ext_wall = hpmc.compute.wall(mc);
-            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0], inside = True);
+            ext_wall.add_sphere_wall(radius = 1.0, origin = [0, 0, 0],
+                                     inside = True);
             def perturb(timestep):
-              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0, param = "rsq"));
-              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r, origin = [0, 0, 0], inside = True);
-            wall_updater = hpmc.update.wall(mc, ext_wall, perturb, move_probability = 0.5, seed = 27, period = 50);
+              r = np.sqrt(ext_wall.get_sphere_wall_param(index = 0,
+                                                         param = "rsq"));
+              ext_wall.set_sphere_wall(index = 0, radius = 1.5*r,
+                                       origin = [0, 0, 0], inside = True);
+            wall_updater = hpmc.update.wall(mc, ext_wall, perturb,
+                                            move_probability = 0.5, seed = 27,
+                                            period = 50);
             run(100);
             tot_count = wall_updater.get_total_count(mode = 0);
-
         """
         return self.cpp_updater.getTotalCount(mode)
 
 
 class MuVT(Updater):
-    R""" Insert and remove particles in the muVT ensemble.
+    r"""Insert and remove particles in the muVT ensemble.
 
     Args:
         trigger (int): Number of timesteps between grand canonical insertions
-        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
-        ngibbs (int): The number of partitions to use in Gibbs ensemble simulations (if == 1, perform grand canonical muVT)
-        max_volume_rescale (float): maximum step size in ln(V) (applies to Gibbs ensemble)
-        move_ratio (float): (if set) Set the ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
+        transfer_types (list): List of type names that are being transferred
+          from/to the reservoir or between boxes
+        ngibbs (int): The number of partitions to use in Gibbs ensemble
+          simulations (if == 1, perform grand canonical muVT)
+        max_volume_rescale (float): maximum step size in ln(V) (applies to Gibbs
+          ensemble)
+        move_ratio (float): (if set) Set the ratio between volume and
+          exchange/transfer moves (applies to Gibbs ensemble)
 
-    The muVT (or grand-canonical) ensemble simulates a system at constant fugacity.
+    The muVT (or grand-canonical) ensemble simulates a system at constant
+    fugacity.
 
-    Gibbs ensemble simulations are also supported, where particles and volume are swapped between two or more
-    boxes.  Every box correspond to one MPI partition, and can therefore run on multiple ranks.
-    See ``hoomd.comm`` and the --nrank command line option for how to split a MPI task into partitions.
+    Gibbs ensemble simulations are also supported, where particles and volumeare
+    swapped between two or more boxes.  Every box correspond to one MPI
+    partition, and can therefore run on multiple ranks. See ``hoomd.comm`` and
+    the --nrank command line option for how to split a MPI task into partitions.
 
     Note:
-        Multiple Gibbs ensembles are also supported in a single parallel job, with the ngibbs option
-        to update.muvt(), where the number of partitions can be a multiple of ngibbs.
+        Multiple Gibbs ensembles are also supported in a single parallel job,
+        with the ngibbs option to update.muvt(), where the number of partitions
+        can be a multiple of ngibbs.
 
     Attributes:
         trigger (int): Select the timesteps on which to perform cluster moves.
-        transfer_types (list): List of type names that are being transferred from/to the reservoir or between boxes
-        max_volume_rescale (float): Maximum step size in ln(V) (applies to Gibbs ensemble)
-        move_ratio (float): The ratio between volume and exchange/transfer moves (applies to Gibbs ensemble)
-        ntrial (float): (**default**: 1) Number of configurational bias attempts to swap depletants
-
-    Example::
-
-        TODO: link to example notebooks
-
+        transfer_types (list): List of type names that are being transferred
+          from/to the reservoir or between boxes
+        max_volume_rescale (float): Maximum step size in ln(V) (applies to
+          Gibbs ensemble)
+        move_ratio (float): The ratio between volume and exchange/transfer moves
+          (applies to Gibbs ensemble)
+        ntrial (float): (**default**: 1) Number of configurational bias attempts
+          to swap depletants
     """
 
     def __init__(self,
@@ -375,7 +415,8 @@ class MuVT(Updater):
 
     @log(category='sequence')
     def insert_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle insertion moves.
+        """tuple[int, int]: Count of the accepted and rejected paricle \
+        insertion moves.
 
         None when not attached
         """
@@ -390,7 +431,8 @@ class MuVT(Updater):
 
     @log(category='sequence')
     def remove_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle removal moves.
+        """tuple[int, int]: Count of the accepted and rejected paricle removal \
+        moves.
 
         None when not attached
         """
@@ -405,7 +447,8 @@ class MuVT(Updater):
 
     @log(category='sequence')
     def exchange_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle exchange moves.
+        """tuple[int, int]: Count of the accepted and rejected paricle \
+        exchange moves.
 
         None when not attached
         """
@@ -420,7 +463,8 @@ class MuVT(Updater):
 
     @log(category='sequence')
     def volume_moves(self):
-        """tuple[int, int]: Count of the accepted and rejected paricle volume moves.
+        """tuple[int, int]: Count of the accepted and rejected paricle volume \
+        moves.
 
         None when not attached
         """
@@ -434,42 +478,45 @@ class MuVT(Updater):
             return counter.volume
 
     @log(category='object')
-    def N(self):
-        """dict: Map of number of particles per type
+    def N(self):  # noqa: N802 - allow N as a function name
+        """dict: Map of number of particles per type.
 
         None when not attached
         """
-        n_dict = None
+        N_dict = None
         if self._attached:
             N_dict = self._cpp_obj.N
 
         return N_dict
 
 
-class remove_drift(_updater):
-    R""" Remove the center of mass drift from a system restrained on a lattice.
+class remove_drift:  # noqa - will be rewritten for v3
+    """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice field where the lattice is defined.
+        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice
+          field where the lattice is defined.
         period (int): the period to call the updater
 
-    The command hpmc.update.remove_drift sets up an updater that removes the center of mass
-    drift of a system every period timesteps,
+    The command hpmc.update.remove_drift sets up an updater that removes the
+    center of mass drift of a system every period timesteps,
 
     Example::
 
         mc = hpmc.integrate.convex_polyhedron(seed=seed);
         mc.shape_param.set("A", vertices=verts)
         mc.set_params(d=0.005, a=0.005)
-        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
-        remove_drift = update.remove_drift(mc=mc, external_lattice=lattice, period=1000);
+        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice,
+                                             k=1000.0);
+        remove_drift = update.remove_drift(mc=mc, external_lattice=lattice,
+                                           period=1000);
 
     """
 
     def __init__(self, mc, external_lattice, period=1):
-        #initialize base class
-        _updater.__init__(self)
+        # initialize base class
+        # _updater.__init__(self)
         cls = None
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
@@ -515,7 +562,8 @@ class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
 
     Args:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection
+          moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -545,7 +593,8 @@ class Clusters(Updater):
     The `Clusters` updater support threaded execution on multiple CPU cores.
 
     Attributes:
-        pivot_move_ratio (float): Set the ratio between pivot and reflection moves.
+        pivot_move_ratio (float): Set the ratio between pivot and reflection
+          moves.
         flip_probability (float): Set the probability for transforming an
                                  individual cluster.
         trigger (Trigger): Select the timesteps on which to perform cluster
@@ -602,9 +651,9 @@ class Clusters(Updater):
 
     @log
     def avg_cluster_size(self):
-        """float: the typical size of clusters
+        """float: the typical size of clusters.
 
-        None when not attached
+        None when not attached.
         """
         counter = None
         if self._attached:

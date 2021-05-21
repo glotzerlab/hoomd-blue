@@ -7,7 +7,6 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
 import pytest
-import numpy as np
 import hoomd.hpmc.pytest.conftest
 
 # note: The parameterized tests validate parameters so we can't pass in values
@@ -52,7 +51,6 @@ def test_valid_construction_and_attach(device, simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args, valid_args):
     """Test that Clusters can be attached with valid arguments."""
-
     integrator = valid_args[0]
     args = valid_args[1]
     # Need to unpack union integrators
@@ -100,7 +98,6 @@ def test_valid_setattr(device, attr, value):
 def test_valid_setattr_attached(device, attr, value, simulation_factory,
                                 two_particle_snapshot_factory, valid_args):
     """Test that Clusters can get and set attributes while attached."""
-
     integrator = valid_args[0]
     args = valid_args[1]
     # Need to unpack union integrators
@@ -135,7 +132,6 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
 @pytest.mark.serial
 def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     """Test that Clusters produces finite size clusters."""
-
     sim = simulation_factory(
         lattice_snapshot_factory(particle_types=['A', 'B'],
                                  dimensions=3,

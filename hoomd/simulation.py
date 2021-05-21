@@ -364,12 +364,13 @@ class Simulation(metaclass=Loggable):
                     if writer.trigger(timestep):
                         writer.write(timestep)
 
-        This order of operations ensures that writers (such as `hoomd.dump.GSD`)
-        capture the final output of the last step of the run loop. For example,
-        a writer with a trigger ``hoomd.trigger.Periodic(period=100, phase=0)``
-        active during a ``run(500)`` would write on steps 100, 200, 300, 400,
-        and 500. Set ``write_at_start=True`` on the first
-        call to `run` to also obtain output at step 0.
+        This order of operations ensures that writers (such as
+        `hoomd.write.GSD`) capture the final output of the last step of the run
+        loop. For example, a writer with a trigger
+        ``hoomd.trigger.Periodic(period=100, phase=0)`` active during a
+        ``run(500)`` would write on steps 100, 200, 300, 400, and 500. Set
+        ``write_at_start=True`` on the first call to `run` to also obtain output
+        at step 0.
 
         Warning:
             Using ``write_at_start=True`` in subsequent

@@ -14,7 +14,6 @@
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
-#include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
 #include "CosineSqAngleForceCompute.h"
@@ -223,7 +222,6 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
-    export_ConstExternalFieldDipoleForceCompute(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
@@ -374,7 +372,6 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintSphereGPU(m);
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
-    // export_ConstExternalFieldDipoleForceComputeGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);

@@ -83,11 +83,10 @@ with the ``--validate`` command line option to pytest::
 Implementing tests
 ------------------
 
-Most tests should be implemented in pytest. See ``hoomd/pytest/test_example.py``
-for some examples and the `pytest documentation <https://docs.pytest.org>`_ for
-more details. HOOMD's test rig provides a ``device`` fixture that most tests
-should use to cache the execution device across multiple tests and reduce test
-execution time.
+Most tests should be implemented in pytest. See existing tests for some examples and the `pytest
+documentation <https://docs.pytest.org>`_ for more details. HOOMD's test rig provides a ``device``
+fixture that most tests should use to cache the execution device across multiple tests and reduce
+test execution time.
 
 .. note::
 

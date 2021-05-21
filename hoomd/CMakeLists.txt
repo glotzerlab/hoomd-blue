@@ -311,8 +311,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files benchmark.py
-          box.py
+set(files box.py
           communicator.py
           conftest.py
           device.py

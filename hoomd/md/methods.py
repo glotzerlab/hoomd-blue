@@ -1,9 +1,8 @@
-# coding: utf-8
-
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+"""MD integration methods."""
 
 from hoomd.md import _md
 import hoomd
@@ -46,7 +45,8 @@ class MethodRATTLE(Method):
 
     For the equations of motion, see:
 
-    * `S. Paquay and R. Kusters  2016 <https://doi.org/10.1016/j.bpj.2016.02.017>`_
+    * S. Paquay and R. Kusters  2016
+      (`paper link <https://doi.org/10.1016/j.bpj.2016.02.017>`__)
 
     Note:
         Users should use the subclasses and not instantiate `MethodRATTLE`
@@ -55,7 +55,7 @@ class MethodRATTLE(Method):
 
     def __init__(self, manifold_constraint, tolerance):
 
-        if manifold_constraint == None and tolerance != 1e-6:
+        if manifold_constraint is None and tolerance != 1e-6:
             raise TypeError(
                 "The tolerance for RATTLE integration has been changed but "
                 "manifold_constraint is not specified!")
@@ -216,6 +216,7 @@ class NVT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
+        """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -223,7 +224,7 @@ class NVT(Method):
 
 
 class NPT(Method):
-    R""" NPT Integration via MTK barostat-thermostat.
+    r"""NPT Integration via MTK barostat-thermostat.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -234,10 +235,11 @@ class NPT(Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`list` [ `hoomd.variant.Variant` ] or `float`): Stress components set
-            point for the barostat (in pressure units).  In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
-            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S (`tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`): Stress components set point
+           for the barostat (in pressure units).  In Voigt notation:
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
+           isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
@@ -315,8 +317,10 @@ class NPT(Method):
 
     For the MTK equations of motion, see:
 
-    * `G. J. Martyna, D. J. Tobias, M. L. Klein  1994 <http://dx.doi.org/10.1063/1.467468>`_
-    * `M. E. Tuckerman et. al. 2006 <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`_
+    * G. J. Martyna, D. J. Tobias, M. L. Klein  1994
+      (`paper link <http://dx.doi.org/10.1063/1.467468>`__)
+    * M. E. Tuckerman et. al. 2006
+      (`paper link <http://dx.doi.org/10.1088/0305-4470/39/19/S18>`__)
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     *  Glaser et. al (2013), unpublished
 
@@ -504,6 +508,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
+        """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -511,6 +516,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
+        """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -521,18 +527,19 @@ class NPH(Method):
     r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (`tuple` [ `hoomd.variant.Variant` ] or `float`): Stress components set
-            point for the barostat (in pressure units). Converted to a tuple
-            during NPH instantiation.  In Voigt notation:
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case
-            of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+        S (`tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`]): Stress components set point
+           for the barostat (in pressure units). Converted to a tuple during NPH
+           instantiation.  In Voigt notation:
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}`.  In case of
+           isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat (in time units).
 
-        couple (`str`): Couplings of diagonal elements of the stress tensor,
+        couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
         box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
@@ -541,10 +548,10 @@ class NPH(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in
+        rescale_all (bool): if True, rescale all particles, not only those in
             the group, Default to False.
 
-        gamma (`float`): Dimensionless damping factor for the box degrees of
+        gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
     Note:
@@ -575,8 +582,9 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (tuple[hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant, hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units). In Voigt notation,
+        S (`tuple` [`hoomd.variant.Variant`, ...]): Stress components set
+            point for the barostat (in pressure units) (totalling 6 components.
+            In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
             be reset after method object is created. For example, An isoropic
             pressure can be set by ``nph.S = 4.``
@@ -586,8 +594,9 @@ class NPH(Method):
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
 
-        box_dof(tuple[bool, bool, bool, bool, bool, bool]): Box degrees of freedom
-            with six boolean elements corresponding to x, y, z, xy, xz, yz, each.
+        box_dof(tuple[bool, bool, bool, bool, bool, bool]): Box degrees of
+            freedom with six boolean elements corresponding to x, y, z, xy, xz,
+            yz, each.
 
         rescale_all (bool): if True, rescale all particles, not only those in
             the group.
@@ -693,6 +702,7 @@ class NPH(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
+        """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
             return None
         else:
@@ -700,7 +710,7 @@ class NPH(Method):
 
 
 class NVE(MethodRATTLE):
-    R""" NVE Integration via Velocity-Verlet with or without RATTLE
+    r"""NVE Integration via Velocity-Verlet with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -713,8 +723,9 @@ class NVE(MethodRATTLE):
             constraint. Defaults to None.
 
         tolerance (`float`): Defines the tolerated error particles are
-            allowed to deviate from the manifold in terms of the implicit function.
-            This is only used if RATTLE algorithm is triggered. Defaults to 1e-6
+            allowed to deviate from the manifold in terms of the implicit
+            function.  This is only used if RATTLE algorithm is triggered.
+            Defaults to 1e-6
 
     `NVE` performs constant volume, constant energy simulations using
     the standard Velocity-Verlet method. If a manifold constraint is set,
@@ -735,8 +746,10 @@ class NVE(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        nve_rattle = hoomd.md.methods.NVE(filter=hoomd.filter.All(),maifold=sphere)
-        integrator = hoomd.md.Integrator(dt=0.005, methods=[nve_rattle], forces=[lj])
+        nve_rattle = hoomd.md.methods.NVE(
+            filter=hoomd.filter.All(),maifold=sphere)
+        integrator = hoomd.md.Integrator(
+            dt=0.005, methods=[nve_rattle], forces=[lj])
 
 
     Attributes:
@@ -746,12 +759,13 @@ class NVE(MethodRATTLE):
         limit (None or float): Enforce that no particle moves more than a
             distance of a limit in a single time step. Defaults to None
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
 
     """
 
@@ -809,7 +823,7 @@ class NVE(MethodRATTLE):
 
 
 class Langevin(MethodRATTLE):
-    R""" Langevin dynamics with or without RATTLE
+    r"""Langevin dynamics with or without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -893,8 +907,9 @@ class Langevin(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(),
-        kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
+        langevin_rattle = hoomd.md.methods.Langevin(
+            filter=hoomd.filter.All(), kT=0.2, manifold_constraint=sphere,
+            seed=1, alpha=1.0)
 
     Examples of using ``gamma`` or ``gamma_r`` on drag coefficient::
 
@@ -903,7 +918,7 @@ class Langevin(MethodRATTLE):
         langevin.gamma_r.default = [1.0,2.0,3.0]
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        langevin_rattle = hoomd.md.methods.Langevin_Rattle(filter=hoomd.filter.All(),
+        langevin_rattle = hoomd.md.methods.Langevin(filter=hoomd.filter.All(),
         kT=0.2, manifold_constraint = sphere, seed=1, alpha=1.0)
 
     Attributes:
@@ -917,19 +932,20 @@ class Langevin(MethodRATTLE):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
             parameter is either positive float or zero.
 
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float` , `float` ]]):
+        gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
@@ -1011,7 +1027,7 @@ class Langevin(MethodRATTLE):
 
 
 class Brownian(MethodRATTLE):
-    R""" Brownian dynamics with and without RATTLE.
+    r"""Brownian dynamics with and without RATTLE.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles to
@@ -1058,11 +1074,13 @@ class Brownian(MethodRATTLE):
     When :math:`kT=0`, the random force :math:`\vec{F}_\mathrm{R}=0`. If a
     manifold constraint is set, the RATTLE algorithm is used additionally.
 
-    `Brownian` uses the integrator from `I. Snook, The Langevin and Generalised
+    `Brownian` uses the integrator from I. Snook, The Langevin and Generalised
     Langevin Approach to the Dynamics of Atomic, Polymeric and Colloidal Systems
-    , 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
-    with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a
-    uniform random number distribution.
+    , 2007, section 6.2.5 `link`_, with the exception that
+    :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number
+    distribution.
+
+    .. _link: http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6
 
     In Brownian dynamics, particle velocities are completely decoupled from
     positions. At each time step, `Brownian` draws a new velocity
@@ -1095,7 +1113,7 @@ class Brownian(MethodRATTLE):
     Examples of using ``manifold_constraint``::
 
         sphere = hoomd.md.manifold.Sphere(r=10)
-        brownian_rattle = hoomd.md.methods.Brownian_Rattle(filter=hoomd.filter.All(),
+        brownian_rattle = hoomd.md.methods.Brownian(filter=hoomd.filter.All(),
         kT=0.2, manifold_constraint=sphere, seed=1, alpha=1.0)
         integrator = hoomd.md.Integrator(dt=0.001, methods=[brownian_rattle],
         forces=[lj])
@@ -1118,19 +1136,20 @@ class Brownian(MethodRATTLE):
             coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
 
-        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint which is
-            used by and as a trigger for the RATTLE algorithm of this method.
-            Defaults to None
+        manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
+            which is used by and as a trigger for the RATTLE algorithm of this
+            method. Defaults to None.
 
-        tolerance (float): Defines the tolerated error particles are allowed to deviate
-            from the manifold in terms of the implicit function. Defaults to 1e-6
+        tolerance (float): Defines the tolerated error particles are allowed to
+            deviate from the manifold in terms of the implicit function.
+            Defaults to 1e-6.
 
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
             parameter is either positive float or zero.
 
-        gamma_r (TypeParameter[ ``particle type``, [ `float`, `float`, `float` ] ]):
+        gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
@@ -1151,7 +1170,7 @@ class Brownian(MethodRATTLE):
         )
         param_dict.update(dict(kT=kT, alpha=alpha, filter=filter))
 
-        #set defaults
+        # set defaults
         self._param_dict.update(param_dict)
 
         gamma = TypeParameter('gamma',
@@ -1221,8 +1240,9 @@ class Berendsen(Method):
 
         tau (`float`): Time constant of thermostat. (in time units)
 
-    :py:class:`Berendsen` rescales the velocities of all particles on each time step. The rescaling is performed so that
-    the difference in the current temperature from the set point decays exponentially:
+    :py:class:`Berendsen` rescales the velocities of all particles on each time
+    step. The rescaling is performed so that the difference in the current
+    temperature from the set point decays exponentially:
     `Berendsen et. al. 1984 <http://dx.doi.org/10.1063/1.448118>`_.
 
     .. math::
@@ -1237,9 +1257,10 @@ class Berendsen(Method):
 
         Examples::
 
-        berendsen = hoomd.md.methods.Berendsen(filter=hoomd.filter.All(), kT=0.2,
-        tau=10.0)
-        integrator = hoomd.md.Integrator(dt=0.001, methods=[berendsen], forces=[lj])
+            berendsen = hoomd.md.methods.Berendsen(
+                filter=hoomd.filter.All(), kT=0.2, tau=10.0)
+            integrator = hoomd.md.Integrator(
+                dt=0.001, methods=[berendsen], forces=[lj])
 
 
     Attributes:
@@ -1268,8 +1289,8 @@ class Berendsen(Method):
         if hoomd.version.mpi_enabled:
             if sim.device._comm.num_ranks > 1:
                 raise RuntimeError(
-                    "hoomd.md.methods.Berendsen is not supported in multi-processor simulations."
-                )
+                    "hoomd.md.methods.Berendsen is not supported in "
+                    "multi-processor simulations.")
 
         group = sim.state._get_group(self.filter)
         if isinstance(sim.device, hoomd.device.CPU):

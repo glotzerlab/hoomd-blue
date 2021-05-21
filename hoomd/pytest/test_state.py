@@ -1,5 +1,4 @@
 from hoomd.snapshot import Snapshot
-from hoomd.simulation import Simulation
 import hoomd
 import numpy
 import pytest
@@ -199,7 +198,7 @@ def test_thermalize_particle_velocity(simulation_factory,
 def test_thermalize_angular_momentum(simulation_factory,
                                      lattice_snapshot_factory):
     snap = lattice_snapshot_factory()
-    I = [1, 2, 3]
+    I = [1, 2, 3]  # noqa: E741 - allow ambiguous variable name
 
     if snap.exists:
         snap.particles.moment_inertia[:] = I

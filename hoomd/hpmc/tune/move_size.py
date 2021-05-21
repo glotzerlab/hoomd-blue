@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement MoveSize."""
+
 from hoomd.custom import _InternalAction
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
@@ -59,8 +65,8 @@ class _MoveSizeTuneDefinition(_TuneDefinition):
               or self.previous_accepted_moves > accepted_moves):
             acceptance_rate = accepted_moves / total_moves
         else:
-            acceptance_rate = ((accepted_moves - self.previous_accepted_moves) /
-                               (total_moves - self.previous_total))
+            acceptance_rate = (accepted_moves - self.previous_accepted_moves) \
+                               / (total_moves - self.previous_total)
 
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
@@ -188,8 +194,7 @@ class _InternalMoveSize(_InternalAction):
         """Tune move sizes.
 
         Args:
-            timestep (:obj:`int`, optional): Current simulation timestep. Is
-                currently ignored.
+            timestep (`int`, optional): Current simulation timestep.
         """
         if self._is_attached:
             # update maximum move sizes
@@ -335,6 +340,7 @@ class MoveSize(_InternalCustomTuner):
                 move size to attempt.
             max_rotation_move (float): The maximum value of a rotational move
                 size to attempt.
+            max_scale (float): Maximum scale factor.
             gamma (float): The value of gamma to pass through to
                 `hoomd.tune.ScaleSolver`. Controls the size of corrections to
                 the move size (larger values increase stability while increasing

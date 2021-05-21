@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Synced list utility classes."""
+
 from collections.abc import MutableSequence
 import inspect
 from copy import copy
@@ -32,6 +38,7 @@ class _PartialGetAttr:
 
 
 def identity(obj):
+    """Returns obj."""
     return obj
 
 
@@ -87,9 +94,9 @@ class SyncedList(MutableSequence):
                 self.append(it)
 
     def __contains__(self, value):
-        """Returns boolean based on if value is already in _list.
+        """bool: True when the value is in the list.
 
-        Based on memory location (python's is).
+        Based on memory location.
         """
         for item in self._list:
             if item is value:
@@ -97,6 +104,7 @@ class SyncedList(MutableSequence):
         return False
 
     def __len__(self):
+        """int: Length of the list."""
         return len(self._list)
 
     def __iter__(self):
@@ -183,13 +191,14 @@ class SyncedList(MutableSequence):
         return list(range(start, stop, step))
 
     def synced_iter(self):
-        """Iterate over values in the list. Does nothing when not synced.
-        """
+        """Iterate over values in the list. Does nothing when not synced."""
         if self._synced:
             yield from self._synced_list
 
     def _value_add_and_attach(self, value):
-        """Attaches value if unattached while raising error if already in list.
+        """Attaches value if unattached.
+
+        Raises an error if value is already in the list.
         """
         if value._added:
             raise RuntimeError("Object cannot be added to two lists.")
@@ -200,9 +209,7 @@ class SyncedList(MutableSequence):
         return value
 
     def _validate_or_error(self, value):
-        """
-        Complete error checking and processing of value prior to adding to list.
-        """
+        """Complete error checking and processing of value."""
         try:
             if self._validate(value):
                 return self._value_add_and_attach(value)
@@ -247,11 +254,13 @@ class SyncedList(MutableSequence):
         self._list.insert(index, value)
 
     def __getstate__(self):
+        """Get state for pickling."""
         state = copy(self.__dict__)
         state['_simulation'] = None
         state.pop('_synced_list', None)
         return state
 
     def __eq__(self, other):
+        """Test for equality."""
         return (len(self) == len(other)
                 and all(a == b for a, b in zip(self, other)))

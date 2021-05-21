@@ -46,7 +46,7 @@ from hoomd import _hoomd
 # been called as __init__ was not called).
 
 
-class Trigger(_hoomd.Trigger):  # noqa D214
+class Trigger(_hoomd.Trigger):
     """Base class trigger.
 
     Provides methods common to all triggers.
@@ -121,8 +121,7 @@ class Periodic(_hoomd.PeriodicTrigger, Trigger):
                f"phase={self.phase})"
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return (isinstance(other, Periodic) and self.period == other.period
                 and self.phase == other.phase)
 
@@ -161,8 +160,7 @@ class Before(_hoomd.BeforeTrigger, Trigger):
         return f"hoomd.trigger.Before(timestep={self.timestep})"
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, Before) and self.timestep == other.timestep
 
 
@@ -197,8 +195,7 @@ class On(_hoomd.OnTrigger, Trigger):
         return f"hoomd.trigger.On(timestep={self.timestep})"
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, On) and self.timestep == other.timestep
 
 
@@ -236,8 +233,7 @@ class After(_hoomd.AfterTrigger, Trigger):
         return f"hoomd.trigger.After(timestep={self.timestep})"
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, After) and self.timestep == other.timestep
 
 
@@ -269,15 +265,15 @@ class Not(_hoomd.NotTrigger, Trigger):
         return f"hoomd.trigger.Not(trigger={self.trigger})"
 
     @property
-    def trigger(self):
+    def trigger(self):  # noqa: D102 - documented in Attributes above
         return self._trigger
 
     def __reduce__(self):
+        """Format trigger for pickling."""
         return (type(self), (self._trigger,))
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, Not) and self.trigger == other.trigger
 
 
@@ -319,15 +315,15 @@ class And(_hoomd.AndTrigger, Trigger):
         return result
 
     @property
-    def triggers(self):
+    def triggers(self):  # noqa: D102 - documented in Attributes above
         return self._triggers
 
     def __reduce__(self):
+        """Format trigger for pickling."""
         return (type(self), (self._triggers,))
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, And) and self.triggers == other.triggers
 
 
@@ -374,13 +370,13 @@ class Or(_hoomd.OrTrigger, Trigger):
         return result
 
     @property
-    def triggers(self):
+    def triggers(self):  # noqa: D102 - documented in Attributes above
         return self._triggers
 
     def __reduce__(self):
+        """Format trigger for pickling."""
         return (type(self), (self._triggers,))
 
     def __eq__(self, other):
-        """Return a Boolean indicating whether the two triggers are equivalent.
-        """
+        """Test for equivalent triggers."""
         return isinstance(other, Or) and self.triggers == other.triggers

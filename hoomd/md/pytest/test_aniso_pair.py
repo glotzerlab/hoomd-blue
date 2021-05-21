@@ -260,8 +260,7 @@ def test_setting_params_and_shape(make_two_particle_simulation,
 
 
 def _aniso_forces_and_energies():
-    """
-    Return reference force and energy values.
+    """Return reference force and energy values.
 
     Reference force and energy values were calculated using HOOMD-blue v3 beta
     1.  Values were calculated at distances of 0.75 and 1.5 for each argument
@@ -343,8 +342,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
         \\
         r_1 = (0, 0, 0.1) \ r_2 = (0, 0, 1.6) \\
         \theta_1 = (1, 0, 0, 0) \ \theta_2 = (0.70738827, 0, 0, 0.70682518) \\
-    """
 
+    """
     pot = aniso_forces_and_energies.pair_potential(nlist=md.nlist.Cell(),
                                                    r_cut=2.5,
                                                    mode='none')
