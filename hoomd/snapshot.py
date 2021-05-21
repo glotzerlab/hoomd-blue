@@ -64,6 +64,11 @@ class Snapshot:
         `Simulation.create_state_from_snapshot`
 
         `State.snapshot`
+
+    .. todo::
+
+        Concepts such as tags, typeid's, and other non-inituitive arrays need to
+        be elaborated upon.
     """
 
     def __init__(self, communicator=None):
