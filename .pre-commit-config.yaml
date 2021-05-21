@@ -32,9 +32,7 @@ repos:
   rev: '3.9.1'
   hooks:
   - id: flake8
-    # This option may be useful after we get HOOMD to 0 flake8 errors
-    # args:
-    # - --show-source
+    - --show-source
     additional_dependencies:
     - pep8-naming==0.11.1
     - pydocstyle==6.1.1
