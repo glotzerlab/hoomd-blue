@@ -526,7 +526,7 @@ class NPH(Method):
     r"""NPH Integration via MTK barostat-thermostat.
 
     Args:
-        filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
+        filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
         S (`tuple` [ `hoomd.variant.Variant` ] or `float`): Stress components
@@ -536,9 +536,9 @@ class NPH(Method):
             In case of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use
             ``S = p``.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat (in time units).
 
-        couple (`str`): Couplings of diagonal elements of the stress tensor,
+        couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
 
         box_dof(`tuple` [ `bool` ]): Box degrees of freedom with six boolean
@@ -547,10 +547,10 @@ class NPH(Method):
             rescale corresponding lengths or tilt factors and components of
             particle coordinates and velocities.
 
-        rescale_all (`bool`): if True, rescale all particles, not only those in
+        rescale_all (bool): if True, rescale all particles, not only those in
             the group, Default to False.
 
-        gamma (`float`): Dimensionless damping factor for the box degrees of
+        gamma (float): Dimensionless damping factor for the box degrees of
             freedom, Default to 0.
 
     Note:
@@ -581,7 +581,7 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (tuple[hoomd.variant.Variant, ...]): Stress components set
+        S (`tuple` [`hoomd.variant.Variant`, ...]): Stress components set
             point for the barostat (in pressure units) (totalling 6 components.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can

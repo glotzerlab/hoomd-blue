@@ -45,11 +45,13 @@ class Triplet(Force):
     The following coefficients must be set per unique pair of particle types.
     See :class:`hoomd.md.many_body` for information on how to set coefficients.
 
-    Attributes:
-        r_cut (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `float`]): *r_cut* (in distance units), *optional*: defaults to the
-            value ``r_cut`` specified on construction
+    .. py:attribute:: r_cut
+
+        *r_cut* (in distance units), *optional*: defaults to the value
+        ``r_cut`` specified on construction.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `float`])
 
     Warning:
         Currently HOOMD does not support reverse force communication between MPI
@@ -181,38 +183,40 @@ class Tersoff(Triplet):
     The parameters of this potential are set via the ``params`` dictionary, they
     must be set for each unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[\
-                tuple[``particle_type``, ``particle_type``], dict]):
-            The Tersoff potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
-              Magnitudes of the repulsive and attractive terms (dimensionless,
-              *default*: (1.0, 1.0))
-            * ``exp_factors`` (tuple[`float`, `float`]) -
-              :math:`(\lambda_1, \lambda_2)` - exponential factors of the
-              repulsive and attractive terms (in units of 1/length, *default*:
-              2.0)
-            * ``lambda3`` (`float`) - :math:`\lambda_3` - exponential factor in
-              :math:`\chi_{ij}` (in units of 1/length, *default*: 0.0)
-            * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive
-              and repulsive terms (in units of length, *default*: 1.5)
-            * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which
-              defines the different regions of the potential (in units of
-              length, *default*: 0.2)
-            * ``alpha`` (`float`) - :math:`\alpha` - decay rate of the cutoff
-              term :math:`f_C(r)` (dimensionless, *default*: 3.0)
-            * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}`
-              (dimensionless, *default*: 0.0)
-            * ``gamma`` (`float`) - :math:`\gamma` - coefficient in
-              :math:`b_{ij}` (dimensionless, *default*: 0.0)
-            * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\theta)`
-              (dimensionless, *default*: 0.0)
-            * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\theta)`
-              (dimensionless, *default*: 1.0)
-            * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\theta)`
-              (dimensionless, *default*: 0.0)
+        The Tersoff potential parameters. The dictionary has the following
+        keys:
+
+        * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
+          Magnitudes of the repulsive and attractive terms (dimensionless,
+          *default*: (1.0, 1.0))
+        * ``exp_factors`` (tuple[`float`, `float`]) -
+          :math:`(\lambda_1, \lambda_2)` - exponential factors of the
+          repulsive and attractive terms (in units of 1/length, *default*:
+          2.0)
+        * ``lambda3`` (`float`) - :math:`\lambda_3` - exponential factor in
+          :math:`\chi_{ij}` (in units of 1/length, *default*: 0.0)
+        * ``dimer_r`` (`float`) - :math:`r_D` - length shift in attractive
+          and repulsive terms (in units of length, *default*: 1.5)
+        * ``cutoff_thickness`` (`float`) - :math:`r_{CT}` - distance which
+          defines the different regions of the potential (in units of
+          length, *default*: 0.2)
+        * ``alpha`` (`float`) - :math:`\alpha` - decay rate of the cutoff
+          term :math:`f_C(r)` (dimensionless, *default*: 3.0)
+        * ``n`` (`float`) - :math:`n` - power in :math:`b_{ij}`
+          (dimensionless, *default*: 0.0)
+        * ``gamma`` (`float`) - :math:`\gamma` - coefficient in
+          :math:`b_{ij}` (dimensionless, *default*: 0.0)
+        * ``c`` (`float`) - :math:`c` - coefficient in :math:`g(\theta)`
+          (dimensionless, *default*: 0.0)
+        * ``d`` (`float`) - :math:`d` - coefficient in :math:`g(\theta)`
+          (dimensionless, *default*: 1.0)
+        * ``m`` (`float`) - :math:`m` - coefficient in :math:`g(\theta)`
+          (dimensionless, *default*: 0.0)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -331,22 +335,24 @@ class RevCross(Triplet):
     Use ``params`` dictionary to set potential coefficients. The coefficients
     must be set per unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[\
-                tuple[``particle_type``, ``particle_type``], dict]):
-            The revcross potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in
-              units of energy)
+        The revcross potential parameters. The dictionary has the following
+        keys:
 
-            * ``sigma`` (`float`, **required**) - :math:`\sigma` - (in distance
-              units)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in
+          units of energy)
 
-            * ``n`` (`float`, **required**) - :math:`n` - (unitless)
+        * ``sigma`` (`float`, **required**) - :math:`\sigma` - (in distance
+          units)
 
-            * ``lambda3`` (`float`, **required**) - :math:`\lambda_3` -
-              (unitless)
+        * ``n`` (`float`, **required**) - :math:`n` - (unitless)
+
+        * ``lambda3`` (`float`, **required**) - :math:`\lambda_3` -
+          (unitless)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -413,16 +419,18 @@ class SquareDensity(Triplet):
     Use `params` dictionary to set potential coefficients. The coefficients must
     be set per unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[\
-                tuple[``particle_type``, ``particle_type``], dict]):
-            The SquareDensity potential parameters. The dictionary has the
-            following keys:
+    .. py:attribute:: params
 
-            * ``A`` (`float`, **required**) - :math:`A` - mean density (in units
-              of volume^-1, *default*:0)
-            * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
-              harmonic density term (in units of energy*volumne^2)
+        The SquareDensity potential parameters. The dictionary has the
+        following keys:
+
+        * ``A`` (`float`, **required**) - :math:`A` - mean density (in units
+          of volume^-1, *default*:0)
+        * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
+          harmonic density term (in units of energy*volumne^2)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 

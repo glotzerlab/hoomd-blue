@@ -94,16 +94,22 @@ class Pair(force.Force):
     The following coefficients must be set per unique pair of particle types.
     See `hoomd.md.pair` for information on how to set coefficients.
 
-    Attributes:
-        r_cut (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `float`]): *r_cut* (in distance units), *optional*: defaults to the
-          value ``r_cut`` specificied on construction
 
-        r_on (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `float`]): *r_on* (in distance units),  *optional*: defaults to the
-          value ``r_on`` specified on construction
+    .. py:attribute:: r_cut
+
+        *r_cut* (in distance units), *optional*: defaults to the value ``r_cut``
+        specified on construction.
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `float`])
+
+    .. py:attribute:: r_on
+
+        *r_on* (in distance units),  *optional*: defaults to the value ``r_on``
+        specified on construction
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `float`])
     """
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -224,17 +230,17 @@ class LJ(Pair):
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The LJ potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\varepsilon` (in energy units)
+        The LJ potential parameters. The dictionary has the following keys:
 
-            * ``sigma`` (`float`, **required**) -
-              particle size :math:`\sigma` (in distance units)
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` (in energy units)
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -280,18 +286,18 @@ class Gauss(Pair):
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The Gauss potential parameters. The dictionary has the following
-          keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\varepsilon` (in energy units)
+        The Gauss potential parameters. The dictionary has the following
+        keys:
 
-          * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-            (in distance units)
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` (in energy units)
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
+          (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -355,17 +361,17 @@ class SLJ(Pair):
         Failure to set ``max_diameter`` will result in missing pair
         interactions.
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) - energy parameter
-              :math:`\varepsilon` (in energy units)
+        The potential parameters. The dictionary has the following keys:
 
-            * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-              (in distance units)
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` (in energy units)
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
+          (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -426,18 +432,18 @@ class Yukawa(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The Yukawa potential parameters. The dictionary has the following
-          keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\varepsilon` (in energy units)
+        The Yukawa potential parameters. The dictionary has the following
+        keys:
 
-          * ``kappa`` (`float`, **required**) - scaling parameter
-            :math:`\kappa` (in units of 1/distance)
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` (in energy units)
+        * ``kappa`` (`float`, **required**) - scaling parameter
+          :math:`\kappa` (in units of 1/distance)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -489,17 +495,17 @@ class Ewald(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The Ewald potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``kappa`` (`float`, **required**) - Splitting parameter
-            :math:`\kappa` (in units of 1/distance)
+        The Ewald potential parameters. The dictionary has the following keys:
 
-          * ``alpha`` (`float`, **required**) - Debye screening length
-            :math:`\alpha` (in units of 1/distance)
+        * ``kappa`` (`float`, **required**) - Splitting parameter
+          :math:`\kappa` (in units of 1/distance)
+        * ``alpha`` (`float`, **required**) - Debye screening length
+          :math:`\alpha` (in units of 1/distance)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -545,20 +551,19 @@ class Morse(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``D0`` (`float`, **required**) - depth of the potential at its
-            minimum :math:`D_0` (in energy units)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``alpha`` (`float`, **required**) - the width of the potential well
-            :math:`\alpha` (in units of 1/distance)
+        * ``D0`` (`float`, **required**) - depth of the potential at its
+          minimum :math:`D_0` (in energy units)
+        * ``alpha`` (`float`, **required**) - the width of the potential well
+          :math:`\alpha` (in units of 1/distance)
+        * ``r0`` (`float`, **required**) - position of the minimum
+          :math:`r_0` (in distance units)
 
-          * ``r0`` (`float`, **required**) - position of the minimum
-            :math:`r_0` (in distance units)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -642,16 +647,16 @@ class DPD(Pair):
     separately.  Note that DPD thermostats are often defined in terms of
     :math:`\sigma` where :math:`\sigma = \sqrt{2k_b\gamma T}`.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The force parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``A`` (`float`, **required**) - :math:`A` (in force units)
+        The force parameters. The dictionary has the following keys:
 
-          * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
-            force/velocity)
+        * ``A`` (`float`, **required**) - :math:`A` (in force units)
+        * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
+          force/velocity)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -717,13 +722,14 @@ class DPDConservative(Pair):
     coefficients. The coefficients must be set per unique pair of particle
     types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``A`` (`float`, **required**) - :math:`A` (in force units)
+        The potential parameters. The dictionary has the following keys:
+
+        * ``A`` (`float`, **required**) - :math:`A` (in force units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -812,20 +818,19 @@ class DPDLJ(Pair):
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The DPDLJ potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-            (in energy units)
+        The DPDLJ potential parameters. The dictionary has the following keys:
 
-          * ``sigma`` (`float`, **required**) - :math:`\sigma`
-            (in distance units)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          (in energy units)
+        * ``sigma`` (`float`, **required**) - :math:`\sigma`
+          (in distance units)
+        * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
+          force/velocity)
 
-          * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
-            force/velocity)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -909,17 +914,17 @@ class ForceShiftedLJ(Pair):
     set potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-            (in energy units)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``sigma`` (`float`, **required**) - :math:`\sigma`
-            (in distance units)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+          (in energy units)
+        * ``sigma`` (`float`, **required**) - :math:`\sigma`
+          (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -977,23 +982,22 @@ class Moliere(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``qi`` (`float`, **required**) -
-            :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}`
-            (in charge units)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``qj`` (`float`, **required**) -
-            :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}`
-            (in charge units)
+        * ``qi`` (`float`, **required**) -
+          :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}`
+          (in charge units)
+        * ``qj`` (`float`, **required**) -
+          :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}`
+          (in charge units)
+        * ``aF`` (`float`, **required**) -
+          :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
+          \right)^{2/3}}`
 
-          * ``aF`` (`float`, **required**) -
-            :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
-            \right)^{2/3}}`
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1057,20 +1061,19 @@ class ZBL(Pair):
     energy shifting and smoothing modes. Use `params` dictionary to set
     potential coefficients.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          dict]):
-          The ZBL potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
-            \pi \epsilon_0}}` (in charge units)
+        The ZBL potential parameters. The dictionary has the following keys:
 
-          * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
-            \pi \epsilon_0}}` (in charge units)
+        * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
+          \pi \epsilon_0}}` (in charge units)
+        * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
+          \pi \epsilon_0}}` (in charge units)
+        * ``a_F`` (`float`, **required**) -
+          :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
 
-          * ``a_F`` (`float`, **required**) -
-            :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1125,21 +1128,19 @@ class Mie(Pair):
     coefficients. The coefficients must be set per unique pair of particle
     types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-            of energy)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance
-            units)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
+          of energy)
+        * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance
+          units)
+        * ``n`` (`float`, **required**) - :math:`n` (unitless)
+        * ``m`` (`float`, **required**) - :math:`m` (unitless)
 
-          * ``n`` (`float`, **required**) - :math:`n` (unitless)
-
-          * ``m`` (`float`, **required**) - :math:`m` (unitless)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1209,20 +1210,19 @@ class ReactionField(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-            of energy*distance)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
-            (dimensionless)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
+          of energy*distance)
+        * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
+          (dimensionless)
+        * ``use_charge`` (`boolean`, **optional**) - evaluate pair potntial
+          using particle charges (*default*: False)
 
-          * ``use_charge`` (`boolean`, **optional**) - evaluate pair potntial
-            using particle charges (*default*: False)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1291,21 +1291,19 @@ class DLVO(Pair):
     how forces are calculated and the available energy shifting and smoothing
     modes.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-            of energy)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``kappa`` (`float`, **required**) - scaling parameter
-            :math:`\kappa` (in units of 1/distance)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
+          of energy)
+        * ``kappa`` (`float`, **required**) - scaling parameter
+          :math:`\kappa` (in units of 1/distance)
+        * ``Z`` (`float`, **required**) - :math:`Z` (in units of 1/distance)
+        * ``A`` (`float`, **required**) - :math:`A` (in units of energy)
 
-          * ``Z`` (`float`, **required**) - :math:`Z` (in units of 1/distance)
-
-          * ``A`` (`float`, **required**) - :math:`A` (in units of energy)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1363,17 +1361,16 @@ class Buckingham(Pair):
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``A`` (`float`, **required**) - :math:`A` (in energy units)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``rho`` (`float`, **required**) - :math:`\rho` (in distance units)
+        * ``A`` (`float`, **required**) - :math:`A` (in energy units)
+        * ``rho`` (`float`, **required**) - :math:`\rho` (in distance units)
+        * ``C`` (`float`, **required**) - :math:`C` (in energy units)
 
-          * ``C`` (`float`, **required**) - :math:`C` (in energy units)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1421,17 +1418,17 @@ class LJ1208(Pair):
     energy shifting and smoothing modes.  Use the `params` dictionary to set
     potential coefficients.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-          * ``epsilon`` (`float`, **required**) - energy parameter
-            :math:`\varepsilon` (in energy units)
+        The potential parameters. The dictionary has the following keys:
 
-          * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-            (in distance units)
+        * ``epsilon`` (`float`, **required**) - energy parameter
+          :math:`\varepsilon` (in energy units)
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
+          (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1478,17 +1475,17 @@ class LJ0804(Pair):
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The LJ potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\varepsilon` (in energy units)
+        The LJ potential parameters. The dictionary has the following keys:
 
-            * ``sigma`` (`float`, **required**) -
-              particle size :math:`\sigma` (in distance units)
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` (in energy units)
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` (in distance units)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1548,17 +1545,18 @@ class Fourier(Pair):
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
-    Attributes:
-        params (`TypeParameter` [\
-          `tuple` [``particle_type``, ``particle_type``],\
-          `dict`]):
-          The Fourier potential parameters. The dictionary has the following
-          keys:
+    .. py:attribute:: params
 
-          * ``a`` (`float`, **required**) - array of 3 values corresponding to
-            a2, a3 and a4 in the Fourier series, unitless)
-          * ``b`` (`float`, **required**) - array of 3 values corresponding to
-            b2, b3 and b4 in the Fourier series, unitless)
+        The Fourier potential parameters. The dictionary has the following
+        keys:
+
+        * ``a`` (`float`, **required**) - array of 3 values corresponding to
+          a2, a3 and a4 in the Fourier series, unitless)
+        * ``b`` (`float`, **required**) - array of 3 values corresponding to
+          b2, b3 and b4 in the Fourier series, unitless)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1609,31 +1607,27 @@ class OPP(Pair):
 
     .. _paper link: https://dx.doi.org/10.1103/PhysRevB.85.092102
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The OPP potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-            * ``C1`` (`float`, **required**) -
-              Energy scale of the first term :math:`C_1` (energy units)
+        The OPP potential parameters. The dictionary has the following keys:
 
-            * ``C2`` (`float`, **required**) -
-              Energy scale of the second term :math:`C_2` (energy units)
+        * ``C1`` (`float`, **required**) -
+          Energy scale of the first term :math:`C_1` (energy units)
+        * ``C2`` (`float`, **required**) -
+          Energy scale of the second term :math:`C_2` (energy units)
+        * ``eta1`` (`float`, **required**) -
+          The inverse power to take :math:`r` to in the first term,
+          :math:`\eta_1` (unitless).
+        * ``eta2`` (`float`, **required**) -
+          The inverse power to take :math:`r` to in the second term
+          :math:`\eta_2` (unitless).
+        * ``k`` (`float`, **required**) -
+          oscillation frequency :math:`k` (inverse distance units)
+        * ``phi`` (`float`, **required**) -
+          potential phase shift :math:`\phi` (unitless)
 
-            * ``eta1`` (`float`, **required**) -
-              The inverse power to take :math:`r` to in the first term,
-              :math:`\eta_1` (unitless).
-
-            * ``eta2`` (`float`, **required**) -
-              The inverse power to take :math:`r` to in the second term
-              :math:`\eta_2` (unitless).
-
-            * ``k`` (`float`, **required**) -
-              oscillation frequency :math:`k` (inverse distance units)
-
-            * ``phi`` (`float`, **required**) -
-              potential phase shift :math:`\phi` (unitless)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
@@ -1686,18 +1680,19 @@ class TWF(Pair):
 
     .. _paper link: https://dx.doi.org/10.1126/science.277.5334.1975
 
-    Attributes:
-        params (`TypeParameter` [\
-            `tuple` [``particle_type``, ``particle_type``],\
-            `dict`]):
-            The LJ potential parameters. The dictionary has the following keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) -
-              energy parameter :math:`\varepsilon` (units: [energy])
-            * ``sigma`` (`float`, **required**) -
-              particle size :math:`\sigma` (units: [length])
-            * ``alpha`` (`float`, **required**) -
-              controls well-width :math:`\alpha` (unitless)
+        The LJ potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` (units: [energy])
+        * ``sigma`` (`float`, **required**) -
+          particle size :math:`\sigma` (units: [length])
+        * ``alpha`` (`float`, **required**) -
+          controls well-width :math:`\alpha` (unitless)
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`])
 
     Example::
 
