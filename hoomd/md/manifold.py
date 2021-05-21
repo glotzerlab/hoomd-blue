@@ -121,11 +121,12 @@ class Diamond(Manifold):
 
     For the diamond surface, see:
 
-    * `A. H. Schoen 1970 <https://ntrs.nasa.gov/citations/19700020472>`__
-    * `P. J. F. Gandy et. al. 1999
-      <https://doi.org/10.1016/S0009-2614(99)01000-3>`__
-    * `H. G. von Schnering and R. Nesper 1991
-      <https://doi.org/10.1007/BF01313411>`__
+    * A. H. Schoen 1970
+      (`paper link <https://ntrs.nasa.gov/citations/19700020472>`__)
+    * P. J. F. Gandy et. al. 1999
+      (`paper link <https://doi.org/10.1016/S0009-2614(99)01000-3>`__)
+    * H. G. von Schnering and R. Nesper 1991
+      (`paper link <https://doi.org/10.1007/BF01313411>`__)
 
     .. rubric:: Implicit function
 

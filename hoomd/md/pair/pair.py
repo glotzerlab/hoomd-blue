@@ -1218,7 +1218,7 @@ class ReactionField(Pair):
           of energy*distance)
         * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
           (dimensionless)
-        * ``use_charge`` (`boolean`, **optional**) - evaluate pair potntial
+        * ``use_charge`` (`boolean`, **optional**) - evaluate pair potential
           using particle charges (*default*: False)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
