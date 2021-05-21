@@ -38,7 +38,7 @@ class _PartialGetAttr:
 
 
 def identity(obj):
-    """Returns x."""
+    """Returns obj."""
     return obj
 
 
