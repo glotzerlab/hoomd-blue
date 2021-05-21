@@ -99,22 +99,28 @@ class Dipole(AnisotropicPair):
     Note:
        All units are given for electronic dipole moments.
 
-    Attributes:
-        params (TypeParameter[\
-                tuple[``particle_type``, ``particle_type``], dict]):
+    .. py:attribute:: params
 
-            The dipole potential parameters. The dictionary has the following
-            keys:
+        The dipole potential parameters. The dictionary has the following
+        keys:
 
-            * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
-              scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
-            * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-              screening length (units: [length]^-1)
+        * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
+          scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+        * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
+          screening length (units: [length]^-1)
 
-        mu (TypeParameter[``particle_type``, tuple[float, float, float]):
-            :math:`\mu` - the magnetic magnitude of the particle local reference
-            frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
-            [charge] [length]).
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
+    .. py:attribute:: mu
+
+        :math:`\mu` - the magnetic magnitude of the particle local reference
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
+        [charge] [length]).
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
+
     Example::
 
         nl = nlist.Cell()
@@ -192,19 +198,21 @@ class GayBerne(AnisotropicPair):
     Use ``params`` dictionary to set potential coefficients. The coefficients
     must be set per unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[\
-                tuple[``particle_type``, ``particle_type``], dict]):
+    .. py:attribute:: params
 
-            The Gay-Berne potential parameters. The dictionary has the following
-            keys:
+        The Gay-Berne potential parameters. The dictionary has the following
+        keys:
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
-              [energy])
-            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
-              [length])
-            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
-              [length])
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
+          [energy])
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
+          [length])
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
+          [length])
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
 
     Example::
 

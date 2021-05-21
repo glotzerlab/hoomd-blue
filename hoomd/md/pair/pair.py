@@ -240,7 +240,7 @@ class LJ(Pair):
           particle size :math:`\sigma` (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -297,7 +297,7 @@ class Gauss(Pair):
           (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -371,7 +371,7 @@ class SLJ(Pair):
           (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -443,7 +443,7 @@ class Yukawa(Pair):
           :math:`\kappa` (in units of 1/distance)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -505,7 +505,7 @@ class Ewald(Pair):
           :math:`\alpha` (in units of 1/distance)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -563,7 +563,7 @@ class Morse(Pair):
           :math:`r_0` (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -656,7 +656,7 @@ class DPD(Pair):
           force/velocity)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -729,7 +729,7 @@ class DPDConservative(Pair):
         * ``A`` (`float`, **required**) - :math:`A` (in force units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -830,7 +830,7 @@ class DPDLJ(Pair):
           force/velocity)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -924,7 +924,7 @@ class ForceShiftedLJ(Pair):
           (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -997,7 +997,7 @@ class Moliere(Pair):
           \right)^{2/3}}`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1073,7 +1073,7 @@ class ZBL(Pair):
           :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1140,7 +1140,7 @@ class Mie(Pair):
         * ``m`` (`float`, **required**) - :math:`m` (unitless)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1222,7 +1222,7 @@ class ReactionField(Pair):
           using particle charges (*default*: False)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1303,7 +1303,7 @@ class DLVO(Pair):
         * ``A`` (`float`, **required**) - :math:`A` (in units of energy)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1370,7 +1370,7 @@ class Buckingham(Pair):
         * ``C`` (`float`, **required**) - :math:`C` (in energy units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1428,7 +1428,7 @@ class LJ1208(Pair):
           (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1485,7 +1485,7 @@ class LJ0804(Pair):
           particle size :math:`\sigma` (in distance units)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1556,7 +1556,7 @@ class Fourier(Pair):
           b2, b3 and b4 in the Fourier series, unitless)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1627,7 +1627,7 @@ class OPP(Pair):
           potential phase shift :math:`\phi` (unitless)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -1692,7 +1692,7 @@ class TWF(Pair):
           controls well-width :math:`\alpha` (unitless)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 

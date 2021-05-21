@@ -216,7 +216,7 @@ class Tersoff(Triplet):
           (dimensionless, *default*: 0.0)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -352,7 +352,7 @@ class RevCross(Triplet):
           (unitless)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
@@ -430,7 +430,7 @@ class SquareDensity(Triplet):
           harmonic density term (in units of energy*volumne^2)
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
-        `dict`])
+        `dict`]
 
     Example::
 
