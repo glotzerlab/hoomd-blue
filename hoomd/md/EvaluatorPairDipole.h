@@ -60,7 +60,7 @@ class EvaluatorPairDipole
 
             #ifndef __HIPCC__
 
-            param_type(pybind11::dict v)
+            param_type(pybind11::dict v, bool managed)
                 {
                 A = v["A"].cast<Scalar>();
                 kappa = v["kappa"].cast<Scalar>();
@@ -97,9 +97,9 @@ class EvaluatorPairDipole
 
             #ifndef __HIPCC__
 
-            shape_type(vec3<Scalar> mu_): mu(mu_) {}
+            shape_type(vec3<Scalar> mu_, bool managed = false): mu(mu_) {}
 
-            shape_type(pybind11::object mu_obj)
+            shape_type(pybind11::object mu_obj, bool managed)
                 {
                 auto mu_ = (pybind11::tuple)mu_obj;
                 mu = vec3<Scalar>(
@@ -117,7 +117,7 @@ class EvaluatorPairDipole
 
             #ifdef ENABLE_HIP
             //! Attach managed memory to CUDA stream
-            void attach_to_stream(hipStream_t stream) const {}
+            void set_memory_hint() const {}
             #endif
             };
 

@@ -422,7 +422,7 @@ void AnisoPotentialPair< aniso_evaluator >::setParamsPython(pybind11::tuple typ,
     {
     auto typ1 = m_pdata->getTypeByName(typ[0].cast<std::string>());
     auto typ2 = m_pdata->getTypeByName(typ[1].cast<std::string>());
-    setParams(typ1, typ2, param_type(params));
+    setParams(typ1, typ2, param_type(params, m_exec_conf->isCUDAEnabled()));
     }
 
 template< class aniso_evaluator >
@@ -480,7 +480,7 @@ void AnisoPotentialPair<aniso_evaluator>::setShapePython(
     std::string typ, pybind11::object shape_param)
     {
     auto typ_ = m_pdata->getTypeByName(typ);
-    setShape(typ_, shape_type(shape_param));
+    setShape(typ_, shape_type(shape_param, m_exec_conf->isCUDAEnabled()));
     }
 
 /*! \param typ The type index.

@@ -67,7 +67,7 @@ class EvaluatorPairGB
 
             #ifndef __HIPCC__
 
-            param_type(pybind11::dict v)
+            param_type(pybind11::dict v, bool managed)
                 {
                 epsilon = v["epsilon"].cast<Scalar>();
                 lperp = v["lperp"].cast<Scalar>();
@@ -104,14 +104,14 @@ class EvaluatorPairGB
 
             #ifndef __HIPCC__
 
-            shape_type(pybind11::object shape_params) {}
+            shape_type(pybind11::object shape_params, bool managed) {}
 
             pybind11::object toPython() { return pybind11::none(); }
             #endif
 
             #ifdef ENABLE_HIP
             //! Attach managed memory to CUDA stream
-            void attach_to_stream(hipStream_t stream) const {}
+            void set_memory_hint() const {}
             #endif
             };
 

@@ -156,14 +156,14 @@ template<unsigned int ndim> class EvaluatorPairALJ
                    Scalar _contact_sigma_j,
                    unsigned int _alpha,
                    bool _average_simplices,
-                   bool use_device)
+                   bool managed)
             : epsilon(_epsilon), sigma_i(_sigma_i), sigma_j(_sigma_j),
               contact_sigma_i(_contact_sigma_i), contact_sigma_j(_contact_sigma_j), alpha(_alpha),
               average_simplices(_average_simplices)
             {
             }
 
-        param_type(pybind11::dict params)
+        param_type(pybind11::dict params, bool managed)
             : epsilon(params["epsilon"].cast<Scalar>()), sigma_i(params["sigma_i"].cast<Scalar>()),
               sigma_j(params["sigma_j"].cast<Scalar>()),
               contact_sigma_i(params["contact_sigma_i"].cast<Scalar>()),
@@ -195,7 +195,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const { }
+        void set_memory_hint() const { }
 #endif
 
         //! Potential parameters
@@ -241,19 +241,16 @@ template<unsigned int ndim> class EvaluatorPairALJ
             \param faces_ Nested pybind list that contains indices into vertices corresponding to
            each face.
            \param rr The semimajor axes of the rounding ellipse.
-           \param use_device
+           \param managed
            Whether or not the shape params are managed on the host, forwarded through to underlying
            arrays for migration to the GPU as needed.
          */
-        shape_type(pybind11::dict shape) : has_rounding(false)
+        shape_type(pybind11::dict shape, bool managed) : has_rounding(false)
             {
-            // TODO: Add support for managed memory on GPU.
-            bool use_device = false;
-
             // Unpack the list[list] of vertices into a ManagedArray.
             auto vertices = shape["vertices"].cast<pybind11::list>();
             unsigned int N = static_cast<unsigned int>(len(vertices));
-            verts = ManagedArray<vec3<Scalar>>(N, use_device);
+            verts = ManagedArray<vec3<Scalar>>(N, managed);
             for (unsigned int i = 0; i < N; ++i)
                 {
                 pybind11::list vertices_tmp = pybind11::cast<pybind11::list>(vertices[i]);
@@ -269,7 +266,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             // those indices linearly.
             auto faces_ = shape["faces"].cast<pybind11::list>();
             N = static_cast<unsigned int>(len(faces_));
-            face_offsets = ManagedArray<unsigned int>(N, use_device);
+            face_offsets = ManagedArray<unsigned int>(N, managed);
             face_offsets[0] = 0;
             for (unsigned int i = 0; i < (N - 1); ++i)
                 {
@@ -280,7 +277,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             const unsigned int total_face_indices
                 = face_offsets[N - 1] + static_cast<unsigned int>(len(faces_tmp));
 
-            faces = ManagedArray<unsigned int>(total_face_indices, use_device);
+            faces = ManagedArray<unsigned int>(total_face_indices, managed);
             unsigned int counter = 0;
             for (unsigned int i = 0; i < N; ++i)
                 {
@@ -357,11 +354,11 @@ template<unsigned int ndim> class EvaluatorPairALJ
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
+        void set_memory_hint() const
             {
-            verts.attach_to_stream(stream);
-            faces.attach_to_stream(stream);
-            face_offsets.attach_to_stream(stream);
+            verts.set_memory_hint();
+            faces.set_memory_hint();
+            face_offsets.set_memory_hint();
             }
 #endif
 
