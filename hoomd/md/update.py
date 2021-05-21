@@ -1,31 +1,34 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+# Maintainer: joaander / All Developers are free to add commands for new
+# features
 
-R""" Update particle properties.
+"""Update particle properties.
 
-When an updater is specified, it acts on the particle system each time step to change
-it in some way. See the documentation of specific updaters to find out what they do.
+When an updater is specified, it acts on the particle system each time step it
+is triggered to change its state.
 """
 
 from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater
-import sys
 
 
 class rescale_temp:
-    r""" Rescales particle velocities.
+    r"""Rescales particle velocities.
 
     Args:
-        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point (in energy units)
+        kT (`hoomd.variant` or `float`): Temperature set point (in energy units)
         period (int): Velocities will be rescaled every *period* time steps
-        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        phase (int): When -1, start on the current time step. When >= 0, execute
+            on steps where *(step + phase) % period == 0*.
 
-    Every *period* time steps, particle velocities and angular momenta are rescaled by equal factors
-    so that they are consistent with a given temperature in the equipartition theorem
+    Every *period* time steps, particle velocities and angular momenta are
+    rescaled by equal factors so that they are consistent with a given
+    temperature in the equipartition theorem
 
     .. math::
 
@@ -34,21 +37,23 @@ class rescale_temp:
         \langle 1/2 I \omega^2 \rangle = k_B T
 
     .. attention::
-        :py:class:`rescale_temp` does **not** run on the GPU, and will significantly slow down simulations.
+        `rescale_temp` does **not** run on the GPU, and will significantly slow
+        down simulations.
 
     Examples::
 
         update.rescale_temp(kT=1.2)
         rescaler = update.rescale_temp(kT=0.5)
         update.rescale_temp(period=100, kT=1.03)
-        update.rescale_temp(period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+        update.rescale_temp(
+            period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 
     """
 
     def __init__(self, kT, period=1, phase=0):
 
         # initialize base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         # setup the variant inputs
         kT = hoomd.variant._setup_variant_input(kT)
@@ -69,10 +74,11 @@ class rescale_temp:
         self.metadata_fields = ['kT', 'period']
 
     def set_params(self, kT=None):
-        R""" Change rescale_temp parameters.
+        """Change rescale_temp parameters.
 
         Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set point (in energy units)
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set
+                point (in energy units)
 
         Examples::
 
@@ -114,11 +120,12 @@ class ZeroMomentum(Updater):
 
 
 class enforce2d:
-    R""" Enforces 2D simulation.
+    """Enforces 2D simulation.
 
-    Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
-    2D simulations when other calculations may cause particles to drift out of the plane. Using enforce2d is only
-    allowed when the system is specified as having only 2 dimensions.
+    Every time step, particle velocities and accelerations are modified so that
+    their z components are 0: forcing 2D simulations when other calculations may
+    cause particles to drift out of the plane. Using enforce2d is only allowed
+    when the system is specified as having only 2 dimensions.
 
     Examples::
 
@@ -130,7 +137,7 @@ class enforce2d:
         period = 1
 
         # initialize base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
@@ -143,29 +150,37 @@ class enforce2d:
 
 
 class constraint_ellipsoid:
-    R""" Constrain particles to the surface of a ellipsoid.
+    """Constrain particles to the surface of a ellipsoid.
 
     Args:
         group (``hoomd.group``): Group for which the update will be set
-        P (tuple): (x,y,z) tuple indicating the position of the center of the ellipsoid (in distance units).
-        rx (float): radius of an ellipsoid in the X direction (in distance units).
-        ry (float): radius of an ellipsoid in the Y direction (in distance units).
-        rz (float): radius of an ellipsoid in the Z direction (in distance units).
+        P (tuple): (x,y,z) tuple indicating the position of the center of the
+            ellipsoid (in distance units).
+        rx (float): radius of an ellipsoid in the X direction (in distance
+            units).
+        ry (float): radius of an ellipsoid in the Y direction (in distance
+            units).
+        rz (float): radius of an ellipsoid in the Z direction (in distance
+            units).
         r (float): radius of a sphere (in distance units), such that r=rx=ry=rz.
 
-    :py:class:`constraint_ellipsoid` specifies that all particles are constrained
-    to the surface of an ellipsoid. Each time step particles are projected onto the surface of the ellipsoid.
-    Method from: http://www.geometrictools.com/Documentation/DistancePointEllipseEllipsoid.pdf
+    `constraint_ellipsoid` specifies that all particles are constrained to the
+    surface of an ellipsoid. Each time step particles are projected onto the
+    surface of the ellipsoid. Method from:
+    http://www.geometrictools.com/Documentation/\
+            DistancePointEllipseEllipsoid.pdf
 
     .. attention::
-        For the algorithm to work, we must have :math:`rx >= rz,~ry >= rz,~rz > 0`.
+        For the algorithm to work, we must have :math:`rx >= rz,~ry >= rz,~rz >
+        0`.
 
     Note:
         This method does not properly conserve virial coefficients.
 
     Note:
-        random thermal forces from the integrator are applied in 3D not 2D, therefore they aren't fully accurate.
-        Suggested use is therefore only for T=0.
+        random thermal forces from the integrator are applied in 3D not 2D,
+        therefore they aren't fully accurate.  Suggested use is therefore only
+        for T=0.
 
     Examples::
 
@@ -182,7 +197,8 @@ class constraint_ellipsoid:
             if hoomd.context.current.system_definition.getParticleData(
             ).getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error(
-                    "constrain.ellipsoid is not supported in multi-processor simulations.\n\n"
+                    "constrain.ellipsoid is not supported in multi-processor "
+                    "simulations.\n\n"
                 )
                 raise RuntimeError("Error initializing updater.")
 
@@ -193,7 +209,7 @@ class constraint_ellipsoid:
             raise RuntimeError("Error initializing updater.")
 
         # initialize the base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         # Set parameters
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
@@ -222,38 +238,47 @@ class constraint_ellipsoid:
 
 
 class mueller_plathe_flow:
-    R""" Updater class for a shear flow according
-    to an algorithm published by Mueller Plathe.:
+    r"""Updater for a shear flow via an algorithm published by Mueller Plathe.
 
-     "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
-     An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999."
+     "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium
+     molecular dynamics: An easy way to calculate the shear viscosity of fluids.
+     Phys. Rev. E, 59:4894-4898, May 1999."
 
-    The simulation box is divided in a number of slabs.
-    Two distinct slabs of those are chosen. The "max" slab searched for the
-    max. velocity component in flow direction, the "min" is searched for the min. velocity component.
+    The simulation box is divided in a number of slabs.  Two distinct slabs of
+    those are chosen. The "max" slab searched for the max.  velocity component
+    in flow direction, the "min" is searched for the min.  velocity component.
     Afterward, both velocity components are swapped.
 
-    This introduces a momentum flow, which drives the flow. The strength of this flow,
-    can be controlled by the flow_target variant, which defines the integrated target momentum
-    flow. The searching and swapping is repeated until the target is reached. Depending on the target sign,
-    the "max" and "min" slap might be swapped.
+    This introduces a momentum flow, which drives the flow. The strength of this
+    flow, can be controlled by the flow_target variant, which defines the
+    integrated target momentum flow. The searching and swapping is repeated
+    until the target is reached. Depending on the target sign, the "max" and
+    "min" slap might be swapped.
 
     Args:
         group (``hoomd.group``): Group for which the update will be set
-        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
-        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the slabs..
+        flow_target (`hoomd.variant`): Integrated target flow. The unit is the
+            in the natural units of the simulation: [flow_target] = [timesteps]
+            x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.  The unit
+            of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
+        slab_direction (``X``, ``Y``, or ``Z``): Direction perpendicular to the
+            slabs..
         flow_direction (``X``, ``Y``, or ``Z``): Direction of the flow..
-        n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
-        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
-        min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
+        n_slabs (int): Number of slabs. You want as many as possible for small
+            disturbed volume, where the unphysical swapping is done. But each
+            slab has to contain a sufficient number of particle.
+        max_slab (int): Id < n_slabs where the max velocity component is search
+            for. If set < 0 the value is set to its default n_slabs/2.
+        min_slab (int): Id < n_slabs where the min velocity component is search
+            for. If set < 0 the value is set to its default 0.
 
     .. attention::
         * This updater has to be always applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
     .. note:
-        If you set this updater with unrealistic values, it algorithm might not terminate,
-        because your desired flow target can not be achieved.
+        If you set this updater with unrealistic values, it algorithm might not
+        terminate, because your desired flow target can not be achieved.
 
     .. versionadded:: v2.1
 
@@ -262,7 +287,9 @@ class mueller_plathe_flow:
         #const integrated flow with 0.1 slope for max 1e8 timesteps
         const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
         #velocity gradient in z direction and shear flow in x direction.
-        update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
+        update.mueller_plathe_flow(
+            all, const_flow, md.update.mueller_plathe_flow.Z,
+            md.update.mueller_plathe_flow.X, 100)
 
     """
 
@@ -281,7 +308,8 @@ class mueller_plathe_flow:
         if max_slab < 0:
             max_slab = n_slabs / 2
 
-        #Cast input to int to avoid mismatch of types in calling the constructor
+        # Cast input to int to avoid mismatch of types in calling the
+        # constructor
         n_slabs = int(n_slabs)
         min_slab = int(min_slab)
         max_slab = int(max_slab)
@@ -290,11 +318,11 @@ class mueller_plathe_flow:
                 ), "Invalid max_slab in [0," + str(n_slabs) + ")."
         assert (min_slab > -1 and min_slab < n_slabs
                 ), "Invalid min_slab in [0," + str(n_slabs) + ")."
-        assert (min_slab !=
-                max_slab), "Invalid min/max slabs. Both have the same value."
+        assert (min_slab != max_slab), "Invalid min/max slabs. Both have the \
+            same value."
 
         # initialize the base class
-        _updater.__init__(self)
+        # _updater.__init__(self)
 
         self._flow_target = hoomd.variant._setup_variant_input(flow_target)
 
@@ -313,47 +341,48 @@ class mueller_plathe_flow:
         self.setupUpdater(period)
 
     def get_n_slabs(self):
-        R""" Get the number of slabs."""
+        """Get the number of slabs."""
         return self.cpp_updater.getNSlabs()
 
     def get_min_slab(self):
-        R""" Get the slab id of min velocity search."""
+        """Get the slab id of min velocity search."""
         return self.cpp_updater.getMinSlab()
 
     def get_max_slab(self):
-        R""" Get the slab id of max velocity search."""
+        """Get the slab id of max velocity search."""
         return self.cpp_updater.getMaxSlab()
 
     def get_flow_epsilon(self):
-        R""" Get the tolerance between target flow and actual achieved flow."""
+        """Get the tolerance between target flow and actual achieved flow."""
         return self.cpp_updater.getFlowEpsilon()
 
     def set_flow_epsilon(self, epsilon):
-        R""" Set the tolerance between target flow and actual achieved flow.
+        """Set the tolerance between target flow and actual achieved flow.
 
-           Args:
-           epsilon (float): New tolerance for the deviation of actual and achieved flow.
+        Args:
+            epsilon (float): New tolerance for the deviation of actual and
+                achieved flow.
 
         """
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation."""
+        """Returned the summed up exchanged velocity of the full simulation."""
         return self.cpp_updater.getSummedExchangedMomentum()
 
     def has_min_slab(self):
-        R"""Returns, whether this MPI instance is part of the min slab."""
+        """Returns, whether this MPI instance is part of the min slab."""
         return self.cpp_updater.hasMinSlab()
 
     def has_max_slab(self):
-        R"""Returns, whether this MPI instance is part of the max slab."""
+        """Returns, whether this MPI instance is part of the max slab."""
         return self.cpp_updater.hasMaxSlab()
 
     X = _md.MuellerPlatheFlow.Direction.X
-    R""" Direction Enum X for this class"""
+    """Direction Enum X for this class"""
 
     Y = _md.MuellerPlatheFlow.Direction.Y
-    R""" Direction Enum Y for this class"""
+    """Direction Enum Y for this class"""
 
     Z = _md.MuellerPlatheFlow.Direction.Z
-    R""" Direction Enum Z for this class"""
+    """Direction Enum Z for this class"""
