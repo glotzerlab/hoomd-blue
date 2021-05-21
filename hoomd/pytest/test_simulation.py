@@ -15,7 +15,9 @@ skip_gsd = pytest.mark.skipif(skip_gsd,
 def make_gsd_snapshot(hoomd_snapshot):
     s = gsd.hoomd.Snapshot()
     for attr in dir(hoomd_snapshot):
-        if attr[0] != '_' and attr not in ['exists', 'replicate']:
+        if attr[0] != '_' and attr not in [
+                'exists', 'replicate', 'communicator'
+        ]:
             for prop in dir(getattr(hoomd_snapshot, attr)):
                 if prop[0] != '_':
                     # s.attr.prop = hoomd_snapshot.attr.prop
@@ -46,7 +48,7 @@ def update_positions(snap):
 
 def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     for attr in dir(hoomd_snap):
-        if attr[0] == '_' or attr in ['exists', 'replicate']:
+        if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
             continue
         for prop in dir(getattr(hoomd_snap, attr)):
             if prop[0] == '_':
