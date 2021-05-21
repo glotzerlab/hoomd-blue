@@ -335,7 +335,7 @@ class BlockAverage:
 
     def __init__(self, data):
         # round down to the nearest power of 2
-        N = 2**int(math.floor(math.log(len(data)) / math.log(2)))
+        N = 2**int(math.log(len(data)) / math.log(2))
         if N != len(data):
             warnings.warn(
                 "Ignoring some data. Data array should be a power of 2.")
