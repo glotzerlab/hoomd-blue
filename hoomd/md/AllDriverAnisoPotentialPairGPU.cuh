@@ -20,24 +20,24 @@
 
 hipError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces_gb(const a_pair_args_t&,
-            const EvaluatorPairGB::param_type*,
-            const EvaluatorPairGB::shape_type*);
+            EvaluatorPairGB::param_type*,
+            EvaluatorPairGB::shape_type*);
 
 hipError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces_dipole(const a_pair_args_t&,
-            const EvaluatorPairDipole::param_type*,
-            const EvaluatorPairDipole::shape_type*);
+            EvaluatorPairDipole::param_type*,
+            EvaluatorPairDipole::shape_type*);
 
 
 //! Compute anisotropic Lennard-Jones forces and torques on the GPU with EvaluatorPairALJ
 hipError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces_ALJ_2D(const a_pair_args_t&,
-            const EvaluatorPairALJ<2>::param_type*,
-            const EvaluatorPairALJ<2>::shape_type*);
+            EvaluatorPairALJ<2>::param_type*,
+            EvaluatorPairALJ<2>::shape_type*);
 
 hipError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces_ALJ_3D(const a_pair_args_t&,
-            const EvaluatorPairALJ<3>::param_type*,
-            const EvaluatorPairALJ<3>::shape_type*);
+            EvaluatorPairALJ<3>::param_type*,
+            EvaluatorPairALJ<3>::shape_type*);
 
 #endif
