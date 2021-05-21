@@ -602,28 +602,28 @@ void test_communicator_migrate(communicator_creator comm_creator,
     // check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         break;
         }
@@ -899,28 +899,28 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator,
     // check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         break;
         }
@@ -1088,28 +1088,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // Check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 6);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 4);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
         }
@@ -1136,7 +1136,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         unsigned int rtag;
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
             rtag = h_global_rtag.data[13];
@@ -1160,7 +1160,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
             rtag = h_global_rtag.data[8];
@@ -1185,7 +1185,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 6);
 
             rtag = h_global_rtag.data[9];
@@ -1231,7 +1231,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
             rtag = h_global_rtag.data[11];
@@ -1263,7 +1263,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
             rtag = h_global_rtag.data[10];
@@ -1288,7 +1288,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
             break;
 
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
             rtag = h_global_rtag.data[12];
@@ -1306,7 +1306,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
             break;
 
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
             rtag = h_global_rtag.data[10];
@@ -1331,7 +1331,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
             break;
 
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
             rtag = h_global_rtag.data[12];
@@ -1393,28 +1393,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // Check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 7);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 3);
         break;
         }
@@ -1432,7 +1432,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         unsigned int rtag;
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[15];
@@ -1443,7 +1443,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -1.0001, tol);
             break;
 
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
             rtag = h_global_rtag.data[8];
@@ -1482,7 +1482,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -1.0001, tol);
             break;
 
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 7);
             rtag = h_global_rtag.data[8];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
@@ -1534,7 +1534,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -1.0001, tol);
             break;
 
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
             rtag = h_global_rtag.data[8];
@@ -1573,7 +1573,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -1.0001, tol);
             break;
 
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
             rtag = h_global_rtag.data[10];
@@ -1605,7 +1605,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 0.9999, tol);
             break;
 
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
             rtag = h_global_rtag.data[12];
@@ -1630,7 +1630,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 0.9999, tol);
             break;
 
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
             rtag = h_global_rtag.data[10];
@@ -1662,7 +1662,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 0.9999, tol);
             break;
 
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[12];
@@ -1695,7 +1695,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             rtag = h_rtag.data[8];
             h_pos.data[rtag].x = -0.12;
             h_pos.data[rtag].y = -1.05;
@@ -1733,7 +1733,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
             break;
-            case 7:
+        case 7:
             rtag = h_rtag.data[14];
             h_pos.data[rtag].x = 1.123;
             h_pos.data[rtag].y = 1.121;
@@ -1747,7 +1747,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             h_pos.data[rtag] = TO_POS4(TO_TRICLINIC(h_pos.data[rtag]));
 
             break;
-            default:
+        default:
             break;
             }
         }
@@ -1768,7 +1768,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         MPI_Comm_rank(exec_conf->getHOOMDWorldMPICommunicator(), &rank);
         switch (rank)
             {
-            case 0:
+        case 0:
             rtag = h_global_rtag.data[15];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1777,7 +1777,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.988, tol);
             break;
 
-            case 1:
+        case 1:
             rtag = h_global_rtag.data[8];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1814,7 +1814,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.988, tol);
             break;
 
-            case 2:
+        case 2:
             rtag = h_global_rtag.data[8];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1865,7 +1865,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.988, tol);
             break;
 
-            case 3:
+        case 3:
             rtag = h_global_rtag.data[8];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1902,7 +1902,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, -0.988, tol);
             break;
 
-            case 4:
+        case 4:
             rtag = h_global_rtag.data[10];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1932,7 +1932,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 1.012, tol);
             break;
 
-            case 5:
+        case 5:
             rtag = h_global_rtag.data[12];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1955,7 +1955,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 1.012, tol);
             break;
 
-            case 6:
+        case 6:
             rtag = h_global_rtag.data[10];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -1985,7 +1985,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 1.012, tol);
             break;
 
-            case 7:
+        case 7:
             rtag = h_global_rtag.data[12];
             UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN() + pdata->getNGhosts());
             cmp = FROM_TRICLINIC(h_pos.data[rtag]);
@@ -2098,7 +2098,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         // box 0 should have zero particles and 0 bonds
         UP_ASSERT_EQUAL(pdata->getN(), 0);
         UP_ASSERT_EQUAL(bdata->getN(), 0);
@@ -2124,7 +2124,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             }
 
         break;
-        case 1:
+    case 1:
         // box 1 should have two particles and 5 bonds
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         UP_ASSERT_EQUAL(bdata->getN(), 5);
@@ -2175,7 +2175,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1], 5);
             }
         break;
-        case 2:
+    case 2:
         // box 2 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2218,7 +2218,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1], 6);
             }
         break;
-        case 3:
+    case 3:
         // box 3 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2261,7 +2261,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1], 7);
             }
         break;
-        case 4:
+    case 4:
         // box 4 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2305,7 +2305,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1], 6);
             }
         break;
-        case 5:
+    case 5:
         // box 5 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2349,7 +2349,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1], 7);
             }
         break;
-        case 6:
+    case 6:
         // box 6 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2393,7 +2393,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1], 7);
             }
         break;
-        case 7:
+    case 7:
         // box 7 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2456,7 +2456,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
 
@@ -2481,7 +2481,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             }
 
         break;
-        case 1:
+    case 1:
         // box 1 should own three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2507,7 +2507,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             }
         break;
 
-        default:
+    default:
         break;
         }
 
@@ -2519,7 +2519,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
 
@@ -2544,7 +2544,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             }
         break;
 
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
 
@@ -2568,7 +2568,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT(h_rtag.data[11] < bdata->getN());
             }
         break;
-        case 2:
+    case 2:
         // box 2 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2593,7 +2593,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
             }
         break;
-        case 3:
+    case 3:
         // box 3 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2618,7 +2618,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
             }
         break;
-        case 4:
+    case 4:
         // box 4 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2643,7 +2643,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
             }
         break;
-        case 5:
+    case 5:
         // box 5 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2668,7 +2668,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
             }
         break;
-        case 6:
+    case 6:
         // box 6 should own three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2694,7 +2694,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
             }
         break;
 
-        case 7:
+    case 7:
         // box 7 should have three bonds
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         UP_ASSERT_EQUAL(bdata->getN(), 3);
@@ -2834,42 +2834,42 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
         switch (rank)
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(sorted_tags[0], 1);
             UP_ASSERT_EQUAL(sorted_tags[1], 2);
             UP_ASSERT_EQUAL(sorted_tags[2], 4);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(sorted_tags[0], 0);
             UP_ASSERT_EQUAL(sorted_tags[1], 3);
             UP_ASSERT_EQUAL(sorted_tags[2], 5);
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(sorted_tags[0], 0);
             UP_ASSERT_EQUAL(sorted_tags[1], 3);
             UP_ASSERT_EQUAL(sorted_tags[2], 6);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(sorted_tags[0], 1);
             UP_ASSERT_EQUAL(sorted_tags[1], 2);
             UP_ASSERT_EQUAL(sorted_tags[2], 7);
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(sorted_tags[0], 0);
             UP_ASSERT_EQUAL(sorted_tags[1], 5);
             UP_ASSERT_EQUAL(sorted_tags[2], 6);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(sorted_tags[0], 1);
             UP_ASSERT_EQUAL(sorted_tags[1], 4);
             UP_ASSERT_EQUAL(sorted_tags[2], 7);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(sorted_tags[0], 2);
             UP_ASSERT_EQUAL(sorted_tags[1], 4);
             UP_ASSERT_EQUAL(sorted_tags[2], 7);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(sorted_tags[0], 3);
             UP_ASSERT_EQUAL(sorted_tags[1], 5);
             UP_ASSERT_EQUAL(sorted_tags[2], 6);
@@ -3124,28 +3124,28 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
     // Check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 2);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
         }
@@ -3189,11 +3189,11 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
         unsigned int rtag;
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
 
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[8];
@@ -3215,12 +3215,12 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
             CHECK_CLOSE(h_orientation.data[rtag].z, 99.0, tol);
             break;
 
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
             }
@@ -3256,7 +3256,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
         unsigned int rtag;
         switch (exec_conf->getRank())
             {
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[8];
@@ -3279,13 +3279,13 @@ void test_communicator_ghost_fields(communicator_creator comm_creator,
             CHECK_CLOSE(h_orientation.data[rtag].z, 24.0, tol);
             break;
 
-            case 0:
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
+        case 0:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
             }
@@ -3521,28 +3521,28 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
     // Check number of particles
     switch (exec_conf->getRank())
         {
-        case 0:
+    case 0:
         UP_ASSERT_EQUAL(pdata->getN(), 3);
         break;
-        case 1:
+    case 1:
         UP_ASSERT_EQUAL(pdata->getN(), 3);
         break;
-        case 2:
+    case 2:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 3:
+    case 3:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 4:
+    case 4:
         UP_ASSERT_EQUAL(pdata->getN(), 3);
         break;
-        case 5:
+    case 5:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 6:
+    case 6:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
-        case 7:
+    case 7:
         UP_ASSERT_EQUAL(pdata->getN(), 1);
         break;
         }
@@ -3569,7 +3569,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
         unsigned int rtag;
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[12];
@@ -3580,7 +3580,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.z, 0.05, tol);
 
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
             rtag = h_global_rtag.data[8];
@@ -3597,10 +3597,10 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.y, -0.5, tol);
             CHECK_CLOSE(cmp.z, -0.5, tol);
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
             rtag = h_global_rtag.data[11];
@@ -3610,16 +3610,16 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator,
             CHECK_CLOSE(cmp.y, -0.12, tol);
             CHECK_CLOSE(cmp.z, -0.5, tol);
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
             break;
             }

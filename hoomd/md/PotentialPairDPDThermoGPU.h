@@ -8,9 +8,9 @@
 
 #ifdef ENABLE_HIP
 
-#include "hoomd/Autotuner.h"
 #include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
+#include "hoomd/Autotuner.h"
 
 /*! \file PotentialPairDPDThermoGPU.h
     \brief Defines the template class for standard pair potentials on the GPU

@@ -181,11 +181,11 @@ template<class aniso_evaluator> class AnisoPotentialPair : public ForceCompute
         {
         switch (m_shift_mode)
             {
-            case no_shift:
+        case no_shift:
             return "none";
-            case shift:
+        case shift:
             return "shift";
-            default:
+        default:
             return "";
             }
         }

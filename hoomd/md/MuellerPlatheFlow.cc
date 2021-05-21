@@ -72,11 +72,11 @@ void MuellerPlatheFlow::update(uint64_t timestep)
     double area = 1.; // Init to shut up compiler warning
     switch (m_slab_direction)
         {
-        case flow_enum::X:
+    case flow_enum::X:
         area = box.getL().y * box.getL().z;
-        case flow_enum::Y:
+    case flow_enum::Y:
         area = box.getL().x * box.getL().z;
-        case flow_enum::Z:
+    case flow_enum::Z:
         area = box.getL().y * box.getL().x;
         }
 
@@ -251,15 +251,15 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             unsigned int index = 0; // Init to shut up compiler warning
             switch (m_slab_direction)
                 {
-                case flow_enum::X:
+            case flow_enum::X:
                 index = (unsigned int)(((h_pos.data[j].x) / gl_box.getL().x + .5)
                                        * this->get_N_slabs());
                 break;
-                case flow_enum::Y:
+            case flow_enum::Y:
                 index = (unsigned int)(((h_pos.data[j].y) / gl_box.getL().y + .5)
                                        * this->get_N_slabs());
                 break;
-                case flow_enum::Z:
+            case flow_enum::Z:
                 index = (unsigned int)(((h_pos.data[j].z) / gl_box.getL().z + .5)
                                        * this->get_N_slabs());
                 break;
@@ -272,13 +272,13 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 Scalar vel = 0; // Init to shut up compiler warning
                 switch (m_flow_direction)
                     {
-                    case flow_enum::X:
+                case flow_enum::X:
                     vel = h_vel.data[j].x;
                     break;
-                    case flow_enum::Y:
+                case flow_enum::Y:
                     vel = h_vel.data[j].y;
                     break;
-                    case flow_enum::Z:
+                case flow_enum::Z:
                     vel = h_vel.data[j].z;
                     break;
                     }
@@ -325,13 +325,13 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
             const Scalar new_min_vel = m_last_max_vel.x / m_last_min_vel.y;
             switch (m_flow_direction)
                 {
-                case flow_enum::X:
+            case flow_enum::X:
                 h_vel.data[min_idx].x = new_min_vel;
                 break;
-                case flow_enum::Y:
+            case flow_enum::Y:
                 h_vel.data[min_idx].y = new_min_vel;
                 break;
-                case flow_enum::Z:
+            case flow_enum::Z:
                 h_vel.data[min_idx].z = new_min_vel;
                 break;
                 }
@@ -341,13 +341,13 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
             const Scalar new_max_vel = m_last_min_vel.x / m_last_max_vel.y;
             switch (m_flow_direction)
                 {
-                case flow_enum::X:
+            case flow_enum::X:
                 h_vel.data[max_idx].x = new_max_vel;
                 break;
-                case flow_enum::Y:
+            case flow_enum::Y:
                 h_vel.data[max_idx].y = new_max_vel;
                 break;
-                case flow_enum::Z:
+            case flow_enum::Z:
                 h_vel.data[max_idx].z = new_max_vel;
                 break;
                 }
