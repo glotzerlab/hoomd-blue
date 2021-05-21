@@ -28,8 +28,10 @@
 // when included into the host compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
 class EvaluatorPairDipole
@@ -53,7 +55,7 @@ class EvaluatorPairDipole
                 \param available_bytes Size of remaining shared memory
                 allocation
             */
-            HOSTDEVICE void load_shared(
+            DEVICE void load_shared(
                 char *& ptr, unsigned int &available_bytes) const {}
 
             HOSTDEVICE param_type() : A(0), kappa(0) {}
@@ -90,7 +92,7 @@ class EvaluatorPairDipole
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory allocation
             */
-            HOSTDEVICE void load_shared(
+            DEVICE void load_shared(
                 char *& ptr, unsigned int &available_bytes) const {}
 
             HOSTDEVICE shape_type() : mu{0, 0, 0} {}
@@ -146,7 +148,7 @@ class EvaluatorPairDipole
             {
             }
 
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
+        DEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
             {
             // No-op for this struct since it contains no arrays
             }

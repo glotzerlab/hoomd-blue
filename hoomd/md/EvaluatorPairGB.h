@@ -28,8 +28,10 @@
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #define HOSTDEVICE
+#define DEVICE
 #endif
 
 
@@ -52,7 +54,7 @@ class EvaluatorPairGB
                 \param available_bytes Size of remaining shared memory
                 allocation
             */
-            HOSTDEVICE void load_shared(
+            DEVICE void load_shared(
                 char *& ptr, unsigned int &available_bytes) const {}
 
             #ifdef ENABLE_HIP
@@ -98,7 +100,7 @@ class EvaluatorPairGB
             /*! \param ptr Pointer to load data to (will be incremented)
                 \param available_bytes Size of remaining shared memory allocation
             */
-            HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
+            DEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const {}
 
             HOSTDEVICE shape_type() {}
 
@@ -132,7 +134,7 @@ class EvaluatorPairGB
             {
             }
 
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
+        DEVICE void load_shared(char*& ptr, unsigned int &available_bytes) const
             {
             // No-op for this struct since it contains no arrays
             }
