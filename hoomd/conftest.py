@@ -80,7 +80,7 @@ def two_particle_snapshot_factory(device):
 
         The two particles are placed at (-d/2, 0, 0) and (d/2,0,0). When,
         dimensions==3, the box is L by L by L. When dimensions==2, the box is
-        L by L by 1.
+        L by L by 0.
         """
         s = Snapshot(device.communicator)
         N = 2
