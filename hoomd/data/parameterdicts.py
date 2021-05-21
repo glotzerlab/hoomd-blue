@@ -8,11 +8,11 @@ from collections.abc import MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
 
-from hoomd.util import to_camel_case, is_iterable
+from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
                                       RequiredArg)
-from hoomd.data.smart_default import (to_base_defaults, toDefault, SmartDefault,
-                                      NoDefault)
+from hoomd.data.smart_default import (
+    _to_base_defaults, _to_default, _SmartDefault, _NoDefault)
 
 
 def has_str_elems(obj):
@@ -22,7 +22,7 @@ def has_str_elems(obj):
 
 def is_good_iterable(obj):
     """Returns True if object is iterable with respect to types."""
-    return is_iterable(obj) and has_str_elems(obj)
+    return _is_iterable(obj) and has_str_elems(obj)
 
 
 def proper_type_return(val):
@@ -38,7 +38,7 @@ def proper_type_return(val):
 class _ValidatedDefaultDict:
 
     def __init__(self, *args, **kwargs):
-        _defaults = kwargs.pop('_defaults', NoDefault)
+        _defaults = kwargs.pop('_defaults', _NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
@@ -53,7 +53,7 @@ class _ValidatedDefaultDict:
         else:
             default_arg = args[0]
         self._type_converter = to_type_converter(default_arg)
-        self._default = toDefault(default_arg, _defaults)
+        self._default = _to_default(default_arg, _defaults)
 
     def _validate_values(self, val):
         val = self._type_converter(val)
@@ -63,7 +63,7 @@ class _ValidatedDefaultDict:
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "
                                  "Bad keys are {}".format(bad_keys))
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             val = self._default(val)
         return val
 
@@ -85,7 +85,7 @@ class _ValidatedDefaultDict:
         """
         if isinstance(key, str):
             return [key]
-        elif is_iterable(key):
+        elif _is_iterable(key):
             keys = []
             for k in key:
                 keys.extend(self._validate_and_split_len_one(k))
@@ -113,7 +113,7 @@ class _ValidatedDefaultDict:
                 if isinstance(key[ind], str):
                     key[ind] = [key[ind]]
             return list(product(*key))
-        elif is_iterable(key):
+        elif _is_iterable(key):
             keys = []
             for k in key:
                 keys.extend(self._validate_and_split_len(k))
@@ -142,7 +142,7 @@ class _ValidatedDefaultDict:
 
     @property
     def default(self):
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             return self._default.to_base()
         else:
             return copy(self._default)
@@ -150,14 +150,14 @@ class _ValidatedDefaultDict:
     @default.setter
     def default(self, new_default):
         new_default = self._type_converter(new_default)
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             new_default = self._default(new_default)
         if isinstance(new_default, dict):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
                 raise ValueError("New default must a subset of current keys.")
-        self._default = toDefault(new_default)
+        self._default = _to_default(new_default)
 
 
 class TypeParameterDict(_ValidatedDefaultDict):
@@ -278,11 +278,11 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     @property
     def _setter(self):
-        return 'set' + to_camel_case(self._param_name)
+        return 'set' + _to_camel_case(self._param_name)
 
     @property
     def _getter(self):
-        return 'get' + to_camel_case(self._param_name)
+        return 'get' + _to_camel_case(self._param_name)
 
     def keys(self):
         """Iterate through the keys."""
@@ -305,9 +305,9 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 class ParameterDict(MutableMapping):
     """Parameter dictionary."""
 
-    def __init__(self, _defaults=NoDefault, **kwargs):
+    def __init__(self, _defaults=_NoDefault, **kwargs):
         self._type_converter = to_type_converter(kwargs)
-        self._dict = {**to_base_defaults(kwargs, _defaults)}
+        self._dict = {**_to_base_defaults(kwargs, _defaults)}
 
     def __setitem__(self, key, value):
         """Set parameter by key."""

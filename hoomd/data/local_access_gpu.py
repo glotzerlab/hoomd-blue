@@ -64,37 +64,37 @@ if hoomd.version.gpu_enabled:
             self._constraints = ConstraintLocalAccessGPU(state)
 
 else:
-    from hoomd.util import NoGPU
+    from hoomd.util import _NoGPU
 
-    class BondLocalAccessGPU(NoGPU):
+    class BondLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class AngleLocalAccessGPU(NoGPU):
+    class AngleLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class DihedralLocalAccessGPU(NoGPU):
+    class DihedralLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class ImproperLocalAccessGPU(NoGPU):
+    class ImproperLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class ConstraintLocalAccessGPU(NoGPU):
+    class ConstraintLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class PairLocalAccessGPU(NoGPU):
+    class PairLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class ParticleLocalAccessGPU(NoGPU):
+    class ParticleLocalAccessGPU(_NoGPU):
         """GPU data access is not available in CPU builds."""
         pass
 
-    class LocalSnapshotGPU(NoGPU, _LocalSnapshot):
+    class LocalSnapshotGPU(_NoGPU, _LocalSnapshot):
         """GPU data access is not available in CPU builds."""
         pass
 

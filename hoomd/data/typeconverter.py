@@ -9,7 +9,7 @@ from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from inspect import isclass
-from hoomd.util import is_iterable
+from hoomd.util import _is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import ParticleFilter, CustomFilter
@@ -406,7 +406,7 @@ class TypeConverterSequence(TypeConverter):
 
     def __call__(self, sequence):
         """Called when the value is set."""
-        if not is_iterable(sequence):
+        if not _is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a sequence like instance. Received {} of type {}."
                 "".format(sequence, type(sequence)))
@@ -457,7 +457,7 @@ class TypeConverterFixedLengthSequence(TypeConverter):
 
     def __call__(self, sequence):
         """Called when the value is set."""
-        if not is_iterable(sequence):
+        if not _is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a tuple like object. Received {} of type {}."
                 "".format(sequence, type(sequence)))
@@ -567,7 +567,7 @@ def to_type_converter(value):
     """
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
-    if is_iterable(value):
+    if _is_iterable(value):
         return TypeConverterSequence(value)
     elif isinstance(value, Mapping):
         return TypeConverterMapping(value)

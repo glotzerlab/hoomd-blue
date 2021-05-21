@@ -1,7 +1,7 @@
 from hoomd.conftest import pickling_check
 from pytest import raises, fixture
-from hoomd.logging import (_LoggerQuantity, SafeNamespaceDict, Logger, dict_map,
-                           Loggable, LoggerCategories, log)
+from hoomd.logging import (_LoggerQuantity, _SafeNamespaceDict, Logger,
+                           dict_map, Loggable, LoggerCategories, log)
 
 
 class DummyNamespace:
@@ -131,13 +131,13 @@ def test_dict_map(base_dict, expected_mapped_dict):
 
 @fixture
 def namespace_dict(base_dict):
-    dict_ = SafeNamespaceDict(base_dict)
+    dict_ = _SafeNamespaceDict(base_dict)
     return dict_
 
 
 @fixture
 def blank_namespace_dict():
-    return SafeNamespaceDict()
+    return _SafeNamespaceDict()
 
 
 @fixture
@@ -148,13 +148,13 @@ def good_keys():
 
 class TestSafeNamespaceDict:
 
-    def test_key_exists(self, namespace_dict, good_keys):
+    def test_contains(self, namespace_dict, good_keys):
         bad_keys = [('z', 'q'), dict(), ('f', 'g', 'h')]
         for key in good_keys:
-            assert namespace_dict.key_exists(key)
+            assert key in namespace_dict
             assert key in namespace_dict
         for key in bad_keys:
-            assert not namespace_dict.key_exists(key)
+            assert key not in namespace_dict
             assert key not in namespace_dict
 
     def test_setitem(self, blank_namespace_dict):

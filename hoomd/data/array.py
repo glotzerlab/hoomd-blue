@@ -715,9 +715,9 @@ if hoomd.version.gpu_enabled:
                     return "<emph>" + name + "</emph>" \
                         + "(<strong>INVALID</strong>)"
 else:
-    from hoomd.util import NoGPU
+    from hoomd.util import _NoGPU
 
-    class HOOMDGPUArray(NoGPU):
+    class HOOMDGPUArray(_NoGPU):
         """GPU arrays are not available on the CPU."""
         pass
 

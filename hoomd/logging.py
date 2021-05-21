@@ -8,7 +8,7 @@ from copy import deepcopy
 from enum import Flag, auto
 from itertools import count
 from functools import reduce
-from hoomd.util import dict_map, SafeNamespaceDict
+from hoomd.util import dict_map, _SafeNamespaceDict
 from collections.abc import Sequence
 
 
@@ -480,7 +480,7 @@ class _LoggerEntry:
             for attr in ['obj', 'attr', 'category'])
 
 
-class Logger(SafeNamespaceDict):
+class Logger(_SafeNamespaceDict):
     """Logs HOOMD-blue operation data and custom quantities.
 
     The `Logger` class provides an intermediary between a back end such as the
