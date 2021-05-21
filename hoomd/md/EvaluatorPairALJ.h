@@ -141,11 +141,17 @@ template<unsigned int ndim> class EvaluatorPairALJ
     //! Potential parameters for the ALJ potential.
     struct param_type
         {
-        DEVICE param_type()
+        HOSTDEVICE param_type()
             : epsilon(0.0), sigma_i(0.0), sigma_j(0.0), contact_sigma_i(0.0), contact_sigma_j(0.0),
               alpha(0), average_simplices(false)
             {
             }
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+         *  \param available_bytes Size of remaining shared memory allocation
+         */
+        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifndef __HIPCC__
         //! Shape constructor
@@ -186,12 +192,6 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
 
 #endif
-
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-         *  \param available_bytes Size of remaining shared memory allocation
-         */
-        HOSTDEVICE void load_shared(char*& ptr, unsigned int& available_bytes) const { }
 
 #ifdef ENABLE_HIP
         //! Attach managed memory to CUDA stream
