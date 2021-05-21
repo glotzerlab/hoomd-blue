@@ -85,7 +85,7 @@ def test_device_property(device):
 
 def test_allows_compute_pressure(simulation_factory, lattice_snapshot_factory):
     sim = simulation_factory()
-    assert sim.always_compute_pressure is False
+    assert not sim.always_compute_pressure
     with pytest.raises(RuntimeError):
         sim.always_compute_pressure = True
     sim.create_state_from_snapshot(lattice_snapshot_factory())
