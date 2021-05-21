@@ -198,8 +198,7 @@ class constraint_ellipsoid:
             ).getDomainDecomposition():
                 hoomd.context.current.device.cpp_msg.error(
                     "constrain.ellipsoid is not supported in multi-processor "
-                    "simulations.\n\n"
-                )
+                    "simulations.\n\n")
                 raise RuntimeError("Error initializing updater.")
 
         # Error out if no radii are set
