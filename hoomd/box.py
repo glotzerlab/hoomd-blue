@@ -173,22 +173,19 @@ class Box:
             box:
                 A box-like object
 
-        .. note:: Objects that can be converted to HOOMD-blue boxes include
-                  lists like :code:`[Lx, Ly, Lz, xy, xz, yz]`,
-                  dictionaries with keys
-                  :code:`'Lx', 'Ly', 'Lz', 'xy', 'xz', 'yz',
-                  objects with attributes
-                  :code:`Lx, Ly, Lz, xy, xz, yz,
-                  3x3 matrices (see `from_matrix`),
-                  or existing :class:`hoomd.Box` objects.
+        Note:
+           Objects that can be converted to HOOMD-blue boxes include lists like
+           ``[Lx, Ly, Lz, xy, xz, yz]``, dictionaries with keys ``'Lx',
+           'Ly', 'Lz', 'xy', 'xz', 'yz'``, objects with attributes ``Lx, Ly,
+           Lz, xy, xz, yz``, 3x3 matrices (see `from_matrix`), or existing
+           `hoomd.Box` objects.
 
-                  If any of :code:`Lz, xy, xz, yz` are not provided, they will
-                  be set to 0.
+           If any of ``Lz, xy, xz, yz`` are not provided, they will be set to 0.
 
-                  If all values are provided, a triclinic box will be
-                  constructed. If only :code:`Lx, Ly, Lz` are provided, an
-                  orthorhombic box will be constructed. If only :code:`Lx, Ly`
-                  are provided, a rectangular (2D) box will be constructed.
+           If all values are provided, a triclinic box will be constructed.
+           If only ``Lx, Ly, Lz`` are provided, an orthorhombic box will
+           be constructed. If only ``Lx, Ly`` are provided, a rectangular
+           (2D) box will be constructed.
 
         Returns:
             :class:`hoomd.Box`: The resulting box object.
