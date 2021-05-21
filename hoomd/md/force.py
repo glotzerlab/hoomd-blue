@@ -60,8 +60,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def energies(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies
-        for all particles."""
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies for all particles.""" # noqa: E501
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
@@ -70,8 +69,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def forces(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces
-        for all particles."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces for all particles.""" # noqa: E501
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
@@ -80,8 +78,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def torques(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque
-        for all particles."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque for all particles.""" # noqa: E501
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
@@ -90,8 +87,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def virials(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial
-        for all particles."""
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial for all particles.""" # noqa: E501
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
@@ -457,7 +453,7 @@ class dipole(Force):
         self.field_y = field_y
         self.field_z = field_z
 
-    def set_params(field_x, field_y, field_z, p):
+    def set_params(self, field_x, field_y, field_z, p):
         R"""Change the constant field and dipole moment.
 
         Args:
