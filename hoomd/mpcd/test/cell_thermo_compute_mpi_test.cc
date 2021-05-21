@@ -78,7 +78,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
                                            access_mode::read);
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 2)].x, 0.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 2)].y, 0.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 2)].z, 0.0, tol);
@@ -88,7 +88,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(2, 2, 2)].y, 2.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2, 2, 2)].z), 2);
             break;
-            case 1:
+        case 1:
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 2)].x, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 2)].y, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 2)].z, -1.0, tol);
@@ -98,7 +98,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(1, 2, 2)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1, 2, 2)].z), 1);
             break;
-            case 2:
+        case 2:
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 2)].x, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 2)].y, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 2)].z, -1.0, tol);
@@ -108,7 +108,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(2, 1, 2)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2, 1, 2)].z), 1);
             break;
-            case 3:
+        case 3:
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 2)].x, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 2)].y, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 2)].z, -1.0, tol);
@@ -118,7 +118,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(1, 1, 2)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1, 1, 2)].z), 1);
             break;
-            case 4:
+        case 4:
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 1)].x, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 1)].y, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 2, 1)].z, 1.0, tol);
@@ -128,7 +128,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(2, 2, 1)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2, 2, 1)].z), 1);
             break;
-            case 5:
+        case 5:
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 1)].x, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 1)].y, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 2, 1)].z, 1.0, tol);
@@ -138,7 +138,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(1, 2, 1)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1, 2, 1)].z), 1);
             break;
-            case 6:
+        case 6:
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 1)].x, -1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 1)].y, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(2, 1, 1)].z, 1.0, tol);
@@ -148,7 +148,7 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
             CHECK_CLOSE(h_cell_energy.data[ci(2, 1, 1)].y, 0.0, tol);
             UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2, 1, 1)].z), 1);
             break;
-            case 7:
+        case 7:
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 1)].x, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 1)].y, 1.0, tol);
             CHECK_CLOSE(h_cell_vel.data[ci(1, 1, 1)].z, 1.0, tol);

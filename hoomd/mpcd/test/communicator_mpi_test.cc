@@ -117,7 +117,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
         switch (my_rank)
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(tag, 0);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -127,7 +127,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 0.5, tol);
             UP_ASSERT_EQUAL(type, 0);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(tag, 1);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -137,7 +137,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 1.5, tol);
             UP_ASSERT_EQUAL(type, 1);
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(tag, 2);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -147,7 +147,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 2.5, tol);
             UP_ASSERT_EQUAL(type, 2);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(tag, 3);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -157,7 +157,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 3.5, tol);
             UP_ASSERT_EQUAL(type, 3);
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(tag, 4);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -167,7 +167,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 4.5, tol);
             UP_ASSERT_EQUAL(type, 4);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(tag, 5);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -177,7 +177,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 5.5, tol);
             UP_ASSERT_EQUAL(type, 5);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(tag, 6);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -187,7 +187,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 6.5, tol);
             UP_ASSERT_EQUAL(type, 6);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(tag, 7);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -211,7 +211,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
         switch (my_rank)
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(tag, 0);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -221,7 +221,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 0.5, tol);
             UP_ASSERT_EQUAL(type, 0);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(tag, 1);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -231,7 +231,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 1.5, tol);
             UP_ASSERT_EQUAL(type, 1);
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(tag, 2);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -241,7 +241,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 2.5, tol);
             UP_ASSERT_EQUAL(type, 2);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(tag, 3);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -251,7 +251,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 3.5, tol);
             UP_ASSERT_EQUAL(type, 3);
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(tag, 4);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -261,7 +261,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 4.5, tol);
             UP_ASSERT_EQUAL(type, 4);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(tag, 5);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -271,7 +271,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 5.5, tol);
             UP_ASSERT_EQUAL(type, 5);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(tag, 6);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -281,7 +281,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 6.5, tol);
             UP_ASSERT_EQUAL(type, 6);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(tag, 7);
             CHECK_CLOSE(pos.x, 0.5, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -303,35 +303,35 @@ void test_communicator_migrate(communicator_creator comm_creator,
         Scalar3 new_pos;
         switch (my_rank)
             {
-            case 0:
+        case 0:
             // move particle 0 into domain 1
             new_pos = REF_TO_DEST(make_scalar3(0.1, -0.5, -0.5));
             break;
-            case 1:
+        case 1:
             // move particle 1 into domain 2
             new_pos = REF_TO_DEST(make_scalar3(-0.2, 0.5, -0.5));
             break;
-            case 2:
+        case 2:
             // move particle 2 into domain 3
             new_pos = REF_TO_DEST(make_scalar3(0.2, 0.3, -0.5));
             break;
-            case 3:
+        case 3:
             // move particle 3 into domain 4
             new_pos = REF_TO_DEST(make_scalar3(-0.5, -0.3, 0.2));
             break;
-            case 4:
+        case 4:
             // move particle 4 into domain 5
             new_pos = REF_TO_DEST(make_scalar3(0.1, -0.3, 0.2));
             break;
-            case 5:
+        case 5:
             // move particle 5 into domain 6
             new_pos = REF_TO_DEST(make_scalar3(-0.2, 0.4, 0.2));
             break;
-            case 6:
+        case 6:
             // move particle 6 into domain 7
             new_pos = REF_TO_DEST(make_scalar3(0.6, 0.1, 0.2));
             break;
-            case 7:
+        case 7:
             // move particle 7 into domain 0
             new_pos = REF_TO_DEST(make_scalar3(-0.6, -0.1, -0.2));
             break;
@@ -352,7 +352,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
         switch (my_rank)
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(tag, 7);
             CHECK_CLOSE(pos.x, -0.6, tol);
             CHECK_CLOSE(pos.y, -0.1, tol);
@@ -362,7 +362,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 7.5, tol);
             UP_ASSERT_EQUAL(type, 7);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(tag, 0);
             CHECK_CLOSE(pos.x, 0.1, tol);
             CHECK_CLOSE(pos.y, -0.5, tol);
@@ -372,7 +372,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 0.5, tol);
             UP_ASSERT_EQUAL(type, 0);
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(tag, 1);
             CHECK_CLOSE(pos.x, -0.2, tol);
             CHECK_CLOSE(pos.y, 0.5, tol);
@@ -382,7 +382,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 1.5, tol);
             UP_ASSERT_EQUAL(type, 1);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(tag, 2);
             CHECK_CLOSE(pos.x, 0.2, tol);
             CHECK_CLOSE(pos.y, 0.3, tol);
@@ -392,7 +392,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 2.5, tol);
             UP_ASSERT_EQUAL(type, 2);
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(tag, 3);
             CHECK_CLOSE(pos.x, -0.5, tol);
             CHECK_CLOSE(pos.y, -0.3, tol);
@@ -402,7 +402,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 3.5, tol);
             UP_ASSERT_EQUAL(type, 3);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(tag, 4);
             CHECK_CLOSE(pos.x, 0.1, tol);
             CHECK_CLOSE(pos.y, -0.3, tol);
@@ -412,7 +412,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 4.5, tol);
             UP_ASSERT_EQUAL(type, 4);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(tag, 5);
             CHECK_CLOSE(pos.x, -0.2, tol);
             CHECK_CLOSE(pos.y, 0.4, tol);
@@ -422,7 +422,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 5.5, tol);
             UP_ASSERT_EQUAL(type, 5);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(tag, 6);
             CHECK_CLOSE(pos.x, 0.6, tol);
             CHECK_CLOSE(pos.y, 0.1, tol);
@@ -444,35 +444,35 @@ void test_communicator_migrate(communicator_creator comm_creator,
         Scalar3 new_pos;
         switch (my_rank)
             {
-            case 0:
+        case 0:
             // particle 7 crosses the global boundary in the -z direction
             new_pos = REF_TO_DEST(make_scalar3(-0.6, -0.1, -1.5));
             break;
-            case 1:
+        case 1:
             // particle 0 crosses the global boundary in +x direction
             new_pos = REF_TO_DEST(make_scalar3(1.1, -0.5, -0.5));
             break;
-            case 2:
+        case 2:
             // particle 1 crosses the global bounadry in the -x direction
             new_pos = REF_TO_DEST(make_scalar3(-1.1, 0.5, -0.5));
             break;
-            case 3:
+        case 3:
             // particle 2 crosses the global boundary in the +y direction
             new_pos = REF_TO_DEST(make_scalar3(0.2, 1.3, -0.5));
             break;
-            case 4:
+        case 4:
             // particle 3 crosses the global boundary in the -y direction
             new_pos = REF_TO_DEST(make_scalar3(-0.5, -1.5, 0.2));
             break;
-            case 5:
+        case 5:
             // particle 4 crosses the global boundary in the +z direction
             new_pos = REF_TO_DEST(make_scalar3(0.1, -0.3, 1.6));
             break;
-            case 6:
+        case 6:
             // particle 5 crosses the global boundary in the +z direction and in the -x direction
             new_pos = REF_TO_DEST(make_scalar3(-1.1, 0.4, 1.25));
             break;
-            case 7:
+        case 7:
             // particle 6 crosses the global boundary in the +z direction and in the +x direction
             new_pos = REF_TO_DEST(make_scalar3(1.3, 0.1, 1.05));
             break;
@@ -498,7 +498,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
         switch (my_rank)
             {
-            case 0:
+        case 0:
             UP_ASSERT_EQUAL(pdata->getN(), 1); // particle 0
 
             UP_ASSERT_EQUAL(tag, 0);
@@ -510,7 +510,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 0.5, tol);
             UP_ASSERT_EQUAL(type, 0);
             break;
-            case 1:
+        case 1:
             UP_ASSERT_EQUAL(pdata->getN(), 2); // particles 2 and 4
 
             // we don't care about particle sorting and we only have 2 particles
@@ -570,7 +570,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
                 UP_ASSERT_EQUAL(type, 2);
                 }
             break;
-            case 2:
+        case 2:
             UP_ASSERT_EQUAL(pdata->getN(), 1); // particle 6
 
             UP_ASSERT_EQUAL(tag, 6);
@@ -582,7 +582,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 6.5, tol);
             UP_ASSERT_EQUAL(type, 6);
             break;
-            case 3:
+        case 3:
             UP_ASSERT_EQUAL(pdata->getN(), 2); // particles 1 and 5
 
             UP_ASSERT(tag == 1 || tag == 5);
@@ -640,7 +640,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
                 UP_ASSERT_EQUAL(type, 1);
                 }
             break;
-            case 4:
+        case 4:
             UP_ASSERT_EQUAL(pdata->getN(), 1); // particle 7
 
             UP_ASSERT_EQUAL(tag, 7);
@@ -652,10 +652,10 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 7.5, tol);
             UP_ASSERT_EQUAL(type, 7);
             break;
-            case 5:
+        case 5:
             UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
-            case 6:
+        case 6:
             UP_ASSERT_EQUAL(pdata->getN(), 1); // particle 3
 
             UP_ASSERT_EQUAL(tag, 3);
@@ -667,7 +667,7 @@ void test_communicator_migrate(communicator_creator comm_creator,
             CHECK_CLOSE(vel.z, 3.5, tol);
             UP_ASSERT_EQUAL(type, 3);
             break;
-            case 7:
+        case 7:
             UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
             }
@@ -757,35 +757,35 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
         Scalar3 new_pos;
         switch (exec_conf->getRank())
             {
-            case 0:
+        case 0:
             // move particle 0 into domain 1
             new_pos = make_scalar3(-0.5, -0.5, 0.0);
             break;
-            case 1:
+        case 1:
             // move particle 1 into domain 2
             new_pos = make_scalar3(0.5, -0.5, 0.0);
             break;
-            case 2:
+        case 2:
             // move particle 2 into domain 3
             new_pos = make_scalar3(1.5, -0.5, 0.0);
             break;
-            case 3:
+        case 3:
             // move particle 3 into domain 4
             new_pos = make_scalar3(2.1, 0.5, 0.0);
             break;
-            case 4:
+        case 4:
             // move particle 4 into domain 5
             new_pos = make_scalar3(-0.5, 0.5, 0.0);
             break;
-            case 5:
+        case 5:
             // move particle 5 into domain 6
             new_pos = make_scalar3(0.5, 0.5, 0.0);
             break;
-            case 6:
+        case 6:
             // move particle 6 into domain 7
             new_pos = make_scalar3(1.5, 0.5, 0.0);
             break;
-            case 7:
+        case 7:
             // move particle 7 into domain 0
             new_pos = make_scalar3(2.1, -0.5, 0.0);
             break;

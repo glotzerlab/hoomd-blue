@@ -32,13 +32,13 @@ struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Sca
         Scalar vel;
         switch (m_flow_direction)
             {
-            case flow_enum::X:
+        case flow_enum::X:
             vel = m_vel[idx].x;
             break;
-            case flow_enum::Y:
+        case flow_enum::Y:
             vel = m_vel[idx].y;
             break;
-            case flow_enum::Z:
+        case flow_enum::Z:
             vel = m_vel[idx].z;
             break;
             }
@@ -88,15 +88,15 @@ struct vel_search_binary_opt : public thrust::binary_function<Scalar3, Scalar3, 
         unsigned int index_a, index_b;
         switch (m_slab_direction)
             {
-            case flow_enum::X:
+        case flow_enum::X:
             index_a = (m_pos[idx_a].x / m_gl_box.getL().x + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].x / m_gl_box.getL().x + .5) * m_Nslabs;
             break;
-            case flow_enum::Y:
+        case flow_enum::Y:
             index_a = (m_pos[idx_a].y / m_gl_box.getL().y + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].y / m_gl_box.getL().y + .5) * m_Nslabs;
             break;
-            case flow_enum::Z:
+        case flow_enum::Z:
             index_a = (m_pos[idx_a].z / m_gl_box.getL().z + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].z / m_gl_box.getL().z + .5) * m_Nslabs;
             break;
@@ -196,13 +196,13 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
         const Scalar new_min_vel = last_max_vel.x / last_min_vel.y;
         switch (flow_direction)
             {
-            case flow_enum::X:
+        case flow_enum::X:
             d_vel[min_idx].x = new_min_vel;
             break;
-            case flow_enum::Y:
+        case flow_enum::Y:
             d_vel[min_idx].y = new_min_vel;
             break;
-            case flow_enum::Z:
+        case flow_enum::Z:
             d_vel[min_idx].z = new_min_vel;
             break;
             }
@@ -213,13 +213,13 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
         const Scalar new_max_vel = last_min_vel.x / last_max_vel.y;
         switch (flow_direction)
             {
-            case flow_enum::X:
+        case flow_enum::X:
             d_vel[max_idx].x = new_max_vel;
             break;
-            case flow_enum::Y:
+        case flow_enum::Y:
             d_vel[max_idx].y = new_max_vel;
             break;
-            case flow_enum::Z:
+        case flow_enum::Z:
             d_vel[max_idx].z = new_max_vel;
             break;
             }

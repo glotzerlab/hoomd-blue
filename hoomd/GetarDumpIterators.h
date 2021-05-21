@@ -75,12 +75,12 @@ class Scalar4xyzIterator : public std::iterator<std::input_iterator_tag, Real>
         {
         switch (m_minor)
             {
-            case 0:
+        case 0:
             return (Real)m_major->x;
-            case 1:
+        case 1:
             return (Real)m_major->y;
-            case 2:
-            default:
+        case 2:
+        default:
             return (Real)m_major->z;
             }
         }
@@ -117,12 +117,12 @@ class Scalar3xyzIterator : public std::iterator<std::input_iterator_tag, Real>
         {
         switch (m_minor)
             {
-            case 0:
+        case 0:
             return (float)m_major->x;
-            case 1:
+        case 1:
             return (float)m_major->y;
-            case 2:
-            default:
+        case 2:
+        default:
             return (float)m_major->z;
             }
         }
@@ -159,12 +159,12 @@ class Int3xyzIterator : public std::iterator<std::input_iterator_tag, int32_t>
         {
         switch (m_minor)
             {
-            case 0:
+        case 0:
             return (int32_t)m_major->x;
-            case 1:
+        case 1:
             return (int32_t)m_major->y;
-            case 2:
-            default:
+        case 2:
+        default:
             return (int32_t)m_major->z;
             }
         }
@@ -201,14 +201,14 @@ class Scalar4xyzwIterator : public std::iterator<std::input_iterator_tag, Real>
         {
         switch (m_minor)
             {
-            case 0:
+        case 0:
             return (Real)m_major->x;
-            case 1:
+        case 1:
             return (Real)m_major->y;
-            case 2:
+        case 2:
             return (Real)m_major->z;
-            case 3:
-            default:
+        case 3:
+        default:
             return (Real)m_major->w;
             }
         }
@@ -245,14 +245,14 @@ class QuatsxyzIterator : public std::iterator<std::input_iterator_tag, Real>
         {
         switch (m_minor)
             {
-            case 0:
+        case 0:
             return (float)m_major->s;
-            case 1:
+        case 1:
             return (float)m_major->v.x;
-            case 2:
+        case 2:
             return (float)m_major->v.y;
-            case 3:
-            default:
+        case 3:
+        default:
             return (float)m_major->v.z;
             }
         }

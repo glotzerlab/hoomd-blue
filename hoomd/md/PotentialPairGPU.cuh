@@ -494,28 +494,28 @@ hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             switch (pair_args.shift_mode)
                 {
-                case 0:
+            case 0:
                 {
                 PairForceComputeKernel<evaluator, 0, 1, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                case 1:
+            case 1:
                 {
                 PairForceComputeKernel<evaluator, 1, 1, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                case 2:
+            case 2:
                 {
                 PairForceComputeKernel<evaluator, 2, 1, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                default:
+            default:
                 break;
                 }
             }
@@ -523,28 +523,28 @@ hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
             {
             switch (pair_args.shift_mode)
                 {
-                case 0:
+            case 0:
                 {
                 PairForceComputeKernel<evaluator, 0, 0, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                case 1:
+            case 1:
                 {
                 PairForceComputeKernel<evaluator, 1, 0, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                case 2:
+            case 2:
                 {
                 PairForceComputeKernel<evaluator, 2, 0, gpu_pair_force_max_tpp>::launch(pair_args,
                                                                                         range,
                                                                                         d_params);
                 break;
                 }
-                default:
+            default:
                 break;
                 }
             }

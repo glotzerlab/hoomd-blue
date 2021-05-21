@@ -51,101 +51,101 @@ bool needSnapshot(NeedSnapshotIdx idx, Property prop)
     {
     switch (idx)
         {
-        case NeedSystem:
+    case NeedSystem:
         switch (prop)
             {
-            case Box:
-            case Dimensions:
+        case Box:
+        case Dimensions:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedPData:
+    case NeedPData:
         switch (prop)
             {
-            case AngularMomentum:
-            case Body:
-            case Charge:
-            case Diameter:
-            case Image:
-            case Mass:
-            case MomentInertia:
-            case Orientation:
-            case Position:
-            case Type:
-            case TypeNames:
-            case Velocity:
+        case AngularMomentum:
+        case Body:
+        case Charge:
+        case Diameter:
+        case Image:
+        case Mass:
+        case MomentInertia:
+        case Orientation:
+        case Position:
+        case Type:
+        case TypeNames:
+        case Velocity:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedBond:
+    case NeedBond:
         switch (prop)
             {
-            case BondNames:
-            case BondTags:
-            case BondTypes:
+        case BondNames:
+        case BondTags:
+        case BondTypes:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedAngle:
+    case NeedAngle:
         switch (prop)
             {
-            case AngleNames:
-            case AngleTags:
-            case AngleTypes:
+        case AngleNames:
+        case AngleTags:
+        case AngleTypes:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedDihedral:
+    case NeedDihedral:
         switch (prop)
             {
-            case DihedralNames:
-            case DihedralTags:
-            case DihedralTypes:
+        case DihedralNames:
+        case DihedralTags:
+        case DihedralTypes:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedImproper:
+    case NeedImproper:
         switch (prop)
             {
-            case ImproperNames:
-            case ImproperTags:
-            case ImproperTypes:
+        case ImproperNames:
+        case ImproperTags:
+        case ImproperTypes:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedPair:
+    case NeedPair:
         switch (prop)
             {
-            case PairNames:
-            case PairTags:
-            case PairTypes:
+        case PairNames:
+        case PairTags:
+        case PairTypes:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedRigid:
+    case NeedRigid:
         switch (prop)
             {
-            case BodyAngularMomentum:
-            case BodyCOM:
-        // case BodyMomentInertia:
-            case BodyImage:
-        // case BodyOrientation:
-            case BodyVelocity:
+        case BodyAngularMomentum:
+        case BodyCOM:
+    // case BodyMomentInertia:
+        case BodyImage:
+    // case BodyOrientation:
+        case BodyVelocity:
             return true;
-            default:
+        default:
             break;
             }
-        case NeedIntegrator:
+    case NeedIntegrator:
         switch (prop)
             {
-            default:
+        default:
             break;
             }
         }
@@ -156,81 +156,81 @@ string getPropertyName(Property prop, bool highPrecision)
     {
     switch (prop)
         {
-        case AngularMomentum:
+    case AngularMomentum:
         return string("angular_momentum_quat.f32");
-        case AngleNames:
+    case AngleNames:
         return string("type_names.json");
-        case AngleTags:
+    case AngleTags:
         return string("tag.u32");
-        case AngleTypes:
+    case AngleTypes:
         return string("type.u32");
-        case Body:
+    case Body:
         return string("body.i32");
-        case BodyAngularMomentum:
+    case BodyAngularMomentum:
         return string("angular_momentum.f32");
-        case BodyCOM:
+    case BodyCOM:
         return string("center_of_mass.f32");
-        case BodyImage:
+    case BodyImage:
         return string("image.i32");
-        case BodyMomentInertia:
+    case BodyMomentInertia:
         return string("moment_inertia.f32");
-        case BodyOrientation:
+    case BodyOrientation:
         return string("orientation.f32");
-        case BodyVelocity:
+    case BodyVelocity:
         return string("velocity.f32");
-        case BondNames:
+    case BondNames:
         return string("type_names.json");
-        case BondTags:
+    case BondTags:
         return string("tag.u32");
-        case BondTypes:
+    case BondTypes:
         return string("type.u32");
-        case Box:
+    case Box:
         return string("box.") + string(highPrecision ? "f64" : "f32");
-        case Charge:
+    case Charge:
         return string("charge.f32");
-        case Diameter:
+    case Diameter:
         return string("diameter.f32");
-        case DihedralNames:
+    case DihedralNames:
         return string("type_names.json");
-        case DihedralTags:
+    case DihedralTags:
         return string("tag.u32");
-        case DihedralTypes:
+    case DihedralTypes:
         return string("type.u32");
-        case Dimensions:
+    case Dimensions:
         return string("dimensions.u32");
-        case Image:
+    case Image:
         return string("image.i32");
-        case ImproperNames:
+    case ImproperNames:
         return string("type_names.json");
-        case ImproperTags:
+    case ImproperTags:
         return string("tag.u32");
-        case ImproperTypes:
+    case ImproperTypes:
         return string("type.u32");
-        case PairNames:
+    case PairNames:
         return string("type_names.json");
-        case PairTags:
+    case PairTags:
         return string("tag.u32");
-        case PairTypes:
+    case PairTypes:
         return string("type.u32");
-        case Mass:
+    case Mass:
         return string("mass.f32");
-        case MomentInertia:
+    case MomentInertia:
         return string("moment_inertia.f32");
-        case Orientation:
+    case Orientation:
         return string("orientation.") + string(highPrecision ? "f64" : "f32");
-        case Position:
+    case Position:
         return string("position.") + string(highPrecision ? "f64" : "f32");
-        case PotentialEnergy:
+    case PotentialEnergy:
         return string("potential_energy.f32");
-        case Type:
+    case Type:
         return string("type.u32");
-        case TypeNames:
+    case TypeNames:
         return string("type_names.json");
-        case Velocity:
+    case Velocity:
         return string("velocity.") + string(highPrecision ? "f64" : "f32");
-        case Virial:
+    case Virial:
         return string("virial.f32");
-        default:
+    default:
         return string("unknown.u8");
         }
     }

@@ -453,19 +453,19 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
         {
         switch (args.shift_mode)
             {
-            case 0:
+        case 0:
             {
             DPDForceComputeKernel<evaluator, 0, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args,
                                                                                           d_params);
             break;
             }
-            case 1:
+        case 1:
             {
             DPDForceComputeKernel<evaluator, 1, 1, 0, gpu_dpd_pair_force_max_tpp>::launch(args,
                                                                                           d_params);
             break;
             }
-            default:
+        default:
             return hipErrorUnknown;
             }
         }
@@ -473,19 +473,19 @@ hipError_t gpu_compute_dpd_forces(const dpd_pair_args_t& args,
         {
         switch (args.shift_mode)
             {
-            case 0:
+        case 0:
             {
             DPDForceComputeKernel<evaluator, 0, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args,
                                                                                           d_params);
             break;
             }
-            case 1:
+        case 1:
             {
             DPDForceComputeKernel<evaluator, 1, 0, 0, gpu_dpd_pair_force_max_tpp>::launch(args,
                                                                                           d_params);
             break;
             }
-            default:
+        default:
             return hipErrorUnknown;
             }
         }

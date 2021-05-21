@@ -405,31 +405,31 @@ void permute(unsigned int result[8], const unsigned int in[8], int p)
     {
     switch (p)
         {
-        case 0:
+    case 0:
         permute1(result, in);
         break;
-        case 1:
+    case 1:
         permute2(result, in);
         break;
-        case 2:
+    case 2:
         permute3(result, in);
         break;
-        case 3:
+    case 3:
         permute4(result, in);
         break;
-        case 4:
+    case 4:
         permute5(result, in);
         break;
-        case 5:
+    case 5:
         permute6(result, in);
         break;
-        case 6:
+    case 6:
         permute7(result, in);
         break;
-        case 7:
+    case 7:
         permute8(result, in);
         break;
-        default:
+    default:
         assert(false);
         }
     }

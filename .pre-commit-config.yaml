@@ -62,7 +62,7 @@ repos:
         ^doc/dev/
       )
 - repo: https://github.com/glotzerlab/pre-commit-clang-format
-  rev: v1.0.0
+  rev: v1.1.0
   hooks:
   - id: clang-format
     stages: [manual]

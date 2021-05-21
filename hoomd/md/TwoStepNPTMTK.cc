@@ -921,19 +921,19 @@ std::string TwoStepNPTMTK::getCouple()
 
     switch (m_couple)
         {
-        case couple_none:
+    case couple_none:
         couple = "none";
         break;
-        case couple_xy:
+    case couple_xy:
         couple = "xy";
         break;
-        case couple_xz:
+    case couple_xz:
         couple = "xz";
         break;
-        case couple_yz:
+    case couple_yz:
         couple = "yz";
         break;
-        case couple_xyz:
+    case couple_xyz:
         couple = "xyz";
         }
     return couple;
@@ -1071,21 +1071,21 @@ void TwoStepNPTMTK::thermalizeThermostatAndBarostatDOF(uint64_t timestep)
 
         switch (couple)
             {
-            case couple_none:
+        case couple_none:
             break;
-            case couple_xy:
+        case couple_xy:
             nuyy = nuxx;
             break;
-            case couple_xz:
+        case couple_xz:
             nuzz = nuxx;
             break;
-            case couple_yz:
+        case couple_yz:
             nuyy = nuzz;
             break;
-            case couple_xyz:
+        case couple_xyz:
             nuxx = nuyy = nuzz;
             break;
-            default:
+        default:
             m_exec_conf->msg->error() << "integrate.npt: Invalid coupling mode." << std::endl
                                       << std::endl;
             throw std::runtime_error("Error in NPT integration");
