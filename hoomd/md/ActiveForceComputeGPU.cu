@@ -86,54 +86,57 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     unsigned int idx = d_index_array[group_idx];
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
-    unsigned int ptag = d_tag[group_idx];
+    
+    Scalar4 fact = __ldg(d_f_act + type);
 
-    quat<Scalar> quati( __ldg(d_orientation + idx));
+    if(fact.w != 0 ){
+        unsigned int ptag = d_tag[group_idx];
 
-    hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
-                                            timestep,
-                                            seed),
-                                hoomd::Counter(ptag));
+        quat<Scalar> quati( __ldg(d_orientation + idx));
 
-    if (is2D) // 2D
-        {
-        Scalar delta_theta; // rotational diffusion angle
-        delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-        Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
-        vec3<Scalar> b(0,0,slow::sin(theta));
+        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
+                                                timestep,
+                                                seed),
+                                    hoomd::Counter(ptag));
 
-        quat<Scalar> rot_quat(slow::cos(theta),b);
+        if (is2D) // 2D
+            {
+            Scalar delta_theta; // rotational diffusion angle
+            delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
+            Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+            vec3<Scalar> b(0,0,slow::sin(theta));
 
-        quati = rot_quat*quati;
-        d_orientation[idx] = quat_to_scalar4(quati);
-        // in 2D there is only one meaningful direction for torque
-        }
-    else // 3D: Following Stenhammar, Soft Matter, 2014
-        {
-        hoomd::SpherePointGenerator<Scalar> unit_vec;
-        vec3<Scalar> rand_vec;
-        unit_vec(rng, rand_vec);
+            quat<Scalar> rot_quat(slow::cos(theta),b);
 
-        Scalar4 fact = __ldg(d_f_act + type);
+            quati = rot_quat*quati;
+            d_orientation[idx] = quat_to_scalar4(quati);
+            // in 2D there is only one meaningful direction for torque
+            }
+        else // 3D: Following Stenhammar, Soft Matter, 2014
+            {
+            hoomd::SpherePointGenerator<Scalar> unit_vec;
+            vec3<Scalar> rand_vec;
+            unit_vec(rng, rand_vec);
 
-        vec3<Scalar> f(fact.x, fact.y, fact.z);
-        vec3<Scalar> fi = rotate(quati, f);
+            vec3<Scalar> f(fact.x, fact.y, fact.z);
+            vec3<Scalar> fi = rotate(quati, f);
 
-        vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
-        Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
-        aux_vec *= aux_vec_mag;
+            vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
+            Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
+            aux_vec *= aux_vec_mag;
 
 
-        Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
-        Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
-        quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec);
+            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
+            Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
+            quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec);
 
-        quati = rot_quat*quati;
-        d_orientation[idx].x = quati.s;
-        d_orientation[idx].y = quati.v.x;
-        d_orientation[idx].z = quati.v.y;
-        d_orientation[idx].w = quati.v.z;
-            
+            quati = rot_quat*quati;
+            d_orientation[idx].x = quati.s;
+            d_orientation[idx].y = quati.v.x;
+            d_orientation[idx].z = quati.v.y;
+            d_orientation[idx].w = quati.v.z;
+                
+            }
         }
     }
 

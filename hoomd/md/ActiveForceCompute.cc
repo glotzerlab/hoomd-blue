@@ -96,7 +96,7 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
         }
     else
         {
-        f_activeVec.x = 0;
+        f_activeVec.x = 1;
         f_activeVec.y = 0;
         f_activeVec.z = 0;
         f_activeVec.w = 0;
@@ -237,49 +237,52 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
         {
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
-        unsigned int ptag = h_tag.data[idx];
-        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
-                                               timestep,
-                                               m_sysdef->getSeed()),
-                                   hoomd::Counter(ptag));
 
-        quat<Scalar> quati(h_orientation.data[idx]);
+        if( h_f_actVec.data[type].w != 0){
+            unsigned int ptag = h_tag.data[idx];
+            hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
+                                                   timestep,
+                                                   m_sysdef->getSeed()),
+                                       hoomd::Counter(ptag));
+
+            quat<Scalar> quati(h_orientation.data[idx]);
 
 
-        if (m_sysdef->getNDimensions() == 2) // 2D
-            {
-            Scalar delta_theta; // rotational diffusion angle
-            delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-            Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
-            vec3<Scalar> b(0,0,slow::sin(theta));
+            if (m_sysdef->getNDimensions() == 2) // 2D
+                {
+                Scalar delta_theta; // rotational diffusion angle
+                delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
+                vec3<Scalar> b(0,0,slow::sin(theta));
 
-            quat<Scalar> rot_quat(slow::cos(theta),b);// rotational diffusion quaternion
+                quat<Scalar> rot_quat(slow::cos(theta),b);// rotational diffusion quaternion
 
-            quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
-            h_orientation.data[idx] = quat_to_scalar4(quati);
-            // In 2D, the only meaningful torque vector is out of plane and should not change
+                quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
+                h_orientation.data[idx] = quat_to_scalar4(quati);
+                // In 2D, the only meaningful torque vector is out of plane and should not change
+                }
+            else // 3D: Following Stenhammar, Soft Matter, 2014
+                {
+                hoomd::SpherePointGenerator<Scalar> unit_vec;
+                vec3<Scalar> rand_vec;
+                unit_vec(rng, rand_vec);
+
+                vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
+                vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
+
+                vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
+                Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
+                aux_vec *= aux_vec_mag;
+
+                Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
+                Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
+                quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec); // rotational diffusion quaternion
+
+                quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
+                h_orientation.data[idx] = quat_to_scalar4(quati);
+                }
             }
-        else // 3D: Following Stenhammar, Soft Matter, 2014
-            {
-            hoomd::SpherePointGenerator<Scalar> unit_vec;
-            vec3<Scalar> rand_vec;
-            unit_vec(rng, rand_vec);
-
-            vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
-            vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
-
-            vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
-            Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
-            aux_vec *= aux_vec_mag;
-
-            Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-            Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
-            quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec); // rotational diffusion quaternion
-
-            quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
-            h_orientation.data[idx] = quat_to_scalar4(quati);
-            }
-        }
+	}
     }
 
 /*! This function applies rotational diffusion and sets forces for all active particles

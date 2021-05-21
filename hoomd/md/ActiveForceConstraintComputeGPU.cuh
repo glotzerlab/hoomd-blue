@@ -66,43 +66,44 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
 
-    Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
-
-    Scalar3 norm_scalar3 = manifold.derivative(current_pos);
-    Scalar norm_normal = fast::rsqrt(norm_scalar3.x*norm_scalar3.x + norm_scalar3.y*norm_scalar3.y + norm_scalar3.z*norm_scalar3.z );
-    norm_scalar3 *= norm_normal;
-    vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
-
     Scalar4 fact = __ldg(d_f_act + type);
 
-    vec3<Scalar> f(fact.x, fact.y, fact.z);
-    quat<Scalar> quati( __ldg(d_orientation + idx));
-    vec3<Scalar> fi = rotate(quati, f);
+    if( fact.w != 0){
+        Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
+
+        Scalar3 norm_scalar3 = manifold.derivative(current_pos);
+        Scalar norm_normal = fast::rsqrt(norm_scalar3.x*norm_scalar3.x + norm_scalar3.y*norm_scalar3.y + norm_scalar3.z*norm_scalar3.z );
+        norm_scalar3 *= norm_normal;
+        vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
+
+        vec3<Scalar> f(fact.x, fact.y, fact.z);
+        quat<Scalar> quati( __ldg(d_orientation + idx));
+        vec3<Scalar> fi = rotate(quati, f);
 
 
-    Scalar dot_prod = fi.x * norm.x + fi.y * norm.y + fi.z * norm.z;
+        Scalar dot_prod = fi.x * norm.x + fi.y * norm.y + fi.z * norm.z;
 
-    Scalar dot_perp_prod = slow::rsqrt(1-dot_prod*dot_prod);
+        Scalar dot_perp_prod = slow::rsqrt(1-dot_prod*dot_prod);
 
-    Scalar phi_half = slow::atan(dot_prod*dot_perp_prod)/2.0;
+        Scalar phi_half = slow::atan(dot_prod*dot_perp_prod)/2.0;
 
+        fi.x -= norm.x * dot_prod;
+        fi.y -= norm.y * dot_prod;
+        fi.z -= norm.z * dot_prod;
 
-    fi.x -= norm.x * dot_prod;
-    fi.y -= norm.y * dot_prod;
-    fi.z -= norm.z * dot_prod;
+        Scalar new_norm = slow::rsqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z  );
 
-    Scalar new_norm = slow::rsqrt(fi.x*fi.x + fi.y*fi.y + fi.z*fi.z  );
+        fi *= new_norm;
 
-    fi *= new_norm;
+        vec3<Scalar> rot_vec = cross(norm,fi);
+        rot_vec *= slow::sin(phi_half);
 
-    vec3<Scalar> rot_vec = cross(norm,fi);
-    rot_vec *= slow::sin(phi_half);
+        quat<Scalar> rot_quat(cos(phi_half),rot_vec);
 
-    quat<Scalar> rot_quat(cos(phi_half),rot_vec);
+        quati = rot_quat*quati;
 
-    quati = rot_quat*quati;
-
-    d_orientation[idx] = quat_to_scalar4(quati);
+        d_orientation[idx] = quat_to_scalar4(quati);
+        }
     }
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU

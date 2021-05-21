@@ -126,40 +126,41 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
-        Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+	if( h_f_actVec.data[type].w != 0){
 
-        Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
-        Scalar norm_normal = fast::rsqrt(dot(norm_scalar3,norm_scalar3));
-        norm_scalar3 *= norm_normal;
-        vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
+            Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
-        Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
-        quat<Scalar> quati(h_orientation.data[idx]);
-        vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));//rotate active force vector from local to global frame
+            Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
+            Scalar norm_normal = fast::rsqrt(dot(norm_scalar3,norm_scalar3));
+            norm_scalar3 *= norm_normal;
+            vec3<Scalar> norm = vec3<Scalar> (norm_scalar3);
 
+            Scalar3 f = make_scalar3(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
+            quat<Scalar> quati(h_orientation.data[idx]);
+            vec3<Scalar> fi = rotate(quati, vec3<Scalar>(f));//rotate active force vector from local to global frame
 
-        Scalar dot_prod = dot(fi,norm);
+            Scalar dot_prod = dot(fi,norm);
 
-        Scalar dot_perp_prod = slow::rsqrt(1-dot_prod*dot_prod);
+            Scalar dot_perp_prod = slow::rsqrt(1-dot_prod*dot_prod);
 
-        Scalar phi_half = slow::atan(dot_prod*dot_perp_prod)/2.0;
+            Scalar phi_half = slow::atan(dot_prod*dot_perp_prod)/2.0;
 
+            fi.x -= norm.x * dot_prod;
+            fi.y -= norm.y * dot_prod;
+            fi.z -= norm.z * dot_prod;
 
-        fi.x -= norm.x * dot_prod;
-        fi.y -= norm.y * dot_prod;
-        fi.z -= norm.z * dot_prod;
+            Scalar new_norm = slow::rsqrt(dot(fi,fi));
+            fi *= new_norm;
 
-        Scalar new_norm = slow::rsqrt(dot(fi,fi));
-        fi *= new_norm;
+            vec3<Scalar> rot_vec = cross(norm,fi);
+            rot_vec *= fast::sin(phi_half);
 
-        vec3<Scalar> rot_vec = cross(norm,fi);
-        rot_vec *= fast::sin(phi_half);
+            quat<Scalar> rot_quat(cos(phi_half),rot_vec);
 
-        quat<Scalar> rot_quat(cos(phi_half),rot_vec);
+            quati = rot_quat*quati;
 
-        quati = rot_quat*quati;
-
-        h_orientation.data[idx] = quat_to_scalar4(quati);
+            h_orientation.data[idx] = quat_to_scalar4(quati);
+	    }
         }
     }
 
