@@ -22,6 +22,7 @@ from hoomd import integrate
 from hoomd import communicator
 from hoomd import util
 from hoomd import write
+from hoomd import _hoomd
 try:
     from hoomd import md
 except ImportError:

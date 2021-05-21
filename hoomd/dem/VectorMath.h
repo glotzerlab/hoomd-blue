@@ -10,7 +10,8 @@
 #define __DEM_VECTOR_MATH_H__
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #undef DEVICE
 #ifdef __HIPCC__
 #define DEVICE __host__ __device__
@@ -18,8 +19,7 @@
 #define DEVICE
 #endif
 
-template<typename Real>
-DEVICE vec2<Real> vec_from_scalar2(const Scalar2 &v)
+template<typename Real> DEVICE vec2<Real> vec_from_scalar2(const Scalar2& v)
     {
     return vec2<Real>(v.x, v.y);
     }
@@ -30,8 +30,7 @@ DEVICE vec2<Real> vec_from_scalar2(const Scalar2 &v)
 
   Returns the cross product a.x * b.y - a.y * b.x.
 */
-template < class Real >
-DEVICE inline Real cross(const vec2<Real>& a, const vec2<Real>& b)
+template<class Real> DEVICE inline Real cross(const vec2<Real>& a, const vec2<Real>& b)
     {
     return a.x * b.y - a.y * b.x;
     }

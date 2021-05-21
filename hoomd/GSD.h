@@ -4,9 +4,9 @@
 #pragma once
 
 #include "hoomd/extern/gsd.h"
-#include <string>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 
 namespace hoomd
     {

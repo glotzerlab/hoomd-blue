@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: csadorf,samnola
 
 /*! \file CallbackAnalyzer.cc
@@ -22,8 +21,7 @@ using namespace std;
 /*! \param sysdef SystemDefinition containing the Particle data to analyze
     \param callback A python functor object to be used as callback
 */
-CallbackAnalyzer::CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
-                         py::object callback)
+CallbackAnalyzer::CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef, py::object callback)
     : Analyzer(sysdef), callback(callback)
     {
     m_exec_conf->msg->notice(5) << "Constructing CallbackAnalyzer" << endl;
@@ -41,12 +39,11 @@ CallbackAnalyzer::~CallbackAnalyzer()
 void CallbackAnalyzer::analyze(uint64_t timestep)
     {
     Analyzer::analyze(timestep);
-      callback(timestep);
+    callback(timestep);
     }
 
 void export_CallbackAnalyzer(py::module& m)
     {
-    py::class_<CallbackAnalyzer, Analyzer, std::shared_ptr<CallbackAnalyzer> >(m,"CallbackAnalyzer")
-    .def(py::init< std::shared_ptr<SystemDefinition>, py::object>())
-    ;
+    py::class_<CallbackAnalyzer, Analyzer, std::shared_ptr<CallbackAnalyzer>>(m, "CallbackAnalyzer")
+        .def(py::init<std::shared_ptr<SystemDefinition>, py::object>());
     }

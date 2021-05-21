@@ -14,12 +14,12 @@
 #include "hoomd/extern/BVLSSolver.h"
 #include <Eigen/Dense>
 
+#include <cmath>
 #include <iostream>
+#include <limits>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
-#include <cmath>
-#include <numeric>
-#include <limits>
 
 using namespace std;
 namespace py = pybind11;
@@ -31,13 +31,12 @@ namespace py = pybind11;
 LoadBalancer::LoadBalancer(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<DomainDecomposition> decomposition,
                            std::shared_ptr<Trigger> trigger)
-        : Tuner(sysdef, trigger), m_decomposition(decomposition),
-          m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
-          m_recompute_max_imbalance(true), m_needs_migrate(false),
-          m_needs_recount(false), m_tolerance(Scalar(1.05)), m_maxiter(1),
-          m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
-          m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0),
-          m_n_iterations(0), m_n_rebalances(0)
+    : Tuner(sysdef, trigger), m_decomposition(decomposition),
+      m_mpi_comm(m_exec_conf->getMPICommunicator()), m_max_imbalance(Scalar(1.0)),
+      m_recompute_max_imbalance(true), m_needs_migrate(false), m_needs_recount(false),
+      m_tolerance(Scalar(1.05)), m_maxiter(1), m_max_scale(Scalar(0.05)), m_N_own(m_pdata->getN()),
+      m_max_max_imbalance(1.0), m_total_max_imbalance(0.0), m_n_calls(0), m_n_iterations(0),
+      m_n_rebalances(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing LoadBalancer" << endl;
 
@@ -56,8 +55,8 @@ LoadBalancer::~LoadBalancer()
 /*!
  * \param timestep Current time step of the simulation
  *
- * Computes the load imbalance along each slice and adjusts the domain boundaries. This process is repeated iteratively
- * in each dimension taking into account the adjusted boundaries each time.
+ * Computes the load imbalance along each slice and adjusts the domain boundaries. This process is
+ * repeated iteratively in each dimension taking into account the adjusted boundaries each time.
  */
 void LoadBalancer::update(uint64_t timestep)
     {
@@ -65,7 +64,8 @@ void LoadBalancer::update(uint64_t timestep)
     // we need a communicator, but don't want to check for it in release builds
     assert(m_comm);
 
-    if (m_prof) m_prof->push(m_exec_conf, "balance");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "balance");
 
     // no adjustment has been made yet, so set m_N_own to the number of particles on the rank
     resetNOwn(m_pdata->getN());
@@ -74,44 +74,53 @@ void LoadBalancer::update(uint64_t timestep)
     const Index3D& di = m_decomposition->getDomainIndexer();
     unsigned int reduce_root(0);
         {
-        ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
-        reduce_root = h_cart_ranks.data[di(0,0,0)];
+        ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(),
+                                               access_location::host,
+                                               access_mode::read);
+        reduce_root = h_cart_ranks.data[di(0, 0, 0)];
         }
 
     // get the minimum domain size
     const BoxDim& box = m_pdata->getGlobalBox();
     Scalar3 L = box.getL();
-    const Scalar3 min_domain_frac = Scalar(2.0)*m_comm->getGhostLayerMaxWidth()/box.getNearestPlaneDistance();
+    const Scalar3 min_domain_frac
+        = Scalar(2.0) * m_comm->getGhostLayerMaxWidth() / box.getNearestPlaneDistance();
 
     // compute the current imbalance always for the average in printed stats
     m_total_max_imbalance += getMaxImbalance();
     ++m_n_calls;
 
     // attempt load balancing
-    for (unsigned int cur_iter=0; cur_iter < m_maxiter && getMaxImbalance() > m_tolerance; ++cur_iter)
+    for (unsigned int cur_iter = 0; cur_iter < m_maxiter && getMaxImbalance() > m_tolerance;
+         ++cur_iter)
         {
         // increment the number of attempted balances
         ++m_n_iterations;
 
-        for (unsigned int dim=0; dim < m_sysdef->getNDimensions() && getMaxImbalance() > m_tolerance; ++dim)
+        for (unsigned int dim = 0;
+             dim < m_sysdef->getNDimensions() && getMaxImbalance() > m_tolerance;
+             ++dim)
             {
             Scalar L_i(0.0);
             Scalar min_frac_i(0.0);
             if (dim == 0)
                 {
-                if (!m_enable_x || di.getW() == 1) continue; // skip this dimension if balancing is turned off
+                if (!m_enable_x || di.getW() == 1)
+                    continue; // skip this dimension if balancing is turned off
                 L_i = L.x;
                 min_frac_i = min_domain_frac.x;
                 }
             else if (dim == 1)
                 {
-                if (!m_enable_y || di.getH() == 1) continue;
+                if (!m_enable_y || di.getH() == 1)
+                    continue;
                 L_i = L.y;
                 min_frac_i = min_domain_frac.y;
                 }
             else
                 {
-                if (!m_enable_z || di.getD() == 1) continue;
+                if (!m_enable_z || di.getD() == 1)
+                    continue;
                 L_i = L.z;
                 min_frac_i = min_domain_frac.z;
                 }
@@ -154,17 +163,20 @@ void LoadBalancer::update(uint64_t timestep)
             }
         }
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof)
+        m_prof->pop(m_exec_conf);
     }
 
 /*!
- * Computes the imbalance factor I = N / <N> for each rank, and computes the maximum among all ranks.
+ * Computes the imbalance factor I = N / <N> for each rank, and computes the maximum among all
+ * ranks.
  */
 Scalar LoadBalancer::getMaxImbalance()
     {
     if (m_recompute_max_imbalance)
         {
-        Scalar cur_imb = Scalar(getNOwn()) / (Scalar(m_pdata->getNGlobal()) / Scalar(m_exec_conf->getNRanks()));
+        Scalar cur_imb = Scalar(getNOwn())
+                         / (Scalar(m_pdata->getNGlobal()) / Scalar(m_exec_conf->getNRanks()));
         Scalar max_imb(0.0);
         MPI_Allreduce(&cur_imb, &max_imb, 1, MPI_HOOMD_SCALAR, MPI_MAX, m_mpi_comm);
 
@@ -186,19 +198,22 @@ Scalar LoadBalancer::getMaxImbalance()
  *
  * \post \a N_i holds the number of particles in each slice along \a dim
  *
- * \note reduce() relies on collective MPI calls, and so all ranks must call it. However, for efficiency the data will
- *       be active only on Cartesian rank \a reduce_root, as indicated by the return value. As a result, only \a reduce_root
- *       actually needs to allocate memory for \a N_i.
+ * \note reduce() relies on collective MPI calls, and so all ranks must call it. However, for
+ * efficiency the data will be active only on Cartesian rank \a reduce_root, as indicated by the
+ * return value. As a result, only \a reduce_root actually needs to allocate memory for \a N_i.
  *
- * The reduction is performed by performing an all-to-one gather, followed by summation on \a reduce_root. This
- * operation may be suboptimal for very large numbers of processors, and could be replaced by cascading send operations
- * down dimensions. Generally, load balancing should not be performed too frequently, and so we do not pursue this
- * optimization right now.
+ * The reduction is performed by performing an all-to-one gather, followed by summation on \a
+ * reduce_root. This operation may be suboptimal for very large numbers of processors, and could be
+ * replaced by cascading send operations down dimensions. Generally, load balancing should not be
+ * performed too frequently, and so we do not pursue this optimization right now.
  */
-bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsigned int reduce_root)
+bool LoadBalancer::reduce(std::vector<unsigned int>& N_i,
+                          unsigned int dim,
+                          unsigned int reduce_root)
     {
     // do nothing if there is only one rank
-    if (N_i.size() == 1) return false;
+    if (N_i.size() == 1)
+        return false;
 
     const Index3D& di = m_decomposition->getDomainIndexer();
     std::vector<unsigned int> N_per_rank(di.getNumElements());
@@ -213,9 +228,11 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
         return false;
 
     // rearrange the data from ranks to cartesian order in case it is jumbled around
-    ArrayHandle<unsigned int> h_cart_ranks_inv(m_decomposition->getInverseCartRanks(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cart_ranks_inv(m_decomposition->getInverseCartRanks(),
+                                               access_location::host,
+                                               access_mode::read);
     std::vector<unsigned int> N_per_cart_rank(di.getNumElements());
-    for (unsigned int cur_rank=0; cur_rank < di.getNumElements(); ++cur_rank)
+    for (unsigned int cur_rank = 0; cur_rank < di.getNumElements(); ++cur_rank)
         {
         N_per_cart_rank[h_cart_ranks_inv.data[cur_rank]] = N_per_rank[cur_rank];
         }
@@ -223,52 +240,56 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
     // perform the summation along dim in as cache friendly of a way as we can manage
     if (dim == 0) // to x
         {
-        N_i.clear(); N_i.resize(di.getW());
-        for (unsigned int i=0; i < di.getW(); ++i)
+        N_i.clear();
+        N_i.resize(di.getW());
+        for (unsigned int i = 0; i < di.getW(); ++i)
             {
             N_i[i] = 0;
-            for (unsigned int k=0; k < di.getD(); ++k)
+            for (unsigned int k = 0; k < di.getD(); ++k)
                 {
-                for (unsigned int j=0; j < di.getH(); ++j)
+                for (unsigned int j = 0; j < di.getH(); ++j)
                     {
-                    N_i[i] += N_per_cart_rank[di(i,j,k)];
+                    N_i[i] += N_per_cart_rank[di(i, j, k)];
                     }
                 }
             }
         }
     else if (dim == 1) // to y
         {
-        N_i.clear(); N_i.resize(di.getH());
-        for (unsigned int j=0; j < di.getH(); ++j)
+        N_i.clear();
+        N_i.resize(di.getH());
+        for (unsigned int j = 0; j < di.getH(); ++j)
             {
             N_i[j] = 0;
-            for (unsigned int k=0; k < di.getD(); ++k)
+            for (unsigned int k = 0; k < di.getD(); ++k)
                 {
-                for (unsigned int i=0; i < di.getW(); ++i)
+                for (unsigned int i = 0; i < di.getW(); ++i)
                     {
-                    N_i[j] += N_per_cart_rank[di(i,j,k)];
+                    N_i[j] += N_per_cart_rank[di(i, j, k)];
                     }
                 }
             }
         }
     else if (dim == 2) // to z
         {
-        N_i.clear(); N_i.resize(di.getD());
-        for (unsigned int k=0; k < di.getD(); ++k)
+        N_i.clear();
+        N_i.resize(di.getD());
+        for (unsigned int k = 0; k < di.getD(); ++k)
             {
             N_i[k] = 0;
-            for (unsigned int j=0; j < di.getH(); ++j)
+            for (unsigned int j = 0; j < di.getH(); ++j)
                 {
-                for (unsigned int i=0; i < di.getW(); ++i)
+                for (unsigned int i = 0; i < di.getW(); ++i)
                     {
-                    N_i[k] += N_per_cart_rank[di(i,j,k)];
+                    N_i[k] += N_per_cart_rank[di(i, j, k)];
                     }
                 }
             }
         }
     else
         {
-        m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction" << endl;
+        m_exec_conf->msg->error() << "comm.balance: unknown dimension for particle reduction"
+                                  << endl;
         throw runtime_error("Unknown dimension for particle reduction");
         }
 
@@ -284,15 +305,16 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i, unsigned int dim, unsi
  * \returns true if an adjustment occurred
  *
  * An adjustment is attempted as follows:
- *  1. Compute the imbalance factor (and scale factor) for each slice. Enforce the maximum 5% target for adjustment
- *     in the scale factor. Compute the target new width for each rank.
- *  2. Construct a set of linear equations with box constraints that will enforce the necessary constraints. This is
- *     done through a matrix A that converts slices between domains into widths while conserving total length. A is then
- *     augmented to include an inequality constraint on the minimum domain size through a slack variable w. Additional
- *     box constraints are enforced on the new positions of the domain slices.
+ *  1. Compute the imbalance factor (and scale factor) for each slice. Enforce the maximum 5% target
+ * for adjustment in the scale factor. Compute the target new width for each rank.
+ *  2. Construct a set of linear equations with box constraints that will enforce the necessary
+ * constraints. This is done through a matrix A that converts slices between domains into widths
+ * while conserving total length. A is then augmented to include an inequality constraint on the
+ * minimum domain size through a slack variable w. Additional box constraints are enforced on the
+ * new positions of the domain slices.
  *  3. Minimize the cost function using bounded variable least-squares (BVLSSolver).
- *  4. Sanity check the adjustment. Domains must be big enough and cannot have inverted. If the minimization was
- *     successful, apply the adjustment to \a cum_frac_i.
+ *  4. Sanity check the adjustment. Domains must be big enough and cannot have inverted. If the
+ * minimization was successful, apply the adjustment to \a cum_frac_i.
  */
 bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
                           const vector<unsigned int>& N_i,
@@ -315,93 +337,105 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 
     // imbalance factors for each rank
     vector<Scalar> new_widths(N_i.size());
-    for (unsigned int i=0; i < N_i.size(); ++i)
+    for (unsigned int i = 0; i < N_i.size(); ++i)
         {
         const Scalar imb_factor = Scalar(N_i[i]) / target;
-        Scalar scale_factor = (N_i[i] > 0) ? Scalar(1.0) / imb_factor : (Scalar(1.0) + m_max_scale); // as in gromacs, use half the imbalance factor to scale
+        Scalar scale_factor
+            = (N_i[i] > 0)
+                  ? Scalar(1.0) / imb_factor
+                  : (Scalar(1.0)
+                     + m_max_scale); // as in gromacs, use half the imbalance factor to scale
 
         // limit rescaling to 5% either direction
-        // we should use absolute distance here, it is necessary to control balancing in corrugated systems
+        // we should use absolute distance here, it is necessary to control balancing in corrugated
+        // systems
         if (scale_factor > (Scalar(1.0) + m_max_scale))
             {
             scale_factor = (Scalar(1.0) + m_max_scale);
             }
-        else if(scale_factor < (Scalar(1.0) - m_max_scale))
+        else if (scale_factor < (Scalar(1.0) - m_max_scale))
             {
             scale_factor = (Scalar(1.0) - m_max_scale);
             }
 
-        // compute the new domain width (can't be smaller than the threshold, if it is, this is not a free variable)
-        new_widths[i] = scale_factor * (cum_frac_i[i+1] - cum_frac_i[i]) * L_i;
+        // compute the new domain width (can't be smaller than the threshold, if it is, this is not
+        // a free variable)
+        new_widths[i] = scale_factor * (cum_frac_i[i + 1] - cum_frac_i[i]) * L_i;
         }
 
-    // setup the augmented A matrix, with scale factor eps for the actual least squares part (to enforce the inequality
-    // constraints correctly)
+    // setup the augmented A matrix, with scale factor eps for the actual least squares part (to
+    // enforce the inequality constraints correctly)
     const Scalar eps(0.001);
     unsigned int m = (unsigned int)N_i.size();
     unsigned int n = m - 1;
-    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2*m,n+m);
-    A(0,0) = 1.0; A(m,0) = eps;
-    A(m-1, n-1) = -1.0; A(2*m-1, n-1) = -eps;
-    for (unsigned int i=1; i < m-1; ++i)
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2 * m, n + m);
+    A(0, 0) = 1.0;
+    A(m, 0) = eps;
+    A(m - 1, n - 1) = -1.0;
+    A(2 * m - 1, n - 1) = -eps;
+    for (unsigned int i = 1; i < m - 1; ++i)
         {
         // upper left block is A
-        A(i,i-1) = -1.0;
-        A(i,i) = 1.0;
+        A(i, i - 1) = -1.0;
+        A(i, i) = 1.0;
 
         // lower left block is e A
-        A(i+m, i-1) = -eps;
-        A(i+m, i) = eps;
+        A(i + m, i - 1) = -eps;
+        A(i + m, i) = eps;
         }
-    A.block(0,n,m,m) = -1.0*Eigen::MatrixXd::Identity(m,m);
+    A.block(0, n, m, m) = -1.0 * Eigen::MatrixXd::Identity(m, m);
 
     // initialize the augmented b array
-    Eigen::VectorXd b(2*m);
+    Eigen::VectorXd b(2 * m);
     b.fill(min_domain_size);
-    for (unsigned int i=0; i < m; ++i)
+    for (unsigned int i = 0; i < m; ++i)
         {
-        b(m+i) = eps*new_widths[i];
+        b(m + i) = eps * new_widths[i];
         }
-    b(m-1) -= L_i; // the last equation applies the total length constraint
-    b(2*m-1) -= eps*L_i; // the last equation applies the total length constraint
+    b(m - 1) -= L_i;           // the last equation applies the total length constraint
+    b(2 * m - 1) -= eps * L_i; // the last equation applies the total length constraint
 
     // position constraints limit movement due to over-decomposition
-    Eigen::VectorXd l(n+m), u(n+m);
-    l.fill(0.0); u.fill(std::numeric_limits<Scalar>::max()); // the default is lower limit 0 and no upper limit (for slack vars)
-    for (unsigned int j=0; j < n; ++j)
+    Eigen::VectorXd l(n + m), u(n + m);
+    l.fill(0.0);
+    u.fill(std::numeric_limits<Scalar>::max()); // the default is lower limit 0 and no upper limit
+                                                // (for slack vars)
+    for (unsigned int j = 0; j < n; ++j)
         {
-        l(j) = Scalar(0.5) * (cum_frac_i[j] + cum_frac_i[j+1]) * L_i;
-        u(j) = Scalar(0.5) * (cum_frac_i[j+1] + cum_frac_i[j+2]) * L_i;
+        l(j) = Scalar(0.5) * (cum_frac_i[j] + cum_frac_i[j + 1]) * L_i;
+        u(j) = Scalar(0.5) * (cum_frac_i[j + 1] + cum_frac_i[j + 2]) * L_i;
         }
 
     try
         {
         BVLSSolver solver(A, b, l, u);
-        solver.setMaxIterations(3*(n+m));
+        solver.setMaxIterations(3 * (n + m));
         solver.solve();
         if (solver.converged())
             {
             Eigen::VectorXd x = solver.getSolution();
             vector<Scalar> sorted_f(n);
             // do validation / sanity checking
-            for (unsigned int cur_div=0; cur_div < n; ++cur_div)
+            for (unsigned int cur_div = 0; cur_div < n; ++cur_div)
                 {
                 if (x(cur_div) < min_domain_size)
                     {
-                    m_exec_conf->msg->warning() << "comm.balance: no convergence, domains too small" << endl;
+                    m_exec_conf->msg->warning()
+                        << "comm.balance: no convergence, domains too small" << endl;
                     return false;
                     }
                 sorted_f[cur_div] = x(cur_div) / L_i;
-                if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div-1])
+                if (cur_div > 0 && sorted_f[cur_div] < sorted_f[cur_div - 1])
                     {
-                    m_exec_conf->msg->warning() << "comm.balance: domains attempting to flip" << endl;
+                    m_exec_conf->msg->warning()
+                        << "comm.balance: domains attempting to flip" << endl;
                     return false;
                     }
                 }
             // only push back the solution after we know it is valid
-            for (unsigned int cur_div=0; cur_div < sorted_f.size(); ++cur_div)
+            for (unsigned int cur_div = 0; cur_div < sorted_f.size(); ++cur_div)
                 {
-                cum_frac_i[cur_div+1] = sorted_f[cur_div];
+                cum_frac_i[cur_div + 1] = sorted_f[cur_div];
                 }
             return true;
             }
@@ -413,7 +447,8 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
         }
     catch (const runtime_error& e)
         {
-        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance" << endl;
+        m_exec_conf->msg->error() << "comm.balance: an error occurred seeking optimal load balance"
+                                  << endl;
         throw e;
         }
 
@@ -426,13 +461,15 @@ bool LoadBalancer::adjust(vector<Scalar>& cum_frac_i,
 void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
     {
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(),
+                                           access_location::host,
+                                           access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     const Index3D& di = m_decomposition->getDomainIndexer();
     const uint3 rank_pos = m_decomposition->getGridPos();
 
-    for (unsigned int cur_p=0; cur_p < m_pdata->getN(); ++cur_p)
+    for (unsigned int cur_p = 0; cur_p < m_pdata->getN(); ++cur_p)
         {
         const Scalar4 cur_postype = h_pos.data[cur_p];
         const Scalar3 cur_pos = make_scalar3(cur_postype.x, cur_postype.y, cur_postype.z);
@@ -491,48 +528,65 @@ void LoadBalancer::countParticlesOffRank(std::map<unsigned int, unsigned int>& c
             else if (grid_pos.z < 0)
                 grid_pos.z += di.getD();
 
-            unsigned int cur_rank = h_cart_ranks.data[di(grid_pos.x,grid_pos.y,grid_pos.z)];
+            unsigned int cur_rank = h_cart_ranks.data[di(grid_pos.x, grid_pos.y, grid_pos.z)];
             cnts[cur_rank]++;
             }
         }
     }
 
 /*!
- * Each rank calls countParticlesOffRank() to count the number of particles to send to other ranks. Neighboring ranks
- * then perform send/receive calls, and count the new number of particles they own as the number they owned locally
- * plus the number received minus the number sent.
+ * Each rank calls countParticlesOffRank() to count the number of particles to send to other ranks.
+ * Neighboring ranks then perform send/receive calls, and count the new number of particles they own
+ * as the number they owned locally plus the number received minus the number sent.
  *
- * \note All ranks must participate in this call since it involves send/receive operations between neighboring domains.
+ * \note All ranks must participate in this call since it involves send/receive operations between
+ * neighboring domains.
  */
 void LoadBalancer::computeOwnedParticles()
     {
     // don't do anything if nobody has signaled a change
-    if (!m_needs_recount) return;
+    if (!m_needs_recount)
+        return;
 
     // count the particles that are off the rank
-    ArrayHandle<unsigned int> h_unique_neigh(m_comm->getUniqueNeighbors(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_unique_neigh(m_comm->getUniqueNeighbors(),
+                                             access_location::host,
+                                             access_mode::read);
 
-    // fill the map initially to zeros (not necessary since should be auto-initialized to zero, but just playing it safe)
+    // fill the map initially to zeros (not necessary since should be auto-initialized to zero, but
+    // just playing it safe)
     std::map<unsigned int, unsigned int> cnts;
-    for (unsigned int i=0; i < m_comm->getNUniqueNeighbors(); ++i)
+    for (unsigned int i = 0; i < m_comm->getNUniqueNeighbors(); ++i)
         {
         cnts[h_unique_neigh.data[i]] = 0;
         }
     countParticlesOffRank(cnts);
 
-    MPI_Request req[2*m_comm->getNUniqueNeighbors()];
-    MPI_Status stat[2*m_comm->getNUniqueNeighbors()];
+    MPI_Request req[2 * m_comm->getNUniqueNeighbors()];
+    MPI_Status stat[2 * m_comm->getNUniqueNeighbors()];
     unsigned int nreq = 0;
 
     unsigned int n_send_ptls[m_comm->getNUniqueNeighbors()];
     unsigned int n_recv_ptls[m_comm->getNUniqueNeighbors()];
-    for (unsigned int cur_neigh=0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
+    for (unsigned int cur_neigh = 0; cur_neigh < m_comm->getNUniqueNeighbors(); ++cur_neigh)
         {
         unsigned int neigh_rank = h_unique_neigh.data[cur_neigh];
         n_send_ptls[cur_neigh] = cnts[neigh_rank];
 
-        MPI_Isend(&n_send_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
-        MPI_Irecv(&n_recv_ptls[cur_neigh], 1, MPI_UNSIGNED, neigh_rank, 0, m_mpi_comm, & req[nreq++]);
+        MPI_Isend(&n_send_ptls[cur_neigh],
+                  1,
+                  MPI_UNSIGNED,
+                  neigh_rank,
+                  0,
+                  m_mpi_comm,
+                  &req[nreq++]);
+        MPI_Irecv(&n_recv_ptls[cur_neigh],
+                  1,
+                  MPI_UNSIGNED,
+                  neigh_rank,
+                  0,
+                  m_mpi_comm,
+                  &req[nreq++]);
         }
     MPI_Waitall(nreq, req, stat);
 
@@ -560,17 +614,16 @@ void LoadBalancer::resetStats()
 
 void export_LoadBalancer(py::module& m)
     {
-    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer> >(m,"LoadBalancer")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                   std::shared_ptr<DomainDecomposition>,
-                   std::shared_ptr<Trigger> >())
-    .def_property("tolerance", &LoadBalancer::getTolerance,
-                  &LoadBalancer::setTolerance)
-    .def_property("max_iterations", &LoadBalancer::getMaxIterations,
-                  &LoadBalancer::setMaxIterations)
-    .def_property("x", &LoadBalancer::getEnableX, &LoadBalancer::setEnableX)
-    .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
-    .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ)
-    ;
+    py::class_<LoadBalancer, Updater, std::shared_ptr<LoadBalancer>>(m, "LoadBalancer")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<DomainDecomposition>,
+                      std::shared_ptr<Trigger>>())
+        .def_property("tolerance", &LoadBalancer::getTolerance, &LoadBalancer::setTolerance)
+        .def_property("max_iterations",
+                      &LoadBalancer::getMaxIterations,
+                      &LoadBalancer::setMaxIterations)
+        .def_property("x", &LoadBalancer::getEnableX, &LoadBalancer::setEnableX)
+        .def_property("y", &LoadBalancer::getEnableY, &LoadBalancer::setEnableY)
+        .def_property("z", &LoadBalancer::getEnableZ, &LoadBalancer::setEnableZ);
     }
 #endif // ENABLE_MPI

@@ -107,7 +107,7 @@ from hoomd.mpcd import stream
 from hoomd.mpcd import update
 
 
-class integrator(hoomd.integrate._integrator):
+class integrator():
     """ MPCD integrator
 
     Args:
@@ -145,23 +145,28 @@ class integrator(hoomd.integrate._integrator):
         mpcd.integrator(dt=0.01, aniso=True)
 
     """
+
     def __init__(self, dt, aniso=None):
         # check system is initialized
         if hoomd.context.current.mpcd is None:
-            hoomd.context.current.device.cpp_msg.error('mpcd.integrate: an MPCD system must be initialized before the integrator\n')
+            hoomd.context.current.device.cpp_msg.error(
+                'mpcd.integrate: an MPCD system must be initialized before the integrator\n'
+            )
             raise RuntimeError('MPCD system not initialized')
 
-        hoomd.integrate._integrator.__init__(self)
+        # hoomd.integrate._integrator.__init__(self)
 
         self.supports_methods = True
         self.dt = dt
         self.aniso = aniso
-        self.metadata_fields = ['dt','aniso']
+        self.metadata_fields = ['dt', 'aniso']
 
         # configure C++ integrator
-        self.cpp_integrator = _mpcd.Integrator(hoomd.context.current.mpcd.data, self.dt)
+        self.cpp_integrator = _mpcd.Integrator(hoomd.context.current.mpcd.data,
+                                               self.dt)
         if hoomd.context.current.mpcd.comm is not None:
-            self.cpp_integrator.setMPCDCommunicator(hoomd.context.current.mpcd.comm)
+            self.cpp_integrator.setMPCDCommunicator(
+                hoomd.context.current.mpcd.comm)
         hoomd.context.current.system.setIntegrator(self.cpp_integrator)
 
         if self.aniso is not None:
@@ -170,7 +175,8 @@ class integrator(hoomd.integrate._integrator):
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
         True: _md.IntegratorAnisotropicMode.Anisotropic,
-        False: _md.IntegratorAnisotropicMode.Isotropic}
+        False: _md.IntegratorAnisotropicMode.Isotropic
+    }
 
     def set_params(self, dt=None, aniso=None):
         """ Changes parameters of an existing integration mode.
@@ -196,8 +202,11 @@ class integrator(hoomd.integrate._integrator):
             if aniso in self._aniso_modes:
                 anisoMode = self._aniso_modes[aniso]
             else:
-                hoomd.context.current.device.cpp_msg.error("mpcd.integrate: unknown anisotropic mode {}.\n".format(aniso))
-                raise RuntimeError("Error setting anisotropic integration mode.")
+                hoomd.context.current.device.cpp_msg.error(
+                    "mpcd.integrate: unknown anisotropic mode {}.\n".format(
+                        aniso))
+                raise RuntimeError(
+                    "Error setting anisotropic integration mode.")
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
 
@@ -219,25 +228,35 @@ class integrator(hoomd.integrate._integrator):
             if stream._filler is not None:
                 self.cpp_integrator.addFiller(stream._filler)
         else:
-            hoomd.context.current.device.cpp_msg.warning("Running mpcd without a streaming method!\n")
+            hoomd.context.current.device.cpp_msg.warning(
+                "Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()
 
         collide = hoomd.context.current.mpcd._collide
         if collide is not None:
-            if stream is not None and (collide.period < stream.period or collide.period % stream.period != 0):
-                hoomd.context.current.device.cpp_msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
-                raise ValueError('Collision period must be multiple of integration period')
+            if stream is not None and (collide.period < stream.period
+                                       or collide.period % stream.period != 0):
+                hoomd.context.current.device.cpp_msg.error(
+                    'mpcd.integrate: collision period must be multiple of integration period\n'
+                )
+                raise ValueError(
+                    'Collision period must be multiple of integration period')
 
             self.cpp_integrator.setCollisionMethod(collide._cpp)
         else:
-            hoomd.context.current.device.cpp_msg.warning("Running mpcd without a collision method!\n")
+            hoomd.context.current.device.cpp_msg.warning(
+                "Running mpcd without a collision method!\n")
             self.cpp_integrator.removeCollisionMethod()
 
         sorter = hoomd.context.current.mpcd.sorter
         if sorter is not None and sorter.enabled:
-            if collide is not None and (sorter.period < collide.period or sorter.period % collide.period != 0):
-                hoomd.context.current.device.cpp_msg.error('mpcd.integrate: sorting period should be a multiple of collision period\n')
-                raise ValueError('Sorting period must be multiple of collision period')
+            if collide is not None and (sorter.period < collide.period
+                                        or sorter.period % collide.period != 0):
+                hoomd.context.current.device.cpp_msg.error(
+                    'mpcd.integrate: sorting period should be a multiple of collision period\n'
+                )
+                raise ValueError(
+                    'Sorting period must be multiple of collision period')
             self.cpp_integrator.setSorter(sorter._cpp)
         else:
             self.cpp_integrator.removeSorter()

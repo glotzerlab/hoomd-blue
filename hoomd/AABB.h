@@ -1,9 +1,7 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
-
 
 #include "HOOMDMath.h"
 #include "VectorMath.h"
@@ -20,7 +18,8 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #undef DEVICE
 
 #ifdef __HIPCC__
@@ -72,21 +71,21 @@ inline vec3<double> sse_unload_vec3_double(const __m256d& v)
 #endif
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 /*! \addtogroup overlap
     @{
 */
 
 //! Axis aligned bounding box
-/*! An AABB represents a bounding volume defined by an axis-aligned bounding box. It is stored as plain old data
-    with a lower and upper bound. This is to make the most common operation of AABB overlap testing fast.
+/*! An AABB represents a bounding volume defined by an axis-aligned bounding box. It is stored as
+   plain old data with a lower and upper bound. This is to make the most common operation of AABB
+   overlap testing fast.
 
-    Do not access data members directly. AABB uses SSE and AVX optimizations and the internal data format changes.
-    It also changes between the CPU and GPU. Instead, use the accessor methods getLower(), getUpper() and getPosition().
+    Do not access data members directly. AABB uses SSE and AVX optimizations and the internal data
+   format changes. It also changes between the CPU and GPU. Instead, use the accessor methods
+   getLower(), getUpper() and getPosition().
 
     Operations are provided as free functions to perform the following operations:
 
@@ -96,40 +95,40 @@ namespace detail
 */
 struct
 #ifndef __HIPCC__
-__attribute__((visibility("default")))
+    __attribute__((visibility("default")))
 #endif
-AABB
+    AABB
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
-    __m256d lower_v;    //!< Lower left corner (AVX data type)
-    __m256d upper_v;   //!< Upper left corner (AVX data type)
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+    __m256d lower_v; //!< Lower left corner (AVX data type)
+    __m256d upper_v; //!< Upper left corner (AVX data type)
 
-    #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
-    __m128 lower_v;     //!< Lower left corner (SSE data type)
-    __m128 upper_v;     //!< Upper left corner (SSE data type)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+    __m128 lower_v; //!< Lower left corner (SSE data type)
+    __m128 upper_v; //!< Upper left corner (SSE data type)
 
-    #else
-    vec3<Scalar> lower;  //!< Lower left corner
-    vec3<Scalar> upper;  //!< Upper right corner
+#else
+    vec3<Scalar> lower; //!< Lower left corner
+    vec3<Scalar> upper; //!< Upper right corner
 
-    #endif
+#endif
 
-    unsigned int tag;  //!< Optional tag id, useful for particle ids
+    unsigned int tag; //!< Optional tag id, useful for particle ids
 
     //! Default construct a 0 AABB
     DEVICE AABB() : tag(0)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         double in = 0.0f;
         lower_v = _mm256_broadcast_sd(&in);
         upper_v = _mm256_broadcast_sd(&in);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         float in = 0.0f;
         lower_v = _mm_load_ps1(&in);
         upper_v = _mm_load_ps1(&in);
 
-        #endif
+#endif
         // vec3 constructors zero themselves
         }
 
@@ -139,19 +138,19 @@ AABB
     */
     DEVICE AABB(const vec3<Scalar>& _lower, const vec3<Scalar>& _upper) : tag(0)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         lower_v = sse_load_vec3_double(_lower);
         upper_v = sse_load_vec3_double(_upper);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         lower_v = sse_load_vec3_float(_lower);
         upper_v = sse_load_vec3_float(_upper);
 
-        #else
+#else
         lower = _lower;
         upper = _upper;
 
-        #endif
+#endif
         }
 
     //! Construct an AABB from a sphere
@@ -168,19 +167,19 @@ AABB
         new_upper.y = _position.y + radius;
         new_upper.z = _position.z + radius;
 
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         lower_v = sse_load_vec3_double(new_lower);
         upper_v = sse_load_vec3_double(new_upper);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         lower_v = sse_load_vec3_float(new_lower);
         upper_v = sse_load_vec3_float(new_upper);
 
-        #else
+#else
         lower = new_lower;
         upper = new_upper;
 
-        #endif
+#endif
         }
 
     //! Construct an AABB from a point with a particle tag
@@ -189,90 +188,90 @@ AABB
     */
     DEVICE AABB(const vec3<Scalar>& _position, unsigned int _tag) : tag(_tag)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         lower_v = sse_load_vec3_double(_position);
         upper_v = sse_load_vec3_double(_position);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         lower_v = sse_load_vec3_float(_position);
         upper_v = sse_load_vec3_float(_position);
 
-        #else
+#else
         lower = _position;
         upper = _position;
 
-        #endif
+#endif
         }
 
     //! Get the AABB's position
     DEVICE vec3<Scalar> getPosition() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         double half = 0.5;
         __m256d half_v = _mm256_broadcast_sd(&half);
         __m256d pos_v = _mm256_mul_pd(half_v, _mm256_add_pd(lower_v, upper_v));
         return sse_unload_vec3_double(pos_v);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         float half = 0.5f;
         __m128 half_v = _mm_load_ps1(&half);
         __m128 pos_v = _mm_mul_ps(half_v, _mm_add_ps(lower_v, upper_v));
         return sse_unload_vec3_float(pos_v);
 
-        #else
+#else
         return (lower + upper) / Scalar(2);
 
-        #endif
+#endif
         }
 
     //! Get the AABB's lower point
     DEVICE vec3<Scalar> getLower() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         return sse_unload_vec3_double(lower_v);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         return sse_unload_vec3_float(lower_v);
 
-        #else
+#else
         return lower;
 
-        #endif
+#endif
         }
 
     //! Get the AABB's upper point
     DEVICE vec3<Scalar> getUpper() const
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         return sse_unload_vec3_double(upper_v);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         return sse_unload_vec3_float(upper_v);
 
-        #else
+#else
         return upper;
 
-        #endif
+#endif
         }
 
     //! Translate the AABB by the given vector
     DEVICE void translate(const vec3<Scalar>& v)
         {
-        #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
         __m256d v_v = sse_load_vec3_double(v);
         lower_v = _mm256_add_pd(lower_v, v_v);
         upper_v = _mm256_add_pd(upper_v, v_v);
 
-        #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
         __m128 v_v = sse_load_vec3_float(v);
         lower_v = _mm_add_ps(lower_v, v_v);
         upper_v = _mm_add_ps(upper_v, v_v);
 
-        #else
+#else
         upper += v;
         lower += v;
 
-        #endif
+#endif
         }
     } __attribute__((aligned(32)));
 
@@ -283,26 +282,21 @@ AABB
 */
 DEVICE inline bool overlap(const AABB& a, const AABB& b)
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
-    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v,a.lower_v,0x11));  // 0x11=lt
-    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v,a.upper_v,0x1e));  // 0x1e=gt
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v, a.lower_v, 0x11)); // 0x11=lt
+    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v, a.upper_v, 0x1e)); // 0x1e=gt
     return !(r0 || r1);
 
-    #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
-    int r0 = _mm_movemask_ps(_mm_cmplt_ps(b.upper_v,a.lower_v));
-    int r1 = _mm_movemask_ps(_mm_cmpgt_ps(b.lower_v,a.upper_v));
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+    int r0 = _mm_movemask_ps(_mm_cmplt_ps(b.upper_v, a.lower_v));
+    int r1 = _mm_movemask_ps(_mm_cmpgt_ps(b.lower_v, a.upper_v));
     return !(r0 || r1);
 
-    #else
-    return !(   b.upper.x < a.lower.x
-             || b.lower.x > a.upper.x
-             || b.upper.y < a.lower.y
-             || b.lower.y > a.upper.y
-             || b.upper.z < a.lower.z
-             || b.lower.z > a.upper.z
-            );
+#else
+    return !(b.upper.x < a.lower.x || b.lower.x > a.upper.x || b.upper.y < a.lower.y
+             || b.lower.y > a.upper.y || b.upper.z < a.lower.z || b.lower.z > a.upper.z);
 
-    #endif
+#endif
     }
 
 //! Check if one AABB contains another
@@ -312,24 +306,22 @@ DEVICE inline bool overlap(const AABB& a, const AABB& b)
 */
 DEVICE inline bool contains(const AABB& a, const AABB& b)
     {
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
-    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v,a.lower_v,0x1d));  // 0x1d=ge
-    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v,a.upper_v,0x12));  // 0x12=le
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+    int r0 = _mm256_movemask_pd(_mm256_cmp_pd(b.lower_v, a.lower_v, 0x1d)); // 0x1d=ge
+    int r1 = _mm256_movemask_pd(_mm256_cmp_pd(b.upper_v, a.upper_v, 0x12)); // 0x12=le
     return ((r0 & r1) == 0xF);
 
-    #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
-    int r0 = _mm_movemask_ps(_mm_cmpge_ps(b.lower_v,a.lower_v));
-    int r1 = _mm_movemask_ps(_mm_cmple_ps(b.upper_v,a.upper_v));
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+    int r0 = _mm_movemask_ps(_mm_cmpge_ps(b.lower_v, a.lower_v));
+    int r1 = _mm_movemask_ps(_mm_cmple_ps(b.upper_v, a.upper_v));
     return ((r0 & r1) == 0xF);
 
-    #else
-    return (   b.lower.x >= a.lower.x && b.upper.x <= a.upper.x
-            && b.lower.y >= a.lower.y && b.upper.y <= a.upper.y
-            && b.lower.z >= a.lower.z && b.upper.z <= a.upper.z);
+#else
+    return (b.lower.x >= a.lower.x && b.upper.x <= a.upper.x && b.lower.y >= a.lower.y
+            && b.upper.y <= a.upper.y && b.lower.z >= a.lower.z && b.upper.z <= a.upper.z);
 
-    #endif
+#endif
     }
-
 
 #ifndef __HIPCC__
 //! Merge two AABBs
@@ -340,15 +332,15 @@ DEVICE inline bool contains(const AABB& a, const AABB& b)
 DEVICE inline AABB merge(const AABB& a, const AABB& b)
     {
     AABB new_aabb;
-    #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
+#if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(__HIPCC__) && 0
     new_aabb.lower_v = _mm256_min_pd(a.lower_v, b.lower_v);
     new_aabb.upper_v = _mm256_max_pd(a.upper_v, b.upper_v);
 
-    #elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
+#elif defined(__SSE__) && defined(SINGLE_PRECISION) && !defined(__HIPCC__)
     new_aabb.lower_v = _mm_min_ps(a.lower_v, b.lower_v);
     new_aabb.upper_v = _mm_max_ps(a.upper_v, b.upper_v);
 
-    #else
+#else
     new_aabb.lower.x = std::min(a.lower.x, b.lower.x);
     new_aabb.lower.y = std::min(a.lower.y, b.lower.y);
     new_aabb.lower.z = std::min(a.lower.z, b.lower.z);
@@ -356,7 +348,7 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
     new_aabb.upper.y = std::max(a.upper.y, b.upper.y);
     new_aabb.upper.z = std::max(a.upper.z, b.upper.z);
 
-    #endif
+#endif
 
     return new_aabb;
     }
@@ -365,9 +357,9 @@ DEVICE inline AABB merge(const AABB& a, const AABB& b)
 // end group overlap
 /*! @}*/
 
-}; // end namespace detail
+    }; // end namespace detail
 
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #undef DEVICE
 #endif //__AABB_H__

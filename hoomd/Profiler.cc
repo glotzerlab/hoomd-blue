@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file Profiler.cc
@@ -13,10 +12,8 @@
 #include <iomanip>
 #include <sstream>
 
-
 using namespace std;
 namespace py = pybind11;
-
 
 ////////////////////////////////////////////////////
 // ProfileDataElem members
@@ -75,9 +72,14 @@ int64_t ProfileDataElem::getTotalMemByteCount() const
     \param name Name of the node
     \param tab_level Current number of tabs in the tree
     \param total_time Total number of nanoseconds taken by this node
-    \param name_width Maximum name width for all siblings of this node (used to align output columns)
+    \param name_width Maximum name width for all siblings of this node (used to align output
+   columns)
  */
-void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_level, int64_t total_time, int name_width) const
+void ProfileDataElem::output(std::ostream& o,
+                             const std::string& name,
+                             int tab_level,
+                             int64_t total_time,
+                             int name_width) const
     {
     // create a tab string to output for the current tab level
     string tabs = "";
@@ -88,14 +90,14 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
     // start with an overview
     // initial tests determined that having a parent node calculate the avg gflops of its
     // children is annoying, so default to 0 flops&bytes unless we are a leaf
-    double sec = double(m_elapsed_time)/1e9;
-    double perc = double(m_elapsed_time)/double(total_time) * 100.0;
+    double sec = double(m_elapsed_time) / 1e9;
+    double perc = double(m_elapsed_time) / double(total_time) * 100.0;
     double flops = 0.0;
     double bytes = 0.0;
     if (m_children.size() == 0)
         {
-        flops = double(getTotalFlopCount())/sec;
-        bytes = double(getTotalMemByteCount())/sec;
+        flops = double(getTotalFlopCount()) / sec;
+        bytes = double(getTotalMemByteCount()) / sec;
         }
 
     output_line(o, name, sec, perc, flops, bytes, name_width);
@@ -115,16 +117,16 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
     // output each of the children
     for (i = m_children.begin(); i != m_children.end(); ++i)
         {
-        (*i).second.output(o, (*i).first, tab_level+1, total_time, child_max_width);
+        (*i).second.output(o, (*i).first, tab_level + 1, total_time, child_max_width);
         }
 
     // output an "Self" item to account for time actually spent in this data elem
     if (m_children.size() > 0)
         {
-        double sec = double(m_elapsed_time - getChildElapsedTime())/1e9;
-        double perc = double(m_elapsed_time - getChildElapsedTime())/double(total_time) * 100.0;
-        double flops = double(m_flop_count)/sec;
-        double bytes = double(m_mem_byte_count)/sec;
+        double sec = double(m_elapsed_time - getChildElapsedTime()) / 1e9;
+        double perc = double(m_elapsed_time - getChildElapsedTime()) / double(total_time) * 100.0;
+        double flops = double(m_flop_count) / sec;
+        double bytes = double(m_mem_byte_count) / sec;
 
         // don't print Self unless perc is significant
         if (perc >= 0.1)
@@ -135,8 +137,8 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         }
     }
 
-void ProfileDataElem::output_line(std::ostream &o,
-                                  const std::string &name,
+void ProfileDataElem::output_line(std::ostream& o,
+                                  const std::string& name,
                                   double sec,
                                   double perc,
                                   double flops,
@@ -153,7 +155,7 @@ void ProfileDataElem::output_line(std::ostream &o,
     o << setw(7) << setprecision(4) << sec << "s";
     o << " | " << setprecision(3) << setw(6) << perc << "% ";
 
-    //If sec is zero, the values to be printed are garbage.  Thus, we skip it all together.
+    // If sec is zero, the values to be printed are garbage.  Thus, we skip it all together.
     if (sec == 0)
         {
         o << "n/a" << endl;
@@ -168,21 +170,21 @@ void ProfileDataElem::output_line(std::ostream &o,
         if (flops < 1e6)
             o << flops << "  FLOP/s ";
         else if (flops < 1e9)
-            o << flops/1e6 << " MFLOP/s ";
+            o << flops / 1e6 << " MFLOP/s ";
         else
-            o << flops/1e9 << " GFLOP/s ";
+            o << flops / 1e9 << " GFLOP/s ";
         }
 
-    //output bytes/s with intelligent units
+    // output bytes/s with intelligent units
     if (bytes > 0)
         {
         o << setw(6);
         if (bytes < 1e6)
             o << bytes << "  B/s ";
         else if (bytes < 1e9)
-            o << bytes/1e6 << " MiB/s ";
+            o << bytes / 1e6 << " MiB/s ";
         else
-            o << bytes/1e9 << " GiB/s ";
+            o << bytes / 1e9 << " GiB/s ";
         }
 
     o << endl;
@@ -199,12 +201,12 @@ Profiler::Profiler(const std::string& name) : m_name(name)
     // record the start of this profile
     m_root.m_start_time = m_clk.getTime();
 
-    #ifdef SCOREP_USER_ENABLE
-    SCOREP_USER_REGION_BEGIN(m_root.m_scorep_region, name.c_str(),SCOREP_USER_REGION_TYPE_COMMON )
-    #endif
+#ifdef SCOREP_USER_ENABLE
+    SCOREP_USER_REGION_BEGIN(m_root.m_scorep_region, name.c_str(), SCOREP_USER_REGION_TYPE_COMMON)
+#endif
     }
 
-void Profiler::output(std::ostream &o)
+void Profiler::output(std::ostream& o)
     {
     // perform a sanity check, but don't bail out
     if (m_stack.top() != &m_root)
@@ -212,9 +214,9 @@ void Profiler::output(std::ostream &o)
         o << "***Warning! Outputting a profile with incomplete samples" << endl;
         }
 
-    #ifdef SCOREP_USER_ENABLE
-    SCOREP_USER_REGION_END( m_root.m_scorep_region )
-    #endif
+#ifdef SCOREP_USER_ENABLE
+    SCOREP_USER_REGION_END(m_root.m_scorep_region)
+#endif
 
     // outputting a profile implicitly calls for a time sample
     m_root.m_elapsed_time = m_clk.getTime() - m_root.m_start_time;
@@ -226,7 +228,7 @@ void Profiler::output(std::ostream &o)
 /*! \param o Stream to output to
     \param prof Profiler to print
 */
-std::ostream& operator<<(ostream &o, Profiler& prof)
+std::ostream& operator<<(ostream& o, Profiler& prof)
     {
     prof.output(o);
 
@@ -237,7 +239,7 @@ std::ostream& operator<<(ostream &o, Profiler& prof)
 /*! Outputs the profiler timings to a string
     \param prof Profiler to generate output from
 */
-string print_profiler(Profiler *prof)
+string print_profiler(Profiler* prof)
     {
     assert(prof);
     ostringstream s;
@@ -247,8 +249,7 @@ string print_profiler(Profiler *prof)
 
 void export_Profiler(py::module& m)
     {
-    py::class_<Profiler>(m,"Profiler")
-    .def(py::init<const std::string&>())
-    .def("__str__", &print_profiler)
-    ;
+    py::class_<Profiler>(m, "Profiler")
+        .def(py::init<const std::string&>())
+        .def("__str__", &print_profiler);
     }
