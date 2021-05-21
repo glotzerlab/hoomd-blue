@@ -6,25 +6,24 @@ from hoomd.conftest import logging_check
 
 def test_before_attaching():
     filt = hoomd.filter.All()
-    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filt,
-                                                                         1.0)
+    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+        filt, 1.0)
     assert thermoHMA._filter == filt
     assert thermoHMA.kT == 1.0
     assert thermoHMA.harmonic_pressure == 0.0
     assert thermoHMA.potential_energy is None
     assert thermoHMA.pressure is None
 
-    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filt,
-                                                                         2.5,
-                                                                         0.6)
+    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+        filt, 2.5, 0.6)
     assert thermoHMA.kT == 2.5
     assert thermoHMA.harmonic_pressure == 0.6
 
 
 def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
     filt = hoomd.filter.All()
-    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filt,
-                                                                         1.0)
+    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+        filt, 1.0)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.add(thermoHMA)
@@ -45,8 +44,8 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
 def test_logging(simulation_factory, two_particle_snapshot_factory):
     filt = hoomd.filter.All()
     T = 1.0
-    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(filt,
-                                                                         T)
+    thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+        filt, T)
     snap = two_particle_snapshot_factory()
     if snap.exists:
         snap.particles.velocity[:] = [[-2, 0, 0], [2, 0, 0]]
@@ -61,10 +60,15 @@ def test_logging(simulation_factory, two_particle_snapshot_factory):
     log = hoomd.logging.Logger()
     log += thermoHMA
     sim.run(5)
-    logging_check(hoomd.md.compute.HarmonicAveragedThermodynamicQuantities,
-                  ('md', 'compute'),
-                  {'potential_energy': {'category': LoggerCategories.scalar,
-                                        'default': True},
-                   'pressure': {'category': LoggerCategories.scalar,
-                                'default': True}}
-                  )
+    logging_check(
+        hoomd.md.compute.HarmonicAveragedThermodynamicQuantities,
+        ('md', 'compute'), {
+            'potential_energy': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            },
+            'pressure': {
+                'category': LoggerCategories.scalar,
+                'default': True
+            }
+        })

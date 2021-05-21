@@ -20,9 +20,9 @@
 
 #include "hoomd/HOOMDMath.h"
 namespace mpcd
-{
+    {
 namespace detail
-{
+    {
 //! Sentinel value to signify that this particle is not placed in a cell
 const unsigned int NO_CELL = 0xffffffff;
 
@@ -43,7 +43,7 @@ struct pdata_element
     };
 #endif // ENABLE_MPI
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #endif // MPCD_PARTICLE_DATA_UTILITIES_H_

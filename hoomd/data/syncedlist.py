@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Synced list utility classes."""
+
 from collections.abc import MutableSequence
 import inspect
 from copy import copy
@@ -9,6 +15,7 @@ class _PartialIsInstance:
     This is a solution to avoid lambdas to enable pickling. We cannot use
     functools.partial since we need to partially apply the second argument.
     """
+
     def __init__(self, classes):
         self.classes = classes
 
@@ -22,6 +29,7 @@ class _PartialGetAttr:
     This is a solution to avoid lambdas to enable pickling. We cannot use
     functools.partial since we need to partially apply the second argument.
     """
+
     def __init__(self, attr):
         self.attr = attr
 
@@ -30,6 +38,7 @@ class _PartialGetAttr:
 
 
 def identity(obj):
+    """Returns obj."""
     return obj
 
 
@@ -61,9 +70,11 @@ class SyncedList(MutableSequence):
         this is `True` (defaults to `False`), then the class will be treated as
         a callable and not used for type checking.
     """
+
     # Also guarantees that lists remain in same order when using the public API.
 
-    def __init__(self, validation,
+    def __init__(self,
+                 validation,
                  to_synced_list=None,
                  iterable=None,
                  callable_class=False):
@@ -83,9 +94,9 @@ class SyncedList(MutableSequence):
                 self.append(it)
 
     def __contains__(self, value):
-        """Returns boolean based on if value is already in _list.
+        """bool: True when the value is in the list.
 
-        Based on memory location (python's is).
+        Based on memory location.
         """
         for item in self._list:
             if item is value:
@@ -93,6 +104,7 @@ class SyncedList(MutableSequence):
         return False
 
     def __len__(self):
+        """int: Length of the list."""
         return len(self._list)
 
     def __iter__(self):
@@ -161,8 +173,7 @@ class SyncedList(MutableSequence):
             if -integer > len(self):
                 raise IndexError(
                     f"Negative index {integer} is too small for list of length "
-                    f"{len(self)}"
-                )
+                    f"{len(self)}")
             return integer % max(1, len(self))
         return integer
 
@@ -180,13 +191,14 @@ class SyncedList(MutableSequence):
         return list(range(start, stop, step))
 
     def synced_iter(self):
-        """Iterate over values in the list. Does nothing when not synced.
-        """
+        """Iterate over values in the list. Does nothing when not synced."""
         if self._synced:
             yield from self._synced_list
 
     def _value_add_and_attach(self, value):
-        """Attaches value if unattached while raising error if already in list.
+        """Attaches value if unattached.
+
+        Raises an error if value is already in the list.
         """
         if value._added:
             raise RuntimeError("Object cannot be added to two lists.")
@@ -197,9 +209,7 @@ class SyncedList(MutableSequence):
         return value
 
     def _validate_or_error(self, value):
-        """
-        Complete error checking and processing of value prior to adding to list.
-        """
+        """Complete error checking and processing of value."""
         try:
             if self._validate(value):
                 return self._value_add_and_attach(value)
@@ -234,25 +244,23 @@ class SyncedList(MutableSequence):
         if abs(index) > len(self):
             raise IndexError(
                 f"Cannot insert {value} to index {index} for a list of length "
-                f"{len(self)}"
-            )
+                f"{len(self)}")
         # Wrap index like normal but allow for inserting a new element to the
         # end of the list.
         index = self._handle_int(index)
         if self._synced:
             self._synced_list.insert(index,
-                                     self._to_synced_list_conversion(value)
-                                     )
+                                     self._to_synced_list_conversion(value))
         self._list.insert(index, value)
 
     def __getstate__(self):
+        """Get state for pickling."""
         state = copy(self.__dict__)
         state['_simulation'] = None
         state.pop('_synced_list', None)
         return state
 
     def __eq__(self, other):
-        return (
-            len(self) == len(other)
-            and all(a == b for a, b in zip(self, other))
-        )
+        """Test for equality."""
+        return (len(self) == len(other)
+                and all(a == b for a, b in zip(self, other)))

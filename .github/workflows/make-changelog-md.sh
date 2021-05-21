@@ -7,4 +7,3 @@ pcregrep -M "^${tag}.*\n(\^\^\^\^+|^---+)+.*\n(.*\n)+?(\^\^\^\^+|^---+)$" CHANGE
   | tail -n +3 \
   | head -n -2 \
   | pandoc --from=rst --to=markdown
-

@@ -16,10 +16,17 @@
   - r0: vector from particle i's COM to the interaction point on particle i
   - rPrime: vector from particle i's COM to the interaction point on particle j
 */
-template<typename Real, typename Real4, typename FrictionModel> template<typename Vec, typename Torque>
-DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(
-    const Vec &rij, const Vec &r0, const Vec &rPrime, Real &potential, Vec &force_i,
-    Torque &torque_i, Vec &force_j, Torque &torque_j, float modFactor) const
+template<typename Real, typename Real4, typename FrictionModel>
+template<typename Vec, typename Torque>
+DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(const Vec& rij,
+                                                                      const Vec& r0,
+                                                                      const Vec& rPrime,
+                                                                      Real& potential,
+                                                                      Vec& force_i,
+                                                                      Torque& torque_i,
+                                                                      Vec& force_j,
+                                                                      Torque& torque_j,
+                                                                      float modFactor) const
     {
     // r0Prime is the vector from the interaction point on particle i
     // to that on particle j
@@ -28,17 +35,18 @@ DEVICE inline void WCAPotential<Real, Real4, FrictionModel>::evaluate(
     // Use distance to calculate WCA force
     const Real rsq(dot(r0Prime, r0Prime));
 
-    if(rsq <= m_rcutsq)
+    if (rsq <= m_rcutsq)
         {
-        const Real rsqInv(Real(1.0)/rsq);
-        const Real rsq3Inv(rsqInv*rsqInv*rsqInv);
+        const Real rsqInv(Real(1.0) / rsq);
+        const Real rsq3Inv(rsqInv * rsqInv * rsqInv);
         // Force between r0 and rPrime is prefactor*r0Prime
-        const Real prefactor(modFactor*24*m_sigma6*rsq3Inv*rsqInv*(1 - 2*m_sigma6*rsq3Inv));
-        const Vec conservativeForce(prefactor*r0Prime);
+        const Real prefactor(modFactor * 24 * m_sigma6 * rsq3Inv * rsqInv
+                             * (1 - 2 * m_sigma6 * rsq3Inv));
+        const Vec conservativeForce(prefactor * r0Prime);
 
         const Vec force(m_frictionParams.modifiedForce(r0Prime, conservativeForce));
 
-        potential += modFactor*(4*m_sigma6*rsq3Inv*(m_sigma6*rsq3Inv - 1) + 1);
+        potential += modFactor * (4 * m_sigma6 * rsq3Inv * (m_sigma6 * rsq3Inv - 1) + 1);
 
         // rjPrime is rPrime relative to particle j's COM
         const Vec rjPrime(rPrime - rij);

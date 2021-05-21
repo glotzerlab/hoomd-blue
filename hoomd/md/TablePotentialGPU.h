@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TablePotential.h"
@@ -30,30 +29,30 @@
 class PYBIND11_EXPORT TablePotentialGPU : public TablePotential
     {
     public:
-        //! Constructs the compute
-        TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          std::shared_ptr<NeighborList> nlist,
-                          unsigned int table_width);
+    //! Constructs the compute
+    TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
+                      unsigned int table_width);
 
-        //! Destructor
-        virtual ~TablePotentialGPU() { }
+    //! Destructor
+    virtual ~TablePotentialGPU() { }
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            TablePotential::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        TablePotential::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the TablePotentialGPU class to python

@@ -558,7 +558,7 @@ HOOMD uses the ECL code for connected components under the following license::
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-    Authors: Jayadharini Jaiganesh and Martin Burtscher 
+    Authors: Jayadharini Jaiganesh and Martin Burtscher
 
 `Python <https://www.python.org>`_, Used under the
 `Python license <http://www.python.org/psf/license/>`_

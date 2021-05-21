@@ -1,9 +1,7 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
-
 
 #include "ConstraintSphere.h"
 #include "EvaluatorConstraint.h"
@@ -26,7 +24,7 @@ ConstraintSphere::ConstraintSphere(std::shared_ptr<SystemDefinition> sysdef,
                                    std::shared_ptr<ParticleGroup> group,
                                    Scalar3 P,
                                    Scalar r)
-        : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
+    : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstraintSphere" << endl;
 
@@ -63,26 +61,26 @@ void ConstraintSphere::computeForces(uint64_t timestep)
     if (group_size == 0)
         return;
 
-    if (m_prof) m_prof->push("ConstraintSphere");
+    if (m_prof)
+        m_prof->push("ConstraintSphere");
 
     assert(m_pdata);
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
 
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     size_t virial_pitch = m_virial.getPitch();
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-   // there are enough other checks on the input data: but it doesn't hurt to be safe
+    // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
     assert(h_virial.data);
 
@@ -93,7 +91,8 @@ void ConstraintSphere::computeForces(uint64_t timestep)
         unsigned int j = m_group->getMemberIndex(group_idx);
         Scalar3 X = make_scalar3(h_pos.data[j].x, h_pos.data[j].y, h_pos.data[j].z);
         Scalar3 V = make_scalar3(h_vel.data[j].x, h_vel.data[j].y, h_vel.data[j].z);
-        Scalar3 F = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
+        Scalar3 F
+            = make_scalar3(h_net_force.data[j].x, h_net_force.data[j].y, h_net_force.data[j].z);
         Scalar m = h_vel.data[j].w;
 
         // evaluate the constraint position
@@ -111,7 +110,7 @@ void ConstraintSphere::computeForces(uint64_t timestep)
         h_force.data[j].y = FC.y;
         h_force.data[j].z = FC.z;
         for (int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+j]  = virial[k];
+            h_virial.data[k * virial_pitch + j] = virial[k];
         }
 
     if (m_prof)
@@ -127,12 +126,12 @@ void ConstraintSphere::validate()
     Scalar3 lo = box.getLo();
     Scalar3 hi = box.getHi();
 
-    if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x ||
-        m_P.y + m_r > hi.y || m_P.y - m_r < lo.y ||
-        m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
+    if (m_P.x + m_r > hi.x || m_P.x - m_r < lo.x || m_P.y + m_r > hi.y || m_P.y - m_r < lo.y
+        || m_P.z + m_r > hi.z || m_P.z - m_r < lo.z)
         {
-        m_exec_conf->msg->warning() << "constrain.sphere: Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
-             << endl;
+        m_exec_conf->msg->warning() << "constrain.sphere: Sphere constraint is outside of the box. "
+                                       "Constrained particle positions may be incorrect"
+                                    << endl;
         }
 
     unsigned int group_size = m_group->getNumMembers();
@@ -141,7 +140,9 @@ void ConstraintSphere::validate()
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
 
     // for each of the particles in the group
     bool errors = false;
@@ -158,19 +159,21 @@ void ConstraintSphere::validate()
         V.x = C.x - X.x;
         V.y = C.y - X.y;
         V.z = C.z - X.z;
-        Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
+        Scalar dist = sqrt(V.x * V.x + V.y * V.y + V.z * V.z);
 
         if (dist > Scalar(1.0))
             {
-            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
-                                      << " distance away from the closest point on the sphere constraint" << endl;
+            m_exec_conf->msg->error()
+                << "constrain.sphere: Particle " << h_tag.data[j] << " is more than 1 unit of"
+                << " distance away from the closest point on the sphere constraint" << endl;
             errors = true;
             }
 
         if (h_body.data[j] < MIN_FLOPPY)
             {
-            m_exec_conf->msg->error() << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
-                                      << " - cannot constrain" << endl;
+            m_exec_conf->msg->error()
+                << "constrain.sphere: Particle " << h_tag.data[j] << " belongs to a rigid body"
+                << " - cannot constrain" << endl;
             errors = true;
             }
         }
@@ -181,15 +184,15 @@ void ConstraintSphere::validate()
         }
     }
 
-
 void export_ConstraintSphere(py::module& m)
     {
-    py::class_< ConstraintSphere, ForceConstraint, std::shared_ptr<ConstraintSphere> >(m, "ConstraintSphere")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                     std::shared_ptr<ParticleGroup>,
-                     Scalar3,
-                     Scalar >())
-    .def("setSphere", &ConstraintSphere::setSphere)
-    .def("getNDOFRemoved", &ConstraintSphere::getNDOFRemoved)
-    ;
+    py::class_<ConstraintSphere, ForceConstraint, std::shared_ptr<ConstraintSphere>>(
+        m,
+        "ConstraintSphere")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      Scalar3,
+                      Scalar>())
+        .def("setSphere", &ConstraintSphere::setSphere)
+        .def("getNDOFRemoved", &ConstraintSphere::getNDOFRemoved);
     }

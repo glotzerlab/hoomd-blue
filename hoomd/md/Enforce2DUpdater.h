@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file Enforce2DUpdater.h
@@ -13,8 +12,8 @@
 #endif
 
 #include "hoomd/Updater.h"
-#include <pybind11/pybind11.h>
 #include <memory>
+#include <pybind11/pybind11.h>
 #include <vector>
 
 #ifndef __ENFORCE2DUPDATER_H__
@@ -28,14 +27,14 @@
 class PYBIND11_EXPORT Enforce2DUpdater : public Updater
     {
     public:
-        //! Constructor
-        Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructor
+    Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Destructor
-        virtual ~Enforce2DUpdater();
+    //! Destructor
+    virtual ~Enforce2DUpdater();
 
-        //! Take one timestep forward
-        virtual void update(uint64_t timestep);
+    //! Take one timestep forward
+    virtual void update(uint64_t timestep);
     };
 
 //! Export the Enforce2DUpdater to python

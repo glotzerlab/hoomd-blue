@@ -2,9 +2,9 @@
 #define __PARTICLE_FILTER_H__
 
 #include "../SystemDefinition.h"
-#include <vector>
-#include <pybind11/pybind11.h>
 #include <memory>
+#include <pybind11/pybind11.h>
+#include <vector>
 
 /// Utility class to select particles based on given conditions
 /** \b Overview
@@ -31,17 +31,17 @@
 class PYBIND11_EXPORT ParticleFilter
     {
     public:
-        /// constructs a base ParticleFilter (does nothing)
-        ParticleFilter() {};
-        virtual ~ParticleFilter() {}
+    /// constructs a base ParticleFilter (does nothing)
+    ParticleFilter() {};
+    virtual ~ParticleFilter() { }
 
-        /** Test if a particle meets the selection criteria.
-         *  The base case returns an empty vector.
-        */
-        virtual std::vector<unsigned int> getSelectedTags(
-                std::shared_ptr<SystemDefinition> sysdef) const
-            {
-            return std::vector<unsigned int>();
-            }
+    /** Test if a particle meets the selection criteria.
+     *  The base case returns an empty vector.
+     */
+    virtual std::vector<unsigned int>
+    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
+        {
+        return std::vector<unsigned int>();
+        }
     };
 #endif

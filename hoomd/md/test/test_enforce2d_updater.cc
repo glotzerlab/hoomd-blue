@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -10,19 +9,19 @@
 #include <functional>
 #include <memory>
 
-#include "hoomd/md/Enforce2DUpdater.h"
+#include "hoomd/filter/ParticleFilterAll.h"
 #include "hoomd/md/AllPairPotentials.h"
+#include "hoomd/md/ComputeThermo.h"
+#include "hoomd/md/Enforce2DUpdater.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
-#include "hoomd/md/ComputeThermo.h"
-#include "hoomd/filter/ParticleFilterAll.h"
 
 #ifdef ENABLE_HIP
 #include "hoomd/md/Enforce2DUpdaterGPU.h"
 #endif
 
-#include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/RandomNumbers.h"
+#include "hoomd/md/IntegratorTwoStep.h"
 
 #include <math.h>
 
@@ -33,58 +32,61 @@ using namespace std::placeholders;
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 
-
 /*! \file enforce2d_updater_test.cc
     \brief Unit tests for the Enforce2DUpdater class
     \ingroup unit_tests
 */
 
 //! Typedef'd Enforce2DUpdater factory
-typedef std::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
+typedef std::function<std::shared_ptr<Enforce2DUpdater>(std::shared_ptr<SystemDefinition> sysdef)>
+    enforce2d_creator;
 
 //! test case to verify proper operation of Enforce2DUpdater
-void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void enforce2d_basic_test(enforce2d_creator creator,
+                          std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
-    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(
+        new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 
     sysdef->setNDimensions(2);
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterAll());
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2),
-                               hoomd::Counter(4,5,6));
+    hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2), hoomd::Counter(4, 5, 6));
 
     // setup a simple initial state
     Scalar tiny = 1e-3;
-    for (unsigned int i=0; i<10; i++)
-        for (unsigned int j=0; j<10; j++)
+    for (unsigned int i = 0; i < 10; i++)
+        for (unsigned int j = 0; j < 10; j++)
             {
-            unsigned int k = i*10 + j;
+            unsigned int k = i * 10 + j;
             Scalar3 pos;
-            pos.x = Scalar(2*i)-10.0 + tiny;
-            pos.y = Scalar(2*j)-10.0 + tiny;
+            pos.x = Scalar(2 * i) - 10.0 + tiny;
+            pos.y = Scalar(2 * j) - 10.0 + tiny;
             pos.z = 0.0;
             pdata->setPosition(k, pos);
             Scalar3 vel;
             vel.x = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
-            vel.y= UniformDistribution<Scalar>(-1.0, 1.0)(rng);
+            vel.y = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
             vel.z = 0.0;
             pdata->setVelocity(k, vel);
             }
 
     std::shared_ptr<Variant> T(new VariantConstant(1.0));
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
-    group_all->setTranslationalDOF(2*group_all->getNumMembers()-2);
-    std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
+    group_all->setTranslationalDOF(2 * group_all->getNumMembers() - 2);
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt(
+        new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
 
     std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(0.3)));
-    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(), exec_conf);
+    auto r_cut = std::make_shared<GlobalArray<Scalar>>(nlist->getTypePairIndexer().getNumElements(),
+                                                       exec_conf);
     ArrayHandle<Scalar> h_r_cut(*r_cut, access_location::host, access_mode::overwrite);
     h_r_cut.data[0] = 2.5;
     nlist->addRCutMatrix(r_cut);
@@ -97,8 +99,8 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     Scalar sigma = Scalar(1.0);
 
     // specify the force parameters
-    fc->setParams(0,0,EvaluatorPairLJ::param_type(sigma, epsilon));
-    fc->setRcut(0,0,Scalar(2.5));
+    fc->setParams(0, 0, EvaluatorPairLJ::param_type(sigma, epsilon));
+    fc->setRcut(0, 0, Scalar(2.5));
     fc->setShiftMode(PotentialPairLJ::shift);
 
     nve_up->addForceCompute(fc);
@@ -110,10 +112,15 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     for (int t = 0; t < 1000; t++)
         {
-        if (t%100 == 0) {
-            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-            for (unsigned int i=0; i<np; i++)
+        if (t % 100 == 0)
+            {
+            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(),
+                                         access_location::host,
+                                         access_mode::readwrite);
+            for (unsigned int i = 0; i < np; i++)
                 {
                 h_accel.data[i].z += UniformDistribution<Scalar>(-0.001, 0.002)(rng);
                 h_vel.data[i].z += UniformDistribution<Scalar>(-0.002, 0.001)(rng);
@@ -123,27 +130,27 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
         }
 
     Scalar total_deviation = Scalar(0.0);
-    for (unsigned int i=0; i<np; i++)
+    for (unsigned int i = 0; i < np; i++)
         total_deviation += fabs(pdata->getPosition(i).z);
 
-    //make sure the deviation is large (should be >> tol)
+    // make sure the deviation is large (should be >> tol)
     UP_ASSERT(total_deviation > tol);
 
     // re-initialize the initial state
-    for (unsigned int i=0; i<10; i++)
-        for (unsigned int j=0; j<10; j++)
+    for (unsigned int i = 0; i < 10; i++)
+        for (unsigned int j = 0; j < 10; j++)
             {
-            unsigned int k = i*10 + j;
+            unsigned int k = i * 10 + j;
             Scalar3 pos;
-            pos.x = Scalar(2*i)-10.0 + tiny;
-            pos.y = Scalar(2*j)-10.0 + tiny;
+            pos.x = Scalar(2 * i) - 10.0 + tiny;
+            pos.y = Scalar(2 * j) - 10.0 + tiny;
             pos.z = 0.0;
-            pdata->setPosition(k,pos);
+            pdata->setPosition(k, pos);
             Scalar3 vel;
             vel.x = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
             vel.y = UniformDistribution<Scalar>(-1.0, 1.0)(rng);
             vel.z = 0.0;
-            pdata->setVelocity(k,vel);
+            pdata->setVelocity(k, vel);
             }
 
     pdata->notifyParticleSort();
@@ -153,10 +160,15 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     // verify that the atoms never leave the xy plane if constraint is present:
     for (int t = 0; t < 1000; t++)
         {
-        if (t%100 == 0) {
-            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-            for (unsigned int i=0; i<np; i++)
+        if (t % 100 == 0)
+            {
+            ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+            ArrayHandle<Scalar3> h_accel(pdata->getAccelerations(),
+                                         access_location::host,
+                                         access_mode::readwrite);
+            for (unsigned int i = 0; i < np; i++)
                 {
                 h_accel.data[i].z += UniformDistribution<Scalar>(-0.01, 0.02)(rng);
                 h_vel.data[i].z += UniformDistribution<Scalar>(-0.1, 0.2)(rng);
@@ -167,17 +179,17 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
         }
 
     total_deviation = Scalar(0.0);
-    for (unsigned int i=0; i<np; i++)
+    for (unsigned int i = 0; i < np; i++)
         {
         total_deviation += fabs(pdata->getPosition(i).z);
         }
 
     MY_CHECK_CLOSE(total_deviation, 0.0, tol);
-
     }
 
 //! Enforce2DUpdater creator for unit tests
-std::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<Enforce2DUpdater>
+base_class_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
     return std::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
     }
@@ -191,17 +203,21 @@ std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDe
 #endif
 
 //! test case for basic enforce2d tests
-UP_TEST( Enforce2DUpdater_basic )
+UP_TEST(Enforce2DUpdater_basic)
     {
     enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
-   enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    enforce2d_basic_test(creator,
+                         std::shared_ptr<ExecutionConfiguration>(
+                             new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_HIP
 //! test case for basic enforce2d tests
-UP_TEST( Enforce2DUpdaterGPU_basic )
+UP_TEST(Enforce2DUpdaterGPU_basic)
     {
     enforce2d_creator creator = bind(gpu_enforce2d_creator, _1);
-    enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    enforce2d_basic_test(creator,
+                         std::shared_ptr<ExecutionConfiguration>(
+                             new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
