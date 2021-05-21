@@ -102,13 +102,12 @@ class Dipole(AnisotropicPair):
     Attributes:
         params (TypeParameter[\
                 tuple[``particle_type``, ``particle_type``], dict]):
+
             The dipole potential parameters. The dictionary has the following
             keys:
 
             * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
               scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
-
-
             * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
               screening length (units: [length]^-1)
 
@@ -196,15 +195,14 @@ class GayBerne(AnisotropicPair):
     Attributes:
         params (TypeParameter[\
                 tuple[``particle_type``, ``particle_type``], dict]):
+
             The Gay-Berne potential parameters. The dictionary has the following
             keys:
 
             * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
               [energy])
-
             * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
               [length])
-
             * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
               [length])
 
