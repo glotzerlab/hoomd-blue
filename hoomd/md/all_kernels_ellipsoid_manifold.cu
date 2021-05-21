@@ -4,6 +4,7 @@
 #include "TwoStepRATTLEBDGPU.cuh"
 #include "TwoStepRATTLELangevinGPU.cuh"
 #include "TwoStepRATTLENVEGPU.cuh"
+#include "ActiveForceConstraintComputeGPU.cuh"
 
 #include "ManifoldEllipsoid.h"
 
@@ -86,3 +87,23 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldEllipsoid>(const Scalar
                              Scalar deltaT,
                              bool zero_force,
                              unsigned int block_size);
+
+template hipError_t gpu_compute_active_force_set_constraints<ManifoldEllipsoid>(const unsigned int group_size,
+                                                   unsigned int *d_index_array,
+                                                   const Scalar4 *d_pos,
+                                                   Scalar4 *d_orientation,
+                                                   const Scalar4 *d_f_act,
+                                                   ManifoldEllipsoid manifold,
+                                                   unsigned int block_size);
+
+template hipError_t gpu_compute_active_force_constraint_rotational_diffusion<ManifoldEllipsoid>(const unsigned int group_size,
+                                                       unsigned int *d_tag,
+                                                       unsigned int *d_index_array,
+                                                       const Scalar4 *d_pos,
+                                                       Scalar4 *d_orientation,
+                                                       ManifoldEllipsoid manifold,
+                                                       bool is2D,
+                                                       const Scalar rotationDiff,
+                                                       const uint64_t timestep,
+                                                       const uint16_t seed,
+                                                       unsigned int block_size);

@@ -74,6 +74,7 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "ActiveForceComputeGPU.h"
+#include "ActiveForceConstraintComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
@@ -354,6 +355,13 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
+    export_ActiveForceConstraintComputeGPU<ManifoldZCylinder>(m,"ActiveForceConstraintComputeCylinderGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldDiamond>(m,"ActiveForceConstraintComputeDiamondGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldEllipsoid>(m,"ActiveForceConstraintComputeEllipsoidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldGyroid>(m,"ActiveForceConstraintComputeGyroidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldXYPlane>(m,"ActiveForceConstraintComputePlaneGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldPrimitive>(m,"ActiveForceConstraintComputePrimitiveGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldSphere>(m,"ActiveForceConstraintComputeSphereGPU");
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(m, "PotentialExternalPeriodicGPU");
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(m, "PotentialExternalElectricFieldGPU");
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");

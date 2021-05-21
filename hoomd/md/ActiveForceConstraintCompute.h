@@ -67,12 +67,10 @@ template < class Manifold>
 void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
-    ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    assert(h_f_actVec.data != NULL);
     assert(h_pos.data != NULL);
     assert(h_orientation.data != NULL);
     assert(h_tag.data != NULL);
@@ -142,7 +140,7 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
 
         Scalar dot_prod = dot(fi,norm);
 
-        Scalar dot_perp_prod = fast::rsqrt(1-dot_prod*dot_prod);
+        Scalar dot_perp_prod = slow::rsqrt(1-dot_prod*dot_prod);
 
         Scalar phi_half = slow::atan(dot_prod*dot_perp_prod)/2.0;
 
@@ -151,7 +149,7 @@ void ActiveForceConstraintCompute<Manifold>::setConstraint()
         fi.y -= norm.y * dot_prod;
         fi.z -= norm.z * dot_prod;
 
-        Scalar new_norm = fast::rsqrt(dot(fi,fi));
+        Scalar new_norm = slow::rsqrt(dot(fi,fi));
         fi *= new_norm;
 
         vec3<Scalar> rot_vec = cross(norm,fi);

@@ -426,9 +426,7 @@ class Active(Force):
             if isinstance(sim.device, hoomd.device.CPU):
                 my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__)
             else:
-                 raise AttributeError(
-                   "Cannot set manifold_constraint after construction.")
-                #my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__ + 'GPU')
 
             self._cpp_obj = my_class(
                 sim.state._cpp_sys_def,

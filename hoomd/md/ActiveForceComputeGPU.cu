@@ -119,14 +119,9 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         vec3<Scalar> f(fact.x, fact.y, fact.z);
         vec3<Scalar> fi = rotate(quati, f);
 
-        vec3<Scalar> aux_vec;
-        aux_vec.x = fi.y * rand_vec.z - fi.z * rand_vec.y;
-        aux_vec.y = fi.z * rand_vec.x - fi.x * rand_vec.z;
-        aux_vec.z = fi.x * rand_vec.y - fi.y * rand_vec.x;
-        Scalar aux_vec_mag = 1.0/slow::sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
-        aux_vec.x *= aux_vec_mag;
-        aux_vec.y *= aux_vec_mag;
-        aux_vec.z *= aux_vec_mag;
+        vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
+        Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
+        aux_vec *= aux_vec_mag;
 
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
