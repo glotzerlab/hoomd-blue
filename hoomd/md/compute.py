@@ -285,7 +285,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def volume(self):
-        """:math:`V`, volume of the simulation box (area in 2D). """
+        """:math:`V`, volume of the simulation box (area in 2D)."""
         if self._attached:
             return self._cpp_obj.volume
         else:

@@ -344,7 +344,7 @@ class BlockAverage:
         block_mean = []
         block_variance = []
 
-        # take means and averages of blocks, growing blocks by factors of 2
+        # take means of blocks and the mean/variance of all blocks, growing blocks by factors of 2
         block_size = 1
         while block_size <= N // 8:
             num_blocks = N // block_size
