@@ -4,9 +4,9 @@ import hoomd.conftest
 import numpy
 import math
 
-# Selected state points in the high density fluid. Both of these state points
-# are in single phase regions of the phase diagram and suitable for NVT/NPT and
-# MC cross validation.
+# Selected state point(s) in the high density fluid. These state point(s) are in
+# single phase regions of the phase diagram and suitable for NVT/NPT and MC
+# cross validation.
 # T_star, rho_star, mean_U_ref, sigma_U_ref, mean_P_ref, sigma_P_ref,
 # log_period, equilibration_steps, run_steps
 statepoints = [
