@@ -52,6 +52,7 @@ struct hpmc_patch_args_t
                 const uint16_t _seed,
                 const unsigned int _rank,
                 const uint64_t _timestep,
+                const unsigned int _select,
                 const unsigned int _num_types,
                 const BoxDim& _box,
                 const unsigned int *_d_excell_idx,
@@ -78,6 +79,7 @@ struct hpmc_patch_args_t
                   seed(_seed),
                   rank(_rank),
                   timestep(_timestep),
+                  select(_select),
                   num_types(_num_types),
                   box(_box),
                   d_excell_idx(_d_excell_idx),
@@ -106,6 +108,7 @@ struct hpmc_patch_args_t
     const uint16_t seed;              //!< RNG seed
     const unsigned int rank;          //!< MPI Rank
     const uint64_t timestep;          //!< Current timestep
+    const unsigned int select;
     const unsigned int num_types;     //!< Number of particle types
     const BoxDim& box;                //!< Current simulation box
     const unsigned int *d_excell_idx;       //!< Expanded cell list

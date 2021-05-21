@@ -3,7 +3,6 @@
 
 //! Helper functions used by GPU kernels
 
-#include <hip/hip_runtime.h>
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 

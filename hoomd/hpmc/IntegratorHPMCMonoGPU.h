@@ -1514,6 +1514,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(uint64_t timestep)
                         this->m_sysdef->getSeed(),
                         this->m_exec_conf->getRank(),
                         timestep,
+                        i,
                         this->m_pdata->getNTypes(),
                         box,
                         d_excell_idx.data,

@@ -15,13 +15,14 @@
 #include <type_traits>
 #endif
 
+#ifndef __HIPCC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#endif
 #if defined(__HIP_PLATFORM_HCC__)
     #include <hipcub/hipcub.hpp>
 #else
     #if __CUDACC_VER_MAJOR__ >= 11
-        #include <cub/cub.cuh>
         #include <cub/warp/warp_reduce.cuh>
         #include <cub/warp/warp_scan.cuh>
     #else
@@ -30,7 +31,9 @@
         #include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
     #endif
 #endif
+#ifndef __HIPCC__
 #pragma GCC diagnostic pop
+#endif
 
 #define DEVICE __device__ __forceinline__
 

@@ -19,11 +19,15 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#ifndef __HIPCC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#endif
 #include <hoomd/extern/random123/include/Random123/philox.h>
 #include <type_traits>
+#ifndef __HIPCC__
 #pragma GCC diagnostic pop
+#endif
 
 namespace r123 {
 using std::make_signed;

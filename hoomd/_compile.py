@@ -43,9 +43,10 @@ def get_gpu_compilation_settings(gpu):
     """Helper function to set CUDA libraries for GPU execution. """
     includes = [
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
-        "-I" + _jit.__cuda_include_path__,
         "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/HIP/include',
-        "-UENABLE_HIP",
+        "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/cub',
+        # order seems to matter; add cuda last
+        "-I" + _jit.__cuda_include_path__,
     ]
     cuda_devrt_lib_path = _jit.__cuda_devrt_library_path__
 
