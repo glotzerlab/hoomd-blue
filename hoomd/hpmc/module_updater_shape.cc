@@ -83,7 +83,7 @@ void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std:
     pybind11::class_< ConvexPolyhedronVertexShapeMove, std::shared_ptr< ConvexPolyhedronVertexShapeMove >, ShapeMoveBase<Shape> >(m, name.c_str())
     .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                         unsigned int,
-                        std::vector<Scalar>,
+                        pybind11::dict,
                         Scalar,
                         Scalar >())
     .def_property("volume", &ConvexPolyhedronVertexShapeMove::getVolume, &ConvexPolyhedronVertexShapeMove::setVolume)
@@ -100,7 +100,7 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
                         unsigned int,
                         pybind11::object,
                         pybind11::dict,
-                        std::vector<Scalar>,
+                        pybind11::dict,
                         Scalar >())
     .def_property("params", &PythonShapeMove<Shape>::getParams, &PythonShapeMove<Shape>::setParams)
     .def_property("stepsize", &PythonShapeMove<Shape>::getStepsize, &PythonShapeMove<Shape>::setStepsize)

@@ -178,13 +178,19 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
                         unsigned int ntypes,
                         pybind11::object python_function,
                         pybind11::dict params,
-                        std::vector<Scalar> stepsize,
+                        pybind11::dict stepsize,
                         Scalar mixratio)
             :  ShapeMoveBase<Shape>(sysdef, ntypes), m_num_params(0), m_python_callback(python_function)
             {
-            if(this->m_step_size.size() != stepsize.size())
-                throw std::runtime_error("Must provide a stepsize for each type");
-            this->m_step_size = stepsize;
+            std::vector<Scalar> stepsize_vector(ntypes);
+            for (auto name_and_stepsize : stepsize)
+                {
+                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+                stepsize_vector[type_i] = type_stepsize;
+                }
+            this->m_step_size = stepsize_vector;
             m_select_ratio = fmin(mixratio, 1.0)*65535;
             this->m_det_inertia_tensor = 1.0;
             for(size_t i = 0; i < getNumParam(); i++)
@@ -418,14 +424,22 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
     public:
         ConvexPolyhedronVertexShapeMove(std::shared_ptr<SystemDefinition> sysdef,
                                         unsigned int ntypes,
-                                        std::vector<Scalar> step_size,
+                                        pybind11::dict step_size,
                                         Scalar mixratio,
                                         Scalar volume)
             : ShapeMoveBase<ShapeConvexPolyhedron>(sysdef, ntypes), m_volume(volume)
             {
             this->m_det_inertia_tensor = 1.0;
             m_scale = 1.0;
-            this->m_step_size = step_size;
+            std::vector<Scalar> stepsize_vector(ntypes);
+            for (auto name_and_stepsize : step_size)
+                {
+                std::string type_name = pybind11::cast<std::string>(name_and_stepsize.first);
+                Scalar type_stepsize = pybind11::cast<Scalar>(name_and_stepsize.second);
+                unsigned int type_i = this->m_sysdef->getParticleData()->getTypeByName(type_name);
+                stepsize_vector[type_i] = type_stepsize;
+                }
+            this->m_step_size = stepsize_vector;
             m_calculated.resize(ntypes, false);
             m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
             m_select_ratio = fmin(mixratio, 1.0)*65535;
