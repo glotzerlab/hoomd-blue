@@ -24,6 +24,7 @@ from hoomd.md import _md
 from hoomd.md import force
 import hoomd
 
+
 ## \internal
 # \brief Base class for constraint forces
 #
@@ -83,8 +84,7 @@ class ConstraintForce:
         # check that we have been initialized properly
         if self.cpp_force is None:
             hoomd.context.current.device.cpp_msg.error(
-                "Bug in hoomd: cpp_force not set, please report\n"
-            )
+                "Bug in hoomd: cpp_force not set, please report\n")
             raise RuntimeError()
 
     def disable(self):
@@ -105,8 +105,7 @@ class ConstraintForce:
         # check if we are already disabled
         if not self.enabled:
             hoomd.context.current.device.cpp_msg.warning(
-                "Ignoring command to disable a force that is already disabled"
-            )
+                "Ignoring command to disable a force that is already disabled")
             return
 
         self.enabled = False
@@ -129,8 +128,7 @@ class ConstraintForce:
         # check if we are already disabled
         if self.enabled:
             hoomd.context.current.device.cpp_msg.warning(
-                "Ignoring command to enable a force that is already enabled"
-            )
+                "Ignoring command to enable a force that is already enabled")
             return
 
         # add the compute back to the system
@@ -178,12 +176,10 @@ class sphere(ConstraintForce):
         P = _hoomd.make_scalar3(P[0], P[1], P[2])
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ConstraintSphere(
-                hoomd.context.current.system_definition, group.cpp_group, P, r
-            )
+                hoomd.context.current.system_definition, group.cpp_group, P, r)
         else:
             self.cpp_force = _md.ConstraintSphereGPU(
-                hoomd.context.current.system_definition, group.cpp_group, P, r
-            )
+                hoomd.context.current.system_definition, group.cpp_group, P, r)
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
@@ -239,12 +235,10 @@ class distance(ConstraintForce):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
         else:
             self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
@@ -366,12 +360,10 @@ class rigid(ConstraintForce):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceComposite(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
         else:
             self.cpp_force = _md.ForceCompositeGPU(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
@@ -419,43 +411,34 @@ class rigid(ConstraintForce):
 
         """
         # get a list of types from the particle data
-        ntypes = (
-            hoomd.context.current.system_definition.getParticleData().getNTypes()
-        )
+        ntypes = (hoomd.context.current.system_definition.getParticleData()
+                  .getNTypes())
         type_list = []
         for i in range(0, ntypes):
-            type_list.append(
-                self._simulation.state._cpp_sys_def.getParticleData()
-                .getNameByType(i)
-            )
+            type_list.append(self._simulation.state._cpp_sys_def
+                             .getParticleData().getNameByType(i))
 
         if type_name not in type_list:
             hoomd.context.current.device.cpp_msg.error(
-                "Type '{}' not found.\n".format(type_name)
-            )
+                "Type '{}' not found.\n".format(type_name))
             raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
-            )
+                "Error setting up parameters for constrain.rigid()")
 
         type_id = type_list.index(type_name)
 
         if not isinstance(types, list):
             hoomd.context.current.device.cpp_msg.error(
-                "Expecting list of particle types.\n"
-            )
+                "Expecting list of particle types.\n")
             raise RuntimeError(
-                "Error setting up parameters for constrain.rigid()"
-            )
+                "Error setting up parameters for constrain.rigid()")
 
         type_vec = _hoomd.std_vector_uint()
         for t in types:
             if t not in type_list:
                 hoomd.context.current.device.cpp_msg.error(
-                    "Type '{}' not found.\n".format(t)
-                )
+                    "Type '{}' not found.\n".format(t))
                 raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
-                )
+                    "Error setting up parameters for constrain.rigid()")
             constituent_type_id = type_list.index(t)
 
             type_vec.append(constituent_type_id)
@@ -466,11 +449,9 @@ class rigid(ConstraintForce):
             p = tuple(p)
             if len(p) != 3:
                 hoomd.context.current.device.cpp_msg.error(
-                    "Particle position is not a coordinate triple.\n"
-                )
+                    "Particle position is not a coordinate triple.\n")
                 raise RuntimeError(
-                    "Error setting up parameters for constrain.rigid()"
-                )
+                    "Error setting up parameters for constrain.rigid()")
             pos_vec.append(_hoomd.make_scalar3(p[0], p[1], p[2]))
 
         orientation_vec = _hoomd.std_vector_scalar4()
@@ -480,14 +461,11 @@ class rigid(ConstraintForce):
                 o = tuple(o)
                 if len(o) != 4:
                     hoomd.context.current.device.cpp_msg.error(
-                        "Particle orientation is not a 4-tuple.\n"
-                    )
+                        "Particle orientation is not a 4-tuple.\n")
                     raise RuntimeError(
-                        "Error setting up parameters for constrain.rigid()"
-                    )
+                        "Error setting up parameters for constrain.rigid()")
                 orientation_vec.append(
-                    _hoomd.make_scalar4(o[0], o[1], o[2], o[3])
-                )
+                    _hoomd.make_scalar4(o[0], o[1], o[2], o[3]))
         else:
             for p in positions:
                 orientation_vec.append(_hoomd.make_scalar4(1, 0, 0, 0))
@@ -562,16 +540,13 @@ class oneD(ConstraintForce):
 
     def __init__(self, group, constraint_vector=[0, 0, 1]):
 
-        if (
-            constraint_vector[0] ** 2
-            + constraint_vector[1] ** 2
-            + constraint_vector[2] ** 2
-        ) < 1e-10:
+        if (constraint_vector[0]**2 + constraint_vector[1]**2
+                + constraint_vector[2]**2) < 1e-10:
             raise RuntimeError("The one dimension constraint vector is zero")
 
-        constraint_vector = _hoomd.make_scalar3(
-            constraint_vector[0], constraint_vector[1], constraint_vector[2]
-        )
+        constraint_vector = _hoomd.make_scalar3(constraint_vector[0],
+                                                constraint_vector[1],
+                                                constraint_vector[2])
 
         # initialize the base class
         ConstraintForce.__init__(self)

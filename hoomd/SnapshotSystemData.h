@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 /*! \file SnapshotSystemData.h
@@ -15,17 +14,17 @@
 #ifndef __SNAPSHOT_SYSTEM_DATA_H__
 #define __SNAPSHOT_SYSTEM_DATA_H__
 
-#include "BoxDim.h"
-#include "ParticleData.h"
 #include "BondedGroupData.h"
+#include "BoxDim.h"
 #include "IntegratorData.h"
+#include "ParticleData.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
 #endif
 
 /*! \ingroup data_structs
-*/
+ */
 
 //! Structure for initializing system data
 /*! A snapshot is used for multiple purposes:
@@ -41,18 +40,18 @@
  *
  * \ingroup data_structs
  */
-template <class Real>
-struct SnapshotSystemData {
-    unsigned int dimensions;               //!< The dimensionality of the system
-    BoxDim global_box;                     //!< The dimensions of the simulation box
-    SnapshotParticleData<Real> particle_data;    //!< The particle data
+template<class Real> struct SnapshotSystemData
+    {
+    unsigned int dimensions;                  //!< The dimensionality of the system
+    BoxDim global_box;                        //!< The dimensions of the simulation box
+    SnapshotParticleData<Real> particle_data; //!< The particle data
     std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
-    BondData::Snapshot bond_data;          //!< The bond data
-    AngleData::Snapshot angle_data;         //!< The angle data
-    DihedralData::Snapshot dihedral_data;    //!< The dihedral data
-    ImproperData::Snapshot improper_data;    //!< The improper data
-    ConstraintData::Snapshot constraint_data;//!< The constraint data
-    PairData::Snapshot pair_data;            //!< The pair data
+    BondData::Snapshot bond_data;             //!< The bond data
+    AngleData::Snapshot angle_data;           //!< The angle data
+    DihedralData::Snapshot dihedral_data;     //!< The dihedral data
+    ImproperData::Snapshot improper_data;     //!< The improper data
+    ConstraintData::Snapshot constraint_data; //!< The constraint data
+    PairData::Snapshot pair_data;             //!< The pair data
 
     //! Constructor
     SnapshotSystemData()
@@ -75,12 +74,12 @@ struct SnapshotSystemData {
 
     // Broadcast snapshot from root to all ranks
     /*! \param exec_conf The execution configuration
-    */
+     */
     void broadcast(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
 
     // Broadcast snapshot from root to all partitions
     /*! \param exec_conf The execution configuration
-    */
+     */
     void broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 

@@ -31,30 +31,32 @@ template < class Manifold>
 class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     {
     public:
-        //! Constructs the compute
-        ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
-                             std::shared_ptr<ParticleGroup> group,
-                             Scalar rotation_diff,
-                             Manifold manifold)
-        : ActiveForceCompute(sysdef,group,rotation_diff), m_manifold(manifold){}
 
-        //! Destructor
-        ~ActiveForceConstraintCompute()
-        {
-          m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << endl;
-        }
+    //! Constructs the compute
+    ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<ParticleGroup> group,
+                                 Scalar rotation_diff,
+                                 Manifold manifold)
+    : ActiveForceCompute(sysdef,group,rotation_diff), m_manifold(manifold){}
+
+    //! Destructor
+    ~ActiveForceConstraintCompute()
+    {
+      m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << endl;
+    }
 
     protected:
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
 
-        //! Orientational diffusion for spherical particles
-        virtual void rotationalDiffusion(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
 
-        //! Set constraints if particles confined to a surface
-        virtual void setConstraint();
+    //! Orientational diffusion for spherical particles
+    virtual void rotationalDiffusion(uint64_t timestep);
 
-        Manifold m_manifold;          //!< Constraining Manifold
+    //! Set constraints if particles confined to a surface
+    virtual void setConstraint();
+
+    Manifold m_manifold;          //!< Constraining Manifold
     };
 
 
@@ -201,8 +203,10 @@ template < class Manifold>
 void export_ActiveForceConstraintCompute(py::module& m, const std::string& name)
     {
     py::class_< ActiveForceConstraintCompute<Manifold>, ActiveForceCompute, std::shared_ptr<ActiveForceConstraintCompute<Manifold> > >(m, name.c_str() )
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar,
-                    Manifold >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, 
+		   std::shared_ptr<ParticleGroup>, 
+		   Scalar,
+                   Manifold >())
     ;
     }
 

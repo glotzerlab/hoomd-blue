@@ -8,16 +8,16 @@ import hoomd
 
 
 class LoadBalancer(Tuner):
-    r""" Adjusts the boundaries of the domain decomposition.
+    r"""Adjusts the boundaries of the domain decomposition.
 
     Args:
         trigger (hoomd.trigger.Trigger): Select the timesteps on which to
             perform load balancing.
-        x (:obj:`bool`): Balance the **x** direction when `True`.
-        y (:obj:`bool`): Balance the **y** direction when `True`.
-        z (:obj:`bool`): Balance the **z** direction when `True`.
-        tolerance (:obj:`float`): Load imbalance tolerance.
-        max_iterations (:obj:`int`): Maximum number of iterations to
+        x (`bool`): Balance the **x** direction when `True`.
+        y (`bool`): Balance the **y** direction when `True`.
+        z (`bool`): Balance the **z** direction when `True`.
+        tolerance (`float`): Load imbalance tolerance.
+        max_iterations (`int`): Maximum number of iterations to
             attempt in a single step.
 
     `LoadBalancer` adjusts the boundaries of the MPI domains to distribute
@@ -76,11 +76,11 @@ class LoadBalancer(Tuner):
     Attributes:
         trigger (hoomd.trigger.Trigger): Select the timesteps on which to
             perform load balancing.
-        x (:obj:`bool`): Balance the **x** direction when `True`.
-        y (:obj:`bool`): Balance the **y** direction when `True`.
-        z (:obj:`bool`): Balance the **z** direction when `True`.
-        tolerance (:obj:`float`): Load imbalance tolerance.
-        max_iterations (:obj:`int`): Maximum number of iterations to
+        x (`bool`): Balance the **x** direction when `True`.
+        y (`bool`): Balance the **y** direction when `True`.
+        z (`bool`): Balance the **z** direction when `True`.
+        tolerance (`float`): Load imbalance tolerance.
+        max_iterations (`int`): Maximum number of iterations to
             attempt in a single step.
     """
 

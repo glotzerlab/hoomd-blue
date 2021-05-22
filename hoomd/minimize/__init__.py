@@ -7,5 +7,4 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-
 from hoomd.minimize.fire import FIRE

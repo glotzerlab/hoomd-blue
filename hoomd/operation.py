@@ -1,13 +1,11 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-# Maintainer: joaander / All Developers are free to add commands for new features
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 """Base classes for all HOOMD-blue operations."""
 
 # Operation is a parent class of almost all other HOOMD objects.
 # Triggered objects should inherit from _TriggeredOperation.
-
 
 from copy import copy
 
@@ -31,7 +29,7 @@ class _HOOMDGetSetAttrBase:
             C++ Updaters and Analyzers.
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
-            `TypeParameter`s for the class/instance.
+            TypeParameters for the class/instance.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
@@ -98,12 +96,10 @@ class _HOOMDGetSetAttrBase:
     def __eq__(self, other):
         if not isinstance(other, _HOOMDGetSetAttrBase):
             return NotImplemented
-        return (self._param_dict == other._param_dict
-                and all(
-                    set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys())
-                    and self._typeparam_dict[k] == other._typeparam_dict[k]
-                    for k in self._typeparam_dict)
-                )
+        return (self._param_dict == other._param_dict and all(
+            set(self._typeparam_dict.keys()) == set(other._typeparam_dict.keys(
+            )) and self._typeparam_dict[k] == other._typeparam_dict[k]
+            for k in self._typeparam_dict))
 
 
 class _DependencyRelation:
@@ -117,6 +113,7 @@ class _DependencyRelation:
         We could be more specific in the inheritance of this class to only use
         it when the class needs to deal with a dependency.
     """
+
     def __init__(self):
         self._dependents = []
         self._dependencies = []
@@ -162,7 +159,8 @@ class _DependencyRelation:
         self._dependencies.remove(obj)
 
 
-class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
+class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
+                       _DependencyRelation,
                        metaclass=Loggable):
     """Handles attaching/detaching to a simulation.
 
@@ -184,14 +182,16 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
     idea of creating a C++ object that is tied to a given simulation while
     detaching is removing an object from its simulation.
     """
-    _reserved_default_attrs = {**_HOOMDGetSetAttrBase._reserved_default_attrs,
-                               '_cpp_obj': None,
-                               '_dependents': list,
-                               '_dependencies': list}
+    _reserved_default_attrs = {
+        **_HOOMDGetSetAttrBase._reserved_default_attrs, '_cpp_obj': None,
+        '_dependents': list,
+        '_dependencies': list
+    }
 
     _skip_for_equality = {
         '_cpp_obj', '_dependent_list', '_param_dict', '_typeparam_dict',
-        '_simulation'}
+        '_simulation'
+    }
     _remove_for_pickling = ('_simulation', '_cpp_obj')
 
     def _getattr_param(self, attr):
@@ -203,15 +203,15 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
     def _setattr_param(self, attr, value):
         old_value = self._param_dict[attr]
         # Triggers the validation checks and type expansions
-        self._param_dict[attr] = value 
+        self._param_dict[attr] = value
         if self._attached:
-            #new_value passed all checks and is of the right type
+            # new_value passed all checks and is of the right type
             new_value = self._param_dict[attr]
             try:
                 setattr(self._cpp_obj, attr, new_value)
             except (AttributeError):
-                #if the parameter cannot be altered, we set it 
-                #back to the original value in the dictionary
+                # if the parameter cannot be altered, we set it
+                # back to the original value in the dictionary
                 self._param_dict[attr] = old_value
                 raise AttributeError("{} cannot be set after cpp"
                                      " initialization".format(attr))
@@ -222,7 +222,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase, _DependencyRelation,
             if key in self._skip_for_equality:
                 continue
             elif (key not in other_keys
-                    or self.__dict__[key] != other.__dict__[key]):
+                  or self.__dict__[key] != other.__dict__[key]):
                 return False
         return super().__eq__(other)
 
@@ -318,7 +318,8 @@ class Operation(_HOOMDBaseObject):
         `file`_ for information on HOOMD-blue's architecture decisions regarding
         operations.
 
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ARCHITECTURE.md
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ \
+        ARCHITECTURE.md
     """
     pass
 

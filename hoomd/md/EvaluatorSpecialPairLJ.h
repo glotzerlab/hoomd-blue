@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #ifndef __BOND_EVALUATOR_LJ_H__
@@ -23,7 +22,8 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef __HIPCC__
 #define DEVICE __device__
 #else
@@ -36,16 +36,16 @@ struct special_lj_params
     Scalar lj2;
     Scalar r_cutsq;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
         // default implementation does nothing
         }
-    #endif
+#endif
 
-    #ifndef __HIPCC__
-    special_lj_params(): lj1(0.), lj2(0.), r_cutsq(0.){}
+#ifndef __HIPCC__
+    special_lj_params() : lj1(0.), lj2(0.), r_cutsq(0.) { }
 
     special_lj_params(pybind11::dict v)
         {
@@ -64,13 +64,13 @@ struct special_lj_params
         v["epsilon"] = lj2 / (sigma6 * 4);
         return v;
         }
-    #endif
+#endif
     }
-    #ifdef SINGLE_PRECISION
-    __attribute__((aligned(16)));
-    #else
-    __attribute__((aligned(32)));
-    #endif
+#ifdef SINGLE_PRECISION
+__attribute__((aligned(16)));
+#else
+__attribute__((aligned(32)));
+#endif
 
 //! Class for evaluating the LJ bond potential
 /*! See the EvaluatorPairLJ class for the meaning of the parameters
@@ -78,74 +78,78 @@ struct special_lj_params
 class EvaluatorSpecialPairLJ
     {
     public:
-        //! Define the parameter type used by this pair potential evaluator
-        typedef special_lj_params param_type;
+    //! Define the parameter type used by this pair potential evaluator
+    typedef special_lj_params param_type;
 
-        //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance between the particles
-            \param _params Per type pair parameters of this potential
-        */
-        DEVICE EvaluatorSpecialPairLJ(Scalar _rsq, const param_type& _params)
-            : rsq(_rsq), lj1(_params.lj1),
-              lj2(_params.lj2), rcutsq(_params.r_cutsq)
+    //! Constructs the pair potential evaluator
+    /*! \param _rsq Squared distance between the particles
+        \param _params Per type pair parameters of this potential
+    */
+    DEVICE EvaluatorSpecialPairLJ(Scalar _rsq, const param_type& _params)
+        : rsq(_rsq), lj1(_params.lj1), lj2(_params.lj2), rcutsq(_params.r_cutsq)
+        {
+        }
+
+    //! LJ doesn't use diameter
+    DEVICE static bool needsDiameter()
+        {
+        return false;
+        }
+
+    //! Accept the optional diameter values
+    /*! \param da Diameter of particle a
+        \param db Diameter of particle b
+    */
+    DEVICE void setDiameter(Scalar da, Scalar db) { }
+
+    //! LJ doesn't use charge
+    DEVICE static bool needsCharge()
+        {
+        return false;
+        }
+
+    //! Accept the optional charge values
+    /*! \param qa Charge of particle a
+        \param qb Charge of particle b
+    */
+    DEVICE void setCharge(Scalar qa, Scalar qb) { }
+
+    //! Evaluate the force and energy
+    /*! \param force_divr Output parameter to write the computed force divided by r.
+        \param bond_eng Output parameter to write the computed bond energy
+
+        \return True if they are evaluated or false if the bond
+                energy is not defined
+    */
+    DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& bond_eng)
+        {
+        // compute the force divided by r in force_divr
+        if (rsq < rcutsq && lj1 != 0)
             {
+            Scalar r2inv = Scalar(1.0) / rsq;
+            Scalar r6inv = r2inv * r2inv * r2inv;
+            force_divr = r2inv * r6inv * (Scalar(12.0) * lj1 * r6inv - Scalar(6.0) * lj2);
+
+            bond_eng = r6inv * (lj1 * r6inv - lj2);
             }
+        return true;
+        }
 
-        //! LJ doesn't use diameter
-        DEVICE static bool needsDiameter() { return false; }
-
-        //! Accept the optional diameter values
-        /*! \param da Diameter of particle a
-            \param db Diameter of particle b
-        */
-        DEVICE void setDiameter(Scalar da, Scalar db) { }
-
-        //! LJ doesn't use charge
-        DEVICE static bool needsCharge() { return false; }
-
-        //! Accept the optional charge values
-        /*! \param qa Charge of particle a
-            \param qb Charge of particle b
-        */
-        DEVICE void setCharge(Scalar qa, Scalar qb) { }
-
-        //! Evaluate the force and energy
-        /*! \param force_divr Output parameter to write the computed force divided by r.
-            \param bond_eng Output parameter to write the computed bond energy
-
-            \return True if they are evaluated or false if the bond
-                    energy is not defined
-        */
-        DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& bond_eng)
-            {
-            // compute the force divided by r in force_divr
-            if (rsq < rcutsq && lj1 != 0)
-                {
-                Scalar r2inv = Scalar(1.0)/rsq;
-                Scalar r6inv = r2inv * r2inv * r2inv;
-                force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
-
-                bond_eng = r6inv * (lj1*r6inv - lj2);
-                }
-            return true;
-            }
-
-        #ifndef __HIPCC__
-        //! Get the name of this potential
-        /*! \returns The potential name.
-        */
-        static std::string getName()
-            {
-            return std::string("lj");
-            }
-        #endif
+#ifndef __HIPCC__
+    //! Get the name of this potential
+    /*! \returns The potential name.
+     */
+    static std::string getName()
+        {
+        return std::string("lj");
+        }
+#endif
 
     protected:
-        Scalar rsq;     //!< Stored rsq from the constructor
-        Scalar lj1;     //!< lj1 parameter extracted from the params passed to the constructor
-        Scalar lj2;     //!< lj2 parameter extracted from the params passed to the constructor
-        Scalar rcutsq;  //!< Stored rcutsq from the constructor
+    Scalar rsq;    //!< Stored rsq from the constructor
+    Scalar lj1;    //!< lj1 parameter extracted from the params passed to the constructor
+    Scalar lj2;    //!< lj2 parameter extracted from the params passed to the constructor
+    Scalar rcutsq; //!< Stored rcutsq from the constructor
     };
-
 
 #endif // __BOND_EVALUATOR_LJ_H__

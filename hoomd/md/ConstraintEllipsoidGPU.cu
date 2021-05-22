@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "ConstraintEllipsoidGPU.cuh"
@@ -12,7 +11,8 @@
 #include <assert.h>
 
 /*! \file ConstraintEllipsoidGPU.cu
-    \brief Defines GPU kernel code for calculating ellipsoid constraint forces. Used by ConstraintEllipsoidGPU.
+    \brief Defines GPU kernel code for calculating ellipsoid constraint forces. Used by
+   ConstraintEllipsoidGPU.
 */
 
 //! Kernel for calculating ellipsoid constraint forces on the GPU
@@ -26,15 +26,15 @@
     \param rz radius of the ellipsoid in z direction
     \param deltaT step size from the Integrator
 */
-extern "C" __global__
-void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 Scalar4 *d_pos,
-                                                 Scalar3 P,
-                                                 Scalar rx,
-                                                 Scalar ry,
-                                                 Scalar rz)
+extern "C" __global__ void
+gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int* d_group_members,
+                                                   unsigned int group_size,
+                                                   const unsigned int N,
+                                                   Scalar4* d_pos,
+                                                   Scalar3 P,
+                                                   Scalar rx,
+                                                   Scalar ry,
+                                                   Scalar rz)
     {
     // start by identifying which particle we are to handle
     // determine which particle this thread works on
@@ -59,7 +59,6 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
     d_pos[idx] = make_scalar4(C.x, C.y, C.z, Scalar(0.0));
     }
 
-
 /*! \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param N number of particles
@@ -74,31 +73,36 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
     \returns Any error code resulting from the kernel launch
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
-hipError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 Scalar4 *d_pos,
-                                                 const Scalar3 P,
-                                                 Scalar rx,
-                                                 Scalar ry,
-                                                 Scalar rz,
-                                                 unsigned int block_size)
+hipError_t gpu_compute_constraint_ellipsoid_constraint(const unsigned int* d_group_members,
+                                                       unsigned int group_size,
+                                                       const unsigned int N,
+                                                       Scalar4* d_pos,
+                                                       const Scalar3 P,
+                                                       Scalar rx,
+                                                       Scalar ry,
+                                                       Scalar rz,
+                                                       unsigned int block_size)
     {
     assert(d_group_members);
 
     // setup the grid to run the kernel
-    dim3 grid( group_size / block_size + 1, 1, 1);
+    dim3 grid(group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_constraint_ellipsoid_constraint_kernel), dim3(grid), dim3(threads), 0, 0, d_group_members,
-                                                                    group_size,
-                                                                    N,
-                                                                    d_pos,
-                                                                    P,
-                                                                    rx,
-                                                                    ry,
-                                                                    rz);
+    hipLaunchKernelGGL((gpu_compute_constraint_ellipsoid_constraint_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_group_members,
+                       group_size,
+                       N,
+                       d_pos,
+                       P,
+                       rx,
+                       ry,
+                       rz);
 
     return hipSuccess;
     }

@@ -4,7 +4,8 @@ from hoomd.conftest import pickling_check
 
 
 def test_attributes():
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(), rotation_diff=0.01)
+    active = hoomd.md.force.Active(
+         filter=hoomd.filter.All(), rotation_diff=0.01)
 
     assert active.rotation_diff==0.01
     assert active.active_force['A'] == (1.0,0.0,0.0)
@@ -24,11 +25,14 @@ def test_attributes():
     assert active.manifold_constraint == None
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(), rotation_diff=0.01)
+    active = hoomd.md.force.Active(
+        filter=hoomd.filter.All(), rotation_diff=0.01)
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    sim = simulation_factory(
+        two_particle_snapshot_factory(dimensions=3, d=8))
     integrator = hoomd.md.Integrator(.05)
-    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
     integrator.forces.append(active)
     sim.operations.integrator = integrator
     sim.run(0)
@@ -46,11 +50,16 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
 
 def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
     plane = hoomd.md.manifold.Plane()
-    active = hoomd.md.force.Active(filter=hoomd.filter.All(), rotation_diff=0.01,manifold_constraint=plane)
+    active = hoomd.md.force.Active(
+            filter=hoomd.filter.All(), 
+            rotation_diff=0.01,
+            manifold_constraint=plane)
 
-    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    sim = simulation_factory(
+            two_particle_snapshot_factory(dimensions=3, d=8))
     integrator = hoomd.md.Integrator(.05)
-    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.methods.append(
+            hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
     integrator.forces.append(active)
     sim.operations.integrator = integrator
     sim.run(0)
@@ -74,14 +83,13 @@ def test_attach_manifold(simulation_factory, two_particle_snapshot_factory):
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     sim = simulation_factory(two_particle_snapshot_factory())
-    active = hoomd.md.force.Active(
-        filter=hoomd.filter.All(), rotation_diff=0.01)
+    active = hoomd.md.force.Active(filter=hoomd.filter.All(),
+                                   rotation_diff=0.01)
     pickling_check(active)
     integrator = hoomd.md.Integrator(
         .05,
         methods=[hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0)],
-        forces=[active]
-    )
+        forces=[active])
     sim.operations.integrator = integrator
     sim.run(0)
     pickling_check(active)

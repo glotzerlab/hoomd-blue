@@ -2,12 +2,12 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "TwoStepBD.h"
-#include "hoomd/VectorMath.h"
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 using namespace hoomd;
 
 #ifdef ENABLE_MPI
@@ -22,11 +22,9 @@ using namespace std;
     @param T Temperature set point as a function of time
 */
 TwoStepBD::TwoStepBD(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<ParticleGroup> group,
-                           std::shared_ptr<Variant> T
-                           )
-  : TwoStepLangevinBase(sysdef, group, T),
-    m_noiseless_t(false), m_noiseless_r(false)
+                     std::shared_ptr<ParticleGroup> group,
+                     std::shared_ptr<Variant> T)
+    : TwoStepLangevinBase(sysdef, group, T), m_noiseless_t(false), m_noiseless_r(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepBD" << endl;
     }
@@ -39,8 +37,8 @@ TwoStepBD::~TwoStepBD()
 /*! @param timestep Current time step
     @post Particle positions are moved forward to timestep+1
 
-    The integration method here is from the book "The Langevin and Generalised Langevin Approach to the Dynamics of
-    Atomic, Polymeric and Colloidal Systems", chapter 6.
+    The integration method here is from the book "The Langevin and Generalised Langevin Approach to
+   the Dynamics of Atomic, Polymeric and Colloidal Systems", chapter 6.
 */
 void TwoStepBD::integrateStepOne(uint64_t timestep)
     {
@@ -54,22 +52,36 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
     const Scalar currentTemp = (*m_T)(timestep);
     const unsigned int D = m_sysdef->getNDimensions();
 
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
 
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -95,21 +107,21 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
 
         Scalar gamma;
         if (m_use_alpha)
-            gamma = m_alpha*h_diameter.data[j];
+            gamma = m_alpha * h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
             gamma = h_gamma.data[type];
             }
 
-        // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
-        // it is not the dimensionality of the system
-        Scalar coeff = fast::sqrt(Scalar(3.0)*Scalar(2.0)*gamma*currentTemp/m_deltaT);
+        // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1
+        // distribution it is not the dimensionality of the system
+        Scalar coeff = fast::sqrt(Scalar(3.0) * Scalar(2.0) * gamma * currentTemp / m_deltaT);
         if (m_noiseless_t)
             coeff = Scalar(0.0);
-        Scalar Fr_x = rx*coeff;
-        Scalar Fr_y = ry*coeff;
-        Scalar Fr_z = rz*coeff;
+        Scalar Fr_x = rx * coeff;
+        Scalar Fr_y = ry * coeff;
+        Scalar Fr_z = rz * coeff;
 
         if (D < 3)
             Fr_z = Scalar(0.0);
@@ -119,12 +131,13 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         h_pos.data[j].y += (h_net_force.data[j].y + Fr_y) * m_deltaT / gamma;
         h_pos.data[j].z += (h_net_force.data[j].z + Fr_z) * m_deltaT / gamma;
 
-        // particles may have been moved slightly outside the box by the above steps, wrap them back into place
+        // particles may have been moved slightly outside the box by the above steps, wrap them back
+        // into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
         // draw a new random velocity for particle j
-        Scalar mass =  h_vel.data[j].w;
-        Scalar sigma = fast::sqrt(currentTemp/mass);
+        Scalar mass = h_vel.data[j].w;
+        Scalar sigma = fast::sqrt(currentTemp / mass);
         NormalDistribution<Scalar> normal(sigma);
         h_vel.data[j].x = normal(rng);
         h_vel.data[j].y = normal(rng);
@@ -146,13 +159,16 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+                x_zero = (I.x < EPSILON);
+                y_zero = (I.y < EPSILON);
+                z_zero = (I.z < EPSILON);
 
-                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*currentTemp/m_deltaT),
-                                               fast::sqrt(Scalar(2.0)*gamma_r.y*currentTemp/m_deltaT),
-                                               fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
+                Scalar3 sigma_r
+                    = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
+                                   fast::sqrt(Scalar(2.0) * gamma_r.y * currentTemp / m_deltaT),
+                                   fast::sqrt(Scalar(2.0) * gamma_r.z * currentTemp / m_deltaT));
                 if (m_noiseless_r)
-                    sigma_r = make_scalar3(0,0,0);
+                    sigma_r = make_scalar3(0, 0, 0);
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
@@ -161,14 +177,18 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
-                if (x_zero) bf_torque.x = 0;
-                if (y_zero) bf_torque.y = 0;
-                if (z_zero) bf_torque.z = 0;
+                if (x_zero)
+                    bf_torque.x = 0;
+                if (y_zero)
+                    bf_torque.y = 0;
+                if (z_zero)
+                    bf_torque.z = 0;
 
                 // use the damping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r
-                // if aniso gamma_r, first rotate the torque into particle frame and divide the different gamma_r
-                // and then rotate the "angular velocity" back to lab frame and integrate
+                // if aniso gamma_r, first rotate the torque into particle frame and divide the
+                // different gamma_r and then rotate the "angular velocity" back to lab frame and
+                // integrate
                 bf_torque = rotate(q, bf_torque);
                 if (D < 3)
                     {
@@ -179,7 +199,7 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                     }
 
                 // do the integration for quaternion
-                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q ;
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q;
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
@@ -187,9 +207,12 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
                 p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
                 p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
                 p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
-                if (x_zero) p_vec.x = 0;
-                if (y_zero) p_vec.y = 0;
-                if (z_zero) p_vec.z = 0;
+                if (x_zero)
+                    p_vec.x = 0;
+                if (y_zero)
+                    p_vec.y = 0;
+                if (z_zero)
+                    p_vec.z = 0;
 
                 // !! Note this isn't well-behaving in 2D,
                 // !! because may have effective non-zero ang_mom in x,y
@@ -206,9 +229,8 @@ void TwoStepBD::integrateStepOne(uint64_t timestep)
         m_prof->pop();
     }
 
-
 /*! @param timestep Current time step
-*/
+ */
 void TwoStepBD::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2 in Brownian dynamics.
@@ -216,9 +238,8 @@ void TwoStepBD::integrateStepTwo(uint64_t timestep)
 
 void export_TwoStepBD(py::module& m)
     {
-    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD> >(m, "TwoStepBD")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ParticleGroup>,
-                            std::shared_ptr<Variant>>())
-        ;
+    py::class_<TwoStepBD, TwoStepLangevinBase, std::shared_ptr<TwoStepBD>>(m, "TwoStepBD")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<Variant>>());
     }

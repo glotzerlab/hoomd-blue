@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file Enforce2DUpdaterGPU.h
@@ -29,12 +28,11 @@
 class PYBIND11_EXPORT Enforce2DUpdaterGPU : public Enforce2DUpdater
     {
     public:
-        //! Constructor
-        Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructor
+    Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Take one timestep forward
-        virtual void update(uint64_t timestep);
-
+    //! Take one timestep forward
+    virtual void update(uint64_t timestep);
     };
 
 //! Exports the Enforce2DUpdaterGPU class to python

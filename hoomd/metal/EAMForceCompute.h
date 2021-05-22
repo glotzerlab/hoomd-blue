@@ -24,9 +24,9 @@
 
 //! Computes the potential and force on each particle based on values given in a EAM potential
 /*! \b Overview
- The total potential and force is computed for each particle when compute() is called. Potentials and
- forces are only computed between neighbouring particles with a separation distance less than
- \c r_cut. A NeighborList must be provided to identify these neighbours.
+ The total potential and force is computed for each particle when compute() is called. Potentials
+ and forces are only computed between neighbouring particles with a separation distance less than \c
+ r_cut. A NeighborList must be provided to identify these neighbours.
 
  \b Interpolation
  The cubic interpolation is used. For each data point, including the value of the point, there are 3
@@ -44,11 +44,11 @@
 
  \ingroup computes
  */
-class EAMForceCompute: public ForceCompute
+class EAMForceCompute : public ForceCompute
     {
-public:
+    public:
     //! Constructs the compute
-    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char* filename, int type_of_file);
 
     //! Destructor
     virtual ~EAMForceCompute();
@@ -60,32 +60,32 @@ public:
     virtual Scalar get_r_cut();
 
     //! Load EAM potential file
-    virtual void loadFile(char *filename, int type_of_file);
+    virtual void loadFile(char* filename, int type_of_file);
 
-protected:
+    protected:
     std::shared_ptr<NeighborList> m_nlist; //!< the neighborlist to use for the computation
     Scalar m_r_cut;                        //!< cut-off radius
     unsigned int m_ntypes;                 //!< number of potential element types
     unsigned int nrho;                     //!< number of tabulated values of interpolated F(rho)
     Scalar drho;                           //!< interval of rho in interpolated table
     Scalar rdrho;                          //!< 1.0 / drho
-    unsigned int nr;                       //!< number of tabulated values of interpolated rho(r), r*phi(r)
-    Scalar dr;                             //!< interval of r in interpolated table
-    Scalar rdr;                            //!< 1.0 / dr
-    std::vector<double> mass;              //!< array mass(type)
-    std::vector<int> types;                //!< array type(id)
-    std::vector<int> nproton;              //!< atomic number
-    std::vector<double> lconst;            //!< lattice constant
-    std::vector<std::string> atomcomment;  //!< atom comment
-    std::vector<std::string> names;        //!< array names(type)
+    unsigned int nr;            //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    Scalar dr;                  //!< interval of r in interpolated table
+    Scalar rdr;                 //!< 1.0 / dr
+    std::vector<double> mass;   //!< array mass(type)
+    std::vector<int> types;     //!< array type(id)
+    std::vector<int> nproton;   //!< atomic number
+    std::vector<double> lconst; //!< lattice constant
+    std::vector<std::string> atomcomment; //!< atom comment
+    std::vector<std::string> names;       //!< array names(type)
 
-    GPUArray<Scalar4> m_F;                 //!< embedded function and its coefficients
-    GPUArray<Scalar4> m_rho;               //!< electron density and its coefficients
-    GPUArray<Scalar4> m_rphi;              //!< pair wise function and its coefficients
-    GPUArray<Scalar4> m_dF;                //!< derivative embedded function and its coefficients
-    GPUArray<Scalar4> m_drho;              //!< derivative electron density and its coefficients
-    GPUArray<Scalar4> m_drphi;             //!< derivative pair wise function and its coefficients
-    GPUArray<Scalar> m_dFdP;               //!< derivative F / derivative P
+    GPUArray<Scalar4> m_F;     //!< embedded function and its coefficients
+    GPUArray<Scalar4> m_rho;   //!< electron density and its coefficients
+    GPUArray<Scalar4> m_rphi;  //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_dF;    //!< derivative embedded function and its coefficients
+    GPUArray<Scalar4> m_drho;  //!< derivative electron density and its coefficients
+    GPUArray<Scalar4> m_drphi; //!< derivative pair wise function and its coefficients
+    GPUArray<Scalar> m_dFdP;   //!< derivative F / derivative P
 
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
@@ -93,16 +93,20 @@ protected:
     //! Method to be called when number of types changes
     virtual void slotNumTypesChange()
         {
-        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
+        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam"
+                                  << std::endl;
         throw std::runtime_error("Unsupported feature");
         }
 
     //! cubic interpolation
-    virtual void interpolation(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar4> *f,
-            ArrayHandle<Scalar4> *df);
+    virtual void interpolation(int num_all,
+                               int num_per,
+                               Scalar delta,
+                               ArrayHandle<Scalar4>* f,
+                               ArrayHandle<Scalar4>* df);
     };
 
 //! Exports the EAMForceCompute class to python
-void export_EAMForceCompute(pybind11::module &m);
+void export_EAMForceCompute(pybind11::module& m);
 
 #endif

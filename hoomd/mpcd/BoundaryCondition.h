@@ -12,10 +12,9 @@
 #define MPCD_BOUNDARY_CONDITION_H_
 
 namespace mpcd
-{
+    {
 namespace detail
-{
-
+    {
 //! Boundary conditions at the surface
 /*!
  * Boundaries are currently allowed to either be "no slip" or "slip". The tangential
@@ -25,11 +24,11 @@ namespace detail
  */
 enum struct boundary : unsigned char
     {
-    no_slip=0,
+    no_slip = 0,
     slip
     };
 
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 #endif // MPCD_BOUNDARY_CONDITION_H_

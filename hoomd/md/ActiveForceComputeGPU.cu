@@ -1,19 +1,20 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "ActiveForceComputeGPU.cuh"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 #include "hoomd/TextureTools.h"
 using namespace hoomd;
 
 #include <assert.h>
 
 /*! \file ActiveForceComputeGPU.cu
-    \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by ActiveForceComputeGPU.
+    \brief Declares GPU kernel code for calculating active forces forces on the GPU. Used by
+   ActiveForceComputeGPU.
 */
 
 //! Kernel for setting active force vectors on the GPU
@@ -27,14 +28,14 @@ using namespace hoomd;
     \param orientationLink check if particle orientation is linked to active force vector
 */
 __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int group_size,
-                                                    unsigned int *d_index_array,
-                                                    Scalar4 *d_force,
-                                                    Scalar4 *d_torque,
-                                                    const Scalar4 *d_pos,
-                                                    const Scalar4 *d_orientation,
-                                                    const Scalar4 *d_f_act,
-                                                    const Scalar4 *d_t_act,
-                                                    const unsigned int N)
+                                                           unsigned int *d_index_array,
+                                                           Scalar4 *d_force,
+                                                           Scalar4 *d_torque,
+                                                           const Scalar4 *d_pos,
+                                                           const Scalar4 *d_orientation,
+                                                           const Scalar4 *d_f_act,
+                                                           const Scalar4 *d_t_act,
+                                                           const unsigned int N)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
@@ -46,18 +47,17 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
 
     Scalar4 fact = __ldg(d_f_act + type);
 
-    vec3<Scalar> f(fact.w*fact.x, fact.w*fact.y, fact.w*fact.z);
-    quat<Scalar> quati( __ldg(d_orientation + idx));
+    vec3<Scalar> f(fact.w * fact.x, fact.w * fact.y, fact.w * fact.z);
+    quat<Scalar> quati(__ldg(d_orientation + idx));
     vec3<Scalar> fi = rotate(quati, f);
     d_force[idx] = vec_to_scalar4(fi, 0);
 
     Scalar4 tact = __ldg(d_t_act + type);
 
-    vec3<Scalar> t(tact.w*tact.x, tact.w*tact.y, tact.w*tact.z);
+    vec3<Scalar> t(tact.w * tact.x, tact.w * tact.y, tact.w * tact.z);
     vec3<Scalar> ti = rotate(quati, t);
     d_torque[idx] = vec_to_scalar4(ti, 0);
     }
-
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU
 /*! \param group_size number of particles
@@ -69,15 +69,15 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     \param seed seed for random number generator
 */
 __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsigned int group_size,
-                                                   unsigned int *d_tag,
-                                                   unsigned int *d_index_array,
-                                                   const Scalar4 *d_pos,
-                                                   Scalar4 *d_orientation,
-                                                   const Scalar4 *d_f_act,
-                                                   bool is2D,
-                                                   const Scalar rotationConst,
-                                                   const uint64_t timestep,
-                                                   const uint16_t seed)
+                                                                     unsigned int *d_tag,
+                                                                     unsigned int *d_index_array,
+                                                                     const Scalar4 *d_pos,
+                                                                     Scalar4 *d_orientation,
+                                                                     const Scalar4 *d_f_act,
+                                                                     bool is2D,
+                                                                     const Scalar rotationConst,
+                                                                     const uint64_t timestep,
+                                                                     const uint16_t seed)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (group_idx >= group_size)
@@ -125,80 +125,82 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
             aux_vec *= aux_vec_mag;
 
-
             Scalar delta_theta = hoomd::NormalDistribution<Scalar>(rotationConst)(rng);
             Scalar theta = delta_theta/2.0; // angle on plane defining orientation of active force vector
             quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec);
 
             quati = rot_quat*quati;
-            d_orientation[idx].x = quati.s;
-            d_orientation[idx].y = quati.v.x;
-            d_orientation[idx].z = quati.v.y;
-            d_orientation[idx].w = quati.v.z;
+            d_orientation[idx] = quat_to_scalar4(quati);
                 
             }
         }
     }
 
-
 hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                           unsigned int *d_index_array,
-                                           Scalar4 *d_force,
-                                           Scalar4 *d_torque,
-                                           const Scalar4 *d_pos,
-                                           const Scalar4 *d_orientation,
-                                           const Scalar4 *d_f_act,
-                                           const Scalar4 *d_t_act,
-                                           const unsigned int N,
-                                           unsigned int block_size)
+                                               unsigned int *d_index_array,
+                                               Scalar4 *d_force,
+                                               Scalar4 *d_torque,
+                                               const Scalar4 *d_pos,
+                                               const Scalar4 *d_orientation,
+                                               const Scalar4 *d_f_act,
+                                               const Scalar4 *d_t_act,
+                                               const unsigned int N,
+                                               unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( group_size / block_size + 1, 1, 1);
+    dim3 grid(group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
     hipMemset(d_force, 0, sizeof(Scalar4)*N);
-    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel), dim3(grid), dim3(threads), 0, 0,  group_size,
-                                                                    d_index_array,
-                                                                    d_force,
-                                                                    d_torque,
-                                                                    d_pos,
-                                                                    d_orientation,
-                                                                    d_f_act,
-                                                                    d_t_act,
-                                                                    N);
+    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel), 
+		        dim3(grid), 
+			dim3(threads), 
+			0, 
+			0,  
+			group_size,
+                        d_index_array,
+                        d_force,
+                        d_torque,
+                        d_pos,
+                        d_orientation,
+                        d_f_act,
+                        d_t_act,
+                        N);
     return hipSuccess;
     }
 
 hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                       unsigned int *d_tag,
-                                                       unsigned int *d_index_array,
-                                                       const Scalar4 *d_pos,
-                                                       Scalar4 *d_orientation,
-                                                       const Scalar4 *d_f_act,
-                                                       bool is2D,
-                                                       const Scalar rotationConst,
-                                                       const uint64_t timestep,
-                                                       const uint16_t seed,
-                                                       unsigned int block_size)
+                                                         unsigned int *d_tag,
+                                                         unsigned int *d_index_array,
+                                                         const Scalar4 *d_pos,
+                                                         Scalar4 *d_orientation,
+                                                         const Scalar4 *d_f_act,
+                                                         bool is2D,
+                                                         const Scalar rotationConst,
+                                                         const uint64_t timestep,
+                                                         const uint16_t seed,
+                                                         unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( group_size / block_size + 1, 1, 1);
+    dim3 grid(group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel), dim3(grid), dim3(threads), 0, 0, group_size,
-                                                                    d_tag,
-                                                                    d_index_array,
-                                                                    d_pos,
-                                                                    d_orientation,
-                                                                    d_f_act,
-                                                                    is2D,
-                                                                    rotationConst,
-                                                                    timestep,
-                                                                    seed);
+    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel), 
+		        dim3(grid), 
+			dim3(threads), 
+			0, 
+			0, 
+			group_size,
+                        d_tag,
+                        d_index_array,
+                        d_pos,
+                        d_orientation,
+                        d_f_act,
+                        is2D,
+                        rotationConst,
+                        timestep,
+                        seed);
     return hipSuccess;
     }
-
-
-

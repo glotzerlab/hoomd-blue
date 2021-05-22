@@ -32,11 +32,12 @@ template<class Manifold>
 class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstraintCompute<Manifold>
     {
     public:
-        //! Constructs the compute
-        ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                             std::shared_ptr<ParticleGroup> group,
-                             Scalar rotation_diff,
-                             Manifold manifold);
+
+    //! Constructs the compute
+    ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                    std::shared_ptr<ParticleGroup> group,
+                                    Scalar rotation_diff,
+                                    Manifold manifold);
 
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
@@ -55,19 +56,24 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstr
     \brief Contains code for the ActiveForceConstraintComputeGPU class
 */
 
-/*! \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
-    \param orientation_link if True then forces and torques are applied in the particle's reference frame. If false, then the box reference fra    me is used. Only relevant for non-point-like anisotropic particles.
-    /param orientation_reverse_link When True, the particle's orientation is set to match the active force vector. Useful for
-    for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles
+/*! \param f_list An array of (x,y,z) tuples for the active force vector for each 
+           individual particle.
+    \param orientation_link if True then forces and torques are applied in the 
+           particle's reference frame. If false, then the box reference frame is 
+	   used. Only relevant for non-point-like anisotropic particles.
+    \param orientation_reverse_link When True, the particle's orientation is set 
+           to match the active force vector. Useful for using a particle's 
+	   orientation to log the active force vector. Not recommended for 
+	   anisotropic particles
     \param rotation_diff rotational diffusion constant for all particles.
     \param manifold specifies a manfold surface, to which particles are confined.
 */
 template<class Manifold>
 ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                        std::shared_ptr<ParticleGroup> group,
-                                        Scalar rotation_diff,
-                                        Manifold manifold)
-        : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold), m_block_size(256)
+                                                                           std::shared_ptr<ParticleGroup> group,
+                                                                           Scalar rotation_diff,
+                                                                           Manifold manifold)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold), m_block_size(256)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
@@ -129,15 +135,15 @@ void ActiveForceConstraintComputeGPU<Manifold>::setForces()
     unsigned int N = this->m_pdata->getN();
 
     gpu_compute_active_force_set_forces(group_size,
-                                     d_index_array.data,
-                                     d_force.data,
-                                     d_torque.data,
-                                     d_pos.data,
-                                     d_orientation.data,
-                                     d_f_actVec.data,
-                                     d_t_actVec.data,
-                                     N,
-                                     this->m_block_size);
+                                        d_index_array.data,
+                                        d_force.data,
+                                        d_torque.data,
+                                        d_pos.data,
+                                        d_orientation.data,
+                                        d_f_actVec.data,
+                                        d_t_actVec.data,
+                                        N,
+                                        this->m_block_size);
     }
 
 /*! This function applies rotational diffusion to all active particles. The angle between the torque vector and
@@ -159,16 +165,16 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     unsigned int group_size = this->m_group->getNumMembers();
 
     gpu_compute_active_force_constraint_rotational_diffusion<Manifold>(group_size,
-                                                d_tag.data,
-                                                d_index_array.data,
-                                                d_pos.data,
-                                                d_orientation.data,
-                                                this->m_manifold,
-                                                is2D,
-                                                this->m_rotationConst,
-                                                timestep,
-                                                this->m_sysdef->getSeed(),
-                                                this->m_block_size);
+                                                                       d_tag.data,
+                                                                       d_index_array.data,
+                                                                       d_pos.data,
+                                                                       d_orientation.data,
+                                                                       this->m_manifold,
+                                                                       is2D,
+                                                                       this->m_rotationConst,
+                                                                       timestep,
+                                                                       this->m_sysdef->getSeed(),
+                                                                       this->m_block_size);
     }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
@@ -188,12 +194,12 @@ void ActiveForceConstraintComputeGPU<Manifold>::setConstraint()
     unsigned int group_size = this->m_group->getNumMembers();
 
     gpu_compute_active_force_set_constraints<Manifold>(group_size,
-                                             d_index_array.data,
-                                             d_pos.data,
-                                             d_orientation.data,
-                                             d_f_actVec.data,
-                                             this->m_manifold,
-                                             this->m_block_size);
+                                                       d_index_array.data,
+                                                       d_pos.data,
+                                                       d_orientation.data,
+                                                       d_f_actVec.data,
+                                                       this->m_manifold,
+                                                       this->m_block_size);
     }
 
 template<class Manifold>

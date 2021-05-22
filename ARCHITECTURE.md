@@ -25,13 +25,14 @@ compiler and build configurations, including:
   defaults provided by the oldest maintained Ubuntu LTS release.
 
 Visit the [workflows] page to find recent builds. The pipeline configuration
-files are in [.github/workflows/] which are built from templates in templates in
-[.github/workflows/templates/] using `make_workflows.py`.
+files are in [.github/workflows/] which are built from Jinja templates in
+[.github/workflows/templates/] using `make_workflows.py` which is automatically
+run by `pre-commit`. To make changes to the workflows, edit the templates.
 
 [GitHub Actions]: https://docs.github.com/en/actions
 [workflows]: https://github.com/glotzerlab/hoomd-blue/actions
-[.github/workflows/]: .github/workflows/tempaltes
-[.github/workflows/templates/]: .github/workflows/
+[.github/workflows/]: .github/workflows/
+[.github/workflows/templates/]: .github/workflows/templates/
 
 ## Python
 

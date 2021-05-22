@@ -1,13 +1,11 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
-
 #include "ActiveForceCompute.h"
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 #include <vector>
 
@@ -22,9 +20,9 @@ namespace py = pybind11;
 /*! \param rotation_diff rotational diffusion constant for all particles.
 */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
-                                        std::shared_ptr<ParticleGroup> group,
-                                        Scalar rotation_diff)
-        : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff)
+                                       std::shared_ptr<ParticleGroup> group,
+                                       Scalar rotation_diff)
+    : ForceCompute(sysdef), m_group(group), m_rotationDiff(rotation_diff)
     {
     // allocate memory for the per-type active_force storage and initialize them to (1.0,0,0)
     GlobalVector<Scalar4> tmp_f_activeVec(m_pdata->getNTypes(), m_exec_conf);
@@ -32,9 +30,11 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_f_activeVec.swap(tmp_f_activeVec);
     TAG_ALLOCATION(m_f_activeVec);
 
-    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec,
+                                       access_location::host,
+                                       access_mode::overwrite);
     for (unsigned int i = 0; i < m_f_activeVec.size(); i++)
-        h_f_activeVec.data[i] = make_scalar4(1.0,0.0,0.0,1.0);
+        h_f_activeVec.data[i] = make_scalar4(1.0, 0.0, 0.0, 1.0);
 
     // allocate memory for the per-type active_force storage and initialize them to (0,0,0)
     GlobalVector<Scalar4> tmp_t_activeVec(m_pdata->getNTypes(), m_exec_conf);
@@ -42,28 +42,32 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_t_activeVec.swap(tmp_t_activeVec);
     TAG_ALLOCATION(m_t_activeVec);
 
-    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec,
+                                       access_location::host,
+                                       access_mode::overwrite);
     for (unsigned int i = 0; i < m_t_activeVec.size(); i++)
-        h_t_activeVec.data[i] = make_scalar4(1.0,0.0,0.0,0.0);
+        h_t_activeVec.data[i] = make_scalar4(1.0, 0.0, 0.0, 0.0);
 
-
-    #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->allConcurrentManagedAccess())
         {
-        cudaMemAdvise(m_f_activeVec.get(), sizeof(Scalar4)*m_f_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_f_activeVec.get(),
+                      sizeof(Scalar4) * m_f_activeVec.getNumElements(),
+                      cudaMemAdviseSetReadMostly,
+                      0);
 
-        cudaMemAdvise(m_t_activeVec.get(), sizeof(Scalar4)*m_t_activeVec.getNumElements(), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_t_activeVec.get(),
+                      sizeof(Scalar4) * m_t_activeVec.getNumElements(),
+                      cudaMemAdviseSetReadMostly,
+                      0);
         }
-    #endif
-
+#endif
     }
 
 ActiveForceCompute::~ActiveForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
     }
-
-
 
 void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::tuple v)
     {
@@ -85,9 +89,10 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
     f_activeVec.y = pybind11::cast<Scalar>(v[1]);
     f_activeVec.z = pybind11::cast<Scalar>(v[2]);
 
-    Scalar f_activeMag = slow::sqrt(f_activeVec.x*f_activeVec.x+f_activeVec.y*f_activeVec.y+f_activeVec.z*f_activeVec.z);
+    Scalar f_activeMag = slow::sqrt(f_activeVec.x * f_activeVec.x + f_activeVec.y * f_activeVec.y
+                                    + f_activeVec.z * f_activeVec.z);
 
-    if(f_activeMag >0)
+    if (f_activeMag > 0)
         {
         f_activeVec.x /= f_activeMag;
         f_activeVec.y /= f_activeMag;
@@ -102,9 +107,10 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
         f_activeVec.w = 0;
         }
 
-    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec,
+                                       access_location::host,
+                                       access_mode::readwrite);
     h_f_activeVec.data[typ] = f_activeVec;
-
     }
 
 pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
@@ -115,9 +121,9 @@ pybind11::tuple ActiveForceCompute::getActiveForce(const std::string& type_name)
     ArrayHandle<Scalar4> h_f_activeVec(m_f_activeVec, access_location::host, access_mode::read);
 
     Scalar4 f_activeVec = h_f_activeVec.data[typ];
-    v.append(f_activeVec.w*f_activeVec.x);
-    v.append(f_activeVec.w*f_activeVec.y);
-    v.append(f_activeVec.w*f_activeVec.z);
+    v.append(f_activeVec.w * f_activeVec.x);
+    v.append(f_activeVec.w * f_activeVec.y);
+    v.append(f_activeVec.w * f_activeVec.z);
     return pybind11::tuple(v);
     }
 
@@ -141,9 +147,10 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
     t_activeVec.y = pybind11::cast<Scalar>(v[1]);
     t_activeVec.z = pybind11::cast<Scalar>(v[2]);
 
-    Scalar t_activeMag = slow::sqrt(t_activeVec.x*t_activeVec.x+t_activeVec.y*t_activeVec.y+t_activeVec.z*t_activeVec.z);
+    Scalar t_activeMag = slow::sqrt(t_activeVec.x * t_activeVec.x + t_activeVec.y * t_activeVec.y
+                                    + t_activeVec.z * t_activeVec.z);
 
-    if(t_activeMag > 0)
+    if (t_activeMag > 0)
         {
         t_activeVec.x /= t_activeMag;
         t_activeVec.y /= t_activeMag;
@@ -151,16 +158,17 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
         t_activeVec.w = t_activeMag;
         }
     else
-       {
+        {
         t_activeVec.x = 0;
         t_activeVec.y = 0;
         t_activeVec.z = 0;
         t_activeVec.w = 0;
         }
 
-    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec,
+                                       access_location::host,
+                                       access_mode::readwrite);
     h_t_activeVec.data[typ] = t_activeVec;
-
     }
 
 pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name)
@@ -170,24 +178,25 @@ pybind11::tuple ActiveForceCompute::getActiveTorque(const std::string& type_name
 
     ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec, access_location::host, access_mode::read);
     Scalar4 t_activeVec = h_t_activeVec.data[typ];
-    v.append(t_activeVec.w*t_activeVec.x);
-    v.append(t_activeVec.w*t_activeVec.y);
-    v.append(t_activeVec.w*t_activeVec.z);
+    v.append(t_activeVec.w * t_activeVec.x);
+    v.append(t_activeVec.w * t_activeVec.y);
+    v.append(t_activeVec.w * t_activeVec.z);
     return pybind11::tuple(v);
     }
 
 /*! This function sets appropriate active forces on all active particles.
-*/
+ */
 void ActiveForceCompute::setForces()
     {
-
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
     // sanity check
     assert(h_f_actVec.data != NULL);
@@ -204,19 +213,23 @@ void ActiveForceCompute::setForces()
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
-        vec3<Scalar> f(h_f_actVec.data[type].w*h_f_actVec.data[type].x, h_f_actVec.data[type].w*h_f_actVec.data[type].y, h_f_actVec.data[type].w*h_f_actVec.data[type].z);
+        vec3<Scalar> f(h_f_actVec.data[type].w * h_f_actVec.data[type].x,
+                       h_f_actVec.data[type].w * h_f_actVec.data[type].y,
+                       h_f_actVec.data[type].w * h_f_actVec.data[type].z);
         quat<Scalar> quati(h_orientation.data[idx]);
         vec3<Scalar> fi = rotate(quati, f);
         h_force.data[idx] = vec_to_scalar4(fi, 0);
 
-        vec3<Scalar> t(h_t_actVec.data[type].w*h_t_actVec.data[type].x, h_t_actVec.data[type].w*h_t_actVec.data[type].y, h_t_actVec.data[type].w*h_t_actVec.data[type].z);
+        vec3<Scalar> t(h_t_actVec.data[type].w * h_t_actVec.data[type].x,
+                       h_t_actVec.data[type].w * h_t_actVec.data[type].y,
+                       h_t_actVec.data[type].w * h_t_actVec.data[type].z);
         vec3<Scalar> ti = rotate(quati, t);
         h_torque.data[idx] = vec_to_scalar4(ti, 0);
         }
     }
 
-
-/*! This function applies rotational diffusion to the orientations of all active particles. The orientation of any torque vector
+/*! This function applies rotational diffusion to the orientations of all active particles. The
+ orientation of any torque vector
  * relative to the force vector is preserved
     \param timestep Current timestep
 */
@@ -224,8 +237,10 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
     ArrayHandle<Scalar4> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::readwrite);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     assert(h_f_actVec.data != NULL);
@@ -278,7 +293,7 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
                 quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec); // rotational diffusion quaternion
 
-                quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
+                quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
                 }
             }
@@ -290,7 +305,8 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
 */
 void ActiveForceCompute::computeForces(uint64_t timestep)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "ActiveForceCompute");
+    if (m_prof)
+        m_prof->push(m_exec_conf, "ActiveForceCompute");
 
     if (last_computed != timestep)
         {
@@ -305,20 +321,21 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
         setForces(); // set forces for particles
         }
 
-    #ifdef ENABLE_HIP
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+#ifdef ENABLE_HIP
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    #endif
+#endif
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
     }
 
-
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
+    .def(py::init< std::shared_ptr<SystemDefinition>, 
+		   std::shared_ptr<ParticleGroup>, 
+		   Scalar >())
     .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)
     .def("getActiveForce", &ActiveForceCompute::getActiveForce)
