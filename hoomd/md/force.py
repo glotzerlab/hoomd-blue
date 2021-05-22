@@ -317,14 +317,14 @@ class Active(Force):
     diffusion follows :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta
     t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
     :math:`\hat{p}_r` is an uncorrelated random unit vector. If a manifold
-    constraint is set, `\hat{p}_i` is restricted to the local tangent plane of
-    the manifold at point `{\bf r}_i`. The persistence length of an active
-    particle's path is :math:`v_0 / D_r`.  The rotational diffusion is applied
-    to the orientation vector/quaternion of each particle. This implies that
-    both the active force and the active torque vectors in the particle
-    frame stay constant during the simulation. Hence, the active forces in
-    the system frame are composed of the forces in particle frame and the
-    current orientation of the particle.
+    constraint is set, :math:`\hat{p}_i` is restricted to the local tangent
+    plane of the manifold at point :math:`{\bf r}_i`. The persistence length
+    of an active particle's path is :math:`v_0 / D_r`. The rotational diffusion
+    is applied to the orientation vector/quaternion of each particle. This
+    implies that both the active force and the active torque vectors in the
+    particle frame stay constant during the simulation. Hence, the active
+    forces in the system frame are composed of the forces in particle frame
+    and the current orientation of the particle.
 
     Examples::
 
