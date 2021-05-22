@@ -22,7 +22,7 @@ def test_attributes():
     plane = hoomd.md.manifold.Plane()
     with pytest.raises(AttributeError):
          active.manifold_constraint = plane 
-    assert active.manifold_constraint == None
+    assert active.manifold_constraint is None
 
 def test_attach(simulation_factory, two_particle_snapshot_factory):
     active = hoomd.md.force.Active(

@@ -231,7 +231,6 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintCompute<ManifoldXYPlane>(m,"ActiveForceConstraintComputePlane");
     export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,"ActiveForceConstraintComputePrimitive");
     export_ActiveForceConstraintCompute<ManifoldSphere>(m,"ActiveForceConstraintComputeSphere");
-    //export_ConstExternalFieldDipoleForceCompute(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
