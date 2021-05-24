@@ -292,7 +292,6 @@ class ThermodynamicQuantities(_Thermo):
         else:
             return None
 
-
     @log
     def volume(self):
         """:math:`V`, volume of the simulation box (area in 2D)."""

@@ -318,19 +318,21 @@ void ComputeThermo::reduceProperties()
 
 void export_ComputeThermo(py::module& m)
     {
-    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo")
-    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>>())
-    .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
-    .def_property_readonly("pressure", &ComputeThermo::getPressure)
-    .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
-    .def_property_readonly("degrees_of_freedom", &ComputeThermo::getNDOF)
-    .def_property_readonly("translational_degrees_of_freedom", &ComputeThermo::getTranslationalDOF)
-    .def_property_readonly("rotational_degrees_of_freedom", &ComputeThermo::getRotationalDOF)
-    .def_property_readonly("num_particles", &ComputeThermo::getNumParticles)
-    .def_property_readonly("kinetic_energy", &ComputeThermo::getKineticEnergy)
-    .def_property_readonly("translational_kinetic_energy", &ComputeThermo::getTranslationalKineticEnergy)
-    .def_property_readonly("rotational_kinetic_energy", &ComputeThermo::getRotationalKineticEnergy)
-    .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
-    .def_property_readonly("volume", &ComputeThermo::getVolume)
-    ;
+    py::class_<ComputeThermo, Compute, std::shared_ptr<ComputeThermo>>(m, "ComputeThermo")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def_property_readonly("kinetic_temperature", &ComputeThermo::getTemperature)
+        .def_property_readonly("pressure", &ComputeThermo::getPressure)
+        .def_property_readonly("pressure_tensor", &ComputeThermo::getPressureTensorPython)
+        .def_property_readonly("degrees_of_freedom", &ComputeThermo::getNDOF)
+        .def_property_readonly("translational_degrees_of_freedom",
+                               &ComputeThermo::getTranslationalDOF)
+        .def_property_readonly("rotational_degrees_of_freedom", &ComputeThermo::getRotationalDOF)
+        .def_property_readonly("num_particles", &ComputeThermo::getNumParticles)
+        .def_property_readonly("kinetic_energy", &ComputeThermo::getKineticEnergy)
+        .def_property_readonly("translational_kinetic_energy",
+                               &ComputeThermo::getTranslationalKineticEnergy)
+        .def_property_readonly("rotational_kinetic_energy",
+                               &ComputeThermo::getRotationalKineticEnergy)
+        .def_property_readonly("potential_energy", &ComputeThermo::getPotentialEnergy)
+        .def_property_readonly("volume", &ComputeThermo::getVolume);
     }

@@ -19,7 +19,6 @@ import warnings
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
-
 pytest_plugins = ("hoomd.pytest_plugin_validate",)
 
 devices = [hoomd.device.CPU]
@@ -380,8 +379,8 @@ class BlockAverage:
         # check for a plateau in the relative error before the last data point
         block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
             self._block_mean)
-        relative_error_derivative = (
-            numpy.diff(block_relative_error) / numpy.diff(self._block_sizes))
+        relative_error_derivative = (numpy.diff(block_relative_error)
+                                     / numpy.diff(self._block_sizes))
         if numpy.all(relative_error_derivative > 0):
             warnings.warn("Block averaging failed to plateau, run longer")
 
