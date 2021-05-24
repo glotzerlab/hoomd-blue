@@ -118,8 +118,6 @@ def test_lj_equation_of_state(
 
     energy.assert_close(mean_U_ref, sigma_U_ref)
 
-    # use larger tolerances for pressure and density as these have larger
-    # fluctuations
     if method_name == 'NVT' or method_name == 'Langevin':
         pressure.assert_close(mean_P_ref, sigma_P_ref)
 
