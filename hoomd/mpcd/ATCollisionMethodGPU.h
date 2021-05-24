@@ -19,51 +19,52 @@
 #include "hoomd/Autotuner.h"
 
 namespace mpcd
-{
-
+    {
 class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     {
     public:
-        //! Constructor
-        ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
-                             uint64_t cur_timestep,
-                             uint64_t period,
-                             int phase,
-                             std::shared_ptr<mpcd::CellThermoCompute> thermo,
-                             std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
-                             std::shared_ptr<::Variant> T);
+    //! Constructor
+    ATCollisionMethodGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                         uint64_t cur_timestep,
+                         uint64_t period,
+                         int phase,
+                         std::shared_ptr<mpcd::CellThermoCompute> thermo,
+                         std::shared_ptr<mpcd::CellThermoCompute> rand_thermo,
+                         std::shared_ptr<::Variant> T);
 
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable/disable autotuning
-         * \param period period (approximate) in time steps when returning occurs
-         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            mpcd::ATCollisionMethod::setAutotunerParams(enable, period);
+    //! Set autotuner parameters
+    /*!
+     * \param enable Enable/disable autotuning
+     * \param period period (approximate) in time steps when returning occurs
+     */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        mpcd::ATCollisionMethod::setAutotunerParams(enable, period);
 
-            m_tuner_draw->setPeriod(period); m_tuner_draw->setEnabled(enable);
-            m_tuner_apply->setPeriod(period); m_tuner_apply->setEnabled(enable);
-            }
+        m_tuner_draw->setPeriod(period);
+        m_tuner_draw->setEnabled(enable);
+        m_tuner_apply->setPeriod(period);
+        m_tuner_apply->setEnabled(enable);
+        }
 
     protected:
-        //! Draw velocities for particles in each cell on the GPU
-        virtual void drawVelocities(uint64_t timestep);
+    //! Draw velocities for particles in each cell on the GPU
+    virtual void drawVelocities(uint64_t timestep);
 
-        //! Apply the random velocities to particles in each cell on the GPU
-        virtual void applyVelocities();
+    //! Apply the random velocities to particles in each cell on the GPU
+    virtual void applyVelocities();
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_draw;    //!< Tuner for drawing random velocities
-        std::unique_ptr<Autotuner> m_tuner_apply;   //!< Tuner for applying random velocities
+    std::unique_ptr<Autotuner> m_tuner_draw;  //!< Tuner for drawing random velocities
+    std::unique_ptr<Autotuner> m_tuner_apply; //!< Tuner for applying random velocities
     };
 
 namespace detail
-{
+    {
 //! Export ATCollisionMethodGPU to python
 void export_ATCollisionMethodGPU(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #endif // MPCD_AT_COLLISION_METHOD_GPU_H_

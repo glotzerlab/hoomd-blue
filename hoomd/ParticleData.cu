@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #include "ParticleData.cuh"
@@ -16,54 +15,54 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <hipcub/hipcub.hpp>
 
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
-#include <thrust/scatter.h>
 #include <thrust/device_ptr.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/scatter.h>
 #pragma GCC diagnostic pop
 
 //! Kernel to partition particle data
-__global__ void gpu_scatter_particle_data_kernel(
-    const unsigned int nwork,
-    const Scalar4 *d_pos,
-    const Scalar4 *d_vel,
-    const Scalar3 *d_accel,
-    const Scalar *d_charge,
-    const Scalar *d_diameter,
-    const int3 *d_image,
-    const unsigned int *d_body,
-    const Scalar4 *d_orientation,
-    const Scalar4 *d_angmom,
-    const Scalar3 *d_inertia,
-    const Scalar4 *d_net_force,
-    const Scalar4 *d_net_torque,
-    const Scalar *d_net_virial,
-    unsigned int net_virial_pitch,
-    const unsigned int *d_tag,
-    unsigned int *d_rtag,
-    Scalar4 *d_pos_alt,
-    Scalar4 *d_vel_alt,
-    Scalar3 *d_accel_alt,
-    Scalar *d_charge_alt,
-    Scalar *d_diameter_alt,
-    int3 *d_image_alt,
-    unsigned int *d_body_alt,
-    Scalar4 *d_orientation_alt,
-    Scalar4 *d_angmom_alt,
-    Scalar3 *d_inertia_alt,
-    Scalar4 *d_net_force_alt,
-    Scalar4 *d_net_torque_alt,
-    Scalar *d_net_virial_alt,
-    unsigned int *d_tag_alt,
-    pdata_element *d_out,
-    unsigned int *d_comm_flags,
-    unsigned int *d_comm_flags_out,
-    const unsigned int *d_scan,
-    const unsigned int offset)
+__global__ void gpu_scatter_particle_data_kernel(const unsigned int nwork,
+                                                 const Scalar4* d_pos,
+                                                 const Scalar4* d_vel,
+                                                 const Scalar3* d_accel,
+                                                 const Scalar* d_charge,
+                                                 const Scalar* d_diameter,
+                                                 const int3* d_image,
+                                                 const unsigned int* d_body,
+                                                 const Scalar4* d_orientation,
+                                                 const Scalar4* d_angmom,
+                                                 const Scalar3* d_inertia,
+                                                 const Scalar4* d_net_force,
+                                                 const Scalar4* d_net_torque,
+                                                 const Scalar* d_net_virial,
+                                                 unsigned int net_virial_pitch,
+                                                 const unsigned int* d_tag,
+                                                 unsigned int* d_rtag,
+                                                 Scalar4* d_pos_alt,
+                                                 Scalar4* d_vel_alt,
+                                                 Scalar3* d_accel_alt,
+                                                 Scalar* d_charge_alt,
+                                                 Scalar* d_diameter_alt,
+                                                 int3* d_image_alt,
+                                                 unsigned int* d_body_alt,
+                                                 Scalar4* d_orientation_alt,
+                                                 Scalar4* d_angmom_alt,
+                                                 Scalar3* d_inertia_alt,
+                                                 Scalar4* d_net_force_alt,
+                                                 Scalar4* d_net_torque_alt,
+                                                 Scalar* d_net_virial_alt,
+                                                 unsigned int* d_tag_alt,
+                                                 pdata_element* d_out,
+                                                 unsigned int* d_comm_flags,
+                                                 unsigned int* d_comm_flags_out,
+                                                 const unsigned int* d_scan,
+                                                 const unsigned int offset)
     {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= nwork) return;
+    if (idx >= nwork)
+        return;
     idx += offset;
     bool remove = d_comm_flags[idx];
 
@@ -86,7 +85,7 @@ __global__ void gpu_scatter_particle_data_kernel(
         p.net_force = d_net_force[idx];
         p.net_torque = d_net_torque[idx];
         for (unsigned int j = 0; j < 6; ++j)
-            p.net_virial[j] = d_net_virial[j*net_virial_pitch+idx];
+            p.net_virial[j] = d_net_virial[j * net_virial_pitch + idx];
         p.tag = d_tag[idx];
         d_out[scan_remove] = p;
         d_comm_flags_out[scan_remove] = d_comm_flags[idx];
@@ -112,24 +111,23 @@ __global__ void gpu_scatter_particle_data_kernel(
         d_net_force_alt[scan_keep] = d_net_force[idx];
         d_net_torque_alt[scan_keep] = d_net_torque[idx];
         for (unsigned int j = 0; j < 6; ++j)
-            d_net_virial_alt[j*net_virial_pitch+scan_keep] = d_net_virial[j*net_virial_pitch+idx];
+            d_net_virial_alt[j * net_virial_pitch + scan_keep]
+                = d_net_virial[j * net_virial_pitch + idx];
         unsigned int tag = d_tag[idx];
         d_tag_alt[scan_keep] = tag;
 
         // update rtag
         d_rtag[tag] = scan_keep;
         }
-
     }
 
-__global__ void gpu_select_sent_particles(
-    unsigned int N,
-    unsigned int *d_comm_flags,
-    unsigned int *d_tmp)
+__global__ void
+gpu_select_sent_particles(unsigned int N, unsigned int* d_comm_flags, unsigned int* d_tmp)
     {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N) return;
+    if (idx >= N)
+        return;
     d_tmp[idx] = d_comm_flags[idx] ? 1 : 0;
     }
 
@@ -169,45 +167,46 @@ __global__ void gpu_select_sent_particles(
     \returns Number of elements marked for removal
  */
 unsigned int gpu_pdata_remove(const unsigned int N,
-                    const Scalar4 *d_pos,
-                    const Scalar4 *d_vel,
-                    const Scalar3 *d_accel,
-                    const Scalar *d_charge,
-                    const Scalar *d_diameter,
-                    const int3 *d_image,
-                    const unsigned int *d_body,
-                    const Scalar4 *d_orientation,
-                    const Scalar4 *d_angmom,
-                    const Scalar3 *d_inertia,
-                    const Scalar4 *d_net_force,
-                    const Scalar4 *d_net_torque,
-                    const Scalar *d_net_virial,
-                    unsigned int net_virial_pitch,
-                    const unsigned int *d_tag,
-                    unsigned int *d_rtag,
-                    Scalar4 *d_pos_alt,
-                    Scalar4 *d_vel_alt,
-                    Scalar3 *d_accel_alt,
-                    Scalar *d_charge_alt,
-                    Scalar *d_diameter_alt,
-                    int3 *d_image_alt,
-                    unsigned int *d_body_alt,
-                    Scalar4 *d_orientation_alt,
-                    Scalar4 *d_angmom_alt,
-                    Scalar3 *d_inertia_alt,
-                    Scalar4 *d_net_force_alt,
-                    Scalar4 *d_net_torque_alt,
-                    Scalar *d_net_virial_alt,
-                    unsigned int *d_tag_alt,
-                    pdata_element *d_out,
-                    unsigned int *d_comm_flags,
-                    unsigned int *d_comm_flags_out,
-                    unsigned int max_n_out,
-                    unsigned int *d_tmp,
-                    CachedAllocator& alloc,
-                    GPUPartition& gpu_partition)
+                              const Scalar4* d_pos,
+                              const Scalar4* d_vel,
+                              const Scalar3* d_accel,
+                              const Scalar* d_charge,
+                              const Scalar* d_diameter,
+                              const int3* d_image,
+                              const unsigned int* d_body,
+                              const Scalar4* d_orientation,
+                              const Scalar4* d_angmom,
+                              const Scalar3* d_inertia,
+                              const Scalar4* d_net_force,
+                              const Scalar4* d_net_torque,
+                              const Scalar* d_net_virial,
+                              unsigned int net_virial_pitch,
+                              const unsigned int* d_tag,
+                              unsigned int* d_rtag,
+                              Scalar4* d_pos_alt,
+                              Scalar4* d_vel_alt,
+                              Scalar3* d_accel_alt,
+                              Scalar* d_charge_alt,
+                              Scalar* d_diameter_alt,
+                              int3* d_image_alt,
+                              unsigned int* d_body_alt,
+                              Scalar4* d_orientation_alt,
+                              Scalar4* d_angmom_alt,
+                              Scalar3* d_inertia_alt,
+                              Scalar4* d_net_force_alt,
+                              Scalar4* d_net_torque_alt,
+                              Scalar* d_net_virial_alt,
+                              unsigned int* d_tag_alt,
+                              pdata_element* d_out,
+                              unsigned int* d_comm_flags,
+                              unsigned int* d_comm_flags_out,
+                              unsigned int max_n_out,
+                              unsigned int* d_tmp,
+                              CachedAllocator& alloc,
+                              GPUPartition& gpu_partition)
     {
-    if (!N) return 0;
+    if (!N)
+        return 0;
 
     assert(d_pos);
     assert(d_vel);
@@ -247,47 +246,43 @@ unsigned int gpu_pdata_remove(const unsigned int N,
 
     // partition particle data into local and removed particles
     unsigned int block_size = 256;
-    unsigned int n_blocks = N/block_size+1;
+    unsigned int n_blocks = N / block_size + 1;
 
     // select nonzero communication flags
-    hipLaunchKernelGGL(gpu_select_sent_particles, dim3(n_blocks), dim3(block_size), 0, 0,
-        N,
-        d_comm_flags,
-        d_tmp);
+    hipLaunchKernelGGL(gpu_select_sent_particles,
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       N,
+                       d_comm_flags,
+                       d_tmp);
 
     // perform a scan over the array of ones and zeroes
-    void     *d_temp_storage = NULL;
-    size_t   temp_storage_bytes = 0;
+    void* d_temp_storage = NULL;
+    size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    unsigned int *d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
+    unsigned int* d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
     assert(d_scan);
 
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
-    alloc.deallocate((char *)d_temp_storage);
+    alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of sent particles
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    unsigned int *d_n_out = (unsigned int *) alloc.getTemporaryBuffer<unsigned int>(1);
+    unsigned int* d_n_out = (unsigned int*)alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_out);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-        temp_storage_bytes,
-        d_tmp,
-        d_n_out,
-        N);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-        temp_storage_bytes,
-        d_tmp,
-        d_n_out,
-        N);
-    alloc.deallocate((char *) d_temp_storage);
+    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
+    alloc.deallocate((char*)d_temp_storage);
     hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
-    alloc.deallocate((char *) d_n_out);
+    alloc.deallocate((char*)d_n_out);
 
     // Don't write past end of buffer
     if (n_out <= max_n_out)
@@ -301,80 +296,84 @@ unsigned int gpu_pdata_remove(const unsigned int N,
             unsigned int offset = range.first;
 
             unsigned int block_size = 256;
-            unsigned int n_blocks = nwork/block_size+1;
+            unsigned int n_blocks = nwork / block_size + 1;
 
-            hipLaunchKernelGGL(gpu_scatter_particle_data_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
-                nwork,
-                d_pos,
-                d_vel,
-                d_accel,
-                d_charge,
-                d_diameter,
-                d_image,
-                d_body,
-                d_orientation,
-                d_angmom,
-                d_inertia,
-                d_net_force,
-                d_net_torque,
-                d_net_virial,
-                net_virial_pitch,
-                d_tag,
-                d_rtag,
-                d_pos_alt,
-                d_vel_alt,
-                d_accel_alt,
-                d_charge_alt,
-                d_diameter_alt,
-                d_image_alt,
-                d_body_alt,
-                d_orientation_alt,
-                d_angmom_alt,
-                d_inertia_alt,
-                d_net_force_alt,
-                d_net_torque_alt,
-                d_net_virial_alt,
-                d_tag_alt,
-                d_out,
-                d_comm_flags,
-                d_comm_flags_out,
-                d_scan,
-                offset);
+            hipLaunchKernelGGL(gpu_scatter_particle_data_kernel,
+                               dim3(n_blocks),
+                               dim3(block_size),
+                               0,
+                               0,
+                               nwork,
+                               d_pos,
+                               d_vel,
+                               d_accel,
+                               d_charge,
+                               d_diameter,
+                               d_image,
+                               d_body,
+                               d_orientation,
+                               d_angmom,
+                               d_inertia,
+                               d_net_force,
+                               d_net_torque,
+                               d_net_virial,
+                               net_virial_pitch,
+                               d_tag,
+                               d_rtag,
+                               d_pos_alt,
+                               d_vel_alt,
+                               d_accel_alt,
+                               d_charge_alt,
+                               d_diameter_alt,
+                               d_image_alt,
+                               d_body_alt,
+                               d_orientation_alt,
+                               d_angmom_alt,
+                               d_inertia_alt,
+                               d_net_force_alt,
+                               d_net_torque_alt,
+                               d_net_virial_alt,
+                               d_tag_alt,
+                               d_out,
+                               d_comm_flags,
+                               d_comm_flags_out,
+                               d_scan,
+                               offset);
             }
         }
 
     // free temp buf
-    alloc.deallocate((char *)d_scan);
+    alloc.deallocate((char*)d_scan);
 
     // return elements written to output stream
     return n_out;
     }
 
-
 __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
-                    unsigned int num_add_ptls,
-                    Scalar4 *d_pos,
-                    Scalar4 *d_vel,
-                    Scalar3 *d_accel,
-                    Scalar *d_charge,
-                    Scalar *d_diameter,
-                    int3 *d_image,
-                    unsigned int *d_body,
-                    Scalar4 *d_orientation,
-                    Scalar4 *d_angmom,
-                    Scalar3 *d_inertia,
-                    Scalar4 *d_net_force,
-                    Scalar4 *d_net_torque,
-                    Scalar *d_net_virial,
-                    unsigned int net_virial_pitch,
-                    unsigned int *d_tag,
-                    unsigned int *d_rtag,
-                    const pdata_element *d_in,
-                    unsigned int *d_comm_flags)
+                                               unsigned int num_add_ptls,
+                                               Scalar4* d_pos,
+                                               Scalar4* d_vel,
+                                               Scalar3* d_accel,
+                                               Scalar* d_charge,
+                                               Scalar* d_diameter,
+                                               int3* d_image,
+                                               unsigned int* d_body,
+                                               Scalar4* d_orientation,
+                                               Scalar4* d_angmom,
+                                               Scalar3* d_inertia,
+                                               Scalar4* d_net_force,
+                                               Scalar4* d_net_torque,
+                                               Scalar* d_net_virial,
+                                               unsigned int net_virial_pitch,
+                                               unsigned int* d_tag,
+                                               unsigned int* d_rtag,
+                                               const pdata_element* d_in,
+                                               unsigned int* d_comm_flags)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= num_add_ptls) return;
+    if (idx >= num_add_ptls)
+        return;
 
     pdata_element p = d_in[idx];
 
@@ -392,7 +391,7 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     d_net_force[add_idx] = p.net_force;
     d_net_torque[add_idx] = p.net_torque;
     for (unsigned int j = 0; j < 6; ++j)
-        d_net_virial[j*net_virial_pitch+add_idx] = p.net_virial[j];
+        d_net_virial[j * net_virial_pitch + add_idx] = p.net_virial[j];
     d_tag[add_idx] = p.tag;
     d_rtag[p.tag] = add_idx;
     d_comm_flags[add_idx] = 0;
@@ -419,25 +418,25 @@ __global__ void gpu_pdata_add_particles_kernel(unsigned int old_nparticles,
     \param d_comm_flags Device array of communication flags (pdata)
 */
 void gpu_pdata_add_particles(const unsigned int old_nparticles,
-                    const unsigned int num_add_ptls,
-                    Scalar4 *d_pos,
-                    Scalar4 *d_vel,
-                    Scalar3 *d_accel,
-                    Scalar *d_charge,
-                    Scalar *d_diameter,
-                    int3 *d_image,
-                    unsigned int *d_body,
-                    Scalar4 *d_orientation,
-                    Scalar4 *d_angmom,
-                    Scalar3 *d_inertia,
-                    Scalar4 *d_net_force,
-                    Scalar4 *d_net_torque,
-                    Scalar *d_net_virial,
-                    unsigned int net_virial_pitch,
-                    unsigned int *d_tag,
-                    unsigned int *d_rtag,
-                    const pdata_element *d_in,
-                    unsigned int *d_comm_flags)
+                             const unsigned int num_add_ptls,
+                             Scalar4* d_pos,
+                             Scalar4* d_vel,
+                             Scalar3* d_accel,
+                             Scalar* d_charge,
+                             Scalar* d_diameter,
+                             int3* d_image,
+                             unsigned int* d_body,
+                             Scalar4* d_orientation,
+                             Scalar4* d_angmom,
+                             Scalar3* d_inertia,
+                             Scalar4* d_net_force,
+                             Scalar4* d_net_torque,
+                             Scalar* d_net_virial,
+                             unsigned int net_virial_pitch,
+                             unsigned int* d_tag,
+                             unsigned int* d_rtag,
+                             const pdata_element* d_in,
+                             unsigned int* d_comm_flags)
     {
     assert(d_pos);
     assert(d_vel);
@@ -457,29 +456,33 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     assert(d_in);
 
     unsigned int block_size = 256;
-    unsigned int n_blocks = num_add_ptls/block_size + 1;
+    unsigned int n_blocks = num_add_ptls / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_pdata_add_particles_kernel, dim3(n_blocks), dim3(block_size), 0, 0,
-        old_nparticles,
-        num_add_ptls,
-        d_pos,
-        d_vel,
-        d_accel,
-        d_charge,
-        d_diameter,
-        d_image,
-        d_body,
-        d_orientation,
-        d_angmom,
-        d_inertia,
-        d_net_force,
-        d_net_torque,
-        d_net_virial,
-        net_virial_pitch,
-        d_tag,
-        d_rtag,
-        d_in,
-        d_comm_flags);
+    hipLaunchKernelGGL(gpu_pdata_add_particles_kernel,
+                       dim3(n_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       old_nparticles,
+                       num_add_ptls,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_charge,
+                       d_diameter,
+                       d_image,
+                       d_body,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_force,
+                       d_net_torque,
+                       d_net_virial,
+                       net_virial_pitch,
+                       d_tag,
+                       d_rtag,
+                       d_in,
+                       d_comm_flags);
     }
 
 #endif // ENABLE_MPI

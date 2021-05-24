@@ -25,4 +25,3 @@ hpmc.tune
             Whether or not the moves sizes have converged to the desired acceptance rate.
 
             :type: bool
-

@@ -6,7 +6,6 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
-                   ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
@@ -72,7 +71,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-                ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
                 ConstraintSphereGPU.h

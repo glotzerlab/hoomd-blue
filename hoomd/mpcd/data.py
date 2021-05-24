@@ -109,6 +109,7 @@ from hoomd import _hoomd
 from . import _mpcd
 from . import update
 
+
 class snapshot():
     R""" MPCD system snapshot
 
@@ -122,10 +123,12 @@ class snapshot():
     :py:meth:`~hoomd.mpcd.data.system.take_snapshot()`.
 
     """
+
     def __init__(self, sys_snap):
 
         if not hoomd.init.is_initialized():
-            raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
+            raise RuntimeError(
+                "mpcd: HOOMD system must be initialized before mpcd\n")
 
         self.sys_snap = sys_snap
 
@@ -159,13 +162,16 @@ class snapshot():
         ny = int(ny)
         nz = int(nz)
         if nx == ny == nz == 1:
-            hoomd.context.current.device.cpp_msg.warning("mpcd: all replication factors are one, ignoring.\n")
+            hoomd.context.current.device.cpp_msg.warning(
+                "mpcd: all replication factors are one, ignoring.\n")
             return
-        elif nx <= 0 or ny <=0 or nz <= 0:
-            hoomd.context.current.device.cpp_msg.error("mpcd: all replication factors must be positive.\n")
+        elif nx <= 0 or ny <= 0 or nz <= 0:
+            hoomd.context.current.device.cpp_msg.error(
+                "mpcd: all replication factors must be positive.\n")
             raise ValueError("Replication factors must be positive integers")
 
         self.sys_snap.replicate(nx, ny, nz)
+
 
 class system():
     R""" MPCD system data
@@ -177,6 +183,7 @@ class system():
     returned by :py:mod:`hoomd.mpcd.init`.
 
     """
+
     def __init__(self, sysdata):
         self.data = sysdata
         hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
@@ -265,6 +272,7 @@ class system():
         """
         return snapshot(self.data.takeSnapshot(particles))
 
+
 def make_snapshot(N=0):
     R"""Creates an empty MPCD system snapshot
 
@@ -285,8 +293,10 @@ def make_snapshot(N=0):
 
     """
     if not hoomd.init.is_initialized():
-        raise RuntimeError("mpcd: HOOMD system must be initialized before mpcd\n")
+        raise RuntimeError(
+            "mpcd: HOOMD system must be initialized before mpcd\n")
 
-    snap = snapshot(_mpcd.SystemDataSnapshot(hoomd.context.current.system_definition))
+    snap = snapshot(
+        _mpcd.SystemDataSnapshot(hoomd.context.current.system_definition))
     snap.particles.resize(N)
     return snap

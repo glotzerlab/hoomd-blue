@@ -12,11 +12,12 @@ in the system.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force;
-import hoomd;
+from hoomd.md import force
+import hoomd
 
-import sys;
-import math;
+import sys
+import math
+
 
 
 class External(force.Force):
@@ -71,12 +72,14 @@ class Periodic(External):
         self._add_typeparam(params)
 
     def process_coeff(self, coeff):
-        A = coeff['A'];
-        i = coeff['i'];
-        w = coeff['w'];
-        p = coeff['p'];
+        A = coeff['A']
+        i = coeff['i']
+        w = coeff['w']
+        p = coeff['p']
 
-        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w, _hoomd.int_as_scalar(p));
+        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w,
+                                   _hoomd.int_as_scalar(p))
+
 
 class e_field(_external_force):
     R""" Electric field.
@@ -98,26 +101,29 @@ class e_field(_external_force):
         # Apply an electric field in the x-direction
         e_field = external.e_field((1,0,0))
     """
+
     def __init__(self, field, name=""):
 
         # initialize the base class
-        _external_force.__init__(self, name);
+        _external_force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialExternalElectricField(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalElectricField(
+                hoomd.context.current.system_definition, self.name)
         else:
-            self.cpp_force = _md.PotentialExternalElectricFieldGPU(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalElectricFieldGPU(
+                hoomd.context.current.system_definition, self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs = None;
+        self.required_coeffs = None
 
         self.field_coeff = tuple(field)
 
     def process_coeff(self, coeff):
-        pass;
+        pass
 
     def process_field_coeff(self, field):
-        return _hoomd.make_scalar3(field[0],field[1],field[2])
+        return _hoomd.make_scalar3(field[0], field[1], field[2])

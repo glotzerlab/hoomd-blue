@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -9,17 +8,16 @@
 
 HOOMD_UP_MAIN();
 
-
 #include <iostream>
 
 #include <math.h>
 
-#include <pybind11/pybind11.h>
 #include <memory>
+#include <pybind11/pybind11.h>
 
 #include "hoomd/VectorMath.h"
 
-UP_TEST( construction )
+UP_TEST(construction)
     {
     // test each constructor separately
     quat<Scalar> a;
@@ -43,9 +41,10 @@ UP_TEST( construction )
     MY_CHECK_CLOSE(c.v.z, s4.w, tol);
 
     Scalar pi = M_PI;
-    Scalar alpha = pi/2.0; // angle of rotation
-    quat<Scalar> d = quat<Scalar>::fromAxisAngle(vec3<Scalar>(0,0,1), alpha);
-    quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternions
+    Scalar alpha = pi / 2.0; // angle of rotation
+    quat<Scalar> d = quat<Scalar>::fromAxisAngle(vec3<Scalar>(0, 0, 1), alpha);
+    quat<Scalar> q1(cos(alpha / 2.0),
+                    (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     MY_CHECK_CLOSE(d.s, q1.s, tol);
     MY_CHECK_CLOSE(d.v.x, q1.v.x, tol);
     MY_CHECK_CLOSE(d.v.y, q1.v.y, tol);
@@ -96,13 +95,13 @@ UP_TEST( construction )
     MY_CHECK_CLOSE(h.v.z, 12, tol);
     }
 
-UP_TEST( arithmetic )
+UP_TEST(arithmetic)
     {
-    quat<Scalar> a(1, vec3<Scalar>(2,3,4));
-    quat<Scalar> b(4, vec3<Scalar>(6,8,10));
+    quat<Scalar> a(1, vec3<Scalar>(2, 3, 4));
+    quat<Scalar> b(4, vec3<Scalar>(6, 8, 10));
     quat<Scalar> c;
     vec3<Scalar> v;
-    Scalar s=3;
+    Scalar s = 3;
 
     // test each operator separately
     c = a * s;
@@ -157,16 +156,16 @@ UP_TEST( arithmetic )
     MY_CHECK_CLOSE(c.v.y, -a.v.y, tol);
     MY_CHECK_CLOSE(c.v.z, -a.v.z, tol);
 
-    v = rotate(a, vec3<Scalar>(1,1,1));
+    v = rotate(a, vec3<Scalar>(1, 1, 1));
     MY_CHECK_CLOSE(v.x, 6, tol);
     MY_CHECK_CLOSE(v.y, 30, tol);
     MY_CHECK_CLOSE(v.z, 42, tol);
     }
 
-UP_TEST( hoomd_compat )
+UP_TEST(hoomd_compat)
     {
     // test convenience function for conversion to hoomd quaternions
-    quat<Scalar> q(1, vec3<Scalar>(2,3,4));
+    quat<Scalar> q(1, vec3<Scalar>(2, 3, 4));
     Scalar4 hq;
     hq = quat_to_scalar4(q);
     MY_CHECK_CLOSE(hq.x, 1, tol);
@@ -177,9 +176,9 @@ UP_TEST( hoomd_compat )
 
 // test some quaternion identities for more sanity checking
 
-UP_TEST( conjugation_norm )
+UP_TEST(conjugation_norm)
     {
-    quat<Scalar> p(1, vec3<Scalar>(2,3,4));
+    quat<Scalar> p(1, vec3<Scalar>(2, 3, 4));
     quat<Scalar> a;
     Scalar s1, s2;
 
@@ -190,26 +189,27 @@ UP_TEST( conjugation_norm )
     MY_CHECK_CLOSE(s1, s2, tol);
     }
 
-UP_TEST( multiplicative_norm )
+UP_TEST(multiplicative_norm)
     {
-    quat<Scalar> p(1, vec3<Scalar>(2,3,4));
-    quat<Scalar> q(0.4, vec3<Scalar>(0.3,0.2,0.1));
+    quat<Scalar> p(1, vec3<Scalar>(2, 3, 4));
+    quat<Scalar> q(0.4, vec3<Scalar>(0.3, 0.2, 0.1));
     quat<Scalar> a;
     Scalar s1, s2;
 
     // multiplicative norm
-    s1 = norm2(p*q);
+    s1 = norm2(p * q);
     s2 = norm2(p) * norm2(q);
     MY_CHECK_CLOSE(s1, s2, tol);
     }
 
-UP_TEST( rotation )
+UP_TEST(rotation)
     {
     Scalar pi = M_PI;
-    Scalar alpha = pi/2.0; // angle of rotation
-    vec3<Scalar> v(1,1,1); // test vector
-    quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternions
-    quat<Scalar> q2(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(1,0,0));
+    Scalar alpha = pi / 2.0; // angle of rotation
+    vec3<Scalar> v(1, 1, 1); // test vector
+    quat<Scalar> q1(cos(alpha / 2.0),
+                    (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
+    quat<Scalar> q2(cos(alpha / 2.0), (Scalar)sin(alpha / 2.0) * vec3<Scalar>(1, 0, 0));
     quat<Scalar> q3;
     vec3<Scalar> a;
 
@@ -218,7 +218,7 @@ UP_TEST( rotation )
     MY_CHECK_CLOSE(a.y, 1, tol);
     MY_CHECK_CLOSE(a.z, 1, tol);
 
-    a = rotate(q1,v);
+    a = rotate(q1, v);
     MY_CHECK_CLOSE(a.x, -1, tol);
     MY_CHECK_CLOSE(a.y, 1, tol);
     MY_CHECK_CLOSE(a.z, 1, tol);
@@ -235,7 +235,7 @@ UP_TEST( rotation )
     MY_CHECK_CLOSE(a.y, -1, tol);
     MY_CHECK_CLOSE(a.z, 1, tol);
 
-    a = rotate(q3,v);
+    a = rotate(q3, v);
     MY_CHECK_CLOSE(a.x, -1, tol);
     MY_CHECK_CLOSE(a.y, -1, tol);
     MY_CHECK_CLOSE(a.z, 1, tol);
@@ -247,16 +247,17 @@ UP_TEST( rotation )
     MY_CHECK_CLOSE(a.z, v.z, tol);
     }
 
-UP_TEST( rotation_2 )
+UP_TEST(rotation_2)
     {
     // test rotating a vec2
     Scalar pi = M_PI;
-    Scalar alpha = pi/2.0; // angle of rotation
-    vec2<Scalar> v(1,1); // test vector
-    quat<Scalar> q1(cos(alpha/2.0), (Scalar)sin(alpha/2.0) * vec3<Scalar>(0,0,1)); // rotation quaternions
+    Scalar alpha = pi / 2.0; // angle of rotation
+    vec2<Scalar> v(1, 1);    // test vector
+    quat<Scalar> q1(cos(alpha / 2.0),
+                    (Scalar)sin(alpha / 2.0) * vec3<Scalar>(0, 0, 1)); // rotation quaternions
     vec2<Scalar> a;
 
-    a = rotate(q1,v);
+    a = rotate(q1, v);
     MY_CHECK_CLOSE(a.x, -1, tol);
     MY_CHECK_CLOSE(a.y, 1, tol);
     }

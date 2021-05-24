@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #include "TwoStepNPTMTKGPU.h"
@@ -24,27 +23,35 @@ using namespace std;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
     \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
-    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group at full time step
-    \param tau NPT temperature period
-    \param tauS NPT pressure period
-    \param T Temperature set point
-    \param S Pressure or Stress set point. Pressure if one value, Stress if a list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy]
-    \param couple Coupling mode
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group at
+   full time step \param tau NPT temperature period \param tauS NPT pressure period \param T
+   Temperature set point \param S Pressure or Stress set point. Pressure if one value, Stress if a
+   list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy] \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
 TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ParticleGroup> group,
-                       std::shared_ptr<ComputeThermo> thermo_group,
-                       std::shared_ptr<ComputeThermo> thermo_group_t,
-                       Scalar tau,
-                       Scalar tauS,
-                       std::shared_ptr<Variant> T,
-                       const std::vector<std::shared_ptr<Variant>>& S,
-                       const std::string& couple,
-                       const std::vector<bool>& flags,
-                       const bool nph)
+                                   std::shared_ptr<ParticleGroup> group,
+                                   std::shared_ptr<ComputeThermo> thermo_group,
+                                   std::shared_ptr<ComputeThermo> thermo_group_t,
+                                   Scalar tau,
+                                   Scalar tauS,
+                                   std::shared_ptr<Variant> T,
+                                   const std::vector<std::shared_ptr<Variant>>& S,
+                                   const std::string& couple,
+                                   const std::vector<bool>& flags,
+                                   const bool nph)
 
-    : TwoStepNPTMTK(sysdef, group, thermo_group, thermo_group_t, tau, tauS, T, S, couple, flags,nph)
+    : TwoStepNPTMTK(sysdef,
+                    group,
+                    thermo_group,
+                    thermo_group_t,
+                    tau,
+                    tauS,
+                    T,
+                    S,
+                    couple,
+                    flags,
+                    nph)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -55,12 +62,48 @@ TwoStepNPTMTKGPU::TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTKGPU" << endl;
 
     hipDeviceProp_t dev_prop = m_exec_conf->dev_prop;
-    m_tuner_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_one", this->m_exec_conf));
-    m_tuner_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_step_two", this->m_exec_conf));
-    m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_wrap", this->m_exec_conf));
-    m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_rescale", this->m_exec_conf));
-    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_angular_one", this->m_exec_conf));
-    m_tuner_angular_two.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 100000, "npt_mtk_angular_two", this->m_exec_conf));
+    m_tuner_one.reset(new Autotuner(dev_prop.warpSize,
+                                    dev_prop.maxThreadsPerBlock,
+                                    dev_prop.warpSize,
+                                    5,
+                                    100000,
+                                    "npt_mtk_step_one",
+                                    this->m_exec_conf));
+    m_tuner_two.reset(new Autotuner(dev_prop.warpSize,
+                                    dev_prop.maxThreadsPerBlock,
+                                    dev_prop.warpSize,
+                                    5,
+                                    100000,
+                                    "npt_mtk_step_two",
+                                    this->m_exec_conf));
+    m_tuner_wrap.reset(new Autotuner(dev_prop.warpSize,
+                                     dev_prop.maxThreadsPerBlock,
+                                     dev_prop.warpSize,
+                                     5,
+                                     100000,
+                                     "npt_mtk_wrap",
+                                     this->m_exec_conf));
+    m_tuner_rescale.reset(new Autotuner(dev_prop.warpSize,
+                                        dev_prop.maxThreadsPerBlock,
+                                        dev_prop.warpSize,
+                                        5,
+                                        100000,
+                                        "npt_mtk_rescale",
+                                        this->m_exec_conf));
+    m_tuner_angular_one.reset(new Autotuner(dev_prop.warpSize,
+                                            dev_prop.maxThreadsPerBlock,
+                                            dev_prop.warpSize,
+                                            5,
+                                            100000,
+                                            "npt_mtk_angular_one",
+                                            this->m_exec_conf));
+    m_tuner_angular_two.reset(new Autotuner(dev_prop.warpSize,
+                                            dev_prop.maxThreadsPerBlock,
+                                            dev_prop.warpSize,
+                                            5,
+                                            100000,
+                                            "npt_mtk_angular_two",
+                                            this->m_exec_conf));
     }
 
 TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
@@ -69,8 +112,8 @@ TwoStepNPTMTKGPU::~TwoStepNPTMTKGPU()
     }
 
 /*! \param timestep Current time step
-    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the Nose-Hoover
-     thermostat and Anderson barostat
+    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the
+   Nose-Hoover thermostat and Anderson barostat
 */
 void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     {
@@ -91,15 +134,15 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     advanceBarostat(timestep);
 
     IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
-    Scalar nuxy = v.variable[3];  // Barostat tensor, xy component
-    Scalar nuxz = v.variable[4];  // Barostat tensor, xz component
-    Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
-    Scalar nuyz = v.variable[6];  // Barostat tensor, yz component
-    Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
+    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
+    Scalar nuxy = v.variable[3]; // Barostat tensor, xy component
+    Scalar nuxz = v.variable[4]; // Barostat tensor, xz component
+    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
+    Scalar nuyz = v.variable[6]; // Barostat tensor, yz component
+    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
 
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+    Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
 
     // update the propagator matrix using current barostat momenta
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
@@ -120,32 +163,34 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     c.z = m_mat_exp_r[5] * c.z;
 
     // update box dimensions
-    bool twod = m_sysdef->getNDimensions()==2;
+    bool twod = m_sysdef->getNDimensions() == 2;
 
-    global_box.setL(make_scalar3(a.x,b.y,c.z));
-    Scalar xy = b.x/b.y;
+    global_box.setL(make_scalar3(a.x, b.y, c.z));
+    Scalar xy = b.x / b.y;
 
     Scalar xz(0.0);
     Scalar yz(0.0);
 
     if (!twod)
         {
-        xz = c.x/c.z;
-        yz = c.y/c.z;
+        xz = c.x / c.z;
+        yz = c.y / c.z;
         }
 
     global_box.setTiltFactors(xy, xz, yz);
 
     // set global box
     m_pdata->setGlobalBox(global_box);
-    m_V = global_box.getVolume(twod);  // volume
+    m_V = global_box.getVolume(twod); // volume
 
     // update the propagator matrix
     updatePropagator(nuxx, nuxy, nuxz, nuyy, nuyz, nuzz);
 
     if (m_rescale_all)
         {
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::readwrite);
 
         // perform the update on the GPU
         m_exec_conf->beginMultiGPU();
@@ -153,14 +198,14 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
 
         // perform the particle update on the GPU
         gpu_npt_mtk_rescale(m_pdata->getGPUPartition(),
-                             d_pos.data,
-                             m_mat_exp_r[0],
-                             m_mat_exp_r[1],
-                             m_mat_exp_r[2],
-                             m_mat_exp_r[3],
-                             m_mat_exp_r[4],
-                             m_mat_exp_r[5],
-                             m_tuner_rescale->getParam());
+                            d_pos.data,
+                            m_mat_exp_r[0],
+                            m_mat_exp_r[1],
+                            m_mat_exp_r[2],
+                            m_mat_exp_r[3],
+                            m_mat_exp_r[4],
+                            m_mat_exp_r[5],
+                            m_tuner_rescale->getParam());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -170,15 +215,23 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         }
 
         {
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
+                                     access_location::device,
+                                     access_mode::read);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::readwrite);
 
-        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
+                                                access_location::device,
+                                                access_mode::read);
 
         // precompute loop invariant quantity
         Scalar xi_trans = v.variable[1];
-        Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*(xi_trans+mtk)*m_deltaT);
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
         // perform the particle update on the GPU
         m_exec_conf->beginMultiGPU();
@@ -208,8 +261,12 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     BoxDim box = m_pdata->getBox();
 
         {
-        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
-        ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
+                                   access_location::device,
+                                   access_mode::readwrite);
+        ArrayHandle<int3> d_image(m_pdata->getImages(),
+                                  access_location::device,
+                                  access_mode::readwrite);
 
         // Wrap particles
         m_exec_conf->beginMultiGPU();
@@ -228,15 +285,25 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
     if (m_aniso)
         {
         // first part of angular update
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
-        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
+                                           access_location::device,
+                                           access_mode::readwrite);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                      access_location::device,
+                                      access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::device,
+                                          access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                       access_location::device,
+                                       access_mode::read);
+        ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
+                                                access_location::device,
+                                                access_mode::read);
 
         // precompute loop invariant quantity
         Scalar xi_rot = v.variable[8];
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_one->begin();
@@ -257,13 +324,13 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         m_exec_conf->endMultiGPU();
         }
 
-    if (! m_nph)
+    if (!m_nph)
         {
         // propagate thermostat variables forward
         advanceThermostat(timestep);
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_comm)
         {
         // broadcast integrator variables from rank 0 to other processors
@@ -271,12 +338,11 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
         MPI_Bcast(&v.variable.front(), 10, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
         setIntegratorVariables(v);
         }
-    #endif
+#endif
 
     // done profiling
     if (m_prof)
         m_prof->pop();
-
     }
 
 /*! \param timestep Current time step
@@ -284,65 +350,80 @@ void TwoStepNPTMTKGPU::integrateStepOne(uint64_t timestep)
 */
 void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
     {
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
 
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 2");
 
-
     IntegratorVariables v = getIntegratorVariables();
-    Scalar nuxx = v.variable[2];  // Barostat tensor, xx component
-    Scalar nuyy = v.variable[5];  // Barostat tensor, yy component
-    Scalar nuzz = v.variable[7];  // Barostat tensor, zz component
+    Scalar nuxx = v.variable[2]; // Barostat tensor, xx component
+    Scalar nuyy = v.variable[5]; // Barostat tensor, yy component
+    Scalar nuzz = v.variable[7]; // Barostat tensor, zz component
 
     // Martyna-Tobias-Klein correction
-    Scalar mtk = (nuxx+nuyy+nuzz)/(Scalar)m_ndof;
+    Scalar mtk = (nuxx + nuyy + nuzz) / (Scalar)m_ndof;
 
-    {
-    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::overwrite);
+        {
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(),
+                                     access_location::device,
+                                     access_mode::overwrite);
 
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
+                                                access_location::device,
+                                                access_mode::read);
 
-    // precompute loop invariant quantity
-    Scalar xi_trans = v.variable[1];
-    Scalar exp_thermo_fac = exp(-Scalar(1.0/2.0)*(xi_trans+mtk)*m_deltaT);
+        // precompute loop invariant quantity
+        Scalar xi_trans = v.variable[1];
+        Scalar exp_thermo_fac = exp(-Scalar(1.0 / 2.0) * (xi_trans + mtk) * m_deltaT);
 
-    // perform second half step of NPT integration (update velocities and accelerations)
-    m_exec_conf->beginMultiGPU();
-    m_tuner_two->begin();
+        // perform second half step of NPT integration (update velocities and accelerations)
+        m_exec_conf->beginMultiGPU();
+        m_tuner_two->begin();
 
-    gpu_npt_mtk_step_two(d_vel.data,
-                     d_accel.data,
-                     d_index_array.data,
-                     m_group->getGPUPartition(),
-                     d_net_force.data,
-                     m_mat_exp_v,
-                     m_deltaT,
-                     exp_thermo_fac,
-                     m_tuner_two->getParam());
+        gpu_npt_mtk_step_two(d_vel.data,
+                             d_accel.data,
+                             d_index_array.data,
+                             m_group->getGPUPartition(),
+                             d_net_force.data,
+                             m_mat_exp_v,
+                             m_deltaT,
+                             exp_thermo_fac,
+                             m_tuner_two->getParam());
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_two->end();
-    m_exec_conf->endMultiGPU();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        m_tuner_two->end();
+        m_exec_conf->endMultiGPU();
 
-    } // end GPUArray scope
+        } // end GPUArray scope
 
     if (m_aniso)
         {
         // apply angular (NO_SQUISH) equations of motion
-        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
-        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
-        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(),
+                                           access_location::device,
+                                           access_mode::read);
+        ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(),
+                                      access_location::device,
+                                      access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(),
+                                          access_location::device,
+                                          access_mode::read);
+        ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                       access_location::device,
+                                       access_mode::read);
+        ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(),
+                                                access_location::device,
+                                                access_mode::read);
 
         // precompute loop invariant quantity
         Scalar xi_rot = v.variable[8];
-        Scalar exp_thermo_fac_rot = exp(-(xi_rot+mtk)*m_deltaT/Scalar(2.0));
+        Scalar exp_thermo_fac_rot = exp(-(xi_rot + mtk) * m_deltaT / Scalar(2.0));
 
         m_exec_conf->beginMultiGPU();
         m_tuner_angular_two->begin();
@@ -365,27 +446,27 @@ void TwoStepNPTMTKGPU::integrateStepTwo(uint64_t timestep)
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
-    advanceBarostat(timestep+1);
+    advanceBarostat(timestep + 1);
 
     // done profiling
     if (m_prof)
         m_prof->pop();
     }
 
-
 void export_TwoStepNPTMTKGPU(py::module& m)
     {
-    py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU> >(m, "TwoStepNPTMTKGPU")
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                       std::shared_ptr<ParticleGroup>,
-                       std::shared_ptr<ComputeThermo>,
-                       std::shared_ptr<ComputeThermo>,
-                       Scalar,
-                       Scalar,
-                       std::shared_ptr<Variant>,
-                       const std::vector<std::shared_ptr<Variant>>&,
-                       const std::string&,
-                       const std::vector<bool>&,
-                       const bool>());
-
+    py::class_<TwoStepNPTMTKGPU, TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTKGPU>>(
+        m,
+        "TwoStepNPTMTKGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<ComputeThermo>,
+                      std::shared_ptr<ComputeThermo>,
+                      Scalar,
+                      Scalar,
+                      std::shared_ptr<Variant>,
+                      const std::vector<std::shared_ptr<Variant>>&,
+                      const std::string&,
+                      const std::vector<bool>&,
+                      const bool>());
     }

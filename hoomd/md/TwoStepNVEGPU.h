@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TwoStepNVE.h"
@@ -22,45 +21,48 @@
 #include "hoomd/Autotuner.h"
 
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
-/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU
+/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs
+   on the GPU
 
     \ingroup updaters
 */
 class PYBIND11_EXPORT TwoStepNVEGPU : public TwoStepNVE
     {
     public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group);
-        virtual ~TwoStepNVEGPU() {};
+    //! Constructs the integration method and associates it with the system
+    TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group);
+    virtual ~TwoStepNVEGPU() {};
 
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(uint64_t timestep);
+    //! Performs the first step of the integration
+    virtual void integrateStepOne(uint64_t timestep);
 
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(uint64_t timestep);
+    //! Performs the second step of the integration
+    virtual void integrateStepTwo(uint64_t timestep);
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            TwoStepNVE::setAutotunerParams(enable, period);
-            m_tuner_one->setPeriod(period);
-            m_tuner_one->setEnabled(enable);
-            m_tuner_two->setPeriod(period);
-            m_tuner_two->setEnabled(enable);
-            m_tuner_angular_one->setPeriod(period);
-            m_tuner_angular_one->setEnabled(enable);
-            m_tuner_angular_two->setPeriod(period);
-            m_tuner_angular_two->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        TwoStepNVE::setAutotunerParams(enable, period);
+        m_tuner_one->setPeriod(period);
+        m_tuner_one->setEnabled(enable);
+        m_tuner_two->setPeriod(period);
+        m_tuner_two->setEnabled(enable);
+        m_tuner_angular_one->setPeriod(period);
+        m_tuner_angular_one->setEnabled(enable);
+        m_tuner_angular_two->setPeriod(period);
+        m_tuner_angular_two->setEnabled(enable);
+        }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-        std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
-        std::unique_ptr<Autotuner> m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
-        std::unique_ptr<Autotuner> m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
+    std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
+    std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+    std::unique_ptr<Autotuner>
+        m_tuner_angular_one; //!< Autotuner for block size (angular step one kernel)
+    std::unique_ptr<Autotuner>
+        m_tuner_angular_two; //!< Autotuner for block size (angular step two kernel)
     };
 
 //! Exports the TwoStepNVEGPU class to python

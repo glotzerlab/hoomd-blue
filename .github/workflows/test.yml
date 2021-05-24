@@ -59,6 +59,8 @@ jobs:
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
+    env:
+      CXXFLAGS: '-Werror'
     steps:
     - name: Clean workspace
       run: rm -rf ./*
