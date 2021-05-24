@@ -27,8 +27,7 @@ def ellip_preprocessing(constraint):
         else:
             raise RuntimeError(
                 "Active force constraint is not accepted (currently only "
-                "accepts ellipsoids)"
-            )
+                "accepts ellipsoids)")
     else:
         return None
 
@@ -160,12 +159,10 @@ class constant(Force):
         else:
             self.tvec = (0, 0, 0)
 
-        if (self.fvec == (0, 0, 0)) and (
-            self.tvec == (0, 0, 0) and callback is None
-        ):
+        if (self.fvec == (0, 0, 0)) and (self.tvec == (0, 0, 0)
+                                         and callback is None):
             hoomd.context.current.device.cpp_msg.warning(
-                "The constant force specified has no non-zero components\n"
-            )
+                "The constant force specified has no non-zero components\n")
 
         # initialize the base class
         Force.__init__(self)
@@ -247,8 +244,7 @@ class constant(Force):
         if (fvec == (0, 0, 0)) and (tvec == (0, 0, 0)):
             hoomd.context.current.device.cpp_msg.warning(
                 "You are setting the constant force to have no non-zero "
-                "components\n"
-            )
+                "components\n")
 
         self.check_initialization()
         if group is not None:
@@ -358,17 +354,16 @@ class Active(Force):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             rotation_diff=float(rotation_diff),
-            constraint=OnlyTypes(
-                Constraint, allow_none=True, preprocess=ellip_preprocessing
-            ),
+            constraint=OnlyTypes(Constraint,
+                                 allow_none=True,
+                                 preprocess=ellip_preprocessing),
         )
         param_dict.update(
             dict(
                 constraint=None,
                 rotation_diff=rotation_diff,
                 filter=filter,
-            )
-        )
+            ))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -435,6 +430,7 @@ class dipole(Force):
             field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
             )
     """
+
     def __init__(self, field_x, field_y, field_z, p):
 
         # initialize the base class

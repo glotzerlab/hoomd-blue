@@ -33,6 +33,7 @@ from hoomd.operation import _HOOMDBaseObject
 
 class Constraint(_HOOMDBaseObject):
     """A constraint force that acts on the system."""
+
     def _attach(self):
         """Create the c++ mirror class."""
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -91,12 +92,10 @@ class distance(Constraint):
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ForceDistanceConstraint(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
         else:
             self.cpp_force = _md.ForceDistanceConstraintGPU(
-                hoomd.context.current.system_definition
-            )
+                hoomd.context.current.system_definition)
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
@@ -245,18 +244,16 @@ class Rigid(Constraint):
 
     def __init__(self):
         body = TypeParameter(
-            "body", "particle_types", TypeParameterDict(
-                OnlyIf(to_type_converter(
-                    {'constituent_types': [str],
-                     'positions': [(float,) * 3],
-                     'orientations': [(float,) * 4],
-                     'charges': [float],
-                     'diameters': [float]
-                     }),
-                    allow_none=True),
-                len_keys=1
-            )
-        )
+            "body", "particle_types",
+            TypeParameterDict(OnlyIf(to_type_converter({
+                'constituent_types': [str],
+                'positions': [(float,) * 3],
+                'orientations': [(float,) * 4],
+                'charges': [float],
+                'diameters': [float]
+            }),
+                                     allow_none=True),
+                              len_keys=1))
         self._add_typeparam(body)
         self.body.default = None
 

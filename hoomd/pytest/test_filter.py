@@ -1,7 +1,6 @@
 import pytest
-from hoomd.filter import (
-    Type, Tags, SetDifference, Union, Intersection, All, Null, CustomFilter,
-    Rigid)
+from hoomd.filter import (Type, Tags, SetDifference, Union, Intersection, All,
+                          Null, CustomFilter, Rigid)
 from hoomd.snapshot import Snapshot
 import hoomd.md as md
 from copy import deepcopy
@@ -12,6 +11,7 @@ import numpy as np
 
 @pytest.fixture(scope="function")
 def make_filter_snapshot(device):
+
     def filter_snapshot(n=10, particle_types=['A']):
         s = Snapshot(device.communicator)
         if s.exists:
@@ -20,6 +20,7 @@ def make_filter_snapshot(device):
             s.particles.position[:] = np.random.uniform(-10, 10, size=(n, 3))
             s.particles.types = particle_types
         return s
+
     return filter_snapshot
 
 
@@ -45,6 +46,7 @@ def test_null_filter(make_filter_snapshot, simulation_factory):
 def set_types(s, inds, particle_types, particle_type):
     for i in inds:
         s.particles.typeid[i] = particle_types.index(particle_type)
+
 
 _type_indices = [([0, 3, 4, 8], [1, 2, 5, 6, 7, 9]),
                  ([2, 3, 5, 6, 7, 8, 9], [0, 1, 4]),
@@ -86,12 +88,9 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     assert B_filter(sim.state) == B_inds
     assert AB_filter(sim.state) == list(range(N))
 
-_tag_indices = [[0, 3, 4, 8],
-                [1, 2, 5, 6, 7, 9],
-                [2, 3, 5, 6, 7, 8, 9],
-                [0, 1, 4],
-                [3, 7],
-                [0, 1, 2, 4, 5, 6, 8, 9]]
+
+_tag_indices = [[0, 3, 4, 8], [1, 2, 5, 6, 7, 9], [2, 3, 5, 6, 7, 8, 9],
+                [0, 1, 4], [3, 7], [0, 1, 2, 4, 5, 6, 8, 9]]
 
 
 @pytest.fixture(scope="function", params=_tag_indices)
@@ -268,9 +267,10 @@ _constructor_args = [
 ]
 
 
-@pytest.mark.parametrize(
-    'constructor, args', zip(_filter_classes, _constructor_args),
-    ids=lambda x: None if isinstance(x, tuple) else x.__name__)
+@pytest.mark.parametrize('constructor, args',
+                         zip(_filter_classes, _constructor_args),
+                         ids=lambda x: None
+                         if isinstance(x, tuple) else x.__name__)
 def test_pickling(constructor, args):
     filter_ = constructor(*args)
     pkled_filter = pickle.loads(pickle.dumps(filter_))
@@ -286,8 +286,10 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     random movements we don't need to initialize velocities or have any forces
     to test this.
     """
+
     class NegativeCharge(CustomFilter):
         """Grab all particles with a negative charge."""
+
         def __call__(self, state):
             with state.cpu_local_snapshot as snap:
                 return snap.particles.tag[snap.particles.charge < 0]
@@ -306,8 +308,9 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
         # depending on how many particles are local to the MPI ranks.
         local_Np = snap.particles.charge.shape[0]
         N_negative_charge = max(0, max(1, int(local_Np * 0.5)))
-        negative_charge_ind = np.random.choice(
-            local_Np, N_negative_charge, replace=False)
+        negative_charge_ind = np.random.choice(local_Np,
+                                               N_negative_charge,
+                                               replace=False)
         # Get the expected tags returned by the custom filter and the positions
         # that should vary and remain static for testing after running.
         snap.particles.charge[negative_charge_ind] = -1.0

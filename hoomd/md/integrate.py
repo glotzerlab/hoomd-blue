@@ -219,18 +219,21 @@ class Integrator(_DynamicIntegrator):
             constraint forces applied to the particles in the system.
     """
 
-    def __init__(self, dt, aniso='auto', forces=None, constraints=None,
-                 methods=None, rigid=None):
+    def __init__(self,
+                 dt,
+                 aniso='auto',
+                 forces=None,
+                 constraints=None,
+                 methods=None,
+                 rigid=None):
 
         super().__init__(forces, constraints, methods, rigid)
 
         self._param_dict.update(
-                ParameterDict(
-                    dt=float(dt),
-                    aniso=OnlyFrom(['true', 'false', 'auto'],
-                           preprocess=_preprocess_aniso),
-                    _defaults=dict(aniso="auto")
-            ))
+            ParameterDict(dt=float(dt),
+                          aniso=OnlyFrom(['true', 'false', 'auto'],
+                                         preprocess=_preprocess_aniso),
+                          _defaults=dict(aniso="auto")))
         if aniso is not None:
             self.aniso = aniso
 
