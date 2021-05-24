@@ -2,7 +2,6 @@ import hoomd
 import pytest
 import hoomd.conftest
 import numpy
-import math
 
 # Selected state point(s) in the high density fluid. These state point(s) are in
 # single phase regions of the phase diagram and suitable for NVT/NPT and MC
