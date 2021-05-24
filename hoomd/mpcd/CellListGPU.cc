@@ -13,29 +13,34 @@
 
 mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-        : mpcd::CellList(sysdef, mpcd_pdata)
+    : mpcd::CellList(sysdef, mpcd_pdata)
     {
     m_tuner_cell.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell", m_exec_conf));
     m_tuner_sort.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_sort", m_exec_conf));
 
-    #ifdef ENABLE_MPI
-    m_tuner_embed_migrate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
+#ifdef ENABLE_MPI
+    m_tuner_embed_migrate.reset(
+        new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
 
     GPUFlags<unsigned int> migrate_flag(m_exec_conf);
     m_migrate_flag.swap(migrate_flag);
-    #endif // ENABLE_MPI
+#endif // ENABLE_MPI
     }
 
-mpcd::CellListGPU::~CellListGPU()
-    {
-    }
+mpcd::CellListGPU::~CellListGPU() { }
 
 void mpcd::CellListGPU::buildCellList()
     {
-    ArrayHandle<unsigned int> d_cell_list(m_cell_list, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_cell_list(m_cell_list,
+                                          access_location::device,
+                                          access_mode::overwrite);
     ArrayHandle<unsigned int> d_cell_np(m_cell_np, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::read);
+    ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::device,
+                               access_mode::readwrite);
 
     const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
@@ -43,17 +48,26 @@ void mpcd::CellListGPU::buildCellList()
     // total effective number of cells in the global box, optionally padded by
     // extra cells in MPI simulations
     uint3 n_global_cells = m_global_cell_dim;
-    #ifdef ENABLE_MPI
-    if (isCommunicating(mpcd::detail::face::east)) n_global_cells.x += 2*m_num_extra;
-    if (isCommunicating(mpcd::detail::face::north)) n_global_cells.y += 2*m_num_extra;
-    if (isCommunicating(mpcd::detail::face::up)) n_global_cells.z += 2*m_num_extra;
-    #endif // ENABLE_MPI
+#ifdef ENABLE_MPI
+    if (isCommunicating(mpcd::detail::face::east))
+        n_global_cells.x += 2 * m_num_extra;
+    if (isCommunicating(mpcd::detail::face::north))
+        n_global_cells.y += 2 * m_num_extra;
+    if (isCommunicating(mpcd::detail::face::up))
+        n_global_cells.z += 2 * m_num_extra;
+#endif // ENABLE_MPI
 
     if (m_embed_group)
         {
-        ArrayHandle<unsigned int> d_embed_cell_ids(m_embed_cell_ids, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_pos_embed(m_pdata->getPositions(), access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_embed_member_idx(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_embed_cell_ids(m_embed_cell_ids,
+                                                   access_location::device,
+                                                   access_mode::overwrite);
+        ArrayHandle<Scalar4> d_pos_embed(m_pdata->getPositions(),
+                                         access_location::device,
+                                         access_mode::read);
+        ArrayHandle<unsigned int> d_embed_member_idx(m_embed_group->getIndexArray(),
+                                                     access_location::device,
+                                                     access_mode::read);
         N_tot += m_embed_group->getNumMembers();
 
         m_tuner_cell->begin();
@@ -77,7 +91,8 @@ void mpcd::CellListGPU::buildCellList()
                                      N_mpcd,
                                      N_tot,
                                      m_tuner_cell->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_cell->end();
         }
     else
@@ -103,7 +118,8 @@ void mpcd::CellListGPU::buildCellList()
                                      N_mpcd,
                                      N_tot,
                                      m_tuner_cell->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         m_tuner_cell->end();
         }
     }
@@ -118,7 +134,8 @@ void mpcd::CellListGPU::sort(uint64_t timestep,
                              const GPUArray<unsigned int>& rorder)
     {
     // no need to do any sorting if we can still be called at the current timestep
-    if (peekCompute(timestep)) return;
+    if (peekCompute(timestep))
+        return;
 
     // force a recompute if mapping is invalid
     if (rorder.isNull())
@@ -128,7 +145,9 @@ void mpcd::CellListGPU::sort(uint64_t timestep,
         }
 
     // iterate through particles in cell list, and update their indexes using reverse mapping
-    ArrayHandle<unsigned int> d_cell_list(m_cell_list, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_cell_list(m_cell_list,
+                                          access_location::device,
+                                          access_mode::readwrite);
     ArrayHandle<unsigned int> d_rorder(rorder, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_np(m_cell_np, access_location::device, access_mode::read);
 
@@ -139,7 +158,8 @@ void mpcd::CellListGPU::sort(uint64_t timestep,
                                m_cell_list_indexer,
                                m_mpcd_pdata->getN(),
                                m_tuner_sort->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner_sort->end();
     }
 
@@ -147,14 +167,17 @@ void mpcd::CellListGPU::sort(uint64_t timestep,
 bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
     {
     // no migrate needed if no embedded particles
-    if (!m_embed_group) return false;
+    if (!m_embed_group)
+        return false;
 
     // ensure that the cell list has been sized first
     computeDimensions();
 
     // particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_group(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_group(m_embed_group->getIndexArray(),
+                                      access_location::device,
+                                      access_mode::read);
 
     // check if any particles have left this rank on the gpu
     m_tuner_embed_migrate->begin();
@@ -165,7 +188,8 @@ bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
                                         m_sysdef->getNDimensions(),
                                         m_embed_group->getNumMembers(),
                                         m_tuner_embed_migrate->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner_embed_migrate->end();
 
     // read flags from the gpu, and reduce across all ranks
@@ -180,7 +204,7 @@ void mpcd::detail::export_CellListGPU(pybind11::module& m)
     {
     namespace py = pybind11;
 
-    py::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU> >(m, "CellListGPU")
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
-    ;
+    py::class_<mpcd::CellListGPU, mpcd::CellList, std::shared_ptr<mpcd::CellListGPU>>(m,
+                                                                                      "CellListGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData>>());
     }

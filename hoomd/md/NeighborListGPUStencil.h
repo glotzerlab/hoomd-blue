@@ -1,13 +1,12 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: mphoward
 
 #include "NeighborListGPU.h"
+#include "hoomd/Autotuner.h"
 #include "hoomd/CellListGPU.h"
 #include "hoomd/CellListStencil.h"
-#include "hoomd/Autotuner.h"
 
 /*! \file NeighborListGPUStencil.h
     \brief Declares the NeighborListGPUStencil class
@@ -25,94 +24,93 @@
 //! Neighbor list build on the GPU with multiple bin stencils
 /*! Implements the O(N) neighbor list build on the GPU using a cell list with multiple bin stencils.
 
-    GPU kernel methods are defined in NeighborListGPUStencil.cuh and defined in NeighborListGPUStencil.cu.
+    GPU kernel methods are defined in NeighborListGPUStencil.cuh and defined in
+   NeighborListGPUStencil.cu.
 
     \ingroup computes
 */
 class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     {
     public:
-        //! Constructs the compute
-        NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
-                               Scalar r_buff);
+    //! Constructs the compute
+    NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff);
 
-        //! Destructor
-        virtual ~NeighborListGPUStencil();
+    //! Destructor
+    virtual ~NeighborListGPUStencil();
 
-        /// Notify NeighborList that a r_cut matrix value has changed
-        virtual void notifyRCutMatrixChange()
-            {
-            m_update_cell_size = true;
-            m_needs_restencil = true;
-            NeighborListGPU::notifyRCutMatrixChange();
-            }
+    /// Notify NeighborList that a r_cut matrix value has changed
+    virtual void notifyRCutMatrixChange()
+        {
+        m_update_cell_size = true;
+        m_needs_restencil = true;
+        NeighborListGPU::notifyRCutMatrixChange();
+        }
 
-        //! Change the underlying cell width
-        void setCellWidth(Scalar cell_width)
-            {
-            m_override_cell_width = true;
-            m_needs_restencil = true;
-            m_cl->setNominalWidth(cell_width);
-            }
+    //! Change the underlying cell width
+    void setCellWidth(Scalar cell_width)
+        {
+        m_override_cell_width = true;
+        m_needs_restencil = true;
+        m_cl->setNominalWidth(cell_width);
+        }
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            NeighborListGPU::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period/10);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        NeighborListGPU::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period / 10);
+        m_tuner->setEnabled(enable);
+        }
 
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
 
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            // call base class method
-            NeighborList::setCommunicator(comm);
+    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        {
+        // call base class method
+        NeighborList::setCommunicator(comm);
 
-            // set the communicator on the internal cell lists
-            m_cl->setCommunicator(comm);
-            m_cls->setCommunicator(comm);
-            }
+        // set the communicator on the internal cell lists
+        m_cl->setCommunicator(comm);
+        m_cls->setCommunicator(comm);
+        }
 
-        #endif
+#endif
 
     protected:
-        //! Builds the neighbor list
-        virtual void buildNlist(uint64_t timestep);
+    //! Builds the neighbor list
+    virtual void buildNlist(uint64_t timestep);
 
     private:
-        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
-        uint64_t m_last_tuned_timestep;       //!< Last tuning timestep
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+    uint64_t m_last_tuned_timestep;     //!< Last tuning timestep
 
-        std::shared_ptr<CellList> m_cl;   //!< The cell list
-        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
-        bool m_override_cell_width = false;       //!< Flag to override the cell width
+    std::shared_ptr<CellList> m_cl;         //!< The cell list
+    std::shared_ptr<CellListStencil> m_cls; //!< The cell list stencil
+    bool m_override_cell_width = false;     //!< Flag to override the cell width
 
-        //! Update the stencil radius
-        void updateRStencil();
-        bool m_needs_restencil = true;  //!< Flag for updating the stencil
+    //! Update the stencil radius
+    void updateRStencil();
+    bool m_needs_restencil = true; //!< Flag for updating the stencil
 
-        //! Sort the particles by type
-        void sortTypes();
-        GPUArray<unsigned int> m_pid_map;                   //!< Particle indexes sorted by type
-        bool m_needs_resort;                                //!< Flag to resort the particles
-        void slotParticleSort()
-            {
-            m_needs_resort = true;
-            }
-        void slotMaxNumChanged()
-            {
-            m_pid_map.resize(m_pdata->getMaxN());
-            m_needs_resort = true;
-            }
+    //! Sort the particles by type
+    void sortTypes();
+    GPUArray<unsigned int> m_pid_map; //!< Particle indexes sorted by type
+    bool m_needs_resort;              //!< Flag to resort the particles
+    void slotParticleSort()
+        {
+        m_needs_resort = true;
+        }
+    void slotMaxNumChanged()
+        {
+        m_pid_map.resize(m_pdata->getMaxN());
+        m_needs_resort = true;
+        }
 
-        /// Track when the cell size needs to be updated
-        bool m_update_cell_size = false;
-
+    /// Track when the cell size needs to be updated
+    bool m_update_cell_size = false;
     };
 
 //! Exports NeighborListGPUStencil to python

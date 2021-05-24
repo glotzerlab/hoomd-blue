@@ -1,27 +1,32 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement parameter dictionaries."""
+
 from collections.abc import MutableMapping
 from itertools import product, combinations_with_replacement
 from copy import copy
 
-from hoomd.util import to_camel_case, is_iterable
+from hoomd.util import _to_camel_case, _is_iterable
 from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
-                                      RequiredArg, TypeConverterMapping, OnlyIf,
-                                      Either)
-from hoomd.data.smart_default import (to_base_defaults, toDefault, SmartDefault,
-                                      NoDefault)
+                                      RequiredArg)
+from hoomd.data.smart_default import (_to_base_defaults, _to_default,
+                                      _SmartDefault, _NoDefault)
 
 
 def has_str_elems(obj):
-    '''Returns True if all elements of iterable are str.'''
+    """Returns True if all elements of iterable are str."""
     return all([isinstance(elem, str) for elem in obj])
 
 
 def is_good_iterable(obj):
-    '''Returns True if object is iterable with respect to types.'''
-    return is_iterable(obj) and has_str_elems(obj)
+    """Returns True if object is iterable with respect to types."""
+    return _is_iterable(obj) and has_str_elems(obj)
 
 
 def proper_type_return(val):
-    '''Expects and requires a dictionary with type keys.'''
+    """Expects and requires a dictionary with type keys."""
     if len(val) == 0:
         return None
     elif len(val) == 1:
@@ -33,7 +38,7 @@ def proper_type_return(val):
 class _ValidatedDefaultDict:
 
     def __init__(self, *args, **kwargs):
-        _defaults = kwargs.pop('_defaults', NoDefault)
+        _defaults = kwargs.pop('_defaults', _NoDefault)
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError("An unnamed argument and keyword arguments "
                              "cannot both be specified.")
@@ -48,7 +53,7 @@ class _ValidatedDefaultDict:
         else:
             default_arg = args[0]
         self._type_converter = to_type_converter(default_arg)
-        self._default = toDefault(default_arg, _defaults)
+        self._default = _to_default(default_arg, _defaults)
 
     def _validate_values(self, val):
         val = self._type_converter(val)
@@ -68,7 +73,7 @@ class _ValidatedDefaultDict:
             if len(bad_keys) != 0:
                 raise ValueError("Keys must be a subset of available keys. "
                                  "Bad keys are {}".format(bad_keys))
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             val = self._default(val)
         return val
 
@@ -76,21 +81,21 @@ class _ValidatedDefaultDict:
     # Could follow current model on the args based type checking
 
     def _validate_and_split_key(self, key):
-        '''Validate key given regardless of key length.'''
+        """Validate key given regardless of key length."""
         if self._len_keys == 1:
             return self._validate_and_split_len_one(key)
         else:
             return self._validate_and_split_len(key)
 
     def _validate_and_split_len_one(self, key):
-        '''Validate single type keys.
+        """Validate single type keys.
 
         Accepted input is a type string, and arbitrarily nested interators that
         culminate in str types.
-        '''
+        """
         if isinstance(key, str):
             return [key]
-        elif is_iterable(key):
+        elif _is_iterable(key):
             keys = []
             for k in key:
                 keys.extend(self._validate_and_split_len_one(k))
@@ -99,13 +104,13 @@ class _ValidatedDefaultDict:
             raise KeyError("The key {} is not valid.".format(key))
 
     def _validate_and_split_len(self, key):
-        '''Validate all key lengths greater than one, N.
+        """Validate all key lengths greater than one, N.
 
         Valid input is an arbitrarily deep series of iterables that culminate
         in N length tuples, this includes an iterable depth of zero. The N
         length tuples can contain for each member either a type string or an
         iterable of type strings.
-        '''
+        """
         if isinstance(key, tuple) and len(key) == self._len_keys:
             fst, snd = key
             if any([
@@ -118,7 +123,7 @@ class _ValidatedDefaultDict:
                 if isinstance(key[ind], str):
                     key[ind] = [key[ind]]
             return list(product(*key))
-        elif is_iterable(key):
+        elif _is_iterable(key):
             keys = []
             for k in key:
                 keys.extend(self._validate_and_split_len(k))
@@ -127,10 +132,10 @@ class _ValidatedDefaultDict:
             raise KeyError("The key {} is not valid.".format(key))
 
     def _yield_keys(self, key):
-        '''Returns the generated keys in proper sorted order.
+        """Returns the generated keys in proper sorted order.
 
         The order is necessary so ('A', 'B') is equivalent to ('B', A').
-        '''
+        """
         if self._len_keys > 1:
             keys = self._validate_and_split_key(key)
             for key in keys:
@@ -147,7 +152,7 @@ class _ValidatedDefaultDict:
 
     @property
     def default(self):
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             return self._default.to_base()
         else:
             return copy(self._default)
@@ -155,17 +160,18 @@ class _ValidatedDefaultDict:
     @default.setter
     def default(self, new_default):
         new_default = self._type_converter(new_default)
-        if isinstance(self._default, SmartDefault):
+        if isinstance(self._default, _SmartDefault):
             new_default = self._default(new_default)
         if isinstance(new_default, dict):
             keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
                 raise ValueError("New default must a subset of current keys.")
-        self._default = toDefault(new_default)
+        self._default = _to_default(new_default)
 
 
 class TypeParameterDict(_ValidatedDefaultDict):
+    """Type parameter dictionary."""
 
     def __init__(self, *args, len_keys, **kwargs):
 
@@ -177,6 +183,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         self._dict = dict()
 
     def __getitem__(self, key):
+        """Access parameter by key."""
         vals = dict()
         for key in self._yield_keys(key):
             try:
@@ -186,6 +193,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
+        """Set parameter by key."""
         keys = self._yield_keys(key)
         try:
             val = self._validate_values(val)
@@ -196,6 +204,7 @@ class TypeParameterDict(_ValidatedDefaultDict):
             self._dict[key] = val
 
     def keys(self):
+        """Get the keys in the dictionary."""
         if self._len_keys == 1:
             yield from self._dict.keys()
         else:
@@ -203,10 +212,12 @@ class TypeParameterDict(_ValidatedDefaultDict):
                 yield tuple(sorted(list(key)))
 
     def to_dict(self):
+        """Convert to a `dict`."""
         return self._dict
 
 
 class AttachedTypeParameterDict(_ValidatedDefaultDict):
+    """Parameter dictionary synchronized with a C++ class."""
 
     def __init__(self, cpp_obj, param_name, type_kind, type_param_dict, sim):
         # store info to communicate with c++
@@ -223,6 +234,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             self[key] = type_param_dict[key]
 
     def to_detached(self):
+        """Convert to a detached parameter dict."""
         if isinstance(self.default, dict):
             type_param_dict = TypeParameterDict(**self.default,
                                                 len_keys=self._len_keys)
@@ -235,12 +247,14 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
         return type_param_dict
 
     def __getitem__(self, key):
+        """Access parameter by key."""
         vals = dict()
         for key in self._yield_keys(key):
             vals[key] = getattr(self._cpp_obj, self._getter)(key)
         return proper_type_return(vals)
 
     def __setitem__(self, key, val):
+        """Set parameter by key."""
         keys = self._yield_keys(key)
         try:
             val = self._validate_values(val)
@@ -252,7 +266,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
             getattr(self._cpp_obj, self._setter)(key, val)
 
     def _yield_keys(self, key):
-        '''Includes key check for existing simulation keys.'''
+        """Includes key check for existing simulation keys."""
         curr_keys = self.keys()
         for key in super()._yield_keys(key):
             if key not in curr_keys:
@@ -274,13 +288,14 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
     @property
     def _setter(self):
-        return 'set' + to_camel_case(self._param_name)
+        return 'set' + _to_camel_case(self._param_name)
 
     @property
     def _getter(self):
-        return 'get' + to_camel_case(self._param_name)
+        return 'get' + _to_camel_case(self._param_name)
 
     def keys(self):
+        """Iterate through the keys."""
         single_keys = getattr(self._sim.state, self._type_kind)
         if self._len_keys == 1:
             yield from single_keys
@@ -290,6 +305,7 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
                 yield tuple(sorted(list(key)))
 
     def to_dict(self):
+        """Convert to a `dict`."""
         rtn_dict = dict()
         for key in self.keys():
             rtn_dict[key] = getattr(self._cpp_obj, self._getter)(key)
@@ -297,12 +313,13 @@ class AttachedTypeParameterDict(_ValidatedDefaultDict):
 
 
 class ParameterDict(MutableMapping):
-
-    def __init__(self, _defaults=NoDefault, **kwargs):
+    """Parameter dictionary."""
+    def __init__(self, _defaults=_NoDefault, **kwargs):
         self._type_converter = to_type_converter(kwargs)
-        self._dict = {**to_base_defaults(kwargs, _defaults)}
+        self._dict = {**_to_base_defaults(kwargs, _defaults)}
 
     def __setitem__(self, key, value):
+        """Set parameter by key."""
         if key not in self._type_converter.keys():
             self._dict[key] = value
             self._type_converter[key] = to_type_converter(value)
@@ -310,19 +327,24 @@ class ParameterDict(MutableMapping):
             self._dict[key] = self._type_converter[key](value)
 
     def __getitem__(self, key):
+        """Access parameter by key."""
         return self._dict[key]
 
     def __delitem__(self, key):
+        """Remove parameter by key."""
         del self._dict[key]
         del self._type_converter[key]
 
     def __iter__(self):
+        """Iterate over keys."""
         yield from self._dict
 
     def __len__(self):
+        """int: The number of keys."""
         return len(self._dict)
 
     def update(self, other):
+        """Add keys and values to the dictionary."""
         if isinstance(other, ParameterDict):
             for key, value in other.items():
                 self._type_converter[key] = other._type_converter[key]

@@ -1,16 +1,15 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+#include "HPMCPrecisionSetup.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-#include "HPMCPrecisionSetup.h"
 
 #ifndef __SPHINXOVERLAP__H__
 #define __SPHINXOVERLAP__H__
 
 namespace hpmc
-{
-
+    {
 /*! \file SphinxOverlap.h
     \brief Implements Sphere Intersections Overlap (Beth's version)
 */
@@ -24,14 +23,13 @@ namespace hpmc
 #endif
 
 namespace detail
-{
-
+    {
 // introducing a math function that I need and didn't find in VectorMath.h
 // this function calculates the square of a vector
 
 DEVICE inline OverlapReal norm2(const vec3<OverlapReal>& v)
     {
-    return dot(v,v);
+    return dot(v, v);
     }
 
 //! Sphinx Volume of intersection algorithm for overlap detection
@@ -50,1230 +48,3292 @@ DEVICE inline OverlapReal norm2(const vec3<OverlapReal>& v)
 
 #define EPS 1e-12
 
+DEVICE inline OverlapReal ang4(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal ef);
+DEVICE inline OverlapReal ang5(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal ag,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal bg,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal cg,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal dg,
+                               OverlapReal ef,
+                               OverlapReal eg,
+                               OverlapReal fg);
+DEVICE inline bool
+sep2(bool convex, OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab);
+DEVICE inline bool
+seq2(OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab);
 
-DEVICE inline OverlapReal ang4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-        OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-        OverlapReal cd,OverlapReal ce,OverlapReal cf,
-        OverlapReal de,OverlapReal df,
-        OverlapReal ef);
-DEVICE inline OverlapReal ang5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
-                OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
-                OverlapReal de,OverlapReal df,OverlapReal dg,
-                OverlapReal ef,OverlapReal eg,
-                OverlapReal fg);
-DEVICE inline bool sep2(bool convex,
-              OverlapReal as,OverlapReal bs,
-              OverlapReal ar,OverlapReal br,
-              OverlapReal ab);
-DEVICE inline  bool seq2(OverlapReal as,OverlapReal bs,
-              OverlapReal ar,OverlapReal br,
-              OverlapReal ab);
-
-
-
-
-DEVICE inline  OverlapReal vok4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,
-                OverlapReal cd,OverlapReal ce,
-                OverlapReal de)
+DEVICE inline OverlapReal vok4(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal de)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        OverlapReal abce = ab*ce,acbe = ac*be,aebc = ae*bc;
-        OverlapReal abde = ab*de,adbe = ad*be,aebd = ae*bd;
-        OverlapReal acde = ac*de,adce = ad*ce,aecd = ae*cd;
-        OverlapReal bcde = bc*de,bdce = bd*ce,becd = be*cd;
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
 
-        OverlapReal Qabcd = acbd+adbc-abcd,Qacbd = abcd+adbc-acbd,Qadbc = abcd+acbd-adbc;
-        OverlapReal Qabce = acbe+aebc-abce,Qacbe = abce+aebc-acbe,Qaebc = abce+acbe-aebc;
-        OverlapReal Qabde = adbe+aebd-abde,Qadbe = abde+aebd-adbe,Qaebd = abde+adbe-aebd;
-        OverlapReal Qacde = adce+aecd-acde,Qadce = acde+aecd-adce,Qaecd = acde+adce-aecd;
-        OverlapReal Qbcde = bdce+becd-bcde,Qbdce = bcde+becd-bdce,Qbecd = bcde+bdce-becd;
+    OverlapReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
+    OverlapReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
+    OverlapReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
+    OverlapReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
+    OverlapReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
 
-        return
-        +abcd*(Qabce+Qabde+Qaecd+Qbecd-Qabcd-4*(ae*be+ce*de))
-        +acbd*(Qacbe+Qaebd+Qacde+Qbdce-Qacbd-4*(ae*ce+be*de))
-        +adbc*(Qaebc+Qadbe+Qadce+Qbcde-Qadbc-4*(ae*de+be*ce))
-        +abce*(Qabcd+Qabde+Qadce+Qbdce-Qabce-4*ad*bd)
-        +acbe*(Qacbd+Qadbe+Qacde+Qbecd-Qacbe-4*ad*cd)
-        +aebc*(Qadbc+Qaebd+Qaecd+Qbcde-Qaebc-4*bd*cd)
-        +abde*(Qabcd+Qabce+Qacde+Qbcde-Qabde-4*ac*bc)
-        +adbe*(Qadbc+Qacbe+Qadce+Qbecd-Qadbe)
-        +aebd*(Qacbd+Qaebc+Qaecd+Qbdce-Qaebd)
-        +acde*(Qacbd+Qacbe+Qabde+Qbcde-Qacde)
-        +adce*(Qadbc+Qabce+Qadbe+Qbdce-Qadce)
-        +aecd*(Qabcd+Qaebc+Qaebd+Qbecd-Qaecd)
-        +bcde*(Qadbc+Qaebc+Qabde+Qacde-Qbcde)
-        +bdce*(Qacbd+Qabce+Qaebd+Qadce-Qbdce)
-        +becd*(Qabcd+Qacbe+Qadbe+Qaecd-Qbecd);
+    return +abcd * (Qabce + Qabde + Qaecd + Qbecd - Qabcd - 4 * (ae * be + ce * de))
+           + acbd * (Qacbe + Qaebd + Qacde + Qbdce - Qacbd - 4 * (ae * ce + be * de))
+           + adbc * (Qaebc + Qadbe + Qadce + Qbcde - Qadbc - 4 * (ae * de + be * ce))
+           + abce * (Qabcd + Qabde + Qadce + Qbdce - Qabce - 4 * ad * bd)
+           + acbe * (Qacbd + Qadbe + Qacde + Qbecd - Qacbe - 4 * ad * cd)
+           + aebc * (Qadbc + Qaebd + Qaecd + Qbcde - Qaebc - 4 * bd * cd)
+           + abde * (Qabcd + Qabce + Qacde + Qbcde - Qabde - 4 * ac * bc)
+           + adbe * (Qadbc + Qacbe + Qadce + Qbecd - Qadbe)
+           + aebd * (Qacbd + Qaebc + Qaecd + Qbdce - Qaebd)
+           + acde * (Qacbd + Qacbe + Qabde + Qbcde - Qacde)
+           + adce * (Qadbc + Qabce + Qadbe + Qbdce - Qadce)
+           + aecd * (Qabcd + Qaebc + Qaebd + Qbecd - Qaecd)
+           + bcde * (Qadbc + Qaebc + Qabde + Qacde - Qbcde)
+           + bdce * (Qacbd + Qabce + Qaebd + Qadce - Qbdce)
+           + becd * (Qabcd + Qacbe + Qadbe + Qaecd - Qbecd);
     }
 
-DEVICE inline bool vok5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-              OverlapReal cd,OverlapReal ce,OverlapReal cf,
-              OverlapReal de,OverlapReal df,
-              OverlapReal ef)
+DEVICE inline bool vok5(OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal af,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal bf,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal cf,
+                        OverlapReal de,
+                        OverlapReal df,
+                        OverlapReal ef)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        OverlapReal abce = ab*ce,acbe = ac*be,aebc = ae*bc;
-        OverlapReal abcf = ab*cf,acbf = ac*bf,afbc = af*bc;
-        OverlapReal abde = ab*de,adbe = ad*be,aebd = ae*bd;
-        OverlapReal abdf = ab*df,adbf = ad*bf,afbd = af*bd;
-        OverlapReal abef = ab*ef,aebf = ae*bf,afbe = af*be;
-        OverlapReal acde = ac*de,adce = ad*ce,aecd = ae*cd;
-        OverlapReal acdf = ac*df,adcf = ad*cf,afcd = af*cd;
-        OverlapReal acef = ac*ef,aecf = ae*cf,afce = af*ce;
-        OverlapReal adef = ad*ef,aedf = ae*df,afde = af*de;
-        OverlapReal bcde = bc*de,bdce = bd*ce,becd = be*cd;
-        OverlapReal bcdf = bc*df,bdcf = bd*cf,bfcd = bf*cd;
-        OverlapReal bcef = bc*ef,becf = be*cf,bfce = bf*ce;
-        OverlapReal bdef = bd*ef,bedf = be*df,bfde = bf*de;
-        OverlapReal cdef = cd*ef,cedf = ce*df,cfde = cf*de;
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    OverlapReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
+    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    OverlapReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
+    OverlapReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
+    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    OverlapReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
+    OverlapReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
+    OverlapReal adef = ad * ef, aedf = ae * df, afde = af * de;
+    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
+    OverlapReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
+    OverlapReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
+    OverlapReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
+    OverlapReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
 
-        OverlapReal Qabcd = acbd+adbc-abcd,Qacbd = abcd+adbc-acbd,Qadbc = abcd+acbd-adbc;
-        OverlapReal Qabce = acbe+aebc-abce,Qacbe = abce+aebc-acbe,Qaebc = abce+acbe-aebc;
-        OverlapReal Qabcf = acbf+afbc-abcf,Qacbf = abcf+afbc-acbf,Qafbc = abcf+acbf-afbc;
-        OverlapReal Qabde = adbe+aebd-abde,Qadbe = abde+aebd-adbe,Qaebd = abde+adbe-aebd;
-        OverlapReal Qabdf = adbf+afbd-abdf,Qadbf = abdf+afbd-adbf,Qafbd = abdf+adbf-afbd;
-        OverlapReal Qabef = aebf+afbe-abef,Qaebf = abef+afbe-aebf,Qafbe = abef+aebf-afbe;
-        OverlapReal Qacde = adce+aecd-acde,Qadce = acde+aecd-adce,Qaecd = acde+adce-aecd;
-        OverlapReal Qacdf = adcf+afcd-acdf,Qadcf = acdf+afcd-adcf,Qafcd = acdf+adcf-afcd;
-        OverlapReal Qacef = aecf+afce-acef,Qaecf = acef+afce-aecf,Qafce = acef+aecf-afce;
-        OverlapReal Qadef = aedf+afde-adef,Qaedf = adef+afde-aedf,Qafde = adef+aedf-afde;
-        OverlapReal Qbcde = bdce+becd-bcde,Qbdce = bcde+becd-bdce,Qbecd = bcde+bdce-becd;
-        OverlapReal Qbcdf = bdcf+bfcd-bcdf,Qbdcf = bcdf+bfcd-bdcf,Qbfcd = bcdf+bdcf-bfcd;
-        OverlapReal Qbcef = becf+bfce-bcef,Qbecf = bcef+bfce-becf,Qbfce = bcef+becf-bfce;
-        OverlapReal Qbdef = bedf+bfde-bdef,Qbedf = bdef+bfde-bedf,Qbfde = bdef+bedf-bfde;
-        OverlapReal Qcdef = cedf+cfde-cdef,Qcedf = cdef+cfde-cedf,Qcfde = cdef+cedf-cfde;
+    OverlapReal Qabcd = acbd + adbc - abcd, Qacbd = abcd + adbc - acbd, Qadbc = abcd + acbd - adbc;
+    OverlapReal Qabce = acbe + aebc - abce, Qacbe = abce + aebc - acbe, Qaebc = abce + acbe - aebc;
+    OverlapReal Qabcf = acbf + afbc - abcf, Qacbf = abcf + afbc - acbf, Qafbc = abcf + acbf - afbc;
+    OverlapReal Qabde = adbe + aebd - abde, Qadbe = abde + aebd - adbe, Qaebd = abde + adbe - aebd;
+    OverlapReal Qabdf = adbf + afbd - abdf, Qadbf = abdf + afbd - adbf, Qafbd = abdf + adbf - afbd;
+    OverlapReal Qabef = aebf + afbe - abef, Qaebf = abef + afbe - aebf, Qafbe = abef + aebf - afbe;
+    OverlapReal Qacde = adce + aecd - acde, Qadce = acde + aecd - adce, Qaecd = acde + adce - aecd;
+    OverlapReal Qacdf = adcf + afcd - acdf, Qadcf = acdf + afcd - adcf, Qafcd = acdf + adcf - afcd;
+    OverlapReal Qacef = aecf + afce - acef, Qaecf = acef + afce - aecf, Qafce = acef + aecf - afce;
+    OverlapReal Qadef = aedf + afde - adef, Qaedf = adef + afde - aedf, Qafde = adef + aedf - afde;
+    OverlapReal Qbcde = bdce + becd - bcde, Qbdce = bcde + becd - bdce, Qbecd = bcde + bdce - becd;
+    OverlapReal Qbcdf = bdcf + bfcd - bcdf, Qbdcf = bcdf + bfcd - bdcf, Qbfcd = bcdf + bdcf - bfcd;
+    OverlapReal Qbcef = becf + bfce - bcef, Qbecf = bcef + bfce - becf, Qbfce = bcef + becf - bfce;
+    OverlapReal Qbdef = bedf + bfde - bdef, Qbedf = bdef + bfde - bedf, Qbfde = bdef + bedf - bfde;
+    OverlapReal Qcdef = cedf + cfde - cdef, Qcedf = cdef + cfde - cedf, Qcfde = cdef + cedf - cfde;
 
-        return bool(
-        +ab*cd*ef*(-Qabcd+Qabce+Qabcf+Qabde+Qabdf-Qabef+Qaecd+Qafcd+Qacef+Qadef+Qbecd+Qbfcd+Qbcef+Qbdef-Qcdef)
-        +ab*ce*df*(+Qabcd-Qabce+Qabcf+Qabde-Qabdf+Qabef+Qadce+Qacdf+Qafce+Qaedf+Qbdce+Qbcdf+Qbfce+Qbedf-Qcedf)
-        +ab*cf*de*(+Qabcd+Qabce-Qabcf-Qabde+Qabdf+Qabef+Qacde+Qadcf+Qaecf+Qafde+Qbcde+Qbdcf+Qbecf+Qbfde-Qcfde)
-        +ac*bd*ef*(-Qacbd+Qacbe+Qacbf+Qaebd+Qafbd+Qabef+Qacde+Qacdf-Qacef+Qadef+Qbdce+Qbdcf+Qbcef-Qbdef+Qcdef)
-        +ac*be*df*(+Qacbd-Qacbe+Qacbf+Qadbe+Qabdf+Qafbe+Qacde-Qacdf+Qacef+Qaedf+Qbecd+Qbcdf+Qbecf-Qbedf+Qcedf)
-        +ac*bf*de*(+Qacbd+Qacbe-Qacbf+Qabde+Qadbf+Qaebf-Qacde+Qacdf+Qacef+Qafde+Qbcde+Qbfcd+Qbfce-Qbfde+Qcfde)
-        +ad*bc*ef*(-Qadbc+Qaebc+Qafbc+Qadbe+Qadbf+Qabef+Qadce+Qadcf+Qacef-Qadef+Qbcde+Qbcdf-Qbcef+Qbdef+Qcdef)
-        +ad*be*cf*(+Qadbc+Qacbe+Qabcf-Qadbe+Qadbf+Qafbe+Qadce-Qadcf+Qaecf+Qadef+Qbecd+Qbdcf-Qbecf+Qbedf+Qcfde)
-        +ad*bf*ce*(+Qadbc+Qabce+Qacbf+Qadbe-Qadbf+Qaebf-Qadce+Qadcf+Qafce+Qadef+Qbdce+Qbfcd-Qbfce+Qbfde+Qcedf)
-        +ae*bc*df*(+Qadbc-Qaebc+Qafbc+Qaebd+Qabdf+Qaebf+Qaecd+Qacdf+Qaecf-Qaedf+Qbcde-Qbcdf+Qbcef+Qbedf+Qcedf)
-        +ae*bd*cf*(+Qacbd+Qaebc+Qabcf-Qaebd+Qafbd+Qaebf+Qaecd+Qadcf-Qaecf+Qaedf+Qbdce-Qbdcf+Qbecf+Qbdef+Qcfde)
-        +ae*bf*cd*(+Qabcd+Qaebc+Qacbf+Qaebd+Qadbf-Qaebf-Qaecd+Qafcd+Qaecf+Qaedf+Qbecd-Qbfcd+Qbfce+Qbfde+Qcdef)
-        +af*bc*de*(+Qadbc+Qaebc-Qafbc+Qabde+Qafbd+Qafbe+Qacde+Qafcd+Qafce-Qafde-Qbcde+Qbcdf+Qbcef+Qbfde+Qcfde)
-        +af*bd*ce*(+Qacbd+Qabce+Qafbc+Qaebd-Qafbd+Qafbe+Qadce+Qafcd-Qafce+Qafde-Qbdce+Qbdcf+Qbfce+Qbdef+Qcedf)
-        +af*be*cd*(+Qabcd+Qacbe+Qafbc+Qadbe+Qafbd-Qafbe+Qaecd-Qafcd+Qafce+Qafde-Qbecd+Qbfcd+Qbecf+Qbedf+Qcdef)
+    return bool(
+        +ab * cd * ef
+            * (-Qabcd + Qabce + Qabcf + Qabde + Qabdf - Qabef + Qaecd + Qafcd + Qacef + Qadef
+               + Qbecd + Qbfcd + Qbcef + Qbdef - Qcdef)
+        + ab * ce * df
+              * (+Qabcd - Qabce + Qabcf + Qabde - Qabdf + Qabef + Qadce + Qacdf + Qafce + Qaedf
+                 + Qbdce + Qbcdf + Qbfce + Qbedf - Qcedf)
+        + ab * cf * de
+              * (+Qabcd + Qabce - Qabcf - Qabde + Qabdf + Qabef + Qacde + Qadcf + Qaecf + Qafde
+                 + Qbcde + Qbdcf + Qbecf + Qbfde - Qcfde)
+        + ac * bd * ef
+              * (-Qacbd + Qacbe + Qacbf + Qaebd + Qafbd + Qabef + Qacde + Qacdf - Qacef + Qadef
+                 + Qbdce + Qbdcf + Qbcef - Qbdef + Qcdef)
+        + ac * be * df
+              * (+Qacbd - Qacbe + Qacbf + Qadbe + Qabdf + Qafbe + Qacde - Qacdf + Qacef + Qaedf
+                 + Qbecd + Qbcdf + Qbecf - Qbedf + Qcedf)
+        + ac * bf * de
+              * (+Qacbd + Qacbe - Qacbf + Qabde + Qadbf + Qaebf - Qacde + Qacdf + Qacef + Qafde
+                 + Qbcde + Qbfcd + Qbfce - Qbfde + Qcfde)
+        + ad * bc * ef
+              * (-Qadbc + Qaebc + Qafbc + Qadbe + Qadbf + Qabef + Qadce + Qadcf + Qacef - Qadef
+                 + Qbcde + Qbcdf - Qbcef + Qbdef + Qcdef)
+        + ad * be * cf
+              * (+Qadbc + Qacbe + Qabcf - Qadbe + Qadbf + Qafbe + Qadce - Qadcf + Qaecf + Qadef
+                 + Qbecd + Qbdcf - Qbecf + Qbedf + Qcfde)
+        + ad * bf * ce
+              * (+Qadbc + Qabce + Qacbf + Qadbe - Qadbf + Qaebf - Qadce + Qadcf + Qafce + Qadef
+                 + Qbdce + Qbfcd - Qbfce + Qbfde + Qcedf)
+        + ae * bc * df
+              * (+Qadbc - Qaebc + Qafbc + Qaebd + Qabdf + Qaebf + Qaecd + Qacdf + Qaecf - Qaedf
+                 + Qbcde - Qbcdf + Qbcef + Qbedf + Qcedf)
+        + ae * bd * cf
+              * (+Qacbd + Qaebc + Qabcf - Qaebd + Qafbd + Qaebf + Qaecd + Qadcf - Qaecf + Qaedf
+                 + Qbdce - Qbdcf + Qbecf + Qbdef + Qcfde)
+        + ae * bf * cd
+              * (+Qabcd + Qaebc + Qacbf + Qaebd + Qadbf - Qaebf - Qaecd + Qafcd + Qaecf + Qaedf
+                 + Qbecd - Qbfcd + Qbfce + Qbfde + Qcdef)
+        + af * bc * de
+              * (+Qadbc + Qaebc - Qafbc + Qabde + Qafbd + Qafbe + Qacde + Qafcd + Qafce - Qafde
+                 - Qbcde + Qbcdf + Qbcef + Qbfde + Qcfde)
+        + af * bd * ce
+              * (+Qacbd + Qabce + Qafbc + Qaebd - Qafbd + Qafbe + Qadce + Qafcd - Qafce + Qafde
+                 - Qbdce + Qbdcf + Qbfce + Qbdef + Qcedf)
+        + af * be * cd
+              * (+Qabcd + Qacbe + Qafbc + Qadbe + Qafbd - Qafbe + Qaecd - Qafcd + Qafce + Qafde
+                 - Qbecd + Qbfcd + Qbecf + Qbedf + Qcdef)
 
-        -(ab*ac*bc*(de*(df+ef-de)+df*(de+ef-df)+ef*(de+df-ef))+
-          ab*ad*bd*(ce*(cf+ef-ce)+cf*(ce+ef-cf)+ef*(ce+cf-ef))+
-          ab*ae*be*(cd*(cf+df-cd)+cf*(cd+df-cf)+df*(cd+cf-df))+
-          ab*af*bf*(cd*(ce+de-cd)+ce*(cd+de-ce)+de*(cd+ce-de))+
-          ac*ad*cd*(be*(bf+ef-be)+bf*(be+ef-bf)+ef*(be+bf-ef))+
-          ac*ae*ce*(bd*(bf+df-bd)+bf*(bd+df-bf)+df*(bd+bf-df))+
-          ac*af*cf*(bd*(be+de-bd)+be*(bd+de-be)+de*(bd+be-de))+
-          ad*ae*de*(bc*(bf+cf-bc)+bf*(bc+cf-bf)+cf*(bc+bf-cf))+
-          ad*af*df*(bc*(be+ce-bc)+be*(bc+ce-be)+ce*(bc+be-ce))+
-          ae*af*ef*(bc*(bd+cd-bc)+bd*(bc+cd-bd)+cd*(bc+bd-cd))+
-          bc*bd*cd*(ae*(af+ef-ae)+af*(ae+ef-af)+ef*(ae+af-ef))+
-          bc*be*ce*(ad*(af+df-ad)+af*(ad+df-af)+df*(ad+af-df))+
-          bc*bf*cf*(ad*(ae+de-ad)+ae*(ad+de-ae)+de*(ad+ae-de))+
-          bd*be*de*(ac*(af+cf-ac)+af*(ac+cf-af)+cf*(ac+af-cf))+
-          bd*bf*df*(ac*(ae+ce-ac)+ae*(ac+ce-ae)+ce*(ac+ae-ce))+
-          be*bf*ef*(ac*(ad+cd-ac)+ad*(ac+cd-ad)+cd*(ac+ad-cd))+
-          cd*ce*de*(ab*(af+bf-ab)+af*(ab+bf-af)+bf*(ab+af-bf))+
-          cd*cf*df*(ab*(ae+be-ab)+ae*(ab+be-ae)+be*(ab+ae-be))+
-          ce*cf*ef*(ab*(ad+bd-ab)+ad*(ab+bd-ad)+bd*(ab+ad-bd))+
-          de*df*ef*(ab*(ac+bc-ab)+ac*(ab+bc-ac)+bc*(ab+ac-bc)))
+        - (ab * ac * bc * (de * (df + ef - de) + df * (de + ef - df) + ef * (de + df - ef))
+           + ab * ad * bd * (ce * (cf + ef - ce) + cf * (ce + ef - cf) + ef * (ce + cf - ef))
+           + ab * ae * be * (cd * (cf + df - cd) + cf * (cd + df - cf) + df * (cd + cf - df))
+           + ab * af * bf * (cd * (ce + de - cd) + ce * (cd + de - ce) + de * (cd + ce - de))
+           + ac * ad * cd * (be * (bf + ef - be) + bf * (be + ef - bf) + ef * (be + bf - ef))
+           + ac * ae * ce * (bd * (bf + df - bd) + bf * (bd + df - bf) + df * (bd + bf - df))
+           + ac * af * cf * (bd * (be + de - bd) + be * (bd + de - be) + de * (bd + be - de))
+           + ad * ae * de * (bc * (bf + cf - bc) + bf * (bc + cf - bf) + cf * (bc + bf - cf))
+           + ad * af * df * (bc * (be + ce - bc) + be * (bc + ce - be) + ce * (bc + be - ce))
+           + ae * af * ef * (bc * (bd + cd - bc) + bd * (bc + cd - bd) + cd * (bc + bd - cd))
+           + bc * bd * cd * (ae * (af + ef - ae) + af * (ae + ef - af) + ef * (ae + af - ef))
+           + bc * be * ce * (ad * (af + df - ad) + af * (ad + df - af) + df * (ad + af - df))
+           + bc * bf * cf * (ad * (ae + de - ad) + ae * (ad + de - ae) + de * (ad + ae - de))
+           + bd * be * de * (ac * (af + cf - ac) + af * (ac + cf - af) + cf * (ac + af - cf))
+           + bd * bf * df * (ac * (ae + ce - ac) + ae * (ac + ce - ae) + ce * (ac + ae - ce))
+           + be * bf * ef * (ac * (ad + cd - ac) + ad * (ac + cd - ad) + cd * (ac + ad - cd))
+           + cd * ce * de * (ab * (af + bf - ab) + af * (ab + bf - af) + bf * (ab + af - bf))
+           + cd * cf * df * (ab * (ae + be - ab) + ae * (ab + be - ae) + be * (ab + ae - be))
+           + ce * cf * ef * (ab * (ad + bd - ab) + ad * (ab + bd - ad) + bd * (ab + ad - bd))
+           + de * df * ef * (ab * (ac + bc - ab) + ac * (ab + bc - ac) + bc * (ab + ac - bc)))
 
-        -(ab*(acde*(bdce+becd)+acdf*(bdcf+bfcd)+acef*(becf+bfce)+
-              adce*(bcde+becd)+adcf*(bcdf+bfcd)+adef*(bedf+bfde)+
-              aecd*(bcde+bdce)+aecf*(bcef+bfce)+aedf*(bdef+bfde)+
-              afcd*(bcdf+bdcf)+afce*(bcef+becf)+afde*(bdef+bedf))+
-          ac*(adbe*(bcde+bdce)+adbf*(bcdf+bdcf)+adef*(cedf+cfde)+
-              aebd*(bcde+becd)+aebf*(bcef+becf)+aedf*(cdef+cfde)+
-              afbd*(bcdf+bfcd)+afbe*(bcef+bfce)+afde*(cdef+cedf))+
-          ad*(aebc*(bdce+becd)+aebf*(bdef+bedf)+aecf*(cdef+cedf)+
-              afbc*(bdcf+bfcd)+afbe*(bdef+bfde)+afce*(cdef+cfde))+
-          ae*(afbc*(becf+bfce)+afbd*(bedf+bfde)+afcd*(cedf+cfde))+
-          bc*(bdef*(cedf+cfde)+bedf*(cdef+cfde)+bfde*(cdef+cedf))+
-          bd*(becf*(cdef+cedf)+bfce*(cdef+cfde))+
-          be*(bfcd*(cedf+cfde))));
+        - (ab
+               * (acde * (bdce + becd) + acdf * (bdcf + bfcd) + acef * (becf + bfce)
+                  + adce * (bcde + becd) + adcf * (bcdf + bfcd) + adef * (bedf + bfde)
+                  + aecd * (bcde + bdce) + aecf * (bcef + bfce) + aedf * (bdef + bfde)
+                  + afcd * (bcdf + bdcf) + afce * (bcef + becf) + afde * (bdef + bedf))
+           + ac
+                 * (adbe * (bcde + bdce) + adbf * (bcdf + bdcf) + adef * (cedf + cfde)
+                    + aebd * (bcde + becd) + aebf * (bcef + becf) + aedf * (cdef + cfde)
+                    + afbd * (bcdf + bfcd) + afbe * (bcef + bfce) + afde * (cdef + cedf))
+           + ad
+                 * (aebc * (bdce + becd) + aebf * (bdef + bedf) + aecf * (cdef + cedf)
+                    + afbc * (bdcf + bfcd) + afbe * (bdef + bfde) + afce * (cdef + cfde))
+           + ae * (afbc * (becf + bfce) + afbd * (bedf + bfde) + afcd * (cedf + cfde))
+           + bc * (bdef * (cedf + cfde) + bedf * (cdef + cfde) + bfde * (cdef + cedf))
+           + bd * (becf * (cdef + cedf) + bfce * (cdef + cfde)) + be * (bfcd * (cedf + cfde))));
     }
 
-DEVICE inline OverlapReal vok6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
-                OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
-                OverlapReal de,OverlapReal df,OverlapReal dg,
-                OverlapReal ef,OverlapReal eg,
-                OverlapReal fg)
+DEVICE inline OverlapReal vok6(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal ag,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal bg,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal cg,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal dg,
+                               OverlapReal ef,
+                               OverlapReal eg,
+                               OverlapReal fg)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        OverlapReal abce = ab*ce,acbe = ac*be,aebc = ae*bc;
-        OverlapReal abcf = ab*cf,acbf = ac*bf,afbc = af*bc;
-        OverlapReal abcg = ab*cg,acbg = ac*bg,agbc = ag*bc;
-        OverlapReal abde = ab*de,adbe = ad*be,aebd = ae*bd;
-        OverlapReal abdf = ab*df,adbf = ad*bf,afbd = af*bd;
-        OverlapReal abdg = ab*dg,adbg = ad*bg,agbd = ag*bd;
-        OverlapReal abef = ab*ef,aebf = ae*bf,afbe = af*be;
-        OverlapReal abeg = ab*eg,aebg = ae*bg,agbe = ag*be;
-        OverlapReal abfg = ab*fg,afbg = af*bg,agbf = ag*bf;
-        OverlapReal acde = ac*de,adce = ad*ce,aecd = ae*cd;
-        OverlapReal acdf = ac*df,adcf = ad*cf,afcd = af*cd;
-        OverlapReal acdg = ac*dg,adcg = ad*cg,agcd = ag*cd;
-        OverlapReal acef = ac*ef,aecf = ae*cf,afce = af*ce;
-        OverlapReal aceg = ac*eg,aecg = ae*cg,agce = ag*ce;
-        OverlapReal acfg = ac*fg,afcg = af*cg,agcf = ag*cf;
-        OverlapReal adef = ad*ef,aedf = ae*df,afde = af*de;
-        OverlapReal adeg = ad*eg,aedg = ae*dg,agde = ag*de;
-        OverlapReal adfg = ad*fg,afdg = af*dg,agdf = ag*df;
-        OverlapReal aefg = ae*fg,afeg = af*eg,agef = ag*ef;
-        OverlapReal bcde = bc*de,bdce = bd*ce,becd = be*cd;
-        OverlapReal bcdf = bc*df,bdcf = bd*cf,bfcd = bf*cd;
-        OverlapReal bcdg = bc*dg,bdcg = bd*cg,bgcd = bg*cd;
-        OverlapReal bcef = bc*ef,becf = be*cf,bfce = bf*ce;
-        OverlapReal bceg = bc*eg,becg = be*cg,bgce = bg*ce;
-        OverlapReal bcfg = bc*fg,bfcg = bf*cg,bgcf = bg*cf;
-        OverlapReal bdef = bd*ef,bedf = be*df,bfde = bf*de;
-        OverlapReal bdeg = bd*eg,bedg = be*dg,bgde = bg*de;
-        OverlapReal bdfg = bd*fg,bfdg = bf*dg,bgdf = bg*df;
-        OverlapReal befg = be*fg,bfeg = bf*eg,bgef = bg*ef;
-        OverlapReal cdef = cd*ef,cedf = ce*df,cfde = cf*de;
-        OverlapReal cdeg = cd*eg,cedg = ce*dg,cgde = cg*de;
-        OverlapReal cdfg = cd*fg,cfdg = cf*dg,cgdf = cg*df;
-        OverlapReal cefg = ce*fg,cfeg = cf*eg,cgef = cg*ef;
-        OverlapReal defg = de*fg,dfeg = df*eg,dgef = dg*ef;
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    OverlapReal abce = ab * ce, acbe = ac * be, aebc = ae * bc;
+    OverlapReal abcf = ab * cf, acbf = ac * bf, afbc = af * bc;
+    OverlapReal abcg = ab * cg, acbg = ac * bg, agbc = ag * bc;
+    OverlapReal abde = ab * de, adbe = ad * be, aebd = ae * bd;
+    OverlapReal abdf = ab * df, adbf = ad * bf, afbd = af * bd;
+    OverlapReal abdg = ab * dg, adbg = ad * bg, agbd = ag * bd;
+    OverlapReal abef = ab * ef, aebf = ae * bf, afbe = af * be;
+    OverlapReal abeg = ab * eg, aebg = ae * bg, agbe = ag * be;
+    OverlapReal abfg = ab * fg, afbg = af * bg, agbf = ag * bf;
+    OverlapReal acde = ac * de, adce = ad * ce, aecd = ae * cd;
+    OverlapReal acdf = ac * df, adcf = ad * cf, afcd = af * cd;
+    OverlapReal acdg = ac * dg, adcg = ad * cg, agcd = ag * cd;
+    OverlapReal acef = ac * ef, aecf = ae * cf, afce = af * ce;
+    OverlapReal aceg = ac * eg, aecg = ae * cg, agce = ag * ce;
+    OverlapReal acfg = ac * fg, afcg = af * cg, agcf = ag * cf;
+    OverlapReal adef = ad * ef, aedf = ae * df, afde = af * de;
+    OverlapReal adeg = ad * eg, aedg = ae * dg, agde = ag * de;
+    OverlapReal adfg = ad * fg, afdg = af * dg, agdf = ag * df;
+    OverlapReal aefg = ae * fg, afeg = af * eg, agef = ag * ef;
+    OverlapReal bcde = bc * de, bdce = bd * ce, becd = be * cd;
+    OverlapReal bcdf = bc * df, bdcf = bd * cf, bfcd = bf * cd;
+    OverlapReal bcdg = bc * dg, bdcg = bd * cg, bgcd = bg * cd;
+    OverlapReal bcef = bc * ef, becf = be * cf, bfce = bf * ce;
+    OverlapReal bceg = bc * eg, becg = be * cg, bgce = bg * ce;
+    OverlapReal bcfg = bc * fg, bfcg = bf * cg, bgcf = bg * cf;
+    OverlapReal bdef = bd * ef, bedf = be * df, bfde = bf * de;
+    OverlapReal bdeg = bd * eg, bedg = be * dg, bgde = bg * de;
+    OverlapReal bdfg = bd * fg, bfdg = bf * dg, bgdf = bg * df;
+    OverlapReal befg = be * fg, bfeg = bf * eg, bgef = bg * ef;
+    OverlapReal cdef = cd * ef, cedf = ce * df, cfde = cf * de;
+    OverlapReal cdeg = cd * eg, cedg = ce * dg, cgde = cg * de;
+    OverlapReal cdfg = cd * fg, cfdg = cf * dg, cgdf = cg * df;
+    OverlapReal cefg = ce * fg, cfeg = cf * eg, cgef = cg * ef;
+    OverlapReal defg = de * fg, dfeg = df * eg, dgef = dg * ef;
 
-        OverlapReal abcdef = ab*cdef,abcedf = ab*cedf,abcfde = ab*cfde;
-        OverlapReal acbdef = ac*bdef,acbedf = ac*bedf,acbfde = ac*bfde;
-        OverlapReal adbcef = ad*bcef,adbecf = ad*becf,adbfce = ad*bfce;
-        OverlapReal aebcdf = ae*bcdf,aebdcf = ae*bdcf,aebfcd = ae*bfcd;
-        OverlapReal afbcde = af*bcde,afbdce = af*bdce,afbecd = af*becd;
-        OverlapReal abcdeg = ab*cdeg,abcedg = ab*cedg,abcgde = ab*cgde;
-        OverlapReal acbdeg = ac*bdeg,acbedg = ac*bedg,acbgde = ac*bgde;
-        OverlapReal adbceg = ad*bceg,adbecg = ad*becg,adbgce = ad*bgce;
-        OverlapReal aebcdg = ae*bcdg,aebdcg = ae*bdcg,aebgcd = ae*bgcd;
-        OverlapReal agbcde = ag*bcde,agbdce = ag*bdce,agbecd = ag*becd;
-        OverlapReal abcdfg = ab*cdfg,abcfdg = ab*cfdg,abcgdf = ab*cgdf;
-        OverlapReal acbdfg = ac*bdfg,acbfdg = ac*bfdg,acbgdf = ac*bgdf;
-        OverlapReal adbcfg = ad*bcfg,adbfcg = ad*bfcg,adbgcf = ad*bgcf;
-        OverlapReal afbcdg = af*bcdg,afbdcg = af*bdcg,afbgcd = af*bgcd;
-        OverlapReal agbcdf = ag*bcdf,agbdcf = ag*bdcf,agbfcd = ag*bfcd;
-        OverlapReal abcefg = ab*cefg,abcfeg = ab*cfeg,abcgef = ab*cgef;
-        OverlapReal acbefg = ac*befg,acbfeg = ac*bfeg,acbgef = ac*bgef;
-        OverlapReal aebcfg = ae*bcfg,aebfcg = ae*bfcg,aebgcf = ae*bgcf;
-        OverlapReal afbceg = af*bceg,afbecg = af*becg,afbgce = af*bgce;
-        OverlapReal agbcef = ag*bcef,agbecf = ag*becf,agbfce = ag*bfce;
-        OverlapReal abdefg = ab*defg,abdfeg = ab*dfeg,abdgef = ab*dgef;
-        OverlapReal adbefg = ad*befg,adbfeg = ad*bfeg,adbgef = ad*bgef;
-        OverlapReal aebdfg = ae*bdfg,aebfdg = ae*bfdg,aebgdf = ae*bgdf;
-        OverlapReal afbdeg = af*bdeg,afbedg = af*bedg,afbgde = af*bgde;
-        OverlapReal agbdef = ag*bdef,agbedf = ag*bedf,agbfde = ag*bfde;
-        OverlapReal acdefg = ac*defg,acdfeg = ac*dfeg,acdgef = ac*dgef;
-        OverlapReal adcefg = ad*cefg,adcfeg = ad*cfeg,adcgef = ad*cgef;
-        OverlapReal aecdfg = ae*cdfg,aecfdg = ae*cfdg,aecgdf = ae*cgdf;
-        OverlapReal afcdeg = af*cdeg,afcedg = af*cedg,afcgde = af*cgde;
-        OverlapReal agcdef = ag*cdef,agcedf = ag*cedf,agcfde = ag*cfde;
-        OverlapReal bcdefg = bc*defg,bcdfeg = bc*dfeg,bcdgef = bc*dgef;
-        OverlapReal bdcefg = bd*cefg,bdcfeg = bd*cfeg,bdcgef = bd*cgef;
-        OverlapReal becdfg = be*cdfg,becfdg = be*cfdg,becgdf = be*cgdf;
-        OverlapReal bfcdeg = bf*cdeg,bfcedg = bf*cedg,bfcgde = bf*cgde;
-        OverlapReal bgcdef = bg*cdef,bgcedf = bg*cedf,bgcfde = bg*cfde;
+    OverlapReal abcdef = ab * cdef, abcedf = ab * cedf, abcfde = ab * cfde;
+    OverlapReal acbdef = ac * bdef, acbedf = ac * bedf, acbfde = ac * bfde;
+    OverlapReal adbcef = ad * bcef, adbecf = ad * becf, adbfce = ad * bfce;
+    OverlapReal aebcdf = ae * bcdf, aebdcf = ae * bdcf, aebfcd = ae * bfcd;
+    OverlapReal afbcde = af * bcde, afbdce = af * bdce, afbecd = af * becd;
+    OverlapReal abcdeg = ab * cdeg, abcedg = ab * cedg, abcgde = ab * cgde;
+    OverlapReal acbdeg = ac * bdeg, acbedg = ac * bedg, acbgde = ac * bgde;
+    OverlapReal adbceg = ad * bceg, adbecg = ad * becg, adbgce = ad * bgce;
+    OverlapReal aebcdg = ae * bcdg, aebdcg = ae * bdcg, aebgcd = ae * bgcd;
+    OverlapReal agbcde = ag * bcde, agbdce = ag * bdce, agbecd = ag * becd;
+    OverlapReal abcdfg = ab * cdfg, abcfdg = ab * cfdg, abcgdf = ab * cgdf;
+    OverlapReal acbdfg = ac * bdfg, acbfdg = ac * bfdg, acbgdf = ac * bgdf;
+    OverlapReal adbcfg = ad * bcfg, adbfcg = ad * bfcg, adbgcf = ad * bgcf;
+    OverlapReal afbcdg = af * bcdg, afbdcg = af * bdcg, afbgcd = af * bgcd;
+    OverlapReal agbcdf = ag * bcdf, agbdcf = ag * bdcf, agbfcd = ag * bfcd;
+    OverlapReal abcefg = ab * cefg, abcfeg = ab * cfeg, abcgef = ab * cgef;
+    OverlapReal acbefg = ac * befg, acbfeg = ac * bfeg, acbgef = ac * bgef;
+    OverlapReal aebcfg = ae * bcfg, aebfcg = ae * bfcg, aebgcf = ae * bgcf;
+    OverlapReal afbceg = af * bceg, afbecg = af * becg, afbgce = af * bgce;
+    OverlapReal agbcef = ag * bcef, agbecf = ag * becf, agbfce = ag * bfce;
+    OverlapReal abdefg = ab * defg, abdfeg = ab * dfeg, abdgef = ab * dgef;
+    OverlapReal adbefg = ad * befg, adbfeg = ad * bfeg, adbgef = ad * bgef;
+    OverlapReal aebdfg = ae * bdfg, aebfdg = ae * bfdg, aebgdf = ae * bgdf;
+    OverlapReal afbdeg = af * bdeg, afbedg = af * bedg, afbgde = af * bgde;
+    OverlapReal agbdef = ag * bdef, agbedf = ag * bedf, agbfde = ag * bfde;
+    OverlapReal acdefg = ac * defg, acdfeg = ac * dfeg, acdgef = ac * dgef;
+    OverlapReal adcefg = ad * cefg, adcfeg = ad * cfeg, adcgef = ad * cgef;
+    OverlapReal aecdfg = ae * cdfg, aecfdg = ae * cfdg, aecgdf = ae * cgdf;
+    OverlapReal afcdeg = af * cdeg, afcedg = af * cedg, afcgde = af * cgde;
+    OverlapReal agcdef = ag * cdef, agcedf = ag * cedf, agcfde = ag * cfde;
+    OverlapReal bcdefg = bc * defg, bcdfeg = bc * dfeg, bcdgef = bc * dgef;
+    OverlapReal bdcefg = bd * cefg, bdcfeg = bd * cfeg, bdcgef = bd * cgef;
+    OverlapReal becdfg = be * cdfg, becfdg = be * cfdg, becgdf = be * cgdf;
+    OverlapReal bfcdeg = bf * cdeg, bfcedg = bf * cedg, bfcgde = bf * cgde;
+    OverlapReal bgcdef = bg * cdef, bgcedf = bg * cedf, bgcfde = bg * cfde;
 
-        OverlapReal Qabcdef = abcdef+acbedf+acbfde+adbecf+adbfce+aebcdf+aebdcf+afbcde+afbdce-abcedf-abcfde-acbdef-adbcef-aebfcd-afbecd;
-        OverlapReal Qabcedf = abcedf+acbdef+acbfde+adbcef+adbecf+aebdcf+aebfcd+afbcde+afbecd-abcdef-abcfde-acbedf-adbfce-aebcdf-afbdce;
-        OverlapReal Qabcfde = abcfde+acbdef+acbedf+adbcef+adbfce+aebcdf+aebfcd+afbdce+afbecd-abcdef-abcedf-acbfde-adbecf-aebdcf-afbcde;
-        OverlapReal Qacbdef = abcedf+abcfde+acbdef+adbecf+adbfce+aebcdf+aebfcd+afbcde+afbecd-abcdef-acbedf-acbfde-adbcef-aebdcf-afbdce;
-        OverlapReal Qacbedf = abcdef+abcfde+acbedf+adbcef+adbfce+aebdcf+aebfcd+afbcde+afbdce-abcedf-acbdef-acbfde-adbecf-aebcdf-afbecd;
-        OverlapReal Qacbfde = abcdef+abcedf+acbfde+adbcef+adbecf+aebcdf+aebdcf+afbdce+afbecd-abcfde-acbdef-acbedf-adbfce-aebfcd-afbcde;
-        OverlapReal Qadbcef = abcedf+abcfde+acbedf+acbfde+adbcef+aebdcf+aebfcd+afbdce+afbecd-abcdef-acbdef-adbecf-adbfce-aebcdf-afbcde;
-        OverlapReal Qadbecf = abcdef+abcedf+acbdef+acbfde+adbecf+aebcdf+aebfcd+afbcde+afbdce-abcfde-acbedf-adbcef-adbfce-aebdcf-afbecd;
-        OverlapReal Qadbfce = abcdef+abcfde+acbdef+acbedf+adbfce+aebcdf+aebdcf+afbcde+afbecd-abcedf-acbfde-adbcef-adbecf-aebfcd-afbdce;
-        OverlapReal Qaebcdf = abcdef+abcfde+acbdef+acbfde+adbecf+adbfce+aebcdf+afbdce+afbecd-abcedf-acbedf-adbcef-aebdcf-aebfcd-afbcde;
-        OverlapReal Qaebdcf = abcdef+abcedf+acbedf+acbfde+adbcef+adbfce+aebdcf+afbcde+afbecd-abcfde-acbdef-adbecf-aebcdf-aebfcd-afbdce;
-        OverlapReal Qaebfcd = abcedf+abcfde+acbdef+acbedf+adbcef+adbecf+aebfcd+afbcde+afbdce-abcdef-acbfde-adbfce-aebcdf-aebdcf-afbecd;
-        OverlapReal Qafbcde = abcdef+abcedf+acbdef+acbedf+adbecf+adbfce+aebdcf+aebfcd+afbcde-abcfde-acbfde-adbcef-aebcdf-afbdce-afbecd;
-        OverlapReal Qafbdce = abcdef+abcfde+acbedf+acbfde+adbcef+adbecf+aebcdf+aebfcd+afbdce-abcedf-acbdef-adbfce-aebdcf-afbcde-afbecd;
-        OverlapReal Qafbecd = abcedf+abcfde+acbdef+acbfde+adbcef+adbfce+aebcdf+aebdcf+afbecd-abcdef-acbedf-adbecf-aebfcd-afbcde-afbdce;
-        OverlapReal Qabcdeg = abcdeg+acbedg+acbgde+adbecg+adbgce+aebcdg+aebdcg+agbcde+agbdce-abcedg-abcgde-acbdeg-adbceg-aebgcd-agbecd;
-        OverlapReal Qabcedg = abcedg+acbdeg+acbgde+adbceg+adbecg+aebdcg+aebgcd+agbcde+agbecd-abcdeg-abcgde-acbedg-adbgce-aebcdg-agbdce;
-        OverlapReal Qabcgde = abcgde+acbdeg+acbedg+adbceg+adbgce+aebcdg+aebgcd+agbdce+agbecd-abcdeg-abcedg-acbgde-adbecg-aebdcg-agbcde;
-        OverlapReal Qacbdeg = abcedg+abcgde+acbdeg+adbecg+adbgce+aebcdg+aebgcd+agbcde+agbecd-abcdeg-acbedg-acbgde-adbceg-aebdcg-agbdce;
-        OverlapReal Qacbedg = abcdeg+abcgde+acbedg+adbceg+adbgce+aebdcg+aebgcd+agbcde+agbdce-abcedg-acbdeg-acbgde-adbecg-aebcdg-agbecd;
-        OverlapReal Qacbgde = abcdeg+abcedg+acbgde+adbceg+adbecg+aebcdg+aebdcg+agbdce+agbecd-abcgde-acbdeg-acbedg-adbgce-aebgcd-agbcde;
-        OverlapReal Qadbceg = abcedg+abcgde+acbedg+acbgde+adbceg+aebdcg+aebgcd+agbdce+agbecd-abcdeg-acbdeg-adbecg-adbgce-aebcdg-agbcde;
-        OverlapReal Qadbecg = abcdeg+abcedg+acbdeg+acbgde+adbecg+aebcdg+aebgcd+agbcde+agbdce-abcgde-acbedg-adbceg-adbgce-aebdcg-agbecd;
-        OverlapReal Qadbgce = abcdeg+abcgde+acbdeg+acbedg+adbgce+aebcdg+aebdcg+agbcde+agbecd-abcedg-acbgde-adbceg-adbecg-aebgcd-agbdce;
-        OverlapReal Qaebcdg = abcdeg+abcgde+acbdeg+acbgde+adbecg+adbgce+aebcdg+agbdce+agbecd-abcedg-acbedg-adbceg-aebdcg-aebgcd-agbcde;
-        OverlapReal Qaebdcg = abcdeg+abcedg+acbedg+acbgde+adbceg+adbgce+aebdcg+agbcde+agbecd-abcgde-acbdeg-adbecg-aebcdg-aebgcd-agbdce;
-        OverlapReal Qaebgcd = abcedg+abcgde+acbdeg+acbedg+adbceg+adbecg+aebgcd+agbcde+agbdce-abcdeg-acbgde-adbgce-aebcdg-aebdcg-agbecd;
-        OverlapReal Qagbcde = abcdeg+abcedg+acbdeg+acbedg+adbecg+adbgce+aebdcg+aebgcd+agbcde-abcgde-acbgde-adbceg-aebcdg-agbdce-agbecd;
-        OverlapReal Qagbdce = abcdeg+abcgde+acbedg+acbgde+adbceg+adbecg+aebcdg+aebgcd+agbdce-abcedg-acbdeg-adbgce-aebdcg-agbcde-agbecd;
-        OverlapReal Qagbecd = abcedg+abcgde+acbdeg+acbgde+adbceg+adbgce+aebcdg+aebdcg+agbecd-abcdeg-acbedg-adbecg-aebgcd-agbcde-agbdce;
-        OverlapReal Qabcdfg = abcdfg+acbfdg+acbgdf+adbfcg+adbgcf+afbcdg+afbdcg+agbcdf+agbdcf-abcfdg-abcgdf-acbdfg-adbcfg-afbgcd-agbfcd;
-        OverlapReal Qabcfdg = abcfdg+acbdfg+acbgdf+adbcfg+adbfcg+afbdcg+afbgcd+agbcdf+agbfcd-abcdfg-abcgdf-acbfdg-adbgcf-afbcdg-agbdcf;
-        OverlapReal Qabcgdf = abcgdf+acbdfg+acbfdg+adbcfg+adbgcf+afbcdg+afbgcd+agbdcf+agbfcd-abcdfg-abcfdg-acbgdf-adbfcg-afbdcg-agbcdf;
-        OverlapReal Qacbdfg = abcfdg+abcgdf+acbdfg+adbfcg+adbgcf+afbcdg+afbgcd+agbcdf+agbfcd-abcdfg-acbfdg-acbgdf-adbcfg-afbdcg-agbdcf;
-        OverlapReal Qacbfdg = abcdfg+abcgdf+acbfdg+adbcfg+adbgcf+afbdcg+afbgcd+agbcdf+agbdcf-abcfdg-acbdfg-acbgdf-adbfcg-afbcdg-agbfcd;
-        OverlapReal Qacbgdf = abcdfg+abcfdg+acbgdf+adbcfg+adbfcg+afbcdg+afbdcg+agbdcf+agbfcd-abcgdf-acbdfg-acbfdg-adbgcf-afbgcd-agbcdf;
-        OverlapReal Qadbcfg = abcfdg+abcgdf+acbfdg+acbgdf+adbcfg+afbdcg+afbgcd+agbdcf+agbfcd-abcdfg-acbdfg-adbfcg-adbgcf-afbcdg-agbcdf;
-        OverlapReal Qadbfcg = abcdfg+abcfdg+acbdfg+acbgdf+adbfcg+afbcdg+afbgcd+agbcdf+agbdcf-abcgdf-acbfdg-adbcfg-adbgcf-afbdcg-agbfcd;
-        OverlapReal Qadbgcf = abcdfg+abcgdf+acbdfg+acbfdg+adbgcf+afbcdg+afbdcg+agbcdf+agbfcd-abcfdg-acbgdf-adbcfg-adbfcg-afbgcd-agbdcf;
-        OverlapReal Qafbcdg = abcdfg+abcgdf+acbdfg+acbgdf+adbfcg+adbgcf+afbcdg+agbdcf+agbfcd-abcfdg-acbfdg-adbcfg-afbdcg-afbgcd-agbcdf;
-        OverlapReal Qafbdcg = abcdfg+abcfdg+acbfdg+acbgdf+adbcfg+adbgcf+afbdcg+agbcdf+agbfcd-abcgdf-acbdfg-adbfcg-afbcdg-afbgcd-agbdcf;
-        OverlapReal Qafbgcd = abcfdg+abcgdf+acbdfg+acbfdg+adbcfg+adbfcg+afbgcd+agbcdf+agbdcf-abcdfg-acbgdf-adbgcf-afbcdg-afbdcg-agbfcd;
-        OverlapReal Qagbcdf = abcdfg+abcfdg+acbdfg+acbfdg+adbfcg+adbgcf+afbdcg+afbgcd+agbcdf-abcgdf-acbgdf-adbcfg-afbcdg-agbdcf-agbfcd;
-        OverlapReal Qagbdcf = abcdfg+abcgdf+acbfdg+acbgdf+adbcfg+adbfcg+afbcdg+afbgcd+agbdcf-abcfdg-acbdfg-adbgcf-afbdcg-agbcdf-agbfcd;
-        OverlapReal Qagbfcd = abcfdg+abcgdf+acbdfg+acbgdf+adbcfg+adbgcf+afbcdg+afbdcg+agbfcd-abcdfg-acbfdg-adbfcg-afbgcd-agbcdf-agbdcf;
-        OverlapReal Qabcefg = abcefg+acbfeg+acbgef+aebfcg+aebgcf+afbceg+afbecg+agbcef+agbecf-abcfeg-abcgef-acbefg-aebcfg-afbgce-agbfce;
-        OverlapReal Qabcfeg = abcfeg+acbefg+acbgef+aebcfg+aebfcg+afbecg+afbgce+agbcef+agbfce-abcefg-abcgef-acbfeg-aebgcf-afbceg-agbecf;
-        OverlapReal Qabcgef = abcgef+acbefg+acbfeg+aebcfg+aebgcf+afbceg+afbgce+agbecf+agbfce-abcefg-abcfeg-acbgef-aebfcg-afbecg-agbcef;
-        OverlapReal Qacbefg = abcfeg+abcgef+acbefg+aebfcg+aebgcf+afbceg+afbgce+agbcef+agbfce-abcefg-acbfeg-acbgef-aebcfg-afbecg-agbecf;
-        OverlapReal Qacbfeg = abcefg+abcgef+acbfeg+aebcfg+aebgcf+afbecg+afbgce+agbcef+agbecf-abcfeg-acbefg-acbgef-aebfcg-afbceg-agbfce;
-        OverlapReal Qacbgef = abcefg+abcfeg+acbgef+aebcfg+aebfcg+afbceg+afbecg+agbecf+agbfce-abcgef-acbefg-acbfeg-aebgcf-afbgce-agbcef;
-        OverlapReal Qaebcfg = abcfeg+abcgef+acbfeg+acbgef+aebcfg+afbecg+afbgce+agbecf+agbfce-abcefg-acbefg-aebfcg-aebgcf-afbceg-agbcef;
-        OverlapReal Qaebfcg = abcefg+abcfeg+acbefg+acbgef+aebfcg+afbceg+afbgce+agbcef+agbecf-abcgef-acbfeg-aebcfg-aebgcf-afbecg-agbfce;
-        OverlapReal Qaebgcf = abcefg+abcgef+acbefg+acbfeg+aebgcf+afbceg+afbecg+agbcef+agbfce-abcfeg-acbgef-aebcfg-aebfcg-afbgce-agbecf;
-        OverlapReal Qafbceg = abcefg+abcgef+acbefg+acbgef+aebfcg+aebgcf+afbceg+agbecf+agbfce-abcfeg-acbfeg-aebcfg-afbecg-afbgce-agbcef;
-        OverlapReal Qafbecg = abcefg+abcfeg+acbfeg+acbgef+aebcfg+aebgcf+afbecg+agbcef+agbfce-abcgef-acbefg-aebfcg-afbceg-afbgce-agbecf;
-        OverlapReal Qafbgce = abcfeg+abcgef+acbefg+acbfeg+aebcfg+aebfcg+afbgce+agbcef+agbecf-abcefg-acbgef-aebgcf-afbceg-afbecg-agbfce;
-        OverlapReal Qagbcef = abcefg+abcfeg+acbefg+acbfeg+aebfcg+aebgcf+afbecg+afbgce+agbcef-abcgef-acbgef-aebcfg-afbceg-agbecf-agbfce;
-        OverlapReal Qagbecf = abcefg+abcgef+acbfeg+acbgef+aebcfg+aebfcg+afbceg+afbgce+agbecf-abcfeg-acbefg-aebgcf-afbecg-agbcef-agbfce;
-        OverlapReal Qagbfce = abcfeg+abcgef+acbefg+acbgef+aebcfg+aebgcf+afbceg+afbecg+agbfce-abcefg-acbfeg-aebfcg-afbgce-agbcef-agbecf;
-        OverlapReal Qabdefg = abdefg+adbfeg+adbgef+aebfdg+aebgdf+afbdeg+afbedg+agbdef+agbedf-abdfeg-abdgef-adbefg-aebdfg-afbgde-agbfde;
-        OverlapReal Qabdfeg = abdfeg+adbefg+adbgef+aebdfg+aebfdg+afbedg+afbgde+agbdef+agbfde-abdefg-abdgef-adbfeg-aebgdf-afbdeg-agbedf;
-        OverlapReal Qabdgef = abdgef+adbefg+adbfeg+aebdfg+aebgdf+afbdeg+afbgde+agbedf+agbfde-abdefg-abdfeg-adbgef-aebfdg-afbedg-agbdef;
-        OverlapReal Qadbefg = abdfeg+abdgef+adbefg+aebfdg+aebgdf+afbdeg+afbgde+agbdef+agbfde-abdefg-adbfeg-adbgef-aebdfg-afbedg-agbedf;
-        OverlapReal Qadbfeg = abdefg+abdgef+adbfeg+aebdfg+aebgdf+afbedg+afbgde+agbdef+agbedf-abdfeg-adbefg-adbgef-aebfdg-afbdeg-agbfde;
-        OverlapReal Qadbgef = abdefg+abdfeg+adbgef+aebdfg+aebfdg+afbdeg+afbedg+agbedf+agbfde-abdgef-adbefg-adbfeg-aebgdf-afbgde-agbdef;
-        OverlapReal Qaebdfg = abdfeg+abdgef+adbfeg+adbgef+aebdfg+afbedg+afbgde+agbedf+agbfde-abdefg-adbefg-aebfdg-aebgdf-afbdeg-agbdef;
-        OverlapReal Qaebfdg = abdefg+abdfeg+adbefg+adbgef+aebfdg+afbdeg+afbgde+agbdef+agbedf-abdgef-adbfeg-aebdfg-aebgdf-afbedg-agbfde;
-        OverlapReal Qaebgdf = abdefg+abdgef+adbefg+adbfeg+aebgdf+afbdeg+afbedg+agbdef+agbfde-abdfeg-adbgef-aebdfg-aebfdg-afbgde-agbedf;
-        OverlapReal Qafbdeg = abdefg+abdgef+adbefg+adbgef+aebfdg+aebgdf+afbdeg+agbedf+agbfde-abdfeg-adbfeg-aebdfg-afbedg-afbgde-agbdef;
-        OverlapReal Qafbedg = abdefg+abdfeg+adbfeg+adbgef+aebdfg+aebgdf+afbedg+agbdef+agbfde-abdgef-adbefg-aebfdg-afbdeg-afbgde-agbedf;
-        OverlapReal Qafbgde = abdfeg+abdgef+adbefg+adbfeg+aebdfg+aebfdg+afbgde+agbdef+agbedf-abdefg-adbgef-aebgdf-afbdeg-afbedg-agbfde;
-        OverlapReal Qagbdef = abdefg+abdfeg+adbefg+adbfeg+aebfdg+aebgdf+afbedg+afbgde+agbdef-abdgef-adbgef-aebdfg-afbdeg-agbedf-agbfde;
-        OverlapReal Qagbedf = abdefg+abdgef+adbfeg+adbgef+aebdfg+aebfdg+afbdeg+afbgde+agbedf-abdfeg-adbefg-aebgdf-afbedg-agbdef-agbfde;
-        OverlapReal Qagbfde = abdfeg+abdgef+adbefg+adbgef+aebdfg+aebgdf+afbdeg+afbedg+agbfde-abdefg-adbfeg-aebfdg-afbgde-agbdef-agbedf;
-        OverlapReal Qacdefg = acdefg+adcfeg+adcgef+aecfdg+aecgdf+afcdeg+afcedg+agcdef+agcedf-acdfeg-acdgef-adcefg-aecdfg-afcgde-agcfde;
-        OverlapReal Qacdfeg = acdfeg+adcefg+adcgef+aecdfg+aecfdg+afcedg+afcgde+agcdef+agcfde-acdefg-acdgef-adcfeg-aecgdf-afcdeg-agcedf;
-        OverlapReal Qacdgef = acdgef+adcefg+adcfeg+aecdfg+aecgdf+afcdeg+afcgde+agcedf+agcfde-acdefg-acdfeg-adcgef-aecfdg-afcedg-agcdef;
-        OverlapReal Qadcefg = acdfeg+acdgef+adcefg+aecfdg+aecgdf+afcdeg+afcgde+agcdef+agcfde-acdefg-adcfeg-adcgef-aecdfg-afcedg-agcedf;
-        OverlapReal Qadcfeg = acdefg+acdgef+adcfeg+aecdfg+aecgdf+afcedg+afcgde+agcdef+agcedf-acdfeg-adcefg-adcgef-aecfdg-afcdeg-agcfde;
-        OverlapReal Qadcgef = acdefg+acdfeg+adcgef+aecdfg+aecfdg+afcdeg+afcedg+agcedf+agcfde-acdgef-adcefg-adcfeg-aecgdf-afcgde-agcdef;
-        OverlapReal Qaecdfg = acdfeg+acdgef+adcfeg+adcgef+aecdfg+afcedg+afcgde+agcedf+agcfde-acdefg-adcefg-aecfdg-aecgdf-afcdeg-agcdef;
-        OverlapReal Qaecfdg = acdefg+acdfeg+adcefg+adcgef+aecfdg+afcdeg+afcgde+agcdef+agcedf-acdgef-adcfeg-aecdfg-aecgdf-afcedg-agcfde;
-        OverlapReal Qaecgdf = acdefg+acdgef+adcefg+adcfeg+aecgdf+afcdeg+afcedg+agcdef+agcfde-acdfeg-adcgef-aecdfg-aecfdg-afcgde-agcedf;
-        OverlapReal Qafcdeg = acdefg+acdgef+adcefg+adcgef+aecfdg+aecgdf+afcdeg+agcedf+agcfde-acdfeg-adcfeg-aecdfg-afcedg-afcgde-agcdef;
-        OverlapReal Qafcedg = acdefg+acdfeg+adcfeg+adcgef+aecdfg+aecgdf+afcedg+agcdef+agcfde-acdgef-adcefg-aecfdg-afcdeg-afcgde-agcedf;
-        OverlapReal Qafcgde = acdfeg+acdgef+adcefg+adcfeg+aecdfg+aecfdg+afcgde+agcdef+agcedf-acdefg-adcgef-aecgdf-afcdeg-afcedg-agcfde;
-        OverlapReal Qagcdef = acdefg+acdfeg+adcefg+adcfeg+aecfdg+aecgdf+afcedg+afcgde+agcdef-acdgef-adcgef-aecdfg-afcdeg-agcedf-agcfde;
-        OverlapReal Qagcedf = acdefg+acdgef+adcfeg+adcgef+aecdfg+aecfdg+afcdeg+afcgde+agcedf-acdfeg-adcefg-aecgdf-afcedg-agcdef-agcfde;
-        OverlapReal Qagcfde = acdfeg+acdgef+adcefg+adcgef+aecdfg+aecgdf+afcdeg+afcedg+agcfde-acdefg-adcfeg-aecfdg-afcgde-agcdef-agcedf;
-        OverlapReal Qbcdefg = bcdefg+bdcfeg+bdcgef+becfdg+becgdf+bfcdeg+bfcedg+bgcdef+bgcedf-bcdfeg-bcdgef-bdcefg-becdfg-bfcgde-bgcfde;
-        OverlapReal Qbcdfeg = bcdfeg+bdcefg+bdcgef+becdfg+becfdg+bfcedg+bfcgde+bgcdef+bgcfde-bcdefg-bcdgef-bdcfeg-becgdf-bfcdeg-bgcedf;
-        OverlapReal Qbcdgef = bcdgef+bdcefg+bdcfeg+becdfg+becgdf+bfcdeg+bfcgde+bgcedf+bgcfde-bcdefg-bcdfeg-bdcgef-becfdg-bfcedg-bgcdef;
-        OverlapReal Qbdcefg = bcdfeg+bcdgef+bdcefg+becfdg+becgdf+bfcdeg+bfcgde+bgcdef+bgcfde-bcdefg-bdcfeg-bdcgef-becdfg-bfcedg-bgcedf;
-        OverlapReal Qbdcfeg = bcdefg+bcdgef+bdcfeg+becdfg+becgdf+bfcedg+bfcgde+bgcdef+bgcedf-bcdfeg-bdcefg-bdcgef-becfdg-bfcdeg-bgcfde;
-        OverlapReal Qbdcgef = bcdefg+bcdfeg+bdcgef+becdfg+becfdg+bfcdeg+bfcedg+bgcedf+bgcfde-bcdgef-bdcefg-bdcfeg-becgdf-bfcgde-bgcdef;
-        OverlapReal Qbecdfg = bcdfeg+bcdgef+bdcfeg+bdcgef+becdfg+bfcedg+bfcgde+bgcedf+bgcfde-bcdefg-bdcefg-becfdg-becgdf-bfcdeg-bgcdef;
-        OverlapReal Qbecfdg = bcdefg+bcdfeg+bdcefg+bdcgef+becfdg+bfcdeg+bfcgde+bgcdef+bgcedf-bcdgef-bdcfeg-becdfg-becgdf-bfcedg-bgcfde;
-        OverlapReal Qbecgdf = bcdefg+bcdgef+bdcefg+bdcfeg+becgdf+bfcdeg+bfcedg+bgcdef+bgcfde-bcdfeg-bdcgef-becdfg-becfdg-bfcgde-bgcedf;
-        OverlapReal Qbfcdeg = bcdefg+bcdgef+bdcefg+bdcgef+becfdg+becgdf+bfcdeg+bgcedf+bgcfde-bcdfeg-bdcfeg-becdfg-bfcedg-bfcgde-bgcdef;
-        OverlapReal Qbfcedg = bcdefg+bcdfeg+bdcfeg+bdcgef+becdfg+becgdf+bfcedg+bgcdef+bgcfde-bcdgef-bdcefg-becfdg-bfcdeg-bfcgde-bgcedf;
-        OverlapReal Qbfcgde = bcdfeg+bcdgef+bdcefg+bdcfeg+becdfg+becfdg+bfcgde+bgcdef+bgcedf-bcdefg-bdcgef-becgdf-bfcdeg-bfcedg-bgcfde;
-        OverlapReal Qbgcdef = bcdefg+bcdfeg+bdcefg+bdcfeg+becfdg+becgdf+bfcedg+bfcgde+bgcdef-bcdgef-bdcgef-becdfg-bfcdeg-bgcedf-bgcfde;
-        OverlapReal Qbgcedf = bcdefg+bcdgef+bdcfeg+bdcgef+becdfg+becfdg+bfcdeg+bfcgde+bgcedf-bcdfeg-bdcefg-becgdf-bfcedg-bgcdef-bgcfde;
-        OverlapReal Qbgcfde = bcdfeg+bcdgef+bdcefg+bdcgef+becdfg+becgdf+bfcdeg+bfcedg+bgcfde-bcdefg-bdcfeg-becfdg-bfcgde-bgcdef-bgcedf;
+    OverlapReal Qabcdef = abcdef + acbedf + acbfde + adbecf + adbfce + aebcdf + aebdcf + afbcde
+                          + afbdce - abcedf - abcfde - acbdef - adbcef - aebfcd - afbecd;
+    OverlapReal Qabcedf = abcedf + acbdef + acbfde + adbcef + adbecf + aebdcf + aebfcd + afbcde
+                          + afbecd - abcdef - abcfde - acbedf - adbfce - aebcdf - afbdce;
+    OverlapReal Qabcfde = abcfde + acbdef + acbedf + adbcef + adbfce + aebcdf + aebfcd + afbdce
+                          + afbecd - abcdef - abcedf - acbfde - adbecf - aebdcf - afbcde;
+    OverlapReal Qacbdef = abcedf + abcfde + acbdef + adbecf + adbfce + aebcdf + aebfcd + afbcde
+                          + afbecd - abcdef - acbedf - acbfde - adbcef - aebdcf - afbdce;
+    OverlapReal Qacbedf = abcdef + abcfde + acbedf + adbcef + adbfce + aebdcf + aebfcd + afbcde
+                          + afbdce - abcedf - acbdef - acbfde - adbecf - aebcdf - afbecd;
+    OverlapReal Qacbfde = abcdef + abcedf + acbfde + adbcef + adbecf + aebcdf + aebdcf + afbdce
+                          + afbecd - abcfde - acbdef - acbedf - adbfce - aebfcd - afbcde;
+    OverlapReal Qadbcef = abcedf + abcfde + acbedf + acbfde + adbcef + aebdcf + aebfcd + afbdce
+                          + afbecd - abcdef - acbdef - adbecf - adbfce - aebcdf - afbcde;
+    OverlapReal Qadbecf = abcdef + abcedf + acbdef + acbfde + adbecf + aebcdf + aebfcd + afbcde
+                          + afbdce - abcfde - acbedf - adbcef - adbfce - aebdcf - afbecd;
+    OverlapReal Qadbfce = abcdef + abcfde + acbdef + acbedf + adbfce + aebcdf + aebdcf + afbcde
+                          + afbecd - abcedf - acbfde - adbcef - adbecf - aebfcd - afbdce;
+    OverlapReal Qaebcdf = abcdef + abcfde + acbdef + acbfde + adbecf + adbfce + aebcdf + afbdce
+                          + afbecd - abcedf - acbedf - adbcef - aebdcf - aebfcd - afbcde;
+    OverlapReal Qaebdcf = abcdef + abcedf + acbedf + acbfde + adbcef + adbfce + aebdcf + afbcde
+                          + afbecd - abcfde - acbdef - adbecf - aebcdf - aebfcd - afbdce;
+    OverlapReal Qaebfcd = abcedf + abcfde + acbdef + acbedf + adbcef + adbecf + aebfcd + afbcde
+                          + afbdce - abcdef - acbfde - adbfce - aebcdf - aebdcf - afbecd;
+    OverlapReal Qafbcde = abcdef + abcedf + acbdef + acbedf + adbecf + adbfce + aebdcf + aebfcd
+                          + afbcde - abcfde - acbfde - adbcef - aebcdf - afbdce - afbecd;
+    OverlapReal Qafbdce = abcdef + abcfde + acbedf + acbfde + adbcef + adbecf + aebcdf + aebfcd
+                          + afbdce - abcedf - acbdef - adbfce - aebdcf - afbcde - afbecd;
+    OverlapReal Qafbecd = abcedf + abcfde + acbdef + acbfde + adbcef + adbfce + aebcdf + aebdcf
+                          + afbecd - abcdef - acbedf - adbecf - aebfcd - afbcde - afbdce;
+    OverlapReal Qabcdeg = abcdeg + acbedg + acbgde + adbecg + adbgce + aebcdg + aebdcg + agbcde
+                          + agbdce - abcedg - abcgde - acbdeg - adbceg - aebgcd - agbecd;
+    OverlapReal Qabcedg = abcedg + acbdeg + acbgde + adbceg + adbecg + aebdcg + aebgcd + agbcde
+                          + agbecd - abcdeg - abcgde - acbedg - adbgce - aebcdg - agbdce;
+    OverlapReal Qabcgde = abcgde + acbdeg + acbedg + adbceg + adbgce + aebcdg + aebgcd + agbdce
+                          + agbecd - abcdeg - abcedg - acbgde - adbecg - aebdcg - agbcde;
+    OverlapReal Qacbdeg = abcedg + abcgde + acbdeg + adbecg + adbgce + aebcdg + aebgcd + agbcde
+                          + agbecd - abcdeg - acbedg - acbgde - adbceg - aebdcg - agbdce;
+    OverlapReal Qacbedg = abcdeg + abcgde + acbedg + adbceg + adbgce + aebdcg + aebgcd + agbcde
+                          + agbdce - abcedg - acbdeg - acbgde - adbecg - aebcdg - agbecd;
+    OverlapReal Qacbgde = abcdeg + abcedg + acbgde + adbceg + adbecg + aebcdg + aebdcg + agbdce
+                          + agbecd - abcgde - acbdeg - acbedg - adbgce - aebgcd - agbcde;
+    OverlapReal Qadbceg = abcedg + abcgde + acbedg + acbgde + adbceg + aebdcg + aebgcd + agbdce
+                          + agbecd - abcdeg - acbdeg - adbecg - adbgce - aebcdg - agbcde;
+    OverlapReal Qadbecg = abcdeg + abcedg + acbdeg + acbgde + adbecg + aebcdg + aebgcd + agbcde
+                          + agbdce - abcgde - acbedg - adbceg - adbgce - aebdcg - agbecd;
+    OverlapReal Qadbgce = abcdeg + abcgde + acbdeg + acbedg + adbgce + aebcdg + aebdcg + agbcde
+                          + agbecd - abcedg - acbgde - adbceg - adbecg - aebgcd - agbdce;
+    OverlapReal Qaebcdg = abcdeg + abcgde + acbdeg + acbgde + adbecg + adbgce + aebcdg + agbdce
+                          + agbecd - abcedg - acbedg - adbceg - aebdcg - aebgcd - agbcde;
+    OverlapReal Qaebdcg = abcdeg + abcedg + acbedg + acbgde + adbceg + adbgce + aebdcg + agbcde
+                          + agbecd - abcgde - acbdeg - adbecg - aebcdg - aebgcd - agbdce;
+    OverlapReal Qaebgcd = abcedg + abcgde + acbdeg + acbedg + adbceg + adbecg + aebgcd + agbcde
+                          + agbdce - abcdeg - acbgde - adbgce - aebcdg - aebdcg - agbecd;
+    OverlapReal Qagbcde = abcdeg + abcedg + acbdeg + acbedg + adbecg + adbgce + aebdcg + aebgcd
+                          + agbcde - abcgde - acbgde - adbceg - aebcdg - agbdce - agbecd;
+    OverlapReal Qagbdce = abcdeg + abcgde + acbedg + acbgde + adbceg + adbecg + aebcdg + aebgcd
+                          + agbdce - abcedg - acbdeg - adbgce - aebdcg - agbcde - agbecd;
+    OverlapReal Qagbecd = abcedg + abcgde + acbdeg + acbgde + adbceg + adbgce + aebcdg + aebdcg
+                          + agbecd - abcdeg - acbedg - adbecg - aebgcd - agbcde - agbdce;
+    OverlapReal Qabcdfg = abcdfg + acbfdg + acbgdf + adbfcg + adbgcf + afbcdg + afbdcg + agbcdf
+                          + agbdcf - abcfdg - abcgdf - acbdfg - adbcfg - afbgcd - agbfcd;
+    OverlapReal Qabcfdg = abcfdg + acbdfg + acbgdf + adbcfg + adbfcg + afbdcg + afbgcd + agbcdf
+                          + agbfcd - abcdfg - abcgdf - acbfdg - adbgcf - afbcdg - agbdcf;
+    OverlapReal Qabcgdf = abcgdf + acbdfg + acbfdg + adbcfg + adbgcf + afbcdg + afbgcd + agbdcf
+                          + agbfcd - abcdfg - abcfdg - acbgdf - adbfcg - afbdcg - agbcdf;
+    OverlapReal Qacbdfg = abcfdg + abcgdf + acbdfg + adbfcg + adbgcf + afbcdg + afbgcd + agbcdf
+                          + agbfcd - abcdfg - acbfdg - acbgdf - adbcfg - afbdcg - agbdcf;
+    OverlapReal Qacbfdg = abcdfg + abcgdf + acbfdg + adbcfg + adbgcf + afbdcg + afbgcd + agbcdf
+                          + agbdcf - abcfdg - acbdfg - acbgdf - adbfcg - afbcdg - agbfcd;
+    OverlapReal Qacbgdf = abcdfg + abcfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbdcg + agbdcf
+                          + agbfcd - abcgdf - acbdfg - acbfdg - adbgcf - afbgcd - agbcdf;
+    OverlapReal Qadbcfg = abcfdg + abcgdf + acbfdg + acbgdf + adbcfg + afbdcg + afbgcd + agbdcf
+                          + agbfcd - abcdfg - acbdfg - adbfcg - adbgcf - afbcdg - agbcdf;
+    OverlapReal Qadbfcg = abcdfg + abcfdg + acbdfg + acbgdf + adbfcg + afbcdg + afbgcd + agbcdf
+                          + agbdcf - abcgdf - acbfdg - adbcfg - adbgcf - afbdcg - agbfcd;
+    OverlapReal Qadbgcf = abcdfg + abcgdf + acbdfg + acbfdg + adbgcf + afbcdg + afbdcg + agbcdf
+                          + agbfcd - abcfdg - acbgdf - adbcfg - adbfcg - afbgcd - agbdcf;
+    OverlapReal Qafbcdg = abcdfg + abcgdf + acbdfg + acbgdf + adbfcg + adbgcf + afbcdg + agbdcf
+                          + agbfcd - abcfdg - acbfdg - adbcfg - afbdcg - afbgcd - agbcdf;
+    OverlapReal Qafbdcg = abcdfg + abcfdg + acbfdg + acbgdf + adbcfg + adbgcf + afbdcg + agbcdf
+                          + agbfcd - abcgdf - acbdfg - adbfcg - afbcdg - afbgcd - agbdcf;
+    OverlapReal Qafbgcd = abcfdg + abcgdf + acbdfg + acbfdg + adbcfg + adbfcg + afbgcd + agbcdf
+                          + agbdcf - abcdfg - acbgdf - adbgcf - afbcdg - afbdcg - agbfcd;
+    OverlapReal Qagbcdf = abcdfg + abcfdg + acbdfg + acbfdg + adbfcg + adbgcf + afbdcg + afbgcd
+                          + agbcdf - abcgdf - acbgdf - adbcfg - afbcdg - agbdcf - agbfcd;
+    OverlapReal Qagbdcf = abcdfg + abcgdf + acbfdg + acbgdf + adbcfg + adbfcg + afbcdg + afbgcd
+                          + agbdcf - abcfdg - acbdfg - adbgcf - afbdcg - agbcdf - agbfcd;
+    OverlapReal Qagbfcd = abcfdg + abcgdf + acbdfg + acbgdf + adbcfg + adbgcf + afbcdg + afbdcg
+                          + agbfcd - abcdfg - acbfdg - adbfcg - afbgcd - agbcdf - agbdcf;
+    OverlapReal Qabcefg = abcefg + acbfeg + acbgef + aebfcg + aebgcf + afbceg + afbecg + agbcef
+                          + agbecf - abcfeg - abcgef - acbefg - aebcfg - afbgce - agbfce;
+    OverlapReal Qabcfeg = abcfeg + acbefg + acbgef + aebcfg + aebfcg + afbecg + afbgce + agbcef
+                          + agbfce - abcefg - abcgef - acbfeg - aebgcf - afbceg - agbecf;
+    OverlapReal Qabcgef = abcgef + acbefg + acbfeg + aebcfg + aebgcf + afbceg + afbgce + agbecf
+                          + agbfce - abcefg - abcfeg - acbgef - aebfcg - afbecg - agbcef;
+    OverlapReal Qacbefg = abcfeg + abcgef + acbefg + aebfcg + aebgcf + afbceg + afbgce + agbcef
+                          + agbfce - abcefg - acbfeg - acbgef - aebcfg - afbecg - agbecf;
+    OverlapReal Qacbfeg = abcefg + abcgef + acbfeg + aebcfg + aebgcf + afbecg + afbgce + agbcef
+                          + agbecf - abcfeg - acbefg - acbgef - aebfcg - afbceg - agbfce;
+    OverlapReal Qacbgef = abcefg + abcfeg + acbgef + aebcfg + aebfcg + afbceg + afbecg + agbecf
+                          + agbfce - abcgef - acbefg - acbfeg - aebgcf - afbgce - agbcef;
+    OverlapReal Qaebcfg = abcfeg + abcgef + acbfeg + acbgef + aebcfg + afbecg + afbgce + agbecf
+                          + agbfce - abcefg - acbefg - aebfcg - aebgcf - afbceg - agbcef;
+    OverlapReal Qaebfcg = abcefg + abcfeg + acbefg + acbgef + aebfcg + afbceg + afbgce + agbcef
+                          + agbecf - abcgef - acbfeg - aebcfg - aebgcf - afbecg - agbfce;
+    OverlapReal Qaebgcf = abcefg + abcgef + acbefg + acbfeg + aebgcf + afbceg + afbecg + agbcef
+                          + agbfce - abcfeg - acbgef - aebcfg - aebfcg - afbgce - agbecf;
+    OverlapReal Qafbceg = abcefg + abcgef + acbefg + acbgef + aebfcg + aebgcf + afbceg + agbecf
+                          + agbfce - abcfeg - acbfeg - aebcfg - afbecg - afbgce - agbcef;
+    OverlapReal Qafbecg = abcefg + abcfeg + acbfeg + acbgef + aebcfg + aebgcf + afbecg + agbcef
+                          + agbfce - abcgef - acbefg - aebfcg - afbceg - afbgce - agbecf;
+    OverlapReal Qafbgce = abcfeg + abcgef + acbefg + acbfeg + aebcfg + aebfcg + afbgce + agbcef
+                          + agbecf - abcefg - acbgef - aebgcf - afbceg - afbecg - agbfce;
+    OverlapReal Qagbcef = abcefg + abcfeg + acbefg + acbfeg + aebfcg + aebgcf + afbecg + afbgce
+                          + agbcef - abcgef - acbgef - aebcfg - afbceg - agbecf - agbfce;
+    OverlapReal Qagbecf = abcefg + abcgef + acbfeg + acbgef + aebcfg + aebfcg + afbceg + afbgce
+                          + agbecf - abcfeg - acbefg - aebgcf - afbecg - agbcef - agbfce;
+    OverlapReal Qagbfce = abcfeg + abcgef + acbefg + acbgef + aebcfg + aebgcf + afbceg + afbecg
+                          + agbfce - abcefg - acbfeg - aebfcg - afbgce - agbcef - agbecf;
+    OverlapReal Qabdefg = abdefg + adbfeg + adbgef + aebfdg + aebgdf + afbdeg + afbedg + agbdef
+                          + agbedf - abdfeg - abdgef - adbefg - aebdfg - afbgde - agbfde;
+    OverlapReal Qabdfeg = abdfeg + adbefg + adbgef + aebdfg + aebfdg + afbedg + afbgde + agbdef
+                          + agbfde - abdefg - abdgef - adbfeg - aebgdf - afbdeg - agbedf;
+    OverlapReal Qabdgef = abdgef + adbefg + adbfeg + aebdfg + aebgdf + afbdeg + afbgde + agbedf
+                          + agbfde - abdefg - abdfeg - adbgef - aebfdg - afbedg - agbdef;
+    OverlapReal Qadbefg = abdfeg + abdgef + adbefg + aebfdg + aebgdf + afbdeg + afbgde + agbdef
+                          + agbfde - abdefg - adbfeg - adbgef - aebdfg - afbedg - agbedf;
+    OverlapReal Qadbfeg = abdefg + abdgef + adbfeg + aebdfg + aebgdf + afbedg + afbgde + agbdef
+                          + agbedf - abdfeg - adbefg - adbgef - aebfdg - afbdeg - agbfde;
+    OverlapReal Qadbgef = abdefg + abdfeg + adbgef + aebdfg + aebfdg + afbdeg + afbedg + agbedf
+                          + agbfde - abdgef - adbefg - adbfeg - aebgdf - afbgde - agbdef;
+    OverlapReal Qaebdfg = abdfeg + abdgef + adbfeg + adbgef + aebdfg + afbedg + afbgde + agbedf
+                          + agbfde - abdefg - adbefg - aebfdg - aebgdf - afbdeg - agbdef;
+    OverlapReal Qaebfdg = abdefg + abdfeg + adbefg + adbgef + aebfdg + afbdeg + afbgde + agbdef
+                          + agbedf - abdgef - adbfeg - aebdfg - aebgdf - afbedg - agbfde;
+    OverlapReal Qaebgdf = abdefg + abdgef + adbefg + adbfeg + aebgdf + afbdeg + afbedg + agbdef
+                          + agbfde - abdfeg - adbgef - aebdfg - aebfdg - afbgde - agbedf;
+    OverlapReal Qafbdeg = abdefg + abdgef + adbefg + adbgef + aebfdg + aebgdf + afbdeg + agbedf
+                          + agbfde - abdfeg - adbfeg - aebdfg - afbedg - afbgde - agbdef;
+    OverlapReal Qafbedg = abdefg + abdfeg + adbfeg + adbgef + aebdfg + aebgdf + afbedg + agbdef
+                          + agbfde - abdgef - adbefg - aebfdg - afbdeg - afbgde - agbedf;
+    OverlapReal Qafbgde = abdfeg + abdgef + adbefg + adbfeg + aebdfg + aebfdg + afbgde + agbdef
+                          + agbedf - abdefg - adbgef - aebgdf - afbdeg - afbedg - agbfde;
+    OverlapReal Qagbdef = abdefg + abdfeg + adbefg + adbfeg + aebfdg + aebgdf + afbedg + afbgde
+                          + agbdef - abdgef - adbgef - aebdfg - afbdeg - agbedf - agbfde;
+    OverlapReal Qagbedf = abdefg + abdgef + adbfeg + adbgef + aebdfg + aebfdg + afbdeg + afbgde
+                          + agbedf - abdfeg - adbefg - aebgdf - afbedg - agbdef - agbfde;
+    OverlapReal Qagbfde = abdfeg + abdgef + adbefg + adbgef + aebdfg + aebgdf + afbdeg + afbedg
+                          + agbfde - abdefg - adbfeg - aebfdg - afbgde - agbdef - agbedf;
+    OverlapReal Qacdefg = acdefg + adcfeg + adcgef + aecfdg + aecgdf + afcdeg + afcedg + agcdef
+                          + agcedf - acdfeg - acdgef - adcefg - aecdfg - afcgde - agcfde;
+    OverlapReal Qacdfeg = acdfeg + adcefg + adcgef + aecdfg + aecfdg + afcedg + afcgde + agcdef
+                          + agcfde - acdefg - acdgef - adcfeg - aecgdf - afcdeg - agcedf;
+    OverlapReal Qacdgef = acdgef + adcefg + adcfeg + aecdfg + aecgdf + afcdeg + afcgde + agcedf
+                          + agcfde - acdefg - acdfeg - adcgef - aecfdg - afcedg - agcdef;
+    OverlapReal Qadcefg = acdfeg + acdgef + adcefg + aecfdg + aecgdf + afcdeg + afcgde + agcdef
+                          + agcfde - acdefg - adcfeg - adcgef - aecdfg - afcedg - agcedf;
+    OverlapReal Qadcfeg = acdefg + acdgef + adcfeg + aecdfg + aecgdf + afcedg + afcgde + agcdef
+                          + agcedf - acdfeg - adcefg - adcgef - aecfdg - afcdeg - agcfde;
+    OverlapReal Qadcgef = acdefg + acdfeg + adcgef + aecdfg + aecfdg + afcdeg + afcedg + agcedf
+                          + agcfde - acdgef - adcefg - adcfeg - aecgdf - afcgde - agcdef;
+    OverlapReal Qaecdfg = acdfeg + acdgef + adcfeg + adcgef + aecdfg + afcedg + afcgde + agcedf
+                          + agcfde - acdefg - adcefg - aecfdg - aecgdf - afcdeg - agcdef;
+    OverlapReal Qaecfdg = acdefg + acdfeg + adcefg + adcgef + aecfdg + afcdeg + afcgde + agcdef
+                          + agcedf - acdgef - adcfeg - aecdfg - aecgdf - afcedg - agcfde;
+    OverlapReal Qaecgdf = acdefg + acdgef + adcefg + adcfeg + aecgdf + afcdeg + afcedg + agcdef
+                          + agcfde - acdfeg - adcgef - aecdfg - aecfdg - afcgde - agcedf;
+    OverlapReal Qafcdeg = acdefg + acdgef + adcefg + adcgef + aecfdg + aecgdf + afcdeg + agcedf
+                          + agcfde - acdfeg - adcfeg - aecdfg - afcedg - afcgde - agcdef;
+    OverlapReal Qafcedg = acdefg + acdfeg + adcfeg + adcgef + aecdfg + aecgdf + afcedg + agcdef
+                          + agcfde - acdgef - adcefg - aecfdg - afcdeg - afcgde - agcedf;
+    OverlapReal Qafcgde = acdfeg + acdgef + adcefg + adcfeg + aecdfg + aecfdg + afcgde + agcdef
+                          + agcedf - acdefg - adcgef - aecgdf - afcdeg - afcedg - agcfde;
+    OverlapReal Qagcdef = acdefg + acdfeg + adcefg + adcfeg + aecfdg + aecgdf + afcedg + afcgde
+                          + agcdef - acdgef - adcgef - aecdfg - afcdeg - agcedf - agcfde;
+    OverlapReal Qagcedf = acdefg + acdgef + adcfeg + adcgef + aecdfg + aecfdg + afcdeg + afcgde
+                          + agcedf - acdfeg - adcefg - aecgdf - afcedg - agcdef - agcfde;
+    OverlapReal Qagcfde = acdfeg + acdgef + adcefg + adcgef + aecdfg + aecgdf + afcdeg + afcedg
+                          + agcfde - acdefg - adcfeg - aecfdg - afcgde - agcdef - agcedf;
+    OverlapReal Qbcdefg = bcdefg + bdcfeg + bdcgef + becfdg + becgdf + bfcdeg + bfcedg + bgcdef
+                          + bgcedf - bcdfeg - bcdgef - bdcefg - becdfg - bfcgde - bgcfde;
+    OverlapReal Qbcdfeg = bcdfeg + bdcefg + bdcgef + becdfg + becfdg + bfcedg + bfcgde + bgcdef
+                          + bgcfde - bcdefg - bcdgef - bdcfeg - becgdf - bfcdeg - bgcedf;
+    OverlapReal Qbcdgef = bcdgef + bdcefg + bdcfeg + becdfg + becgdf + bfcdeg + bfcgde + bgcedf
+                          + bgcfde - bcdefg - bcdfeg - bdcgef - becfdg - bfcedg - bgcdef;
+    OverlapReal Qbdcefg = bcdfeg + bcdgef + bdcefg + becfdg + becgdf + bfcdeg + bfcgde + bgcdef
+                          + bgcfde - bcdefg - bdcfeg - bdcgef - becdfg - bfcedg - bgcedf;
+    OverlapReal Qbdcfeg = bcdefg + bcdgef + bdcfeg + becdfg + becgdf + bfcedg + bfcgde + bgcdef
+                          + bgcedf - bcdfeg - bdcefg - bdcgef - becfdg - bfcdeg - bgcfde;
+    OverlapReal Qbdcgef = bcdefg + bcdfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcedg + bgcedf
+                          + bgcfde - bcdgef - bdcefg - bdcfeg - becgdf - bfcgde - bgcdef;
+    OverlapReal Qbecdfg = bcdfeg + bcdgef + bdcfeg + bdcgef + becdfg + bfcedg + bfcgde + bgcedf
+                          + bgcfde - bcdefg - bdcefg - becfdg - becgdf - bfcdeg - bgcdef;
+    OverlapReal Qbecfdg = bcdefg + bcdfeg + bdcefg + bdcgef + becfdg + bfcdeg + bfcgde + bgcdef
+                          + bgcedf - bcdgef - bdcfeg - becdfg - becgdf - bfcedg - bgcfde;
+    OverlapReal Qbecgdf = bcdefg + bcdgef + bdcefg + bdcfeg + becgdf + bfcdeg + bfcedg + bgcdef
+                          + bgcfde - bcdfeg - bdcgef - becdfg - becfdg - bfcgde - bgcedf;
+    OverlapReal Qbfcdeg = bcdefg + bcdgef + bdcefg + bdcgef + becfdg + becgdf + bfcdeg + bgcedf
+                          + bgcfde - bcdfeg - bdcfeg - becdfg - bfcedg - bfcgde - bgcdef;
+    OverlapReal Qbfcedg = bcdefg + bcdfeg + bdcfeg + bdcgef + becdfg + becgdf + bfcedg + bgcdef
+                          + bgcfde - bcdgef - bdcefg - becfdg - bfcdeg - bfcgde - bgcedf;
+    OverlapReal Qbfcgde = bcdfeg + bcdgef + bdcefg + bdcfeg + becdfg + becfdg + bfcgde + bgcdef
+                          + bgcedf - bcdefg - bdcgef - becgdf - bfcdeg - bfcedg - bgcfde;
+    OverlapReal Qbgcdef = bcdefg + bcdfeg + bdcefg + bdcfeg + becfdg + becgdf + bfcedg + bfcgde
+                          + bgcdef - bcdgef - bdcgef - becdfg - bfcdeg - bgcedf - bgcfde;
+    OverlapReal Qbgcedf = bcdefg + bcdgef + bdcfeg + bdcgef + becdfg + becfdg + bfcdeg + bfcgde
+                          + bgcedf - bcdfeg - bdcefg - becgdf - bfcedg - bgcdef - bgcfde;
+    OverlapReal Qbgcfde = bcdfeg + bcdgef + bdcefg + bdcgef + becdfg + becgdf + bfcdeg + bfcedg
+                          + bgcfde - bcdefg - bdcfeg - becfdg - bfcgde - bgcdef - bgcedf;
 
-        return(abcdef*(Qabcdeg+Qabcdfg+Qabcgef+Qabdgef+Qagcdef+Qbgcdef-Qabcdef)+
-               abcedf*(Qabcedg+Qabcgdf+Qabcefg+Qabdfeg+Qagcedf+Qbgcedf-Qabcedf)+
-               abcfde*(Qabcgde+Qabcfdg+Qabcfeg+Qabdefg+Qagcfde+Qbgcfde-Qabcfde)+
-               acbdef*(Qacbdeg+Qacbdfg+Qacbgef+Qagbdef+Qacdgef+Qbdcgef-Qacbdef)+
-               acbedf*(Qacbedg+Qacbgdf+Qacbefg+Qagbedf+Qacdfeg+Qbecgdf-Qacbedf)+
-               acbfde*(Qacbgde+Qacbfdg+Qacbfeg+Qagbfde+Qacdefg+Qbfcgde-Qacbfde)+
-               adbcef*(Qadbceg+Qadbcfg+Qagbcef+Qadbgef+Qadcgef+Qbcdgef-Qadbcef)+
-               adbecf*(Qadbecg+Qadbgcf+Qagbecf+Qadbefg+Qadcfeg+Qbecfdg-Qadbecf)+
-               adbfce*(Qadbgce+Qadbfcg+Qagbfce+Qadbfeg+Qadcefg+Qbfcedg-Qadbfce)+
-               aebcdf*(Qaebcdg+Qagbcdf+Qaebcfg+Qaebgdf+Qaecgdf+Qbcdfeg-Qaebcdf)+
-               aebdcf*(Qaebdcg+Qagbdcf+Qaebgcf+Qaebdfg+Qaecfdg+Qbdcfeg-Qaebdcf)+
-               aebfcd*(Qaebgcd+Qagbfcd+Qaebfcg+Qaebfdg+Qaecdfg+Qbfcdeg-Qaebfcd)+
-               afbcde*(Qagbcde+Qafbcdg+Qafbceg+Qafbgde+Qafcgde+Qbcdefg-Qafbcde)+
-               afbdce*(Qagbdce+Qafbdcg+Qafbgce+Qafbdeg+Qafcedg+Qbdcefg-Qafbdce)+
-               afbecd*(Qagbecd+Qafbgcd+Qafbecg+Qafbedg+Qafcdeg+Qbecdfg-Qafbecd)+
-               abcdeg*(Qabcdef+Qabcdfg+Qabcfeg+Qabdfeg+Qafcdeg+Qbfcdeg-Qabcdeg)+
-               abcedg*(Qabcedf+Qabcfdg+Qabcefg+Qabdgef+Qafcedg+Qbfcedg-Qabcedg)+
-               abcgde*(Qabcfde+Qabcgdf+Qabcgef+Qabdefg+Qafcgde+Qbfcgde-Qabcgde)+
-               acbdeg*(Qacbdef+Qacbdfg+Qacbfeg+Qafbdeg+Qacdfeg+Qbdcfeg-Qacbdeg)+
-               acbedg*(Qacbedf+Qacbfdg+Qacbefg+Qafbedg+Qacdgef+Qbecfdg-Qacbedg)+
-               acbgde*(Qacbfde+Qacbgdf+Qacbgef+Qafbgde+Qacdefg+Qbgcfde-Qacbgde)+
-               adbceg*(Qadbcef+Qadbcfg+Qafbceg+Qadbfeg+Qadcfeg+Qbcdfeg-Qadbceg)+
-               adbecg*(Qadbecf+Qadbfcg+Qafbecg+Qadbefg+Qadcgef+Qbecgdf-Qadbecg)+
-               adbgce*(Qadbfce+Qadbgcf+Qafbgce+Qadbgef+Qadcefg+Qbgcedf-Qadbgce)+
-               aebcdg*(Qaebcdf+Qafbcdg+Qaebcfg+Qaebfdg+Qaecfdg+Qbcdgef-Qaebcdg)+
-               aebdcg*(Qaebdcf+Qafbdcg+Qaebfcg+Qaebdfg+Qaecgdf+Qbdcgef-Qaebdcg)+
-               aebgcd*(Qaebfcd+Qafbgcd+Qaebgcf+Qaebgdf+Qaecdfg+Qbgcdef-Qaebgcd)+
-               agbcde*(Qafbcde+Qagbcdf+Qagbcef+Qagbfde+Qagcfde+Qbcdefg-Qagbcde)+
-               agbdce*(Qafbdce+Qagbdcf+Qagbfce+Qagbdef+Qagcedf+Qbdcefg-Qagbdce)+
-               agbecd*(Qafbecd+Qagbfcd+Qagbecf+Qagbedf+Qagcdef+Qbecdfg-Qagbecd)+
-               abcdfg*(Qabcdef+Qabcdeg+Qabcefg+Qabdefg+Qaecdfg+Qbecdfg-Qabcdfg)+
-               abcfdg*(Qabcfde+Qabcedg+Qabcfeg+Qabdgef+Qaecfdg+Qbecfdg-Qabcfdg)+
-               abcgdf*(Qabcedf+Qabcgde+Qabcgef+Qabdfeg+Qaecgdf+Qbecgdf-Qabcgdf)+
-               acbdfg*(Qacbdef+Qacbdeg+Qacbefg+Qaebdfg+Qacdefg+Qbdcefg-Qacbdfg)+
-               acbfdg*(Qacbfde+Qacbedg+Qacbfeg+Qaebfdg+Qacdgef+Qbfcedg-Qacbfdg)+
-               acbgdf*(Qacbedf+Qacbgde+Qacbgef+Qaebgdf+Qacdfeg+Qbgcedf-Qacbgdf)+
-               adbcfg*(Qadbcef+Qadbceg+Qaebcfg+Qadbefg+Qadcefg+Qbcdefg-Qadbcfg)+
-               adbfcg*(Qadbfce+Qadbecg+Qaebfcg+Qadbfeg+Qadcgef+Qbfcgde-Qadbfcg)+
-               adbgcf*(Qadbecf+Qadbgce+Qaebgcf+Qadbgef+Qadcfeg+Qbgcfde-Qadbgcf)+
-               afbcdg*(Qafbcde+Qaebcdg+Qafbceg+Qafbedg+Qafcedg+Qbcdgef-Qafbcdg)+
-               afbdcg*(Qafbdce+Qaebdcg+Qafbecg+Qafbdeg+Qafcgde+Qbdcgef-Qafbdcg)+
-               afbgcd*(Qafbecd+Qaebgcd+Qafbgce+Qafbgde+Qafcdeg+Qbgcdef-Qafbgcd)+
-               agbcdf*(Qaebcdf+Qagbcde+Qagbcef+Qagbedf+Qagcedf+Qbcdfeg-Qagbcdf)+
-               agbdcf*(Qaebdcf+Qagbdce+Qagbecf+Qagbdef+Qagcfde+Qbdcfeg-Qagbdcf)+
-               agbfcd*(Qaebfcd+Qagbecd+Qagbfce+Qagbfde+Qagcdef+Qbfcdeg-Qagbfcd)+
-               abcefg*(Qabcedf+Qabcedg+Qabcdfg+Qabdefg+Qadcefg+Qbdcefg-Qabcefg)+
-               abcfeg*(Qabcfde+Qabcdeg+Qabcfdg+Qabdfeg+Qadcfeg+Qbdcfeg-Qabcfeg)+
-               abcgef*(Qabcdef+Qabcgde+Qabcgdf+Qabdgef+Qadcgef+Qbdcgef-Qabcgef)+
-               acbefg*(Qacbedf+Qacbedg+Qacbdfg+Qadbefg+Qacdefg+Qbecdfg-Qacbefg)+
-               acbfeg*(Qacbfde+Qacbdeg+Qacbfdg+Qadbfeg+Qacdfeg+Qbfcdeg-Qacbfeg)+
-               acbgef*(Qacbdef+Qacbgde+Qacbgdf+Qadbgef+Qacdgef+Qbgcdef-Qacbgef)+
-               aebcfg*(Qaebcdf+Qaebcdg+Qadbcfg+Qaebdfg+Qaecdfg+Qbcdefg-Qaebcfg)+
-               aebfcg*(Qaebfcd+Qaebdcg+Qadbfcg+Qaebfdg+Qaecgdf+Qbfcgde-Qaebfcg)+
-               aebgcf*(Qaebdcf+Qaebgcd+Qadbgcf+Qaebgdf+Qaecfdg+Qbgcfde-Qaebgcf)+
-               afbceg*(Qafbcde+Qadbceg+Qafbcdg+Qafbdeg+Qafcdeg+Qbcdfeg-Qafbceg)+
-               afbecg*(Qafbecd+Qadbecg+Qafbdcg+Qafbedg+Qafcgde+Qbecgdf-Qafbecg)+
-               afbgce*(Qafbdce+Qadbgce+Qafbgcd+Qafbgde+Qafcedg+Qbgcedf-Qafbgce)+
-               agbcef*(Qadbcef+Qagbcde+Qagbcdf+Qagbdef+Qagcdef+Qbcdgef-Qagbcef)+
-               agbecf*(Qadbecf+Qagbecd+Qagbdcf+Qagbedf+Qagcfde+Qbecfdg-Qagbecf)+
-               agbfce*(Qadbfce+Qagbdce+Qagbfcd+Qagbfde+Qagcedf+Qbfcedg-Qagbfce)+
-               abdefg*(Qabcfde+Qabcgde+Qabcdfg+Qabcefg+Qacdefg+Qbcdefg-Qabdefg)+
-               abdfeg*(Qabcedf+Qabcdeg+Qabcgdf+Qabcfeg+Qacdfeg+Qbcdfeg-Qabdfeg)+
-               abdgef*(Qabcdef+Qabcedg+Qabcfdg+Qabcgef+Qacdgef+Qbcdgef-Qabdgef)+
-               adbefg*(Qadbecf+Qadbecg+Qadbcfg+Qacbefg+Qadcefg+Qbecdfg-Qadbefg)+
-               adbfeg*(Qadbfce+Qadbceg+Qadbfcg+Qacbfeg+Qadcfeg+Qbfcdeg-Qadbfeg)+
-               adbgef*(Qadbcef+Qadbgce+Qadbgcf+Qacbgef+Qadcgef+Qbgcdef-Qadbgef)+
-               aebdfg*(Qaebdcf+Qaebdcg+Qacbdfg+Qaebcfg+Qaecdfg+Qbdcefg-Qaebdfg)+
-               aebfdg*(Qaebfcd+Qaebcdg+Qacbfdg+Qaebfcg+Qaecfdg+Qbfcedg-Qaebfdg)+
-               aebgdf*(Qaebcdf+Qaebgcd+Qacbgdf+Qaebgcf+Qaecgdf+Qbgcedf-Qaebgdf)+
-               afbdeg*(Qafbdce+Qacbdeg+Qafbdcg+Qafbceg+Qafcdeg+Qbdcfeg-Qafbdeg)+
-               afbedg*(Qafbecd+Qacbedg+Qafbcdg+Qafbecg+Qafcedg+Qbecfdg-Qafbedg)+
-               afbgde*(Qafbcde+Qacbgde+Qafbgcd+Qafbgce+Qafcgde+Qbgcfde-Qafbgde)+
-               agbdef*(Qacbdef+Qagbdce+Qagbdcf+Qagbcef+Qagcdef+Qbdcgef-Qagbdef)+
-               agbedf*(Qacbedf+Qagbecd+Qagbcdf+Qagbecf+Qagcedf+Qbecgdf-Qagbedf)+
-               agbfde*(Qacbfde+Qagbcde+Qagbfcd+Qagbfce+Qagcfde+Qbfcgde-Qagbfde)+
-               acdefg*(Qacbfde+Qacbgde+Qacbdfg+Qacbefg+Qabdefg+Qbcdefg-Qacdefg)+
-               acdfeg*(Qacbedf+Qacbdeg+Qacbgdf+Qacbfeg+Qabdfeg+Qbcdfeg-Qacdfeg)+
-               acdgef*(Qacbdef+Qacbedg+Qacbfdg+Qacbgef+Qabdgef+Qbcdgef-Qacdgef)+
-               adcefg*(Qadbfce+Qadbgce+Qadbcfg+Qabcefg+Qadbefg+Qbdcefg-Qadcefg)+
-               adcfeg*(Qadbecf+Qadbceg+Qadbgcf+Qabcfeg+Qadbfeg+Qbdcfeg-Qadcfeg)+
-               adcgef*(Qadbcef+Qadbecg+Qadbfcg+Qabcgef+Qadbgef+Qbdcgef-Qadcgef)+
-               aecdfg*(Qaebfcd+Qaebgcd+Qabcdfg+Qaebcfg+Qaebdfg+Qbecdfg-Qaecdfg)+
-               aecfdg*(Qaebdcf+Qaebcdg+Qabcfdg+Qaebgcf+Qaebfdg+Qbecfdg-Qaecfdg)+
-               aecgdf*(Qaebcdf+Qaebdcg+Qabcgdf+Qaebfcg+Qaebgdf+Qbecgdf-Qaecgdf)+
-               afcdeg*(Qafbecd+Qabcdeg+Qafbgcd+Qafbceg+Qafbdeg+Qbfcdeg-Qafcdeg)+
-               afcedg*(Qafbdce+Qabcedg+Qafbcdg+Qafbgce+Qafbedg+Qbfcedg-Qafcedg)+
-               afcgde*(Qafbcde+Qabcgde+Qafbdcg+Qafbecg+Qafbgde+Qbfcgde-Qafcgde)+
-               agcdef*(Qabcdef+Qagbecd+Qagbfcd+Qagbcef+Qagbdef+Qbgcdef-Qagcdef)+
-               agcedf*(Qabcedf+Qagbdce+Qagbcdf+Qagbfce+Qagbedf+Qbgcedf-Qagcedf)+
-               agcfde*(Qabcfde+Qagbcde+Qagbdcf+Qagbecf+Qagbfde+Qbgcfde-Qagcfde)+
-               bcdefg*(Qafbcde+Qagbcde+Qadbcfg+Qaebcfg+Qabdefg+Qacdefg-Qbcdefg)+
-               bcdfeg*(Qaebcdf+Qadbceg+Qagbcdf+Qafbceg+Qabdfeg+Qacdfeg-Qbcdfeg)+
-               bcdgef*(Qadbcef+Qaebcdg+Qafbcdg+Qagbcef+Qabdgef+Qacdgef-Qbcdgef)+
-               bdcefg*(Qafbdce+Qagbdce+Qacbdfg+Qabcefg+Qaebdfg+Qadcefg-Qbdcefg)+
-               bdcfeg*(Qaebdcf+Qacbdeg+Qagbdcf+Qabcfeg+Qafbdeg+Qadcfeg-Qbdcfeg)+
-               bdcgef*(Qacbdef+Qaebdcg+Qafbdcg+Qabcgef+Qagbdef+Qadcgef-Qbdcgef)+
-               becdfg*(Qafbecd+Qagbecd+Qabcdfg+Qacbefg+Qadbefg+Qaecdfg-Qbecdfg)+
-               becfdg*(Qadbecf+Qacbedg+Qabcfdg+Qagbecf+Qafbedg+Qaecfdg-Qbecfdg)+
-               becgdf*(Qacbedf+Qadbecg+Qabcgdf+Qafbecg+Qagbedf+Qaecgdf-Qbecgdf)+
-               bfcdeg*(Qaebfcd+Qabcdeg+Qagbfcd+Qacbfeg+Qadbfeg+Qafcdeg-Qbfcdeg)+
-               bfcedg*(Qadbfce+Qabcedg+Qacbfdg+Qagbfce+Qaebfdg+Qafcedg-Qbfcedg)+
-               bfcgde*(Qacbfde+Qabcgde+Qadbfcg+Qaebfcg+Qagbfde+Qafcgde-Qbfcgde)+
-               bgcdef*(Qabcdef+Qaebgcd+Qafbgcd+Qacbgef+Qadbgef+Qagcdef-Qbgcdef)+
-               bgcedf*(Qabcedf+Qadbgce+Qacbgdf+Qafbgce+Qaebgdf+Qagcedf-Qbgcedf)+
-               bgcfde*(Qabcfde+Qacbgde+Qadbgcf+Qaebgcf+Qafbgde+Qagcfde-Qbgcfde))
+    return (abcdef * (Qabcdeg + Qabcdfg + Qabcgef + Qabdgef + Qagcdef + Qbgcdef - Qabcdef)
+            + abcedf * (Qabcedg + Qabcgdf + Qabcefg + Qabdfeg + Qagcedf + Qbgcedf - Qabcedf)
+            + abcfde * (Qabcgde + Qabcfdg + Qabcfeg + Qabdefg + Qagcfde + Qbgcfde - Qabcfde)
+            + acbdef * (Qacbdeg + Qacbdfg + Qacbgef + Qagbdef + Qacdgef + Qbdcgef - Qacbdef)
+            + acbedf * (Qacbedg + Qacbgdf + Qacbefg + Qagbedf + Qacdfeg + Qbecgdf - Qacbedf)
+            + acbfde * (Qacbgde + Qacbfdg + Qacbfeg + Qagbfde + Qacdefg + Qbfcgde - Qacbfde)
+            + adbcef * (Qadbceg + Qadbcfg + Qagbcef + Qadbgef + Qadcgef + Qbcdgef - Qadbcef)
+            + adbecf * (Qadbecg + Qadbgcf + Qagbecf + Qadbefg + Qadcfeg + Qbecfdg - Qadbecf)
+            + adbfce * (Qadbgce + Qadbfcg + Qagbfce + Qadbfeg + Qadcefg + Qbfcedg - Qadbfce)
+            + aebcdf * (Qaebcdg + Qagbcdf + Qaebcfg + Qaebgdf + Qaecgdf + Qbcdfeg - Qaebcdf)
+            + aebdcf * (Qaebdcg + Qagbdcf + Qaebgcf + Qaebdfg + Qaecfdg + Qbdcfeg - Qaebdcf)
+            + aebfcd * (Qaebgcd + Qagbfcd + Qaebfcg + Qaebfdg + Qaecdfg + Qbfcdeg - Qaebfcd)
+            + afbcde * (Qagbcde + Qafbcdg + Qafbceg + Qafbgde + Qafcgde + Qbcdefg - Qafbcde)
+            + afbdce * (Qagbdce + Qafbdcg + Qafbgce + Qafbdeg + Qafcedg + Qbdcefg - Qafbdce)
+            + afbecd * (Qagbecd + Qafbgcd + Qafbecg + Qafbedg + Qafcdeg + Qbecdfg - Qafbecd)
+            + abcdeg * (Qabcdef + Qabcdfg + Qabcfeg + Qabdfeg + Qafcdeg + Qbfcdeg - Qabcdeg)
+            + abcedg * (Qabcedf + Qabcfdg + Qabcefg + Qabdgef + Qafcedg + Qbfcedg - Qabcedg)
+            + abcgde * (Qabcfde + Qabcgdf + Qabcgef + Qabdefg + Qafcgde + Qbfcgde - Qabcgde)
+            + acbdeg * (Qacbdef + Qacbdfg + Qacbfeg + Qafbdeg + Qacdfeg + Qbdcfeg - Qacbdeg)
+            + acbedg * (Qacbedf + Qacbfdg + Qacbefg + Qafbedg + Qacdgef + Qbecfdg - Qacbedg)
+            + acbgde * (Qacbfde + Qacbgdf + Qacbgef + Qafbgde + Qacdefg + Qbgcfde - Qacbgde)
+            + adbceg * (Qadbcef + Qadbcfg + Qafbceg + Qadbfeg + Qadcfeg + Qbcdfeg - Qadbceg)
+            + adbecg * (Qadbecf + Qadbfcg + Qafbecg + Qadbefg + Qadcgef + Qbecgdf - Qadbecg)
+            + adbgce * (Qadbfce + Qadbgcf + Qafbgce + Qadbgef + Qadcefg + Qbgcedf - Qadbgce)
+            + aebcdg * (Qaebcdf + Qafbcdg + Qaebcfg + Qaebfdg + Qaecfdg + Qbcdgef - Qaebcdg)
+            + aebdcg * (Qaebdcf + Qafbdcg + Qaebfcg + Qaebdfg + Qaecgdf + Qbdcgef - Qaebdcg)
+            + aebgcd * (Qaebfcd + Qafbgcd + Qaebgcf + Qaebgdf + Qaecdfg + Qbgcdef - Qaebgcd)
+            + agbcde * (Qafbcde + Qagbcdf + Qagbcef + Qagbfde + Qagcfde + Qbcdefg - Qagbcde)
+            + agbdce * (Qafbdce + Qagbdcf + Qagbfce + Qagbdef + Qagcedf + Qbdcefg - Qagbdce)
+            + agbecd * (Qafbecd + Qagbfcd + Qagbecf + Qagbedf + Qagcdef + Qbecdfg - Qagbecd)
+            + abcdfg * (Qabcdef + Qabcdeg + Qabcefg + Qabdefg + Qaecdfg + Qbecdfg - Qabcdfg)
+            + abcfdg * (Qabcfde + Qabcedg + Qabcfeg + Qabdgef + Qaecfdg + Qbecfdg - Qabcfdg)
+            + abcgdf * (Qabcedf + Qabcgde + Qabcgef + Qabdfeg + Qaecgdf + Qbecgdf - Qabcgdf)
+            + acbdfg * (Qacbdef + Qacbdeg + Qacbefg + Qaebdfg + Qacdefg + Qbdcefg - Qacbdfg)
+            + acbfdg * (Qacbfde + Qacbedg + Qacbfeg + Qaebfdg + Qacdgef + Qbfcedg - Qacbfdg)
+            + acbgdf * (Qacbedf + Qacbgde + Qacbgef + Qaebgdf + Qacdfeg + Qbgcedf - Qacbgdf)
+            + adbcfg * (Qadbcef + Qadbceg + Qaebcfg + Qadbefg + Qadcefg + Qbcdefg - Qadbcfg)
+            + adbfcg * (Qadbfce + Qadbecg + Qaebfcg + Qadbfeg + Qadcgef + Qbfcgde - Qadbfcg)
+            + adbgcf * (Qadbecf + Qadbgce + Qaebgcf + Qadbgef + Qadcfeg + Qbgcfde - Qadbgcf)
+            + afbcdg * (Qafbcde + Qaebcdg + Qafbceg + Qafbedg + Qafcedg + Qbcdgef - Qafbcdg)
+            + afbdcg * (Qafbdce + Qaebdcg + Qafbecg + Qafbdeg + Qafcgde + Qbdcgef - Qafbdcg)
+            + afbgcd * (Qafbecd + Qaebgcd + Qafbgce + Qafbgde + Qafcdeg + Qbgcdef - Qafbgcd)
+            + agbcdf * (Qaebcdf + Qagbcde + Qagbcef + Qagbedf + Qagcedf + Qbcdfeg - Qagbcdf)
+            + agbdcf * (Qaebdcf + Qagbdce + Qagbecf + Qagbdef + Qagcfde + Qbdcfeg - Qagbdcf)
+            + agbfcd * (Qaebfcd + Qagbecd + Qagbfce + Qagbfde + Qagcdef + Qbfcdeg - Qagbfcd)
+            + abcefg * (Qabcedf + Qabcedg + Qabcdfg + Qabdefg + Qadcefg + Qbdcefg - Qabcefg)
+            + abcfeg * (Qabcfde + Qabcdeg + Qabcfdg + Qabdfeg + Qadcfeg + Qbdcfeg - Qabcfeg)
+            + abcgef * (Qabcdef + Qabcgde + Qabcgdf + Qabdgef + Qadcgef + Qbdcgef - Qabcgef)
+            + acbefg * (Qacbedf + Qacbedg + Qacbdfg + Qadbefg + Qacdefg + Qbecdfg - Qacbefg)
+            + acbfeg * (Qacbfde + Qacbdeg + Qacbfdg + Qadbfeg + Qacdfeg + Qbfcdeg - Qacbfeg)
+            + acbgef * (Qacbdef + Qacbgde + Qacbgdf + Qadbgef + Qacdgef + Qbgcdef - Qacbgef)
+            + aebcfg * (Qaebcdf + Qaebcdg + Qadbcfg + Qaebdfg + Qaecdfg + Qbcdefg - Qaebcfg)
+            + aebfcg * (Qaebfcd + Qaebdcg + Qadbfcg + Qaebfdg + Qaecgdf + Qbfcgde - Qaebfcg)
+            + aebgcf * (Qaebdcf + Qaebgcd + Qadbgcf + Qaebgdf + Qaecfdg + Qbgcfde - Qaebgcf)
+            + afbceg * (Qafbcde + Qadbceg + Qafbcdg + Qafbdeg + Qafcdeg + Qbcdfeg - Qafbceg)
+            + afbecg * (Qafbecd + Qadbecg + Qafbdcg + Qafbedg + Qafcgde + Qbecgdf - Qafbecg)
+            + afbgce * (Qafbdce + Qadbgce + Qafbgcd + Qafbgde + Qafcedg + Qbgcedf - Qafbgce)
+            + agbcef * (Qadbcef + Qagbcde + Qagbcdf + Qagbdef + Qagcdef + Qbcdgef - Qagbcef)
+            + agbecf * (Qadbecf + Qagbecd + Qagbdcf + Qagbedf + Qagcfde + Qbecfdg - Qagbecf)
+            + agbfce * (Qadbfce + Qagbdce + Qagbfcd + Qagbfde + Qagcedf + Qbfcedg - Qagbfce)
+            + abdefg * (Qabcfde + Qabcgde + Qabcdfg + Qabcefg + Qacdefg + Qbcdefg - Qabdefg)
+            + abdfeg * (Qabcedf + Qabcdeg + Qabcgdf + Qabcfeg + Qacdfeg + Qbcdfeg - Qabdfeg)
+            + abdgef * (Qabcdef + Qabcedg + Qabcfdg + Qabcgef + Qacdgef + Qbcdgef - Qabdgef)
+            + adbefg * (Qadbecf + Qadbecg + Qadbcfg + Qacbefg + Qadcefg + Qbecdfg - Qadbefg)
+            + adbfeg * (Qadbfce + Qadbceg + Qadbfcg + Qacbfeg + Qadcfeg + Qbfcdeg - Qadbfeg)
+            + adbgef * (Qadbcef + Qadbgce + Qadbgcf + Qacbgef + Qadcgef + Qbgcdef - Qadbgef)
+            + aebdfg * (Qaebdcf + Qaebdcg + Qacbdfg + Qaebcfg + Qaecdfg + Qbdcefg - Qaebdfg)
+            + aebfdg * (Qaebfcd + Qaebcdg + Qacbfdg + Qaebfcg + Qaecfdg + Qbfcedg - Qaebfdg)
+            + aebgdf * (Qaebcdf + Qaebgcd + Qacbgdf + Qaebgcf + Qaecgdf + Qbgcedf - Qaebgdf)
+            + afbdeg * (Qafbdce + Qacbdeg + Qafbdcg + Qafbceg + Qafcdeg + Qbdcfeg - Qafbdeg)
+            + afbedg * (Qafbecd + Qacbedg + Qafbcdg + Qafbecg + Qafcedg + Qbecfdg - Qafbedg)
+            + afbgde * (Qafbcde + Qacbgde + Qafbgcd + Qafbgce + Qafcgde + Qbgcfde - Qafbgde)
+            + agbdef * (Qacbdef + Qagbdce + Qagbdcf + Qagbcef + Qagcdef + Qbdcgef - Qagbdef)
+            + agbedf * (Qacbedf + Qagbecd + Qagbcdf + Qagbecf + Qagcedf + Qbecgdf - Qagbedf)
+            + agbfde * (Qacbfde + Qagbcde + Qagbfcd + Qagbfce + Qagcfde + Qbfcgde - Qagbfde)
+            + acdefg * (Qacbfde + Qacbgde + Qacbdfg + Qacbefg + Qabdefg + Qbcdefg - Qacdefg)
+            + acdfeg * (Qacbedf + Qacbdeg + Qacbgdf + Qacbfeg + Qabdfeg + Qbcdfeg - Qacdfeg)
+            + acdgef * (Qacbdef + Qacbedg + Qacbfdg + Qacbgef + Qabdgef + Qbcdgef - Qacdgef)
+            + adcefg * (Qadbfce + Qadbgce + Qadbcfg + Qabcefg + Qadbefg + Qbdcefg - Qadcefg)
+            + adcfeg * (Qadbecf + Qadbceg + Qadbgcf + Qabcfeg + Qadbfeg + Qbdcfeg - Qadcfeg)
+            + adcgef * (Qadbcef + Qadbecg + Qadbfcg + Qabcgef + Qadbgef + Qbdcgef - Qadcgef)
+            + aecdfg * (Qaebfcd + Qaebgcd + Qabcdfg + Qaebcfg + Qaebdfg + Qbecdfg - Qaecdfg)
+            + aecfdg * (Qaebdcf + Qaebcdg + Qabcfdg + Qaebgcf + Qaebfdg + Qbecfdg - Qaecfdg)
+            + aecgdf * (Qaebcdf + Qaebdcg + Qabcgdf + Qaebfcg + Qaebgdf + Qbecgdf - Qaecgdf)
+            + afcdeg * (Qafbecd + Qabcdeg + Qafbgcd + Qafbceg + Qafbdeg + Qbfcdeg - Qafcdeg)
+            + afcedg * (Qafbdce + Qabcedg + Qafbcdg + Qafbgce + Qafbedg + Qbfcedg - Qafcedg)
+            + afcgde * (Qafbcde + Qabcgde + Qafbdcg + Qafbecg + Qafbgde + Qbfcgde - Qafcgde)
+            + agcdef * (Qabcdef + Qagbecd + Qagbfcd + Qagbcef + Qagbdef + Qbgcdef - Qagcdef)
+            + agcedf * (Qabcedf + Qagbdce + Qagbcdf + Qagbfce + Qagbedf + Qbgcedf - Qagcedf)
+            + agcfde * (Qabcfde + Qagbcde + Qagbdcf + Qagbecf + Qagbfde + Qbgcfde - Qagcfde)
+            + bcdefg * (Qafbcde + Qagbcde + Qadbcfg + Qaebcfg + Qabdefg + Qacdefg - Qbcdefg)
+            + bcdfeg * (Qaebcdf + Qadbceg + Qagbcdf + Qafbceg + Qabdfeg + Qacdfeg - Qbcdfeg)
+            + bcdgef * (Qadbcef + Qaebcdg + Qafbcdg + Qagbcef + Qabdgef + Qacdgef - Qbcdgef)
+            + bdcefg * (Qafbdce + Qagbdce + Qacbdfg + Qabcefg + Qaebdfg + Qadcefg - Qbdcefg)
+            + bdcfeg * (Qaebdcf + Qacbdeg + Qagbdcf + Qabcfeg + Qafbdeg + Qadcfeg - Qbdcfeg)
+            + bdcgef * (Qacbdef + Qaebdcg + Qafbdcg + Qabcgef + Qagbdef + Qadcgef - Qbdcgef)
+            + becdfg * (Qafbecd + Qagbecd + Qabcdfg + Qacbefg + Qadbefg + Qaecdfg - Qbecdfg)
+            + becfdg * (Qadbecf + Qacbedg + Qabcfdg + Qagbecf + Qafbedg + Qaecfdg - Qbecfdg)
+            + becgdf * (Qacbedf + Qadbecg + Qabcgdf + Qafbecg + Qagbedf + Qaecgdf - Qbecgdf)
+            + bfcdeg * (Qaebfcd + Qabcdeg + Qagbfcd + Qacbfeg + Qadbfeg + Qafcdeg - Qbfcdeg)
+            + bfcedg * (Qadbfce + Qabcedg + Qacbfdg + Qagbfce + Qaebfdg + Qafcedg - Qbfcedg)
+            + bfcgde * (Qacbfde + Qabcgde + Qadbfcg + Qaebfcg + Qagbfde + Qafcgde - Qbfcgde)
+            + bgcdef * (Qabcdef + Qaebgcd + Qafbgcd + Qacbgef + Qadbgef + Qagcdef - Qbgcdef)
+            + bgcedf * (Qabcedf + Qadbgce + Qacbgdf + Qafbgce + Qaebgdf + Qagcedf - Qbgcedf)
+            + bgcfde * (Qabcfde + Qacbgde + Qadbgcf + Qaebgcf + Qafbgde + Qagcfde - Qbgcfde))
 
-        -4*(ab*ac*bc*(de*fg*(df+eg+dg+ef-de-fg)+df*eg*(de+fg+dg+ef-df-eg)+dg*ef*(de+fg+df+eg-dg-ef)-(de*df*ef+de*dg*eg+df*dg*fg+ef*eg*fg))+
-            ab*ad*bd*(ce*fg*(cf+eg+cg+ef-ce-fg)+cf*eg*(ce+fg+cg+ef-cf-eg)+cg*ef*(ce+fg+cf+eg-cg-ef)-(ce*cf*ef+ce*cg*eg+cf*cg*fg+ef*eg*fg))+
-            ab*ae*be*(cd*fg*(cf+dg+cg+df-cd-fg)+cf*dg*(cd+fg+cg+df-cf-dg)+cg*df*(cd+fg+cf+dg-cg-df)-(cd*cf*df+cd*cg*dg+cf*cg*fg+df*dg*fg))+
-            ab*af*bf*(cd*eg*(ce+dg+cg+de-cd-eg)+ce*dg*(cd+eg+cg+de-ce-dg)+cg*de*(cd+eg+ce+dg-cg-de)-(cd*ce*de+cd*cg*dg+ce*cg*eg+de*dg*eg))+
-            ab*ag*bg*(cd*ef*(ce+df+cf+de-cd-ef)+ce*df*(cd+ef+cf+de-ce-df)+cf*de*(cd+ef+ce+df-cf-de)-(cd*ce*de+cd*cf*df+ce*cf*ef+de*df*ef))+
-            ac*ad*cd*(be*fg*(bf+eg+bg+ef-be-fg)+bf*eg*(be+fg+bg+ef-bf-eg)+bg*ef*(be+fg+bf+eg-bg-ef)-(be*bf*ef+be*bg*eg+bf*bg*fg+ef*eg*fg))+
-            ac*ae*ce*(bd*fg*(bf+dg+bg+df-bd-fg)+bf*dg*(bd+fg+bg+df-bf-dg)+bg*df*(bd+fg+bf+dg-bg-df)-(bd*bf*df+bd*bg*dg+bf*bg*fg+df*dg*fg))+
-            ac*af*cf*(bd*eg*(be+dg+bg+de-bd-eg)+be*dg*(bd+eg+bg+de-be-dg)+bg*de*(bd+eg+be+dg-bg-de)-(bd*be*de+bd*bg*dg+be*bg*eg+de*dg*eg))+
-            ac*ag*cg*(bd*ef*(be+df+bf+de-bd-ef)+be*df*(bd+ef+bf+de-be-df)+bf*de*(bd+ef+be+df-bf-de)-(bd*be*de+bd*bf*df+be*bf*ef+de*df*ef))+
-            ad*ae*de*(bc*fg*(bf+cg+bg+cf-bc-fg)+bf*cg*(bc+fg+bg+cf-bf-cg)+bg*cf*(bc+fg+bf+cg-bg-cf)-(bc*bf*cf+bc*bg*cg+bf*bg*fg+cf*cg*fg))+
-            ad*af*df*(bc*eg*(be+cg+bg+ce-bc-eg)+be*cg*(bc+eg+bg+ce-be-cg)+bg*ce*(bc+eg+be+cg-bg-ce)-(bc*be*ce+bc*bg*cg+be*bg*eg+ce*cg*eg))+
-            ad*ag*dg*(bc*ef*(be+cf+bf+ce-bc-ef)+be*cf*(bc+ef+bf+ce-be-cf)+bf*ce*(bc+ef+be+cf-bf-ce)-(bc*be*ce+bc*bf*cf+be*bf*ef+ce*cf*ef))+
-            ae*af*ef*(bc*dg*(bd+cg+bg+cd-bc-dg)+bd*cg*(bc+dg+bg+cd-bd-cg)+bg*cd*(bc+dg+bd+cg-bg-cd)-(bc*bd*cd+bc*bg*cg+bd*bg*dg+cd*cg*dg))+
-            ae*ag*eg*(bc*df*(bd+cf+bf+cd-bc-df)+bd*cf*(bc+df+bf+cd-bd-cf)+bf*cd*(bc+df+bd+cf-bf-cd)-(bc*bd*cd+bc*bf*cf+bd*bf*df+cd*cf*df))+
-            af*ag*fg*(bc*de*(bd+ce+be+cd-bc-de)+bd*ce*(bc+de+be+cd-bd-ce)+be*cd*(bc+de+bd+ce-be-cd)-(bc*bd*cd+bc*be*ce+bd*be*de+cd*ce*de))+
-            bc*bd*cd*(ae*fg*(af+eg+ag+ef-ae-fg)+af*eg*(ae+fg+ag+ef-af-eg)+ag*ef*(ae+fg+af+eg-ag-ef)-ef*eg*fg)+
-            bc*be*ce*(ad*fg*(af+dg+ag+df-ad-fg)+af*dg*(ad+fg+ag+df-af-dg)+ag*df*(ad+fg+af+dg-ag-df)-df*dg*fg)+
-            bc*bf*cf*(ad*eg*(ae+dg+ag+de-ad-eg)+ae*dg*(ad+eg+ag+de-ae-dg)+ag*de*(ad+eg+ae+dg-ag-de)-de*dg*eg)+
-            bc*bg*cg*(ad*ef*(ae+df+af+de-ad-ef)+ae*df*(ad+ef+af+de-ae-df)+af*de*(ad+ef+ae+df-af-de)-de*df*ef)+
-            bd*be*de*(ac*fg*(af+cg+ag+cf-ac-fg)+af*cg*(ac+fg+ag+cf-af-cg)+ag*cf*(ac+fg+af+cg-ag-cf)-cf*cg*fg)+
-            bd*bf*df*(ac*eg*(ae+cg+ag+ce-ac-eg)+ae*cg*(ac+eg+ag+ce-ae-cg)+ag*ce*(ac+eg+ae+cg-ag-ce)-ce*cg*eg)+
-            bd*bg*dg*(ac*ef*(ae+cf+af+ce-ac-ef)+ae*cf*(ac+ef+af+ce-ae-cf)+af*ce*(ac+ef+ae+cf-af-ce)-ce*cf*ef)+
-            be*bf*ef*(ac*dg*(ad+cg+ag+cd-ac-dg)+ad*cg*(ac+dg+ag+cd-ad-cg)+ag*cd*(ac+dg+ad+cg-ag-cd)-cd*cg*dg)+
-            be*bg*eg*(ac*df*(ad+cf+af+cd-ac-df)+ad*cf*(ac+df+af+cd-ad-cf)+af*cd*(ac+df+ad+cf-af-cd)-cd*cf*df)+
-            bf*bg*fg*(ac*de*(ad+ce+ae+cd-ac-de)+ad*ce*(ac+de+ae+cd-ad-ce)+ae*cd*(ac+de+ad+ce-ae-cd)-cd*ce*de)+
-            cd*ce*de*(ab*fg*(af+bg+ag+bf-ab-fg)+af*bg*(ab+fg+ag+bf-af-bg)+ag*bf*(ab+fg+af+bg-ag-bf))+
-            cd*cf*df*(ab*eg*(ae+bg+ag+be-ab-eg)+ae*bg*(ab+eg+ag+be-ae-bg)+ag*be*(ab+eg+ae+bg-ag-be))+
-            cd*cg*dg*(ab*ef*(ae+bf+af+be-ab-ef)+ae*bf*(ab+ef+af+be-ae-bf)+af*be*(ab+ef+ae+bf-af-be))+
-            ce*cf*ef*(ab*dg*(ad+bg+ag+bd-ab-dg)+ad*bg*(ab+dg+ag+bd-ad-bg)+ag*bd*(ab+dg+ad+bg-ag-bd))+
-            ce*cg*eg*(ab*df*(ad+bf+af+bd-ab-df)+ad*bf*(ab+df+af+bd-ad-bf)+af*bd*(ab+df+ad+bf-af-bd))+
-            cf*cg*fg*(ab*de*(ad+be+ae+bd-ab-de)+ad*be*(ab+de+ae+bd-ad-be)+ae*bd*(ab+de+ad+be-ae-bd))+
-            de*df*ef*(ab*cg*(ac+bg+ag+bc-ab-cg)+ac*bg*(ab+cg+ag+bc-ac-bg)+ag*bc*(ab+cg+ac+bg-ag-bc))+
-            de*dg*eg*(ab*cf*(ac+bf+af+bc-ab-cf)+ac*bf*(ab+cf+af+bc-ac-bf)+af*bc*(ab+cf+ac+bf-af-bc))+
-            df*dg*fg*(ab*ce*(ac+be+ae+bc-ab-ce)+ac*be*(ab+ce+ae+bc-ac-be)+ae*bc*(ab+ce+ac+be-ae-bc))+
-            ef*eg*fg*(ab*cd*(ac+bd+ad+bc-ab-cd)+ac*bd*(ab+cd+ad+bc-ac-bd)+ad*bc*(ab+cd+ac+bd-ad-bc)))
+           - 4
+                 * (ab * ac * bc
+                        * (de * fg * (df + eg + dg + ef - de - fg)
+                           + df * eg * (de + fg + dg + ef - df - eg)
+                           + dg * ef * (de + fg + df + eg - dg - ef)
+                           - (de * df * ef + de * dg * eg + df * dg * fg + ef * eg * fg))
+                    + ab * ad * bd
+                          * (ce * fg * (cf + eg + cg + ef - ce - fg)
+                             + cf * eg * (ce + fg + cg + ef - cf - eg)
+                             + cg * ef * (ce + fg + cf + eg - cg - ef)
+                             - (ce * cf * ef + ce * cg * eg + cf * cg * fg + ef * eg * fg))
+                    + ab * ae * be
+                          * (cd * fg * (cf + dg + cg + df - cd - fg)
+                             + cf * dg * (cd + fg + cg + df - cf - dg)
+                             + cg * df * (cd + fg + cf + dg - cg - df)
+                             - (cd * cf * df + cd * cg * dg + cf * cg * fg + df * dg * fg))
+                    + ab * af * bf
+                          * (cd * eg * (ce + dg + cg + de - cd - eg)
+                             + ce * dg * (cd + eg + cg + de - ce - dg)
+                             + cg * de * (cd + eg + ce + dg - cg - de)
+                             - (cd * ce * de + cd * cg * dg + ce * cg * eg + de * dg * eg))
+                    + ab * ag * bg
+                          * (cd * ef * (ce + df + cf + de - cd - ef)
+                             + ce * df * (cd + ef + cf + de - ce - df)
+                             + cf * de * (cd + ef + ce + df - cf - de)
+                             - (cd * ce * de + cd * cf * df + ce * cf * ef + de * df * ef))
+                    + ac * ad * cd
+                          * (be * fg * (bf + eg + bg + ef - be - fg)
+                             + bf * eg * (be + fg + bg + ef - bf - eg)
+                             + bg * ef * (be + fg + bf + eg - bg - ef)
+                             - (be * bf * ef + be * bg * eg + bf * bg * fg + ef * eg * fg))
+                    + ac * ae * ce
+                          * (bd * fg * (bf + dg + bg + df - bd - fg)
+                             + bf * dg * (bd + fg + bg + df - bf - dg)
+                             + bg * df * (bd + fg + bf + dg - bg - df)
+                             - (bd * bf * df + bd * bg * dg + bf * bg * fg + df * dg * fg))
+                    + ac * af * cf
+                          * (bd * eg * (be + dg + bg + de - bd - eg)
+                             + be * dg * (bd + eg + bg + de - be - dg)
+                             + bg * de * (bd + eg + be + dg - bg - de)
+                             - (bd * be * de + bd * bg * dg + be * bg * eg + de * dg * eg))
+                    + ac * ag * cg
+                          * (bd * ef * (be + df + bf + de - bd - ef)
+                             + be * df * (bd + ef + bf + de - be - df)
+                             + bf * de * (bd + ef + be + df - bf - de)
+                             - (bd * be * de + bd * bf * df + be * bf * ef + de * df * ef))
+                    + ad * ae * de
+                          * (bc * fg * (bf + cg + bg + cf - bc - fg)
+                             + bf * cg * (bc + fg + bg + cf - bf - cg)
+                             + bg * cf * (bc + fg + bf + cg - bg - cf)
+                             - (bc * bf * cf + bc * bg * cg + bf * bg * fg + cf * cg * fg))
+                    + ad * af * df
+                          * (bc * eg * (be + cg + bg + ce - bc - eg)
+                             + be * cg * (bc + eg + bg + ce - be - cg)
+                             + bg * ce * (bc + eg + be + cg - bg - ce)
+                             - (bc * be * ce + bc * bg * cg + be * bg * eg + ce * cg * eg))
+                    + ad * ag * dg
+                          * (bc * ef * (be + cf + bf + ce - bc - ef)
+                             + be * cf * (bc + ef + bf + ce - be - cf)
+                             + bf * ce * (bc + ef + be + cf - bf - ce)
+                             - (bc * be * ce + bc * bf * cf + be * bf * ef + ce * cf * ef))
+                    + ae * af * ef
+                          * (bc * dg * (bd + cg + bg + cd - bc - dg)
+                             + bd * cg * (bc + dg + bg + cd - bd - cg)
+                             + bg * cd * (bc + dg + bd + cg - bg - cd)
+                             - (bc * bd * cd + bc * bg * cg + bd * bg * dg + cd * cg * dg))
+                    + ae * ag * eg
+                          * (bc * df * (bd + cf + bf + cd - bc - df)
+                             + bd * cf * (bc + df + bf + cd - bd - cf)
+                             + bf * cd * (bc + df + bd + cf - bf - cd)
+                             - (bc * bd * cd + bc * bf * cf + bd * bf * df + cd * cf * df))
+                    + af * ag * fg
+                          * (bc * de * (bd + ce + be + cd - bc - de)
+                             + bd * ce * (bc + de + be + cd - bd - ce)
+                             + be * cd * (bc + de + bd + ce - be - cd)
+                             - (bc * bd * cd + bc * be * ce + bd * be * de + cd * ce * de))
+                    + bc * bd * cd
+                          * (ae * fg * (af + eg + ag + ef - ae - fg)
+                             + af * eg * (ae + fg + ag + ef - af - eg)
+                             + ag * ef * (ae + fg + af + eg - ag - ef) - ef * eg * fg)
+                    + bc * be * ce
+                          * (ad * fg * (af + dg + ag + df - ad - fg)
+                             + af * dg * (ad + fg + ag + df - af - dg)
+                             + ag * df * (ad + fg + af + dg - ag - df) - df * dg * fg)
+                    + bc * bf * cf
+                          * (ad * eg * (ae + dg + ag + de - ad - eg)
+                             + ae * dg * (ad + eg + ag + de - ae - dg)
+                             + ag * de * (ad + eg + ae + dg - ag - de) - de * dg * eg)
+                    + bc * bg * cg
+                          * (ad * ef * (ae + df + af + de - ad - ef)
+                             + ae * df * (ad + ef + af + de - ae - df)
+                             + af * de * (ad + ef + ae + df - af - de) - de * df * ef)
+                    + bd * be * de
+                          * (ac * fg * (af + cg + ag + cf - ac - fg)
+                             + af * cg * (ac + fg + ag + cf - af - cg)
+                             + ag * cf * (ac + fg + af + cg - ag - cf) - cf * cg * fg)
+                    + bd * bf * df
+                          * (ac * eg * (ae + cg + ag + ce - ac - eg)
+                             + ae * cg * (ac + eg + ag + ce - ae - cg)
+                             + ag * ce * (ac + eg + ae + cg - ag - ce) - ce * cg * eg)
+                    + bd * bg * dg
+                          * (ac * ef * (ae + cf + af + ce - ac - ef)
+                             + ae * cf * (ac + ef + af + ce - ae - cf)
+                             + af * ce * (ac + ef + ae + cf - af - ce) - ce * cf * ef)
+                    + be * bf * ef
+                          * (ac * dg * (ad + cg + ag + cd - ac - dg)
+                             + ad * cg * (ac + dg + ag + cd - ad - cg)
+                             + ag * cd * (ac + dg + ad + cg - ag - cd) - cd * cg * dg)
+                    + be * bg * eg
+                          * (ac * df * (ad + cf + af + cd - ac - df)
+                             + ad * cf * (ac + df + af + cd - ad - cf)
+                             + af * cd * (ac + df + ad + cf - af - cd) - cd * cf * df)
+                    + bf * bg * fg
+                          * (ac * de * (ad + ce + ae + cd - ac - de)
+                             + ad * ce * (ac + de + ae + cd - ad - ce)
+                             + ae * cd * (ac + de + ad + ce - ae - cd) - cd * ce * de)
+                    + cd * ce * de
+                          * (ab * fg * (af + bg + ag + bf - ab - fg)
+                             + af * bg * (ab + fg + ag + bf - af - bg)
+                             + ag * bf * (ab + fg + af + bg - ag - bf))
+                    + cd * cf * df
+                          * (ab * eg * (ae + bg + ag + be - ab - eg)
+                             + ae * bg * (ab + eg + ag + be - ae - bg)
+                             + ag * be * (ab + eg + ae + bg - ag - be))
+                    + cd * cg * dg
+                          * (ab * ef * (ae + bf + af + be - ab - ef)
+                             + ae * bf * (ab + ef + af + be - ae - bf)
+                             + af * be * (ab + ef + ae + bf - af - be))
+                    + ce * cf * ef
+                          * (ab * dg * (ad + bg + ag + bd - ab - dg)
+                             + ad * bg * (ab + dg + ag + bd - ad - bg)
+                             + ag * bd * (ab + dg + ad + bg - ag - bd))
+                    + ce * cg * eg
+                          * (ab * df * (ad + bf + af + bd - ab - df)
+                             + ad * bf * (ab + df + af + bd - ad - bf)
+                             + af * bd * (ab + df + ad + bf - af - bd))
+                    + cf * cg * fg
+                          * (ab * de * (ad + be + ae + bd - ab - de)
+                             + ad * be * (ab + de + ae + bd - ad - be)
+                             + ae * bd * (ab + de + ad + be - ae - bd))
+                    + de * df * ef
+                          * (ab * cg * (ac + bg + ag + bc - ab - cg)
+                             + ac * bg * (ab + cg + ag + bc - ac - bg)
+                             + ag * bc * (ab + cg + ac + bg - ag - bc))
+                    + de * dg * eg
+                          * (ab * cf * (ac + bf + af + bc - ab - cf)
+                             + ac * bf * (ab + cf + af + bc - ac - bf)
+                             + af * bc * (ab + cf + ac + bf - af - bc))
+                    + df * dg * fg
+                          * (ab * ce * (ac + be + ae + bc - ab - ce)
+                             + ac * be * (ab + ce + ae + bc - ac - be)
+                             + ae * bc * (ab + ce + ac + be - ae - bc))
+                    + ef * eg * fg
+                          * (ab * cd * (ac + bd + ad + bc - ab - cd)
+                             + ac * bd * (ab + cd + ad + bc - ac - bd)
+                             + ad * bc * (ab + cd + ac + bd - ad - bc)))
 
-        -4*(abcd*(aefg*(bfeg+bgef)+afeg*(befg+bgef)+agef*(befg+bfeg)+cefg*(dfeg+dgef)+cfeg*(defg+dgef)+cgef*(defg+dfeg))+
-            abce*(adfg*(bfdg+bgdf)+afdg*(bdfg+bgdf)+agdf*(bdfg+bfdg)+cfdg*(defg+dfeg)+cgdf*(defg+dgef)+cgde*(dfeg+dgef))+
-            abcf*(adeg*(bedg+bgde)+aedg*(bdeg+bgde)+agde*(bdeg+bedg))+
-            abcg*(adef*(bedf+bfde)+aedf*(bdef+bfde)+afde*(bdef+bedf))+
-            abde*(acfg*(bfcg+bgcf)+afcg*(bcfg+bgcf)+agcf*(bcfg+bfcg))+
-            abdf*(aceg*(becg+bgce)+aecg*(bceg+bgce)+agce*(bceg+becg))+
-            abdg*(acef*(becf+bfce)+aecf*(bcef+bfce)+afce*(bcef+becf))+
-            abef*(acdg*(bdcg+bgcd)+adcg*(bcdg+bgcd)+agcd*(bcdg+bdcg))+
-            abeg*(acdf*(bdcf+bfcd)+adcf*(bcdf+bfcd)+afcd*(bcdf+bdcf))+
-            abfg*(acde*(bdce+becd)+adce*(bcde+becd)+aecd*(bcde+bdce))+
-            acbd*(befg*(dfeg+dgef)+bfeg*(defg+dgef)+bgef*(defg+dfeg))+
-            acbd*(aefg*(cfeg+cgef)+afeg*(cefg+cgef)+agef*(cefg+cfeg))+
-            acbe*(adfg*(cfdg+cgdf)+afdg*(cdfg+cgdf)+agdf*(cdfg+cfdg)+bfdg*(defg+dfeg)+bgdf*(defg+dgef))+
-            acbf*(adeg*(cedg+cgde)+aedg*(cdeg+cgde)+agde*(cdeg+cedg)+bgde*(dfeg+dgef))+
-            acbg*(adef*(cedf+cfde)+aedf*(cdef+cfde)+afde*(cdef+cedf))+
-            acde*(afbg*(bcfg+bfcg)+agbf*(bcfg+bgcf))+
-            acdf*(aebg*(bceg+becg)+agbe*(bceg+bgce))+
-            acdg*(aebf*(bcef+becf)+afbe*(bcef+bfce))+
-            acef*(adbg*(bcdg+bdcg)+agbd*(bcdg+bgcd))+
-            aceg*(adbf*(bcdf+bdcf)+afbd*(bcdf+bfcd))+
-            acfg*(adbe*(bcde+bdce)+aebd*(bcde+becd))+
-            adbc*(aefg*(dfeg+dgef)+afeg*(defg+dgef)+agef*(defg+dfeg)+befg*(cfeg+cgef)+bfeg*(cefg+cgef)+bgef*(cefg+cfeg))+
-            adbe*(afcg*(cdfg+cfdg)+agcf*(cdfg+cgdf)+bfcg*(cefg+cfeg)+bgcf*(cefg+cgef))+
-            adbf*(aecg*(cdeg+cedg)+agce*(cdeg+cgde)+bgce*(cfeg+cgef))+
-            adbg*(aecf*(cdef+cedf)+afce*(cdef+cfde))+
-            adce*(afbg*(bdfg+bfdg)+agbf*(bdfg+bgdf))+
-            adcf*(aebg*(bdeg+bedg)+agbe*(bdeg+bgde))+
-            adcg*(aebf*(bdef+bedf)+afbe*(bdef+bfde))+
-            adef*(agbc*(bdcg+bgcd))+
-            adeg*(afbc*(bdcf+bfcd))+
-            adfg*(aebc*(bdce+becd))+
-            aebc*(afdg*(defg+dfeg)+agdf*(defg+dgef)+bdfg*(cfdg+cgdf)+bfdg*(cdfg+cgdf)+bgdf*(cdfg+cfdg))+
-            aebd*(afcg*(cefg+cfeg)+agcf*(cefg+cgef)+bfcg*(cdfg+cfdg)+bgcf*(cdfg+cgdf))+
-            aebf*(agcd*(cedg+cgde)+bgcd*(cfdg+cgdf))+
-            aebg*(afcd*(cedf+cfde))+
-            aecd*(afbg*(befg+bfeg)+agbf*(befg+bgef))+
-            aecf*(agbd*(bedg+bgde))+
-            aecg*(afbd*(bedf+bfde))+
-            aedf*(agbc*(becg+bgce))+
-            aedg*(afbc*(becf+bfce))+
-            afbc*(agde*(dfeg+dgef)+bdeg*(cedg+cgde)+bedg*(cdeg+cgde)+bgde*(cdeg+cedg))+
-            afbd*(agce*(cfeg+cgef)+becg*(cdeg+cedg)+bgce*(cdeg+cgde))+
-            afbe*(agcd*(cfdg+cgdf)+bgcd*(cedg+cgde))+
-            afcd*(agbe*(bfeg+bgef))+
-            afce*(agbd*(bfdg+bgdf))+
-            afde*(agbc*(bfcg+bgcf))+
-            agbc*(bdef*(cedf+cfde)+bedf*(cdef+cfde)+bfde*(cdef+cedf))+
-            agbd*(becf*(cdef+cedf)+bfce*(cdef+cfde))+
-            agbe*(bfcd*(cedf+cfde)));
+           - 4
+                 * (abcd
+                        * (aefg * (bfeg + bgef) + afeg * (befg + bgef) + agef * (befg + bfeg)
+                           + cefg * (dfeg + dgef) + cfeg * (defg + dgef) + cgef * (defg + dfeg))
+                    + abce
+                          * (adfg * (bfdg + bgdf) + afdg * (bdfg + bgdf) + agdf * (bdfg + bfdg)
+                             + cfdg * (defg + dfeg) + cgdf * (defg + dgef) + cgde * (dfeg + dgef))
+                    + abcf * (adeg * (bedg + bgde) + aedg * (bdeg + bgde) + agde * (bdeg + bedg))
+                    + abcg * (adef * (bedf + bfde) + aedf * (bdef + bfde) + afde * (bdef + bedf))
+                    + abde * (acfg * (bfcg + bgcf) + afcg * (bcfg + bgcf) + agcf * (bcfg + bfcg))
+                    + abdf * (aceg * (becg + bgce) + aecg * (bceg + bgce) + agce * (bceg + becg))
+                    + abdg * (acef * (becf + bfce) + aecf * (bcef + bfce) + afce * (bcef + becf))
+                    + abef * (acdg * (bdcg + bgcd) + adcg * (bcdg + bgcd) + agcd * (bcdg + bdcg))
+                    + abeg * (acdf * (bdcf + bfcd) + adcf * (bcdf + bfcd) + afcd * (bcdf + bdcf))
+                    + abfg * (acde * (bdce + becd) + adce * (bcde + becd) + aecd * (bcde + bdce))
+                    + acbd * (befg * (dfeg + dgef) + bfeg * (defg + dgef) + bgef * (defg + dfeg))
+                    + acbd * (aefg * (cfeg + cgef) + afeg * (cefg + cgef) + agef * (cefg + cfeg))
+                    + acbe
+                          * (adfg * (cfdg + cgdf) + afdg * (cdfg + cgdf) + agdf * (cdfg + cfdg)
+                             + bfdg * (defg + dfeg) + bgdf * (defg + dgef))
+                    + acbf
+                          * (adeg * (cedg + cgde) + aedg * (cdeg + cgde) + agde * (cdeg + cedg)
+                             + bgde * (dfeg + dgef))
+                    + acbg * (adef * (cedf + cfde) + aedf * (cdef + cfde) + afde * (cdef + cedf))
+                    + acde * (afbg * (bcfg + bfcg) + agbf * (bcfg + bgcf))
+                    + acdf * (aebg * (bceg + becg) + agbe * (bceg + bgce))
+                    + acdg * (aebf * (bcef + becf) + afbe * (bcef + bfce))
+                    + acef * (adbg * (bcdg + bdcg) + agbd * (bcdg + bgcd))
+                    + aceg * (adbf * (bcdf + bdcf) + afbd * (bcdf + bfcd))
+                    + acfg * (adbe * (bcde + bdce) + aebd * (bcde + becd))
+                    + adbc
+                          * (aefg * (dfeg + dgef) + afeg * (defg + dgef) + agef * (defg + dfeg)
+                             + befg * (cfeg + cgef) + bfeg * (cefg + cgef) + bgef * (cefg + cfeg))
+                    + adbe
+                          * (afcg * (cdfg + cfdg) + agcf * (cdfg + cgdf) + bfcg * (cefg + cfeg)
+                             + bgcf * (cefg + cgef))
+                    + adbf * (aecg * (cdeg + cedg) + agce * (cdeg + cgde) + bgce * (cfeg + cgef))
+                    + adbg * (aecf * (cdef + cedf) + afce * (cdef + cfde))
+                    + adce * (afbg * (bdfg + bfdg) + agbf * (bdfg + bgdf))
+                    + adcf * (aebg * (bdeg + bedg) + agbe * (bdeg + bgde))
+                    + adcg * (aebf * (bdef + bedf) + afbe * (bdef + bfde))
+                    + adef * (agbc * (bdcg + bgcd)) + adeg * (afbc * (bdcf + bfcd))
+                    + adfg * (aebc * (bdce + becd))
+                    + aebc
+                          * (afdg * (defg + dfeg) + agdf * (defg + dgef) + bdfg * (cfdg + cgdf)
+                             + bfdg * (cdfg + cgdf) + bgdf * (cdfg + cfdg))
+                    + aebd
+                          * (afcg * (cefg + cfeg) + agcf * (cefg + cgef) + bfcg * (cdfg + cfdg)
+                             + bgcf * (cdfg + cgdf))
+                    + aebf * (agcd * (cedg + cgde) + bgcd * (cfdg + cgdf))
+                    + aebg * (afcd * (cedf + cfde))
+                    + aecd * (afbg * (befg + bfeg) + agbf * (befg + bgef))
+                    + aecf * (agbd * (bedg + bgde)) + aecg * (afbd * (bedf + bfde))
+                    + aedf * (agbc * (becg + bgce)) + aedg * (afbc * (becf + bfce))
+                    + afbc
+                          * (agde * (dfeg + dgef) + bdeg * (cedg + cgde) + bedg * (cdeg + cgde)
+                             + bgde * (cdeg + cedg))
+                    + afbd * (agce * (cfeg + cgef) + becg * (cdeg + cedg) + bgce * (cdeg + cgde))
+                    + afbe * (agcd * (cfdg + cgdf) + bgcd * (cedg + cgde))
+                    + afcd * (agbe * (bfeg + bgef)) + afce * (agbd * (bfdg + bgdf))
+                    + afde * (agbc * (bfcg + bgcf))
+                    + agbc * (bdef * (cedf + cfde) + bedf * (cdef + cfde) + bfde * (cdef + cedf))
+                    + agbd * (becf * (cdef + cedf) + bfce * (cdef + cfde))
+                    + agbe * (bfcd * (cedf + cfde)));
     }
 
-DEVICE inline bool seq2(OverlapReal as,OverlapReal bs,
-              OverlapReal ar,OverlapReal br,
-              OverlapReal ab)
+DEVICE inline bool
+seq2(OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab)
     {
-        if(as*(ab+br-ar) < OverlapReal(-EPS)) return false;
-        if(bs*(ab+ar-br) < OverlapReal(-EPS)) return false;
+    if (as * (ab + br - ar) < OverlapReal(-EPS))
+        return false;
+    if (bs * (ab + ar - br) < OverlapReal(-EPS))
+        return false;
 
-        return(ab*(ar+br-ab)+ar*(ab+br-ar)+br*(ab+ar-br) <= 0);
+    return (ab * (ar + br - ab) + ar * (ab + br - ar) + br * (ab + ar - br) <= 0);
     }
 
-DEVICE inline bool seq3(OverlapReal as,OverlapReal bs,OverlapReal cs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,
-              OverlapReal ab,OverlapReal ac,
-              OverlapReal bc)
+DEVICE inline bool seq3(OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal bc)
     {
-        if(as*(bc*(ab+ac-bc+br+cr-ar-ar)-(ab-ac)*(br-cr)) < OverlapReal(-EPS)) return false;
-        if(bs*(ac*(ab+bc-ac+ar+cr-br-br)-(ab-bc)*(ar-cr)) < OverlapReal(-EPS)) return false;
-        if(cs*(ab*(ac+bc-ab+ar+br-cr-cr)-(ac-bc)*(ar-br)) < OverlapReal(-EPS)) return false;
+    if (as * (bc * (ab + ac - bc + br + cr - ar - ar) - (ab - ac) * (br - cr)) < OverlapReal(-EPS))
+        return false;
+    if (bs * (ac * (ab + bc - ac + ar + cr - br - br) - (ab - bc) * (ar - cr)) < OverlapReal(-EPS))
+        return false;
+    if (cs * (ab * (ac + bc - ab + ar + br - cr - cr) - (ac - bc) * (ar - br)) < OverlapReal(-EPS))
+        return false;
 
-        return(2*(bc*ar*(ab+ac-bc+br+cr-ar)+
-                  ac*br*(ab+bc-ac+ar+cr-br)+
-                  ab*cr*(ac+bc-ab+ar+br-cr))
-               -(bc+ar)*(ac+br)*(ab+cr)
-               -(bc-ar)*(ac-br)*(ab-cr) <= OverlapReal(EPS));
+    return (2
+                    * (bc * ar * (ab + ac - bc + br + cr - ar)
+                       + ac * br * (ab + bc - ac + ar + cr - br)
+                       + ab * cr * (ac + bc - ab + ar + br - cr))
+                - (bc + ar) * (ac + br) * (ab + cr) - (bc - ar) * (ac - br) * (ab - cr)
+            <= OverlapReal(EPS));
     }
 
-DEVICE inline bool seq4(OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,
-              OverlapReal bc,OverlapReal bd,
-              OverlapReal cd)
+DEVICE inline bool seq4(OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal cd)
     {
-        if(as*((bc*(ad+dr-ar)-(ab-ac)*(br-cr))*(bd+cd-bc)+
-               (bd*(ac+cr-ar)-(ab-ad)*(br-dr))*(bc+cd-bd)+
-               (cd*(ab+br-ar)-(ac-ad)*(cr-dr))*(bc+bd-cd)-2*bc*bd*cd) < OverlapReal(-EPS)) return false;
-        if(bs*((ac*(bd+dr-br)-(ab-bc)*(ar-cr))*(ad+cd-ac)+
-               (ad*(bc+cr-br)-(ab-bd)*(ar-dr))*(ac+cd-ad)+
-               (cd*(ab+ar-br)-(bc-bd)*(cr-dr))*(ac+ad-cd)-2*ac*ad*cd) < OverlapReal(-EPS)) return false;
-        if(cs*((ab*(cd+dr-cr)-(ac-bc)*(ar-br))*(ad+bd-ab)+
-               (ad*(bc+br-cr)-(ac-cd)*(ar-dr))*(ab+bd-ad)+
-               (bd*(ac+ar-cr)-(bc-cd)*(br-dr))*(ab+ad-bd)-2*ab*ad*bd) < OverlapReal(-EPS)) return false;
-        if(ds*((ab*(cd+cr-dr)-(ad-bd)*(ar-br))*(ac+bc-ab)+
-               (ac*(bd+br-dr)-(ad-cd)*(ar-cr))*(ab+bc-ac)+
-               (bc*(ad+ar-dr)-(bd-cd)*(br-cr))*(ab+ac-bc)-2*ab*ac*bc) < OverlapReal(-EPS)) return false;
+    if (as
+            * ((bc * (ad + dr - ar) - (ab - ac) * (br - cr)) * (bd + cd - bc)
+               + (bd * (ac + cr - ar) - (ab - ad) * (br - dr)) * (bc + cd - bd)
+               + (cd * (ab + br - ar) - (ac - ad) * (cr - dr)) * (bc + bd - cd) - 2 * bc * bd * cd)
+        < OverlapReal(-EPS))
+        return false;
+    if (bs
+            * ((ac * (bd + dr - br) - (ab - bc) * (ar - cr)) * (ad + cd - ac)
+               + (ad * (bc + cr - br) - (ab - bd) * (ar - dr)) * (ac + cd - ad)
+               + (cd * (ab + ar - br) - (bc - bd) * (cr - dr)) * (ac + ad - cd) - 2 * ac * ad * cd)
+        < OverlapReal(-EPS))
+        return false;
+    if (cs
+            * ((ab * (cd + dr - cr) - (ac - bc) * (ar - br)) * (ad + bd - ab)
+               + (ad * (bc + br - cr) - (ac - cd) * (ar - dr)) * (ab + bd - ad)
+               + (bd * (ac + ar - cr) - (bc - cd) * (br - dr)) * (ab + ad - bd) - 2 * ab * ad * bd)
+        < OverlapReal(-EPS))
+        return false;
+    if (ds
+            * ((ab * (cd + cr - dr) - (ad - bd) * (ar - br)) * (ac + bc - ab)
+               + (ac * (bd + br - dr) - (ad - cd) * (ar - cr)) * (ab + bc - ac)
+               + (bc * (ad + ar - dr) - (bd - cd) * (br - cr)) * (ab + ac - bc) - 2 * ab * ac * bc)
+        < OverlapReal(-EPS))
+        return false;
 
-        return(vok4(ab,ac,ad,ar,bc,bd,br,cd,cr,dr) <= OverlapReal(EPS));
+    return (vok4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr) <= OverlapReal(EPS));
     }
 
-DEVICE inline bool seq5(OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,
-              OverlapReal cd,OverlapReal ce,
-              OverlapReal de)
+DEVICE inline bool seq5(OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal de)
     {
-        if(as*ang4(bc,bd,be,ab,br,cd,ce,ac,cr,de,ad,dr,ae,er,ar) < OverlapReal(-EPS)) return false;
-        if(bs*ang4(ac,ad,ae,ab,ar,cd,ce,bc,cr,de,bd,dr,be,er,br) < OverlapReal(-EPS)) return false;
-        if(cs*ang4(ab,ad,ae,ac,ar,bd,be,bc,br,de,cd,dr,ce,er,cr) < OverlapReal(-EPS)) return false;
-        if(ds*ang4(ab,ac,ae,ad,ar,bc,be,bd,br,ce,cd,cr,de,er,dr) < OverlapReal(-EPS)) return false;
-        if(es*ang4(ab,ac,ad,ae,ar,bc,bd,be,br,cd,ce,cr,de,dr,er) < OverlapReal(-EPS)) return false;
+    if (as * ang4(bc, bd, be, ab, br, cd, ce, ac, cr, de, ad, dr, ae, er, ar) < OverlapReal(-EPS))
+        return false;
+    if (bs * ang4(ac, ad, ae, ab, ar, cd, ce, bc, cr, de, bd, dr, be, er, br) < OverlapReal(-EPS))
+        return false;
+    if (cs * ang4(ab, ad, ae, ac, ar, bd, be, bc, br, de, cd, dr, ce, er, cr) < OverlapReal(-EPS))
+        return false;
+    if (ds * ang4(ab, ac, ae, ad, ar, bc, be, bd, br, ce, cd, cr, de, er, dr) < OverlapReal(-EPS))
+        return false;
+    if (es * ang4(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) < OverlapReal(-EPS))
+        return false;
 
-        return(vok5(ab,ac,ad,ae,ar,bc,bd,be,br,cd,ce,cr,de,dr,er) <= OverlapReal(EPS));
+    return (vok5(ab, ac, ad, ae, ar, bc, bd, be, br, cd, ce, cr, de, dr, er) <= OverlapReal(EPS));
     }
 
-DEVICE inline bool seq6(OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,OverlapReal fs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,OverlapReal fr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-              OverlapReal cd,OverlapReal ce,OverlapReal cf,
-              OverlapReal de,OverlapReal df,
-              OverlapReal ef)
+DEVICE inline bool seq6(OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal fs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal fr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal af,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal bf,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal cf,
+                        OverlapReal de,
+                        OverlapReal df,
+                        OverlapReal ef)
     {
-        if(as*ang5(bc,bd,be,bf,ab,br,cd,ce,cf,ac,cr,de,df,ad,dr,ef,ae,er,af,fr,ar) < OverlapReal(-EPS)) return false;
-        if(bs*ang5(ac,ad,ae,af,ab,ar,cd,ce,cf,bc,cr,de,df,bd,dr,ef,be,er,bf,fr,br) < OverlapReal(-EPS)) return false;
-        if(cs*ang5(ab,ad,ae,af,ac,ar,bd,be,bf,bc,br,de,df,cd,dr,ef,ce,er,cf,fr,cr) < OverlapReal(-EPS)) return false;
-        if(ds*ang5(ab,ac,ae,af,ad,ar,bc,be,bf,bd,br,ce,cf,cd,cr,ef,de,er,df,fr,dr) < OverlapReal(-EPS)) return false;
-        if(es*ang5(ab,ac,ad,af,ae,ar,bc,bd,bf,be,br,cd,cf,ce,cr,df,de,dr,ef,fr,er) < OverlapReal(-EPS)) return false;
-        if(fs*ang5(ab,ac,ad,ae,af,ar,bc,bd,be,bf,br,cd,ce,cf,cr,de,df,dr,ef,er,fr) < OverlapReal(-EPS)) return false;
+    if (as
+            * ang5(bc,
+                   bd,
+                   be,
+                   bf,
+                   ab,
+                   br,
+                   cd,
+                   ce,
+                   cf,
+                   ac,
+                   cr,
+                   de,
+                   df,
+                   ad,
+                   dr,
+                   ef,
+                   ae,
+                   er,
+                   af,
+                   fr,
+                   ar)
+        < OverlapReal(-EPS))
+        return false;
+    if (bs
+            * ang5(ac,
+                   ad,
+                   ae,
+                   af,
+                   ab,
+                   ar,
+                   cd,
+                   ce,
+                   cf,
+                   bc,
+                   cr,
+                   de,
+                   df,
+                   bd,
+                   dr,
+                   ef,
+                   be,
+                   er,
+                   bf,
+                   fr,
+                   br)
+        < OverlapReal(-EPS))
+        return false;
+    if (cs
+            * ang5(ab,
+                   ad,
+                   ae,
+                   af,
+                   ac,
+                   ar,
+                   bd,
+                   be,
+                   bf,
+                   bc,
+                   br,
+                   de,
+                   df,
+                   cd,
+                   dr,
+                   ef,
+                   ce,
+                   er,
+                   cf,
+                   fr,
+                   cr)
+        < OverlapReal(-EPS))
+        return false;
+    if (ds
+            * ang5(ab,
+                   ac,
+                   ae,
+                   af,
+                   ad,
+                   ar,
+                   bc,
+                   be,
+                   bf,
+                   bd,
+                   br,
+                   ce,
+                   cf,
+                   cd,
+                   cr,
+                   ef,
+                   de,
+                   er,
+                   df,
+                   fr,
+                   dr)
+        < OverlapReal(-EPS))
+        return false;
+    if (es
+            * ang5(ab,
+                   ac,
+                   ad,
+                   af,
+                   ae,
+                   ar,
+                   bc,
+                   bd,
+                   bf,
+                   be,
+                   br,
+                   cd,
+                   cf,
+                   ce,
+                   cr,
+                   df,
+                   de,
+                   dr,
+                   ef,
+                   fr,
+                   er)
+        < OverlapReal(-EPS))
+        return false;
+    if (fs
+            * ang5(ab,
+                   ac,
+                   ad,
+                   ae,
+                   af,
+                   ar,
+                   bc,
+                   bd,
+                   be,
+                   bf,
+                   br,
+                   cd,
+                   ce,
+                   cf,
+                   cr,
+                   de,
+                   df,
+                   dr,
+                   ef,
+                   er,
+                   fr)
+        < OverlapReal(-EPS))
+        return false;
 
-        return(vok6(ab,ac,ad,ae,af,ar,bc,bd,be,bf,br,cd,ce,cf,cr,de,df,dr,ef,er,fr) <= OverlapReal(EPS));
+    return (vok6(ab, ac, ad, ae, af, ar, bc, bd, be, bf, br, cd, ce, cf, cr, de, df, dr, ef, er, fr)
+            <= OverlapReal(EPS));
     }
 
-DEVICE inline bool sep2(bool convex,
-              OverlapReal as,OverlapReal bs,
-              OverlapReal ar,OverlapReal br,
-              OverlapReal ab)
+DEVICE inline bool
+sep2(bool convex, OverlapReal as, OverlapReal bs, OverlapReal ar, OverlapReal br, OverlapReal ab)
     {
-        if(convex && (DIM == 0)) return false;
+    if (convex && (DIM == 0))
+        return false;
 
-        return seq2(as,bs,ar,br,ab);
+    return seq2(as, bs, ar, br, ab);
     }
 
 DEVICE inline bool sep3(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,
-              OverlapReal ab,OverlapReal ac,
-              OverlapReal bc)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal bc)
     {
-        if(convex && (DIM == 0)) return false;
+    if (convex && (DIM == 0))
+        return false;
 
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
 
-        if(convex && (DIM == 1)) return false;
+    if (convex && (DIM == 1))
+        return false;
 
-        return seq3(as,bs,cs,ar,br,cr,ab,ac,bc);
+    return seq3(as, bs, cs, ar, br, cr, ab, ac, bc);
     }
 
 DEVICE inline bool sep4(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,
-              OverlapReal bc,OverlapReal bd,
-              OverlapReal cd)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal cd)
     {
-        if(convex && (DIM == 0)) return false;
+    if (convex && (DIM == 0))
+        return false;
 
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(as,ds,ar,dr,ad)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
-        if(seq2(bs,ds,br,dr,bd)) return true;
-        if(seq2(cs,ds,cr,dr,cd)) return true;
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(as, ds, ar, dr, ad))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
+    if (seq2(bs, ds, br, dr, bd))
+        return true;
+    if (seq2(cs, ds, cr, dr, cd))
+        return true;
 
-        if(convex && (DIM == 1)) return false;
+    if (convex && (DIM == 1))
+        return false;
 
-        if(seq3(as,bs,cs,ar,br,cr,ab,ac,bc)) return true;
-        if(seq3(as,bs,ds,ar,br,dr,ab,ad,bd)) return true;
-        if(seq3(as,cs,ds,ar,cr,dr,ac,ad,cd)) return true;
-        if(seq3(bs,cs,ds,br,cr,dr,bc,bd,cd)) return true;
+    if (seq3(as, bs, cs, ar, br, cr, ab, ac, bc))
+        return true;
+    if (seq3(as, bs, ds, ar, br, dr, ab, ad, bd))
+        return true;
+    if (seq3(as, cs, ds, ar, cr, dr, ac, ad, cd))
+        return true;
+    if (seq3(bs, cs, ds, br, cr, dr, bc, bd, cd))
+        return true;
 
-        if(convex && (DIM == 2)) return false;
+    if (convex && (DIM == 2))
+        return false;
 
-        return seq4(as,bs,cs,ds,ar,br,cr,dr,ab,ac,ad,bc,bd,cd);
+    return seq4(as, bs, cs, ds, ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
 DEVICE inline bool sep5(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,
-              OverlapReal cd,OverlapReal ce,
-              OverlapReal de)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal de)
     {
-        if(convex && (DIM == 0)) return false;
+    if (convex && (DIM == 0))
+        return false;
 
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(as,ds,ar,dr,ad)) return true;
-        if(seq2(as,es,ar,er,ae)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
-        if(seq2(bs,ds,br,dr,bd)) return true;
-        if(seq2(bs,es,br,er,be)) return true;
-        if(seq2(cs,ds,cr,dr,cd)) return true;
-        if(seq2(cs,es,cr,er,ce)) return true;
-        if(seq2(ds,es,dr,er,de)) return true;
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(as, ds, ar, dr, ad))
+        return true;
+    if (seq2(as, es, ar, er, ae))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
+    if (seq2(bs, ds, br, dr, bd))
+        return true;
+    if (seq2(bs, es, br, er, be))
+        return true;
+    if (seq2(cs, ds, cr, dr, cd))
+        return true;
+    if (seq2(cs, es, cr, er, ce))
+        return true;
+    if (seq2(ds, es, dr, er, de))
+        return true;
 
-        if(convex && (DIM == 1)) return false;
+    if (convex && (DIM == 1))
+        return false;
 
-        if(seq3(as,bs,cs,ar,br,cr,ab,ac,bc)) return true;
-        if(seq3(as,bs,ds,ar,br,dr,ab,ad,bd)) return true;
-        if(seq3(as,bs,es,ar,br,er,ab,ae,be)) return true;
-        if(seq3(as,cs,ds,ar,cr,dr,ac,ad,cd)) return true;
-        if(seq3(as,cs,es,ar,cr,er,ac,ae,ce)) return true;
-        if(seq3(as,ds,es,ar,dr,er,ad,ae,de)) return true;
-        if(seq3(bs,cs,ds,br,cr,dr,bc,bd,cd)) return true;
-        if(seq3(bs,cs,es,br,cr,er,bc,be,ce)) return true;
-        if(seq3(bs,ds,es,br,dr,er,bd,be,de)) return true;
-        if(seq3(cs,ds,es,cr,dr,er,cd,ce,de)) return true;
+    if (seq3(as, bs, cs, ar, br, cr, ab, ac, bc))
+        return true;
+    if (seq3(as, bs, ds, ar, br, dr, ab, ad, bd))
+        return true;
+    if (seq3(as, bs, es, ar, br, er, ab, ae, be))
+        return true;
+    if (seq3(as, cs, ds, ar, cr, dr, ac, ad, cd))
+        return true;
+    if (seq3(as, cs, es, ar, cr, er, ac, ae, ce))
+        return true;
+    if (seq3(as, ds, es, ar, dr, er, ad, ae, de))
+        return true;
+    if (seq3(bs, cs, ds, br, cr, dr, bc, bd, cd))
+        return true;
+    if (seq3(bs, cs, es, br, cr, er, bc, be, ce))
+        return true;
+    if (seq3(bs, ds, es, br, dr, er, bd, be, de))
+        return true;
+    if (seq3(cs, ds, es, cr, dr, er, cd, ce, de))
+        return true;
 
-        if(convex && (DIM == 2)) return false;
+    if (convex && (DIM == 2))
+        return false;
 
-        if(seq4(as,bs,cs,ds,ar,br,cr,dr,ab,ac,ad,bc,bd,cd)) return true;
-        if(seq4(as,bs,cs,es,ar,br,cr,er,ab,ac,ae,bc,be,ce)) return true;
-        if(seq4(as,bs,ds,es,ar,br,dr,er,ab,ad,ae,bd,be,de)) return true;
-        if(seq4(as,cs,ds,es,ar,cr,dr,er,ac,ad,ae,cd,ce,de)) return true;
-        if(seq4(bs,cs,ds,es,br,cr,dr,er,bc,bd,be,cd,ce,de)) return true;
+    if (seq4(as, bs, cs, ds, ar, br, cr, dr, ab, ac, ad, bc, bd, cd))
+        return true;
+    if (seq4(as, bs, cs, es, ar, br, cr, er, ab, ac, ae, bc, be, ce))
+        return true;
+    if (seq4(as, bs, ds, es, ar, br, dr, er, ab, ad, ae, bd, be, de))
+        return true;
+    if (seq4(as, cs, ds, es, ar, cr, dr, er, ac, ad, ae, cd, ce, de))
+        return true;
+    if (seq4(bs, cs, ds, es, br, cr, dr, er, bc, bd, be, cd, ce, de))
+        return true;
 
-        if(convex && (DIM == 3)) return false;
+    if (convex && (DIM == 3))
+        return false;
 
-        return seq5(as,bs,cs,ds,es,ar,br,cr,dr,er,ab,ac,ad,ae,bc,bd,be,cd,ce,de);
+    return seq5(as, bs, cs, ds, es, ar, br, cr, dr, er, ab, ac, ad, ae, bc, bd, be, cd, ce, de);
     }
 
 DEVICE inline bool sep6(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,OverlapReal fs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,OverlapReal fr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-              OverlapReal cd,OverlapReal ce,OverlapReal cf,
-              OverlapReal de,OverlapReal df,
-              OverlapReal ef)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal fs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal fr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal af,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal bf,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal cf,
+                        OverlapReal de,
+                        OverlapReal df,
+                        OverlapReal ef)
     {
-        if(convex && (DIM == 0)) return false;
+    if (convex && (DIM == 0))
+        return false;
 
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(as,ds,ar,dr,ad)) return true;
-        if(seq2(as,es,ar,er,ae)) return true;
-        if(seq2(as,fs,ar,fr,af)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
-        if(seq2(bs,ds,br,dr,bd)) return true;
-        if(seq2(bs,es,br,er,be)) return true;
-        if(seq2(bs,fs,br,fr,bf)) return true;
-        if(seq2(cs,ds,cr,dr,cd)) return true;
-        if(seq2(cs,es,cr,er,ce)) return true;
-        if(seq2(cs,fs,cr,fr,cf)) return true;
-        if(seq2(ds,es,dr,er,de)) return true;
-        if(seq2(ds,fs,dr,fr,df)) return true;
-        if(seq2(es,fs,er,fr,ef)) return true;
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(as, ds, ar, dr, ad))
+        return true;
+    if (seq2(as, es, ar, er, ae))
+        return true;
+    if (seq2(as, fs, ar, fr, af))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
+    if (seq2(bs, ds, br, dr, bd))
+        return true;
+    if (seq2(bs, es, br, er, be))
+        return true;
+    if (seq2(bs, fs, br, fr, bf))
+        return true;
+    if (seq2(cs, ds, cr, dr, cd))
+        return true;
+    if (seq2(cs, es, cr, er, ce))
+        return true;
+    if (seq2(cs, fs, cr, fr, cf))
+        return true;
+    if (seq2(ds, es, dr, er, de))
+        return true;
+    if (seq2(ds, fs, dr, fr, df))
+        return true;
+    if (seq2(es, fs, er, fr, ef))
+        return true;
 
-        if(convex && (DIM == 1)) return false;
+    if (convex && (DIM == 1))
+        return false;
 
-        if(seq3(as,bs,cs,ar,br,cr,ab,ac,bc)) return true;
-        if(seq3(as,bs,ds,ar,br,dr,ab,ad,bd)) return true;
-        if(seq3(as,bs,es,ar,br,er,ab,ae,be)) return true;
-        if(seq3(as,bs,fs,ar,br,fr,ab,af,bf)) return true;
-        if(seq3(as,cs,ds,ar,cr,dr,ac,ad,cd)) return true;
-        if(seq3(as,cs,es,ar,cr,er,ac,ae,ce)) return true;
-        if(seq3(as,cs,fs,ar,cr,fr,ac,af,cf)) return true;
-        if(seq3(as,ds,es,ar,dr,er,ad,ae,de)) return true;
-        if(seq3(as,ds,fs,ar,dr,fr,ad,af,df)) return true;
-        if(seq3(as,es,fs,ar,er,fr,ae,af,ef)) return true;
-        if(seq3(bs,cs,ds,br,cr,dr,bc,bd,cd)) return true;
-        if(seq3(bs,cs,es,br,cr,er,bc,be,ce)) return true;
-        if(seq3(bs,cs,fs,br,cr,fr,bc,bf,cf)) return true;
-        if(seq3(bs,ds,es,br,dr,er,bd,be,de)) return true;
-        if(seq3(bs,ds,fs,br,dr,fr,bd,bf,df)) return true;
-        if(seq3(bs,es,fs,br,er,fr,be,bf,ef)) return true;
-        if(seq3(cs,ds,es,cr,dr,er,cd,ce,de)) return true;
-        if(seq3(cs,ds,fs,cr,dr,fr,cd,cf,df)) return true;
-        if(seq3(cs,es,fs,cr,er,fr,ce,cf,ef)) return true;
-        if(seq3(ds,es,fs,dr,er,fr,de,df,ef)) return true;
+    if (seq3(as, bs, cs, ar, br, cr, ab, ac, bc))
+        return true;
+    if (seq3(as, bs, ds, ar, br, dr, ab, ad, bd))
+        return true;
+    if (seq3(as, bs, es, ar, br, er, ab, ae, be))
+        return true;
+    if (seq3(as, bs, fs, ar, br, fr, ab, af, bf))
+        return true;
+    if (seq3(as, cs, ds, ar, cr, dr, ac, ad, cd))
+        return true;
+    if (seq3(as, cs, es, ar, cr, er, ac, ae, ce))
+        return true;
+    if (seq3(as, cs, fs, ar, cr, fr, ac, af, cf))
+        return true;
+    if (seq3(as, ds, es, ar, dr, er, ad, ae, de))
+        return true;
+    if (seq3(as, ds, fs, ar, dr, fr, ad, af, df))
+        return true;
+    if (seq3(as, es, fs, ar, er, fr, ae, af, ef))
+        return true;
+    if (seq3(bs, cs, ds, br, cr, dr, bc, bd, cd))
+        return true;
+    if (seq3(bs, cs, es, br, cr, er, bc, be, ce))
+        return true;
+    if (seq3(bs, cs, fs, br, cr, fr, bc, bf, cf))
+        return true;
+    if (seq3(bs, ds, es, br, dr, er, bd, be, de))
+        return true;
+    if (seq3(bs, ds, fs, br, dr, fr, bd, bf, df))
+        return true;
+    if (seq3(bs, es, fs, br, er, fr, be, bf, ef))
+        return true;
+    if (seq3(cs, ds, es, cr, dr, er, cd, ce, de))
+        return true;
+    if (seq3(cs, ds, fs, cr, dr, fr, cd, cf, df))
+        return true;
+    if (seq3(cs, es, fs, cr, er, fr, ce, cf, ef))
+        return true;
+    if (seq3(ds, es, fs, dr, er, fr, de, df, ef))
+        return true;
 
-        if(convex && (DIM == 2)) return false;
+    if (convex && (DIM == 2))
+        return false;
 
-        if(seq4(as,bs,cs,ds,ar,br,cr,dr,ab,ac,ad,bc,bd,cd)) return true;
-        if(seq4(as,bs,cs,es,ar,br,cr,er,ab,ac,ae,bc,be,ce)) return true;
-        if(seq4(as,bs,cs,fs,ar,br,cr,fr,ab,ac,af,bc,bf,cf)) return true;
-        if(seq4(as,bs,ds,es,ar,br,dr,er,ab,ad,ae,bd,be,de)) return true;
-        if(seq4(as,bs,ds,fs,ar,br,dr,fr,ab,ad,af,bd,bf,df)) return true;
-        if(seq4(as,bs,es,fs,ar,br,er,fr,ab,ae,af,be,bf,ef)) return true;
-        if(seq4(as,cs,ds,es,ar,cr,dr,er,ac,ad,ae,cd,ce,de)) return true;
-        if(seq4(as,cs,ds,fs,ar,cr,dr,fr,ac,ad,af,cd,cf,df)) return true;
-        if(seq4(as,cs,es,fs,ar,cr,er,fr,ac,ae,af,ce,cf,ef)) return true;
-        if(seq4(as,ds,es,fs,ar,dr,er,fr,ad,ae,af,de,df,ef)) return true;
-        if(seq4(bs,cs,ds,es,br,cr,dr,er,bc,bd,be,cd,ce,de)) return true;
-        if(seq4(bs,cs,ds,fs,br,cr,dr,fr,bc,bd,bf,cd,cf,df)) return true;
-        if(seq4(bs,cs,es,fs,br,cr,er,fr,bc,be,bf,ce,cf,ef)) return true;
-        if(seq4(bs,ds,es,fs,br,dr,er,fr,bd,be,bf,de,df,ef)) return true;
-        if(seq4(cs,ds,es,fs,cr,dr,er,fr,cd,ce,cf,de,df,ef)) return true;
+    if (seq4(as, bs, cs, ds, ar, br, cr, dr, ab, ac, ad, bc, bd, cd))
+        return true;
+    if (seq4(as, bs, cs, es, ar, br, cr, er, ab, ac, ae, bc, be, ce))
+        return true;
+    if (seq4(as, bs, cs, fs, ar, br, cr, fr, ab, ac, af, bc, bf, cf))
+        return true;
+    if (seq4(as, bs, ds, es, ar, br, dr, er, ab, ad, ae, bd, be, de))
+        return true;
+    if (seq4(as, bs, ds, fs, ar, br, dr, fr, ab, ad, af, bd, bf, df))
+        return true;
+    if (seq4(as, bs, es, fs, ar, br, er, fr, ab, ae, af, be, bf, ef))
+        return true;
+    if (seq4(as, cs, ds, es, ar, cr, dr, er, ac, ad, ae, cd, ce, de))
+        return true;
+    if (seq4(as, cs, ds, fs, ar, cr, dr, fr, ac, ad, af, cd, cf, df))
+        return true;
+    if (seq4(as, cs, es, fs, ar, cr, er, fr, ac, ae, af, ce, cf, ef))
+        return true;
+    if (seq4(as, ds, es, fs, ar, dr, er, fr, ad, ae, af, de, df, ef))
+        return true;
+    if (seq4(bs, cs, ds, es, br, cr, dr, er, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq4(bs, cs, ds, fs, br, cr, dr, fr, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq4(bs, cs, es, fs, br, cr, er, fr, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq4(bs, ds, es, fs, br, dr, er, fr, bd, be, bf, de, df, ef))
+        return true;
+    if (seq4(cs, ds, es, fs, cr, dr, er, fr, cd, ce, cf, de, df, ef))
+        return true;
 
-        if(convex && (DIM == 3)) return false;
+    if (convex && (DIM == 3))
+        return false;
 
-        if(seq5(as,bs,cs,ds,es,ar,br,cr,dr,er,ab,ac,ad,ae,bc,bd,be,cd,ce,de)) return true;
-        if(seq5(as,bs,cs,ds,fs,ar,br,cr,dr,fr,ab,ac,ad,af,bc,bd,bf,cd,cf,df)) return true;
-        if(seq5(as,bs,cs,es,fs,ar,br,cr,er,fr,ab,ac,ae,af,bc,be,bf,ce,cf,ef)) return true;
-        if(seq5(as,bs,ds,es,fs,ar,br,dr,er,fr,ab,ad,ae,af,bd,be,bf,de,df,ef)) return true;
-        if(seq5(as,cs,ds,es,fs,ar,cr,dr,er,fr,ac,ad,ae,af,cd,ce,cf,de,df,ef)) return true;
-        if(seq5(bs,cs,ds,es,fs,br,cr,dr,er,fr,bc,bd,be,bf,cd,ce,cf,de,df,ef)) return true;
+    if (seq5(as, bs, cs, ds, es, ar, br, cr, dr, er, ab, ac, ad, ae, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq5(as, bs, cs, ds, fs, ar, br, cr, dr, fr, ab, ac, ad, af, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq5(as, bs, cs, es, fs, ar, br, cr, er, fr, ab, ac, ae, af, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq5(as, bs, ds, es, fs, ar, br, dr, er, fr, ab, ad, ae, af, bd, be, bf, de, df, ef))
+        return true;
+    if (seq5(as, cs, ds, es, fs, ar, cr, dr, er, fr, ac, ad, ae, af, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq5(bs, cs, ds, es, fs, br, cr, dr, er, fr, bc, bd, be, bf, cd, ce, cf, de, df, ef))
+        return true;
 
-        if(convex && (DIM == 4)) return false;
+    if (convex && (DIM == 4))
+        return false;
 
-        return seq6(as,bs,cs,ds,es,fs,ar,br,cr,dr,er,fr,ab,ac,ad,ae,af,bc,bd,be,bf,cd,ce,cf,de,df,ef);
+    return seq6(as,
+                bs,
+                cs,
+                ds,
+                es,
+                fs,
+                ar,
+                br,
+                cr,
+                dr,
+                er,
+                fr,
+                ab,
+                ac,
+                ad,
+                ae,
+                af,
+                bc,
+                bd,
+                be,
+                bf,
+                cd,
+                ce,
+                cf,
+                de,
+                df,
+                ef);
     }
 
 DEVICE inline bool sep7(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,OverlapReal fs,OverlapReal gs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,OverlapReal fr,OverlapReal gr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
-              OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
-              OverlapReal de,OverlapReal df,OverlapReal dg,
-              OverlapReal ef,OverlapReal eg,
-              OverlapReal fg)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal fs,
+                        OverlapReal gs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal fr,
+                        OverlapReal gr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal af,
+                        OverlapReal ag,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal bf,
+                        OverlapReal bg,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal cf,
+                        OverlapReal cg,
+                        OverlapReal de,
+                        OverlapReal df,
+                        OverlapReal dg,
+                        OverlapReal ef,
+                        OverlapReal eg,
+                        OverlapReal fg)
     {
-        if(convex && (DIM == 0)) return false;
-
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(as,ds,ar,dr,ad)) return true;
-        if(seq2(as,es,ar,er,ae)) return true;
-        if(seq2(as,fs,ar,fr,af)) return true;
-        if(seq2(as,gs,ar,gr,ag)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
-        if(seq2(bs,ds,br,dr,bd)) return true;
-        if(seq2(bs,es,br,er,be)) return true;
-        if(seq2(bs,fs,br,fr,bf)) return true;
-        if(seq2(bs,gs,br,gr,bg)) return true;
-        if(seq2(cs,ds,cr,dr,cd)) return true;
-        if(seq2(cs,es,cr,er,ce)) return true;
-        if(seq2(cs,fs,cr,fr,cf)) return true;
-        if(seq2(cs,gs,cr,gr,cg)) return true;
-        if(seq2(ds,es,dr,er,de)) return true;
-        if(seq2(ds,fs,dr,fr,df)) return true;
-        if(seq2(ds,gs,dr,gr,dg)) return true;
-        if(seq2(es,fs,er,fr,ef)) return true;
-        if(seq2(es,gs,er,gr,eg)) return true;
-        if(seq2(fs,gs,fr,gr,fg)) return true;
-
-        if(convex && (DIM == 1)) return false;
-
-        if(seq3(as,bs,cs,ar,br,cr,ab,ac,bc)) return true;
-        if(seq3(as,bs,ds,ar,br,dr,ab,ad,bd)) return true;
-        if(seq3(as,bs,es,ar,br,er,ab,ae,be)) return true;
-        if(seq3(as,bs,fs,ar,br,fr,ab,af,bf)) return true;
-        if(seq3(as,bs,gs,ar,br,gr,ab,ag,bg)) return true;
-        if(seq3(as,cs,ds,ar,cr,dr,ac,ad,cd)) return true;
-        if(seq3(as,cs,es,ar,cr,er,ac,ae,ce)) return true;
-        if(seq3(as,cs,fs,ar,cr,fr,ac,af,cf)) return true;
-        if(seq3(as,cs,gs,ar,cr,gr,ac,ag,cg)) return true;
-        if(seq3(as,ds,es,ar,dr,er,ad,ae,de)) return true;
-        if(seq3(as,ds,fs,ar,dr,fr,ad,af,df)) return true;
-        if(seq3(as,ds,gs,ar,dr,gr,ad,ag,dg)) return true;
-        if(seq3(as,es,fs,ar,er,fr,ae,af,ef)) return true;
-        if(seq3(as,es,gs,ar,er,gr,ae,ag,eg)) return true;
-        if(seq3(as,fs,gs,ar,fr,gr,af,ag,fg)) return true;
-        if(seq3(bs,cs,ds,br,cr,dr,bc,bd,cd)) return true;
-        if(seq3(bs,cs,es,br,cr,er,bc,be,ce)) return true;
-        if(seq3(bs,cs,fs,br,cr,fr,bc,bf,cf)) return true;
-        if(seq3(bs,cs,gs,br,cr,gr,bc,bg,cg)) return true;
-        if(seq3(bs,ds,es,br,dr,er,bd,be,de)) return true;
-        if(seq3(bs,ds,fs,br,dr,fr,bd,bf,df)) return true;
-        if(seq3(bs,ds,gs,br,dr,gr,bd,bg,dg)) return true;
-        if(seq3(bs,es,fs,br,er,fr,be,bf,ef)) return true;
-        if(seq3(bs,es,gs,br,er,gr,be,bg,eg)) return true;
-        if(seq3(bs,fs,gs,br,fr,gr,bf,bg,fg)) return true;
-        if(seq3(cs,ds,es,cr,dr,er,cd,ce,de)) return true;
-        if(seq3(cs,ds,fs,cr,dr,fr,cd,cf,df)) return true;
-        if(seq3(cs,ds,gs,cr,dr,gr,cd,cg,dg)) return true;
-        if(seq3(cs,es,fs,cr,er,fr,ce,cf,ef)) return true;
-        if(seq3(cs,es,gs,cr,er,gr,ce,cg,eg)) return true;
-        if(seq3(cs,fs,gs,cr,fr,gr,cf,cg,fg)) return true;
-        if(seq3(ds,es,fs,dr,er,fr,de,df,ef)) return true;
-        if(seq3(ds,es,gs,dr,er,gr,de,dg,eg)) return true;
-        if(seq3(ds,fs,gs,dr,fr,gr,df,dg,fg)) return true;
-        if(seq3(es,fs,gs,er,fr,gr,ef,eg,fg)) return true;
-
-        if(convex && (DIM == 2)) return false;
-
-        if(seq4(as,bs,cs,ds,ar,br,cr,dr,ab,ac,ad,bc,bd,cd)) return true;
-        if(seq4(as,bs,cs,es,ar,br,cr,er,ab,ac,ae,bc,be,ce)) return true;
-        if(seq4(as,bs,cs,fs,ar,br,cr,fr,ab,ac,af,bc,bf,cf)) return true;
-        if(seq4(as,bs,cs,gs,ar,br,cr,gr,ab,ac,ag,bc,bg,cg)) return true;
-        if(seq4(as,bs,ds,es,ar,br,dr,er,ab,ad,ae,bd,be,de)) return true;
-        if(seq4(as,bs,ds,fs,ar,br,dr,fr,ab,ad,af,bd,bf,df)) return true;
-        if(seq4(as,bs,ds,gs,ar,br,dr,gr,ab,ad,ag,bd,bg,dg)) return true;
-        if(seq4(as,bs,es,fs,ar,br,er,fr,ab,ae,af,be,bf,ef)) return true;
-        if(seq4(as,bs,es,gs,ar,br,er,gr,ab,ae,ag,be,bg,eg)) return true;
-        if(seq4(as,bs,fs,gs,ar,br,fr,gr,ab,af,ag,bf,bg,fg)) return true;
-        if(seq4(as,cs,ds,es,ar,cr,dr,er,ac,ad,ae,cd,ce,de)) return true;
-        if(seq4(as,cs,ds,fs,ar,cr,dr,fr,ac,ad,af,cd,cf,df)) return true;
-        if(seq4(as,cs,ds,gs,ar,cr,dr,gr,ac,ad,ag,cd,cg,dg)) return true;
-        if(seq4(as,cs,es,fs,ar,cr,er,fr,ac,ae,af,ce,cf,ef)) return true;
-        if(seq4(as,cs,es,gs,ar,cr,er,gr,ac,ae,ag,ce,cg,eg)) return true;
-        if(seq4(as,cs,fs,gs,ar,cr,fr,gr,ac,af,ag,cf,cg,fg)) return true;
-        if(seq4(as,ds,es,fs,ar,dr,er,fr,ad,ae,af,de,df,ef)) return true;
-        if(seq4(as,ds,es,gs,ar,dr,er,gr,ad,ae,ag,de,dg,eg)) return true;
-        if(seq4(as,ds,fs,gs,ar,dr,fr,gr,ad,af,ag,df,dg,fg)) return true;
-        if(seq4(as,es,fs,gs,ar,er,fr,gr,ae,af,ag,ef,eg,fg)) return true;
-        if(seq4(bs,cs,ds,es,br,cr,dr,er,bc,bd,be,cd,ce,de)) return true;
-        if(seq4(bs,cs,ds,fs,br,cr,dr,fr,bc,bd,bf,cd,cf,df)) return true;
-        if(seq4(bs,cs,ds,gs,br,cr,dr,gr,bc,bd,bg,cd,cg,dg)) return true;
-        if(seq4(bs,cs,es,fs,br,cr,er,fr,bc,be,bf,ce,cf,ef)) return true;
-        if(seq4(bs,cs,es,gs,br,cr,er,gr,bc,be,bg,ce,cg,eg)) return true;
-        if(seq4(bs,cs,fs,gs,br,cr,fr,gr,bc,bf,bg,cf,cg,fg)) return true;
-        if(seq4(bs,ds,es,fs,br,dr,er,fr,bd,be,bf,de,df,ef)) return true;
-        if(seq4(bs,ds,es,gs,br,dr,er,gr,bd,be,bg,de,dg,eg)) return true;
-        if(seq4(bs,ds,fs,gs,br,dr,fr,gr,bd,bf,bg,df,dg,fg)) return true;
-        if(seq4(bs,es,fs,gs,br,er,fr,gr,be,bf,bg,ef,eg,fg)) return true;
-        if(seq4(cs,ds,es,fs,cr,dr,er,fr,cd,ce,cf,de,df,ef)) return true;
-        if(seq4(cs,ds,es,gs,cr,dr,er,gr,cd,ce,cg,de,dg,eg)) return true;
-        if(seq4(cs,ds,fs,gs,cr,dr,fr,gr,cd,cf,cg,df,dg,fg)) return true;
-        if(seq4(cs,es,fs,gs,cr,er,fr,gr,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq4(ds,es,fs,gs,dr,er,fr,gr,de,df,dg,ef,eg,fg)) return true;
-
-        if(convex && (DIM == 3)) return false;
-
-        if(seq5(as,bs,cs,ds,es,ar,br,cr,dr,er,ab,ac,ad,ae,bc,bd,be,cd,ce,de)) return true;
-        if(seq5(as,bs,cs,ds,fs,ar,br,cr,dr,fr,ab,ac,ad,af,bc,bd,bf,cd,cf,df)) return true;
-        if(seq5(as,bs,cs,ds,gs,ar,br,cr,dr,gr,ab,ac,ad,ag,bc,bd,bg,cd,cg,dg)) return true;
-        if(seq5(as,bs,cs,es,fs,ar,br,cr,er,fr,ab,ac,ae,af,bc,be,bf,ce,cf,ef)) return true;
-        if(seq5(as,bs,cs,es,gs,ar,br,cr,er,gr,ab,ac,ae,ag,bc,be,bg,ce,cg,eg)) return true;
-        if(seq5(as,bs,cs,fs,gs,ar,br,cr,fr,gr,ab,ac,af,ag,bc,bf,bg,cf,cg,fg)) return true;
-        if(seq5(as,bs,ds,es,fs,ar,br,dr,er,fr,ab,ad,ae,af,bd,be,bf,de,df,ef)) return true;
-        if(seq5(as,bs,ds,es,gs,ar,br,dr,er,gr,ab,ad,ae,ag,bd,be,bg,de,dg,eg)) return true;
-        if(seq5(as,bs,ds,fs,gs,ar,br,dr,fr,gr,ab,ad,af,ag,bd,bf,bg,df,dg,fg)) return true;
-        if(seq5(as,bs,es,fs,gs,ar,br,er,fr,gr,ab,ae,af,ag,be,bf,bg,ef,eg,fg)) return true;
-        if(seq5(as,cs,ds,es,fs,ar,cr,dr,er,fr,ac,ad,ae,af,cd,ce,cf,de,df,ef)) return true;
-        if(seq5(as,cs,ds,es,gs,ar,cr,dr,er,gr,ac,ad,ae,ag,cd,ce,cg,de,dg,eg)) return true;
-        if(seq5(as,cs,ds,fs,gs,ar,cr,dr,fr,gr,ac,ad,af,ag,cd,cf,cg,df,dg,fg)) return true;
-        if(seq5(as,cs,es,fs,gs,ar,cr,er,fr,gr,ac,ae,af,ag,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq5(as,ds,es,fs,gs,ar,dr,er,fr,gr,ad,ae,af,ag,de,df,dg,ef,eg,fg)) return true;
-        if(seq5(bs,cs,ds,es,fs,br,cr,dr,er,fr,bc,bd,be,bf,cd,ce,cf,de,df,ef)) return true;
-        if(seq5(bs,cs,ds,es,gs,br,cr,dr,er,gr,bc,bd,be,bg,cd,ce,cg,de,dg,eg)) return true;
-        if(seq5(bs,cs,ds,fs,gs,br,cr,dr,fr,gr,bc,bd,bf,bg,cd,cf,cg,df,dg,fg)) return true;
-        if(seq5(bs,cs,es,fs,gs,br,cr,er,fr,gr,bc,be,bf,bg,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq5(bs,ds,es,fs,gs,br,dr,er,fr,gr,bd,be,bf,bg,de,df,dg,ef,eg,fg)) return true;
-        if(seq5(cs,ds,es,fs,gs,cr,dr,er,fr,gr,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-
-        if(convex && (DIM == 4)) return false;
-
-        if(seq6(as,bs,cs,ds,es,fs,ar,br,cr,dr,er,fr,ab,ac,ad,ae,af,bc,bd,be,bf,cd,ce,cf,de,df,ef)) return true;
-        if(seq6(as,bs,cs,ds,es,gs,ar,br,cr,dr,er,gr,ab,ac,ad,ae,ag,bc,bd,be,bg,cd,ce,cg,de,dg,eg)) return true;
-        if(seq6(as,bs,cs,ds,fs,gs,ar,br,cr,dr,fr,gr,ab,ac,ad,af,ag,bc,bd,bf,bg,cd,cf,cg,df,dg,fg)) return true;
-        if(seq6(as,bs,cs,es,fs,gs,ar,br,cr,er,fr,gr,ab,ac,ae,af,ag,bc,be,bf,bg,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq6(as,bs,ds,es,fs,gs,ar,br,dr,er,fr,gr,ab,ad,ae,af,ag,bd,be,bf,bg,de,df,dg,ef,eg,fg)) return true;
-        if(seq6(as,cs,ds,es,fs,gs,ar,cr,dr,er,fr,gr,ac,ad,ae,af,ag,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-        if(seq6(bs,cs,ds,es,fs,gs,br,cr,dr,er,fr,gr,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-
-        if(convex && (DIM == 5)) return false;
-
-        //return seq7(as,bs,cs,ds,es,fs,gs,ar,br,cr,dr,er,fr,gr,ab,ac,ad,ae,af,ag,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg);
+    if (convex && (DIM == 0))
         return false;
+
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(as, ds, ar, dr, ad))
+        return true;
+    if (seq2(as, es, ar, er, ae))
+        return true;
+    if (seq2(as, fs, ar, fr, af))
+        return true;
+    if (seq2(as, gs, ar, gr, ag))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
+    if (seq2(bs, ds, br, dr, bd))
+        return true;
+    if (seq2(bs, es, br, er, be))
+        return true;
+    if (seq2(bs, fs, br, fr, bf))
+        return true;
+    if (seq2(bs, gs, br, gr, bg))
+        return true;
+    if (seq2(cs, ds, cr, dr, cd))
+        return true;
+    if (seq2(cs, es, cr, er, ce))
+        return true;
+    if (seq2(cs, fs, cr, fr, cf))
+        return true;
+    if (seq2(cs, gs, cr, gr, cg))
+        return true;
+    if (seq2(ds, es, dr, er, de))
+        return true;
+    if (seq2(ds, fs, dr, fr, df))
+        return true;
+    if (seq2(ds, gs, dr, gr, dg))
+        return true;
+    if (seq2(es, fs, er, fr, ef))
+        return true;
+    if (seq2(es, gs, er, gr, eg))
+        return true;
+    if (seq2(fs, gs, fr, gr, fg))
+        return true;
+
+    if (convex && (DIM == 1))
+        return false;
+
+    if (seq3(as, bs, cs, ar, br, cr, ab, ac, bc))
+        return true;
+    if (seq3(as, bs, ds, ar, br, dr, ab, ad, bd))
+        return true;
+    if (seq3(as, bs, es, ar, br, er, ab, ae, be))
+        return true;
+    if (seq3(as, bs, fs, ar, br, fr, ab, af, bf))
+        return true;
+    if (seq3(as, bs, gs, ar, br, gr, ab, ag, bg))
+        return true;
+    if (seq3(as, cs, ds, ar, cr, dr, ac, ad, cd))
+        return true;
+    if (seq3(as, cs, es, ar, cr, er, ac, ae, ce))
+        return true;
+    if (seq3(as, cs, fs, ar, cr, fr, ac, af, cf))
+        return true;
+    if (seq3(as, cs, gs, ar, cr, gr, ac, ag, cg))
+        return true;
+    if (seq3(as, ds, es, ar, dr, er, ad, ae, de))
+        return true;
+    if (seq3(as, ds, fs, ar, dr, fr, ad, af, df))
+        return true;
+    if (seq3(as, ds, gs, ar, dr, gr, ad, ag, dg))
+        return true;
+    if (seq3(as, es, fs, ar, er, fr, ae, af, ef))
+        return true;
+    if (seq3(as, es, gs, ar, er, gr, ae, ag, eg))
+        return true;
+    if (seq3(as, fs, gs, ar, fr, gr, af, ag, fg))
+        return true;
+    if (seq3(bs, cs, ds, br, cr, dr, bc, bd, cd))
+        return true;
+    if (seq3(bs, cs, es, br, cr, er, bc, be, ce))
+        return true;
+    if (seq3(bs, cs, fs, br, cr, fr, bc, bf, cf))
+        return true;
+    if (seq3(bs, cs, gs, br, cr, gr, bc, bg, cg))
+        return true;
+    if (seq3(bs, ds, es, br, dr, er, bd, be, de))
+        return true;
+    if (seq3(bs, ds, fs, br, dr, fr, bd, bf, df))
+        return true;
+    if (seq3(bs, ds, gs, br, dr, gr, bd, bg, dg))
+        return true;
+    if (seq3(bs, es, fs, br, er, fr, be, bf, ef))
+        return true;
+    if (seq3(bs, es, gs, br, er, gr, be, bg, eg))
+        return true;
+    if (seq3(bs, fs, gs, br, fr, gr, bf, bg, fg))
+        return true;
+    if (seq3(cs, ds, es, cr, dr, er, cd, ce, de))
+        return true;
+    if (seq3(cs, ds, fs, cr, dr, fr, cd, cf, df))
+        return true;
+    if (seq3(cs, ds, gs, cr, dr, gr, cd, cg, dg))
+        return true;
+    if (seq3(cs, es, fs, cr, er, fr, ce, cf, ef))
+        return true;
+    if (seq3(cs, es, gs, cr, er, gr, ce, cg, eg))
+        return true;
+    if (seq3(cs, fs, gs, cr, fr, gr, cf, cg, fg))
+        return true;
+    if (seq3(ds, es, fs, dr, er, fr, de, df, ef))
+        return true;
+    if (seq3(ds, es, gs, dr, er, gr, de, dg, eg))
+        return true;
+    if (seq3(ds, fs, gs, dr, fr, gr, df, dg, fg))
+        return true;
+    if (seq3(es, fs, gs, er, fr, gr, ef, eg, fg))
+        return true;
+
+    if (convex && (DIM == 2))
+        return false;
+
+    if (seq4(as, bs, cs, ds, ar, br, cr, dr, ab, ac, ad, bc, bd, cd))
+        return true;
+    if (seq4(as, bs, cs, es, ar, br, cr, er, ab, ac, ae, bc, be, ce))
+        return true;
+    if (seq4(as, bs, cs, fs, ar, br, cr, fr, ab, ac, af, bc, bf, cf))
+        return true;
+    if (seq4(as, bs, cs, gs, ar, br, cr, gr, ab, ac, ag, bc, bg, cg))
+        return true;
+    if (seq4(as, bs, ds, es, ar, br, dr, er, ab, ad, ae, bd, be, de))
+        return true;
+    if (seq4(as, bs, ds, fs, ar, br, dr, fr, ab, ad, af, bd, bf, df))
+        return true;
+    if (seq4(as, bs, ds, gs, ar, br, dr, gr, ab, ad, ag, bd, bg, dg))
+        return true;
+    if (seq4(as, bs, es, fs, ar, br, er, fr, ab, ae, af, be, bf, ef))
+        return true;
+    if (seq4(as, bs, es, gs, ar, br, er, gr, ab, ae, ag, be, bg, eg))
+        return true;
+    if (seq4(as, bs, fs, gs, ar, br, fr, gr, ab, af, ag, bf, bg, fg))
+        return true;
+    if (seq4(as, cs, ds, es, ar, cr, dr, er, ac, ad, ae, cd, ce, de))
+        return true;
+    if (seq4(as, cs, ds, fs, ar, cr, dr, fr, ac, ad, af, cd, cf, df))
+        return true;
+    if (seq4(as, cs, ds, gs, ar, cr, dr, gr, ac, ad, ag, cd, cg, dg))
+        return true;
+    if (seq4(as, cs, es, fs, ar, cr, er, fr, ac, ae, af, ce, cf, ef))
+        return true;
+    if (seq4(as, cs, es, gs, ar, cr, er, gr, ac, ae, ag, ce, cg, eg))
+        return true;
+    if (seq4(as, cs, fs, gs, ar, cr, fr, gr, ac, af, ag, cf, cg, fg))
+        return true;
+    if (seq4(as, ds, es, fs, ar, dr, er, fr, ad, ae, af, de, df, ef))
+        return true;
+    if (seq4(as, ds, es, gs, ar, dr, er, gr, ad, ae, ag, de, dg, eg))
+        return true;
+    if (seq4(as, ds, fs, gs, ar, dr, fr, gr, ad, af, ag, df, dg, fg))
+        return true;
+    if (seq4(as, es, fs, gs, ar, er, fr, gr, ae, af, ag, ef, eg, fg))
+        return true;
+    if (seq4(bs, cs, ds, es, br, cr, dr, er, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq4(bs, cs, ds, fs, br, cr, dr, fr, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq4(bs, cs, ds, gs, br, cr, dr, gr, bc, bd, bg, cd, cg, dg))
+        return true;
+    if (seq4(bs, cs, es, fs, br, cr, er, fr, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq4(bs, cs, es, gs, br, cr, er, gr, bc, be, bg, ce, cg, eg))
+        return true;
+    if (seq4(bs, cs, fs, gs, br, cr, fr, gr, bc, bf, bg, cf, cg, fg))
+        return true;
+    if (seq4(bs, ds, es, fs, br, dr, er, fr, bd, be, bf, de, df, ef))
+        return true;
+    if (seq4(bs, ds, es, gs, br, dr, er, gr, bd, be, bg, de, dg, eg))
+        return true;
+    if (seq4(bs, ds, fs, gs, br, dr, fr, gr, bd, bf, bg, df, dg, fg))
+        return true;
+    if (seq4(bs, es, fs, gs, br, er, fr, gr, be, bf, bg, ef, eg, fg))
+        return true;
+    if (seq4(cs, ds, es, fs, cr, dr, er, fr, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq4(cs, ds, es, gs, cr, dr, er, gr, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq4(cs, ds, fs, gs, cr, dr, fr, gr, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq4(cs, es, fs, gs, cr, er, fr, gr, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq4(ds, es, fs, gs, dr, er, fr, gr, de, df, dg, ef, eg, fg))
+        return true;
+
+    if (convex && (DIM == 3))
+        return false;
+
+    if (seq5(as, bs, cs, ds, es, ar, br, cr, dr, er, ab, ac, ad, ae, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq5(as, bs, cs, ds, fs, ar, br, cr, dr, fr, ab, ac, ad, af, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq5(as, bs, cs, ds, gs, ar, br, cr, dr, gr, ab, ac, ad, ag, bc, bd, bg, cd, cg, dg))
+        return true;
+    if (seq5(as, bs, cs, es, fs, ar, br, cr, er, fr, ab, ac, ae, af, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq5(as, bs, cs, es, gs, ar, br, cr, er, gr, ab, ac, ae, ag, bc, be, bg, ce, cg, eg))
+        return true;
+    if (seq5(as, bs, cs, fs, gs, ar, br, cr, fr, gr, ab, ac, af, ag, bc, bf, bg, cf, cg, fg))
+        return true;
+    if (seq5(as, bs, ds, es, fs, ar, br, dr, er, fr, ab, ad, ae, af, bd, be, bf, de, df, ef))
+        return true;
+    if (seq5(as, bs, ds, es, gs, ar, br, dr, er, gr, ab, ad, ae, ag, bd, be, bg, de, dg, eg))
+        return true;
+    if (seq5(as, bs, ds, fs, gs, ar, br, dr, fr, gr, ab, ad, af, ag, bd, bf, bg, df, dg, fg))
+        return true;
+    if (seq5(as, bs, es, fs, gs, ar, br, er, fr, gr, ab, ae, af, ag, be, bf, bg, ef, eg, fg))
+        return true;
+    if (seq5(as, cs, ds, es, fs, ar, cr, dr, er, fr, ac, ad, ae, af, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq5(as, cs, ds, es, gs, ar, cr, dr, er, gr, ac, ad, ae, ag, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq5(as, cs, ds, fs, gs, ar, cr, dr, fr, gr, ac, ad, af, ag, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq5(as, cs, es, fs, gs, ar, cr, er, fr, gr, ac, ae, af, ag, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq5(as, ds, es, fs, gs, ar, dr, er, fr, gr, ad, ae, af, ag, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq5(bs, cs, ds, es, fs, br, cr, dr, er, fr, bc, bd, be, bf, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq5(bs, cs, ds, es, gs, br, cr, dr, er, gr, bc, bd, be, bg, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq5(bs, cs, ds, fs, gs, br, cr, dr, fr, gr, bc, bd, bf, bg, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq5(bs, cs, es, fs, gs, br, cr, er, fr, gr, bc, be, bf, bg, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq5(bs, ds, es, fs, gs, br, dr, er, fr, gr, bd, be, bf, bg, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq5(cs, ds, es, fs, gs, cr, dr, er, fr, gr, cd, ce, cf, cg, de, df, dg, ef, eg, fg))
+        return true;
+
+    if (convex && (DIM == 4))
+        return false;
+
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             es,
+             fs,
+             ar,
+             br,
+             cr,
+             dr,
+             er,
+             fr,
+             ab,
+             ac,
+             ad,
+             ae,
+             af,
+             bc,
+             bd,
+             be,
+             bf,
+             cd,
+             ce,
+             cf,
+             de,
+             df,
+             ef))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             es,
+             gs,
+             ar,
+             br,
+             cr,
+             dr,
+             er,
+             gr,
+             ab,
+             ac,
+             ad,
+             ae,
+             ag,
+             bc,
+             bd,
+             be,
+             bg,
+             cd,
+             ce,
+             cg,
+             de,
+             dg,
+             eg))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             fs,
+             gs,
+             ar,
+             br,
+             cr,
+             dr,
+             fr,
+             gr,
+             ab,
+             ac,
+             ad,
+             af,
+             ag,
+             bc,
+             bd,
+             bf,
+             bg,
+             cd,
+             cf,
+             cg,
+             df,
+             dg,
+             fg))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             es,
+             fs,
+             gs,
+             ar,
+             br,
+             cr,
+             er,
+             fr,
+             gr,
+             ab,
+             ac,
+             ae,
+             af,
+             ag,
+             bc,
+             be,
+             bf,
+             bg,
+             ce,
+             cf,
+             cg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(as,
+             bs,
+             ds,
+             es,
+             fs,
+             gs,
+             ar,
+             br,
+             dr,
+             er,
+             fr,
+             gr,
+             ab,
+             ad,
+             ae,
+             af,
+             ag,
+             bd,
+             be,
+             bf,
+             bg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(as,
+             cs,
+             ds,
+             es,
+             fs,
+             gs,
+             ar,
+             cr,
+             dr,
+             er,
+             fr,
+             gr,
+             ac,
+             ad,
+             ae,
+             af,
+             ag,
+             cd,
+             ce,
+             cf,
+             cg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(bs,
+             cs,
+             ds,
+             es,
+             fs,
+             gs,
+             br,
+             cr,
+             dr,
+             er,
+             fr,
+             gr,
+             bc,
+             bd,
+             be,
+             bf,
+             bg,
+             cd,
+             ce,
+             cf,
+             cg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+
+    if (convex && (DIM == 5))
+        return false;
+
+    // return
+    // seq7(as,bs,cs,ds,es,fs,gs,ar,br,cr,dr,er,fr,gr,ab,ac,ad,ae,af,ag,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg);
+    return false;
     }
 
 DEVICE inline bool sep8(bool convex,
-              OverlapReal as,OverlapReal bs,OverlapReal cs,OverlapReal ds,OverlapReal es,OverlapReal fs,OverlapReal gs,OverlapReal hs,
-              OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal er,OverlapReal fr,OverlapReal gr,OverlapReal hr,
-              OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,OverlapReal ah,
-              OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,OverlapReal bh,
-              OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,OverlapReal ch,
-              OverlapReal de,OverlapReal df,OverlapReal dg,OverlapReal dh,
-              OverlapReal ef,OverlapReal eg,OverlapReal eh,
-              OverlapReal fg,OverlapReal fh,
-              OverlapReal gh)
+                        OverlapReal as,
+                        OverlapReal bs,
+                        OverlapReal cs,
+                        OverlapReal ds,
+                        OverlapReal es,
+                        OverlapReal fs,
+                        OverlapReal gs,
+                        OverlapReal hs,
+                        OverlapReal ar,
+                        OverlapReal br,
+                        OverlapReal cr,
+                        OverlapReal dr,
+                        OverlapReal er,
+                        OverlapReal fr,
+                        OverlapReal gr,
+                        OverlapReal hr,
+                        OverlapReal ab,
+                        OverlapReal ac,
+                        OverlapReal ad,
+                        OverlapReal ae,
+                        OverlapReal af,
+                        OverlapReal ag,
+                        OverlapReal ah,
+                        OverlapReal bc,
+                        OverlapReal bd,
+                        OverlapReal be,
+                        OverlapReal bf,
+                        OverlapReal bg,
+                        OverlapReal bh,
+                        OverlapReal cd,
+                        OverlapReal ce,
+                        OverlapReal cf,
+                        OverlapReal cg,
+                        OverlapReal ch,
+                        OverlapReal de,
+                        OverlapReal df,
+                        OverlapReal dg,
+                        OverlapReal dh,
+                        OverlapReal ef,
+                        OverlapReal eg,
+                        OverlapReal eh,
+                        OverlapReal fg,
+                        OverlapReal fh,
+                        OverlapReal gh)
     {
-        if(convex && (DIM == 0)) return false;
-
-        if(seq2(as,bs,ar,br,ab)) return true;
-        if(seq2(as,cs,ar,cr,ac)) return true;
-        if(seq2(as,ds,ar,dr,ad)) return true;
-        if(seq2(as,es,ar,er,ae)) return true;
-        if(seq2(as,fs,ar,fr,af)) return true;
-        if(seq2(as,gs,ar,gr,ag)) return true;
-        if(seq2(as,hs,ar,hr,ah)) return true;
-        if(seq2(bs,cs,br,cr,bc)) return true;
-        if(seq2(bs,ds,br,dr,bd)) return true;
-        if(seq2(bs,es,br,er,be)) return true;
-        if(seq2(bs,fs,br,fr,bf)) return true;
-        if(seq2(bs,gs,br,gr,bg)) return true;
-        if(seq2(bs,hs,br,hr,bh)) return true;
-        if(seq2(cs,ds,cr,dr,cd)) return true;
-        if(seq2(cs,es,cr,er,ce)) return true;
-        if(seq2(cs,fs,cr,fr,cf)) return true;
-        if(seq2(cs,gs,cr,gr,cg)) return true;
-        if(seq2(cs,hs,cr,hr,ch)) return true;
-        if(seq2(ds,es,dr,er,de)) return true;
-        if(seq2(ds,fs,dr,fr,df)) return true;
-        if(seq2(ds,gs,dr,gr,dg)) return true;
-        if(seq2(ds,hs,dr,hr,dh)) return true;
-        if(seq2(es,fs,er,fr,ef)) return true;
-        if(seq2(es,gs,er,gr,eg)) return true;
-        if(seq2(es,hs,er,hr,eh)) return true;
-        if(seq2(fs,gs,fr,gr,fg)) return true;
-        if(seq2(fs,hs,fr,hr,fh)) return true;
-        if(seq2(gs,hs,gr,hr,gh)) return true;
-
-        if(convex && (DIM == 1)) return false;
-
-        if(seq3(as,bs,cs,ar,br,cr,ab,ac,bc)) return true;
-        if(seq3(as,bs,ds,ar,br,dr,ab,ad,bd)) return true;
-        if(seq3(as,bs,es,ar,br,er,ab,ae,be)) return true;
-        if(seq3(as,bs,fs,ar,br,fr,ab,af,bf)) return true;
-        if(seq3(as,bs,gs,ar,br,gr,ab,ag,bg)) return true;
-        if(seq3(as,bs,hs,ar,br,hr,ab,ah,bh)) return true;
-        if(seq3(as,cs,ds,ar,cr,dr,ac,ad,cd)) return true;
-        if(seq3(as,cs,es,ar,cr,er,ac,ae,ce)) return true;
-        if(seq3(as,cs,fs,ar,cr,fr,ac,af,cf)) return true;
-        if(seq3(as,cs,gs,ar,cr,gr,ac,ag,cg)) return true;
-        if(seq3(as,cs,hs,ar,cr,hr,ac,ah,ch)) return true;
-        if(seq3(as,ds,es,ar,dr,er,ad,ae,de)) return true;
-        if(seq3(as,ds,fs,ar,dr,fr,ad,af,df)) return true;
-        if(seq3(as,ds,gs,ar,dr,gr,ad,ag,dg)) return true;
-        if(seq3(as,ds,hs,ar,dr,hr,ad,ah,dh)) return true;
-        if(seq3(as,es,fs,ar,er,fr,ae,af,ef)) return true;
-        if(seq3(as,es,gs,ar,er,gr,ae,ag,eg)) return true;
-        if(seq3(as,es,hs,ar,er,hr,ae,ah,eh)) return true;
-        if(seq3(as,fs,gs,ar,fr,gr,af,ag,fg)) return true;
-        if(seq3(as,fs,hs,ar,fr,hr,af,ah,fh)) return true;
-        if(seq3(as,gs,hs,ar,gr,hr,ag,ah,gh)) return true;
-        if(seq3(bs,cs,ds,br,cr,dr,bc,bd,cd)) return true;
-        if(seq3(bs,cs,es,br,cr,er,bc,be,ce)) return true;
-        if(seq3(bs,cs,fs,br,cr,fr,bc,bf,cf)) return true;
-        if(seq3(bs,cs,gs,br,cr,gr,bc,bg,cg)) return true;
-        if(seq3(bs,cs,hs,br,cr,hr,bc,bh,ch)) return true;
-        if(seq3(bs,ds,es,br,dr,er,bd,be,de)) return true;
-        if(seq3(bs,ds,fs,br,dr,fr,bd,bf,df)) return true;
-        if(seq3(bs,ds,gs,br,dr,gr,bd,bg,dg)) return true;
-        if(seq3(bs,ds,hs,br,dr,hr,bd,bh,dh)) return true;
-        if(seq3(bs,es,fs,br,er,fr,be,bf,ef)) return true;
-        if(seq3(bs,es,gs,br,er,gr,be,bg,eg)) return true;
-        if(seq3(bs,es,hs,br,er,hr,be,bh,eh)) return true;
-        if(seq3(bs,fs,gs,br,fr,gr,bf,bg,fg)) return true;
-        if(seq3(bs,fs,hs,br,fr,hr,bf,bh,fh)) return true;
-        if(seq3(bs,gs,hs,br,gr,hr,bg,bh,gh)) return true;
-        if(seq3(cs,ds,es,cr,dr,er,cd,ce,de)) return true;
-        if(seq3(cs,ds,fs,cr,dr,fr,cd,cf,df)) return true;
-        if(seq3(cs,ds,gs,cr,dr,gr,cd,cg,dg)) return true;
-        if(seq3(cs,ds,hs,cr,dr,hr,cd,ch,dh)) return true;
-        if(seq3(cs,es,fs,cr,er,fr,ce,cf,ef)) return true;
-        if(seq3(cs,es,gs,cr,er,gr,ce,cg,eg)) return true;
-        if(seq3(cs,es,hs,cr,er,hr,ce,ch,eh)) return true;
-        if(seq3(cs,fs,gs,cr,fr,gr,cf,cg,fg)) return true;
-        if(seq3(cs,fs,hs,cr,fr,hr,cf,ch,fh)) return true;
-        if(seq3(cs,gs,hs,cr,gr,hr,cg,ch,gh)) return true;
-        if(seq3(ds,es,fs,dr,er,fr,de,df,ef)) return true;
-        if(seq3(ds,es,gs,dr,er,gr,de,dg,eg)) return true;
-        if(seq3(ds,es,hs,dr,er,hr,de,dh,eh)) return true;
-        if(seq3(ds,fs,gs,dr,fr,gr,df,dg,fg)) return true;
-        if(seq3(ds,fs,hs,dr,fr,hr,df,dh,fh)) return true;
-        if(seq3(ds,gs,hs,dr,gr,hr,dg,dh,gh)) return true;
-        if(seq3(es,fs,gs,er,fr,gr,ef,eg,fg)) return true;
-        if(seq3(es,fs,hs,er,fr,hr,ef,eh,fh)) return true;
-        if(seq3(es,gs,hs,er,gr,hr,eg,eh,gh)) return true;
-        if(seq3(fs,gs,hs,fr,gr,hr,fg,fh,gh)) return true;
-
-        if(convex && (DIM == 2)) return false;
-
-        if(seq4(as,bs,cs,ds,ar,br,cr,dr,ab,ac,ad,bc,bd,cd)) return true;
-        if(seq4(as,bs,cs,es,ar,br,cr,er,ab,ac,ae,bc,be,ce)) return true;
-        if(seq4(as,bs,cs,fs,ar,br,cr,fr,ab,ac,af,bc,bf,cf)) return true;
-        if(seq4(as,bs,cs,gs,ar,br,cr,gr,ab,ac,ag,bc,bg,cg)) return true;
-        if(seq4(as,bs,cs,hs,ar,br,cr,hr,ab,ac,ah,bc,bh,ch)) return true;
-        if(seq4(as,bs,ds,es,ar,br,dr,er,ab,ad,ae,bd,be,de)) return true;
-        if(seq4(as,bs,ds,fs,ar,br,dr,fr,ab,ad,af,bd,bf,df)) return true;
-        if(seq4(as,bs,ds,gs,ar,br,dr,gr,ab,ad,ag,bd,bg,dg)) return true;
-        if(seq4(as,bs,ds,hs,ar,br,dr,hr,ab,ad,ah,bd,bh,dh)) return true;
-        if(seq4(as,bs,es,fs,ar,br,er,fr,ab,ae,af,be,bf,ef)) return true;
-        if(seq4(as,bs,es,gs,ar,br,er,gr,ab,ae,ag,be,bg,eg)) return true;
-        if(seq4(as,bs,es,hs,ar,br,er,hr,ab,ae,ah,be,bh,eh)) return true;
-        if(seq4(as,bs,fs,gs,ar,br,fr,gr,ab,af,ag,bf,bg,fg)) return true;
-        if(seq4(as,bs,fs,hs,ar,br,fr,hr,ab,af,ah,bf,bh,fh)) return true;
-        if(seq4(as,bs,gs,hs,ar,br,gr,hr,ab,ag,ah,bg,bh,gh)) return true;
-        if(seq4(as,cs,ds,es,ar,cr,dr,er,ac,ad,ae,cd,ce,de)) return true;
-        if(seq4(as,cs,ds,fs,ar,cr,dr,fr,ac,ad,af,cd,cf,df)) return true;
-        if(seq4(as,cs,ds,gs,ar,cr,dr,gr,ac,ad,ag,cd,cg,dg)) return true;
-        if(seq4(as,cs,ds,hs,ar,cr,dr,hr,ac,ad,ah,cd,ch,dh)) return true;
-        if(seq4(as,cs,es,fs,ar,cr,er,fr,ac,ae,af,ce,cf,ef)) return true;
-        if(seq4(as,cs,es,gs,ar,cr,er,gr,ac,ae,ag,ce,cg,eg)) return true;
-        if(seq4(as,cs,es,hs,ar,cr,er,hr,ac,ae,ah,ce,ch,eh)) return true;
-        if(seq4(as,cs,fs,gs,ar,cr,fr,gr,ac,af,ag,cf,cg,fg)) return true;
-        if(seq4(as,cs,fs,hs,ar,cr,fr,hr,ac,af,ah,cf,ch,fh)) return true;
-        if(seq4(as,cs,gs,hs,ar,cr,gr,hr,ac,ag,ah,cg,ch,gh)) return true;
-        if(seq4(as,ds,es,fs,ar,dr,er,fr,ad,ae,af,de,df,ef)) return true;
-        if(seq4(as,ds,es,gs,ar,dr,er,gr,ad,ae,ag,de,dg,eg)) return true;
-        if(seq4(as,ds,es,hs,ar,dr,er,hr,ad,ae,ah,de,dh,eh)) return true;
-        if(seq4(as,ds,fs,gs,ar,dr,fr,gr,ad,af,ag,df,dg,fg)) return true;
-        if(seq4(as,ds,fs,hs,ar,dr,fr,hr,ad,af,ah,df,dh,fh)) return true;
-        if(seq4(as,ds,gs,hs,ar,dr,gr,hr,ad,ag,ah,dg,dh,gh)) return true;
-        if(seq4(as,es,fs,gs,ar,er,fr,gr,ae,af,ag,ef,eg,fg)) return true;
-        if(seq4(as,es,fs,hs,ar,er,fr,hr,ae,af,ah,ef,eh,fh)) return true;
-        if(seq4(as,es,gs,hs,ar,er,gr,hr,ae,ag,ah,eg,eh,gh)) return true;
-        if(seq4(as,fs,gs,hs,ar,fr,gr,hr,af,ag,ah,fg,fh,gh)) return true;
-        if(seq4(bs,cs,ds,es,br,cr,dr,er,bc,bd,be,cd,ce,de)) return true;
-        if(seq4(bs,cs,ds,fs,br,cr,dr,fr,bc,bd,bf,cd,cf,df)) return true;
-        if(seq4(bs,cs,ds,gs,br,cr,dr,gr,bc,bd,bg,cd,cg,dg)) return true;
-        if(seq4(bs,cs,ds,hs,br,cr,dr,hr,bc,bd,bh,cd,ch,dh)) return true;
-        if(seq4(bs,cs,es,fs,br,cr,er,fr,bc,be,bf,ce,cf,ef)) return true;
-        if(seq4(bs,cs,es,gs,br,cr,er,gr,bc,be,bg,ce,cg,eg)) return true;
-        if(seq4(bs,cs,es,hs,br,cr,er,hr,bc,be,bh,ce,ch,eh)) return true;
-        if(seq4(bs,cs,fs,gs,br,cr,fr,gr,bc,bf,bg,cf,cg,fg)) return true;
-        if(seq4(bs,cs,fs,hs,br,cr,fr,hr,bc,bf,bh,cf,ch,fh)) return true;
-        if(seq4(bs,cs,gs,hs,br,cr,gr,hr,bc,bg,bh,cg,ch,gh)) return true;
-        if(seq4(bs,ds,es,fs,br,dr,er,fr,bd,be,bf,de,df,ef)) return true;
-        if(seq4(bs,ds,es,gs,br,dr,er,gr,bd,be,bg,de,dg,eg)) return true;
-        if(seq4(bs,ds,es,hs,br,dr,er,hr,bd,be,bh,de,dh,eh)) return true;
-        if(seq4(bs,ds,fs,gs,br,dr,fr,gr,bd,bf,bg,df,dg,fg)) return true;
-        if(seq4(bs,ds,fs,hs,br,dr,fr,hr,bd,bf,bh,df,dh,fh)) return true;
-        if(seq4(bs,ds,gs,hs,br,dr,gr,hr,bd,bg,bh,dg,dh,gh)) return true;
-        if(seq4(bs,es,fs,gs,br,er,fr,gr,be,bf,bg,ef,eg,fg)) return true;
-        if(seq4(bs,es,fs,hs,br,er,fr,hr,be,bf,bh,ef,eh,fh)) return true;
-        if(seq4(bs,es,gs,hs,br,er,gr,hr,be,bg,bh,eg,eh,gh)) return true;
-        if(seq4(bs,fs,gs,hs,br,fr,gr,hr,bf,bg,bh,fg,fh,gh)) return true;
-        if(seq4(cs,ds,es,fs,cr,dr,er,fr,cd,ce,cf,de,df,ef)) return true;
-        if(seq4(cs,ds,es,gs,cr,dr,er,gr,cd,ce,cg,de,dg,eg)) return true;
-        if(seq4(cs,ds,es,hs,cr,dr,er,hr,cd,ce,ch,de,dh,eh)) return true;
-        if(seq4(cs,ds,fs,gs,cr,dr,fr,gr,cd,cf,cg,df,dg,fg)) return true;
-        if(seq4(cs,ds,fs,hs,cr,dr,fr,hr,cd,cf,ch,df,dh,fh)) return true;
-        if(seq4(cs,ds,gs,hs,cr,dr,gr,hr,cd,cg,ch,dg,dh,gh)) return true;
-        if(seq4(cs,es,fs,gs,cr,er,fr,gr,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq4(cs,es,fs,hs,cr,er,fr,hr,ce,cf,ch,ef,eh,fh)) return true;
-        if(seq4(cs,es,gs,hs,cr,er,gr,hr,ce,cg,ch,eg,eh,gh)) return true;
-        if(seq4(cs,fs,gs,hs,cr,fr,gr,hr,cf,cg,ch,fg,fh,gh)) return true;
-        if(seq4(ds,es,fs,gs,dr,er,fr,gr,de,df,dg,ef,eg,fg)) return true;
-        if(seq4(ds,es,fs,hs,dr,er,fr,hr,de,df,dh,ef,eh,fh)) return true;
-        if(seq4(ds,es,gs,hs,dr,er,gr,hr,de,dg,dh,eg,eh,gh)) return true;
-        if(seq4(ds,fs,gs,hs,dr,fr,gr,hr,df,dg,dh,fg,fh,gh)) return true;
-        if(seq4(es,fs,gs,hs,er,fr,gr,hr,ef,eg,eh,fg,fh,gh)) return true;
-
-        if(convex && (DIM == 3)) return false;
-
-        if(seq5(as,bs,cs,ds,es,ar,br,cr,dr,er,ab,ac,ad,ae,bc,bd,be,cd,ce,de)) return true;
-        if(seq5(as,bs,cs,ds,fs,ar,br,cr,dr,fr,ab,ac,ad,af,bc,bd,bf,cd,cf,df)) return true;
-        if(seq5(as,bs,cs,ds,gs,ar,br,cr,dr,gr,ab,ac,ad,ag,bc,bd,bg,cd,cg,dg)) return true;
-        if(seq5(as,bs,cs,ds,hs,ar,br,cr,dr,hr,ab,ac,ad,ah,bc,bd,bh,cd,ch,dh)) return true;
-        if(seq5(as,bs,cs,es,fs,ar,br,cr,er,fr,ab,ac,ae,af,bc,be,bf,ce,cf,ef)) return true;
-        if(seq5(as,bs,cs,es,gs,ar,br,cr,er,gr,ab,ac,ae,ag,bc,be,bg,ce,cg,eg)) return true;
-        if(seq5(as,bs,cs,es,hs,ar,br,cr,er,hr,ab,ac,ae,ah,bc,be,bh,ce,ch,eh)) return true;
-        if(seq5(as,bs,cs,fs,gs,ar,br,cr,fr,gr,ab,ac,af,ag,bc,bf,bg,cf,cg,fg)) return true;
-        if(seq5(as,bs,cs,fs,hs,ar,br,cr,fr,hr,ab,ac,af,ah,bc,bf,bh,cf,ch,fh)) return true;
-        if(seq5(as,bs,cs,gs,hs,ar,br,cr,gr,hr,ab,ac,ag,ah,bc,bg,bh,cg,ch,gh)) return true;
-        if(seq5(as,bs,ds,es,fs,ar,br,dr,er,fr,ab,ad,ae,af,bd,be,bf,de,df,ef)) return true;
-        if(seq5(as,bs,ds,es,gs,ar,br,dr,er,gr,ab,ad,ae,ag,bd,be,bg,de,dg,eg)) return true;
-        if(seq5(as,bs,ds,es,hs,ar,br,dr,er,hr,ab,ad,ae,ah,bd,be,bh,de,dh,eh)) return true;
-        if(seq5(as,bs,ds,fs,gs,ar,br,dr,fr,gr,ab,ad,af,ag,bd,bf,bg,df,dg,fg)) return true;
-        if(seq5(as,bs,ds,fs,hs,ar,br,dr,fr,hr,ab,ad,af,ah,bd,bf,bh,df,dh,fh)) return true;
-        if(seq5(as,bs,ds,gs,hs,ar,br,dr,gr,hr,ab,ad,ag,ah,bd,bg,bh,dg,dh,gh)) return true;
-        if(seq5(as,bs,es,fs,gs,ar,br,er,fr,gr,ab,ae,af,ag,be,bf,bg,ef,eg,fg)) return true;
-        if(seq5(as,bs,es,fs,hs,ar,br,er,fr,hr,ab,ae,af,ah,be,bf,bh,ef,eh,fh)) return true;
-        if(seq5(as,bs,es,gs,hs,ar,br,er,gr,hr,ab,ae,ag,ah,be,bg,bh,eg,eh,gh)) return true;
-        if(seq5(as,bs,fs,gs,hs,ar,br,fr,gr,hr,ab,af,ag,ah,bf,bg,bh,fg,fh,gh)) return true;
-        if(seq5(as,cs,ds,es,fs,ar,cr,dr,er,fr,ac,ad,ae,af,cd,ce,cf,de,df,ef)) return true;
-        if(seq5(as,cs,ds,es,gs,ar,cr,dr,er,gr,ac,ad,ae,ag,cd,ce,cg,de,dg,eg)) return true;
-        if(seq5(as,cs,ds,es,hs,ar,cr,dr,er,hr,ac,ad,ae,ah,cd,ce,ch,de,dh,eh)) return true;
-        if(seq5(as,cs,ds,fs,gs,ar,cr,dr,fr,gr,ac,ad,af,ag,cd,cf,cg,df,dg,fg)) return true;
-        if(seq5(as,cs,ds,fs,hs,ar,cr,dr,fr,hr,ac,ad,af,ah,cd,cf,ch,df,dh,fh)) return true;
-        if(seq5(as,cs,ds,gs,hs,ar,cr,dr,gr,hr,ac,ad,ag,ah,cd,cg,ch,dg,dh,gh)) return true;
-        if(seq5(as,cs,es,fs,gs,ar,cr,er,fr,gr,ac,ae,af,ag,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq5(as,cs,es,fs,hs,ar,cr,er,fr,hr,ac,ae,af,ah,ce,cf,ch,ef,eh,fh)) return true;
-        if(seq5(as,cs,es,gs,hs,ar,cr,er,gr,hr,ac,ae,ag,ah,ce,cg,ch,eg,eh,gh)) return true;
-        if(seq5(as,cs,fs,gs,hs,ar,cr,fr,gr,hr,ac,af,ag,ah,cf,cg,ch,fg,fh,gh)) return true;
-        if(seq5(as,ds,es,fs,gs,ar,dr,er,fr,gr,ad,ae,af,ag,de,df,dg,ef,eg,fg)) return true;
-        if(seq5(as,ds,es,fs,hs,ar,dr,er,fr,hr,ad,ae,af,ah,de,df,dh,ef,eh,fh)) return true;
-        if(seq5(as,ds,es,gs,hs,ar,dr,er,gr,hr,ad,ae,ag,ah,de,dg,dh,eg,eh,gh)) return true;
-        if(seq5(as,ds,fs,gs,hs,ar,dr,fr,gr,hr,ad,af,ag,ah,df,dg,dh,fg,fh,gh)) return true;
-        if(seq5(as,es,fs,gs,hs,ar,er,fr,gr,hr,ae,af,ag,ah,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq5(bs,cs,ds,es,fs,br,cr,dr,er,fr,bc,bd,be,bf,cd,ce,cf,de,df,ef)) return true;
-        if(seq5(bs,cs,ds,es,gs,br,cr,dr,er,gr,bc,bd,be,bg,cd,ce,cg,de,dg,eg)) return true;
-        if(seq5(bs,cs,ds,es,hs,br,cr,dr,er,hr,bc,bd,be,bh,cd,ce,ch,de,dh,eh)) return true;
-        if(seq5(bs,cs,ds,fs,gs,br,cr,dr,fr,gr,bc,bd,bf,bg,cd,cf,cg,df,dg,fg)) return true;
-        if(seq5(bs,cs,ds,fs,hs,br,cr,dr,fr,hr,bc,bd,bf,bh,cd,cf,ch,df,dh,fh)) return true;
-        if(seq5(bs,cs,ds,gs,hs,br,cr,dr,gr,hr,bc,bd,bg,bh,cd,cg,ch,dg,dh,gh)) return true;
-        if(seq5(bs,cs,es,fs,gs,br,cr,er,fr,gr,bc,be,bf,bg,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq5(bs,cs,es,fs,hs,br,cr,er,fr,hr,bc,be,bf,bh,ce,cf,ch,ef,eh,fh)) return true;
-        if(seq5(bs,cs,es,gs,hs,br,cr,er,gr,hr,bc,be,bg,bh,ce,cg,ch,eg,eh,gh)) return true;
-        if(seq5(bs,cs,fs,gs,hs,br,cr,fr,gr,hr,bc,bf,bg,bh,cf,cg,ch,fg,fh,gh)) return true;
-        if(seq5(bs,ds,es,fs,gs,br,dr,er,fr,gr,bd,be,bf,bg,de,df,dg,ef,eg,fg)) return true;
-        if(seq5(bs,ds,es,fs,hs,br,dr,er,fr,hr,bd,be,bf,bh,de,df,dh,ef,eh,fh)) return true;
-        if(seq5(bs,ds,es,gs,hs,br,dr,er,gr,hr,bd,be,bg,bh,de,dg,dh,eg,eh,gh)) return true;
-        if(seq5(bs,ds,fs,gs,hs,br,dr,fr,gr,hr,bd,bf,bg,bh,df,dg,dh,fg,fh,gh)) return true;
-        if(seq5(bs,es,fs,gs,hs,br,er,fr,gr,hr,be,bf,bg,bh,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq5(cs,ds,es,fs,gs,cr,dr,er,fr,gr,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-        if(seq5(cs,ds,es,fs,hs,cr,dr,er,fr,hr,cd,ce,cf,ch,de,df,dh,ef,eh,fh)) return true;
-        if(seq5(cs,ds,es,gs,hs,cr,dr,er,gr,hr,cd,ce,cg,ch,de,dg,dh,eg,eh,gh)) return true;
-        if(seq5(cs,ds,fs,gs,hs,cr,dr,fr,gr,hr,cd,cf,cg,ch,df,dg,dh,fg,fh,gh)) return true;
-        if(seq5(cs,es,fs,gs,hs,cr,er,fr,gr,hr,ce,cf,cg,ch,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq5(ds,es,fs,gs,hs,dr,er,fr,gr,hr,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-
-        if(convex && (DIM == 4)) return false;
-
-        if(seq6(as,bs,cs,ds,es,fs,ar,br,cr,dr,er,fr,ab,ac,ad,ae,af,bc,bd,be,bf,cd,ce,cf,de,df,ef)) return true;
-        if(seq6(as,bs,cs,ds,es,gs,ar,br,cr,dr,er,gr,ab,ac,ad,ae,ag,bc,bd,be,bg,cd,ce,cg,de,dg,eg)) return true;
-        if(seq6(as,bs,cs,ds,es,hs,ar,br,cr,dr,er,hr,ab,ac,ad,ae,ah,bc,bd,be,bh,cd,ce,ch,de,dh,eh)) return true;
-        if(seq6(as,bs,cs,ds,fs,gs,ar,br,cr,dr,fr,gr,ab,ac,ad,af,ag,bc,bd,bf,bg,cd,cf,cg,df,dg,fg)) return true;
-        if(seq6(as,bs,cs,ds,fs,hs,ar,br,cr,dr,fr,hr,ab,ac,ad,af,ah,bc,bd,bf,bh,cd,cf,ch,df,dh,fh)) return true;
-        if(seq6(as,bs,cs,ds,gs,hs,ar,br,cr,dr,gr,hr,ab,ac,ad,ag,ah,bc,bd,bg,bh,cd,cg,ch,dg,dh,gh)) return true;
-        if(seq6(as,bs,cs,es,fs,gs,ar,br,cr,er,fr,gr,ab,ac,ae,af,ag,bc,be,bf,bg,ce,cf,cg,ef,eg,fg)) return true;
-        if(seq6(as,bs,cs,es,fs,hs,ar,br,cr,er,fr,hr,ab,ac,ae,af,ah,bc,be,bf,bh,ce,cf,ch,ef,eh,fh)) return true;
-        if(seq6(as,bs,cs,es,gs,hs,ar,br,cr,er,gr,hr,ab,ac,ae,ag,ah,bc,be,bg,bh,ce,cg,ch,eg,eh,gh)) return true;
-        if(seq6(as,bs,cs,fs,gs,hs,ar,br,cr,fr,gr,hr,ab,ac,af,ag,ah,bc,bf,bg,bh,cf,cg,ch,fg,fh,gh)) return true;
-        if(seq6(as,bs,ds,es,fs,gs,ar,br,dr,er,fr,gr,ab,ad,ae,af,ag,bd,be,bf,bg,de,df,dg,ef,eg,fg)) return true;
-        if(seq6(as,bs,ds,es,fs,hs,ar,br,dr,er,fr,hr,ab,ad,ae,af,ah,bd,be,bf,bh,de,df,dh,ef,eh,fh)) return true;
-        if(seq6(as,bs,ds,es,gs,hs,ar,br,dr,er,gr,hr,ab,ad,ae,ag,ah,bd,be,bg,bh,de,dg,dh,eg,eh,gh)) return true;
-        if(seq6(as,bs,ds,fs,gs,hs,ar,br,dr,fr,gr,hr,ab,ad,af,ag,ah,bd,bf,bg,bh,df,dg,dh,fg,fh,gh)) return true;
-        if(seq6(as,bs,es,fs,gs,hs,ar,br,er,fr,gr,hr,ab,ae,af,ag,ah,be,bf,bg,bh,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq6(as,cs,ds,es,fs,gs,ar,cr,dr,er,fr,gr,ac,ad,ae,af,ag,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-        if(seq6(as,cs,ds,es,fs,hs,ar,cr,dr,er,fr,hr,ac,ad,ae,af,ah,cd,ce,cf,ch,de,df,dh,ef,eh,fh)) return true;
-        if(seq6(as,cs,ds,es,gs,hs,ar,cr,dr,er,gr,hr,ac,ad,ae,ag,ah,cd,ce,cg,ch,de,dg,dh,eg,eh,gh)) return true;
-        if(seq6(as,cs,ds,fs,gs,hs,ar,cr,dr,fr,gr,hr,ac,ad,af,ag,ah,cd,cf,cg,ch,df,dg,dh,fg,fh,gh)) return true;
-        if(seq6(as,cs,es,fs,gs,hs,ar,cr,er,fr,gr,hr,ac,ae,af,ag,ah,ce,cf,cg,ch,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq6(as,ds,es,fs,gs,hs,ar,dr,er,fr,gr,hr,ad,ae,af,ag,ah,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq6(bs,cs,ds,es,fs,gs,br,cr,dr,er,fr,gr,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-        if(seq6(bs,cs,ds,es,fs,hs,br,cr,dr,er,fr,hr,bc,bd,be,bf,bh,cd,ce,cf,ch,de,df,dh,ef,eh,fh)) return true;
-        if(seq6(bs,cs,ds,es,gs,hs,br,cr,dr,er,gr,hr,bc,bd,be,bg,bh,cd,ce,cg,ch,de,dg,dh,eg,eh,gh)) return true;
-        if(seq6(bs,cs,ds,fs,gs,hs,br,cr,dr,fr,gr,hr,bc,bd,bf,bg,bh,cd,cf,cg,ch,df,dg,dh,fg,fh,gh)) return true;
-        if(seq6(bs,cs,es,fs,gs,hs,br,cr,er,fr,gr,hr,bc,be,bf,bg,bh,ce,cf,cg,ch,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq6(bs,ds,es,fs,gs,hs,br,dr,er,fr,gr,hr,bd,be,bf,bg,bh,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-        if(seq6(cs,ds,es,fs,gs,hs,cr,dr,er,fr,gr,hr,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-
-        if(convex && (DIM == 5)) return false;
-
-        //if(seq7(as,bs,cs,ds,es,fs,gs,ar,br,cr,dr,er,fr,gr,ab,ac,ad,ae,af,ag,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg)) return true;
-        //if(seq7(as,bs,cs,ds,es,fs,hs,ar,br,cr,dr,er,fr,hr,ab,ac,ad,ae,af,ah,bc,bd,be,bf,bh,cd,ce,cf,ch,de,df,dh,ef,eh,fh)) return true;
-        //if(seq7(as,bs,cs,ds,es,gs,hs,ar,br,cr,dr,er,gr,hr,ab,ac,ad,ae,ag,ah,bc,bd,be,bg,bh,cd,ce,cg,ch,de,dg,dh,eg,eh,gh)) return true;
-        //if(seq7(as,bs,cs,ds,fs,gs,hs,ar,br,cr,dr,fr,gr,hr,ab,ac,ad,af,ag,ah,bc,bd,bf,bg,bh,cd,cf,cg,ch,df,dg,dh,fg,fh,gh)) return true;
-        //if(seq7(as,bs,cs,es,fs,gs,hs,ar,br,cr,er,fr,gr,hr,ab,ac,ae,af,ag,ah,bc,be,bf,bg,bh,ce,cf,cg,ch,ef,eg,eh,fg,fh,gh)) return true;
-        //if(seq7(as,bs,ds,es,fs,gs,hs,ar,br,dr,er,fr,gr,hr,ab,ad,ae,af,ag,ah,bd,be,bf,bg,bh,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-        //if(seq7(as,cs,ds,es,fs,gs,hs,ar,cr,dr,er,fr,gr,hr,ac,ad,ae,af,ag,ah,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-        //if(seq7(bs,cs,ds,es,fs,gs,hs,br,cr,dr,er,fr,gr,hr,bc,bd,be,bf,bg,bh,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh)) return true;
-
-        if(convex && (DIM == 6)) return false;
-
-        //return seq8(as,bs,cs,ds,es,fs,gs,hs,ar,br,cr,dr,er,fr,gr,hr,ab,ac,ad,ae,af,ag,ah,bc,bd,be,bf,bg,bh,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh);
+    if (convex && (DIM == 0))
         return false;
-    }
 
+    if (seq2(as, bs, ar, br, ab))
+        return true;
+    if (seq2(as, cs, ar, cr, ac))
+        return true;
+    if (seq2(as, ds, ar, dr, ad))
+        return true;
+    if (seq2(as, es, ar, er, ae))
+        return true;
+    if (seq2(as, fs, ar, fr, af))
+        return true;
+    if (seq2(as, gs, ar, gr, ag))
+        return true;
+    if (seq2(as, hs, ar, hr, ah))
+        return true;
+    if (seq2(bs, cs, br, cr, bc))
+        return true;
+    if (seq2(bs, ds, br, dr, bd))
+        return true;
+    if (seq2(bs, es, br, er, be))
+        return true;
+    if (seq2(bs, fs, br, fr, bf))
+        return true;
+    if (seq2(bs, gs, br, gr, bg))
+        return true;
+    if (seq2(bs, hs, br, hr, bh))
+        return true;
+    if (seq2(cs, ds, cr, dr, cd))
+        return true;
+    if (seq2(cs, es, cr, er, ce))
+        return true;
+    if (seq2(cs, fs, cr, fr, cf))
+        return true;
+    if (seq2(cs, gs, cr, gr, cg))
+        return true;
+    if (seq2(cs, hs, cr, hr, ch))
+        return true;
+    if (seq2(ds, es, dr, er, de))
+        return true;
+    if (seq2(ds, fs, dr, fr, df))
+        return true;
+    if (seq2(ds, gs, dr, gr, dg))
+        return true;
+    if (seq2(ds, hs, dr, hr, dh))
+        return true;
+    if (seq2(es, fs, er, fr, ef))
+        return true;
+    if (seq2(es, gs, er, gr, eg))
+        return true;
+    if (seq2(es, hs, er, hr, eh))
+        return true;
+    if (seq2(fs, gs, fr, gr, fg))
+        return true;
+    if (seq2(fs, hs, fr, hr, fh))
+        return true;
+    if (seq2(gs, hs, gr, hr, gh))
+        return true;
+
+    if (convex && (DIM == 1))
+        return false;
+
+    if (seq3(as, bs, cs, ar, br, cr, ab, ac, bc))
+        return true;
+    if (seq3(as, bs, ds, ar, br, dr, ab, ad, bd))
+        return true;
+    if (seq3(as, bs, es, ar, br, er, ab, ae, be))
+        return true;
+    if (seq3(as, bs, fs, ar, br, fr, ab, af, bf))
+        return true;
+    if (seq3(as, bs, gs, ar, br, gr, ab, ag, bg))
+        return true;
+    if (seq3(as, bs, hs, ar, br, hr, ab, ah, bh))
+        return true;
+    if (seq3(as, cs, ds, ar, cr, dr, ac, ad, cd))
+        return true;
+    if (seq3(as, cs, es, ar, cr, er, ac, ae, ce))
+        return true;
+    if (seq3(as, cs, fs, ar, cr, fr, ac, af, cf))
+        return true;
+    if (seq3(as, cs, gs, ar, cr, gr, ac, ag, cg))
+        return true;
+    if (seq3(as, cs, hs, ar, cr, hr, ac, ah, ch))
+        return true;
+    if (seq3(as, ds, es, ar, dr, er, ad, ae, de))
+        return true;
+    if (seq3(as, ds, fs, ar, dr, fr, ad, af, df))
+        return true;
+    if (seq3(as, ds, gs, ar, dr, gr, ad, ag, dg))
+        return true;
+    if (seq3(as, ds, hs, ar, dr, hr, ad, ah, dh))
+        return true;
+    if (seq3(as, es, fs, ar, er, fr, ae, af, ef))
+        return true;
+    if (seq3(as, es, gs, ar, er, gr, ae, ag, eg))
+        return true;
+    if (seq3(as, es, hs, ar, er, hr, ae, ah, eh))
+        return true;
+    if (seq3(as, fs, gs, ar, fr, gr, af, ag, fg))
+        return true;
+    if (seq3(as, fs, hs, ar, fr, hr, af, ah, fh))
+        return true;
+    if (seq3(as, gs, hs, ar, gr, hr, ag, ah, gh))
+        return true;
+    if (seq3(bs, cs, ds, br, cr, dr, bc, bd, cd))
+        return true;
+    if (seq3(bs, cs, es, br, cr, er, bc, be, ce))
+        return true;
+    if (seq3(bs, cs, fs, br, cr, fr, bc, bf, cf))
+        return true;
+    if (seq3(bs, cs, gs, br, cr, gr, bc, bg, cg))
+        return true;
+    if (seq3(bs, cs, hs, br, cr, hr, bc, bh, ch))
+        return true;
+    if (seq3(bs, ds, es, br, dr, er, bd, be, de))
+        return true;
+    if (seq3(bs, ds, fs, br, dr, fr, bd, bf, df))
+        return true;
+    if (seq3(bs, ds, gs, br, dr, gr, bd, bg, dg))
+        return true;
+    if (seq3(bs, ds, hs, br, dr, hr, bd, bh, dh))
+        return true;
+    if (seq3(bs, es, fs, br, er, fr, be, bf, ef))
+        return true;
+    if (seq3(bs, es, gs, br, er, gr, be, bg, eg))
+        return true;
+    if (seq3(bs, es, hs, br, er, hr, be, bh, eh))
+        return true;
+    if (seq3(bs, fs, gs, br, fr, gr, bf, bg, fg))
+        return true;
+    if (seq3(bs, fs, hs, br, fr, hr, bf, bh, fh))
+        return true;
+    if (seq3(bs, gs, hs, br, gr, hr, bg, bh, gh))
+        return true;
+    if (seq3(cs, ds, es, cr, dr, er, cd, ce, de))
+        return true;
+    if (seq3(cs, ds, fs, cr, dr, fr, cd, cf, df))
+        return true;
+    if (seq3(cs, ds, gs, cr, dr, gr, cd, cg, dg))
+        return true;
+    if (seq3(cs, ds, hs, cr, dr, hr, cd, ch, dh))
+        return true;
+    if (seq3(cs, es, fs, cr, er, fr, ce, cf, ef))
+        return true;
+    if (seq3(cs, es, gs, cr, er, gr, ce, cg, eg))
+        return true;
+    if (seq3(cs, es, hs, cr, er, hr, ce, ch, eh))
+        return true;
+    if (seq3(cs, fs, gs, cr, fr, gr, cf, cg, fg))
+        return true;
+    if (seq3(cs, fs, hs, cr, fr, hr, cf, ch, fh))
+        return true;
+    if (seq3(cs, gs, hs, cr, gr, hr, cg, ch, gh))
+        return true;
+    if (seq3(ds, es, fs, dr, er, fr, de, df, ef))
+        return true;
+    if (seq3(ds, es, gs, dr, er, gr, de, dg, eg))
+        return true;
+    if (seq3(ds, es, hs, dr, er, hr, de, dh, eh))
+        return true;
+    if (seq3(ds, fs, gs, dr, fr, gr, df, dg, fg))
+        return true;
+    if (seq3(ds, fs, hs, dr, fr, hr, df, dh, fh))
+        return true;
+    if (seq3(ds, gs, hs, dr, gr, hr, dg, dh, gh))
+        return true;
+    if (seq3(es, fs, gs, er, fr, gr, ef, eg, fg))
+        return true;
+    if (seq3(es, fs, hs, er, fr, hr, ef, eh, fh))
+        return true;
+    if (seq3(es, gs, hs, er, gr, hr, eg, eh, gh))
+        return true;
+    if (seq3(fs, gs, hs, fr, gr, hr, fg, fh, gh))
+        return true;
+
+    if (convex && (DIM == 2))
+        return false;
+
+    if (seq4(as, bs, cs, ds, ar, br, cr, dr, ab, ac, ad, bc, bd, cd))
+        return true;
+    if (seq4(as, bs, cs, es, ar, br, cr, er, ab, ac, ae, bc, be, ce))
+        return true;
+    if (seq4(as, bs, cs, fs, ar, br, cr, fr, ab, ac, af, bc, bf, cf))
+        return true;
+    if (seq4(as, bs, cs, gs, ar, br, cr, gr, ab, ac, ag, bc, bg, cg))
+        return true;
+    if (seq4(as, bs, cs, hs, ar, br, cr, hr, ab, ac, ah, bc, bh, ch))
+        return true;
+    if (seq4(as, bs, ds, es, ar, br, dr, er, ab, ad, ae, bd, be, de))
+        return true;
+    if (seq4(as, bs, ds, fs, ar, br, dr, fr, ab, ad, af, bd, bf, df))
+        return true;
+    if (seq4(as, bs, ds, gs, ar, br, dr, gr, ab, ad, ag, bd, bg, dg))
+        return true;
+    if (seq4(as, bs, ds, hs, ar, br, dr, hr, ab, ad, ah, bd, bh, dh))
+        return true;
+    if (seq4(as, bs, es, fs, ar, br, er, fr, ab, ae, af, be, bf, ef))
+        return true;
+    if (seq4(as, bs, es, gs, ar, br, er, gr, ab, ae, ag, be, bg, eg))
+        return true;
+    if (seq4(as, bs, es, hs, ar, br, er, hr, ab, ae, ah, be, bh, eh))
+        return true;
+    if (seq4(as, bs, fs, gs, ar, br, fr, gr, ab, af, ag, bf, bg, fg))
+        return true;
+    if (seq4(as, bs, fs, hs, ar, br, fr, hr, ab, af, ah, bf, bh, fh))
+        return true;
+    if (seq4(as, bs, gs, hs, ar, br, gr, hr, ab, ag, ah, bg, bh, gh))
+        return true;
+    if (seq4(as, cs, ds, es, ar, cr, dr, er, ac, ad, ae, cd, ce, de))
+        return true;
+    if (seq4(as, cs, ds, fs, ar, cr, dr, fr, ac, ad, af, cd, cf, df))
+        return true;
+    if (seq4(as, cs, ds, gs, ar, cr, dr, gr, ac, ad, ag, cd, cg, dg))
+        return true;
+    if (seq4(as, cs, ds, hs, ar, cr, dr, hr, ac, ad, ah, cd, ch, dh))
+        return true;
+    if (seq4(as, cs, es, fs, ar, cr, er, fr, ac, ae, af, ce, cf, ef))
+        return true;
+    if (seq4(as, cs, es, gs, ar, cr, er, gr, ac, ae, ag, ce, cg, eg))
+        return true;
+    if (seq4(as, cs, es, hs, ar, cr, er, hr, ac, ae, ah, ce, ch, eh))
+        return true;
+    if (seq4(as, cs, fs, gs, ar, cr, fr, gr, ac, af, ag, cf, cg, fg))
+        return true;
+    if (seq4(as, cs, fs, hs, ar, cr, fr, hr, ac, af, ah, cf, ch, fh))
+        return true;
+    if (seq4(as, cs, gs, hs, ar, cr, gr, hr, ac, ag, ah, cg, ch, gh))
+        return true;
+    if (seq4(as, ds, es, fs, ar, dr, er, fr, ad, ae, af, de, df, ef))
+        return true;
+    if (seq4(as, ds, es, gs, ar, dr, er, gr, ad, ae, ag, de, dg, eg))
+        return true;
+    if (seq4(as, ds, es, hs, ar, dr, er, hr, ad, ae, ah, de, dh, eh))
+        return true;
+    if (seq4(as, ds, fs, gs, ar, dr, fr, gr, ad, af, ag, df, dg, fg))
+        return true;
+    if (seq4(as, ds, fs, hs, ar, dr, fr, hr, ad, af, ah, df, dh, fh))
+        return true;
+    if (seq4(as, ds, gs, hs, ar, dr, gr, hr, ad, ag, ah, dg, dh, gh))
+        return true;
+    if (seq4(as, es, fs, gs, ar, er, fr, gr, ae, af, ag, ef, eg, fg))
+        return true;
+    if (seq4(as, es, fs, hs, ar, er, fr, hr, ae, af, ah, ef, eh, fh))
+        return true;
+    if (seq4(as, es, gs, hs, ar, er, gr, hr, ae, ag, ah, eg, eh, gh))
+        return true;
+    if (seq4(as, fs, gs, hs, ar, fr, gr, hr, af, ag, ah, fg, fh, gh))
+        return true;
+    if (seq4(bs, cs, ds, es, br, cr, dr, er, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq4(bs, cs, ds, fs, br, cr, dr, fr, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq4(bs, cs, ds, gs, br, cr, dr, gr, bc, bd, bg, cd, cg, dg))
+        return true;
+    if (seq4(bs, cs, ds, hs, br, cr, dr, hr, bc, bd, bh, cd, ch, dh))
+        return true;
+    if (seq4(bs, cs, es, fs, br, cr, er, fr, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq4(bs, cs, es, gs, br, cr, er, gr, bc, be, bg, ce, cg, eg))
+        return true;
+    if (seq4(bs, cs, es, hs, br, cr, er, hr, bc, be, bh, ce, ch, eh))
+        return true;
+    if (seq4(bs, cs, fs, gs, br, cr, fr, gr, bc, bf, bg, cf, cg, fg))
+        return true;
+    if (seq4(bs, cs, fs, hs, br, cr, fr, hr, bc, bf, bh, cf, ch, fh))
+        return true;
+    if (seq4(bs, cs, gs, hs, br, cr, gr, hr, bc, bg, bh, cg, ch, gh))
+        return true;
+    if (seq4(bs, ds, es, fs, br, dr, er, fr, bd, be, bf, de, df, ef))
+        return true;
+    if (seq4(bs, ds, es, gs, br, dr, er, gr, bd, be, bg, de, dg, eg))
+        return true;
+    if (seq4(bs, ds, es, hs, br, dr, er, hr, bd, be, bh, de, dh, eh))
+        return true;
+    if (seq4(bs, ds, fs, gs, br, dr, fr, gr, bd, bf, bg, df, dg, fg))
+        return true;
+    if (seq4(bs, ds, fs, hs, br, dr, fr, hr, bd, bf, bh, df, dh, fh))
+        return true;
+    if (seq4(bs, ds, gs, hs, br, dr, gr, hr, bd, bg, bh, dg, dh, gh))
+        return true;
+    if (seq4(bs, es, fs, gs, br, er, fr, gr, be, bf, bg, ef, eg, fg))
+        return true;
+    if (seq4(bs, es, fs, hs, br, er, fr, hr, be, bf, bh, ef, eh, fh))
+        return true;
+    if (seq4(bs, es, gs, hs, br, er, gr, hr, be, bg, bh, eg, eh, gh))
+        return true;
+    if (seq4(bs, fs, gs, hs, br, fr, gr, hr, bf, bg, bh, fg, fh, gh))
+        return true;
+    if (seq4(cs, ds, es, fs, cr, dr, er, fr, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq4(cs, ds, es, gs, cr, dr, er, gr, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq4(cs, ds, es, hs, cr, dr, er, hr, cd, ce, ch, de, dh, eh))
+        return true;
+    if (seq4(cs, ds, fs, gs, cr, dr, fr, gr, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq4(cs, ds, fs, hs, cr, dr, fr, hr, cd, cf, ch, df, dh, fh))
+        return true;
+    if (seq4(cs, ds, gs, hs, cr, dr, gr, hr, cd, cg, ch, dg, dh, gh))
+        return true;
+    if (seq4(cs, es, fs, gs, cr, er, fr, gr, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq4(cs, es, fs, hs, cr, er, fr, hr, ce, cf, ch, ef, eh, fh))
+        return true;
+    if (seq4(cs, es, gs, hs, cr, er, gr, hr, ce, cg, ch, eg, eh, gh))
+        return true;
+    if (seq4(cs, fs, gs, hs, cr, fr, gr, hr, cf, cg, ch, fg, fh, gh))
+        return true;
+    if (seq4(ds, es, fs, gs, dr, er, fr, gr, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq4(ds, es, fs, hs, dr, er, fr, hr, de, df, dh, ef, eh, fh))
+        return true;
+    if (seq4(ds, es, gs, hs, dr, er, gr, hr, de, dg, dh, eg, eh, gh))
+        return true;
+    if (seq4(ds, fs, gs, hs, dr, fr, gr, hr, df, dg, dh, fg, fh, gh))
+        return true;
+    if (seq4(es, fs, gs, hs, er, fr, gr, hr, ef, eg, eh, fg, fh, gh))
+        return true;
+
+    if (convex && (DIM == 3))
+        return false;
+
+    if (seq5(as, bs, cs, ds, es, ar, br, cr, dr, er, ab, ac, ad, ae, bc, bd, be, cd, ce, de))
+        return true;
+    if (seq5(as, bs, cs, ds, fs, ar, br, cr, dr, fr, ab, ac, ad, af, bc, bd, bf, cd, cf, df))
+        return true;
+    if (seq5(as, bs, cs, ds, gs, ar, br, cr, dr, gr, ab, ac, ad, ag, bc, bd, bg, cd, cg, dg))
+        return true;
+    if (seq5(as, bs, cs, ds, hs, ar, br, cr, dr, hr, ab, ac, ad, ah, bc, bd, bh, cd, ch, dh))
+        return true;
+    if (seq5(as, bs, cs, es, fs, ar, br, cr, er, fr, ab, ac, ae, af, bc, be, bf, ce, cf, ef))
+        return true;
+    if (seq5(as, bs, cs, es, gs, ar, br, cr, er, gr, ab, ac, ae, ag, bc, be, bg, ce, cg, eg))
+        return true;
+    if (seq5(as, bs, cs, es, hs, ar, br, cr, er, hr, ab, ac, ae, ah, bc, be, bh, ce, ch, eh))
+        return true;
+    if (seq5(as, bs, cs, fs, gs, ar, br, cr, fr, gr, ab, ac, af, ag, bc, bf, bg, cf, cg, fg))
+        return true;
+    if (seq5(as, bs, cs, fs, hs, ar, br, cr, fr, hr, ab, ac, af, ah, bc, bf, bh, cf, ch, fh))
+        return true;
+    if (seq5(as, bs, cs, gs, hs, ar, br, cr, gr, hr, ab, ac, ag, ah, bc, bg, bh, cg, ch, gh))
+        return true;
+    if (seq5(as, bs, ds, es, fs, ar, br, dr, er, fr, ab, ad, ae, af, bd, be, bf, de, df, ef))
+        return true;
+    if (seq5(as, bs, ds, es, gs, ar, br, dr, er, gr, ab, ad, ae, ag, bd, be, bg, de, dg, eg))
+        return true;
+    if (seq5(as, bs, ds, es, hs, ar, br, dr, er, hr, ab, ad, ae, ah, bd, be, bh, de, dh, eh))
+        return true;
+    if (seq5(as, bs, ds, fs, gs, ar, br, dr, fr, gr, ab, ad, af, ag, bd, bf, bg, df, dg, fg))
+        return true;
+    if (seq5(as, bs, ds, fs, hs, ar, br, dr, fr, hr, ab, ad, af, ah, bd, bf, bh, df, dh, fh))
+        return true;
+    if (seq5(as, bs, ds, gs, hs, ar, br, dr, gr, hr, ab, ad, ag, ah, bd, bg, bh, dg, dh, gh))
+        return true;
+    if (seq5(as, bs, es, fs, gs, ar, br, er, fr, gr, ab, ae, af, ag, be, bf, bg, ef, eg, fg))
+        return true;
+    if (seq5(as, bs, es, fs, hs, ar, br, er, fr, hr, ab, ae, af, ah, be, bf, bh, ef, eh, fh))
+        return true;
+    if (seq5(as, bs, es, gs, hs, ar, br, er, gr, hr, ab, ae, ag, ah, be, bg, bh, eg, eh, gh))
+        return true;
+    if (seq5(as, bs, fs, gs, hs, ar, br, fr, gr, hr, ab, af, ag, ah, bf, bg, bh, fg, fh, gh))
+        return true;
+    if (seq5(as, cs, ds, es, fs, ar, cr, dr, er, fr, ac, ad, ae, af, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq5(as, cs, ds, es, gs, ar, cr, dr, er, gr, ac, ad, ae, ag, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq5(as, cs, ds, es, hs, ar, cr, dr, er, hr, ac, ad, ae, ah, cd, ce, ch, de, dh, eh))
+        return true;
+    if (seq5(as, cs, ds, fs, gs, ar, cr, dr, fr, gr, ac, ad, af, ag, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq5(as, cs, ds, fs, hs, ar, cr, dr, fr, hr, ac, ad, af, ah, cd, cf, ch, df, dh, fh))
+        return true;
+    if (seq5(as, cs, ds, gs, hs, ar, cr, dr, gr, hr, ac, ad, ag, ah, cd, cg, ch, dg, dh, gh))
+        return true;
+    if (seq5(as, cs, es, fs, gs, ar, cr, er, fr, gr, ac, ae, af, ag, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq5(as, cs, es, fs, hs, ar, cr, er, fr, hr, ac, ae, af, ah, ce, cf, ch, ef, eh, fh))
+        return true;
+    if (seq5(as, cs, es, gs, hs, ar, cr, er, gr, hr, ac, ae, ag, ah, ce, cg, ch, eg, eh, gh))
+        return true;
+    if (seq5(as, cs, fs, gs, hs, ar, cr, fr, gr, hr, ac, af, ag, ah, cf, cg, ch, fg, fh, gh))
+        return true;
+    if (seq5(as, ds, es, fs, gs, ar, dr, er, fr, gr, ad, ae, af, ag, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq5(as, ds, es, fs, hs, ar, dr, er, fr, hr, ad, ae, af, ah, de, df, dh, ef, eh, fh))
+        return true;
+    if (seq5(as, ds, es, gs, hs, ar, dr, er, gr, hr, ad, ae, ag, ah, de, dg, dh, eg, eh, gh))
+        return true;
+    if (seq5(as, ds, fs, gs, hs, ar, dr, fr, gr, hr, ad, af, ag, ah, df, dg, dh, fg, fh, gh))
+        return true;
+    if (seq5(as, es, fs, gs, hs, ar, er, fr, gr, hr, ae, af, ag, ah, ef, eg, eh, fg, fh, gh))
+        return true;
+    if (seq5(bs, cs, ds, es, fs, br, cr, dr, er, fr, bc, bd, be, bf, cd, ce, cf, de, df, ef))
+        return true;
+    if (seq5(bs, cs, ds, es, gs, br, cr, dr, er, gr, bc, bd, be, bg, cd, ce, cg, de, dg, eg))
+        return true;
+    if (seq5(bs, cs, ds, es, hs, br, cr, dr, er, hr, bc, bd, be, bh, cd, ce, ch, de, dh, eh))
+        return true;
+    if (seq5(bs, cs, ds, fs, gs, br, cr, dr, fr, gr, bc, bd, bf, bg, cd, cf, cg, df, dg, fg))
+        return true;
+    if (seq5(bs, cs, ds, fs, hs, br, cr, dr, fr, hr, bc, bd, bf, bh, cd, cf, ch, df, dh, fh))
+        return true;
+    if (seq5(bs, cs, ds, gs, hs, br, cr, dr, gr, hr, bc, bd, bg, bh, cd, cg, ch, dg, dh, gh))
+        return true;
+    if (seq5(bs, cs, es, fs, gs, br, cr, er, fr, gr, bc, be, bf, bg, ce, cf, cg, ef, eg, fg))
+        return true;
+    if (seq5(bs, cs, es, fs, hs, br, cr, er, fr, hr, bc, be, bf, bh, ce, cf, ch, ef, eh, fh))
+        return true;
+    if (seq5(bs, cs, es, gs, hs, br, cr, er, gr, hr, bc, be, bg, bh, ce, cg, ch, eg, eh, gh))
+        return true;
+    if (seq5(bs, cs, fs, gs, hs, br, cr, fr, gr, hr, bc, bf, bg, bh, cf, cg, ch, fg, fh, gh))
+        return true;
+    if (seq5(bs, ds, es, fs, gs, br, dr, er, fr, gr, bd, be, bf, bg, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq5(bs, ds, es, fs, hs, br, dr, er, fr, hr, bd, be, bf, bh, de, df, dh, ef, eh, fh))
+        return true;
+    if (seq5(bs, ds, es, gs, hs, br, dr, er, gr, hr, bd, be, bg, bh, de, dg, dh, eg, eh, gh))
+        return true;
+    if (seq5(bs, ds, fs, gs, hs, br, dr, fr, gr, hr, bd, bf, bg, bh, df, dg, dh, fg, fh, gh))
+        return true;
+    if (seq5(bs, es, fs, gs, hs, br, er, fr, gr, hr, be, bf, bg, bh, ef, eg, eh, fg, fh, gh))
+        return true;
+    if (seq5(cs, ds, es, fs, gs, cr, dr, er, fr, gr, cd, ce, cf, cg, de, df, dg, ef, eg, fg))
+        return true;
+    if (seq5(cs, ds, es, fs, hs, cr, dr, er, fr, hr, cd, ce, cf, ch, de, df, dh, ef, eh, fh))
+        return true;
+    if (seq5(cs, ds, es, gs, hs, cr, dr, er, gr, hr, cd, ce, cg, ch, de, dg, dh, eg, eh, gh))
+        return true;
+    if (seq5(cs, ds, fs, gs, hs, cr, dr, fr, gr, hr, cd, cf, cg, ch, df, dg, dh, fg, fh, gh))
+        return true;
+    if (seq5(cs, es, fs, gs, hs, cr, er, fr, gr, hr, ce, cf, cg, ch, ef, eg, eh, fg, fh, gh))
+        return true;
+    if (seq5(ds, es, fs, gs, hs, dr, er, fr, gr, hr, de, df, dg, dh, ef, eg, eh, fg, fh, gh))
+        return true;
+
+    if (convex && (DIM == 4))
+        return false;
+
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             es,
+             fs,
+             ar,
+             br,
+             cr,
+             dr,
+             er,
+             fr,
+             ab,
+             ac,
+             ad,
+             ae,
+             af,
+             bc,
+             bd,
+             be,
+             bf,
+             cd,
+             ce,
+             cf,
+             de,
+             df,
+             ef))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             es,
+             gs,
+             ar,
+             br,
+             cr,
+             dr,
+             er,
+             gr,
+             ab,
+             ac,
+             ad,
+             ae,
+             ag,
+             bc,
+             bd,
+             be,
+             bg,
+             cd,
+             ce,
+             cg,
+             de,
+             dg,
+             eg))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             es,
+             hs,
+             ar,
+             br,
+             cr,
+             dr,
+             er,
+             hr,
+             ab,
+             ac,
+             ad,
+             ae,
+             ah,
+             bc,
+             bd,
+             be,
+             bh,
+             cd,
+             ce,
+             ch,
+             de,
+             dh,
+             eh))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             fs,
+             gs,
+             ar,
+             br,
+             cr,
+             dr,
+             fr,
+             gr,
+             ab,
+             ac,
+             ad,
+             af,
+             ag,
+             bc,
+             bd,
+             bf,
+             bg,
+             cd,
+             cf,
+             cg,
+             df,
+             dg,
+             fg))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             fs,
+             hs,
+             ar,
+             br,
+             cr,
+             dr,
+             fr,
+             hr,
+             ab,
+             ac,
+             ad,
+             af,
+             ah,
+             bc,
+             bd,
+             bf,
+             bh,
+             cd,
+             cf,
+             ch,
+             df,
+             dh,
+             fh))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             ds,
+             gs,
+             hs,
+             ar,
+             br,
+             cr,
+             dr,
+             gr,
+             hr,
+             ab,
+             ac,
+             ad,
+             ag,
+             ah,
+             bc,
+             bd,
+             bg,
+             bh,
+             cd,
+             cg,
+             ch,
+             dg,
+             dh,
+             gh))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             es,
+             fs,
+             gs,
+             ar,
+             br,
+             cr,
+             er,
+             fr,
+             gr,
+             ab,
+             ac,
+             ae,
+             af,
+             ag,
+             bc,
+             be,
+             bf,
+             bg,
+             ce,
+             cf,
+             cg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             es,
+             fs,
+             hs,
+             ar,
+             br,
+             cr,
+             er,
+             fr,
+             hr,
+             ab,
+             ac,
+             ae,
+             af,
+             ah,
+             bc,
+             be,
+             bf,
+             bh,
+             ce,
+             cf,
+             ch,
+             ef,
+             eh,
+             fh))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             es,
+             gs,
+             hs,
+             ar,
+             br,
+             cr,
+             er,
+             gr,
+             hr,
+             ab,
+             ac,
+             ae,
+             ag,
+             ah,
+             bc,
+             be,
+             bg,
+             bh,
+             ce,
+             cg,
+             ch,
+             eg,
+             eh,
+             gh))
+        return true;
+    if (seq6(as,
+             bs,
+             cs,
+             fs,
+             gs,
+             hs,
+             ar,
+             br,
+             cr,
+             fr,
+             gr,
+             hr,
+             ab,
+             ac,
+             af,
+             ag,
+             ah,
+             bc,
+             bf,
+             bg,
+             bh,
+             cf,
+             cg,
+             ch,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(as,
+             bs,
+             ds,
+             es,
+             fs,
+             gs,
+             ar,
+             br,
+             dr,
+             er,
+             fr,
+             gr,
+             ab,
+             ad,
+             ae,
+             af,
+             ag,
+             bd,
+             be,
+             bf,
+             bg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(as,
+             bs,
+             ds,
+             es,
+             fs,
+             hs,
+             ar,
+             br,
+             dr,
+             er,
+             fr,
+             hr,
+             ab,
+             ad,
+             ae,
+             af,
+             ah,
+             bd,
+             be,
+             bf,
+             bh,
+             de,
+             df,
+             dh,
+             ef,
+             eh,
+             fh))
+        return true;
+    if (seq6(as,
+             bs,
+             ds,
+             es,
+             gs,
+             hs,
+             ar,
+             br,
+             dr,
+             er,
+             gr,
+             hr,
+             ab,
+             ad,
+             ae,
+             ag,
+             ah,
+             bd,
+             be,
+             bg,
+             bh,
+             de,
+             dg,
+             dh,
+             eg,
+             eh,
+             gh))
+        return true;
+    if (seq6(as,
+             bs,
+             ds,
+             fs,
+             gs,
+             hs,
+             ar,
+             br,
+             dr,
+             fr,
+             gr,
+             hr,
+             ab,
+             ad,
+             af,
+             ag,
+             ah,
+             bd,
+             bf,
+             bg,
+             bh,
+             df,
+             dg,
+             dh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(as,
+             bs,
+             es,
+             fs,
+             gs,
+             hs,
+             ar,
+             br,
+             er,
+             fr,
+             gr,
+             hr,
+             ab,
+             ae,
+             af,
+             ag,
+             ah,
+             be,
+             bf,
+             bg,
+             bh,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(as,
+             cs,
+             ds,
+             es,
+             fs,
+             gs,
+             ar,
+             cr,
+             dr,
+             er,
+             fr,
+             gr,
+             ac,
+             ad,
+             ae,
+             af,
+             ag,
+             cd,
+             ce,
+             cf,
+             cg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(as,
+             cs,
+             ds,
+             es,
+             fs,
+             hs,
+             ar,
+             cr,
+             dr,
+             er,
+             fr,
+             hr,
+             ac,
+             ad,
+             ae,
+             af,
+             ah,
+             cd,
+             ce,
+             cf,
+             ch,
+             de,
+             df,
+             dh,
+             ef,
+             eh,
+             fh))
+        return true;
+    if (seq6(as,
+             cs,
+             ds,
+             es,
+             gs,
+             hs,
+             ar,
+             cr,
+             dr,
+             er,
+             gr,
+             hr,
+             ac,
+             ad,
+             ae,
+             ag,
+             ah,
+             cd,
+             ce,
+             cg,
+             ch,
+             de,
+             dg,
+             dh,
+             eg,
+             eh,
+             gh))
+        return true;
+    if (seq6(as,
+             cs,
+             ds,
+             fs,
+             gs,
+             hs,
+             ar,
+             cr,
+             dr,
+             fr,
+             gr,
+             hr,
+             ac,
+             ad,
+             af,
+             ag,
+             ah,
+             cd,
+             cf,
+             cg,
+             ch,
+             df,
+             dg,
+             dh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(as,
+             cs,
+             es,
+             fs,
+             gs,
+             hs,
+             ar,
+             cr,
+             er,
+             fr,
+             gr,
+             hr,
+             ac,
+             ae,
+             af,
+             ag,
+             ah,
+             ce,
+             cf,
+             cg,
+             ch,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(as,
+             ds,
+             es,
+             fs,
+             gs,
+             hs,
+             ar,
+             dr,
+             er,
+             fr,
+             gr,
+             hr,
+             ad,
+             ae,
+             af,
+             ag,
+             ah,
+             de,
+             df,
+             dg,
+             dh,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(bs,
+             cs,
+             ds,
+             es,
+             fs,
+             gs,
+             br,
+             cr,
+             dr,
+             er,
+             fr,
+             gr,
+             bc,
+             bd,
+             be,
+             bf,
+             bg,
+             cd,
+             ce,
+             cf,
+             cg,
+             de,
+             df,
+             dg,
+             ef,
+             eg,
+             fg))
+        return true;
+    if (seq6(bs,
+             cs,
+             ds,
+             es,
+             fs,
+             hs,
+             br,
+             cr,
+             dr,
+             er,
+             fr,
+             hr,
+             bc,
+             bd,
+             be,
+             bf,
+             bh,
+             cd,
+             ce,
+             cf,
+             ch,
+             de,
+             df,
+             dh,
+             ef,
+             eh,
+             fh))
+        return true;
+    if (seq6(bs,
+             cs,
+             ds,
+             es,
+             gs,
+             hs,
+             br,
+             cr,
+             dr,
+             er,
+             gr,
+             hr,
+             bc,
+             bd,
+             be,
+             bg,
+             bh,
+             cd,
+             ce,
+             cg,
+             ch,
+             de,
+             dg,
+             dh,
+             eg,
+             eh,
+             gh))
+        return true;
+    if (seq6(bs,
+             cs,
+             ds,
+             fs,
+             gs,
+             hs,
+             br,
+             cr,
+             dr,
+             fr,
+             gr,
+             hr,
+             bc,
+             bd,
+             bf,
+             bg,
+             bh,
+             cd,
+             cf,
+             cg,
+             ch,
+             df,
+             dg,
+             dh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(bs,
+             cs,
+             es,
+             fs,
+             gs,
+             hs,
+             br,
+             cr,
+             er,
+             fr,
+             gr,
+             hr,
+             bc,
+             be,
+             bf,
+             bg,
+             bh,
+             ce,
+             cf,
+             cg,
+             ch,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(bs,
+             ds,
+             es,
+             fs,
+             gs,
+             hs,
+             br,
+             dr,
+             er,
+             fr,
+             gr,
+             hr,
+             bd,
+             be,
+             bf,
+             bg,
+             bh,
+             de,
+             df,
+             dg,
+             dh,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+    if (seq6(cs,
+             ds,
+             es,
+             fs,
+             gs,
+             hs,
+             cr,
+             dr,
+             er,
+             fr,
+             gr,
+             hr,
+             cd,
+             ce,
+             cf,
+             cg,
+             ch,
+             de,
+             df,
+             dg,
+             dh,
+             ef,
+             eg,
+             eh,
+             fg,
+             fh,
+             gh))
+        return true;
+
+    if (convex && (DIM == 5))
+        return false;
+
+    // if(seq7(as,bs,cs,ds,es,fs,gs,ar,br,cr,dr,er,fr,gr,ab,ac,ad,ae,af,ag,bc,bd,be,bf,bg,cd,ce,cf,cg,de,df,dg,ef,eg,fg))
+    // return true;
+    // if(seq7(as,bs,cs,ds,es,fs,hs,ar,br,cr,dr,er,fr,hr,ab,ac,ad,ae,af,ah,bc,bd,be,bf,bh,cd,ce,cf,ch,de,df,dh,ef,eh,fh))
+    // return true;
+    // if(seq7(as,bs,cs,ds,es,gs,hs,ar,br,cr,dr,er,gr,hr,ab,ac,ad,ae,ag,ah,bc,bd,be,bg,bh,cd,ce,cg,ch,de,dg,dh,eg,eh,gh))
+    // return true;
+    // if(seq7(as,bs,cs,ds,fs,gs,hs,ar,br,cr,dr,fr,gr,hr,ab,ac,ad,af,ag,ah,bc,bd,bf,bg,bh,cd,cf,cg,ch,df,dg,dh,fg,fh,gh))
+    // return true;
+    // if(seq7(as,bs,cs,es,fs,gs,hs,ar,br,cr,er,fr,gr,hr,ab,ac,ae,af,ag,ah,bc,be,bf,bg,bh,ce,cf,cg,ch,ef,eg,eh,fg,fh,gh))
+    // return true;
+    // if(seq7(as,bs,ds,es,fs,gs,hs,ar,br,dr,er,fr,gr,hr,ab,ad,ae,af,ag,ah,bd,be,bf,bg,bh,de,df,dg,dh,ef,eg,eh,fg,fh,gh))
+    // return true;
+    // if(seq7(as,cs,ds,es,fs,gs,hs,ar,cr,dr,er,fr,gr,hr,ac,ad,ae,af,ag,ah,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh))
+    // return true;
+    // if(seq7(bs,cs,ds,es,fs,gs,hs,br,cr,dr,er,fr,gr,hr,bc,bd,be,bf,bg,bh,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh))
+    // return true;
+
+    if (convex && (DIM == 6))
+        return false;
+
+    // return
+    // seq8(as,bs,cs,ds,es,fs,gs,hs,ar,br,cr,dr,er,fr,gr,hr,ab,ac,ad,ae,af,ag,ah,bc,bd,be,bf,bg,bh,cd,ce,cf,cg,ch,de,df,dg,dh,ef,eg,eh,fg,fh,gh);
+    return false;
+    }
 
 /*  OverlapReal op3(OverlapReal ab,OverlapReal ac,OverlapReal ad,
                OverlapReal bc,OverlapReal bd,
@@ -1306,7 +3366,8 @@ DEVICE inline bool sep8(bool convex,
                OverlapReal de,OverlapReal df,
                OverlapReal ef)
     {
-        return 2*(ad*af*bc*be*cd+ae*af*bc*be*cd+ac*af*bd*be*cd+ae*af*bd*be*cd+ad*ae*bc*bf*cd+ae*af*bc*bf*cd+
+        return
+   2*(ad*af*bc*be*cd+ae*af*bc*be*cd+ac*af*bd*be*cd+ae*af*bd*be*cd+ad*ae*bc*bf*cd+ae*af*bc*bf*cd+
                   ac*ae*bd*bf*cd+ae*af*bd*bf*cd+ac*ae*be*bf*cd+ad*ae*be*bf*cd+ac*af*be*bf*cd+ad*af*be*bf*cd+
                   ad*af*bc*bd*ce+ae*af*bc*bd*ce+ac*af*bd*be*ce+ad*af*bd*be*ce+ad*ae*bc*bf*ce+ad*af*bc*bf*ce+
                   ac*ad*bd*bf*ce+ad*ae*bd*bf*ce+ac*af*bd*bf*ce+ae*af*bd*bf*ce+ac*ad*be*bf*ce+ad*af*be*bf*ce+
@@ -1368,14 +3429,15 @@ DEVICE inline bool sep8(bool convex,
                   ab*ac*ce*df*ef+ab*ad*ce*df*ef+ab*bc*ce*df*ef+ad*bc*ce*df*ef+ab*bd*ce*df*ef+ac*bd*ce*df*ef);
     }
 
-    OverlapReal op6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
-               OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
+    OverlapReal op6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal
+   af,OverlapReal ag, OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
                OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
                OverlapReal de,OverlapReal df,OverlapReal dg,
                OverlapReal ef,OverlapReal eg,
                OverlapReal fg)
     {
-        return 2*(ae*ag*bd*bf*cd*ce+af*ag*bd*bf*cd*ce+ad*ag*be*bf*cd*ce+af*ag*be*bf*cd*ce+ae*af*bd*bg*cd*ce+af*ag*bd*bg*cd*ce+
+        return
+   2*(ae*ag*bd*bf*cd*ce+af*ag*bd*bf*cd*ce+ad*ag*be*bf*cd*ce+af*ag*be*bf*cd*ce+ae*af*bd*bg*cd*ce+af*ag*bd*bg*cd*ce+
                   ad*af*be*bg*cd*ce+af*ag*be*bg*cd*ce+ad*af*bf*bg*cd*ce+ae*af*bf*bg*cd*ce+ad*ag*bf*bg*cd*ce+ae*ag*bf*bg*cd*ce+
                   ae*ag*bd*be*cd*cf+af*ag*bd*be*cd*cf+ad*ag*be*bf*cd*cf+ae*ag*be*bf*cd*cf+ae*af*bd*bg*cd*cf+ae*ag*bd*bg*cd*cf+
                   ad*ae*be*bg*cd*cf+ae*af*be*bg*cd*cf+ad*ag*be*bg*cd*cf+af*ag*be*bg*cd*cf+ad*ae*bf*bg*cd*cf+ae*ag*bf*bg*cd*cf+
@@ -1797,622 +3859,1007 @@ DEVICE inline bool sep8(bool convex,
                   ab*ac*ce*df*eg*fg+ab*ad*ce*df*eg*fg+ab*bc*ce*df*eg*fg+ad*bc*ce*df*eg*fg+ab*bd*ce*df*eg*fg+ac*bd*ce*df*eg*fg);
     }*/
 
-DEVICE inline OverlapReal gam4(OverlapReal ab,OverlapReal ac,OverlapReal ad,
-                OverlapReal bc,OverlapReal bd,
-                OverlapReal cd)
+DEVICE inline OverlapReal
+gam4(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        return abcd*(abcd-acbd-adbc)+acbd*(acbd-abcd-adbc)+adbc*(adbc-abcd-acbd);
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd);
     }
 
-DEVICE inline OverlapReal gam5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,
-                OverlapReal cd,OverlapReal ce,
-                OverlapReal de)
+DEVICE inline OverlapReal gam5(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal de)
     {
-        return
-        -2*(ab*bc*cd*de*ae+ac*ce*be*bd*ad+
-            ab*bd*cd*ce*ae+ad*de*be*bc*ac+
-            ab*be*ce*cd*ad+ae*de*bd*bc*ac+
-            ab*bc*ce*de*ad+ac*cd*bd*be*ae+
-            ab*bd*de*ce*ac+ad*cd*bc*be*ae+
-            ab*be*de*cd*ac+ae*ce*bc*bd*ad)
+    return -2
+               * (ab * bc * cd * de * ae + ac * ce * be * bd * ad + ab * bd * cd * ce * ae
+                  + ad * de * be * bc * ac + ab * be * ce * cd * ad + ae * de * bd * bc * ac
+                  + ab * bc * ce * de * ad + ac * cd * bd * be * ae + ab * bd * de * ce * ac
+                  + ad * cd * bc * be * ae + ab * be * de * cd * ac + ae * ce * bc * bd * ad)
 
-        +2*(ab*ab*cd*ce*de+
-            ac*ac*bd*be*de+
-            ad*ad*bc*be*ce+
-            ae*ae*bc*bd*cd+
-            bc*bc*ad*ae*de+
-            bd*bd*ac*ae*ce+
-            be*be*ac*ad*cd+
-            cd*cd*ab*ae*be+
-            ce*ce*ab*ad*bd+
-            de*de*ab*ac*bc);
+           + 2
+                 * (ab * ab * cd * ce * de + ac * ac * bd * be * de + ad * ad * bc * be * ce
+                    + ae * ae * bc * bd * cd + bc * bc * ad * ae * de + bd * bd * ac * ae * ce
+                    + be * be * ac * ad * cd + cd * cd * ab * ae * be + ce * ce * ab * ad * bd
+                    + de * de * ab * ac * bc);
     }
 
-DEVICE inline  OverlapReal gam6(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-                OverlapReal cd,OverlapReal ce,OverlapReal cf,
-                OverlapReal de,OverlapReal df,
-                OverlapReal ef)
+DEVICE inline OverlapReal gam6(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal ef)
     {
-        return
-        -2*(ae*af*bd*bf*cd*ce+ad*af*be*bf*cd*ce+ae*af*bd*be*cd*cf+ad*ae*be*bf*cd*cf+ad*af*bd*be*ce*cf+ad*ae*bd*bf*ce*cf+
-            ae*af*bc*bf*cd*de+ac*af*be*bf*cd*de+ad*af*bc*bf*ce*de+ac*af*bd*bf*ce*de+ae*af*bc*bd*cf*de+ad*af*bc*be*cf*de+
-            ac*ae*bd*bf*cf*de+ac*ad*be*bf*cf*de+ab*af*be*cd*cf*de+ab*ae*bf*cd*cf*de+ab*af*bd*ce*cf*de+ab*ad*bf*ce*cf*de+
-            ae*af*bc*be*cd*df+ac*ae*be*bf*cd*df+ae*af*bc*bd*ce*df+ac*af*bd*be*ce*df+ad*ae*bc*bf*ce*df+ac*ad*be*bf*ce*df+
-            ab*af*be*cd*ce*df+ab*ae*bf*cd*ce*df+ad*ae*bc*be*cf*df+ac*ae*bd*be*cf*df+ab*ae*bd*ce*cf*df+ab*ad*be*ce*cf*df+
-            ac*af*bc*be*de*df+ac*ae*bc*bf*de*df+ab*af*bc*ce*de*df+ab*ac*bf*ce*de*df+ab*ae*bc*cf*de*df+ab*ac*be*cf*de*df+
-            ad*af*bc*be*cd*ef+ac*af*bd*be*cd*ef+ad*ae*bc*bf*cd*ef+ac*ae*bd*bf*cd*ef+ad*af*bc*bd*ce*ef+ac*ad*bd*bf*ce*ef+
-            ab*af*bd*cd*ce*ef+ab*ad*bf*cd*ce*ef+ad*ae*bc*bd*cf*ef+ac*ad*bd*be*cf*ef+ab*ae*bd*cd*cf*ef+ab*ad*be*cd*cf*ef+
-            ac*af*bc*bd*de*ef+ac*ad*bc*bf*de*ef+ab*af*bc*cd*de*ef+ab*ac*bf*cd*de*ef+ab*ad*bc*cf*de*ef+ab*ac*bd*cf*de*ef+
-            ac*ae*bc*bd*df*ef+ac*ad*bc*be*df*ef+ab*ae*bc*cd*df*ef+ab*ac*be*cd*df*ef+ab*ad*bc*ce*df*ef+ab*ac*bd*ce*df*ef)
+    return -2
+               * (ae * af * bd * bf * cd * ce + ad * af * be * bf * cd * ce
+                  + ae * af * bd * be * cd * cf + ad * ae * be * bf * cd * cf
+                  + ad * af * bd * be * ce * cf + ad * ae * bd * bf * ce * cf
+                  + ae * af * bc * bf * cd * de + ac * af * be * bf * cd * de
+                  + ad * af * bc * bf * ce * de + ac * af * bd * bf * ce * de
+                  + ae * af * bc * bd * cf * de + ad * af * bc * be * cf * de
+                  + ac * ae * bd * bf * cf * de + ac * ad * be * bf * cf * de
+                  + ab * af * be * cd * cf * de + ab * ae * bf * cd * cf * de
+                  + ab * af * bd * ce * cf * de + ab * ad * bf * ce * cf * de
+                  + ae * af * bc * be * cd * df + ac * ae * be * bf * cd * df
+                  + ae * af * bc * bd * ce * df + ac * af * bd * be * ce * df
+                  + ad * ae * bc * bf * ce * df + ac * ad * be * bf * ce * df
+                  + ab * af * be * cd * ce * df + ab * ae * bf * cd * ce * df
+                  + ad * ae * bc * be * cf * df + ac * ae * bd * be * cf * df
+                  + ab * ae * bd * ce * cf * df + ab * ad * be * ce * cf * df
+                  + ac * af * bc * be * de * df + ac * ae * bc * bf * de * df
+                  + ab * af * bc * ce * de * df + ab * ac * bf * ce * de * df
+                  + ab * ae * bc * cf * de * df + ab * ac * be * cf * de * df
+                  + ad * af * bc * be * cd * ef + ac * af * bd * be * cd * ef
+                  + ad * ae * bc * bf * cd * ef + ac * ae * bd * bf * cd * ef
+                  + ad * af * bc * bd * ce * ef + ac * ad * bd * bf * ce * ef
+                  + ab * af * bd * cd * ce * ef + ab * ad * bf * cd * ce * ef
+                  + ad * ae * bc * bd * cf * ef + ac * ad * bd * be * cf * ef
+                  + ab * ae * bd * cd * cf * ef + ab * ad * be * cd * cf * ef
+                  + ac * af * bc * bd * de * ef + ac * ad * bc * bf * de * ef
+                  + ab * af * bc * cd * de * ef + ab * ac * bf * cd * de * ef
+                  + ab * ad * bc * cf * de * ef + ab * ac * bd * cf * de * ef
+                  + ac * ae * bc * bd * df * ef + ac * ad * bc * be * df * ef
+                  + ab * ae * bc * cd * df * ef + ab * ac * be * cd * df * ef
+                  + ab * ad * bc * ce * df * ef + ab * ac * bd * ce * df * ef)
 
-        +2*(ab*ab*(cd*ce*df*ef+cd*cf*de*ef+ce*cf*de*df)+
-            ac*ac*(bd*be*df*ef+bd*bf*de*ef+be*bf*de*df)+
-            ad*ad*(bc*be*cf*ef+bc*bf*ce*ef+be*bf*ce*cf)+
-            ae*ae*(bc*bd*cf*df+bc*bf*cd*df+bd*bf*cd*cf)+
-            af*af*(bc*bd*ce*de+bc*be*cd*de+bd*be*cd*ce)+
-            bc*bc*(ad*ae*df*ef+ad*af*de*ef+ae*af*de*df)+
-            bd*bd*(ac*ae*cf*ef+ac*af*ce*ef+ae*af*ce*cf)+
-            be*be*(ac*ad*cf*df+ac*af*cd*df+ad*af*cd*cf)+
-            bf*bf*(ac*ad*ce*de+ac*ae*cd*de+ad*ae*cd*ce)+
-            cd*cd*(ab*ae*bf*ef+ab*af*be*ef+ae*af*be*bf)+
-            ce*ce*(ab*ad*bf*df+ab*af*bd*df+ad*af*bd*bf)+
-            cf*cf*(ab*ad*be*de+ab*ae*bd*de+ad*ae*bd*be)+
-            de*de*(ab*ac*bf*cf+ab*af*bc*cf+ac*af*bc*bf)+
-            df*df*(ab*ac*be*ce+ab*ae*bc*ce+ac*ae*bc*be)+
-            ef*ef*(ab*ac*bd*cd+ab*ad*bc*cd+ac*ad*bc*bd))
+           + 2
+                 * (ab * ab * (cd * ce * df * ef + cd * cf * de * ef + ce * cf * de * df)
+                    + ac * ac * (bd * be * df * ef + bd * bf * de * ef + be * bf * de * df)
+                    + ad * ad * (bc * be * cf * ef + bc * bf * ce * ef + be * bf * ce * cf)
+                    + ae * ae * (bc * bd * cf * df + bc * bf * cd * df + bd * bf * cd * cf)
+                    + af * af * (bc * bd * ce * de + bc * be * cd * de + bd * be * cd * ce)
+                    + bc * bc * (ad * ae * df * ef + ad * af * de * ef + ae * af * de * df)
+                    + bd * bd * (ac * ae * cf * ef + ac * af * ce * ef + ae * af * ce * cf)
+                    + be * be * (ac * ad * cf * df + ac * af * cd * df + ad * af * cd * cf)
+                    + bf * bf * (ac * ad * ce * de + ac * ae * cd * de + ad * ae * cd * ce)
+                    + cd * cd * (ab * ae * bf * ef + ab * af * be * ef + ae * af * be * bf)
+                    + ce * ce * (ab * ad * bf * df + ab * af * bd * df + ad * af * bd * bf)
+                    + cf * cf * (ab * ad * be * de + ab * ae * bd * de + ad * ae * bd * be)
+                    + de * de * (ab * ac * bf * cf + ab * af * bc * cf + ac * af * bc * bf)
+                    + df * df * (ab * ac * be * ce + ab * ae * bc * ce + ac * ae * bc * be)
+                    + ef * ef * (ab * ac * bd * cd + ab * ad * bc * cd + ac * ad * bc * bd))
 
-        +4*(ab*af*bf*cd*ce*de+ac*af*bd*be*cf*de+ad*ae*bc*bf*cf*de+ad*af*bc*be*ce*df+ac*ae*bd*bf*ce*df+ab*ae*be*cd*cf*df+
-            ae*af*bc*bd*cd*ef+ac*ad*be*bf*cd*ef+ab*ad*bd*ce*cf*ef+ab*ac*bc*de*df*ef)
+           + 4
+                 * (ab * af * bf * cd * ce * de + ac * af * bd * be * cf * de
+                    + ad * ae * bc * bf * cf * de + ad * af * bc * be * ce * df
+                    + ac * ae * bd * bf * ce * df + ab * ae * be * cd * cf * df
+                    + ae * af * bc * bd * cd * ef + ac * ad * be * bf * cd * ef
+                    + ab * ad * bd * ce * cf * ef + ab * ac * bc * de * df * ef)
 
-        -1*(af*af*be*be*cd*cd+ae*ae*bf*bf*cd*cd+af*af*bd*bd*ce*ce+ad*ad*bf*bf*ce*ce+ae*ae*bd*bd*cf*cf+ad*ad*be*be*cf*cf+
-            af*af*bc*bc*de*de+ac*ac*bf*bf*de*de+ab*ab*cf*cf*de*de+ae*ae*bc*bc*df*df+ac*ac*be*be*df*df+ab*ab*ce*ce*df*df+
-            ad*ad*bc*bc*ef*ef+ac*ac*bd*bd*ef*ef+ab*ab*cd*cd*ef*ef);
+           - 1
+                 * (af * af * be * be * cd * cd + ae * ae * bf * bf * cd * cd
+                    + af * af * bd * bd * ce * ce + ad * ad * bf * bf * ce * ce
+                    + ae * ae * bd * bd * cf * cf + ad * ad * be * be * cf * cf
+                    + af * af * bc * bc * de * de + ac * ac * bf * bf * de * de
+                    + ab * ab * cf * cf * de * de + ae * ae * bc * bc * df * df
+                    + ac * ac * be * be * df * df + ab * ab * ce * ce * df * df
+                    + ad * ad * bc * bc * ef * ef + ac * ac * bd * bd * ef * ef
+                    + ab * ab * cd * cd * ef * ef);
     }
 
-DEVICE inline OverlapReal beta4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-                 OverlapReal bc,OverlapReal bd,OverlapReal be,
-                 OverlapReal cd,OverlapReal ce,
-                 OverlapReal de)
+DEVICE inline OverlapReal beta4(OverlapReal ab,
+                                OverlapReal ac,
+                                OverlapReal ad,
+                                OverlapReal ae,
+                                OverlapReal bc,
+                                OverlapReal bd,
+                                OverlapReal be,
+                                OverlapReal cd,
+                                OverlapReal ce,
+                                OverlapReal de)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        return abcd*(abcd-acbd-adbc)+acbd*(acbd-abcd-adbc)+adbc*(adbc-abcd-acbd)
-        +ae*(abcd*(bc+bd-cd)+acbd*(bc+cd-bd)+adbc*(bd+cd-bc)-2*bc*bd*bd)
-        +be*(abcd*(ac+ad-cd)+adbc*(ac+cd-ad)+acbd*(ad+cd-ac)-2*ac*ad*cd)
-        +ce*(acbd*(ab+ad-bd)+adbc*(ab+bd-ad)+abcd*(ad+bd-ab)-2*ab*ad*bd)
-        +de*(adbc*(ab+ac-bc)+acbd*(ab+bc-ac)+abcd*(ac+bc-ab)-2*ab*ac*bc);
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd)
+           + ae
+                 * (abcd * (bc + bd - cd) + acbd * (bc + cd - bd) + adbc * (bd + cd - bc)
+                    - 2 * bc * bd * bd)
+           + be
+                 * (abcd * (ac + ad - cd) + adbc * (ac + cd - ad) + acbd * (ad + cd - ac)
+                    - 2 * ac * ad * cd)
+           + ce
+                 * (acbd * (ab + ad - bd) + adbc * (ab + bd - ad) + abcd * (ad + bd - ab)
+                    - 2 * ab * ad * bd)
+           + de
+                 * (adbc * (ab + ac - bc) + acbd * (ab + bc - ac) + abcd * (ac + bc - ab)
+                    - 2 * ab * ac * bc);
     }
 
-DEVICE inline OverlapReal ang3(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,
-                OverlapReal cd,OverlapReal ce,
-                OverlapReal de)
+DEVICE inline OverlapReal ang3(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal de)
     {
-        return
-        (ab*(cd+ce-de)-(ad-bd)*(ae-be))*(ac+bc-ab)+
-        (ac*(bd+be-de)-(ad-cd)*(ae-ce))*(ab+bc-ac)+
-        (bc*(ad+ae-de)-(bd-cd)*(be-ce))*(ab+ac-bc)-2*ab*ac*bc;
+    return (ab * (cd + ce - de) - (ad - bd) * (ae - be)) * (ac + bc - ab)
+           + (ac * (bd + be - de) - (ad - cd) * (ae - ce)) * (ab + bc - ac)
+           + (bc * (ad + ae - de) - (bd - cd) * (be - ce)) * (ab + ac - bc) - 2 * ab * ac * bc;
     }
 
-DEVICE inline OverlapReal ang4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,
-                OverlapReal cd,OverlapReal ce,OverlapReal cf,
-                OverlapReal de,OverlapReal df,
-                OverlapReal ef)
+DEVICE inline OverlapReal ang4(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal ef)
     {
-        OverlapReal abcd = ab*cd,acbd = ac*bd,adbc = ad*bc;
-        OverlapReal abc = ab*ac*bc,abd = ab*ad*bd,acd = ac*ad*cd,bcd = bc*bd*cd;
+    OverlapReal abcd = ab * cd, acbd = ac * bd, adbc = ad * bc;
+    OverlapReal abc = ab * ac * bc, abd = ab * ad * bd, acd = ac * ad * cd, bcd = bc * bd * cd;
 
-        return abcd*(abcd-acbd-adbc)+acbd*(acbd-abcd-adbc)+adbc*(adbc-abcd-acbd)
+    return abcd * (abcd - acbd - adbc) + acbd * (acbd - abcd - adbc) + adbc * (adbc - abcd - acbd)
 
-        +(ae+af)*(abcd*(bc+bd-cd)+acbd*(bc+cd-bd)+adbc*(bd+cd-bc)-2*bcd)
-        +(be+bf)*(abcd*(ac+ad-cd)+adbc*(ac+cd-ad)+acbd*(ad+cd-ac)-2*acd)
-        +(ce+cf)*(acbd*(ab+ad-bd)+adbc*(ab+bd-ad)+abcd*(ad+bd-ab)-2*abd)
-        +(de+df)*(adbc*(ab+ac-bc)+acbd*(ab+bc-ac)+abcd*(ac+bc-ab)-2*abc)
+           + (ae + af)
+                 * (abcd * (bc + bd - cd) + acbd * (bc + cd - bd) + adbc * (bd + cd - bc) - 2 * bcd)
+           + (be + bf)
+                 * (abcd * (ac + ad - cd) + adbc * (ac + cd - ad) + acbd * (ad + cd - ac) - 2 * acd)
+           + (ce + cf)
+                 * (acbd * (ab + ad - bd) + adbc * (ab + bd - ad) + abcd * (ad + bd - ab) - 2 * abd)
+           + (de + df)
+                 * (adbc * (ab + ac - bc) + acbd * (ab + bc - ac) + abcd * (ac + bc - ab) - 2 * abc)
 
-        -ef*2*(abcd*(ac+bd+ad+bc-ab-cd)+acbd*(ab+cd+ad+bc-ac-bd)+adbc*(ab+cd+ac+bd-ad-bc)-(abc+abd+acd+bcd))
+           - ef * 2
+                 * (abcd * (ac + bd + ad + bc - ab - cd) + acbd * (ab + cd + ad + bc - ac - bd)
+                    + adbc * (ab + cd + ac + bd - ad - bc) - (abc + abd + acd + bcd))
 
-        -(ae-be)*(af-bf)*((cd+ac+ad)*(cd+bc+bd)-2*(cd*(cd+ab)+ac*bc+ad*bd))
-        -(ae-ce)*(af-cf)*((bd+ab+ad)*(bd+bc+cd)-2*(bd*(bd+ac)+ab*bc+ad*cd))
-        -(ae-de)*(af-df)*((bc+ab+ac)*(bc+bd+cd)-2*(bc*(bc+ad)+ab*bd+ac*cd))
-        -(be-ce)*(bf-cf)*((ad+ab+bd)*(ad+ac+cd)-2*(ad*(ad+bc)+ab*ac+bd*cd))
-        -(be-de)*(bf-df)*((ac+ab+bc)*(ac+ad+cd)-2*(ac*(ac+bd)+ab*ad+bc*cd))
-        -(ce-de)*(cf-df)*((ab+ac+bc)*(ab+ad+bd)-2*(ab*(ab+cd)+ac*ad+bc*bd));
+           - (ae - be) * (af - bf)
+                 * ((cd + ac + ad) * (cd + bc + bd) - 2 * (cd * (cd + ab) + ac * bc + ad * bd))
+           - (ae - ce) * (af - cf)
+                 * ((bd + ab + ad) * (bd + bc + cd) - 2 * (bd * (bd + ac) + ab * bc + ad * cd))
+           - (ae - de) * (af - df)
+                 * ((bc + ab + ac) * (bc + bd + cd) - 2 * (bc * (bc + ad) + ab * bd + ac * cd))
+           - (be - ce) * (bf - cf)
+                 * ((ad + ab + bd) * (ad + ac + cd) - 2 * (ad * (ad + bc) + ab * ac + bd * cd))
+           - (be - de) * (bf - df)
+                 * ((ac + ab + bc) * (ac + ad + cd) - 2 * (ac * (ac + bd) + ab * ad + bc * cd))
+           - (ce - de) * (cf - df)
+                 * ((ab + ac + bc) * (ab + ad + bd) - 2 * (ab * (ab + cd) + ac * ad + bc * bd));
     }
 
-DEVICE inline OverlapReal ang5(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal af,OverlapReal ag,
-                OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal bf,OverlapReal bg,
-                OverlapReal cd,OverlapReal ce,OverlapReal cf,OverlapReal cg,
-                OverlapReal de,OverlapReal df,OverlapReal dg,
-                OverlapReal ef,OverlapReal eg,
-                OverlapReal fg)
+DEVICE inline OverlapReal ang5(OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal ae,
+                               OverlapReal af,
+                               OverlapReal ag,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal be,
+                               OverlapReal bf,
+                               OverlapReal bg,
+                               OverlapReal cd,
+                               OverlapReal ce,
+                               OverlapReal cf,
+                               OverlapReal cg,
+                               OverlapReal de,
+                               OverlapReal df,
+                               OverlapReal dg,
+                               OverlapReal ef,
+                               OverlapReal eg,
+                               OverlapReal fg)
     {
-        return gam5(ab,ac,ad,ae,bc,bd,be,cd,ce,de)
+    return gam5(ab, ac, ad, ae, bc, bd, be, cd, ce, de)
 
-        +(af+ag)*beta4(bc,bd,be,ab,cd,ce,ac,de,ad,ae)
-        +(bf+bg)*beta4(ac,ad,ae,ab,cd,ce,bc,de,bd,be)
-        +(cf+cg)*beta4(ab,ad,ae,ac,bd,be,bc,de,cd,ce)
-        +(df+dg)*beta4(ab,ac,ae,ad,bc,be,bd,ce,cd,de)
-        +(ef+eg)*beta4(ab,ac,ad,ae,bc,bd,be,cd,ce,de)
+           + (af + ag) * beta4(bc, bd, be, ab, cd, ce, ac, de, ad, ae)
+           + (bf + bg) * beta4(ac, ad, ae, ab, cd, ce, bc, de, bd, be)
+           + (cf + cg) * beta4(ab, ad, ae, ac, bd, be, bc, de, cd, ce)
+           + (df + dg) * beta4(ab, ac, ae, ad, bc, be, bd, ce, cd, de)
+           + (ef + eg) * beta4(ab, ac, ad, ae, bc, bd, be, cd, ce, de)
 
-        -fg*vok4(ab,ac,ad,ae,bc,bd,be,cd,ce,de)
+           - fg * vok4(ab, ac, ad, ae, bc, bd, be, cd, ce, de)
 
-        -(af-bf)*(ag-bg)*ang3(cd,ce,ac,bc,de,ad,bd,ae,be,ab)
-        -(af-cf)*(ag-cg)*ang3(bd,be,ab,bc,de,ad,cd,ae,ce,ac)
-        -(af-df)*(ag-dg)*ang3(bc,be,ab,bd,ce,ac,cd,ae,de,ad)
-        -(af-ef)*(ag-eg)*ang3(bc,bd,ab,be,cd,ac,ce,ad,de,ae)
-        -(bf-cf)*(bg-cg)*ang3(ad,ae,ab,ac,de,bd,cd,be,ce,bc)
-        -(bf-df)*(bg-dg)*ang3(ac,ae,ab,ad,ce,bc,cd,be,de,bd)
-        -(bf-ef)*(bg-eg)*ang3(ac,ad,ab,ae,cd,bc,ce,bd,de,be)
-        -(cf-df)*(cg-dg)*ang3(ab,ae,ac,ad,be,bc,bd,ce,de,cd)
-        -(cf-ef)*(cg-eg)*ang3(ab,ad,ac,ae,bd,bc,be,cd,de,ce)
-        -(df-ef)*(dg-eg)*ang3(ab,ac,ad,ae,bc,bd,be,cd,ce,de);
+           - (af - bf) * (ag - bg) * ang3(cd, ce, ac, bc, de, ad, bd, ae, be, ab)
+           - (af - cf) * (ag - cg) * ang3(bd, be, ab, bc, de, ad, cd, ae, ce, ac)
+           - (af - df) * (ag - dg) * ang3(bc, be, ab, bd, ce, ac, cd, ae, de, ad)
+           - (af - ef) * (ag - eg) * ang3(bc, bd, ab, be, cd, ac, ce, ad, de, ae)
+           - (bf - cf) * (bg - cg) * ang3(ad, ae, ab, ac, de, bd, cd, be, ce, bc)
+           - (bf - df) * (bg - dg) * ang3(ac, ae, ab, ad, ce, bc, cd, be, de, bd)
+           - (bf - ef) * (bg - eg) * ang3(ac, ad, ab, ae, cd, bc, ce, bd, de, be)
+           - (cf - df) * (cg - dg) * ang3(ab, ae, ac, ad, be, bc, bd, ce, de, cd)
+           - (cf - ef) * (cg - eg) * ang3(ab, ad, ac, ae, bd, bc, be, cd, de, ce)
+           - (df - ef) * (dg - eg) * ang3(ab, ac, ad, ae, bc, bd, be, cd, ce, de);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-DEVICE inline OverlapReal t2(OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal t2(OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        OverlapReal ab2 = ab*ab;
-        OverlapReal ac2 = ac*ac;
-        OverlapReal bc2 = bc*bc;
+    OverlapReal ab2 = ab * ab;
+    OverlapReal ac2 = ac * ac;
+    OverlapReal bc2 = bc * bc;
 
-        return sqrt(4*(ab2*ac2+ab2*bc2+ac2*bc2)-(ab2+ac2+bc2)*(ab2+ac2+bc2))/4;
+    return sqrt(4 * (ab2 * ac2 + ab2 * bc2 + ac2 * bc2) - (ab2 + ac2 + bc2) * (ab2 + ac2 + bc2))
+           / 4;
     }
 
-DEVICE inline OverlapReal cos2(OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal cos2(OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        return (ab*ab+ac*ac-bc*bc)/(2*ab*ac);
+    return (ab * ab + ac * ac - bc * bc) / (2 * ab * ac);
     }
 
-DEVICE inline OverlapReal t3(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal
+t3(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
     {
-        OverlapReal ab2 = ab*ab;
-        OverlapReal ac2 = ac*ac;
-        OverlapReal ad2 = ad*ad;
-        OverlapReal bc2 = bc*bc;
-        OverlapReal bd2 = bd*bd;
-        OverlapReal cd2 = cd*cd;
+    OverlapReal ab2 = ab * ab;
+    OverlapReal ac2 = ac * ac;
+    OverlapReal ad2 = ad * ad;
+    OverlapReal bc2 = bc * bc;
+    OverlapReal bd2 = bd * bd;
+    OverlapReal cd2 = cd * cd;
 
-        OverlapReal abTcd = ab2*cd2,abPcd = ab2+cd2;
-        OverlapReal acTbd = ac2*bd2,acPbd = ac2+bd2;
-        OverlapReal adTbc = ad2*bc2,adPbc = ad2+bc2;
+    OverlapReal abTcd = ab2 * cd2, abPcd = ab2 + cd2;
+    OverlapReal acTbd = ac2 * bd2, acPbd = ac2 + bd2;
+    OverlapReal adTbc = ad2 * bc2, adPbc = ad2 + bc2;
 
-        return sqrt((abTcd+acTbd+adTbc)*(abPcd+acPbd+adPbc)
-                    -2*(abTcd*abPcd+acTbd*acPbd+adTbc*adPbc)
-                    -(ab2*ac2*bc2+ab2*ad2*bd2+ac2*ad2*cd2+bc2*bd2*cd2))/12;
+    return sqrt((abTcd + acTbd + adTbc) * (abPcd + acPbd + adPbc)
+                - 2 * (abTcd * abPcd + acTbd * acPbd + adTbc * adPbc)
+                - (ab2 * ac2 * bc2 + ab2 * ad2 * bd2 + ac2 * ad2 * cd2 + bc2 * bd2 * cd2))
+           / 12;
     }
 
-DEVICE inline OverlapReal cos3(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal
+cos3(OverlapReal ab, OverlapReal ac, OverlapReal ad, OverlapReal bc, OverlapReal bd, OverlapReal cd)
     {
-        OverlapReal ab2 = ab*ab;
-        OverlapReal ac2 = ac*ac;
-        OverlapReal ad2 = ad*ad;
-        OverlapReal bc2 = bc*bc;
-        OverlapReal bd2 = bd*bd;
-        OverlapReal cd2 = cd*cd;
+    OverlapReal ab2 = ab * ab;
+    OverlapReal ac2 = ac * ac;
+    OverlapReal ad2 = ad * ad;
+    OverlapReal bc2 = bc * bc;
+    OverlapReal bd2 = bd * bd;
+    OverlapReal cd2 = cd * cd;
 
-        return ((ab2+ac2+bc2)*(ab2+ad2+bd2)-2*(ab2*(ab2+cd2)+ac2*ad2+bc2*bd2))/(16*t2(ab,ac,bc)*t2(ab,ad,bd));
+    return ((ab2 + ac2 + bc2) * (ab2 + ad2 + bd2) - 2 * (ab2 * (ab2 + cd2) + ac2 * ad2 + bc2 * bd2))
+           / (16 * t2(ab, ac, bc) * t2(ab, ad, bd));
     }
 
-DEVICE inline bool flag3(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline bool flag3(OverlapReal ab,
+                         OverlapReal ac,
+                         OverlapReal ad,
+                         OverlapReal bc,
+                         OverlapReal bd,
+                         OverlapReal cd)
     {
-        OverlapReal ab2 = ab*ab;
-        OverlapReal ac2 = ac*ac;
-        OverlapReal ad2 = ad*ad;
-        OverlapReal bc2 = bc*bc;
-        OverlapReal bd2 = bd*bd;
-        OverlapReal cd2 = cd*cd;
+    OverlapReal ab2 = ab * ab;
+    OverlapReal ac2 = ac * ac;
+    OverlapReal ad2 = ad * ad;
+    OverlapReal bc2 = bc * bc;
+    OverlapReal bd2 = bd * bd;
+    OverlapReal cd2 = cd * cd;
 
-        return (ab2+ac2+bc2)*(ab2+ad2+bd2)-2*(ab2*(ab2+cd2)+ac2*ad2+bc2*bd2) >= 16*t2(ab,ac,bc)*t2(ab,ad,bd);
+    return (ab2 + ac2 + bc2) * (ab2 + ad2 + bd2) - 2 * (ab2 * (ab2 + cd2) + ac2 * ad2 + bc2 * bd2)
+           >= 16 * t2(ab, ac, bc) * t2(ab, ad, bd);
     }
 
-DEVICE inline bool flag4(OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal ae,OverlapReal bc,OverlapReal bd,OverlapReal be,OverlapReal cd,OverlapReal ce,OverlapReal de)
+DEVICE inline bool flag4(OverlapReal ab,
+                         OverlapReal ac,
+                         OverlapReal ad,
+                         OverlapReal ae,
+                         OverlapReal bc,
+                         OverlapReal bd,
+                         OverlapReal be,
+                         OverlapReal cd,
+                         OverlapReal ce,
+                         OverlapReal de)
     {
-        OverlapReal ab2 = ab*ab;
-        OverlapReal ac2 = ac*ac;
-        OverlapReal ad2 = ad*ad;
-        OverlapReal ae2 = ae*ae;
-        OverlapReal bc2 = bc*bc;
-        OverlapReal bd2 = bd*bd;
-        OverlapReal be2 = be*be;
-        OverlapReal cd2 = cd*cd;
-        OverlapReal ce2 = ce*ce;
-        OverlapReal de2 = de*de;
+    OverlapReal ab2 = ab * ab;
+    OverlapReal ac2 = ac * ac;
+    OverlapReal ad2 = ad * ad;
+    OverlapReal ae2 = ae * ae;
+    OverlapReal bc2 = bc * bc;
+    OverlapReal bd2 = bd * bd;
+    OverlapReal be2 = be * be;
+    OverlapReal cd2 = cd * cd;
+    OverlapReal ce2 = ce * ce;
+    OverlapReal de2 = de * de;
 
-        return (ab2+ac2+bc2)*(ad2*be2+ae2*bd2+ad2*ce2+ae2*cd2+bd2*ce2+be2*cd2)
-        +(ab2*ac2+ab2*bc2+ac2*bc2)*(ad2+ae2+bd2+be2+cd2+ce2)
-        -2*ab2*ac2*bc2+de2*(ab2*ab2+ac2*ac2+bc2*bc2)
-        -2*de2*(ab2*ac2+ab2*bc2+ac2*bc2)
-        -2*ab2*(ad2*be2+ae2*bd2+cd2*ce2)
-        -2*ac2*(ad2*ce2+ae2*cd2+bd2*be2)
-        -2*bc2*(bd2*ce2+be2*cd2+ad2*ae2)
-        -(ab2*ab2+ac2*bc2)*(cd2+ce2)
-        -(ac2*ac2+ab2*bc2)*(bd2+be2)
-        -(bc2*bc2+ab2*ac2)*(ad2+ae2) >= 288*t3(ab,ac,ad,bc,bd,cd)*t3(ab,ac,ae,bc,be,ce);
+    return (ab2 + ac2 + bc2)
+                   * (ad2 * be2 + ae2 * bd2 + ad2 * ce2 + ae2 * cd2 + bd2 * ce2 + be2 * cd2)
+               + (ab2 * ac2 + ab2 * bc2 + ac2 * bc2) * (ad2 + ae2 + bd2 + be2 + cd2 + ce2)
+               - 2 * ab2 * ac2 * bc2 + de2 * (ab2 * ab2 + ac2 * ac2 + bc2 * bc2)
+               - 2 * de2 * (ab2 * ac2 + ab2 * bc2 + ac2 * bc2)
+               - 2 * ab2 * (ad2 * be2 + ae2 * bd2 + cd2 * ce2)
+               - 2 * ac2 * (ad2 * ce2 + ae2 * cd2 + bd2 * be2)
+               - 2 * bc2 * (bd2 * ce2 + be2 * cd2 + ad2 * ae2)
+               - (ab2 * ab2 + ac2 * bc2) * (cd2 + ce2) - (ac2 * ac2 + ab2 * bc2) * (bd2 + be2)
+               - (bc2 * bc2 + ab2 * ac2) * (ad2 + ae2)
+           >= 288 * t3(ab, ac, ad, bc, bd, cd) * t3(ab, ac, ae, bc, be, ce);
     }
 
-DEVICE inline  OverlapReal wol2(OverlapReal ar,OverlapReal br,OverlapReal ab);
-DEVICE inline    OverlapReal wol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc);
-DEVICE inline    OverlapReal wol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd);
-DEVICE inline    OverlapReal vol2(OverlapReal ar,OverlapReal br,OverlapReal ab);
-DEVICE inline    OverlapReal vol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc);
-DEVICE inline    OverlapReal vol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd);
-DEVICE inline    OverlapReal xol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc);
-DEVICE inline    OverlapReal xol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd);
-DEVICE inline    OverlapReal yol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd);
+DEVICE inline OverlapReal wol2(OverlapReal ar, OverlapReal br, OverlapReal ab);
+DEVICE inline OverlapReal wol3(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal bc);
+DEVICE inline OverlapReal wol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd);
+DEVICE inline OverlapReal vol2(OverlapReal ar, OverlapReal br, OverlapReal ab);
+DEVICE inline OverlapReal vol3(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal bc);
+DEVICE inline OverlapReal vol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd);
+DEVICE inline OverlapReal xol3(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal bc);
+DEVICE inline OverlapReal xol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd);
+DEVICE inline OverlapReal yol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd);
 
-DEVICE inline    OverlapReal uol1(OverlapReal ar)
+DEVICE inline OverlapReal uol1(OverlapReal ar)
     {
-        return OverlapReal(M_PI*4.0/3.0)*ar*ar*ar;
+    return OverlapReal(M_PI * 4.0 / 3.0) * ar * ar * ar;
     }
 
-DEVICE inline    OverlapReal uol2(OverlapReal ar,OverlapReal br,OverlapReal ab)
+DEVICE inline OverlapReal uol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
     {
-        if(((ar > 0) || (br > 0)) && (ar+br <= ab)) return 0;
+    if (((ar > 0) || (br > 0)) && (ar + br <= ab))
+        return 0;
 
-        if(((ar > 0) || (br < 0)) && (ar-br <= -ab)) return uol1(ar);
-        if(((br > 0) || (ar < 0)) && (br-ar <= -ab)) return uol1(br);
+    if (((ar > 0) || (br < 0)) && (ar - br <= -ab))
+        return uol1(ar);
+    if (((br > 0) || (ar < 0)) && (br - ar <= -ab))
+        return uol1(br);
 
-        return vol2(ar,br,ab);
+    return vol2(ar, br, ab);
     }
 
-DEVICE inline  OverlapReal vol2(OverlapReal ar,OverlapReal br,OverlapReal ab)
+DEVICE inline OverlapReal vol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
     {
-        if(((ar < 0) || (br < 0)) && (-ar-br <= ab)) return uol1(ar)+uol1(br);
+    if (((ar < 0) || (br < 0)) && (-ar - br <= ab))
+        return uol1(ar) + uol1(br);
 
-        return wol2(ar,br,ab);
+    return wol2(ar, br, ab);
     }
 
- DEVICE inline    OverlapReal wol2(OverlapReal ar,OverlapReal br,OverlapReal ab)
+DEVICE inline OverlapReal wol2(OverlapReal ar, OverlapReal br, OverlapReal ab)
     {
-        return
-        +uol1(ar)*(1-cos2(ar,ab,br))/2
-        +uol1(br)*(1-cos2(br,ab,ar))/2
-        -OverlapReal(M_PI*4.0/3.0)*t2(ar,br,ab)*t2(ar,br,ab)/ab;
+    return +uol1(ar) * (1 - cos2(ar, ab, br)) / 2 + uol1(br) * (1 - cos2(br, ab, ar)) / 2
+           - OverlapReal(M_PI * 4.0 / 3.0) * t2(ar, br, ab) * t2(ar, br, ab) / ab;
     }
 
- DEVICE inline    OverlapReal uol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal
+uol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        if(((ar > 0) || (br > 0)) && (ar+br <= ab)) return 0;
-        if(((ar > 0) || (cr > 0)) && (ar+cr <= ac)) return 0;
-        if(((br > 0) || (cr > 0)) && (br+cr <= bc)) return 0;
+    if (((ar > 0) || (br > 0)) && (ar + br <= ab))
+        return 0;
+    if (((ar > 0) || (cr > 0)) && (ar + cr <= ac))
+        return 0;
+    if (((br > 0) || (cr > 0)) && (br + cr <= bc))
+        return 0;
 
-        bool Abr = ((ar > 0) || (br < 0)) && (ar-br <= -ab);
-        bool Acr = ((ar > 0) || (cr < 0)) && (ar-cr <= -ac);
-        if(Abr && Acr) return uol1(ar);
+    bool Abr = ((ar > 0) || (br < 0)) && (ar - br <= -ab);
+    bool Acr = ((ar > 0) || (cr < 0)) && (ar - cr <= -ac);
+    if (Abr && Acr)
+        return uol1(ar);
 
-        bool Bar = ((br > 0) || (ar < 0)) && (br-ar <= -ab);
-        bool Bcr = ((br > 0) || (cr < 0)) && (br-cr <= -bc);
-        if(Bar && Bcr) return uol1(br);
+    bool Bar = ((br > 0) || (ar < 0)) && (br - ar <= -ab);
+    bool Bcr = ((br > 0) || (cr < 0)) && (br - cr <= -bc);
+    if (Bar && Bcr)
+        return uol1(br);
 
-        bool Car = ((cr > 0) || (ar < 0)) && (cr-ar <= -ac);
-        bool Cbr = ((cr > 0) || (br < 0)) && (cr-br <= -bc);
-        if(Car && Cbr) return uol1(cr);
+    bool Car = ((cr > 0) || (ar < 0)) && (cr - ar <= -ac);
+    bool Cbr = ((cr > 0) || (br < 0)) && (cr - br <= -bc);
+    if (Car && Cbr)
+        return uol1(cr);
 
-        if(Bar || Car) return vol2(br,cr,bc);
-        if(Abr || Cbr) return vol2(ar,cr,ac);
-        if(Acr || Bcr) return vol2(ar,br,ab);
+    if (Bar || Car)
+        return vol2(br, cr, bc);
+    if (Abr || Cbr)
+        return vol2(ar, cr, ac);
+    if (Acr || Bcr)
+        return vol2(ar, br, ab);
 
-        return vol3(ar,br,cr,ab,ac,bc);
+    return vol3(ar, br, cr, ab, ac, bc);
     }
 
- DEVICE inline    OverlapReal vol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal
+vol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        bool abR = ((ar < 0) || (br < 0)) && (-ar-br <= ab);
-        bool acR = ((ar < 0) || (cr < 0)) && (-ar-cr <= ac);
-        bool bcR = ((br < 0) || (cr < 0)) && (-br-cr <= bc);
+    bool abR = ((ar < 0) || (br < 0)) && (-ar - br <= ab);
+    bool acR = ((ar < 0) || (cr < 0)) && (-ar - cr <= ac);
+    bool bcR = ((br < 0) || (cr < 0)) && (-br - cr <= bc);
 
-        if(abR && acR && bcR) return uol1(ar)+uol1(br)+uol1(cr);
+    if (abR && acR && bcR)
+        return uol1(ar) + uol1(br) + uol1(cr);
 
-        if(abR && acR) return uol1(ar)+wol2(br,cr,bc);
-        if(abR && bcR) return uol1(br)+wol2(ar,cr,ac);
-        if(acR && bcR) return uol1(cr)+wol2(ar,br,ab);
+    if (abR && acR)
+        return uol1(ar) + wol2(br, cr, bc);
+    if (abR && bcR)
+        return uol1(br) + wol2(ar, cr, ac);
+    if (acR && bcR)
+        return uol1(cr) + wol2(ar, br, ab);
 
-        if(bcR) return wol2(ar,br,ab)+wol2(ar,cr,ac)-uol1(ar);
-        if(acR) return wol2(ar,br,ab)+wol2(br,cr,bc)-uol1(br);
-        if(abR) return wol2(ar,cr,ac)+wol2(br,cr,bc)-uol1(cr);
+    if (bcR)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) - uol1(ar);
+    if (acR)
+        return wol2(ar, br, ab) + wol2(br, cr, bc) - uol1(br);
+    if (abR)
+        return wol2(ar, cr, ac) + wol2(br, cr, bc) - uol1(cr);
 
-        return wol3(ar,br,cr,ab,ac,bc);
+    return wol3(ar, br, cr, ab, ac, bc);
     }
 
- DEVICE inline    OverlapReal wol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal
+wol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        bool abf = flag3(ab,ac,ar,bc,br,cr);
-        bool acf = flag3(ac,ab,ar,bc,cr,br);
-        bool bcf = flag3(bc,ab,br,ac,cr,ar);
+    bool abf = flag3(ab, ac, ar, bc, br, cr);
+    bool acf = flag3(ac, ab, ar, bc, cr, br);
+    bool bcf = flag3(bc, ab, br, ac, cr, ar);
 
-        if(abf && acf && bcf) return 0;
+    if (abf && acf && bcf)
+        return 0;
 
-        if(abf && acf) return wol2(br,cr,bc);
-        if(abf && bcf) return wol2(ar,cr,ac);
-        if(acf && bcf) return wol2(ar,br,ab);
+    if (abf && acf)
+        return wol2(br, cr, bc);
+    if (abf && bcf)
+        return wol2(ar, cr, ac);
+    if (acf && bcf)
+        return wol2(ar, br, ab);
 
-        if(bcf) return wol2(ar,br,ab)+wol2(ar,cr,ac)-uol1(ar);
-        if(acf) return wol2(ar,br,ab)+wol2(br,cr,bc)-uol1(br);
-        if(abf) return wol2(ar,cr,ac)+wol2(br,cr,bc)-uol1(cr);
+    if (bcf)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) - uol1(ar);
+    if (acf)
+        return wol2(ar, br, ab) + wol2(br, cr, bc) - uol1(br);
+    if (abf)
+        return wol2(ar, cr, ac) + wol2(br, cr, bc) - uol1(cr);
 
-        return xol3(ar,br,cr,ab,ac,bc);
+    return xol3(ar, br, cr, ab, ac, bc);
     }
 
-DEVICE inline   OverlapReal sign(OverlapReal val)
-        {
-        OverlapReal s(1.0);
-        s = copysignf(s,val);
-        return s;
-        }
-
-DEVICE inline    OverlapReal xol3(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal ab,OverlapReal ac,OverlapReal bc)
+DEVICE inline OverlapReal sign(OverlapReal val)
     {
-        OverlapReal tar = acos(cos3(ar,ab,ac,br,cr,bc)*sign(bc));
-        OverlapReal tbr = acos(cos3(br,ab,bc,ar,cr,ac)*sign(ac));
-        OverlapReal tcr = acos(cos3(cr,ac,bc,ar,br,ab)*sign(ab));
-        OverlapReal tbc = acos(cos3(bc,ab,br,ac,cr,ar)*sign(ar));
-        OverlapReal tac = acos(cos3(ac,ab,ar,bc,cr,br)*sign(br));
-        OverlapReal tab = acos(cos3(ab,ac,ar,bc,br,cr)*sign(cr));
-
-        return
-        +2*t3(ar,br,cr,ab,ac,bc)*sign(ar)*sign(br)*sign(cr)
-        +(wol2(ar,br,ab)*tab+
-          wol2(ar,cr,ac)*tac+
-          wol2(br,cr,bc)*tbc)/OverlapReal(M_PI)
-        -(uol1(ar)*(tab+tac+tar-OverlapReal(M_PI))+
-          uol1(br)*(tab+tbc+tbr-OverlapReal(M_PI))+
-          uol1(cr)*(tac+tbc+tcr-OverlapReal(M_PI)))/(2*OverlapReal(M_PI));
+    OverlapReal s(1.0);
+    s = copysignf(s, val);
+    return s;
     }
 
-DEVICE inline    OverlapReal uol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal
+xol3(OverlapReal ar, OverlapReal br, OverlapReal cr, OverlapReal ab, OverlapReal ac, OverlapReal bc)
     {
-        if(((ar > 0) || (br > 0)) && (ar+br <= ab)) return 0;
-        if(((ar > 0) || (cr > 0)) && (ar+cr <= ac)) return 0;
-        if(((ar > 0) || (dr > 0)) && (ar+dr <= ad)) return 0;
-        if(((br > 0) || (cr > 0)) && (br+cr <= bc)) return 0;
-        if(((br > 0) || (dr > 0)) && (br+dr <= bd)) return 0;
-        if(((cr > 0) || (dr > 0)) && (cr+dr <= cd)) return 0;
+    OverlapReal tar = acos(cos3(ar, ab, ac, br, cr, bc) * sign(bc));
+    OverlapReal tbr = acos(cos3(br, ab, bc, ar, cr, ac) * sign(ac));
+    OverlapReal tcr = acos(cos3(cr, ac, bc, ar, br, ab) * sign(ab));
+    OverlapReal tbc = acos(cos3(bc, ab, br, ac, cr, ar) * sign(ar));
+    OverlapReal tac = acos(cos3(ac, ab, ar, bc, cr, br) * sign(br));
+    OverlapReal tab = acos(cos3(ab, ac, ar, bc, br, cr) * sign(cr));
 
-        bool Abr = ((ar > 0) || (br < 0)) && (ar-br <= -ab);
-        bool Acr = ((ar > 0) || (cr < 0)) && (ar-cr <= -ac);
-        bool Adr = ((ar > 0) || (dr < 0)) && (ar-dr <= -ad);
-        if(Abr && Acr && Adr) return uol1(ar);
-
-        bool Bar = ((br > 0) || (ar < 0)) && (br-ar <= -ab);
-        bool Bcr = ((br > 0) || (cr < 0)) && (br-cr <= -bc);
-        bool Bdr = ((br > 0) || (dr < 0)) && (br-dr <= -bd);
-        if(Bar && Bcr && Bdr) return uol1(br);
-
-        bool Car = ((cr > 0) || (ar < 0)) && (cr-ar <= -ac);
-        bool Cbr = ((cr > 0) || (br < 0)) && (cr-br <= -bc);
-        bool Cdr = ((cr > 0) || (dr < 0)) && (cr-dr <= -cd);
-        if(Car && Cbr && Cdr) return uol1(cr);
-
-        bool Dar = ((dr > 0) || (ar < 0)) && (dr-ar <= -ad);
-        bool Dbr = ((dr > 0) || (br < 0)) && (dr-br <= -bd);
-        bool Dcr = ((dr > 0) || (cr < 0)) && (dr-cr <= -cd);
-        if(Dar && Dbr && Dcr) return uol1(dr);
-
-        if((Acr || Bcr) && (Adr || Bdr)) return vol2(ar,br,ab);
-        if((Abr || Cbr) && (Adr || Cdr)) return vol2(ar,cr,ac);
-        if((Abr || Dbr) && (Acr || Dcr)) return vol2(ar,dr,ad);
-        if((Bar || Car) && (Bdr || Cdr)) return vol2(br,cr,bc);
-        if((Bar || Dar) && (Bcr || Dcr)) return vol2(br,dr,bd);
-        if((Car || Dar) && (Cbr || Dbr)) return vol2(cr,dr,cd);
-
-        if(Bar || Car || Dar) return vol3(br,cr,dr,bc,bd,cd);
-        if(Abr || Cbr || Dbr) return vol3(ar,cr,dr,ac,ad,cd);
-        if(Acr || Bcr || Dcr) return vol3(ar,br,dr,ab,ad,bd);
-        if(Adr || Bdr || Cdr) return vol3(ar,br,cr,ab,ac,bc);
-
-        return vol4(ar,br,cr,dr,ab,ac,ad,bc,bd,cd);
+    return +2 * t3(ar, br, cr, ab, ac, bc) * sign(ar) * sign(br) * sign(cr)
+           + (wol2(ar, br, ab) * tab + wol2(ar, cr, ac) * tac + wol2(br, cr, bc) * tbc)
+                 / OverlapReal(M_PI)
+           - (uol1(ar) * (tab + tac + tar - OverlapReal(M_PI))
+              + uol1(br) * (tab + tbc + tbr - OverlapReal(M_PI))
+              + uol1(cr) * (tac + tbc + tcr - OverlapReal(M_PI)))
+                 / (2 * OverlapReal(M_PI));
     }
 
-DEVICE inline     OverlapReal vol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal uol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd)
     {
-        bool abR = ((ar < 0) || (br < 0)) && (-ar-br <= ab);
-        bool acR = ((ar < 0) || (cr < 0)) && (-ar-cr <= ac);
-        bool adR = ((ar < 0) || (dr < 0)) && (-ar-dr <= ad);
-        bool bcR = ((br < 0) || (cr < 0)) && (-br-cr <= bc);
-        bool bdR = ((br < 0) || (dr < 0)) && (-br-dr <= bd);
-        bool cdR = ((cr < 0) || (dr < 0)) && (-cr-dr <= cd);
+    if (((ar > 0) || (br > 0)) && (ar + br <= ab))
+        return 0;
+    if (((ar > 0) || (cr > 0)) && (ar + cr <= ac))
+        return 0;
+    if (((ar > 0) || (dr > 0)) && (ar + dr <= ad))
+        return 0;
+    if (((br > 0) || (cr > 0)) && (br + cr <= bc))
+        return 0;
+    if (((br > 0) || (dr > 0)) && (br + dr <= bd))
+        return 0;
+    if (((cr > 0) || (dr > 0)) && (cr + dr <= cd))
+        return 0;
 
-        if(abR && acR && adR && bcR && bdR && cdR) return uol1(ar)+uol1(br)+uol1(cr)+uol1(dr);
+    bool Abr = ((ar > 0) || (br < 0)) && (ar - br <= -ab);
+    bool Acr = ((ar > 0) || (cr < 0)) && (ar - cr <= -ac);
+    bool Adr = ((ar > 0) || (dr < 0)) && (ar - dr <= -ad);
+    if (Abr && Acr && Adr)
+        return uol1(ar);
 
-        if(!abR && acR && adR && bcR && bdR && cdR) return wol2(ar,br,ab)+uol1(cr)+uol1(dr);
-        if(abR && !acR && adR && bcR && bdR && cdR) return wol2(ar,cr,ac)+uol1(br)+uol1(dr);
-        if(abR && acR && !adR && bcR && bdR && cdR) return wol2(ar,dr,ad)+uol1(br)+uol1(cr);
-        if(abR && acR && adR && !bcR && bdR && cdR) return wol2(br,cr,bc)+uol1(ar)+uol1(dr);
-        if(abR && acR && adR && bcR && !bdR && cdR) return wol2(br,dr,bd)+uol1(ar)+uol1(cr);
-        if(abR && acR && adR && bcR && bdR && !cdR) return wol2(cr,dr,cd)+uol1(ar)+uol1(br);
+    bool Bar = ((br > 0) || (ar < 0)) && (br - ar <= -ab);
+    bool Bcr = ((br > 0) || (cr < 0)) && (br - cr <= -bc);
+    bool Bdr = ((br > 0) || (dr < 0)) && (br - dr <= -bd);
+    if (Bar && Bcr && Bdr)
+        return uol1(br);
 
-        if(!abR && acR && adR && bcR && bdR && !cdR) return wol2(ar,br,ab)+wol2(cr,dr,cd);
-        if(abR && !acR && adR && bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol2(br,dr,bd);
-        if(abR && acR && !adR && !bcR && bdR && cdR) return wol2(ar,dr,ad)+wol2(br,cr,bc);
+    bool Car = ((cr > 0) || (ar < 0)) && (cr - ar <= -ac);
+    bool Cbr = ((cr > 0) || (br < 0)) && (cr - br <= -bc);
+    bool Cdr = ((cr > 0) || (dr < 0)) && (cr - dr <= -cd);
+    if (Car && Cbr && Cdr)
+        return uol1(cr);
 
-        if(!abR && !acR && adR && bcR && bdR && cdR) return wol2(ar,br,ab)+wol2(ar,cr,ac)-uol1(ar);
-        if(!abR && acR && !adR && bcR && bdR && cdR) return wol2(ar,br,ab)+wol2(ar,dr,ad)-uol1(ar);
-        if(abR && !acR && !adR && bcR && bdR && cdR) return wol2(ar,cr,ac)+wol2(ar,dr,ad)-uol1(ar);
-        if(!abR && acR && adR && !bcR && bdR && cdR) return wol2(ar,br,ab)+wol2(br,cr,bc)-uol1(br);
-        if(!abR && acR && adR && bcR && !bdR && cdR) return wol2(ar,br,ab)+wol2(br,dr,bd)-uol1(br);
-        if(abR && acR && adR && !bcR && !bdR && cdR) return wol2(br,cr,bc)+wol2(br,dr,bd)-uol1(br);
-        if(abR && !acR && adR && !bcR && bdR && cdR) return wol2(ar,cr,ac)+wol2(br,cr,bc)-uol1(cr);
-        if(abR && !acR && adR && bcR && bdR && !cdR) return wol2(ar,cr,ac)+wol2(cr,dr,cd)-uol1(cr);
-        if(abR && acR && adR && !bcR && bdR && !cdR) return wol2(br,cr,bc)+wol2(cr,dr,cd)-uol1(cr);
-        if(abR && acR && !adR && bcR && !bdR && cdR) return wol2(ar,dr,ad)+wol2(br,dr,bd)-uol1(dr);
-        if(abR && acR && !adR && bcR && bdR && !cdR) return wol2(ar,dr,ad)+wol2(cr,dr,cd)-uol1(dr);
-        if(abR && acR && adR && bcR && !bdR && !cdR) return wol2(br,dr,bd)+wol2(cr,dr,cd)-uol1(dr);
+    bool Dar = ((dr > 0) || (ar < 0)) && (dr - ar <= -ad);
+    bool Dbr = ((dr > 0) || (br < 0)) && (dr - br <= -bd);
+    bool Dcr = ((dr > 0) || (cr < 0)) && (dr - cr <= -cd);
+    if (Dar && Dbr && Dcr)
+        return uol1(dr);
 
-        if(!abR && !acR && !adR && bcR && bdR && cdR) return wol2(ar,br,ab)+wol2(ar,cr,ac)+wol2(ar,dr,ad)-2*uol1(ar);
-        if(!abR && acR && adR && !bcR && !bdR && cdR) return wol2(ar,br,ab)+wol2(br,cr,bc)+wol2(br,dr,bd)-2*uol1(br);
-        if(abR && !acR && adR && !bcR && bdR && !cdR) return wol2(ar,cr,ac)+wol2(br,cr,bc)+wol2(cr,dr,cd)-2*uol1(cr);
-        if(abR && acR && !adR && bcR && !bdR && !cdR) return wol2(ar,dr,ad)+wol2(br,dr,bd)+wol2(cr,dr,cd)-2*uol1(dr);
+    if ((Acr || Bcr) && (Adr || Bdr))
+        return vol2(ar, br, ab);
+    if ((Abr || Cbr) && (Adr || Cdr))
+        return vol2(ar, cr, ac);
+    if ((Abr || Dbr) && (Acr || Dcr))
+        return vol2(ar, dr, ad);
+    if ((Bar || Car) && (Bdr || Cdr))
+        return vol2(br, cr, bc);
+    if ((Bar || Dar) && (Bcr || Dcr))
+        return vol2(br, dr, bd);
+    if ((Car || Dar) && (Cbr || Dbr))
+        return vol2(cr, dr, cd);
 
-        if(abR && acR && adR && !bcR && !bdR && !cdR) return uol1(ar)+wol3(br,cr,dr,bc,bd,cd);
-        if(abR && !acR && !adR && bcR && bdR && !cdR) return uol1(br)+wol3(ar,cr,dr,ac,ad,cd);
-        if(!abR && acR && !adR && bcR && !bdR && cdR) return uol1(cr)+wol3(ar,br,dr,ab,ad,bd);
-        if(!abR && !acR && adR && !bcR && bdR && cdR) return uol1(dr)+wol3(ar,br,cr,ab,ac,bc);
+    if (Bar || Car || Dar)
+        return vol3(br, cr, dr, bc, bd, cd);
+    if (Abr || Cbr || Dbr)
+        return vol3(ar, cr, dr, ac, ad, cd);
+    if (Acr || Bcr || Dcr)
+        return vol3(ar, br, dr, ab, ad, bd);
+    if (Adr || Bdr || Cdr)
+        return vol3(ar, br, cr, ab, ac, bc);
 
-        if(!abR && !acR && adR && bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol2(br,dr,bd)+wol2(ar,br,ab)-uol1(ar)-uol1(br);
-        if(!abR && acR && !adR && !bcR && bdR && cdR) return wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(ar,br,ab)-uol1(ar)-uol1(br);
-        if(!abR && !acR && adR && bcR && bdR && !cdR) return wol2(ar,br,ab)+wol2(cr,dr,cd)+wol2(ar,cr,ac)-uol1(ar)-uol1(cr);
-        if(abR && !acR && !adR && !bcR && bdR && cdR) return wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(ar,cr,ac)-uol1(ar)-uol1(cr);
-        if(!abR && acR && !adR && bcR && bdR && !cdR) return wol2(ar,br,ab)+wol2(cr,dr,cd)+wol2(ar,dr,ad)-uol1(ar)-uol1(dr);
-        if(abR && !acR && !adR && bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol2(br,dr,bd)+wol2(ar,dr,ad)-uol1(ar)-uol1(dr);
-        if(!abR && acR && adR && !bcR && bdR && !cdR) return wol2(ar,br,ab)+wol2(cr,dr,cd)+wol2(br,cr,bc)-uol1(br)-uol1(cr);
-        if(abR && !acR && adR && !bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol2(br,dr,bd)+wol2(br,cr,bc)-uol1(br)-uol1(cr);
-        if(!abR && acR && adR && bcR && !bdR && !cdR) return wol2(ar,br,ab)+wol2(cr,dr,cd)+wol2(br,dr,bd)-uol1(br)-uol1(dr);
-        if(abR && acR && !adR && !bcR && !bdR && cdR) return wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(br,dr,bd)-uol1(br)-uol1(dr);
-        if(abR && !acR && adR && bcR && !bdR && !cdR) return wol2(ar,cr,ac)+wol2(br,dr,bd)+wol2(cr,dr,cd)-uol1(cr)-uol1(dr);
-        if(abR && acR && !adR && !bcR && bdR && !cdR) return wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(cr,dr,cd)-uol1(cr)-uol1(dr);
-
-        if(abR && !acR && !adR && !bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(br,dr,bd)-uol1(ar)-uol1(br)-uol1(cr)-uol1(dr);
-        if(!abR && acR && !adR && !bcR && bdR && !cdR) return wol2(ar,br,ab)+wol2(ar,dr,ad)+wol2(br,cr,bc)+wol2(cr,dr,cd)-uol1(ar)-uol1(br)-uol1(cr)-uol1(dr);
-        if(!abR && !acR && adR && bcR && !bdR && !cdR) return wol2(ar,br,ab)+wol2(ar,cr,ac)+wol2(br,dr,bd)+wol2(cr,dr,cd)-uol1(ar)-uol1(br)-uol1(cr)-uol1(dr);
-
-        if(!abR && !acR && !adR && bcR && bdR && !cdR) return wol2(ar,br,ab)+wol3(ar,cr,dr,ac,ad,cd)-uol1(ar);
-        if(!abR && !acR && !adR && bcR && !bdR && cdR) return wol2(ar,cr,ac)+wol3(ar,br,dr,ab,ad,bd)-uol1(ar);
-        if(!abR && !acR && !adR && !bcR && bdR && cdR) return wol2(ar,dr,ad)+wol3(ar,br,cr,ab,ac,bc)-uol1(ar);
-        if(!abR && acR && adR && !bcR && !bdR && !cdR) return wol2(ar,br,ab)+wol3(br,cr,dr,bc,bd,cd)-uol1(br);
-        if(!abR && acR && !adR && !bcR && !bdR && cdR) return wol2(br,cr,bc)+wol3(ar,br,dr,ab,ad,bd)-uol1(br);
-        if(!abR && !acR && adR && !bcR && !bdR && cdR) return wol2(br,dr,bd)+wol3(ar,br,cr,ab,ac,bc)-uol1(br);
-        if(abR && !acR && adR && !bcR && !bdR && !cdR) return wol2(ar,cr,ac)+wol3(br,cr,dr,bc,bd,cd)-uol1(cr);
-        if(abR && !acR && !adR && !bcR && bdR && !cdR) return wol2(br,cr,bc)+wol3(ar,cr,dr,ac,ad,cd)-uol1(cr);
-        if(!abR && !acR && adR && !bcR && bdR && !cdR) return wol2(cr,dr,cd)+wol3(ar,br,cr,ab,ac,bc)-uol1(cr);
-        if(abR && acR && !adR && !bcR && !bdR && !cdR) return wol2(ar,dr,ad)+wol3(br,cr,dr,bc,bd,cd)-uol1(dr);
-        if(abR && !acR && !adR && bcR && !bdR && !cdR) return wol2(br,dr,bd)+wol3(ar,cr,dr,ac,ad,cd)-uol1(dr);
-        if(!abR && acR && !adR && bcR && !bdR && !cdR) return wol2(cr,dr,cd)+wol3(ar,br,dr,ab,ad,bd)-uol1(dr);
-
-        if(abR && !acR && !adR && !bcR && !bdR && !cdR) return wol3(ar,cr,dr,ac,ad,cd)+wol3(br,cr,dr,bc,bd,cd)-wol2(cr,dr,cd);
-        if(!abR && acR && !adR && !bcR && !bdR && !cdR) return wol3(ar,br,dr,ab,ad,bd)+wol3(br,cr,dr,bc,bd,cd)-wol2(br,dr,bd);
-        if(!abR && !acR && adR && !bcR && !bdR && !cdR) return wol3(ar,br,cr,ab,ac,bc)+wol3(br,cr,dr,bc,bd,cd)-wol2(br,cr,bc);
-        if(!abR && !acR && !adR && bcR && !bdR && !cdR) return wol3(ar,br,dr,ab,ad,bd)+wol3(ar,cr,dr,ac,ad,cd)-wol2(ar,dr,ad);
-        if(!abR && !acR && !adR && !bcR && bdR && !cdR) return wol3(ar,br,cr,ab,ac,bc)+wol3(ar,cr,dr,ac,ad,cd)-wol2(ar,cr,ac);
-        if(!abR && !acR && !adR && !bcR && !bdR && cdR) return wol3(ar,br,cr,ab,ac,bc)+wol3(ar,br,dr,ab,ad,bd)-wol2(ar,br,ab);
-
-        return wol4(ar,br,cr,dr,ab,ac,ad,bc,bd,cd);
+    return vol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline     OverlapReal wol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal vol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd)
     {
-        bool bcag = flag3(bc,bd,br,cd,cr,dr);
-        bool bdag = flag3(bd,bc,br,cd,dr,cr);
-        bool cdag = flag3(cd,bc,cr,bd,dr,br);
-        if(bcag && bdag && cdag) return 0;
+    bool abR = ((ar < 0) || (br < 0)) && (-ar - br <= ab);
+    bool acR = ((ar < 0) || (cr < 0)) && (-ar - cr <= ac);
+    bool adR = ((ar < 0) || (dr < 0)) && (-ar - dr <= ad);
+    bool bcR = ((br < 0) || (cr < 0)) && (-br - cr <= bc);
+    bool bdR = ((br < 0) || (dr < 0)) && (-br - dr <= bd);
+    bool cdR = ((cr < 0) || (dr < 0)) && (-cr - dr <= cd);
 
-        bool acbg = flag3(ac,ad,ar,cd,cr,dr);
-        bool adbg = flag3(ad,ac,ar,cd,dr,cr);
-        bool cdbg = flag3(cd,ac,cr,ad,dr,ar);
-        if(acbg && adbg && cdbg) return 0;
+    if (abR && acR && adR && bcR && bdR && cdR)
+        return uol1(ar) + uol1(br) + uol1(cr) + uol1(dr);
 
-        bool abcg = flag3(ab,ad,ar,bd,br,dr);
-        bool adcg = flag3(ad,ab,ar,bd,dr,br);
-        bool bdcg = flag3(bd,ab,br,ad,dr,ar);
-        if(abcg && adcg && bdcg) return 0;
+    if (!abR && acR && adR && bcR && bdR && cdR)
+        return wol2(ar, br, ab) + uol1(cr) + uol1(dr);
+    if (abR && !acR && adR && bcR && bdR && cdR)
+        return wol2(ar, cr, ac) + uol1(br) + uol1(dr);
+    if (abR && acR && !adR && bcR && bdR && cdR)
+        return wol2(ar, dr, ad) + uol1(br) + uol1(cr);
+    if (abR && acR && adR && !bcR && bdR && cdR)
+        return wol2(br, cr, bc) + uol1(ar) + uol1(dr);
+    if (abR && acR && adR && bcR && !bdR && cdR)
+        return wol2(br, dr, bd) + uol1(ar) + uol1(cr);
+    if (abR && acR && adR && bcR && bdR && !cdR)
+        return wol2(cr, dr, cd) + uol1(ar) + uol1(br);
 
-        bool abdg = flag3(ab,ac,ar,bc,br,cr);
-        bool acdg = flag3(ac,ab,ar,bc,cr,br);
-        bool bcdg = flag3(bc,ab,br,ac,cr,ar);
-        if(abdg && acdg && bcdg) return 0;
+    if (!abR && acR && adR && bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(cr, dr, cd);
+    if (abR && !acR && adR && bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(br, dr, bd);
+    if (abR && acR && !adR && !bcR && bdR && cdR)
+        return wol2(ar, dr, ad) + wol2(br, cr, bc);
 
-        if(adcg && bdcg && acdg && bcdg) return wol2(ar,br,ab);
-        if(adbg && cdbg && abdg && bcdg) return wol2(ar,cr,ac);
-        if(acbg && cdbg && abcg && bdcg) return wol2(ar,dr,ad);
-        if(bdag && cdag && abdg && acdg) return wol2(br,cr,bc);
-        if(bcag && cdag && abcg && adcg) return wol2(br,dr,bd);
-        if(bcag && bdag && acbg && adbg) return wol2(cr,dr,cd);
+    if (!abR && !acR && adR && bcR && bdR && cdR)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) - uol1(ar);
+    if (!abR && acR && !adR && bcR && bdR && cdR)
+        return wol2(ar, br, ab) + wol2(ar, dr, ad) - uol1(ar);
+    if (abR && !acR && !adR && bcR && bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(ar, dr, ad) - uol1(ar);
+    if (!abR && acR && adR && !bcR && bdR && cdR)
+        return wol2(ar, br, ab) + wol2(br, cr, bc) - uol1(br);
+    if (!abR && acR && adR && bcR && !bdR && cdR)
+        return wol2(ar, br, ab) + wol2(br, dr, bd) - uol1(br);
+    if (abR && acR && adR && !bcR && !bdR && cdR)
+        return wol2(br, cr, bc) + wol2(br, dr, bd) - uol1(br);
+    if (abR && !acR && adR && !bcR && bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(br, cr, bc) - uol1(cr);
+    if (abR && !acR && adR && bcR && bdR && !cdR)
+        return wol2(ar, cr, ac) + wol2(cr, dr, cd) - uol1(cr);
+    if (abR && acR && adR && !bcR && bdR && !cdR)
+        return wol2(br, cr, bc) + wol2(cr, dr, cd) - uol1(cr);
+    if (abR && acR && !adR && bcR && !bdR && cdR)
+        return wol2(ar, dr, ad) + wol2(br, dr, bd) - uol1(dr);
+    if (abR && acR && !adR && bcR && bdR && !cdR)
+        return wol2(ar, dr, ad) + wol2(cr, dr, cd) - uol1(dr);
+    if (abR && acR && adR && bcR && !bdR && !cdR)
+        return wol2(br, dr, bd) + wol2(cr, dr, cd) - uol1(dr);
 
-        if(bdag && cdag && bcdg) return wol2(ar,br,ab)+wol2(ar,cr,ac)-uol1(ar);
-        if(bcag && cdag && bdcg) return wol2(ar,br,ab)+wol2(ar,dr,ad)-uol1(ar);
-        if(bcag && bdag && cdbg) return wol2(ar,cr,ac)+wol2(ar,dr,ad)-uol1(ar);
-        if(adbg && cdbg && acdg) return wol2(ar,br,ab)+wol2(br,cr,bc)-uol1(br);
-        if(acbg && cdbg && adcg) return wol2(ar,br,ab)+wol2(br,dr,bd)-uol1(br);
-        if(acbg && adbg && cdag) return wol2(br,cr,bc)+wol2(br,dr,bd)-uol1(br);
-        if(adcg && bdcg && abdg) return wol2(ar,cr,ac)+wol2(br,cr,bc)-uol1(cr);
-        if(abcg && bdcg && adbg) return wol2(ar,cr,ac)+wol2(cr,dr,cd)-uol1(cr);
-        if(abcg && adcg && bdag) return wol2(br,cr,bc)+wol2(cr,dr,cd)-uol1(cr);
-        if(acdg && bcdg && abcg) return wol2(ar,dr,ad)+wol2(br,dr,bd)-uol1(dr);
-        if(abdg && bcdg && acbg) return wol2(ar,dr,ad)+wol2(cr,dr,cd)-uol1(dr);
-        if(abdg && acdg && bcag) return wol2(br,dr,bd)+wol2(cr,dr,cd)-uol1(dr);
+    if (!abR && !acR && !adR && bcR && bdR && cdR)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) + wol2(ar, dr, ad) - 2 * uol1(ar);
+    if (!abR && acR && adR && !bcR && !bdR && cdR)
+        return wol2(ar, br, ab) + wol2(br, cr, bc) + wol2(br, dr, bd) - 2 * uol1(br);
+    if (abR && !acR && adR && !bcR && bdR && !cdR)
+        return wol2(ar, cr, ac) + wol2(br, cr, bc) + wol2(cr, dr, cd) - 2 * uol1(cr);
+    if (abR && acR && !adR && bcR && !bdR && !cdR)
+        return wol2(ar, dr, ad) + wol2(br, dr, bd) + wol2(cr, dr, cd) - 2 * uol1(dr);
 
-        if(bdag && cdag) return xol3(ar,br,cr,ab,ac,bc);
-        if(bcag && cdag) return xol3(ar,br,dr,ab,ad,bd);
-        if(bcag && bdag) return xol3(ar,cr,dr,ac,ad,cd);
-        if(adbg && cdbg) return xol3(ar,br,cr,ab,ac,bc);
-        if(acbg && cdbg) return xol3(ar,br,dr,ab,ad,bd);
-        if(acbg && adbg) return xol3(br,cr,dr,bc,bd,cd);
-        if(adcg && bdcg) return xol3(ar,br,cr,ab,ac,bc);
-        if(abcg && bdcg) return xol3(ar,cr,dr,ac,ad,cd);
-        if(abcg && adcg) return xol3(br,cr,dr,bc,bd,cd);
-        if(acdg && bcdg) return xol3(ar,br,dr,ab,ad,bd);
-        if(abdg && bcdg) return xol3(ar,cr,dr,ac,ad,cd);
-        if(abdg && acdg) return xol3(br,cr,dr,bc,bd,cd);
+    if (abR && acR && adR && !bcR && !bdR && !cdR)
+        return uol1(ar) + wol3(br, cr, dr, bc, bd, cd);
+    if (abR && !acR && !adR && bcR && bdR && !cdR)
+        return uol1(br) + wol3(ar, cr, dr, ac, ad, cd);
+    if (!abR && acR && !adR && bcR && !bdR && cdR)
+        return uol1(cr) + wol3(ar, br, dr, ab, ad, bd);
+    if (!abR && !acR && adR && !bcR && bdR && cdR)
+        return uol1(dr) + wol3(ar, br, cr, ab, ac, bc);
 
-        if(cdag || cdbg) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,br,dr,ab,ad,bd)-wol2(ar,br,ab);
-        if(bdag || bdcg) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,cr,dr,ac,ad,cd)-wol2(ar,cr,ac);
-        if(bcag || bcdg) return xol3(ar,br,dr,ab,ad,bd)+xol3(ar,cr,dr,ac,ad,cd)-wol2(ar,dr,ad);
-        if(adbg || adcg) return xol3(ar,br,cr,ab,ac,bc)+xol3(br,cr,dr,bc,bd,cd)-wol2(br,cr,bc);
-        if(acbg || acdg) return xol3(ar,br,dr,ab,ad,bd)+xol3(br,cr,dr,bc,bd,cd)-wol2(br,dr,bd);
-        if(abcg || abdg) return xol3(ar,cr,dr,ac,ad,cd)+xol3(br,cr,dr,bc,bd,cd)-wol2(cr,dr,cd);
+    if (!abR && !acR && adR && bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(br, dr, bd) + wol2(ar, br, ab) - uol1(ar) - uol1(br);
+    if (!abR && acR && !adR && !bcR && bdR && cdR)
+        return wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(ar, br, ab) - uol1(ar) - uol1(br);
+    if (!abR && !acR && adR && bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(cr, dr, cd) + wol2(ar, cr, ac) - uol1(ar) - uol1(cr);
+    if (abR && !acR && !adR && !bcR && bdR && cdR)
+        return wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(ar, cr, ac) - uol1(ar) - uol1(cr);
+    if (!abR && acR && !adR && bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(cr, dr, cd) + wol2(ar, dr, ad) - uol1(ar) - uol1(dr);
+    if (abR && !acR && !adR && bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(br, dr, bd) + wol2(ar, dr, ad) - uol1(ar) - uol1(dr);
+    if (!abR && acR && adR && !bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(cr, dr, cd) + wol2(br, cr, bc) - uol1(br) - uol1(cr);
+    if (abR && !acR && adR && !bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(br, dr, bd) + wol2(br, cr, bc) - uol1(br) - uol1(cr);
+    if (!abR && acR && adR && bcR && !bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(cr, dr, cd) + wol2(br, dr, bd) - uol1(br) - uol1(dr);
+    if (abR && acR && !adR && !bcR && !bdR && cdR)
+        return wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(br, dr, bd) - uol1(br) - uol1(dr);
+    if (abR && !acR && adR && bcR && !bdR && !cdR)
+        return wol2(ar, cr, ac) + wol2(br, dr, bd) + wol2(cr, dr, cd) - uol1(cr) - uol1(dr);
+    if (abR && acR && !adR && !bcR && bdR && !cdR)
+        return wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(cr, dr, cd) - uol1(cr) - uol1(dr);
 
-        return xol4(ar,br,cr,dr,ab,ac,ad,bc,bd,cd);
+    if (abR && !acR && !adR && !bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(br, dr, bd) - uol1(ar)
+               - uol1(br) - uol1(cr) - uol1(dr);
+    if (!abR && acR && !adR && !bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(ar, dr, ad) + wol2(br, cr, bc) + wol2(cr, dr, cd) - uol1(ar)
+               - uol1(br) - uol1(cr) - uol1(dr);
+    if (!abR && !acR && adR && bcR && !bdR && !cdR)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) + wol2(br, dr, bd) + wol2(cr, dr, cd) - uol1(ar)
+               - uol1(br) - uol1(cr) - uol1(dr);
+
+    if (!abR && !acR && !adR && bcR && bdR && !cdR)
+        return wol2(ar, br, ab) + wol3(ar, cr, dr, ac, ad, cd) - uol1(ar);
+    if (!abR && !acR && !adR && bcR && !bdR && cdR)
+        return wol2(ar, cr, ac) + wol3(ar, br, dr, ab, ad, bd) - uol1(ar);
+    if (!abR && !acR && !adR && !bcR && bdR && cdR)
+        return wol2(ar, dr, ad) + wol3(ar, br, cr, ab, ac, bc) - uol1(ar);
+    if (!abR && acR && adR && !bcR && !bdR && !cdR)
+        return wol2(ar, br, ab) + wol3(br, cr, dr, bc, bd, cd) - uol1(br);
+    if (!abR && acR && !adR && !bcR && !bdR && cdR)
+        return wol2(br, cr, bc) + wol3(ar, br, dr, ab, ad, bd) - uol1(br);
+    if (!abR && !acR && adR && !bcR && !bdR && cdR)
+        return wol2(br, dr, bd) + wol3(ar, br, cr, ab, ac, bc) - uol1(br);
+    if (abR && !acR && adR && !bcR && !bdR && !cdR)
+        return wol2(ar, cr, ac) + wol3(br, cr, dr, bc, bd, cd) - uol1(cr);
+    if (abR && !acR && !adR && !bcR && bdR && !cdR)
+        return wol2(br, cr, bc) + wol3(ar, cr, dr, ac, ad, cd) - uol1(cr);
+    if (!abR && !acR && adR && !bcR && bdR && !cdR)
+        return wol2(cr, dr, cd) + wol3(ar, br, cr, ab, ac, bc) - uol1(cr);
+    if (abR && acR && !adR && !bcR && !bdR && !cdR)
+        return wol2(ar, dr, ad) + wol3(br, cr, dr, bc, bd, cd) - uol1(dr);
+    if (abR && !acR && !adR && bcR && !bdR && !cdR)
+        return wol2(br, dr, bd) + wol3(ar, cr, dr, ac, ad, cd) - uol1(dr);
+    if (!abR && acR && !adR && bcR && !bdR && !cdR)
+        return wol2(cr, dr, cd) + wol3(ar, br, dr, ab, ad, bd) - uol1(dr);
+
+    if (abR && !acR && !adR && !bcR && !bdR && !cdR)
+        return wol3(ar, cr, dr, ac, ad, cd) + wol3(br, cr, dr, bc, bd, cd) - wol2(cr, dr, cd);
+    if (!abR && acR && !adR && !bcR && !bdR && !cdR)
+        return wol3(ar, br, dr, ab, ad, bd) + wol3(br, cr, dr, bc, bd, cd) - wol2(br, dr, bd);
+    if (!abR && !acR && adR && !bcR && !bdR && !cdR)
+        return wol3(ar, br, cr, ab, ac, bc) + wol3(br, cr, dr, bc, bd, cd) - wol2(br, cr, bc);
+    if (!abR && !acR && !adR && bcR && !bdR && !cdR)
+        return wol3(ar, br, dr, ab, ad, bd) + wol3(ar, cr, dr, ac, ad, cd) - wol2(ar, dr, ad);
+    if (!abR && !acR && !adR && !bcR && bdR && !cdR)
+        return wol3(ar, br, cr, ab, ac, bc) + wol3(ar, cr, dr, ac, ad, cd) - wol2(ar, cr, ac);
+    if (!abR && !acR && !adR && !bcR && !bdR && cdR)
+        return wol3(ar, br, cr, ab, ac, bc) + wol3(ar, br, dr, ab, ad, bd) - wol2(ar, br, ab);
+
+    return wol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline     OverlapReal xol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal wol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd)
     {
-        bool abcf = flag4(ab,ac,ad,ar,bc,bd,br,cd,cr,dr);
-        bool abdf = flag4(ab,ad,ac,ar,bd,bc,br,cd,dr,cr);
-        bool acdf = flag4(ac,ad,ab,ar,cd,bc,cr,bd,dr,br);
-        bool bcdf = flag4(bc,bd,ab,br,cd,ac,cr,ad,dr,ar);
+    bool bcag = flag3(bc, bd, br, cd, cr, dr);
+    bool bdag = flag3(bd, bc, br, cd, dr, cr);
+    bool cdag = flag3(cd, bc, cr, bd, dr, br);
+    if (bcag && bdag && cdag)
+        return 0;
 
-        if(abcf && abdf && acdf && bcdf) return 0;
+    bool acbg = flag3(ac, ad, ar, cd, cr, dr);
+    bool adbg = flag3(ad, ac, ar, cd, dr, cr);
+    bool cdbg = flag3(cd, ac, cr, ad, dr, ar);
+    if (acbg && adbg && cdbg)
+        return 0;
 
-        if(abcf && abdf && acdf) return xol3(br,cr,dr,bc,bd,cd);
-        if(abcf && abdf && bcdf) return xol3(ar,cr,dr,ac,ad,cd);
-        if(abcf && acdf && bcdf) return xol3(ar,br,dr,ab,ad,bd);
-        if(abdf && acdf && bcdf) return xol3(ar,br,cr,ab,ac,bc);
+    bool abcg = flag3(ab, ad, ar, bd, br, dr);
+    bool adcg = flag3(ad, ab, ar, bd, dr, br);
+    bool bdcg = flag3(bd, ab, br, ad, dr, ar);
+    if (abcg && adcg && bdcg)
+        return 0;
 
-        if(abcf && abdf) return xol3(ar,cr,dr,ac,ad,cd)+xol3(br,cr,dr,bc,bd,cd)-wol2(cr,dr,cd);
-        if(abcf && acdf) return xol3(ar,br,dr,ab,ad,bd)+xol3(br,cr,dr,bc,bd,cd)-wol2(br,dr,bd);
-        if(abcf && bcdf) return xol3(ar,br,dr,ab,ad,bd)+xol3(ar,cr,dr,ac,ad,cd)-wol2(ar,dr,ad);
-        if(abdf && acdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(br,cr,dr,bc,bd,cd)-wol2(br,cr,bc);
-        if(abdf && bcdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,cr,dr,ac,ad,cd)-wol2(ar,cr,ac);
-        if(acdf && bcdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,br,dr,ab,ad,bd)-wol2(ar,br,ab);
+    bool abdg = flag3(ab, ac, ar, bc, br, cr);
+    bool acdg = flag3(ac, ab, ar, bc, cr, br);
+    bool bcdg = flag3(bc, ab, br, ac, cr, ar);
+    if (abdg && acdg && bcdg)
+        return 0;
 
-        if(abcf) return xol3(ar,br,dr,ab,ad,bd)+xol3(ar,cr,dr,ac,ad,cd)+xol3(br,cr,dr,bc,bd,cd)-wol2(ar,dr,ad)-wol2(br,dr,bd)-wol2(cr,dr,cd)+uol1(dr);
-        if(abdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,cr,dr,ac,ad,cd)+xol3(br,cr,dr,bc,bd,cd)-wol2(ar,cr,ac)-wol2(br,cr,bc)-wol2(cr,dr,cd)+uol1(cr);
-        if(acdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,br,dr,ab,ad,bd)+xol3(br,cr,dr,bc,bd,cd)-wol2(ar,br,ab)-wol2(br,cr,bc)-wol2(br,dr,bd)+uol1(br);
-        if(bcdf) return xol3(ar,br,cr,ab,ac,bc)+xol3(ar,br,dr,ab,ad,bd)+xol3(ar,cr,dr,ac,ad,cd)-wol2(ar,br,ab)-wol2(ar,cr,ac)-wol2(ar,dr,ad)+uol1(ar);
+    if (adcg && bdcg && acdg && bcdg)
+        return wol2(ar, br, ab);
+    if (adbg && cdbg && abdg && bcdg)
+        return wol2(ar, cr, ac);
+    if (acbg && cdbg && abcg && bdcg)
+        return wol2(ar, dr, ad);
+    if (bdag && cdag && abdg && acdg)
+        return wol2(br, cr, bc);
+    if (bcag && cdag && abcg && adcg)
+        return wol2(br, dr, bd);
+    if (bcag && bdag && acbg && adbg)
+        return wol2(cr, dr, cd);
 
-        return yol4(ar,br,cr,dr,ab,ac,ad,bc,bd,cd);
+    if (bdag && cdag && bcdg)
+        return wol2(ar, br, ab) + wol2(ar, cr, ac) - uol1(ar);
+    if (bcag && cdag && bdcg)
+        return wol2(ar, br, ab) + wol2(ar, dr, ad) - uol1(ar);
+    if (bcag && bdag && cdbg)
+        return wol2(ar, cr, ac) + wol2(ar, dr, ad) - uol1(ar);
+    if (adbg && cdbg && acdg)
+        return wol2(ar, br, ab) + wol2(br, cr, bc) - uol1(br);
+    if (acbg && cdbg && adcg)
+        return wol2(ar, br, ab) + wol2(br, dr, bd) - uol1(br);
+    if (acbg && adbg && cdag)
+        return wol2(br, cr, bc) + wol2(br, dr, bd) - uol1(br);
+    if (adcg && bdcg && abdg)
+        return wol2(ar, cr, ac) + wol2(br, cr, bc) - uol1(cr);
+    if (abcg && bdcg && adbg)
+        return wol2(ar, cr, ac) + wol2(cr, dr, cd) - uol1(cr);
+    if (abcg && adcg && bdag)
+        return wol2(br, cr, bc) + wol2(cr, dr, cd) - uol1(cr);
+    if (acdg && bcdg && abcg)
+        return wol2(ar, dr, ad) + wol2(br, dr, bd) - uol1(dr);
+    if (abdg && bcdg && acbg)
+        return wol2(ar, dr, ad) + wol2(cr, dr, cd) - uol1(dr);
+    if (abdg && acdg && bcag)
+        return wol2(br, dr, bd) + wol2(cr, dr, cd) - uol1(dr);
+
+    if (bdag && cdag)
+        return xol3(ar, br, cr, ab, ac, bc);
+    if (bcag && cdag)
+        return xol3(ar, br, dr, ab, ad, bd);
+    if (bcag && bdag)
+        return xol3(ar, cr, dr, ac, ad, cd);
+    if (adbg && cdbg)
+        return xol3(ar, br, cr, ab, ac, bc);
+    if (acbg && cdbg)
+        return xol3(ar, br, dr, ab, ad, bd);
+    if (acbg && adbg)
+        return xol3(br, cr, dr, bc, bd, cd);
+    if (adcg && bdcg)
+        return xol3(ar, br, cr, ab, ac, bc);
+    if (abcg && bdcg)
+        return xol3(ar, cr, dr, ac, ad, cd);
+    if (abcg && adcg)
+        return xol3(br, cr, dr, bc, bd, cd);
+    if (acdg && bcdg)
+        return xol3(ar, br, dr, ab, ad, bd);
+    if (abdg && bcdg)
+        return xol3(ar, cr, dr, ac, ad, cd);
+    if (abdg && acdg)
+        return xol3(br, cr, dr, bc, bd, cd);
+
+    if (cdag || cdbg)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd) - wol2(ar, br, ab);
+    if (bdag || bdcg)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, cr, dr, ac, ad, cd) - wol2(ar, cr, ac);
+    if (bcag || bcdg)
+        return xol3(ar, br, dr, ab, ad, bd) + xol3(ar, cr, dr, ac, ad, cd) - wol2(ar, dr, ad);
+    if (adbg || adcg)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(br, cr, dr, bc, bd, cd) - wol2(br, cr, bc);
+    if (acbg || acdg)
+        return xol3(ar, br, dr, ab, ad, bd) + xol3(br, cr, dr, bc, bd, cd) - wol2(br, dr, bd);
+    if (abcg || abdg)
+        return xol3(ar, cr, dr, ac, ad, cd) + xol3(br, cr, dr, bc, bd, cd) - wol2(cr, dr, cd);
+
+    return xol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-DEVICE inline     OverlapReal yol4(OverlapReal ar,OverlapReal br,OverlapReal cr,OverlapReal dr,OverlapReal ab,OverlapReal ac,OverlapReal ad,OverlapReal bc,OverlapReal bd,OverlapReal cd)
+DEVICE inline OverlapReal xol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd)
     {
-        OverlapReal tad = acos(cos3(ad,ab,ac,bd,cd,bc)*sign(bc));
-        OverlapReal tbd = acos(cos3(bd,ab,bc,ad,cd,ac)*sign(ac));
-        OverlapReal tcd = acos(cos3(cd,ac,bc,ad,bd,ab)*sign(ab));
-        OverlapReal tbc = acos(cos3(bc,ab,bd,ac,cd,ad)*sign(ad));
-        OverlapReal tac = acos(cos3(ac,ab,ad,bc,cd,bd)*sign(bd));
-        OverlapReal tab = acos(cos3(ab,ac,ad,bc,bd,cd)*sign(cd));
+    bool abcf = flag4(ab, ac, ad, ar, bc, bd, br, cd, cr, dr);
+    bool abdf = flag4(ab, ad, ac, ar, bd, bc, br, cd, dr, cr);
+    bool acdf = flag4(ac, ad, ab, ar, cd, bc, cr, bd, dr, br);
+    bool bcdf = flag4(bc, bd, ab, br, cd, ac, cr, ad, dr, ar);
 
-        return
-        -t3(ab,ac,ad,bc,bd,cd)*sign(ar)*sign(br)*sign(cr)*sign(dr)
-        +(xol3(ar,br,cr,ab,ac,bc)+
-          xol3(ar,br,dr,ab,ad,bd)+
-          xol3(ar,cr,dr,ac,ad,cd)+
-          xol3(br,cr,dr,bc,bd,cd))/2
-        -(wol2(ar,br,ab)*tab+
-          wol2(ar,cr,ac)*tac+
-          wol2(ar,dr,ad)*tad+
-          wol2(br,cr,bc)*tbc+
-          wol2(br,dr,bd)*tbd+
-          wol2(cr,dr,cd)*tcd)/(2*OverlapReal(M_PI))
-        +(uol1(ar)*(tab+tac+tad-OverlapReal(M_PI))+
-          uol1(br)*(tab+tbc+tbd-OverlapReal(M_PI))+
-          uol1(cr)*(tac+tbc+tcd-OverlapReal(M_PI))+
-          uol1(dr)*(tad+tbd+tcd-OverlapReal(M_PI)))/(4*OverlapReal(M_PI));
+    if (abcf && abdf && acdf && bcdf)
+        return 0;
+
+    if (abcf && abdf && acdf)
+        return xol3(br, cr, dr, bc, bd, cd);
+    if (abcf && abdf && bcdf)
+        return xol3(ar, cr, dr, ac, ad, cd);
+    if (abcf && acdf && bcdf)
+        return xol3(ar, br, dr, ab, ad, bd);
+    if (abdf && acdf && bcdf)
+        return xol3(ar, br, cr, ab, ac, bc);
+
+    if (abcf && abdf)
+        return xol3(ar, cr, dr, ac, ad, cd) + xol3(br, cr, dr, bc, bd, cd) - wol2(cr, dr, cd);
+    if (abcf && acdf)
+        return xol3(ar, br, dr, ab, ad, bd) + xol3(br, cr, dr, bc, bd, cd) - wol2(br, dr, bd);
+    if (abcf && bcdf)
+        return xol3(ar, br, dr, ab, ad, bd) + xol3(ar, cr, dr, ac, ad, cd) - wol2(ar, dr, ad);
+    if (abdf && acdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(br, cr, dr, bc, bd, cd) - wol2(br, cr, bc);
+    if (abdf && bcdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, cr, dr, ac, ad, cd) - wol2(ar, cr, ac);
+    if (acdf && bcdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd) - wol2(ar, br, ab);
+
+    if (abcf)
+        return xol3(ar, br, dr, ab, ad, bd) + xol3(ar, cr, dr, ac, ad, cd)
+               + xol3(br, cr, dr, bc, bd, cd) - wol2(ar, dr, ad) - wol2(br, dr, bd)
+               - wol2(cr, dr, cd) + uol1(dr);
+    if (abdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, cr, dr, ac, ad, cd)
+               + xol3(br, cr, dr, bc, bd, cd) - wol2(ar, cr, ac) - wol2(br, cr, bc)
+               - wol2(cr, dr, cd) + uol1(cr);
+    if (acdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd)
+               + xol3(br, cr, dr, bc, bd, cd) - wol2(ar, br, ab) - wol2(br, cr, bc)
+               - wol2(br, dr, bd) + uol1(br);
+    if (bcdf)
+        return xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd)
+               + xol3(ar, cr, dr, ac, ad, cd) - wol2(ar, br, ab) - wol2(ar, cr, ac)
+               - wol2(ar, dr, ad) + uol1(ar);
+
+    return yol4(ar, br, cr, dr, ab, ac, ad, bc, bd, cd);
     }
 
-} // detail
-} // hpmc
+DEVICE inline OverlapReal yol4(OverlapReal ar,
+                               OverlapReal br,
+                               OverlapReal cr,
+                               OverlapReal dr,
+                               OverlapReal ab,
+                               OverlapReal ac,
+                               OverlapReal ad,
+                               OverlapReal bc,
+                               OverlapReal bd,
+                               OverlapReal cd)
+    {
+    OverlapReal tad = acos(cos3(ad, ab, ac, bd, cd, bc) * sign(bc));
+    OverlapReal tbd = acos(cos3(bd, ab, bc, ad, cd, ac) * sign(ac));
+    OverlapReal tcd = acos(cos3(cd, ac, bc, ad, bd, ab) * sign(ab));
+    OverlapReal tbc = acos(cos3(bc, ab, bd, ac, cd, ad) * sign(ad));
+    OverlapReal tac = acos(cos3(ac, ab, ad, bc, cd, bd) * sign(bd));
+    OverlapReal tab = acos(cos3(ab, ac, ad, bc, bd, cd) * sign(cd));
+
+    return -t3(ab, ac, ad, bc, bd, cd) * sign(ar) * sign(br) * sign(cr) * sign(dr)
+           + (xol3(ar, br, cr, ab, ac, bc) + xol3(ar, br, dr, ab, ad, bd)
+              + xol3(ar, cr, dr, ac, ad, cd) + xol3(br, cr, dr, bc, bd, cd))
+                 / 2
+           - (wol2(ar, br, ab) * tab + wol2(ar, cr, ac) * tac + wol2(ar, dr, ad) * tad
+              + wol2(br, cr, bc) * tbc + wol2(br, dr, bd) * tbd + wol2(cr, dr, cd) * tcd)
+                 / (2 * OverlapReal(M_PI))
+           + (uol1(ar) * (tab + tac + tad - OverlapReal(M_PI))
+              + uol1(br) * (tab + tbc + tbd - OverlapReal(M_PI))
+              + uol1(cr) * (tac + tbc + tcd - OverlapReal(M_PI))
+              + uol1(dr) * (tad + tbd + tcd - OverlapReal(M_PI)))
+                 / (4 * OverlapReal(M_PI));
+    }
+
+    }      // namespace detail
+    }      // namespace hpmc
 #endif // __SPHINXOVERLAP__H__

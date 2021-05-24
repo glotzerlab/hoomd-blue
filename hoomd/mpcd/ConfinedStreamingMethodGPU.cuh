@@ -17,33 +17,34 @@
 #include "hoomd/HOOMDMath.h"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
-
+    {
 //! Common arguments passed to all streaming kernels
 struct stream_args_t
     {
     //! Constructor
-    stream_args_t(Scalar4 *_d_pos,
-                  Scalar4 *_d_vel,
+    stream_args_t(Scalar4* _d_pos,
+                  Scalar4* _d_vel,
                   const Scalar _mass,
                   const mpcd::ExternalField* _field,
                   const BoxDim& _box,
                   const Scalar _dt,
                   const unsigned int _N,
                   const unsigned int _block_size)
-        : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), field(_field), box(_box), dt(_dt), N(_N), block_size(_block_size)
-        { }
+        : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), field(_field), box(_box), dt(_dt), N(_N),
+          block_size(_block_size)
+        {
+        }
 
-    Scalar4 *d_pos;                     //!< Particle positions
-    Scalar4 *d_vel;                     //!< Particle velocities
-    const Scalar mass;                  //!< Particle mass
-    const mpcd::ExternalField* field;   //!< Applied external field on particles
-    const BoxDim& box;                  //!< Simulation box
-    const Scalar dt;                    //!< Timestep
-    const unsigned int N;               //!< Number of particles
-    const unsigned int block_size;      //!< Number of threads per block
+    Scalar4* d_pos;                   //!< Particle positions
+    Scalar4* d_vel;                   //!< Particle velocities
+    const Scalar mass;                //!< Particle mass
+    const mpcd::ExternalField* field; //!< Applied external field on particles
+    const BoxDim& box;                //!< Simulation box
+    const Scalar dt;                  //!< Timestep
+    const unsigned int N;             //!< Number of particles
+    const unsigned int block_size;    //!< Number of threads per block
     };
 
 //! Kernel driver to stream particles ballistically
@@ -52,8 +53,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom);
 
 #ifdef __HIPCC__
 namespace kernel
-{
-
+    {
 //! Kernel to stream particles ballistically
 /*!
  * \param d_pos Particle positions
@@ -80,8 +80,8 @@ namespace kernel
  * position update step. The particle positions and velocities are updated accordingly.
  */
 template<class Geometry>
-__global__ void confined_stream(Scalar4 *d_pos,
-                                Scalar4 *d_vel,
+__global__ void confined_stream(Scalar4* d_pos,
+                                Scalar4* d_vel,
                                 const Scalar mass,
                                 const mpcd::ExternalField* field,
                                 const BoxDim box,
@@ -113,8 +113,7 @@ __global__ void confined_stream(Scalar4 *d_pos,
         {
         pos += dt_remain * vel;
         collide = geom.detectCollision(pos, vel, dt_remain);
-        }
-    while (dt_remain > 0 && collide);
+        } while (dt_remain > 0 && collide);
     // finalize velocity update
     if (field)
         {
@@ -122,14 +121,14 @@ __global__ void confined_stream(Scalar4 *d_pos,
         }
 
     // wrap and update the position
-    int3 image = make_int3(0,0,0);
+    int3 image = make_int3(0, 0, 0);
     box.wrap(pos, image);
 
     d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
     d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
     }
 
-} // end namespace kernel
+    } // end namespace kernel
 
 /*!
  * \param args Common arguments for a streaming kernel
@@ -152,13 +151,20 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
     dim3 grid(args.N / run_block_size + 1);
-    mpcd::gpu::kernel::confined_stream<Geometry><<<grid, run_block_size>>>(args.d_pos, args.d_vel, args.mass, args.field, args.box, args.dt, args.N, geom);
+    mpcd::gpu::kernel::confined_stream<Geometry><<<grid, run_block_size>>>(args.d_pos,
+                                                                           args.d_vel,
+                                                                           args.mass,
+                                                                           args.field,
+                                                                           args.box,
+                                                                           args.dt,
+                                                                           args.N,
+                                                                           geom);
 
     return cudaSuccess;
     }
 #endif // __HIPCC__
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd
 
 #endif // MPCD_CONFINED_STREAMING_METHOD_GPU_CUH_

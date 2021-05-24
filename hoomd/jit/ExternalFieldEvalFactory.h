@@ -13,32 +13,31 @@ struct BoxDim;
 class ExternalFieldEvalFactory
     {
     public:
-        typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
-            unsigned int type,
-            const vec3<Scalar>& r_i,
-            const quat<Scalar>& q_i,
-            Scalar diameter,
-            Scalar charge
-            );
+    typedef float (*ExternalFieldEvalFnPtr)(const BoxDim& box,
+                                            unsigned int type,
+                                            const vec3<Scalar>& r_i,
+                                            const quat<Scalar>& q_i,
+                                            Scalar diameter,
+                                            Scalar charge);
 
-        //! Constructor
-        ExternalFieldEvalFactory(const std::string& llvm_ir);
+    //! Constructor
+    ExternalFieldEvalFactory(const std::string& llvm_ir);
 
-        //! Return the evaluator
-        ExternalFieldEvalFnPtr getEval()
-            {
-            return m_eval;
-            }
+    //! Return the evaluator
+    ExternalFieldEvalFnPtr getEval()
+        {
+        return m_eval;
+        }
 
-        //! Get the error message from initialization
-        const std::string& getError()
-            {
-            return m_error_msg;
-            }
+    //! Get the error message from initialization
+    const std::string& getError()
+        {
+        return m_error_msg;
+        }
 
     private:
-        std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
-        ExternalFieldEvalFnPtr m_eval;         //!< Function pointer to evaluator
+    std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
+    ExternalFieldEvalFnPtr m_eval;                     //!< Function pointer to evaluator
 
-        std::string m_error_msg; //!< The error message if initialization fails
+    std::string m_error_msg; //!< The error message if initialization fails
     };

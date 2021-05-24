@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #ifndef __HOOMD_MATH_H__
@@ -18,8 +17,8 @@
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
 // files which define the vector types (float4, etc...)
-#include "hoomd/extern/cudacpu_vector_types.h"
 #include "hoomd/extern/cudacpu_vector_functions.h"
+#include "hoomd/extern/cudacpu_vector_types.h"
 
 //! Define complex type
 typedef float2 hipfftComplex;
@@ -43,7 +42,8 @@ typedef double2 hipfftDoubleComplex;
 #endif
 
 // need to declare these classes with __host__ __device__ qualifiers when building in nvcc
-// HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
+// compiler
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
@@ -72,7 +72,6 @@ typedef double3 Scalar3;
 //! Floating point type with x,y,z,w elements (double precision)
 typedef double4 Scalar4;
 #endif
-
 
 //! make a scalar2 value
 HOSTDEVICE inline Scalar2 make_scalar2(Scalar x, Scalar y)
@@ -108,9 +107,9 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
 //! Stuff an integer inside a float
 HOSTDEVICE inline float __int_as_float(int a)
     {
-    union
-        {
-        int a; float b;
+    union {
+        int a;
+        float b;
         } u;
 
     u.a = a;
@@ -122,9 +121,9 @@ HOSTDEVICE inline float __int_as_float(int a)
 //! Stuff an integer inside a double
 HOSTDEVICE inline double __int_as_double(int a)
     {
-    union
-        {
-        int a; double b;
+    union {
+        int a;
+        double b;
         } u;
 
     // make sure it is not uninitialized
@@ -137,9 +136,9 @@ HOSTDEVICE inline double __int_as_double(int a)
 //! Stuff an integer inside a Scalar
 HOSTDEVICE inline Scalar __int_as_scalar(int a)
     {
-    union
-        {
-        int a; Scalar b;
+    union {
+        int a;
+        Scalar b;
         } u;
 
     // make sure it is not uninitialized
@@ -153,9 +152,9 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
 //! Extract an integer from a float stuffed by __int_as_float()
 HOSTDEVICE inline int __float_as_int(float b)
     {
-    union
-        {
-        int a; float b;
+    union {
+        int a;
+        float b;
         } u;
 
     u.b = b;
@@ -167,9 +166,9 @@ HOSTDEVICE inline int __float_as_int(float b)
 //! Extract an integer from a double stuffed by __int_as_double()
 HOSTDEVICE inline int __double_as_int(double b)
     {
-    union
-        {
-        int a; double b;
+    union {
+        int a;
+        double b;
         } u;
 
     u.b = b;
@@ -180,9 +179,9 @@ HOSTDEVICE inline int __double_as_int(double b)
 //! Extract an integer from a Scalar stuffed by __int_as_scalar()
 HOSTDEVICE inline int __scalar_as_int(Scalar b)
     {
-    union
-        {
-        int a; Scalar b;
+    union {
+        int a;
+        Scalar b;
         } u;
 
     u.b = b;
@@ -192,19 +191,15 @@ HOSTDEVICE inline int __scalar_as_int(Scalar b)
 
 // ------------ Vector math functions --------------------------
 //! Comparison operator needed for export of std::vector<uint2>
-HOSTDEVICE inline bool operator== (const uint2 &a, const uint2 &b)
+HOSTDEVICE inline bool operator==(const uint2& a, const uint2& b)
     {
-    return (a.x == b.x &&
-            a.y == b.y);
+    return (a.x == b.x && a.y == b.y);
     }
 
-
 //! Comparison operator needed for export of std::vector<Scalar3>
-HOSTDEVICE inline bool operator== (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline bool operator==(const Scalar3& a, const Scalar3& b)
     {
-    return (a.x == b.x &&
-            a.y == b.y &&
-            a.z == b.z);
+    return (a.x == b.x && a.y == b.y && a.z == b.z);
     }
 
 //! Comparison operator needed for export of std::vector<Scalar3>
@@ -214,12 +209,9 @@ HOSTDEVICE inline bool operator!= (const Scalar3 &a, const Scalar3 &b)
     }
 
 //! Comparison operator needed for export of std::vector<Scalar4>
-HOSTDEVICE inline bool operator== (const Scalar4 &a, const Scalar4 &b)
+HOSTDEVICE inline bool operator==(const Scalar4& a, const Scalar4& b)
     {
-    return (a.x == b.x &&
-            a.y == b.y &&
-            a.z == b.z &&
-            a.w == b.w);
+    return (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w);
     }
 
 //! Comparison operator needed for export of std::vector<Scalar4>
@@ -229,16 +221,14 @@ HOSTDEVICE inline bool operator!= (const Scalar4 &a, const Scalar4 &b)
     }
 
 //! Vector addition
-HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator+(const Scalar3& a, const Scalar3& b)
     {
-    return make_scalar3(a.x + b.x,
-                        a.y + b.y,
-                        a.z + b.z);
+    return make_scalar3(a.x + b.x, a.y + b.y, a.z + b.z);
     }
 
 #if !defined(ENABLE_HIP) || defined(__HIP_PLATFORM_NVCC__)
 //! Vector addition
-HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3& operator+=(Scalar3& a, const Scalar3& b)
     {
     a.x += b.x;
     a.y += b.y;
@@ -248,14 +238,12 @@ HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
 #endif
 
 //! Vector subtraction
-HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator-(const Scalar3& a, const Scalar3& b)
     {
-    return make_scalar3(a.x - b.x,
-                        a.y - b.y,
-                        a.z - b.z);
+    return make_scalar3(a.x - b.x, a.y - b.y, a.z - b.z);
     }
 //! Vector subtraction
-HOSTDEVICE inline Scalar3& operator-= (Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3& operator-=(Scalar3& a, const Scalar3& b)
     {
     a.x -= b.x;
     a.y -= b.y;
@@ -264,15 +252,13 @@ HOSTDEVICE inline Scalar3& operator-= (Scalar3 &a, const Scalar3 &b)
     }
 
 //! Vector multiplication (component-wise)
-HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator*(const Scalar3& a, const Scalar3& b)
     {
-    return make_scalar3(a.x * b.x,
-                        a.y * b.y,
-                        a.z * b.z);
+    return make_scalar3(a.x * b.x, a.y * b.y, a.z * b.z);
     }
 
 //! Vector multiplication
-HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3& operator*=(Scalar3& a, const Scalar3& b)
     {
     a.x *= b.x;
     a.y *= b.y;
@@ -280,30 +266,23 @@ HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar3 &b)
     return a;
     }
 
-
 //! Vector division (component-wise)
-HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator/(const Scalar3& a, const Scalar3& b)
     {
-    return make_scalar3(a.x / b.x,
-                        a.y / b.y,
-                        a.z / b.z);
+    return make_scalar3(a.x / b.x, a.y / b.y, a.z / b.z);
     }
 //! Scalar - vector multiplication
-HOSTDEVICE inline Scalar3 operator* (const Scalar &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator*(const Scalar& a, const Scalar3& b)
     {
-    return make_scalar3(a*b.x,
-                        a*b.y,
-                        a*b.z);
+    return make_scalar3(a * b.x, a * b.y, a * b.z);
     }
 //! Scalar - vector multiplication
-HOSTDEVICE inline Scalar3 operator* (const Scalar3 &a, const Scalar &b)
+HOSTDEVICE inline Scalar3 operator*(const Scalar3& a, const Scalar& b)
     {
-    return make_scalar3(a.x*b,
-                        a.y*b,
-                        a.z*b);
+    return make_scalar3(a.x * b, a.y * b, a.z * b);
     }
 //! Vector - scalar multiplication
-HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar &b)
+HOSTDEVICE inline Scalar3& operator*=(Scalar3& a, const Scalar& b)
     {
     a.x *= b;
     a.y *= b;
@@ -311,14 +290,12 @@ HOSTDEVICE inline Scalar3& operator*= (Scalar3 &a, const Scalar &b)
     return a;
     }
 //! Vector - scalar division
-HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar &b)
+HOSTDEVICE inline Scalar3 operator/(const Scalar3& a, const Scalar& b)
     {
-    return make_scalar3(a.x/b,
-                        a.y/b,
-                        a.z/b);
+    return make_scalar3(a.x / b, a.y / b, a.z / b);
     }
 //! Vector - scalar division in place
-HOSTDEVICE inline Scalar3& operator/= (Scalar3 &a, const Scalar &b)
+HOSTDEVICE inline Scalar3& operator/=(Scalar3& a, const Scalar& b)
     {
     a.x /= b;
     a.y /= b;
@@ -326,23 +303,19 @@ HOSTDEVICE inline Scalar3& operator/= (Scalar3 &a, const Scalar &b)
     return a;
     }
 //! Vector - scalar division
-HOSTDEVICE inline Scalar3 operator/ (const Scalar &a, const Scalar3 &b)
+HOSTDEVICE inline Scalar3 operator/(const Scalar& a, const Scalar3& b)
     {
-    return make_scalar3(a/b.x,
-                        a/b.y,
-                        a/b.z);
+    return make_scalar3(a / b.x, a / b.y, a / b.z);
     }
 //! Vector unary -
-HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a)
+HOSTDEVICE inline Scalar3 operator-(const Scalar3& a)
     {
-    return make_scalar3(-a.x,
-                        -a.y,
-                        -a.z);
+    return make_scalar3(-a.x, -a.y, -a.z);
     }
 //! Vector dot product
 HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
     {
-    return a.x*b.x + a.y*b.y + a.z*b.z;
+    return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
 // ----------- Integer vector math functions ----------------------
@@ -354,7 +327,9 @@ HOSTDEVICE inline int3 operator+(const int3& a, const int3& b)
 //! Integer vector unary addition
 HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
     {
-    a.x += b.x; a.y += b.y; a.z += b.z;
+    a.x += b.x;
+    a.y += b.y;
+    a.z += b.z;
     return a;
     }
 //! Integer vector subtraction
@@ -365,23 +340,25 @@ HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
 //! Integer vector unary subtraction
 HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
     {
-    a.x -= b.x; a.y -= b.y; a.z -= b.z;
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
     return a;
     }
 //! Integer vector unary -
-HOSTDEVICE inline int3 operator- (const int3 &a)
+HOSTDEVICE inline int3 operator-(const int3& a)
     {
     return make_int3(-a.x, -a.y, -a.z);
     }
 //! Integer vector comparison
-HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
+HOSTDEVICE inline bool operator==(const int3& a, const int3& b)
     {
-    return (a.x == b.x && a.y == b.y && a.z == b.z );
+    return (a.x == b.x && a.y == b.y && a.z == b.z);
     }
 //! Integer vector comparison
-HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
+HOSTDEVICE inline bool operator!=(const int3& a, const int3& b)
     {
-    return (a.x != b.x || a.y != b.y || a.z != b.z );
+    return (a.x != b.x || a.y != b.y || a.z != b.z);
     }
 
 //! Export relevant hoomd math functions to python
@@ -392,48 +369,48 @@ void export_hoomd_math_functions(pybind11::module& m);
 #endif
 
 //! Small epsilon value
-const Scalar EPSILON=1.0e-6;
+const Scalar EPSILON = 1.0e-6;
 
 //! Fastmath routines
-/*! Routines in the fast namespace map to fast math routines on the CPU and GPU. Where possible, these use the
-    less accurate intrinsics on the GPU (i.e. __sinf). The routines are provide overloads for both single and double
-    so that macro tricks aren't needed to handle single and double precision code.
+/*! Routines in the fast namespace map to fast math routines on the CPU and GPU. Where possible,
+   these use the less accurate intrinsics on the GPU (i.e. __sinf). The routines are provide
+   overloads for both single and double so that macro tricks aren't needed to handle single and
+   double precision code.
 */
 namespace fast
-{
-
+    {
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
-    #ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_PLATFORM_NVCC__
     return ::rsqrtf(x);
-    #elif defined(__HIP_PLATFORM_HCC__)
+#elif defined(__HIP_PLATFORM_HCC__)
     return ::__frsqrt_rn(x);
-    #endif
-    #else
+#endif
+#else
     return 1.0f / ::sqrtf(x);
-    #endif
+#endif
     }
 
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #if defined(__HIP_DEVICE_COMPILE_) && defined(__HIP_PLATFORM_NVCC__)
+#if defined(__HIP_DEVICE_COMPILE_) && defined(__HIP_PLATFORM_NVCC__)
     return ::rsqrt(x);
-    #else
+#else
     return 1.0 / ::sqrt(x);
-    #endif
+#endif
     }
 
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return __sinf(x);
-    #else
+#else
     return ::sinf(x);
-    #endif
+#endif
     }
 
 //! Compute the sin of x
@@ -445,11 +422,11 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-    #if __HIP_DEVICE_COMPILE__
+#if __HIP_DEVICE_COMPILE__
     return __cosf(x);
-    #else
+#else
     return ::cosf(x);
-    #endif
+#endif
     }
 
 //! Compute the cos of x
@@ -461,60 +438,62 @@ inline HOSTDEVICE double cos(double x)
 //! Compute both of sin of x and cos of x with float precision
 inline HOSTDEVICE void sincos(float x, float& s, float& c)
     {
-    #if  defined(__HIP_DEVICE_COMPILE__) || defined(__APPLE__)
+#if defined(__HIP_DEVICE_COMPILE__) || defined(__APPLE__)
     __sincosf(x, &s, &c);
-    #else
+#else
     ::sincosf(x, &s, &c);
-    #endif
+#endif
     }
 
 //! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincos(double x, double& s, double& c)
     {
-    #if defined(__HIP_DEVICE_COMPILE__)
+#if defined(__HIP_DEVICE_COMPILE__)
     ::sincos(x, &s, &c);
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     ::__sincos(x, &s, &c);
-    #else
+#else
     ::sincos(x, &s, &c);
-    #endif
+#endif
     }
 
 //! Compute both of sin of x and cos of PI * x with float precision
 inline HOSTDEVICE void sincospi(float x, float& s, float& c)
     {
-    #if  defined(__HIP_DEVICE_COMPILE__)
+#if defined(__HIP_DEVICE_COMPILE__)
     ::sincospif(x, &s, &c);
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     __sincospif(x, &s, &c);
-    #else
-    fast::sincos(float(M_PI)*x, s, c);
-    #endif
+#else
+    fast::sincos(float(M_PI) * x, s, c);
+#endif
     }
 
 //! Compute both of sin of x and cos of x with double precision
 inline HOSTDEVICE void sincospi(double x, double& s, double& c)
     {
-    #if defined(__HIP_DEVICE_COMPILE__)
+#if defined(__HIP_DEVICE_COMPILE__)
     ::sincospi(x, &s, &c);
-    #elif defined(__APPLE__)
+#elif defined(__APPLE__)
     ::__sincospi(x, &s, &c);
-    #else
-    fast::sincos(M_PI*x, s, c);
-    #endif
+#else
+    fast::sincos(M_PI * x, s, c);
+#endif
     }
 
-//! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
+//! Compute the pow of x,y with single precison via exp(log) refactoring - NOTE: UNDEFINED FOR
+//! NEGATIVE BASES
 inline HOSTDEVICE float pow(float x, float y)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return __expf(y * __logf(x));
-    #else
+#else
     return ::expf(y * logf(x));
-    #endif
+#endif
     }
 
-//! Compute the pow of x,y with double precision via exp(log) refactoring - NOTE: UNDEFINED FOR NEGATIVE BASES
+//! Compute the pow of x,y with double precision via exp(log) refactoring - NOTE: UNDEFINED FOR
+//! NEGATIVE BASES
 inline HOSTDEVICE double pow(double x, double y)
     {
     return ::exp(y * log(x));
@@ -523,11 +502,11 @@ inline HOSTDEVICE double pow(double x, double y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return __expf(x);
-    #else
+#else
     return ::expf(x);
-    #endif
+#endif
     }
 
 //! Compute the exp of x
@@ -539,11 +518,11 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return __logf(x);
-    #else
+#else
     return ::logf(x);
-    #endif
+#endif
     }
 
 //! Compute the natural log of x
@@ -555,11 +534,11 @@ inline HOSTDEVICE double log(double x)
 //! Compute the sqrt of x
 inline HOSTDEVICE float sqrt(float x)
     {
-    #if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
+#if defined(__HIP_DEVICE_COMPILE__) && defined(__HIP_PLATFORM_HCC__)
     return ::__fsqrt_rn(x);
-    #else
+#else
     return ::sqrtf(x);
-    #endif
+#endif
     }
 
 //! Compute the sqrt of x
@@ -591,46 +570,46 @@ inline HOSTDEVICE double acos(double x)
     {
     return ::acos(x);
     }
-}
+    } // namespace fast
 
 //! Maximum accuracy math routines
-/*! Routines in the slow namespace map to the most accurate version of the math routines on the CPU and GPU.
-    The routines are provide overloads for both single and double
-    so that macro tricks aren't needed to handle single and double precision code.
+/*! Routines in the slow namespace map to the most accurate version of the math routines on the CPU
+   and GPU. The routines are provide overloads for both single and double so that macro tricks
+   aren't needed to handle single and double precision code.
 
-    These routines are intended to be used e.g. in integrators, where numerical stability is most important.
+    These routines are intended to be used e.g. in integrators, where numerical stability is most
+   important.
 */
 namespace slow
-{
-
+    {
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE float rsqrt(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrtf(x);
-    #else
+#else
     return 1.0f / ::sqrtf(x);
-    #endif
+#endif
     }
 
 //! Compute the reciprocal square root of x
 inline HOSTDEVICE double rsqrt(double x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return ::rsqrt(x);
-    #else
+#else
     return 1.0 / ::sqrt(x);
-    #endif
+#endif
     }
 
 //! Compute the sin of x
 inline HOSTDEVICE float sin(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return sinf(x);
-    #else
+#else
     return ::sinf(x);
-    #endif
+#endif
     }
 
 //! Compute the sin of x
@@ -642,11 +621,11 @@ inline HOSTDEVICE double sin(double x)
 //! Compute the cos of x
 inline HOSTDEVICE float cos(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return cosf(x);
-    #else
+#else
     return ::cosf(x);
-    #endif
+#endif
     }
 
 //! Compute the cos of x
@@ -670,11 +649,11 @@ inline HOSTDEVICE double tan(double x)
 //! Compute the pow of x,y
 inline HOSTDEVICE float pow(float x, float y)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return powf(x, y);
-    #else
+#else
     return ::powf(x, y);
-    #endif
+#endif
     }
 
 //! Compute the sin of x
@@ -686,11 +665,11 @@ inline HOSTDEVICE double pow(double x, double y)
 //! Compute the exp of x
 inline HOSTDEVICE float exp(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return expf(x);
-    #else
+#else
     return ::expf(x);
-    #endif
+#endif
     }
 
 //! Compute the exp of x
@@ -702,11 +681,11 @@ inline HOSTDEVICE double exp(double x)
 //! Compute the natural log of x
 inline HOSTDEVICE float log(float x)
     {
-    #ifdef __HIP_DEVICE_COMPILE__
+#ifdef __HIP_DEVICE_COMPILE__
     return logf(x);
-    #else
+#else
     return ::logf(x);
-    #endif
+#endif
     }
 
 //! Compute the natural log of x
@@ -763,7 +742,6 @@ inline HOSTDEVICE double atan(double x)
     return ::atan(x);
     }
 
-
 //! Compute the floor of x
 inline HOSTDEVICE float floor(float x)
     {
@@ -799,7 +777,7 @@ inline HOSTDEVICE float rint(float x)
     {
     return ::rintf(x);
     }
-}
+    } // namespace slow
 
 // undefine HOSTDEVICE so we don't interfere with other headers
 #undef HOSTDEVICE

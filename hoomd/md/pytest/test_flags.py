@@ -1,7 +1,5 @@
 import hoomd
-import pytest
 import numpy
-import itertools
 
 
 def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
@@ -13,7 +11,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
     a = 2**(1.0 / 6.0)
     sim = simulation_factory(lattice_snapshot_factory(n=20, a=a, r=a * 0.01))
 
-    assert sim.always_compute_pressure == False
+    assert not sim.always_compute_pressure
 
     # TODO: allow forces to be added directly
     # sim.operations.add(lj)
@@ -24,7 +22,7 @@ def test_per_particle_virial(simulation_factory, lattice_snapshot_factory):
 
     sim.operations._schedule()
 
-    assert sim.always_compute_pressure == False
+    assert not sim.always_compute_pressure
 
     # virials should be None at first
     virials = lj.virials

@@ -1,11 +1,8 @@
-# coding: utf-8
-
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
+"""Implement MD Integrator."""
 
 import itertools
 
@@ -144,7 +141,7 @@ class _DynamicIntegrator(BaseIntegrator):
 
 
 class Integrator(_DynamicIntegrator):
-    R""" Enables a variety of standard integration methods.
+    """Enables a variety of standard integration methods.
 
     Args:
         dt (float): Integrator time step size (in time units).
@@ -233,7 +230,7 @@ class Integrator(_DynamicIntegrator):
             ParameterDict(dt=float(dt),
                           aniso=OnlyFrom(['true', 'false', 'auto'],
                                          preprocess=_preprocess_aniso),
-                          _defaults=dict(aniso="auto")))
+                          _defaults={"aniso": "auto"}))
         if aniso is not None:
             self.aniso = aniso
 

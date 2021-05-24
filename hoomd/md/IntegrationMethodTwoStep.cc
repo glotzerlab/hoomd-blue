@@ -1,15 +1,12 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
-
-
 #include "IntegrationMethodTwoStep.h"
-#include "hoomd/VectorMath.h"
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
 namespace py = pybind11;
 
@@ -29,8 +26,9 @@ using namespace std;
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                                                    std::shared_ptr<ParticleGroup> group)
-    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
-      m_aniso(false), m_deltaT(Scalar(0.0)), m_valid_restart(false)
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()),
+      m_exec_conf(m_pdata->getExecConf()), m_aniso(false), m_deltaT(Scalar(0.0)),
+      m_valid_restart(false)
     {
     // sanity check
     assert(m_sysdef);
@@ -55,12 +53,11 @@ void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     }
 
 /*! \param deltaT New time step to set
-*/
+ */
 void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     {
     m_deltaT = deltaT;
     }
-
 
 /*! \param v is the restart variables for the current integrator
     \param type is the type of expected integrator type
@@ -70,16 +67,20 @@ void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     expected values, this function throws the appropriate warning and returns
     "false."  Otherwise, the function returns true.
 */
-bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v, std::string type, unsigned int nvariables)
+bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v,
+                                                    std::string type,
+                                                    unsigned int nvariables)
     {
     bool good = true;
     if (v.type == "")
         good = false;
     else if (v.type != type && v.type != "")
         {
-        m_exec_conf->msg->warning() << "Integrator #"<<  m_integrator_id <<" type "<< type <<" does not match type ";
+        m_exec_conf->msg->warning()
+            << "Integrator #" << m_integrator_id << " type " << type << " does not match type ";
         m_exec_conf->msg->warning() << v.type << " found in restart file. " << endl;
-        m_exec_conf->msg->warning() << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
+        m_exec_conf->msg->warning()
+            << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
         m_exec_conf->msg->warning() << "Continuing while ignoring restart information..." << endl;
         good = false;
         }
@@ -87,9 +88,12 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
         {
         if (v.variable.size() != nvariables)
             {
-            m_exec_conf->msg->warning() << "Integrator #"<< m_integrator_id <<" type "<< type << endl;
-            m_exec_conf->msg->warning() << "appears to contain bad or incomplete restart information. " << endl;
-            m_exec_conf->msg->warning() << "Continuing while ignoring restart information..." << endl;
+            m_exec_conf->msg->warning()
+                << "Integrator #" << m_integrator_id << " type " << type << endl;
+            m_exec_conf->msg->warning()
+                << "appears to contain bad or incomplete restart information. " << endl;
+            m_exec_conf->msg->warning()
+                << "Continuing while ignoring restart information..." << endl;
             good = false;
             }
         }
@@ -97,9 +101,9 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v
     }
 
 /*! \param query_group Group over which to count (translational) degrees of freedom.
-    A majority of the integration methods add D degrees of freedom per particle in \a query_group that is also in the
-    group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
-    Derived classes can override if needed.
+    A majority of the integration methods add D degrees of freedom per particle in \a query_group
+   that is also in the group assigned to the method. Hence, the base class IntegrationMethodTwoStep
+   will implement that counting. Derived classes can override if needed.
 */
 Scalar IntegrationMethodTwoStep::getTranslationalDOF(std::shared_ptr<ParticleGroup> query_group)
     {
@@ -113,7 +117,9 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
     {
     unsigned int query_group_dof = 0;
     unsigned int dimension = m_sysdef->getNDimensions();
-    ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_moment_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                          access_location::host,
+                                          access_mode::read);
 
     for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
         {
@@ -139,27 +145,36 @@ Scalar IntegrationMethodTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup>
             }
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        MPI_Allreduce(MPI_IN_PLACE, &query_group_dof, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &query_group_dof,
+                      1,
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
-    #endif
+#endif
 
     return query_group_dof;
     }
 
-/*! Checks that every particle in the group is valid. This method may be called by anyone wishing to make this
-    error check.
+/*! Checks that every particle in the group is valid. This method may be called by anyone wishing to
+   make this error check.
 
     The base class does nothing
 */
 void IntegrationMethodTwoStep::validateGroup()
     {
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_group_index(m_group->getIndexArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group_index(m_group->getIndexArray(),
+                                            access_location::host,
+                                            access_mode::read);
 
     for (unsigned int gidx = 0; gidx < m_group->getNumMembers(); gidx++)
         {
@@ -169,26 +184,28 @@ void IntegrationMethodTwoStep::validateGroup()
 
         if (body < MIN_FLOPPY && body != tag)
             {
-            m_exec_conf->msg->error() << "Particle " << tag << " belongs to a rigid body, but is not its center particle. "
-                << std::endl << "This integration method does not operate on constituent particles."
-                << std::endl << std::endl;
+            m_exec_conf->msg->error()
+                << "Particle " << tag
+                << " belongs to a rigid body, but is not its center particle. " << std::endl
+                << "This integration method does not operate on constituent particles." << std::endl
+                << std::endl;
             throw std::runtime_error("Error initializing integration method");
             }
         }
-
     }
 
 void export_IntegrationMethodTwoStep(py::module& m)
     {
-    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
+    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep>>(
+        m,
+        "IntegrationMethodTwoStep")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
-        .def_property_readonly("filter", [](const std::shared_ptr<IntegrationMethodTwoStep> method)
-                                             {
-                                             return method->getGroup()->getFilter();
-                                             })
-        #ifdef ENABLE_MPI
+        .def_property_readonly("filter",
+                               [](const std::shared_ptr<IntegrationMethodTwoStep> method)
+                               { return method->getGroup()->getFilter(); })
+#ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)
-        #endif
+#endif
         ;
     }

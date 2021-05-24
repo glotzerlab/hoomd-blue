@@ -278,11 +278,11 @@ Scalar IntegratorTwoStep::getRotationalDOF(std::shared_ptr<ParticleGroup> group)
     // (an-)isotropic integration mode
     switch (m_aniso_mode)
         {
-        case Anisotropic:
+    case Anisotropic:
         aniso = true;
         break;
-        case Automatic:
-        default:
+    case Automatic:
+    default:
         aniso = getAnisotropic();
         break;
         }
@@ -357,21 +357,21 @@ void IntegratorTwoStep::prepRun(uint64_t timestep)
     // set (an-)isotropic integration mode
     switch (m_aniso_mode)
         {
-        case Anisotropic:
+    case Anisotropic:
         aniso = true;
         if (!getAnisotropic())
             m_exec_conf->msg->warning() << "Forcing anisotropic integration mode"
                                            " with no forces coupling to orientation"
                                         << endl;
         break;
-        case Isotropic:
+    case Isotropic:
         if (getAnisotropic())
             m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
                                            " with anisotropic forces defined"
                                         << endl;
         break;
-        case Automatic:
-        default:
+    case Automatic:
+    default:
         aniso = getAnisotropic();
         break;
         }

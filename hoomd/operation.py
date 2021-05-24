@@ -1,7 +1,6 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
-
-# Maintainer: joaander / All Developers are free to add commands for new features
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
 """Base classes for all HOOMD-blue operations."""
 
@@ -30,7 +29,7 @@ class _HOOMDGetSetAttrBase:
             C++ Updaters and Analyzers.
         _param_dict (ParameterDict): The `ParameterDict` for the class/instance.
         _typeparam_dict (dict[str, TypeParameter]): A dict of all the
-            `TypeParameter`s for the class/instance.
+            TypeParameters for the class/instance.
     """
     _reserved_default_attrs = dict(_param_dict=ParameterDict,
                                    _typeparam_dict=dict)
@@ -206,6 +205,7 @@ class _HOOMDBaseObject(_HOOMDGetSetAttrBase,
         # Triggers the validation checks and type expansions
         self._param_dict[attr] = value
         if self._attached:
+            # new_value passed all checks and is of the right type
             new_value = self._param_dict[attr]
             try:
                 setattr(self._cpp_obj, attr, new_value)
@@ -318,7 +318,8 @@ class Operation(_HOOMDBaseObject):
         `file`_ for information on HOOMD-blue's architecture decisions regarding
         operations.
 
-    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ARCHITECTURE.md
+    .. _file: https://github.com/glotzerlab/hoomd-blue/blob/master/ \
+        ARCHITECTURE.md
     """
     pass
 

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ajs42
 
 #include "ComputeThermoHMAGPU.cuh"
@@ -15,7 +14,8 @@ extern __shared__ Scalar3 compute_thermo_hma_sdata[];
 extern __shared__ Scalar3 compute_thermo_hma_final_sdata[];
 
 /*! \file ComputeThermoGPU.cu
-    \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by ComputeThermoGPU.
+    \brief Defines GPU kernel code for computing thermodynamic properties on the GPU. Used by
+   ComputeThermoGPU.
 */
 
 //! Perform partial sums of the thermo properties on the GPU
@@ -39,26 +39,26 @@ extern __shared__ Scalar3 compute_thermo_hma_final_sdata[];
      - Potential energy is summed in .y
      - W is summed in .z
 
-    One thread is executed per group member. That thread reads in the values for its member into shared memory
-    and then the block performs a reduction in parallel to produce a partial sum output for the block. These
-    partial sums are written to d_scratch[blockIdx.x]. sizeof(Scalar3)*block_size of dynamic shared memory are needed
-    for this kernel to run.
+    One thread is executed per group member. That thread reads in the values for its member into
+   shared memory and then the block performs a reduction in parallel to produce a partial sum output
+   for the block. These partial sums are written to d_scratch[blockIdx.x].
+   sizeof(Scalar3)*block_size of dynamic shared memory are needed for this kernel to run.
 */
 
-__global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
-                                                BoxDim box,
-                                                Scalar4 *d_net_force,
-                                                Scalar *d_net_virial,
-                                                const size_t virial_pitch,
-                                                Scalar4 *d_position,
-                                                Scalar3 *d_lattice_site,
-                                                int3 *d_image,
-                                                unsigned int *d_body,
-                                                unsigned int *d_tag,
-                                                unsigned int *d_group_members,
-                                                unsigned int work_size,
-                                                unsigned int offset,
-                                                unsigned int block_offset)
+__global__ void gpu_compute_thermo_hma_partial_sums(Scalar3* d_scratch,
+                                                    BoxDim box,
+                                                    Scalar4* d_net_force,
+                                                    Scalar* d_net_virial,
+                                                    const size_t virial_pitch,
+                                                    Scalar4* d_position,
+                                                    Scalar3* d_lattice_site,
+                                                    int3* d_image,
+                                                    unsigned int* d_body,
+                                                    unsigned int* d_tag,
+                                                    unsigned int* d_group_members,
+                                                    unsigned int work_size,
+                                                    unsigned int offset,
+                                                    unsigned int block_offset)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -70,7 +70,7 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
 
     if (group_idx < work_size)
         {
-        unsigned int idx = d_group_members[group_idx+offset];
+        unsigned int idx = d_group_members[group_idx + offset];
 
         // ignore rigid body constituent particles in the sum
         unsigned int body = d_body[idx];
@@ -80,10 +80,10 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
             Scalar4 net_force = d_net_force[idx];
             Scalar net_isotropic_virial;
             // (1/3)*trace of virial tensor
-            net_isotropic_virial = Scalar(1.0/3.0)*
-                                   (d_net_virial[0*virial_pitch+idx]   // xx
-                                   +d_net_virial[3*virial_pitch+idx]   // yy
-                                   +d_net_virial[5*virial_pitch+idx]); // zz
+            net_isotropic_virial = Scalar(1.0 / 3.0)
+                                   * (d_net_virial[0 * virial_pitch + idx]     // xx
+                                      + d_net_virial[3 * virial_pitch + idx]   // yy
+                                      + d_net_virial[5 * virial_pitch + idx]); // zz
             Scalar4 pos4 = d_position[idx];
             Scalar3 pos3 = make_scalar3(pos4.x, pos4.y, pos4.z);
             Scalar3 lat = d_lattice_site[tag];
@@ -109,9 +109,12 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
         {
         if (threadIdx.x < offs)
             {
-            compute_thermo_hma_sdata[threadIdx.x].x += compute_thermo_hma_sdata[threadIdx.x + offs].x;
-            compute_thermo_hma_sdata[threadIdx.x].y += compute_thermo_hma_sdata[threadIdx.x + offs].y;
-            compute_thermo_hma_sdata[threadIdx.x].z += compute_thermo_hma_sdata[threadIdx.x + offs].z;
+            compute_thermo_hma_sdata[threadIdx.x].x
+                += compute_thermo_hma_sdata[threadIdx.x + offs].x;
+            compute_thermo_hma_sdata[threadIdx.x].y
+                += compute_thermo_hma_sdata[threadIdx.x + offs].y;
+            compute_thermo_hma_sdata[threadIdx.x].z
+                += compute_thermo_hma_sdata[threadIdx.x + offs].z;
             }
         offs >>= 1;
         __syncthreads();
@@ -125,8 +128,8 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
         }
     }
 
-
-//! Complete partial sums and compute final thermodynamic quantities (for pressure, only isotropic contribution)
+//! Complete partial sums and compute final thermodynamic quantities (for pressure, only isotropic
+//! contribution)
 /*! \param d_properties Property array to write final values
     \param d_scratch Partial sums
     \param box Box the particles are in
@@ -139,22 +142,22 @@ __global__ void gpu_compute_thermo_hma_partial_sums(Scalar3 *d_scratch,
     \param external_energy External contribution to potential energy
 
 
-    Only one block is executed. In that block, the partial sums are read in and reduced to final values. From the final
-    sums, the thermodynamic properties are computed and written to d_properties.
+    Only one block is executed. In that block, the partial sums are read in and reduced to final
+   values. From the final sums, the thermodynamic properties are computed and written to
+   d_properties.
 
     sizeof(Scalar3)*block_size bytes of shared memory are needed for this kernel to run.
 */
-__global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
-                                              Scalar3 *d_scratch,
-                                              BoxDim box,
-                                              unsigned int D,
-                                              unsigned int group_size,
-                                              unsigned int num_partial_sums,
-                                              Scalar temperature,
-                                              Scalar harmonicPressure,
-                                              Scalar external_virial,
-                                              Scalar external_energy
-                                              )
+__global__ void gpu_compute_thermo_hma_final_sums(Scalar* d_properties,
+                                                  Scalar3* d_scratch,
+                                                  BoxDim box,
+                                                  unsigned int D,
+                                                  unsigned int group_size,
+                                                  unsigned int num_partial_sums,
+                                                  Scalar temperature,
+                                                  Scalar harmonicPressure,
+                                                  Scalar external_virial,
+                                                  Scalar external_energy)
     {
     Scalar3 final_sum = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -166,10 +169,12 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
             {
             Scalar3 scratch = d_scratch[start + threadIdx.x];
 
-            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar3(scratch.x, scratch.y, scratch.z);
+            compute_thermo_hma_final_sdata[threadIdx.x]
+                = make_scalar3(scratch.x, scratch.y, scratch.z);
             }
         else
-            compute_thermo_hma_final_sdata[threadIdx.x] = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+            compute_thermo_hma_final_sdata[threadIdx.x]
+                = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
         __syncthreads();
 
         // reduce the sum in parallel
@@ -178,9 +183,12 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
             {
             if (threadIdx.x < offs)
                 {
-                compute_thermo_hma_final_sdata[threadIdx.x].x += compute_thermo_hma_final_sdata[threadIdx.x + offs].x;
-                compute_thermo_hma_final_sdata[threadIdx.x].y += compute_thermo_hma_final_sdata[threadIdx.x + offs].y;
-                compute_thermo_hma_final_sdata[threadIdx.x].z += compute_thermo_hma_final_sdata[threadIdx.x + offs].z;
+                compute_thermo_hma_final_sdata[threadIdx.x].x
+                    += compute_thermo_hma_final_sdata[threadIdx.x + offs].x;
+                compute_thermo_hma_final_sdata[threadIdx.x].y
+                    += compute_thermo_hma_final_sdata[threadIdx.x + offs].y;
+                compute_thermo_hma_final_sdata[threadIdx.x].z
+                    += compute_thermo_hma_final_sdata[threadIdx.x + offs].z;
                 }
             offs >>= 1;
             __syncthreads();
@@ -212,7 +220,7 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
             // "volume" is area in 2D
             volume = L.x * L.y;
             // W needs to be corrected since the 1/3 factor is built in
-            W *= Scalar(3.0)/Scalar(2.0);
+            W *= Scalar(3.0) / Scalar(2.0);
             }
         else
             {
@@ -220,11 +228,12 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar fV = (harmonicPressure/temperature - group_size/volume)/(D*(group_size-1));
-        Scalar pressure =  harmonicPressure + W / volume + fV*fdr;
+        Scalar fV = (harmonicPressure / temperature - group_size / volume) / (D * (group_size - 1));
+        Scalar pressure = harmonicPressure + W / volume + fV * fdr;
 
         // fill out the GPUArray
-        d_properties[thermoHMA_index::potential_energyHMA] = pe_total + 1.5*(group_size-1)*temperature + 0.5*fdr;
+        d_properties[thermoHMA_index::potential_energyHMA]
+            = pe_total + 1.5 * (group_size - 1) * temperature + 0.5 * fdr;
         d_properties[thermoHMA_index::pressureHMA] = pressure;
         }
     }
@@ -241,20 +250,20 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar *d_properties,
     \param args Additional arguments
     \param gpu_partition Load balancing info for multi-GPU reduction
 
-    This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
+    This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them
+   for details.
 */
 
-hipError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
-                               Scalar3 *d_lattice_site,
-                               int3 *d_image,
-                               unsigned int *d_body,
-                               unsigned int *d_tag,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               const BoxDim& box,
-                               const compute_thermo_hma_args& args,
-                               const GPUPartition& gpu_partition
-                               )
+hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
+                                          Scalar3* d_lattice_site,
+                                          int3* d_image,
+                                          unsigned int* d_body,
+                                          unsigned int* d_tag,
+                                          unsigned int* d_group_members,
+                                          unsigned int group_size,
+                                          const BoxDim& box,
+                                          const compute_thermo_hma_args& args,
+                                          const GPUPartition& gpu_partition)
     {
     assert(d_pos);
     assert(d_group_members);
@@ -271,26 +280,25 @@ hipError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
 
         unsigned int nwork = range.second - range.first;
 
-        dim3 grid(nwork/args.block_size+1, 1, 1);
+        dim3 grid(nwork / args.block_size + 1, 1, 1);
         dim3 threads(args.block_size, 1, 1);
 
-        unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3)*args.block_size);
+        unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3) * args.block_size);
 
-        gpu_compute_thermo_hma_partial_sums<<<grid,threads, shared_bytes>>>(args.d_scratch,
-                                                                        box,
-                                                                        args.d_net_force,
-                                                                        args.d_net_virial,
-                                                                        args.virial_pitch,
-                                                                        d_pos,
-                                                                        d_lattice_site,
-                                                                        d_image,
-                                                                        d_body,
-                                                                        d_tag,
-                                                                        d_group_members,
-                                                                        nwork,
-                                                                        range.first,
-                                                                        block_offset);
-
+        gpu_compute_thermo_hma_partial_sums<<<grid, threads, shared_bytes>>>(args.d_scratch,
+                                                                             box,
+                                                                             args.d_net_force,
+                                                                             args.d_net_virial,
+                                                                             args.virial_pitch,
+                                                                             d_pos,
+                                                                             d_lattice_site,
+                                                                             d_image,
+                                                                             d_body,
+                                                                             d_tag,
+                                                                             d_group_members,
+                                                                             nwork,
+                                                                             range.first,
+                                                                             block_offset);
 
         block_offset += grid.x;
         }
@@ -310,17 +318,17 @@ hipError_t gpu_compute_thermo_hma_partial( Scalar4 *d_pos,
     \param args Additional arguments
     \param num_blocks Number of partial sums to reduce
 
-    This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them for details.
+    This function drives gpu_compute_thermo_partial_sums and gpu_compute_thermo_final_sums, see them
+   for details.
 */
 
-hipError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
-                               unsigned int *d_body,
-                               unsigned int *d_tag,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               const BoxDim& box,
-                               const compute_thermo_hma_args& args
-                               )
+hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
+                                        unsigned int* d_body,
+                                        unsigned int* d_tag,
+                                        unsigned int* d_group_members,
+                                        unsigned int group_size,
+                                        const BoxDim& box,
+                                        const compute_thermo_hma_args& args)
     {
     assert(d_properties);
     assert(d_group_members);
@@ -328,29 +336,28 @@ hipError_t gpu_compute_thermo_hma_final(Scalar *d_properties,
     assert(args.d_net_virial);
     assert(args.d_scratch);
 
-
     // setup the grid to run the final kernel
     int final_block_size = 512;
     dim3 grid = dim3(1, 1, 1);
     dim3 threads = dim3(final_block_size, 1, 1);
 
-    unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3)*final_block_size);
+    unsigned int shared_bytes = (unsigned int)(sizeof(Scalar3) * final_block_size);
 
-    Scalar external_virial = Scalar(1.0/3.0)*(args.external_virial_xx
-                             + args.external_virial_yy
-                             + args.external_virial_zz);
+    Scalar external_virial
+        = Scalar(1.0 / 3.0)
+          * (args.external_virial_xx + args.external_virial_yy + args.external_virial_zz);
 
     // run the kernel
     gpu_compute_thermo_hma_final_sums<<<grid, threads, shared_bytes>>>(d_properties,
-                                                                   args.d_scratch,
-                                                                   box,
-                                                                   args.D,
-                                                                   group_size,
-                                                                   args.n_blocks,
-                                                                   args.temperature,
-                                                                   args.harmonicPressure,
-                                                                   external_virial,
-                                                                   args.external_energy);
+                                                                       args.d_scratch,
+                                                                       box,
+                                                                       args.D,
+                                                                       group_size,
+                                                                       args.n_blocks,
+                                                                       args.temperature,
+                                                                       args.harmonicPressure,
+                                                                       external_virial,
+                                                                       args.external_energy);
 
     return hipSuccess;
     }

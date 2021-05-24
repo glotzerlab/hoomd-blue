@@ -5,9 +5,9 @@
 // Previous Maintainer: Morozov
 
 #include "EAMForceCompute.h"
-#include "hoomd/md/NeighborList.h"
 #include "EAMForceGPU.cuh"
 #include "hoomd/Autotuner.h"
+#include "hoomd/md/NeighborList.h"
 
 #include <memory>
 
@@ -23,13 +23,14 @@
 #define __EAMForceComputeGPU_H__
 
 //! Computes EAM forces on each particle using the GPU
-/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(CUDAArray).
+/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture
+ * memory(CUDAArray).
  */
-class EAMForceComputeGPU: public EAMForceCompute
+class EAMForceComputeGPU : public EAMForceCompute
     {
-public:
+    public:
     //! Constructs the compute
-    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char* filename, int type_of_file);
 
     //! Destructor
     virtual ~EAMForceComputeGPU();
@@ -45,14 +46,14 @@ public:
         m_tuner->setEnabled(enable);
         }
 
-protected:
-    GlobalArray<EAMTexInterData> m_eam_data;    //!< EAM parameters to be communicated
-    std::unique_ptr<Autotuner> m_tuner;         //!< autotuner for block size
+    protected:
+    GlobalArray<EAMTexInterData> m_eam_data; //!< EAM parameters to be communicated
+    std::unique_ptr<Autotuner> m_tuner;      //!< autotuner for block size
     //! Actually compute the forces
     virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU(pybind11::module &m);
+void export_EAMForceComputeGPU(pybind11::module& m);
 
 #endif

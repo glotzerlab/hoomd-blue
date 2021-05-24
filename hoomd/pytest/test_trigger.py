@@ -14,6 +14,7 @@ import hoomd.trigger
 
 
 class CustomTrigger(hoomd.trigger.Trigger):
+
     def __init__(self):
         hoomd.trigger.Trigger.__init__(self)
 
@@ -29,30 +30,30 @@ class CustomTrigger(hoomd.trigger.Trigger):
 
 # List of trigger classes
 _classes = [
-    hoomd.trigger.Periodic,
-    hoomd.trigger.Before,
-    hoomd.trigger.After,
-    hoomd.trigger.On,
-    hoomd.trigger.Not,
-    hoomd.trigger.And,
-    hoomd.trigger.Or,
+    hoomd.trigger.Periodic, hoomd.trigger.Before, hoomd.trigger.After,
+    hoomd.trigger.On, hoomd.trigger.Not, hoomd.trigger.And, hoomd.trigger.Or,
     CustomTrigger
 ]
 
-
 # List of kwargs for the class constructors
-_kwargs = [
-    {'period': (456, 10000000000), 'phase': (18, 60000000000)},
-    {'timestep': (100, 10000000000)},
-    {'timestep': (100, 10000000000)},
-    {'timestep': (100, 10000000000)},
-    {'trigger': (hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100))},
-    {'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
-                  (hoomd.trigger.After(100), hoomd.trigger.On(101)))},
-    {'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
-                  (hoomd.trigger.After(100), hoomd.trigger.On(101)))},
-    {}
-]
+_kwargs = [{
+    'period': (456, 10000000000),
+    'phase': (18, 60000000000)
+}, {
+    'timestep': (100, 10000000000)
+}, {
+    'timestep': (100, 10000000000)
+}, {
+    'timestep': (100, 10000000000)
+}, {
+    'trigger': (hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100))
+}, {
+    'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
+                 (hoomd.trigger.After(100), hoomd.trigger.On(101)))
+}, {
+    'triggers': ((hoomd.trigger.Periodic(10, 1), hoomd.trigger.Before(100)),
+                 (hoomd.trigger.After(100), hoomd.trigger.On(101)))
+}, {}]
 
 
 def _cartesian(grid):
@@ -71,27 +72,21 @@ def _test_name(arg):
 
 
 # Go over all class and constructor pairs
-@pytest.mark.parametrize(
-    'cls, kwargs',
-    ((cls, kwarg) for cls, kwargs in zip(_classes, _kwargs)
-        for kwarg in _cartesian(kwargs)),
-    ids=_test_name)
+@pytest.mark.parametrize('cls, kwargs',
+                         ((cls, kwarg)
+                          for cls, kwargs in zip(_classes, _kwargs)
+                          for kwarg in _cartesian(kwargs)),
+                         ids=_test_name)
 def test_properties(cls, kwargs):
     instance = cls(**kwargs)
     for key, value in kwargs.items():
         assert getattr(instance, key) == value
 
 
-_strings_beginning = (
-    "hoomd.trigger.Periodic(",
-    "hoomd.trigger.Before(",
-    "hoomd.trigger.After(",
-    "hoomd.trigger.On(",
-    "hoomd.trigger.Not(",
-    "hoomd.trigger.And(",
-    "hoomd.trigger.Or(",
-    "CustomTrigger()"
-)
+_strings_beginning = ("hoomd.trigger.Periodic(", "hoomd.trigger.Before(",
+                      "hoomd.trigger.After(", "hoomd.trigger.On(",
+                      "hoomd.trigger.Not(", "hoomd.trigger.And(",
+                      "hoomd.trigger.Or(", "CustomTrigger()")
 
 
 # Trigger instanace for the first arguments in _kwargs
@@ -115,7 +110,7 @@ _eval_funcs = [
     lambda x: not (x - 1) % 10 == 0,  # not
     lambda x: (x - 1) % 10 == 0 and x < 100,  # and
     lambda x: (x - 1) % 10 == 0 or x < 100,  # or
-    lambda x: (x ** (1 / 2)).is_integer()
+    lambda x: (x**(1 / 2)).is_integer()
 ]
 
 

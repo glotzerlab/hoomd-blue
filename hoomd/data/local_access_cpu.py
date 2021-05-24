@@ -1,42 +1,57 @@
-from hoomd.data.local_access import (
-        ParticleLocalAccessBase, BondLocalAccessBase, AngleLocalAccessBase,
-        DihedralLocalAccessBase, ImproperLocalAccessBase,
-        ConstraintLocalAccessBase, PairLocalAccessBase, _LocalSnapshot)
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement local access classes for the CPU."""
+
+from hoomd.data.local_access import (ParticleLocalAccessBase,
+                                     BondLocalAccessBase, AngleLocalAccessBase,
+                                     DihedralLocalAccessBase,
+                                     ImproperLocalAccessBase,
+                                     ConstraintLocalAccessBase,
+                                     PairLocalAccessBase, _LocalSnapshot)
 from hoomd.data.array import HOOMDArray
 from hoomd import _hoomd
 
 
 class ParticleLocalAccessCPU(ParticleLocalAccessBase):
+    """Access particle data on the CPU."""
     _cpp_cls = _hoomd.LocalParticleDataHost
     _array_cls = HOOMDArray
 
 
 class BondLocalAccessCPU(BondLocalAccessBase):
+    """Access bond data on the GPU."""
     _cpp_cls = _hoomd.LocalBondDataHost
     _array_cls = HOOMDArray
 
 
 class AngleLocalAccessCPU(AngleLocalAccessBase):
+    """Access angle data on the GPU."""
     _cpp_cls = _hoomd.LocalAngleDataHost
     _array_cls = HOOMDArray
 
 
 class DihedralLocalAccessCPU(DihedralLocalAccessBase):
+    """Access dihedral data on the GPU."""
     _cpp_cls = _hoomd.LocalDihedralDataHost
     _array_cls = HOOMDArray
 
 
 class ImproperLocalAccessCPU(ImproperLocalAccessBase):
+    """Access improper data on the GPU."""
     _cpp_cls = _hoomd.LocalImproperDataHost
     _array_cls = HOOMDArray
 
 
 class ConstraintLocalAccessCPU(ConstraintLocalAccessBase):
+    """Access constraint data on the GPU."""
     _cpp_cls = _hoomd.LocalConstraintDataHost
     _array_cls = HOOMDArray
 
 
 class PairLocalAccessCPU(PairLocalAccessBase):
+    """Access special pair data on the GPU."""
     _cpp_cls = _hoomd.LocalPairDataHost
     _array_cls = HOOMDArray
 

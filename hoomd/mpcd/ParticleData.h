@@ -39,7 +39,7 @@
 #include <pybind11/pybind11.h>
 
 namespace mpcd
-{
+    {
 //! Stores MPCD particle data
 /*!
  * MPCD particles are characterized by position, velocity, and mass. We assume all
@@ -71,412 +71,440 @@ namespace mpcd
 class PYBIND11_EXPORT ParticleData
     {
     public:
-        //! Number constructor
-        ParticleData(unsigned int N,
-                     const BoxDim& local_box,
-                     Scalar kT,
-                     unsigned int seed,
-                     unsigned int ndimensions,
-                     std::shared_ptr<ExecutionConfiguration> exec_conf,
-                     std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
+    //! Number constructor
+    ParticleData(unsigned int N,
+                 const BoxDim& local_box,
+                 Scalar kT,
+                 unsigned int seed,
+                 unsigned int ndimensions,
+                 std::shared_ptr<ExecutionConfiguration> exec_conf,
+                 std::shared_ptr<DomainDecomposition> decomposition
+                 = std::shared_ptr<DomainDecomposition>());
 
-        //! Snapshot constructor
-        ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
-                     const BoxDim& global_box,
-                     std::shared_ptr<const ExecutionConfiguration> exec_conf,
-                     std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
+    //! Snapshot constructor
+    ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
+                 const BoxDim& global_box,
+                 std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                 std::shared_ptr<DomainDecomposition> decomposition
+                 = std::shared_ptr<DomainDecomposition>());
 
-        //! Destructor
-        ~ParticleData();
+    //! Destructor
+    ~ParticleData();
 
-        //! Initialize the MPCD particle data from a snapshot
-        void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
-                                    const BoxDim& global_box);
+    //! Initialize the MPCD particle data from a snapshot
+    void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
+                                const BoxDim& global_box);
 
-        //! Default initialize the MPCD particle data per rank
-        void initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed, unsigned int ndimensions);
+    //! Default initialize the MPCD particle data per rank
+    void initializeRandom(unsigned int N,
+                          const BoxDim& local_box,
+                          Scalar kT,
+                          unsigned int seed,
+                          unsigned int ndimensions);
 
-        //! Take a snapshot of the MPCD particle data
-        void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot, const BoxDim& global_box) const;
+    //! Take a snapshot of the MPCD particle data
+    void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
+                      const BoxDim& global_box) const;
 
-        //! \name accessor methods
-        //@{
-        //! Get number of MPCD particles on the rank
-        unsigned int getN() const
+    //! \name accessor methods
+    //@{
+    //! Get number of MPCD particles on the rank
+    unsigned int getN() const
+        {
+        return m_N;
+        }
+
+    //! Get the number of MPCD virtual particles on this rank
+    unsigned int getNVirtual() const
+        {
+        return m_N_virtual;
+        }
+
+    //! Get global number of MPCD particles
+    unsigned int getNGlobal() const
+        {
+        return m_N_global;
+        }
+
+    //! Get the global number of virtual MPCD particles
+    /*!
+     * This method requires a collective reduction in MPI simulations. The caller is responsible for
+     * caching the returned value for performance if necessary.
+     */
+    unsigned int getNVirtualGlobal() const
+        {
+#ifdef ENABLE_MPI
+        if (m_exec_conf->getNRanks() > 1)
             {
-            return m_N;
+            unsigned int N_virtual_global = m_N_virtual;
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &N_virtual_global,
+                          1,
+                          MPI_UNSIGNED,
+                          MPI_SUM,
+                          m_exec_conf->getMPICommunicator());
+            return N_virtual_global;
             }
-
-        //! Get the number of MPCD virtual particles on this rank
-        unsigned int getNVirtual() const
+        else
+#endif // ENABLE_MPI
             {
             return m_N_virtual;
             }
+        }
 
-        //! Get global number of MPCD particles
-        unsigned int getNGlobal() const
+    //! Get number of MPCD particle types
+    unsigned int getNTypes() const
+        {
+        return (unsigned int)m_type_mapping.size();
+        }
+
+    //! Get the type-name mapping
+    const std::vector<std::string>& getTypeNames() const
+        {
+        return m_type_mapping;
+        }
+
+    //! Get the type index by its name
+    unsigned int getTypeByName(const std::string& name) const;
+
+    //! Get the name of a type by its index
+    std::string getNameByType(unsigned int type) const;
+
+    //! Get array of MPCD particle positions
+    const GPUArray<Scalar4>& getPositions() const
+        {
+        return m_pos;
+        }
+
+    //! Get array of MPCD particle velocities
+    const GPUArray<Scalar4>& getVelocities() const
+        {
+        return m_vel;
+        }
+
+    //! Get array of MPCD particle tags
+    const GPUArray<unsigned int>& getTags() const
+        {
+        return m_tag;
+        }
+
+    //! Get particle mass
+    Scalar getMass() const
+        {
+        return m_mass;
+        }
+
+    //! Set particle mass
+    void setMass(Scalar mass);
+
+    //! Get the position of the particle on the local rank
+    Scalar3 getPosition(unsigned int idx) const;
+
+    //! Get the type of the particle on the local rank
+    unsigned int getType(unsigned int idx) const;
+
+    //! Get the velocity of the particle on the local rank
+    Scalar3 getVelocity(unsigned int idx) const;
+
+    //! Get the tag of the particle on the local rank
+    unsigned int getTag(unsigned int idx) const;
+
+    //! Set the profiler for the particle data to use
+    void setProfiler(std::shared_ptr<Profiler> prof)
+        {
+        m_prof = prof;
+        }
+
+    //! Set autotuner parameters
+    /*!
+     * \param enable Enable / disable autotuning
+     * \param period period (approximate) in time steps when retuning occurs
+     */
+    void setAutotunerParams(bool enable, unsigned int period)
+        {
+#if defined(ENABLE_MPI) && defined(ENABLE_HIP)
+        if (m_mark_tuner)
             {
-            return m_N_global;
+            m_mark_tuner->setEnabled(enable);
+            m_mark_tuner->setPeriod(period);
             }
-
-        //! Get the global number of virtual MPCD particles
-        /*!
-         * This method requires a collective reduction in MPI simulations. The caller is responsible for caching
-         * the returned value for performance if necessary.
-         */
-        unsigned int getNVirtualGlobal() const
+        if (m_remove_tuner)
             {
-            #ifdef ENABLE_MPI
-            if (m_exec_conf->getNRanks() > 1)
-                {
-                unsigned int N_virtual_global = m_N_virtual;
-                MPI_Allreduce(MPI_IN_PLACE, &N_virtual_global, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
-                return N_virtual_global;
-                }
-            else
-            #endif // ENABLE_MPI
-                {
-                return m_N_virtual;
-                }
+            m_remove_tuner->setEnabled(enable);
+            m_remove_tuner->setPeriod(period);
             }
-
-        //! Get number of MPCD particle types
-        unsigned int getNTypes() const
+        if (m_add_tuner)
             {
-            return (unsigned int)m_type_mapping.size();
+            m_add_tuner->setEnabled(enable);
+            m_add_tuner->setPeriod(period);
             }
+#endif // ENABLE_MPI && ENABLE_HIP
+        }
+    //@}
 
-        //! Get the type-name mapping
-        const std::vector<std::string>& getTypeNames() const
-            {
-            return m_type_mapping;
-            }
+    //! \name swap methods
+    //@{
+    //! Get alternate array of MPCD particle positions
+    const GPUArray<Scalar4>& getAltPositions() const
+        {
+        return m_pos_alt;
+        }
 
-        //! Get the type index by its name
-        unsigned int getTypeByName(const std::string& name) const;
+    //! Swap out alternate MPCD particle position array
+    void swapPositions()
+        {
+        m_pos.swap(m_pos_alt);
+        }
 
-        //! Get the name of a type by its index
-        std::string getNameByType(unsigned int type) const;
+    //! Get alternate array of MPCD particle velocities
+    const GPUArray<Scalar4>& getAltVelocities() const
+        {
+        return m_vel_alt;
+        }
 
-        //! Get array of MPCD particle positions
-        const GPUArray<Scalar4>& getPositions() const
-            {
-            return m_pos;
-            }
+    //! Swap out alternate MPCD particle velocity array
+    void swapVelocities()
+        {
+        m_vel.swap(m_vel_alt);
+        }
 
-        //! Get array of MPCD particle velocities
-        const GPUArray<Scalar4>& getVelocities() const
-            {
-            return m_vel;
-            }
+    //! Get alternate array of MPCD particle tags
+    const GPUArray<unsigned int>& getAltTags() const
+        {
+        return m_tag_alt;
+        }
 
-        //! Get array of MPCD particle tags
-        const GPUArray<unsigned int>& getTags() const
-            {
-            return m_tag;
-            }
+    //! Swap out alternate MPCD particle tags
+    void swapTags()
+        {
+        m_tag.swap(m_tag_alt);
+        }
+    //@}
 
-        //! Get particle mass
-        Scalar getMass() const
-            {
-            return m_mass;
-            }
+    //! \name signal methods
+    //@{
+    //! Mark the cell value cached in the last element of the velocity as valid
+    void validateCellCache()
+        {
+        m_valid_cell_cache = true;
+        }
+    //! Mark the cell value cached in the last element of the velocity as invalid
+    void invalidateCellCache()
+        {
+        m_valid_cell_cache = false;
+        }
+    //! Check if the cell value cached in the last element of the velocity is valid
+    /*!
+     * \returns True if the cache is valid, false otherwise
+     */
+    bool checkCellCache() const
+        {
+        return m_valid_cell_cache;
+        }
 
-        //! Set particle mass
-        void setMass(Scalar mass);
+    //! Signature for particle sort signal
+    typedef Nano::Signal<
+        void(uint64_t timestep, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)>
+        SortSignal;
 
-        //! Get the position of the particle on the local rank
-        Scalar3 getPosition(unsigned int idx) const;
+    //! Get the sort signal
+    /*!
+     * \returns A sort signal that subscribers can attach a callback to for sorting
+     *          their own per-particle data.
+     */
+    SortSignal& getSortSignal()
+        {
+        return m_sort_signal;
+        }
 
-        //! Get the type of the particle on the local rank
-        unsigned int getType(unsigned int idx) const;
+    //! Notify subscribers of a particle sort
+    /*!
+     * \param timestep Timestep that the sorting occurred
+     * \param order Mapping of sorted particle indexes onto old particle indexes
+     * \param rorder Mapping of old particle indexes onto sorted particle indexes
+     *
+     * This method notifies the subscribers of the sort occurring at \a timestep.
+     * Subscribers may choose to use \a order and \a rorder to reorder their
+     * per-particle data immediately, or delay the sort until their next call.
+     */
+    void notifySort(uint64_t timestep,
+                    const GPUArray<unsigned int>& order,
+                    const GPUArray<unsigned int>& rorder)
+        {
+        m_sort_signal.emit(timestep, order, rorder);
+        }
 
-        //! Get the velocity of the particle on the local rank
-        Scalar3 getVelocity(unsigned int idx) const;
+    //! Notify subscribers of a particle sort
+    /*!
+     * \param timestep Timestep that the sorting occurred
+     *
+     * This method notifies the subscribers of the sort occurring at \a timestep.
+     * Subscribers are not given the updated particle order.
+     */
+    void notifySort(uint64_t timestep)
+        {
+        GPUArray<unsigned int> order, rorder;
+        m_sort_signal.emit(timestep, order, rorder);
+        }
+    //@}
 
-        //! Get the tag of the particle on the local rank
-        unsigned int getTag(unsigned int idx) const;
+    //! \name virtual particle methods
+    //@{
+    //! Get the signal for the number of virtual particles changing
+    /*!
+     * \returns A signal that notifies subscribers when the number of virtual
+     *          particles changes. This includes addition and removal of particles.
+     */
+    Nano::Signal<void()>& getNumVirtualSignal()
+        {
+        return m_virtual_signal;
+        }
 
-        //! Set the profiler for the particle data to use
-        void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            m_prof = prof;
-            }
+    //! Notify subscribers that the number of virtual particles has changed
+    void notifyNumVirtual()
+        {
+        m_virtual_signal.emit();
+        }
 
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable / disable autotuning
-         * \param period period (approximate) in time steps when retuning occurs
-         */
-        void setAutotunerParams(bool enable, unsigned int period)
-            {
-            #if defined(ENABLE_MPI) && defined(ENABLE_HIP)
-            if (m_mark_tuner)
-                {
-                m_mark_tuner->setEnabled(enable); m_mark_tuner->setPeriod(period);
-                }
-            if (m_remove_tuner)
-                {
-                m_remove_tuner->setEnabled(enable); m_remove_tuner->setPeriod(period);
-                }
-            if (m_add_tuner)
-                {
-                m_add_tuner->setEnabled(enable); m_add_tuner->setPeriod(period);
-                }
-            #endif // ENABLE_MPI && ENABLE_HIP
-            }
-        //@}
+    //! Allocate memory for virtual particles
+    void addVirtualParticles(unsigned int N);
 
-        //! \name swap methods
-        //@{
-        //! Get alternate array of MPCD particle positions
-        const GPUArray<Scalar4>& getAltPositions() const
-            {
-            return m_pos_alt;
-            }
+    //! Remove all virtual particles
+    /*!
+     * \post The virtual particle counter is reset to zero.
+     *
+     * The memory associated with the previous virtual particle allocation is not freed
+     * since the array growth is amortized in allocateVirtualParticles.
+     */
+    void removeVirtualParticles()
+        {
+        const unsigned int old_N_virtual = m_N_virtual;
+        m_N_virtual = 0;
 
-        //! Swap out alternate MPCD particle position array
-        void swapPositions()
-            {
-            m_pos.swap(m_pos_alt);
-            }
+        // only notify of a change if there were virtual particles that have now been removed
+        if (old_N_virtual != 0)
+            notifyNumVirtual();
+        }
+    //@}
 
-        //! Get alternate array of MPCD particle velocities
-        const GPUArray<Scalar4>& getAltVelocities() const
-            {
-            return m_vel_alt;
-            }
+#ifdef ENABLE_MPI
+    //! \name communication methods
+    //@{
 
-        //! Swap out alternate MPCD particle velocity array
-        void swapVelocities()
-            {
-            m_vel.swap(m_vel_alt);
-            }
+    //! Pack particle data into a buffer
+    void removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
+                         unsigned int mask,
+                         uint64_t timestep);
 
-        //! Get alternate array of MPCD particle tags
-        const GPUArray<unsigned int>& getAltTags() const
-            {
-            return m_tag_alt;
-            }
+    //! Add new local particles
+    void addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
+                      unsigned int mask,
+                      uint64_t timestep);
 
-        //! Swap out alternate MPCD particle tags
-        void swapTags()
-            {
-            m_tag.swap(m_tag_alt);
-            }
-        //@}
+#ifdef ENABLE_HIP
+    //! Pack particle data into a buffer (GPU version)
+    void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
+                            unsigned int mask,
+                            uint64_t timestep);
 
-        //! \name signal methods
-        //@{
-        //! Mark the cell value cached in the last element of the velocity as valid
-        void validateCellCache()
-            {
-            m_valid_cell_cache = true;
-            }
-        //! Mark the cell value cached in the last element of the velocity as invalid
-        void invalidateCellCache()
-            {
-            m_valid_cell_cache = false;
-            }
-        //! Check if the cell value cached in the last element of the velocity is valid
-        /*!
-         * \returns True if the cache is valid, false otherwise
-         */
-        bool checkCellCache() const
-            {
-            return m_valid_cell_cache;
-            }
+    //! Add new local particles (GPU version)
+    void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
+                         unsigned int mask,
+                         uint64_t timestep);
+#endif // ENABLE_HIP
 
-        //! Signature for particle sort signal
-        typedef Nano::Signal<void (uint64_t timestep, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
+    //! Get the MPCD particle communication flags
+    const GPUArray<unsigned int>& getCommFlags() const
+        {
+        return m_comm_flags;
+        }
 
-        //! Get the sort signal
-        /*!
-         * \returns A sort signal that subscribers can attach a callback to for sorting
-         *          their own per-particle data.
-         */
-        SortSignal& getSortSignal()
-            {
-            return m_sort_signal;
-            }
+    //! Get the alternate MPCD particle communication flags
+    const GPUArray<unsigned int>& getAltCommFlags() const
+        {
+        return m_comm_flags_alt;
+        }
 
-        //! Notify subscribers of a particle sort
-        /*!
-         * \param timestep Timestep that the sorting occurred
-         * \param order Mapping of sorted particle indexes onto old particle indexes
-         * \param rorder Mapping of old particle indexes onto sorted particle indexes
-         *
-         * This method notifies the subscribers of the sort occurring at \a timestep.
-         * Subscribers may choose to use \a order and \a rorder to reorder their
-         * per-particle data immediately, or delay the sort until their next call.
-         */
-        void notifySort(uint64_t timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
-            {
-            m_sort_signal.emit(timestep, order, rorder);
-            }
+    //! Swap out alternate MPCD communication flags
+    void swapCommFlags()
+        {
+        m_comm_flags.swap(m_comm_flags_alt);
+        }
 
-        //! Notify subscribers of a particle sort
-        /*!
-         * \param timestep Timestep that the sorting occurred
-         *
-         * This method notifies the subscribers of the sort occurring at \a timestep.
-         * Subscribers are not given the updated particle order.
-         */
-        void notifySort(uint64_t timestep)
-            {
-            GPUArray<unsigned int> order, rorder;
-            m_sort_signal.emit(timestep, order, rorder);
-            }
-        //@}
-
-        //! \name virtual particle methods
-        //@{
-        //! Get the signal for the number of virtual particles changing
-        /*!
-         * \returns A signal that notifies subscribers when the number of virtual
-         *          particles changes. This includes addition and removal of particles.
-         */
-        Nano::Signal<void ()>& getNumVirtualSignal()
-            {
-            return m_virtual_signal;
-            }
-
-        //! Notify subscribers that the number of virtual particles has changed
-        void notifyNumVirtual()
-            {
-            m_virtual_signal.emit();
-            }
-
-        //! Allocate memory for virtual particles
-        void addVirtualParticles(unsigned int N);
-
-        //! Remove all virtual particles
-        /*!
-         * \post The virtual particle counter is reset to zero.
-         *
-         * The memory associated with the previous virtual particle allocation is not freed
-         * since the array growth is amortized in allocateVirtualParticles.
-         */
-        void removeVirtualParticles()
-            {
-            const unsigned int old_N_virtual = m_N_virtual;
-            m_N_virtual = 0;
-
-            // only notify of a change if there were virtual particles that have now been removed
-            if (old_N_virtual != 0)
-                notifyNumVirtual();
-            }
-        //@}
-
-        #ifdef ENABLE_MPI
-        //! \name communication methods
-        //@{
-
-        //! Pack particle data into a buffer
-        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
-
-        //! Add new local particles
-        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
-
-        #ifdef ENABLE_HIP
-        //! Pack particle data into a buffer (GPU version)
-        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, uint64_t timestep);
-
-        //! Add new local particles (GPU version)
-        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, uint64_t timestep);
-        #endif // ENABLE_HIP
-
-        //! Get the MPCD particle communication flags
-        const GPUArray<unsigned int>& getCommFlags() const
-            {
-            return m_comm_flags;
-            }
-
-        //! Get the alternate MPCD particle communication flags
-        const GPUArray<unsigned int>& getAltCommFlags() const
-            {
-            return m_comm_flags_alt;
-            }
-
-        //! Swap out alternate MPCD communication flags
-        void swapCommFlags()
-            {
-            m_comm_flags.swap(m_comm_flags_alt);
-            }
-
-        //@}
-        #endif // ENABLE_MPI
+//@}
+#endif // ENABLE_MPI
 
     private:
-        unsigned int m_N;           //!< Number of MPCD particles
-        unsigned int m_N_virtual;   //!< Number of virtual MPCD particles
-        unsigned int m_N_global;    //!< Total number of MPCD particles
-        unsigned int m_N_max;       //!< Maximum number of MPCD particles arrays can hold
+    unsigned int m_N;         //!< Number of MPCD particles
+    unsigned int m_N_virtual; //!< Number of virtual MPCD particles
+    unsigned int m_N_global;  //!< Total number of MPCD particles
+    unsigned int m_N_max;     //!< Maximum number of MPCD particles arrays can hold
 
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< GPU execution configuration
-        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
-        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
+    std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< GPU execution configuration
+    std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
+    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
-        GPUArray<Scalar4> m_pos;    //!< MPCD particle positions plus type
-        GPUArray<Scalar4> m_vel;    //!< MPCD particle velocities plus cell list id
-        Scalar m_mass;              //!< MPCD particle mass
-        GPUArray<unsigned int> m_tag;   //!< MPCD particle tags
-        std::vector<std::string> m_type_mapping;  //!< Type name mapping
-        #ifdef ENABLE_MPI
-        GPUArray<unsigned int> m_comm_flags;    //!< MPCD particle communication flags
-        #endif // ENABLE_MPI
+    GPUArray<Scalar4> m_pos;                 //!< MPCD particle positions plus type
+    GPUArray<Scalar4> m_vel;                 //!< MPCD particle velocities plus cell list id
+    Scalar m_mass;                           //!< MPCD particle mass
+    GPUArray<unsigned int> m_tag;            //!< MPCD particle tags
+    std::vector<std::string> m_type_mapping; //!< Type name mapping
+#ifdef ENABLE_MPI
+    GPUArray<unsigned int> m_comm_flags; //!< MPCD particle communication flags
+#endif                                   // ENABLE_MPI
 
-        GPUArray<Scalar4> m_pos_alt;        //!< Alternate position array
-        GPUArray<Scalar4> m_vel_alt;        //!< Alternate velocity array
-        GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
-        #ifdef ENABLE_MPI
-        GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
-        GPUArray<unsigned int> m_remove_ids;      //!< Partitioned indexes of particles to keep
-        #ifdef ENABLE_HIP
-        GPUArray<unsigned char> m_remove_flags;   //!< Temporary flag to mark keeping particle
-        GPUFlags<unsigned int> m_num_remove;      //!< Number of particles to remove
+    GPUArray<Scalar4> m_pos_alt;      //!< Alternate position array
+    GPUArray<Scalar4> m_vel_alt;      //!< Alternate velocity array
+    GPUArray<unsigned int> m_tag_alt; //!< Alternate tag array
+#ifdef ENABLE_MPI
+    GPUArray<unsigned int> m_comm_flags_alt; //!< Alternate communication flags
+    GPUArray<unsigned int> m_remove_ids;     //!< Partitioned indexes of particles to keep
+#ifdef ENABLE_HIP
+    GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
+    GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
-        std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for marking particles
-        std::unique_ptr<Autotuner> m_remove_tuner;  //!< Tuner for removing particles
-        std::unique_ptr<Autotuner> m_add_tuner;     //!< Tuner for adding particles
-        #endif // ENABLE_HIP
-        #endif // ENABLE_MPI
+    std::unique_ptr<Autotuner> m_mark_tuner;   //!< Tuner for marking particles
+    std::unique_ptr<Autotuner> m_remove_tuner; //!< Tuner for removing particles
+    std::unique_ptr<Autotuner> m_add_tuner;    //!< Tuner for adding particles
+#endif                                         // ENABLE_HIP
+#endif                                         // ENABLE_MPI
 
-        bool m_valid_cell_cache;    //!< Flag for validity of cell cache
-        SortSignal m_sort_signal;   //!< Signal triggered when particles are sorted
-        Nano::Signal<void ()> m_virtual_signal; //!< Signal for number of virtual particles changing
+    bool m_valid_cell_cache;               //!< Flag for validity of cell cache
+    SortSignal m_sort_signal;              //!< Signal triggered when particles are sorted
+    Nano::Signal<void()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
-        //! Check for a valid snapshot
-        bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);
+    //! Check for a valid snapshot
+    bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);
 
-        //! Check if all particles lie within the box
-        bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot, const BoxDim& box);
+    //! Check if all particles lie within the box
+    bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot,
+                    const BoxDim& box);
 
-        //! Set the global number of particles (for parallel simulations)
-        void setNGlobal(unsigned int nglobal);
+    //! Set the global number of particles (for parallel simulations)
+    void setNGlobal(unsigned int nglobal);
 
-        //! Allocate data arrays
-        void allocate(unsigned int N_max);
+    //! Allocate data arrays
+    void allocate(unsigned int N_max);
 
-        //! Reallocate data arrays
-        void reallocate(unsigned int N_max);
+    //! Reallocate data arrays
+    void reallocate(unsigned int N_max);
 
-        const static float resize_factor; //!< Amortized growth factor the data arrays
-        //! Resize the data
-        void resize(unsigned int N);
+    const static float resize_factor; //!< Amortized growth factor the data arrays
+    //! Resize the data
+    void resize(unsigned int N);
 
-        #ifdef ENABLE_MPI
-        //! Setup MPI
-        void setupMPI(std::shared_ptr<DomainDecomposition> decomposition);
-        #endif // ENABLE_MPI
+#ifdef ENABLE_MPI
+    //! Setup MPI
+    void setupMPI(std::shared_ptr<DomainDecomposition> decomposition);
+#endif // ENABLE_MPI
     };
 
 namespace detail
-{
+    {
 //! Export MPCD ParticleData to python
 void export_ParticleData(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #endif // MPCD_PARTICLE_DATA_H_

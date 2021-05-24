@@ -2,11 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
-
-R""" Apply forces to particles.
-"""
+"""Apply forces to particles."""
 
 import hoomd
 from hoomd import _hoomd
@@ -20,10 +16,10 @@ from hoomd.filter import ParticleFilter
 from hoomd.md.constrain import Constraint
 
 
-def ellip_preprocessing(constraint):
+def _ellip_preprocessing(constraint):
     if constraint is not None:
         if constraint.__class__.__name__ == "constraint_ellipsoid":
-            return act_force
+            return constraint
         else:
             raise RuntimeError(
                 "Active force constraint is not accepted (currently only "
@@ -32,7 +28,7 @@ def ellip_preprocessing(constraint):
         return None
 
 
-class _force:
+class _force:  # noqa - This will be removed eventually. Needed to build docs.
     pass
 
 
@@ -59,8 +55,8 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def energies(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The energies
-        for all particles."""
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The \
+        energies for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
@@ -69,8 +65,8 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def forces(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The forces
-        for all particles."""
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The \
+        forces for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
@@ -79,7 +75,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def torques(self):
-        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque
+        """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
         for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -89,7 +85,7 @@ class Force(_HOOMDBaseObject):
 
     @log(category="particle")
     def virials(self):
-        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial
+        """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial \
         for all particles."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
@@ -98,7 +94,7 @@ class Force(_HOOMDBaseObject):
             return None
 
 
-class constant(Force):
+class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 
     Args:
@@ -218,7 +214,7 @@ class constant(Force):
         const.setForce(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
     """
 
-    def setForce(
+    def setForce(  # noqa - this will be documented when it is ported to v3
         self,
         fx=None,
         fy=None,
@@ -296,16 +292,16 @@ class constant(Force):
         const.set_callback(None)
     """
 
-    def set_callback(self, callback=None):
+    def set_callback(self, callback=None):  # noqa - will be ported to v3
         self.cppForce.setCallback(callback)
 
     # there are no coeffs to update in the constant force compute
-    def update_coeffs(self):
+    def update_coeffs(self):  # noqa - will be ported to v3
         pass
 
 
 class Active(Force):
-    R"""Active force.
+    r"""Active force.
 
     Attributes:
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
@@ -356,7 +352,7 @@ class Active(Force):
             rotation_diff=float(rotation_diff),
             constraint=OnlyTypes(Constraint,
                                  allow_none=True,
-                                 preprocess=ellip_preprocessing),
+                                 preprocess=_ellip_preprocessing),
         )
         param_dict.update(
             dict(
@@ -409,74 +405,3 @@ class Active(Force):
 
         # Attach param_dict and typeparam_dict
         super()._attach()
-
-
-class dipole(Force):
-    R"""Treat particles as dipoles in an electric field.
-
-    Args:
-        field_x (float): x-component of the field (units?)
-        field_y (float): y-component of the field (units?)
-        field_z (float): z-component of the field (units?)
-        p (float): magnitude of the particles' dipole moment in the local z
-            direction
-
-    Examples::
-
-        force.external_field_dipole(
-            field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-            )
-        const_ext_f_dipole = force.external_field_dipole(
-            field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-            )
-    """
-
-    def __init__(self, field_x, field_y, field_z, p):
-
-        # initialize the base class
-        Force.__init__(self)
-
-        # create the c++ mirror class
-        self.cppForce = _md.ConstExternalFieldDipoleForceCompute(
-            hoomd.context.current.system_definition,
-            field_x,
-            field_y,
-            field_z,
-            p,
-        )
-
-        hoomd.context.current.system.addCompute(self.cppForce, self.force_name)
-
-        # store metadata
-        self.field_x = field_x
-        self.field_y = field_y
-        self.field_z = field_z
-
-    def set_params(field_x, field_y, field_z, p):
-        R"""Change the constant field and dipole moment.
-
-        Args:
-            field_x (float): x-component of the field (units?)
-            field_y (float): y-component of the field (units?)
-            field_z (float): z-component of the field (units?)
-            p (float): magnitude of the particles' dipole moment in the local z
-                direction
-
-        Examples::
-
-            const_ext_f_dipole = force.external_field_dipole(
-                field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0
-                )
-            const_ext_f_dipole.setParams(
-                field_x=0.1, field_y=0.1, field_z=0.0, p=1.0
-                )
-
-        """
-        self.check_initialization()
-
-        self.cppForce.setParams(field_x, field_y, field_z, p)
-
-    # there are no coeffs to update in the constant
-    # ExternalFieldDipoleForceCompute
-    def update_coeffs(self):
-        pass

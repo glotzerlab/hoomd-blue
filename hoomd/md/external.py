@@ -12,11 +12,12 @@ in the system.
 
 from hoomd import _hoomd
 from hoomd.md import _md
-from hoomd.md import force;
-import hoomd;
+from hoomd.md import force
+import hoomd
 
-import sys;
-import math;
+import sys
+import math
+
 
 class coeff:
     R""" Defines external potential coefficients.
@@ -37,7 +38,7 @@ class coeff:
     # The main task to be performed during initialization is just to init some variables
     # \param self Python required class instance variable
     def __init__(self):
-        self.values = {};
+        self.values = {}
         self.default_coeff = {}
 
     ## \var values
@@ -57,7 +58,7 @@ class coeff:
     # Some coefficients have reasonable default values and the user should not be burdened with typing them in
     # all the time. set_default_coeff() sets
     def set_default_coeff(self, name, value):
-        self.default_coeff[name] = value;
+        self.default_coeff[name] = value
 
     def set(self, type, **coeffs):
         R""" Sets parameters for particle types.
@@ -96,28 +97,29 @@ class coeff:
         type = hoomd.util.listify(type)
 
         for typei in type:
-            self.set_single(typei, coeffs);
+            self.set_single(typei, coeffs)
 
     ## \internal
     # \brief Sets a single parameter
     def set_single(self, type, coeffs):
-        type = str(type);
+        type = str(type)
 
         # create the type identifier if it hasn't been created yet
         if (not type in self.values):
-            self.values[type] = {};
+            self.values[type] = {}
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.current.device.cpp_msg.error("No coefficients specified\n");
+            hoomd.context.current.device.cpp_msg.error(
+                "No coefficients specified\n")
         for name, val in coeffs.items():
-            self.values[type][name] = val;
+            self.values[type][name] = val
 
         # set the default values
         for name, val in self.default_coeff.items():
             # don't override a coeff if it is already set
             if not name in self.values[type]:
-                self.values[type][name] = val;
+                self.values[type][name] = val
 
     ## \internal
     # \brief Verifies that all values are set
@@ -129,36 +131,43 @@ class coeff:
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
         if not hoomd.init.is_initialized():
-            raise RuntimeError('Cannot verify force coefficients before initialization\n');
+            raise RuntimeError(
+                'Cannot verify force coefficients before initialization\n')
 
         # get a list of types from the particle data
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in range(0,ntypes):
-            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition
+                             .getParticleData().getNameByType(i))
 
-        valid = True;
+        valid = True
         # loop over all possible types and verify that all required variables are set
-        for i in range(0,ntypes):
-            type = type_list[i];
+        for i in range(0, ntypes):
+            type = type_list[i]
 
             if type not in self.values.keys() and len(required_coeffs):
-                hoomd.context.current.device.cpp_msg.error("Particle type " + type + " is missing required coefficients\n");
+                hoomd.context.current.device.cpp_msg.error(
+                    "Particle type " + type
+                    + " is missing required coefficients\n")
                 return False
 
             # verify that all required values are set by counting the matches
-            count = 0;
+            count = 0
             for coeff_name in self.values[type].keys():
                 if not coeff_name in required_coeffs:
                     hoomd.context.current.device.cpp_msg.notice(3, "Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) +\
-                          ", but is not used by the external force");
+                          ", but is not used by the external force")
                 else:
-                    count += 1;
+                    count += 1
 
             if count != len(required_coeffs):
-                hoomd.context.current.device.cpp_msg.error("Particle type " + type + " is missing required coefficients\n");
-                valid = False;
-        return valid;
+                hoomd.context.current.device.cpp_msg.error(
+                    "Particle type " + type
+                    + " is missing required coefficients\n")
+                valid = False
+        return valid
 
     ## \internal
     # \brief Gets the value of a single external force coefficient
@@ -167,10 +176,11 @@ class coeff:
     # \param coeff_name Coefficient to get
     def get(self, type, coeff_name):
         if type not in self.values:
-            hoomd.context.current.device.cpp_msg.error("Bug detected in external.coeff. Please report\n");
-            raise RuntimeError("Error setting external coeff");
+            hoomd.context.current.device.cpp_msg.error(
+                "Bug detected in external.coeff. Please report\n")
+            raise RuntimeError("Error setting external coeff")
 
-        return self.values[type][coeff_name];
+        return self.values[type][coeff_name]
 
     ## \internal
     # \brief Return metadata
@@ -197,47 +207,50 @@ class _external_force(force._force):
     # Assigns a name to the force in force_name;
     def __init__(self, name=""):
         # initialize the base class
-        force._force.__init__(self, name);
+        force._force.__init__(self, name)
 
-        self.cpp_force = None;
+        self.cpp_force = None
 
         # setup the coefficient vector
-        self.force_coeff = coeff();
-        self.field_coeff = None;
+        self.force_coeff = coeff()
+        self.field_coeff = None
 
         self.name = name
-        self.enabled = True;
+        self.enabled = True
 
         # create force data iterator
-        self.external_forces = hoomd.data.force_data(self);
+        self.external_forces = hoomd.data.force_data(self)
 
     def update_coeffs(self):
-        coeff_list = self.required_coeffs;
+        coeff_list = self.required_coeffs
 
         if self.field_coeff:
-            fcoeff = self.process_field_coeff(self.field_coeff);
-            self.cpp_force.setField(fcoeff);
+            fcoeff = self.process_field_coeff(self.field_coeff)
+            self.cpp_force.setField(fcoeff)
 
         if self.required_coeffs is not None:
             # check that the force coefficients are valid
             if not self.force_coeff.verify(coeff_list):
-               hoomd.context.current.device.cpp_msg.error("Not all force coefficients are set\n");
-               raise RuntimeError("Error updating force coefficients");
+                hoomd.context.current.device.cpp_msg.error(
+                    "Not all force coefficients are set\n")
+                raise RuntimeError("Error updating force coefficients")
 
             # set all the params
-            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-            type_list = [];
-            for i in range(0,ntypes):
-                type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i));
+            ntypes = hoomd.context.current.system_definition.getParticleData(
+            ).getNTypes()
+            type_list = []
+            for i in range(0, ntypes):
+                type_list.append(hoomd.context.current.system_definition
+                                 .getParticleData().getNameByType(i))
 
-            for i in range(0,ntypes):
+            for i in range(0, ntypes):
                 # build a dict of the coeffs to pass to proces_coeff
-                coeff_dict = {};
+                coeff_dict = {}
                 for name in coeff_list:
-                    coeff_dict[name] = self.force_coeff.get(type_list[i], name);
+                    coeff_dict[name] = self.force_coeff.get(type_list[i], name)
 
-                param = self.process_coeff(coeff_dict);
-                self.cpp_force.setParams(i, param);
+                param = self.process_coeff(coeff_dict)
+                self.cpp_force.setParams(i, param)
 
     ## \internal
     # \brief Get metadata
@@ -250,6 +263,7 @@ class _external_force(force._force):
         data['force_coeff'] = self.force_coeff
         #field_coeff not included here, see wall.py for specific implementation
         return data
+
 
 class periodic(_external_force):
     R""" One-dimension periodic potential.
@@ -278,29 +292,34 @@ class periodic(_external_force):
         periodic.force_coeff.set('A', A=1.0, i=0, w=0.02, p=3)
         periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
     """
+
     def __init__(self, name=""):
 
         # initialize the base class
-        _external_force.__init__(self, name);
+        _external_force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialExternalPeriodic(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalPeriodic(
+                hoomd.context.current.system_definition, self.name)
         else:
-            self.cpp_force = _md.PotentialExternalPeriodicGPU(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalPeriodicGPU(
+                hoomd.context.current.system_definition, self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs = ['A','i','w','p'];
+        self.required_coeffs = ['A', 'i', 'w', 'p']
 
     def process_coeff(self, coeff):
-        A = coeff['A'];
-        i = coeff['i'];
-        w = coeff['w'];
-        p = coeff['p'];
+        A = coeff['A']
+        i = coeff['i']
+        w = coeff['w']
+        p = coeff['p']
 
-        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w, _hoomd.int_as_scalar(p));
+        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w,
+                                   _hoomd.int_as_scalar(p))
+
 
 class e_field(_external_force):
     R""" Electric field.
@@ -322,26 +341,29 @@ class e_field(_external_force):
         # Apply an electric field in the x-direction
         e_field = external.e_field((1,0,0))
     """
+
     def __init__(self, field, name=""):
 
         # initialize the base class
-        _external_force.__init__(self, name);
+        _external_force.__init__(self, name)
 
         # create the c++ mirror class
         if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialExternalElectricField(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalElectricField(
+                hoomd.context.current.system_definition, self.name)
         else:
-            self.cpp_force = _md.PotentialExternalElectricFieldGPU(hoomd.context.current.system_definition,self.name);
+            self.cpp_force = _md.PotentialExternalElectricFieldGPU(
+                hoomd.context.current.system_definition, self.name)
 
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # setup the coefficient options
-        self.required_coeffs = None;
+        self.required_coeffs = None
 
         self.field_coeff = tuple(field)
 
     def process_coeff(self, coeff):
-        pass;
+        pass
 
     def process_field_coeff(self, field):
-        return _hoomd.make_scalar3(field[0],field[1],field[2])
+        return _hoomd.make_scalar3(field[0], field[1], field[2])
