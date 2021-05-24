@@ -370,8 +370,7 @@ class BlockAverage:
         block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
             self._block_mean)
         relative_error_derivative = (
-            block_relative_error[1:] - block_relative_error[:-1]) / (
-                self._block_sizes[1:] - self._block_sizes[:-1])
+            np.diff(block_relative_error) / np.diff(self._block_sizes))
         if numpy.all(relative_error_derivative > 0):
             warnings.warn("Block averaging failed to plateau, run longer")
 
