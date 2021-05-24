@@ -7,7 +7,6 @@
     \brief Defines the Enforce2DUpdater class
 */
 
-
 #include "Enforce2DUpdater.h"
 
 namespace py = pybind11;
@@ -19,9 +18,8 @@ namespace py = pybind11;
 using namespace std;
 
 /*! \param sysdef System to zero the momentum of
-*/
-Enforce2DUpdater::Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef)
-        : Updater(sysdef)
+ */
+Enforce2DUpdater::Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing Enforce2DUpdater" << endl;
 
@@ -44,11 +42,16 @@ Enforce2DUpdater::~Enforce2DUpdater()
 void Enforce2DUpdater::update(uint64_t timestep)
     {
     Updater::update(timestep);
-    if (m_prof) m_prof->push("Enforce2D");
+    if (m_prof)
+        m_prof->push("Enforce2D");
 
     assert(m_pdata);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
 
     // zero the z-velocities and z-accelerations:
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -59,12 +62,12 @@ void Enforce2DUpdater::update(uint64_t timestep)
 
     // for rigid bodies, zero x / y components of omega/angmom/torque:
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 void export_Enforce2DUpdater(py::module& m)
     {
-    py::class_<Enforce2DUpdater, Updater, std::shared_ptr<Enforce2DUpdater> >(m, "Enforce2DUpdater")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
-    ;
+    py::class_<Enforce2DUpdater, Updater, std::shared_ptr<Enforce2DUpdater>>(m, "Enforce2DUpdater")
+        .def(py::init<std::shared_ptr<SystemDefinition>>());
     }

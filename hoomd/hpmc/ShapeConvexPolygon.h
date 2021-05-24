@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
-#include "hoomd/VectorMath.h"
-#include "ShapeSphere.h"    //< For the base template of test_overlap
+#include "ShapeSphere.h" //< For the base template of test_overlap
 #include "XenoCollide2D.h"
+#include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
 #ifdef __HIPCC__
 #define DEVICE __device__
@@ -17,21 +17,19 @@
 #define DEVICE
 #define HOSTDEVICE
 #include <iostream>
-#if defined (__SSE__)
+#if defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 /** maximum number of vertices that can be stored (must be a multiple of 8)
     Note that vectorized methods using this struct assume unused coordinates are set to zero.
 */
-const unsigned int MAX_POLY2D_VERTS=64;
+const unsigned int MAX_POLY2D_VERTS = 64;
 
 /** Polygon parameters
 
@@ -65,28 +63,23 @@ struct PolygonVertices : ShapeParams
 
     /// Default constructor initializes zero values.
     DEVICE PolygonVertices()
-        : N(0),
-          diameter(OverlapReal(0)),
-          sweep_radius(OverlapReal(0)),
-          ignore(0)
+        : N(0), diameter(OverlapReal(0)), sweep_radius(OverlapReal(0)), ignore(0)
         {
-        for (unsigned int i=0; i < MAX_POLY2D_VERTS; i++)
+        for (unsigned int i = 0; i < MAX_POLY2D_VERTS; i++)
             {
             x[i] = y[i] = OverlapReal(0);
             }
         }
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     /// Set CUDA memory hint
-    void set_memory_hint() const
-        {
-        }
-    #endif
+    void set_memory_hint() const { }
+#endif
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
 
     /// Construct from a Python dictionary
-    PolygonVertices(pybind11::dict v, bool managed=false)
+    PolygonVertices(pybind11::dict v, bool managed = false)
         {
         pybind11::list verts = v["vertices"];
         if (len(verts) > MAX_POLY2D_VERTS)
@@ -119,7 +112,7 @@ struct PolygonVertices : ShapeParams
             }
 
         // set the diameter
-        diameter = 2*(sqrt(radius_sq)+sweep_radius);
+        diameter = 2 * (sqrt(radius_sq) + sweep_radius);
         }
 
     /// Convert parameters to a python dictionary
@@ -127,7 +120,7 @@ struct PolygonVertices : ShapeParams
         {
         pybind11::dict v;
         pybind11::list verts;
-        for(unsigned int i = 0; i < N; i++)
+        for (unsigned int i = 0; i < N; i++)
             {
             pybind11::list vert;
             vert.append(x[i]);
@@ -141,7 +134,7 @@ struct PolygonVertices : ShapeParams
         return v;
         }
 
-    #endif
+#endif
     } __attribute__((aligned(32)));
 
 /** Support function for ShapeConvexPolygon
@@ -154,186 +147,192 @@ struct PolygonVertices : ShapeParams
 class SupportFuncConvexPolygon
     {
     public:
-        /** Construct a support function for a convex polygon
+    /** Construct a support function for a convex polygon
 
-            @param _verts Polygon vertices
+        @param _verts Polygon vertices
 
-            Note that for performance it is assumed that unused vertices (beyond N) have already
-            been set to zero.
-        */
-        DEVICE SupportFuncConvexPolygon(const PolygonVertices& _verts)
-            : verts(_verts)
+        Note that for performance it is assumed that unused vertices (beyond N) have already
+        been set to zero.
+    */
+    DEVICE SupportFuncConvexPolygon(const PolygonVertices& _verts) : verts(_verts) { }
+
+    /** Compute the support function
+
+        @param n Normal vector input (in the local frame)
+        @returns Local coords of the point furthest in the direction of n
+    */
+    DEVICE vec2<OverlapReal> operator()(const vec2<OverlapReal>& n) const
+        {
+        OverlapReal max_dot = -(verts.diameter * verts.diameter);
+        unsigned int max_idx = 0;
+
+        if (verts.N > 0)
             {
-            }
+#if !defined(__HIPCC__) && defined(__AVX__) \
+    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+            // process dot products with AVX 8 at a time on the CPU when working with more than 4
+            // verts
+            __m256 nx_v = _mm256_broadcast_ss(&n.x);
+            __m256 ny_v = _mm256_broadcast_ss(&n.y);
+            __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
+            float d_s[MAX_POLY2D_VERTS] __attribute__((aligned(32)));
 
-        /** Compute the support function
-
-            @param n Normal vector input (in the local frame)
-            @returns Local coords of the point furthest in the direction of n
-        */
-        DEVICE vec2<OverlapReal> operator() (const vec2<OverlapReal>& n) const
-            {
-            OverlapReal max_dot = -(verts.diameter * verts.diameter);
-            unsigned int max_idx = 0;
-
-            if (verts.N > 0)
+            for (size_t i = 0; i < verts.N; i += 8)
                 {
-                #if !defined(__HIPCC__) && defined(__AVX__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
-                // process dot products with AVX 8 at a time on the CPU when working with more than 4 verts
-                __m256 nx_v = _mm256_broadcast_ss(&n.x);
-                __m256 ny_v = _mm256_broadcast_ss(&n.y);
-                __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
-                float d_s[MAX_POLY2D_VERTS] __attribute__((aligned(32)));
+                __m256 x_v = _mm256_load_ps(verts.x + i);
+                __m256 y_v = _mm256_load_ps(verts.y + i);
 
-                for (size_t i = 0; i < verts.N; i+=8)
-                    {
-                    __m256 x_v = _mm256_load_ps(verts.x + i);
-                    __m256 y_v = _mm256_load_ps(verts.y + i);
+                __m256 d_v = _mm256_add_ps(_mm256_mul_ps(nx_v, x_v), _mm256_mul_ps(ny_v, y_v));
 
-                    __m256 d_v = _mm256_add_ps(_mm256_mul_ps(nx_v, x_v), _mm256_mul_ps(ny_v, y_v));
-
-                    // determine a maximum in each of the 8 channels as we go
-                    max_dot_v = _mm256_max_ps(max_dot_v, d_v);
-                    _mm256_store_ps(d_s + i, d_v);
-                    }
-
-                // find the maximum of the 8 channels
-                // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
-                max_dot_v = _mm256_max_ps(max_dot_v, _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
-                max_dot_v = _mm256_max_ps(max_dot_v, _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(1, 0, 3, 2)));
-                // shuffles work only within the two 128b segments, so right now we have two separate max values
-                // swap the left and right hand sides and max again to get the final max
-                max_dot_v = _mm256_max_ps(max_dot_v, _mm256_permute2f128_ps(max_dot_v, max_dot_v, 1));
-
-                // loop again and find the max. The reason this is in a 2nd loop is because branch mis-predictions
-                // and the extra max calls kill performance if this is in the first loop
-                // Use BSF to find the first index of the max element
-                // https://software.intel.com/en-us/forums/topic/285956
-                for (unsigned int i = 0; i < verts.N; i+=8)
-                    {
-                    __m256 d_v = _mm256_load_ps(d_s + i);
-
-                    int id = __builtin_ffs(_mm256_movemask_ps(_mm256_cmp_ps(max_dot_v, d_v, 0)));
-
-                    if (id)
-                        {
-                        max_idx = i + id - 1;
-                        break;
-                        }
-                    }
-
-                #elif !defined(__HIPCC__) && defined(__SSE__) && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
-                // process dot products with SSE 4 at a time on the CPU
-                __m128 nx_v = _mm_load_ps1(&n.x);
-                __m128 ny_v = _mm_load_ps1(&n.y);
-                __m128 max_dot_v = _mm_load_ps1(&max_dot);
-                float d_s[MAX_POLY2D_VERTS] __attribute__((aligned(16)));
-
-                for (unsigned int i = 0; i < verts.N; i+=4)
-                    {
-                    __m128 x_v = _mm_load_ps(verts.x + i);
-                    __m128 y_v = _mm_load_ps(verts.y + i);
-
-                    __m128 d_v = _mm_add_ps(_mm_mul_ps(nx_v, x_v), _mm_mul_ps(ny_v, y_v));
-
-                    // determine a maximum in each of the 4 channels as we go
-                    max_dot_v = _mm_max_ps(max_dot_v, d_v);
-
-                    _mm_store_ps(d_s + i, d_v);
-                    }
-
-                // find the maximum of the 4 channels
-                // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
-                max_dot_v = _mm_max_ps(max_dot_v, _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
-                max_dot_v = _mm_max_ps(max_dot_v, _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(1, 0, 3, 2)));
-
-                // loop again and find the max. The reason this is in a 2nd loop is because branch mis-predictions
-                // and the extra max calls kill performance if this is in the first loop
-                // Use BSF to find the first index of the max element
-                // https://software.intel.com/en-us/forums/topic/285956
-                for (unsigned int i = 0; i < verts.N; i+=4)
-                    {
-                    __m128 d_v = _mm_load_ps(d_s + i);
-
-                    int id = __builtin_ffs(_mm_movemask_ps(_mm_cmpeq_ps(max_dot_v, d_v)));
-
-                    if (id)
-                        {
-                        max_idx = i + id - 1;
-                        break;
-                        }
-                    }
-                #else
-
-                // implementation without vector intrinsics
-                OverlapReal max_dot0 = dot(n, vec2<OverlapReal>(verts.x[0], verts.y[0]));
-                unsigned int max_idx0 = 0;
-                OverlapReal max_dot1 = dot(n, vec2<OverlapReal>(verts.x[1], verts.y[1]));
-                unsigned int max_idx1 = 1;
-                OverlapReal max_dot2 = dot(n, vec2<OverlapReal>(verts.x[2], verts.y[2]));
-                unsigned int max_idx2 = 2;
-                OverlapReal max_dot3 = dot(n, vec2<OverlapReal>(verts.x[3], verts.y[3]));
-                unsigned int max_idx3 = 3;
-
-                for (unsigned int i = 4; i < verts.N; i+=4)
-                    {
-                    OverlapReal d0 = dot(n, vec2<OverlapReal>(verts.x[i], verts.y[i]));
-                    OverlapReal d1 = dot(n, vec2<OverlapReal>(verts.x[i+1], verts.y[i+1]));
-                    OverlapReal d2 = dot(n, vec2<OverlapReal>(verts.x[i+2], verts.y[i+2]));
-                    OverlapReal d3 = dot(n, vec2<OverlapReal>(verts.x[i+3], verts.y[i+3]));
-
-                    if (d0 > max_dot0)
-                        {
-                        max_dot0 = d0;
-                        max_idx0 = i;
-                        }
-                    if (d1 > max_dot1)
-                        {
-                        max_dot1 = d1;
-                        max_idx1 = i+1;
-                        }
-                    if (d2 > max_dot2)
-                        {
-                        max_dot2 = d2;
-                        max_idx2 = i+2;
-                        }
-                    if (d3 > max_dot3)
-                        {
-                        max_dot3 = d3;
-                        max_idx3 = i+3;
-                        }
-                    }
-
-                max_dot = max_dot0;
-                max_idx = max_idx0;
-
-                if (max_dot1 > max_dot)
-                    {
-                    max_dot = max_dot1;
-                    max_idx = max_idx1;
-                    }
-                if (max_dot2 > max_dot)
-                    {
-                    max_dot = max_dot2;
-                    max_idx = max_idx2;
-                    }
-                if (max_dot3 > max_dot)
-                    {
-                    max_dot = max_dot3;
-                    max_idx = max_idx3;
-                    }
-                #endif
+                // determine a maximum in each of the 8 channels as we go
+                max_dot_v = _mm256_max_ps(max_dot_v, d_v);
+                _mm256_store_ps(d_s + i, d_v);
                 }
 
-            return vec2<OverlapReal>(verts.x[max_idx], verts.y[max_idx]);
+            // find the maximum of the 8 channels
+            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            max_dot_v
+                = _mm256_max_ps(max_dot_v,
+                                _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
+            max_dot_v
+                = _mm256_max_ps(max_dot_v,
+                                _mm256_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(1, 0, 3, 2)));
+            // shuffles work only within the two 128b segments, so right now we have two separate
+            // max values swap the left and right hand sides and max again to get the final max
+            max_dot_v = _mm256_max_ps(max_dot_v, _mm256_permute2f128_ps(max_dot_v, max_dot_v, 1));
+
+            // loop again and find the max. The reason this is in a 2nd loop is because branch
+            // mis-predictions and the extra max calls kill performance if this is in the first loop
+            // Use BSF to find the first index of the max element
+            // https://software.intel.com/en-us/forums/topic/285956
+            for (unsigned int i = 0; i < verts.N; i += 8)
+                {
+                __m256 d_v = _mm256_load_ps(d_s + i);
+
+                int id = __builtin_ffs(_mm256_movemask_ps(_mm256_cmp_ps(max_dot_v, d_v, 0)));
+
+                if (id)
+                    {
+                    max_idx = i + id - 1;
+                    break;
+                    }
+                }
+
+#elif !defined(__HIPCC__) && defined(__SSE__) \
+    && (defined(SINGLE_PRECISION) || defined(ENABLE_HPMC_MIXED_PRECISION))
+            // process dot products with SSE 4 at a time on the CPU
+            __m128 nx_v = _mm_load_ps1(&n.x);
+            __m128 ny_v = _mm_load_ps1(&n.y);
+            __m128 max_dot_v = _mm_load_ps1(&max_dot);
+            float d_s[MAX_POLY2D_VERTS] __attribute__((aligned(16)));
+
+            for (unsigned int i = 0; i < verts.N; i += 4)
+                {
+                __m128 x_v = _mm_load_ps(verts.x + i);
+                __m128 y_v = _mm_load_ps(verts.y + i);
+
+                __m128 d_v = _mm_add_ps(_mm_mul_ps(nx_v, x_v), _mm_mul_ps(ny_v, y_v));
+
+                // determine a maximum in each of the 4 channels as we go
+                max_dot_v = _mm_max_ps(max_dot_v, d_v);
+
+                _mm_store_ps(d_s + i, d_v);
+                }
+
+            // find the maximum of the 4 channels
+            // http://stackoverflow.com/questions/17638487/minimum-of-4-sp-values-in-m128
+            max_dot_v = _mm_max_ps(max_dot_v,
+                                   _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(2, 1, 0, 3)));
+            max_dot_v = _mm_max_ps(max_dot_v,
+                                   _mm_shuffle_ps(max_dot_v, max_dot_v, _MM_SHUFFLE(1, 0, 3, 2)));
+
+            // loop again and find the max. The reason this is in a 2nd loop is because branch
+            // mis-predictions and the extra max calls kill performance if this is in the first loop
+            // Use BSF to find the first index of the max element
+            // https://software.intel.com/en-us/forums/topic/285956
+            for (unsigned int i = 0; i < verts.N; i += 4)
+                {
+                __m128 d_v = _mm_load_ps(d_s + i);
+
+                int id = __builtin_ffs(_mm_movemask_ps(_mm_cmpeq_ps(max_dot_v, d_v)));
+
+                if (id)
+                    {
+                    max_idx = i + id - 1;
+                    break;
+                    }
+                }
+#else
+
+            // implementation without vector intrinsics
+            OverlapReal max_dot0 = dot(n, vec2<OverlapReal>(verts.x[0], verts.y[0]));
+            unsigned int max_idx0 = 0;
+            OverlapReal max_dot1 = dot(n, vec2<OverlapReal>(verts.x[1], verts.y[1]));
+            unsigned int max_idx1 = 1;
+            OverlapReal max_dot2 = dot(n, vec2<OverlapReal>(verts.x[2], verts.y[2]));
+            unsigned int max_idx2 = 2;
+            OverlapReal max_dot3 = dot(n, vec2<OverlapReal>(verts.x[3], verts.y[3]));
+            unsigned int max_idx3 = 3;
+
+            for (unsigned int i = 4; i < verts.N; i += 4)
+                {
+                OverlapReal d0 = dot(n, vec2<OverlapReal>(verts.x[i], verts.y[i]));
+                OverlapReal d1 = dot(n, vec2<OverlapReal>(verts.x[i + 1], verts.y[i + 1]));
+                OverlapReal d2 = dot(n, vec2<OverlapReal>(verts.x[i + 2], verts.y[i + 2]));
+                OverlapReal d3 = dot(n, vec2<OverlapReal>(verts.x[i + 3], verts.y[i + 3]));
+
+                if (d0 > max_dot0)
+                    {
+                    max_dot0 = d0;
+                    max_idx0 = i;
+                    }
+                if (d1 > max_dot1)
+                    {
+                    max_dot1 = d1;
+                    max_idx1 = i + 1;
+                    }
+                if (d2 > max_dot2)
+                    {
+                    max_dot2 = d2;
+                    max_idx2 = i + 2;
+                    }
+                if (d3 > max_dot3)
+                    {
+                    max_dot3 = d3;
+                    max_idx3 = i + 3;
+                    }
+                }
+
+            max_dot = max_dot0;
+            max_idx = max_idx0;
+
+            if (max_dot1 > max_dot)
+                {
+                max_dot = max_dot1;
+                max_idx = max_idx1;
+                }
+            if (max_dot2 > max_dot)
+                {
+                max_dot = max_dot2;
+                max_idx = max_idx2;
+                }
+            if (max_dot3 > max_dot)
+                {
+                max_dot = max_dot3;
+                max_idx = max_idx3;
+                }
+#endif
             }
 
+        return vec2<OverlapReal>(verts.x[max_idx], verts.y[max_idx]);
+        }
+
     private:
-        /// Vertices of the polygon
-        const PolygonVertices& verts;
+    /// Vertices of the polygon
+    const PolygonVertices& verts;
     };
 
-}; // end namespace detail
+    }; // end namespace detail
 
 /** Convex Polygon shape
 
@@ -345,7 +344,9 @@ struct ShapeConvexPolygon
     typedef detail::PolygonVertices param_type;
 
     //! Temporary storage for depletant insertion
-    typedef struct {} depletion_storage_type;
+    typedef struct
+        {
+        } depletion_storage_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeConvexPolygon(const quat<Scalar>& _orientation, const param_type& _params)
@@ -354,10 +355,16 @@ struct ShapeConvexPolygon
         }
 
     /// Check if the shape may be rotated
-    DEVICE bool hasOrientation() { return true; }
+    DEVICE bool hasOrientation()
+        {
+        return true;
+        }
 
     /// Check if this shape should be ignored in the move statistics
-    DEVICE bool ignoreStatistics() const{ return verts.ignore; }
+    DEVICE bool ignoreStatistics() const
+        {
+        return verts.ignore;
+        }
 
     /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
@@ -395,7 +402,7 @@ struct ShapeConvexPolygon
 
         // return detail::AABB(lower, upper);
         // ^^^^^^^^^^ The above method is slow, just use the bounding sphere
-        return detail::AABB(pos, verts.diameter/Scalar(2));
+        return detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
     /// Return a tight fitting OBB around the shape
@@ -408,7 +415,10 @@ struct ShapeConvexPolygon
     /** Returns true if this shape splits the overlap check over several threads of a warp using
         threadIdx.x
     */
-    HOSTDEVICE static bool isParallel() { return false; }
+    HOSTDEVICE static bool isParallel()
+        {
+        return false;
+        }
 
     /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
@@ -424,8 +434,7 @@ struct ShapeConvexPolygon
     };
 
 namespace detail
-{
-
+    {
 /** Test if all vertices in a polygon are outside of a given line
 
     @param verts Vertices of the polygon.
@@ -437,20 +446,21 @@ namespace detail
 
     \todo make overlap check namespace
 */
-DEVICE inline bool is_outside(const PolygonVertices& verts, const vec2<OverlapReal>& p, const vec2<OverlapReal>& n)
+DEVICE inline bool
+is_outside(const PolygonVertices& verts, const vec2<OverlapReal>& p, const vec2<OverlapReal>& n)
     {
     bool outside = true;
 
     // for each vertex in the polygon
     // check if n dot (v[i]-p) < 0
     // distribute: (n dot v[i] - n dot p) < 0
-    OverlapReal ndotp = dot(n,p);
-    #pragma unroll 3
+    OverlapReal ndotp = dot(n, p);
+#pragma unroll 3
     for (unsigned int i = 0; i < verts.N; i++)
         {
-        if ((dot(n,vec2<OverlapReal>(verts.x[i], verts.y[i])) - ndotp) <= OverlapReal(0.0))
+        if ((dot(n, vec2<OverlapReal>(verts.x[i], verts.y[i])) - ndotp) <= OverlapReal(0.0))
             {
-            return false;       // runs faster on the cpu with an early return
+            return false; // runs faster on the cpu with an early return
             }
         }
 
@@ -499,7 +509,7 @@ DEVICE inline bool find_separating_plane(const PolygonVertices& a,
     rotmat2<OverlapReal> R(ab_r);
 
     // loop through all the edges in polygon a and check if they separate it from polygon b
-    unsigned int prev = a.N-1;
+    unsigned int prev = a.N - 1;
     for (unsigned int cur = 0; cur < a.N; cur++)
         {
         // find a point and a vector describing a line
@@ -519,7 +529,7 @@ DEVICE inline bool find_separating_plane(const PolygonVertices& a,
         // is this a separating plane?
         if (is_outside(b, p, n))
             {
-            return true;        // runs faster on the cpu with the early return
+            return true; // runs faster on the cpu with the early return
             }
 
         // save previous vertex for next iteration
@@ -562,7 +572,7 @@ DEVICE inline bool test_overlap_separating_planes(const PolygonVertices& a,
     return true;
     }
 
-}; // end namespace detail
+    }; // end namespace detail
 
 /** Convex polygon overlap test
 
@@ -573,43 +583,43 @@ DEVICE inline bool test_overlap_separating_planes(const PolygonVertices& a,
     @param sweep_radius Additional radius to sweep both shapes by
     @returns *true* when *a* and *b* overlap, and false when they are disjoint
 */
-template <>
-DEVICE inline bool test_overlap<ShapeConvexPolygon,ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
-                                                                       const ShapeConvexPolygon& a,
-                                                                       const ShapeConvexPolygon& b,
-                                                                       unsigned int& err)
+template<>
+DEVICE inline bool test_overlap<ShapeConvexPolygon, ShapeConvexPolygon>(const vec3<Scalar>& r_ab,
+                                                                        const ShapeConvexPolygon& a,
+                                                                        const ShapeConvexPolygon& b,
+                                                                        unsigned int& err)
     {
-    vec2<OverlapReal> dr(OverlapReal(r_ab.x),OverlapReal(r_ab.y));
-    #ifdef __HIPCC__
+    vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
+#ifdef __HIPCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),
                                   dr,
                                   quat<OverlapReal>(a.orientation),
                                   quat<OverlapReal>(b.orientation),
                                   err);
-    #else
+#else
     return detail::test_overlap_separating_planes(a.verts,
                                                   b.verts,
                                                   dr,
                                                   quat<OverlapReal>(a.orientation),
                                                   quat<OverlapReal>(b.orientation));
-    #endif
+#endif
     }
 
 #ifndef __HIPCC__
-template<>
-inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
+template<> inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     {
     std::ostringstream shapedef;
     const auto& verts = poly.verts;
-    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
+    shapedef << "{\"type\": \"Polygon\", \"rounding_radius\": " << verts.sweep_radius
+             << ", \"vertices\": [";
     if (verts.N != 0)
         {
-        for (unsigned int i = 0; i < verts.N-1; i++)
+        for (unsigned int i = 0; i < verts.N - 1; i++)
             {
             shapedef << "[" << verts.x[i] << ", " << verts.y[i] << "], ";
             }
-        shapedef << "[" << verts.x[verts.N-1] << ", " << verts.y[verts.N-1] << "]]}";
+        shapedef << "[" << verts.x[verts.N - 1] << ", " << verts.y[verts.N - 1] << "]]}";
         }
     else
         {
@@ -619,7 +629,7 @@ inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     }
 #endif
 
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE

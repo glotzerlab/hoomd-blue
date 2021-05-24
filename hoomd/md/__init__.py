@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Molecular Dynamics
+"""Molecular Dynamics.
 
 Perform Molecular Dynamics simulations with HOOMD-blue.
 """

@@ -32,8 +32,7 @@ def test_before_attaching(bond_params_tuple):
 
 
 @pytest.mark.parametrize("bond_params_tuple", get_bond_params())
-def test_after_attaching(two_particle_snapshot_factory,
-                         simulation_factory,
+def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
                          bond_params_tuple):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
     if snap.exists:
@@ -65,8 +64,7 @@ def test_after_attaching(two_particle_snapshot_factory,
 
 @pytest.mark.parametrize("bond_params_and_force_and_energy",
                          get_bond_params_and_forces_and_energies())
-def test_forces_and_energies(two_particle_snapshot_factory,
-                             simulation_factory,
+def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
                              bond_params_and_force_and_energy):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
     if snap.exists:
@@ -100,11 +98,9 @@ def test_forces_and_energies(two_particle_snapshot_factory,
                                    energy,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[0],
-                                   [force, 0.0, 0.0],
+        np.testing.assert_allclose(sim_forces[0], [force, 0.0, 0.0],
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1],
-                                   [-1 * force, 0.0, 0.0],
+        np.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
                                    rtol=1e-2,
                                    atol=1e-5)

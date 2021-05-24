@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ajs42
 
 #include "ComputeThermoHMA.h"
@@ -26,19 +25,20 @@
 class PYBIND11_EXPORT ComputeThermoHMAGPU : public ComputeThermoHMA
     {
     public:
-        //! Constructs the compute
-        ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group, const double temperature,
-                         const double harmonicPressure);
-        virtual ~ComputeThermoHMAGPU();
+    //! Constructs the compute
+    ComputeThermoHMAGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<ParticleGroup> group,
+                        const double temperature,
+                        const double harmonicPressure);
+    virtual ~ComputeThermoHMAGPU();
 
     protected:
-        GlobalVector<Scalar3> m_scratch;  //!< Scratch space for partial sums
-        unsigned int m_block_size;   //!< Block size executed
-        hipEvent_t m_event;         //!< CUDA event for synchronization
+    GlobalVector<Scalar3> m_scratch; //!< Scratch space for partial sums
+    unsigned int m_block_size;       //!< Block size executed
+    hipEvent_t m_event;              //!< CUDA event for synchronization
 
-        //! Does the actual computation
-        virtual void computeProperties();
+    //! Does the actual computation
+    virtual void computeProperties();
     };
 
 //! Exports the ComputeThermoHMAGPU class to python

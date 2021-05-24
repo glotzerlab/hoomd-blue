@@ -1,17 +1,16 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: pschoenhoefer
 
-#include "TwoStepLangevinBase.h"
-#include "hoomd/VectorMath.h"
 #include "QuaternionMath.h"
-#include "hoomd/HOOMDMath.h"
+#include "TwoStepLangevinBase.h"
 #include "TwoStepRATTLENVE.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 using namespace hoomd;
 
 #ifndef __TWO_STEP_RATTLE_BD_H__
@@ -30,61 +29,64 @@ using namespace hoomd;
 //! Integrates part of the system forward in two steps with Brownian dynamics
 /*! Implements RATTLE applied on Brownian dynamics.
 
-    Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and assuming terminal
-    velocity.
+    Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and
+   assuming terminal velocity.
 
     \ingroup updaters
 */
-template < class Manifold>
-class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
+template<class Manifold> class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
     {
     public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sysdef,
+    //! Constructs the integration method and associates it with the system
+    TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sysdef,
                     std::shared_ptr<ParticleGroup> group,
                     Manifold manifold,
                     std::shared_ptr<Variant> T,
-                    Scalar tolerance = 0.000001
-                    );
+                    Scalar tolerance = 0.000001);
 
-        virtual ~TwoStepRATTLEBD()
+    virtual ~TwoStepRATTLEBD()
         {
         m_exec_conf->msg->notice(5) << "Destroying TwoStepRATTLEBD" << endl;
         }
 
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(uint64_t timestep);
+    //! Performs the first step of the integration
+    virtual void integrateStepOne(uint64_t timestep);
 
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(uint64_t timestep);
+    //! Performs the second step of the integration
+    virtual void integrateStepTwo(uint64_t timestep);
 
-        //! Includes the RATTLE forces to the virial/net force
-        virtual void includeRATTLEForce(uint64_t timestep);
+    //! Includes the RATTLE forces to the virial/net force
+    virtual void includeRATTLEForce(uint64_t timestep);
 
-        //! Get the number of degrees of freedom granted to a given group
-        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
+    //! Get the number of degrees of freedom granted to a given group
+    virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
         {
         // get the size of the intersection between query_group and m_group
-        unsigned int intersect_size = ParticleGroup::groupIntersection(group, m_group)->getNumMembersGlobal();
+        unsigned int intersect_size
+            = ParticleGroup::groupIntersection(group, m_group)->getNumMembersGlobal();
 
         return Manifold::dimension() * intersect_size;
         }
 
-        /// Sets tolerance
-        void setTolerance(Scalar tolerance){ m_tolerance = tolerance; };
+    /// Sets tolerance
+    void setTolerance(Scalar tolerance)
+        {
+        m_tolerance = tolerance;
+        };
 
-        /// Gets tolerance
-        Scalar getTolerance(){ return m_tolerance; };
+    /// Gets tolerance
+    Scalar getTolerance()
+        {
+        return m_tolerance;
+        };
 
     protected:
-
-        Manifold m_manifold;  //!< The manifold used for the RATTLE constraint
-        bool m_noiseless_t;
-        bool m_noiseless_r;
-        Scalar m_tolerance;                      //!< The tolerance value of the RATTLE algorithm, setting the tolerance to the manifold
+    Manifold m_manifold; //!< The manifold used for the RATTLE constraint
+    bool m_noiseless_t;
+    bool m_noiseless_r;
+    Scalar m_tolerance; //!< The tolerance value of the RATTLE algorithm, setting the tolerance to
+                        //!< the manifold
     };
-
-
 
 /*! \file TwoStepRATTLEBD.h
     \brief Contains code for the TwoStepRATTLEBD class
@@ -100,34 +102,31 @@ class PYBIND11_EXPORT TwoStepRATTLEBD : public TwoStepLangevinBase
     \param noiseless_r If set true, there will be no rotational noise (random torque)
     \param tolerance Tolerance for the RATTLE iteration algorithm
 */
-template< class Manifold>
+template<class Manifold>
 TwoStepRATTLEBD<Manifold>::TwoStepRATTLEBD(std::shared_ptr<SystemDefinition> sysdef,
-                           std::shared_ptr<ParticleGroup> group,
-                           Manifold manifold,
-                           std::shared_ptr<Variant> T,
-                           Scalar tolerance
-                           )
-  : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold),
-    m_noiseless_t(false), m_noiseless_r(false), m_tolerance(tolerance)
+                                           std::shared_ptr<ParticleGroup> group,
+                                           Manifold manifold,
+                                           std::shared_ptr<Variant> T,
+                                           Scalar tolerance)
+    : TwoStepLangevinBase(sysdef, group, T), m_manifold(manifold), m_noiseless_t(false),
+      m_noiseless_r(false), m_tolerance(tolerance)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepRATTLEBD" << endl;
 
-    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
-
     }
 
 /*! \param timestep Current time step
     \post Particle positions are moved forward to timestep+1
 
-    The integration method here is from the book "The Langevin and Generalised Langevin Approach to the Dynamics of
-    Atomic, Polymeric and Colloidal Systems", chapter 6.
+    The integration method here is from the book "The Langevin and Generalised Langevin Approach to
+   the Dynamics of Atomic, Polymeric and Colloidal Systems", chapter 6.
 */
 
-template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
+template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
@@ -137,26 +136,40 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
     if (m_prof)
         m_prof->push("BD step 1");
 
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
 
     ArrayHandle<Scalar3> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::readwrite);
+    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
 
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
-    if(!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
         {
         throw std::runtime_error("Parts of the manifold are outside the box");
         }
@@ -177,28 +190,31 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
                             hoomd::Counter(ptag, 1));
 
         // Initialize the RNG
-        RandomGenerator rng_b(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
-                            hoomd::Counter(ptag, 2)); //This random number generator generates the same numbers as in includeRATTLEForce for each particle such that the Brownian force stays consistent
+        RandomGenerator rng_b(
+            hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
+            hoomd::Counter(ptag, 2)); // This random number generator generates the same numbers as
+                                      // in includeRATTLEForce for each particle such that the
+                                      // Brownian force stays consistent
 
         Scalar gamma;
         if (m_use_alpha)
-            gamma = m_alpha*h_diameter.data[j];
+            gamma = m_alpha * h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
             gamma = h_gamma.data[type];
             }
-        Scalar deltaT_gamma = m_deltaT/gamma;
+        Scalar deltaT_gamma = m_deltaT / gamma;
 
         // draw a new random velocity for particle j
-        Scalar mass =  h_vel.data[j].w;
-        Scalar sigma1 = fast::sqrt(currentTemp/mass);
+        Scalar mass = h_vel.data[j].w;
+        Scalar sigma1 = fast::sqrt(currentTemp / mass);
         NormalDistribution<Scalar> norm(sigma1);
 
         Scalar3 vec_rand;
-        vec_rand.x =norm(rng);
-        vec_rand.y =norm(rng);
-        vec_rand.z =norm(rng);
+        vec_rand.x = norm(rng);
+        vec_rand.y = norm(rng);
+        vec_rand.z = norm(rng);
 
         Scalar3 next_pos;
         next_pos.x = h_pos.data[j].x;
@@ -206,61 +222,61 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
         next_pos.z = h_pos.data[j].z;
 
         Scalar3 normal = m_manifold.derivative(next_pos);
-        Scalar norm_normal = fast::rsqrt(dot(normal,normal));
+        Scalar norm_normal = fast::rsqrt(dot(normal, normal));
 
         normal.x *= norm_normal;
         normal.y *= norm_normal;
         normal.z *= norm_normal;
 
-        Scalar rand_norm = dot(vec_rand,normal);
-        vec_rand.x -= rand_norm*normal.x;
-        vec_rand.y -= rand_norm*normal.y;
-        vec_rand.z -= rand_norm*normal.z;
+        Scalar rand_norm = dot(vec_rand, normal);
+        vec_rand.x -= rand_norm * normal.x;
+        vec_rand.y -= rand_norm * normal.y;
+        vec_rand.z -= rand_norm * normal.z;
 
         h_vel.data[j].x = vec_rand.x;
         h_vel.data[j].y = vec_rand.y;
         h_vel.data[j].z = vec_rand.z;
 
-
         Scalar rx, ry, rz, coeff;
 
-        if(currentTemp > 0)
-	    {
-		// compute the random force
-		UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
-		rx = uniform(rng_b);
-		ry = uniform(rng_b);
-		rz = uniform(rng_b);
+        if (currentTemp > 0)
+            {
+            // compute the random force
+            UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+            rx = uniform(rng_b);
+            ry = uniform(rng_b);
+            rz = uniform(rng_b);
 
-		Scalar normal_r = rx*normal.x + ry*normal.y + rz*normal.z;
+            Scalar normal_r = rx * normal.x + ry * normal.y + rz * normal.z;
 
-		rx = rx - normal_r*normal.x;
-		ry = ry - normal_r*normal.y;
-		rz = rz - normal_r*normal.z;
+            rx = rx - normal_r * normal.x;
+            ry = ry - normal_r * normal.y;
+            rz = rz - normal_r * normal.z;
 
-		// compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
-		// it is not the dimensionality of the system
-		coeff = fast::sqrt(Scalar(6.0)*currentTemp/deltaT_gamma);
-		if (m_noiseless_t)
-		    coeff = Scalar(0.0);
- 	    }
-	else
-	    {
+            // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform
+            // -1,1 distribution it is not the dimensionality of the system
+            coeff = fast::sqrt(Scalar(6.0) * currentTemp / deltaT_gamma);
+            if (m_noiseless_t)
+                coeff = Scalar(0.0);
+            }
+        else
+            {
             rx = 0;
             ry = 0;
             rz = 0;
             coeff = 0;
-	    }
+            }
 
-        Scalar dx = (h_net_force.data[j].x + rx*coeff) * deltaT_gamma;
-	Scalar dy = (h_net_force.data[j].y + ry*coeff) * deltaT_gamma;
-    	Scalar dz = (h_net_force.data[j].z + rz*coeff) * deltaT_gamma;
+        Scalar dx = (h_net_force.data[j].x + rx * coeff) * deltaT_gamma;
+        Scalar dy = (h_net_force.data[j].y + ry * coeff) * deltaT_gamma;
+        Scalar dz = (h_net_force.data[j].z + rz * coeff) * deltaT_gamma;
 
         h_pos.data[j].x += dx;
         h_pos.data[j].y += dy;
         h_pos.data[j].z += dz;
 
-        // particles may have been moved slightly outside the box by the above steps, wrap them back into place
+        // particles may have been moved slightly outside the box by the above steps, wrap them back
+        // into place
         box.wrap(h_pos.data[j], h_image.data[j]);
 
         // rotational random force and orientation quaternion updates
@@ -276,13 +292,16 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
                 vec3<Scalar> I(h_inertia.data[j]);
 
                 bool x_zero, y_zero, z_zero;
-                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+                x_zero = (I.x < EPSILON);
+                y_zero = (I.y < EPSILON);
+                z_zero = (I.z < EPSILON);
 
-                Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*currentTemp/m_deltaT),
-                                               fast::sqrt(Scalar(2.0)*gamma_r.y*currentTemp/m_deltaT),
-                                               fast::sqrt(Scalar(2.0)*gamma_r.z*currentTemp/m_deltaT));
+                Scalar3 sigma_r
+                    = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * currentTemp / m_deltaT),
+                                   fast::sqrt(Scalar(2.0) * gamma_r.y * currentTemp / m_deltaT),
+                                   fast::sqrt(Scalar(2.0) * gamma_r.z * currentTemp / m_deltaT));
                 if (m_noiseless_r)
-                    sigma_r = make_scalar3(0,0,0);
+                    sigma_r = make_scalar3(0, 0, 0);
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
@@ -291,18 +310,22 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
                 bf_torque.y = NormalDistribution<Scalar>(sigma_r.y)(rng);
                 bf_torque.z = NormalDistribution<Scalar>(sigma_r.z)(rng);
 
-                if (x_zero) bf_torque.x = 0;
-                if (y_zero) bf_torque.y = 0;
-                if (z_zero) bf_torque.z = 0;
+                if (x_zero)
+                    bf_torque.x = 0;
+                if (y_zero)
+                    bf_torque.y = 0;
+                if (z_zero)
+                    bf_torque.z = 0;
 
                 // use the d_invamping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r
-                // if aniso gamma_r, first rotate the torque into particle frame and divide the different gamma_r
-                // and then rotate the "angular velocity" back to lab frame and integrate
+                // if aniso gamma_r, first rotate the torque into particle frame and divide the
+                // different gamma_r and then rotate the "angular velocity" back to lab frame and
+                // integrate
                 bf_torque = rotate(q, bf_torque);
 
                 // do the integration for quaternion
-                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q ;
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / vec3<Scalar>(gamma_r)) * q;
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
@@ -310,9 +333,12 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
                 p_vec.x = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.x))(rng);
                 p_vec.y = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.y))(rng);
                 p_vec.z = NormalDistribution<Scalar>(fast::sqrt(currentTemp * I.z))(rng);
-                if (x_zero) p_vec.x = 0;
-                if (y_zero) p_vec.y = 0;
-                if (z_zero) p_vec.z = 0;
+                if (x_zero)
+                    p_vec.x = 0;
+                if (y_zero)
+                    p_vec.y = 0;
+                if (z_zero)
+                    p_vec.z = 0;
 
                 // !! Note this isn't well-behaving in 2D,
                 // !! because may have effective non-zero ang_mom in x,y
@@ -329,34 +355,31 @@ void TwoStepRATTLEBD<Manifold>::integrateStepOne(uint64_t timestep)
     }
 
 /*! \param timestep Current time step
-*/
-template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::integrateStepTwo(uint64_t timestep)
+ */
+template<class Manifold> void TwoStepRATTLEBD<Manifold>::integrateStepTwo(uint64_t timestep)
     {
     // there is no step 2 in Brownian dynamics.
     }
 
-
-template< class Manifold>
-void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
+template<class Manifold> void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
     {
-
     unsigned int group_size = m_group->getNumMembers();
 
     const Scalar currentTemp = (*m_T)(timestep);
 
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GlobalArray<Scalar>&  net_virial = m_pdata->getNetVirial();
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    const GlobalArray<Scalar>& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
 
     size_t net_virial_pitch = net_virial.getPitch();
-
 
     uint16_t seed = m_sysdef->getSeed();
 
@@ -371,18 +394,17 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 
         // Initialize the RNG
         RandomGenerator rng_b(hoomd::Seed(RNGIdentifier::TwoStepBD, timestep, seed),
-                            hoomd::Counter(ptag, 2));
+                              hoomd::Counter(ptag, 2));
 
         Scalar gamma;
         if (m_use_alpha)
-            gamma = m_alpha*h_diameter.data[j];
+            gamma = m_alpha * h_diameter.data[j];
         else
             {
             unsigned int type = __scalar_as_int(h_pos.data[j].w);
             gamma = h_gamma.data[type];
             }
-        Scalar deltaT_gamma = m_deltaT/gamma;
-
+        Scalar deltaT_gamma = m_deltaT / gamma;
 
         Scalar3 next_pos;
         next_pos.x = h_pos.data[j].x;
@@ -390,7 +412,7 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
         next_pos.z = h_pos.data[j].z;
 
         Scalar3 normal = m_manifold.derivative(next_pos);
-        Scalar norm_normal = fast::rsqrt(dot(normal,normal));
+        Scalar norm_normal = fast::rsqrt(dot(normal, normal));
 
         normal.x *= norm_normal;
         normal.y *= norm_normal;
@@ -398,101 +420,108 @@ void TwoStepRATTLEBD<Manifold>::includeRATTLEForce(uint64_t timestep)
 
         Scalar rx, ry, rz, coeff;
 
-        if(currentTemp > 0)
-	    {
-		// compute the random force
-		UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
-		rx = uniform(rng_b);
-		ry = uniform(rng_b);
-		rz = uniform(rng_b);
+        if (currentTemp > 0)
+            {
+            // compute the random force
+            UniformDistribution<Scalar> uniform(Scalar(-1), Scalar(1));
+            rx = uniform(rng_b);
+            ry = uniform(rng_b);
+            rz = uniform(rng_b);
 
-		Scalar normal_r = rx*normal.x + ry*normal.y + rz*normal.z;
+            Scalar normal_r = rx * normal.x + ry * normal.y + rz * normal.z;
 
-		rx = rx - normal_r*normal.x;
-		ry = ry - normal_r*normal.y;
-		rz = rz - normal_r*normal.z;
+            rx = rx - normal_r * normal.x;
+            ry = ry - normal_r * normal.y;
+            rz = rz - normal_r * normal.z;
 
-		// compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform -1,1 distribution
-		// it is not the dimensionality of the system
-		coeff = fast::sqrt(Scalar(6.0)*currentTemp/deltaT_gamma);
-		if (m_noiseless_t)
-		    coeff = Scalar(0.0);
- 	    }
-	else
-	    {
+            // compute the bd force (the extra factor of 3 is because <rx^2> is 1/3 in the uniform
+            // -1,1 distribution it is not the dimensionality of the system
+            coeff = fast::sqrt(Scalar(6.0) * currentTemp / deltaT_gamma);
+            if (m_noiseless_t)
+                coeff = Scalar(0.0);
+            }
+        else
+            {
             rx = 0;
             ry = 0;
             rz = 0;
             coeff = 0;
-	    }
+            }
 
-        Scalar Fr_x = rx*coeff;
-        Scalar Fr_y = ry*coeff;
-        Scalar Fr_z = rz*coeff;
+        Scalar Fr_x = rx * coeff;
+        Scalar Fr_y = ry * coeff;
+        Scalar Fr_z = rz * coeff;
 
         // update position
-	Scalar mu = 0.0;
+        Scalar mu = 0.0;
 
-	Scalar inv_alpha = -Scalar(1.0)/deltaT_gamma;
+        Scalar inv_alpha = -Scalar(1.0) / deltaT_gamma;
 
-	Scalar3 residual;
-	Scalar resid;
+        Scalar3 residual;
+        Scalar resid;
 
-	unsigned int iteration = 0;
-	do
-	{
-	    iteration++;
-	    residual.x = h_pos.data[j].x - next_pos.x + (h_net_force.data[j].x + Fr_x - mu*normal.x) * deltaT_gamma;
-	    residual.y = h_pos.data[j].y - next_pos.y + (h_net_force.data[j].y + Fr_y - mu*normal.y) * deltaT_gamma;
-	    residual.z = h_pos.data[j].z - next_pos.z + (h_net_force.data[j].z + Fr_z - mu*normal.z) * deltaT_gamma;
-	    resid = m_manifold.implicitFunction(next_pos);
+        unsigned int iteration = 0;
+        do
+            {
+            iteration++;
+            residual.x = h_pos.data[j].x - next_pos.x
+                         + (h_net_force.data[j].x + Fr_x - mu * normal.x) * deltaT_gamma;
+            residual.y = h_pos.data[j].y - next_pos.y
+                         + (h_net_force.data[j].y + Fr_y - mu * normal.y) * deltaT_gamma;
+            residual.z = h_pos.data[j].z - next_pos.z
+                         + (h_net_force.data[j].z + Fr_z - mu * normal.z) * deltaT_gamma;
+            resid = m_manifold.implicitFunction(next_pos);
 
-	    Scalar3 next_normal = m_manifold.derivative(next_pos);
+            Scalar3 next_normal = m_manifold.derivative(next_pos);
 
-	    Scalar nndotr = dot(next_normal,residual);
-	    Scalar nndotn = dot(next_normal,normal);
-	    Scalar beta = (resid + nndotr)/nndotn;
+            Scalar nndotr = dot(next_normal, residual);
+            Scalar nndotn = dot(next_normal, normal);
+            Scalar beta = (resid + nndotr) / nndotn;
 
-	    next_pos.x = next_pos.x - beta*normal.x + residual.x;
-	    next_pos.y = next_pos.y - beta*normal.y + residual.y;
-	    next_pos.z = next_pos.z - beta*normal.z + residual.z;
-	    mu = mu - beta*inv_alpha;
+            next_pos.x = next_pos.x - beta * normal.x + residual.x;
+            next_pos.y = next_pos.y - beta * normal.y + residual.y;
+            next_pos.z = next_pos.z - beta * normal.z + residual.z;
+            mu = mu - beta * inv_alpha;
 
-	} while (maxNorm(residual,resid) > m_tolerance && iteration < maxiteration );
+            } while (maxNorm(residual, resid) > m_tolerance && iteration < maxiteration);
 
-	if(iteration == maxiteration)
-	{
-        m_exec_conf->msg->warning() << "The RATTLE integrator needed an unusual high number of iterations!" << endl
-	<< "It is recomended to change the initial configuration or lower the step size." << endl;
+        if (iteration == maxiteration)
+            {
+            m_exec_conf->msg->warning()
+                << "The RATTLE integrator needed an unusual high number of iterations!" << endl
+                << "It is recomended to change the initial configuration or lower the step size."
+                << endl;
+            }
 
-	}
+        h_net_force.data[j].x -= mu * normal.x;
+        h_net_force.data[j].y -= mu * normal.y;
+        h_net_force.data[j].z -= mu * normal.z;
 
-	h_net_force.data[j].x -= mu*normal.x;
-	h_net_force.data[j].y -= mu*normal.y;
-	h_net_force.data[j].z -= mu*normal.z;
-
-        h_net_virial.data[0*net_virial_pitch+j] -= mu*normal.x*h_pos.data[j].x;
-        h_net_virial.data[1*net_virial_pitch+j] -= 0.5*mu*(normal.y*h_pos.data[j].x + normal.x*h_pos.data[j].y);
-        h_net_virial.data[2*net_virial_pitch+j] -= 0.5*mu*(normal.z*h_pos.data[j].x + normal.x*h_pos.data[j].z);
-        h_net_virial.data[3*net_virial_pitch+j] -= mu*normal.y*h_pos.data[j].y;
-        h_net_virial.data[4*net_virial_pitch+j] -= 0.5*mu*(normal.y*h_pos.data[j].z + normal.z*h_pos.data[j].y);
-        h_net_virial.data[5*net_virial_pitch+j] -= mu*normal.z*h_pos.data[j].z;
-
+        h_net_virial.data[0 * net_virial_pitch + j] -= mu * normal.x * h_pos.data[j].x;
+        h_net_virial.data[1 * net_virial_pitch + j]
+            -= 0.5 * mu * (normal.y * h_pos.data[j].x + normal.x * h_pos.data[j].y);
+        h_net_virial.data[2 * net_virial_pitch + j]
+            -= 0.5 * mu * (normal.z * h_pos.data[j].x + normal.x * h_pos.data[j].z);
+        h_net_virial.data[3 * net_virial_pitch + j] -= mu * normal.y * h_pos.data[j].y;
+        h_net_virial.data[4 * net_virial_pitch + j]
+            -= 0.5 * mu * (normal.y * h_pos.data[j].z + normal.z * h_pos.data[j].y);
+        h_net_virial.data[5 * net_virial_pitch + j] -= mu * normal.z * h_pos.data[j].z;
         }
     }
 
-template < class Manifold>
-void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
+template<class Manifold> void export_TwoStepRATTLEBD(py::module& m, const std::string& name)
     {
-    py::class_<TwoStepRATTLEBD<Manifold>, TwoStepLangevinBase, std::shared_ptr<TwoStepRATTLEBD<Manifold> > >(m, name.c_str())
-    .def(py::init< std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ParticleGroup>,
-			    Manifold,
-                            std::shared_ptr<Variant>,
-			    Scalar>())
-    .def_property("tolerance", &TwoStepRATTLEBD<Manifold>::getTolerance,
-                            &TwoStepRATTLEBD<Manifold>::setTolerance)
-        ;
+    py::class_<TwoStepRATTLEBD<Manifold>,
+               TwoStepLangevinBase,
+               std::shared_ptr<TwoStepRATTLEBD<Manifold>>>(m, name.c_str())
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      Manifold,
+                      std::shared_ptr<Variant>,
+                      Scalar>())
+        .def_property("tolerance",
+                      &TwoStepRATTLEBD<Manifold>::getTolerance,
+                      &TwoStepRATTLEBD<Manifold>::setTolerance);
     }
 
 #endif // #ifndef __TWO_STEP_RATTLE_BD_H__

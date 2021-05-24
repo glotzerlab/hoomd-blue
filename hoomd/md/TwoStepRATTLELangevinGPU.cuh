@@ -2,19 +2,19 @@
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file TwoStepRATTLELangevinGPU.cuh
-    \brief Declares GPU kernel code for RATTLELangevin dynamics on the GPU. Used by TwoStepRATTLELangevinGPU.
+    \brief Declares GPU kernel code for RATTLELangevin dynamics on the GPU. Used by
+   TwoStepRATTLELangevinGPU.
 */
 
 #pragma once
 
-#include "hoomd/ParticleData.cuh"
 #include "hoomd/HOOMDMath.h"
-#include "hoomd/RandomNumbers.h"
+#include "hoomd/ParticleData.cuh"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -23,68 +23,69 @@ using namespace hoomd;
 #ifndef __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_RATTLE_LANGEVIN_GPU_CUH__
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_rattle_langevin_step_two()
+//! Temporary holder struct to limit the number of arguments passed to
+//! gpu_rattle_langevin_step_two()
 struct rattle_langevin_step_two_args
     {
-    Scalar *d_gamma;          //!< Device array listing per-type gammas
-    size_t n_types;          //!< Number of types in \a d_gamma
-    bool use_alpha;          //!< Set to true to scale diameters by alpha to get gamma
-    Scalar alpha;            //!< Scale factor to convert diameter to alpha
-    Scalar T;                 //!< Current temperature
+    Scalar* d_gamma; //!< Device array listing per-type gammas
+    size_t n_types;  //!< Number of types in \a d_gamma
+    bool use_alpha;  //!< Set to true to scale diameters by alpha to get gamma
+    Scalar alpha;    //!< Scale factor to convert diameter to alpha
+    Scalar T;        //!< Current temperature
     Scalar tolerance;
-    uint64_t timestep;    //!< Current timestep
-    uint16_t seed;        //!< User chosen random number seed
-    Scalar *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
-    Scalar *d_partial_sum_bdenergy;  //!< Array used for summation
-    unsigned int block_size;  //!<  Block size
-    unsigned int num_blocks;  //!<  Number of blocks
-    bool noiseless_t;         //!<  If set true, there will be no translational noise (random force)
-    bool noiseless_r;         //!<  If set true, there will be no rotational noise (random torque)
-    bool tally;               //!< Set to true is bd thermal reservoir energy ally is to be performed
+    uint64_t timestep;              //!< Current timestep
+    uint16_t seed;                  //!< User chosen random number seed
+    Scalar* d_sum_bdenergy;         //!< Energy transfer sum from bd thermal reservoir
+    Scalar* d_partial_sum_bdenergy; //!< Array used for summation
+    unsigned int block_size;        //!<  Block size
+    unsigned int num_blocks;        //!<  Number of blocks
+    bool noiseless_t; //!<  If set true, there will be no translational noise (random force)
+    bool noiseless_r; //!<  If set true, there will be no rotational noise (random torque)
+    bool tally;       //!< Set to true is bd thermal reservoir energy ally is to be performed
     };
 
+hipError_t
+gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
+                                     Scalar4* d_orientation,
+                                     Scalar4* d_angmom,
+                                     const Scalar3* d_inertia,
+                                     Scalar4* d_net_torque,
+                                     const unsigned int* d_group_members,
+                                     const Scalar3* d_gamma_r,
+                                     const unsigned int* d_tag,
+                                     unsigned int group_size,
+                                     const rattle_langevin_step_two_args& rattle_langevin_args,
+                                     Scalar deltaT,
+                                     unsigned int D,
+                                     Scalar scale);
 
-
-
-hipError_t gpu_rattle_langevin_angular_step_two(const Scalar4 *d_pos,
-                             Scalar4 *d_orientation,
-                             Scalar4 *d_angmom,
-                             const Scalar3 *d_inertia,
-                             Scalar4 *d_net_torque,
-                             const unsigned int *d_group_members,
-                             const Scalar3 *d_gamma_r,
-                             const unsigned int *d_tag,
-                             unsigned int group_size,
-                             const rattle_langevin_step_two_args& rattle_langevin_args,
-                             Scalar deltaT,
-                             unsigned int D,
-                             Scalar scale);
-
-__global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
-                                            Scalar* d_partial_sum,
-                                            unsigned int num_blocks);
+__global__ void gpu_rattle_bdtally_reduce_partial_sum_kernel(Scalar* d_sum,
+                                                             Scalar* d_partial_sum,
+                                                             unsigned int num_blocks);
 
 template<class Manifold>
-hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
-                                  Scalar4 *d_vel,
-                                  Scalar3 *d_accel,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_group_members,
-                                  unsigned int group_size,
-                                  Scalar4 *d_net_force,
-                                  const rattle_langevin_step_two_args& rattle_langevin_args,
-                                  Manifold manifold,
-                                  Scalar deltaT,
-                                  unsigned int D);
+hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        Scalar3* d_accel,
+                                        const Scalar* d_diameter,
+                                        const unsigned int* d_tag,
+                                        unsigned int* d_group_members,
+                                        unsigned int group_size,
+                                        Scalar4* d_net_force,
+                                        const rattle_langevin_step_two_args& rattle_langevin_args,
+                                        Manifold manifold,
+                                        Scalar deltaT,
+                                        unsigned int D);
 
 #ifdef __HIPCC__
 
 /*! \file TwoStepRATTLELangevinGPU.cu
-    \brief Defines GPU kernel code for RATTLELangevin integration on the GPU. Used by TwoStepRATTLELangevinGPU.
+    \brief Defines GPU kernel code for RATTLELangevin integration on the GPU. Used by
+   TwoStepRATTLELangevinGPU.
 */
 
-//! Takes the second half-step forward in the RATTLELangevin integration on a group of particles with
+//! Takes the second half-step forward in the RATTLELangevin integration on a group of particles
+//! with
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
@@ -105,41 +106,40 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
     \param tally Boolean indicating whether energy tally is performed or not
     \param d_partial_sum_bdenergy Placeholder for the partial sum
 
-    This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for design details.
+    This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for
+   design details.
 
     This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
 
-
-
 template<class Manifold>
-__global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
-                                 Scalar4 *d_vel,
-                                 Scalar3 *d_accel,
-                                 const Scalar *d_diameter,
-                                 const unsigned int *d_tag,
-                                 unsigned int *d_group_members,
-                                 unsigned int group_size,
-                                 Scalar4 *d_net_force,
-                                 Scalar *d_gamma,
-                                 size_t n_types,
-                                 bool use_alpha,
-                                 Scalar alpha,
-                                 uint64_t timestep,
-                                 uint16_t seed,
-                                 Scalar T,
-                                 Scalar tolerance,
-                                 bool noiseless_t,
-                                 Manifold manifold,
-                                 Scalar deltaT,
-                                 unsigned int D,
-                                 bool tally,
-                                 Scalar *d_partial_sum_bdenergy)
+__global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
+                                                    Scalar4* d_vel,
+                                                    Scalar3* d_accel,
+                                                    const Scalar* d_diameter,
+                                                    const unsigned int* d_tag,
+                                                    unsigned int* d_group_members,
+                                                    unsigned int group_size,
+                                                    Scalar4* d_net_force,
+                                                    Scalar* d_gamma,
+                                                    size_t n_types,
+                                                    bool use_alpha,
+                                                    Scalar alpha,
+                                                    uint64_t timestep,
+                                                    uint16_t seed,
+                                                    Scalar T,
+                                                    Scalar tolerance,
+                                                    bool noiseless_t,
+                                                    Manifold manifold,
+                                                    Scalar deltaT,
+                                                    unsigned int D,
+                                                    bool tally,
+                                                    Scalar* d_partial_sum_bdenergy)
     {
-    HIP_DYNAMIC_SHARED( char, s_data)
-    Scalar *s_gammas = (Scalar *)s_data;
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar* s_gammas = (Scalar*)s_data;
 
     if (!use_alpha)
         {
@@ -174,66 +174,66 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = alpha*d_diameter[idx];
+            gamma = alpha * d_diameter[idx];
             }
         else
             {
-            // read in the type of our particle. A texture read of only the fourth part of the position Scalar4
-            // (where type is stored) is used.
+            // read in the type of our particle. A texture read of only the fourth part of the
+            // position Scalar4 (where type is stored) is used.
             unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
 
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar4 net_force = d_net_force[idx];
-        Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
+        Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
 
-        Scalar3 pos = make_scalar3(d_pos[idx].x,d_pos[idx].y,d_pos[idx].z);
+        Scalar3 pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
-        //Initialize the Random Number Generator and generate the 3 random numbers
+        // Initialize the Random Number Generator and generate the 3 random numbers
         RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
                             hoomd::Counter(ptag));
 
         Scalar3 normal = manifold.derivative(pos);
-	Scalar ndotn = dot(normal,normal);
+        Scalar ndotn = dot(normal, normal);
 
         Scalar randomx, randomy, randomz, coeff;
 
-	if ( T > 0 ){
-        	UniformDistribution<Scalar> uniform(-1, 1);
+        if (T > 0)
+            {
+            UniformDistribution<Scalar> uniform(-1, 1);
 
-        	randomx = uniform(rng);
-        	randomy = uniform(rng);
-        	randomz = uniform(rng);
+            randomx = uniform(rng);
+            randomy = uniform(rng);
+            randomz = uniform(rng);
 
-                coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
-                Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-                if (noiseless_t)
-                    coeff = Scalar(0.0);
+            coeff = sqrtf(Scalar(6.0) * gamma * T / deltaT);
+            Scalar3 bd_force = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+            if (noiseless_t)
+                coeff = Scalar(0.0);
 
+            Scalar proj_x = normal.x / fast::sqrt(ndotn);
+            Scalar proj_y = normal.y / fast::sqrt(ndotn);
+            Scalar proj_z = normal.z / fast::sqrt(ndotn);
 
-		Scalar proj_x = normal.x/fast::sqrt(ndotn);
-		Scalar proj_y = normal.y/fast::sqrt(ndotn);
-		Scalar proj_z = normal.z/fast::sqrt(ndotn);
+            Scalar proj_r = randomx * proj_x + randomy * proj_y + randomz * proj_z;
+            randomx = randomx - proj_r * proj_x;
+            randomy = randomy - proj_r * proj_y;
+            randomz = randomz - proj_r * proj_z;
+            }
+        else
+            {
+            randomx = 0;
+            randomy = 0;
+            randomz = 0;
+            coeff = 0;
+            }
 
-		Scalar proj_r = randomx*proj_x + randomy*proj_y + randomz*proj_z;
-		randomx = randomx - proj_r*proj_x;
-		randomy = randomy - proj_r*proj_y;
-		randomz = randomz - proj_r*proj_z;
-	}
-	else
-	{
-           	randomx = 0;
-           	randomy = 0;
-           	randomz = 0;
-           	coeff = 0;
-	}
+        Scalar3 bd_force;
 
-	Scalar3 bd_force;
-
-        bd_force.x = randomx*coeff - gamma*vel.x;
-        bd_force.y = randomy*coeff - gamma*vel.y;
-        bd_force.z = randomz*coeff - gamma*vel.z;
+        bd_force.x = randomx * coeff - gamma * vel.x;
+        bd_force.y = randomy * coeff - gamma * vel.y;
+        bd_force.z = randomz * coeff - gamma * vel.z;
 
         // MEM TRANSFER: 4 bytes   FLOPS: 3
         Scalar mass = vel.w;
@@ -246,13 +246,13 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         // update the velocity (FLOPS: 6)
 
         Scalar3 next_vel;
-        next_vel.x = vel.x + Scalar(1.0/2.0)*deltaT*accel.x;
-        next_vel.y = vel.y + Scalar(1.0/2.0)*deltaT*accel.y;
-        next_vel.z = vel.z + Scalar(1.0/2.0)*deltaT*accel.z;
+        next_vel.x = vel.x + Scalar(1.0 / 2.0) * deltaT * accel.x;
+        next_vel.y = vel.y + Scalar(1.0 / 2.0) * deltaT * accel.y;
+        next_vel.z = vel.z + Scalar(1.0 / 2.0) * deltaT * accel.z;
 
         Scalar mu = 0;
-        Scalar inv_alpha = -Scalar(1.0/2.0)*deltaT;
-	inv_alpha = Scalar(1.0)/inv_alpha;
+        Scalar inv_alpha = -Scalar(1.0 / 2.0) * deltaT;
+        inv_alpha = Scalar(1.0) / inv_alpha;
 
         Scalar3 residual;
         Scalar resid;
@@ -263,44 +263,43 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         do
             {
             iteration++;
-            vel_dot.x = accel.x - mu*minv*normal.x;
-            vel_dot.y = accel.y - mu*minv*normal.y;
-            vel_dot.z = accel.z - mu*minv*normal.z;
+            vel_dot.x = accel.x - mu * minv * normal.x;
+            vel_dot.y = accel.y - mu * minv * normal.y;
+            vel_dot.z = accel.z - mu * minv * normal.z;
 
-            residual.x = vel.x - next_vel.x + Scalar(1.0/2.0)*deltaT*vel_dot.x;
-            residual.y = vel.y - next_vel.y + Scalar(1.0/2.0)*deltaT*vel_dot.y;
-            residual.z = vel.z - next_vel.z + Scalar(1.0/2.0)*deltaT*vel_dot.z;
-            resid = dot(normal, next_vel)*minv;
+            residual.x = vel.x - next_vel.x + Scalar(1.0 / 2.0) * deltaT * vel_dot.x;
+            residual.y = vel.y - next_vel.y + Scalar(1.0 / 2.0) * deltaT * vel_dot.y;
+            residual.z = vel.z - next_vel.z + Scalar(1.0 / 2.0) * deltaT * vel_dot.z;
+            resid = dot(normal, next_vel) * minv;
 
-	    Scalar ndotr = dot(normal,residual);
-            Scalar beta = (mass*resid + ndotr)/ndotn;
-            next_vel.x = next_vel.x - normal.x*beta + residual.x;
-            next_vel.y = next_vel.y - normal.y*beta + residual.y;
-            next_vel.z = next_vel.z - normal.z*beta + residual.z;
-            mu =  mu - mass*beta*inv_alpha;
+            Scalar ndotr = dot(normal, residual);
+            Scalar beta = (mass * resid + ndotr) / ndotn;
+            next_vel.x = next_vel.x - normal.x * beta + residual.x;
+            next_vel.y = next_vel.y - normal.y * beta + residual.y;
+            next_vel.z = next_vel.z - normal.z * beta + residual.z;
+            mu = mu - mass * beta * inv_alpha;
 
-	    resid = fabs(resid);
-            Scalar vec_norm = sqrt(dot(residual,residual));
-            if ( vec_norm > resid) resid =  vec_norm;
+            resid = fabs(resid);
+            Scalar vec_norm = sqrt(dot(residual, residual));
+            if (vec_norm > resid)
+                resid = vec_norm;
 
-	    } while (resid*mass > tolerance && iteration < maxiteration );
+            } while (resid * mass > tolerance && iteration < maxiteration);
 
-
-        vel.x += (Scalar(1.0)/Scalar(2.0)) * (accel.x - mu * minv * normal.x) * deltaT;
-        vel.y += (Scalar(1.0)/Scalar(2.0)) * (accel.y - mu * minv * normal.y) * deltaT;
-        vel.z += (Scalar(1.0)/Scalar(2.0)) * (accel.z - mu * minv * normal.z) * deltaT;
+        vel.x += (Scalar(1.0) / Scalar(2.0)) * (accel.x - mu * minv * normal.x) * deltaT;
+        vel.y += (Scalar(1.0) / Scalar(2.0)) * (accel.y - mu * minv * normal.y) * deltaT;
+        vel.z += (Scalar(1.0) / Scalar(2.0)) * (accel.z - mu * minv * normal.z) * deltaT;
 
         // tally the energy transfer from the bd thermal reservoir to the particles (FLOPS: 6)
-        bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
+        bd_energy_transfer = bd_force.x * vel.x + bd_force.y * vel.y + bd_force.z * vel.z;
 
         // write out data (MEM TRANSFER: 32 bytes)
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
-
         }
 
-    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
+    Scalar* bdtally_sdata = (Scalar*)&s_data[0];
     if (tally)
         {
         // don't overwrite values in the s_gammas array with bd_energy transfer
@@ -326,8 +325,6 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
         }
     }
 
-
-
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
     \param d_accel array of particle accelerations
@@ -336,27 +333,26 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4 *d_pos,
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param rattle_langevin_args Collected arguments for gpu_rattle_langevin_step_two_kernel() and gpu_rattle_langevin_angular_step_two()
-    \param deltaT Amount of real time to step forward in one time step
-    \param D Dimensionality of the system
+    \param rattle_langevin_args Collected arguments for gpu_rattle_langevin_step_two_kernel() and
+   gpu_rattle_langevin_angular_step_two() \param deltaT Amount of real time to step forward in one
+   time step \param D Dimensionality of the system
 
     This is just a driver for gpu_rattle_langevin_step_two_kernel(), see it for details.
 */
 template<class Manifold>
-hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
-                                  Scalar4 *d_vel,
-                                  Scalar3 *d_accel,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_group_members,
-                                  unsigned int group_size,
-                                  Scalar4 *d_net_force,
-                                  const rattle_langevin_step_two_args& rattle_langevin_args,
-                                  Manifold manifold,
-                                  Scalar deltaT,
-                                  unsigned int D)
+hipError_t gpu_rattle_langevin_step_two(const Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        Scalar3* d_accel,
+                                        const Scalar* d_diameter,
+                                        const unsigned int* d_tag,
+                                        unsigned int* d_group_members,
+                                        unsigned int group_size,
+                                        Scalar4* d_net_force,
+                                        const rattle_langevin_step_two_args& rattle_langevin_args,
+                                        Manifold manifold,
+                                        Scalar deltaT,
+                                        unsigned int D)
     {
-
     // setup the grid to run the kernel
     dim3 grid(rattle_langevin_args.num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
@@ -364,34 +360,45 @@ hipError_t gpu_rattle_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_langevin_step_two_kernel<Manifold>), grid, threads, max((unsigned int)(sizeof(Scalar)*rattle_langevin_args.n_types), (unsigned int)(rattle_langevin_args.block_size*sizeof(Scalar))), 0,
-                                 d_pos,
-                                 d_vel,
-                                 d_accel,
-                                 d_diameter,
-                                 d_tag,
-                                 d_group_members,
-                                 group_size,
-                                 d_net_force,
-                                 rattle_langevin_args.d_gamma,
-                                 rattle_langevin_args.n_types,
-                                 rattle_langevin_args.use_alpha,
-                                 rattle_langevin_args.alpha,
-                                 rattle_langevin_args.timestep,
-                                 rattle_langevin_args.seed,
-                                 rattle_langevin_args.T,
-                                 rattle_langevin_args.tolerance,
-                                 rattle_langevin_args.noiseless_t,
-                                 manifold,
-                                 deltaT,
-                                 D,
-                                 rattle_langevin_args.tally,
-                                 rattle_langevin_args.d_partial_sum_bdenergy);
+    hipLaunchKernelGGL((gpu_rattle_langevin_step_two_kernel<Manifold>),
+                       grid,
+                       threads,
+                       max((unsigned int)(sizeof(Scalar) * rattle_langevin_args.n_types),
+                           (unsigned int)(rattle_langevin_args.block_size * sizeof(Scalar))),
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_diameter,
+                       d_tag,
+                       d_group_members,
+                       group_size,
+                       d_net_force,
+                       rattle_langevin_args.d_gamma,
+                       rattle_langevin_args.n_types,
+                       rattle_langevin_args.use_alpha,
+                       rattle_langevin_args.alpha,
+                       rattle_langevin_args.timestep,
+                       rattle_langevin_args.seed,
+                       rattle_langevin_args.T,
+                       rattle_langevin_args.tolerance,
+                       rattle_langevin_args.noiseless_t,
+                       manifold,
+                       deltaT,
+                       D,
+                       rattle_langevin_args.tally,
+                       rattle_langevin_args.d_partial_sum_bdenergy);
 
     // run the summation kernel
     if (rattle_langevin_args.tally)
-        hipLaunchKernelGGL((gpu_rattle_bdtally_reduce_partial_sum_kernel), dim3(grid1), dim3(threads1), rattle_langevin_args.block_size*sizeof(Scalar), 0, &rattle_langevin_args.d_sum_bdenergy[0],
-                                                 rattle_langevin_args.d_partial_sum_bdenergy, rattle_langevin_args.num_blocks);
+        hipLaunchKernelGGL((gpu_rattle_bdtally_reduce_partial_sum_kernel),
+                           dim3(grid1),
+                           dim3(threads1),
+                           rattle_langevin_args.block_size * sizeof(Scalar),
+                           0,
+                           &rattle_langevin_args.d_sum_bdenergy[0],
+                           rattle_langevin_args.d_partial_sum_bdenergy,
+                           rattle_langevin_args.num_blocks);
 
     return hipSuccess;
     }

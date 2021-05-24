@@ -13,8 +13,7 @@ def typedict():
 def test_instantiation(typedict):
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=typedict
-                         )
+                         param_dict=typedict)
 
 
 @fixture(scope='function')

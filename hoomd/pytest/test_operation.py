@@ -16,10 +16,9 @@ def identity(x):
 def typeparam():
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=TypeParameterDict(
-                             foo=1, bar=identity,
-                             len_keys=1)
-                         )
+                         param_dict=TypeParameterDict(foo=1,
+                                                      bar=identity,
+                                                      len_keys=1))
 
 
 @fixture(scope='function')
@@ -42,9 +41,11 @@ def test_adding_params(base_op):
 
 
 def test_extending_typeparams(base_op):
-    type_params = [TypeParameter('1', 'fake1', dict(a=1)),
-                   TypeParameter('2', 'fake2', dict(a=2)),
-                   TypeParameter('3', 'fake3', dict(a=3))]
+    type_params = [
+        TypeParameter('1', 'fake1', dict(a=1)),
+        TypeParameter('2', 'fake2', dict(a=2)),
+        TypeParameter('3', 'fake3', dict(a=3))
+    ]
     base_op._extend_typeparam(type_params)
     keys = set(base_op._typeparam_dict.keys())
     expected_keys = set(['1', '2', '3'])
@@ -95,7 +96,7 @@ def test_adding(full_op):
 
 
 def test_apply_typeparam_dict(full_op):
-    '''Tests _apply_typeparam_dict and by necessity getattr.'''
+    """Tests _apply_typeparam_dict and by necessity getattr."""
     full_op.type_param['A'] = dict(bar='world')
     full_op.type_param['B'] = dict(bar='hello')
     cpp_obj = DummyCppObj()
@@ -107,7 +108,7 @@ def test_apply_typeparam_dict(full_op):
 
 
 def test_apply_param_dict(full_op):
-    '''Tests _apply_param_dict and by necessity getattr.'''
+    """Tests _apply_param_dict and by necessity getattr."""
     full_op = test_apply_typeparam_dict(full_op)
     full_op._apply_param_dict()
     assert full_op._cpp_obj.param1 == 1

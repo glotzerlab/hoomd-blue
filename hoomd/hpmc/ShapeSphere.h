@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
-#include "hoomd/VectorMath.h"
 #include "Moves.h"
 #include "hoomd/AABB.h"
-#include "hoomd/hpmc/OBB.h"
+#include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/HPMCMiscFunctions.h"
+#include "hoomd/hpmc/OBB.h"
 
 #include "Moves.h"
 
@@ -30,8 +30,7 @@
 #define SMALL 1e-5
 
 namespace hpmc
-{
-
+    {
 /** HPMC shape parameter base class
 
     HPMC shape parameters must be aligned on 32-byte boundaries for AVX acceleration. The ShapeParam
@@ -47,7 +46,7 @@ struct ShapeParams
     /// Custom new operator
     static void* operator new(std::size_t sz)
         {
-        void *ret = 0;
+        void* ret = 0;
         int retval = posix_memalign(&ret, 32, sz);
         if (retval != 0)
             {
@@ -60,7 +59,7 @@ struct ShapeParams
     /// Custom new operator for arrays
     static void* operator new[](std::size_t sz)
         {
-        void *ret = 0;
+        void* ret = 0;
         int retval = posix_memalign(&ret, 32, sz);
         if (retval != 0)
             {
@@ -71,13 +70,13 @@ struct ShapeParams
         }
 
     /// Custom delete operator
-    static void operator delete(void *ptr)
+    static void operator delete(void* ptr)
         {
         free(ptr);
         }
 
     /// Custom delete operator for arrays
-    static void operator delete[](void *ptr)
+    static void operator delete[](void* ptr)
         {
         free(ptr);
         }
@@ -87,7 +86,7 @@ struct ShapeParams
         @param ptr Pointer to load data to (will be incremented)
         @param available_bytes Size of remaining shared memory allocation
      */
-    DEVICE void load_shared(char *& ptr, unsigned int &available_bytes)
+    DEVICE void load_shared(char*& ptr, unsigned int& available_bytes)
         {
         // default implementation does nothing
         }
@@ -97,13 +96,11 @@ struct ShapeParams
         @param ptr Pointer to increment
         @param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void allocate_shared(char *& ptr, unsigned int &available_bytes) const
+    HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const
         {
         // default implementation does nothing
         }
-
     };
-
 
 /** Parameters that define a sphere shape
 
@@ -122,20 +119,18 @@ struct SphereParams : ShapeParams
     /// True when the shape may be oriented
     bool isOriented;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     /// Set CUDA memory hints
-    void set_memory_hint() const
-        {
-        }
-    #endif
+    void set_memory_hint() const { }
+#endif
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
 
     /// Default constructor
     SphereParams() { }
 
     /// Construct from a Python dictionary
-    SphereParams(pybind11::dict v, bool managed=false)
+    SphereParams(pybind11::dict v, bool managed = false)
         {
         ignore = v["ignore_statistics"].cast<bool>();
         radius = v["diameter"].cast<OverlapReal>() / OverlapReal(2.0);
@@ -146,13 +141,13 @@ struct SphereParams : ShapeParams
     pybind11::dict asDict()
         {
         pybind11::dict v;
-        v["diameter"] =  radius * OverlapReal(2.0);
+        v["diameter"] = radius * OverlapReal(2.0);
         v["orientable"] = isOriented;
         v["ignore_statistics"] = ignore;
         return v;
         }
 
-    #endif
+#endif
     } __attribute__((aligned(32)));
 
 /** Sphere shape
@@ -177,11 +172,15 @@ struct ShapeSphere
     typedef SphereParams param_type;
 
     /// Temporary storage for depletant insertion
-    typedef struct {} depletion_storage_type;
+    typedef struct
+        {
+        } depletion_storage_type;
 
     /// Construct a shape at a given orientation
     DEVICE ShapeSphere(const quat<Scalar>& _orientation, const param_type& _params)
-        : orientation(_orientation), params(_params) {}
+        : orientation(_orientation), params(_params)
+        {
+        }
 
     /// Check if the shape may be rotated
     DEVICE bool hasOrientation() const
@@ -190,12 +189,15 @@ struct ShapeSphere
         }
 
     /// Check if this shape should be ignored in the move statistics
-    DEVICE bool ignoreStatistics() const { return params.ignore; }
+    DEVICE bool ignoreStatistics() const
+        {
+        return params.ignore;
+        }
 
     /// Get the circumsphere diameter of the shape
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
-        return params.radius*OverlapReal(2.0);
+        return params.radius * OverlapReal(2.0);
         }
 
     /// Get the in-sphere radius of the shape
@@ -216,8 +218,12 @@ struct ShapeSphere
         return detail::OBB(pos, params.radius);
         }
 
-    /// Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return false; }
+    /// Returns true if this shape splits the overlap check over several threads of a warp using
+    /// threadIdx.x
+    HOSTDEVICE static bool isParallel()
+        {
+        return false;
+        }
 
     /// Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
@@ -225,10 +231,10 @@ struct ShapeSphere
         return true;
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
+    quat<Scalar> orientation; //!< Orientation of the sphere (unused)
 
     /// Sphere parameters
-    const SphereParams &params;
+    const SphereParams& params;
     };
 
 //! Check if circumspheres overlap
@@ -240,13 +246,14 @@ struct ShapeSphere
     \ingroup shape
 */
 template<class ShapeA, class ShapeB>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB &b)
+DEVICE inline bool
+check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB& b)
     {
     vec2<OverlapReal> dr(OverlapReal(r_ab.x), OverlapReal(r_ab.y));
 
-    OverlapReal rsq = dot(dr,dr);
+    OverlapReal rsq = dot(dr, dr);
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+    return (rsq * OverlapReal(4.0) <= DaDb * DaDb);
     }
 
 //! Define the general overlap function
@@ -257,8 +264,9 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     \param err Incremented if there is an error condition. Left unchanged otherwise.
     \returns true when *a* and *b* overlap, and false when they are disjoint
 */
-template <class ShapeA, class ShapeB>
-DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const ShapeB& b, unsigned int& err)
+template<class ShapeA, class ShapeB>
+DEVICE inline bool
+test_overlap(const vec3<Scalar>& r_ab, const ShapeA& a, const ShapeB& b, unsigned int& err)
     {
     // default implementation returns true, will make it obvious if something calls this
     return true;
@@ -273,16 +281,18 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab, const ShapeA &a, const
 
     \ingroup shape
 */
-template <>
+template<>
 DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_ab,
-    const ShapeSphere& a, const ShapeSphere& b, unsigned int& err)
+                                                          const ShapeSphere& a,
+                                                          const ShapeSphere& b,
+                                                          unsigned int& err)
     {
     vec3<OverlapReal> dr(r_ab);
 
-    OverlapReal rsq = dot(dr,dr);
+    OverlapReal rsq = dot(dr, dr);
 
     OverlapReal RaRb = a.params.radius + b.params.radius;
-    if (rsq < RaRb*RaRb)
+    if (rsq < RaRb * RaRb)
         {
         return true;
         }
@@ -293,21 +303,27 @@ DEVICE inline bool test_overlap<ShapeSphere, ShapeSphere>(const vec3<Scalar>& r_
     }
 
 namespace detail
-{
-
+    {
 //! APIs for depletant sampling
-struct SamplingMethod {
+struct SamplingMethod
+    {
     //! This API is used for fast sampling without the need for temporary storage
-    enum enumNoStorage { no_storage = 0 };
+    enum enumNoStorage
+        {
+        no_storage = 0
+        };
 
     //! This API is used for accurate sampling, requiring temporary storage
     /* Any hit returned by excludedVolumeOverlap through this API *must* also
        also be a hit for the fast API
      */
-    enum enumAccurate { accurate = 0 };
+    enum enumAccurate
+        {
+        accurate = 0
+        };
     };
 
-};
+    }; // namespace detail
 
 //! Allocate memory for temporary storage in depletant simulations
 /*! \param shape_a the first shape
@@ -320,9 +336,12 @@ struct SamplingMethod {
     temporary storage
  */
 template<typename Method, class Shape>
-DEVICE inline unsigned int allocateDepletionTemporaryStorage(
-    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const Method)
+DEVICE inline unsigned int allocateDepletionTemporaryStorage(const Shape& shape_a,
+                                                             const Shape& shape_b,
+                                                             const vec3<Scalar>& r_ab,
+                                                             OverlapReal r,
+                                                             unsigned int dim,
+                                                             const Method)
     {
     // default implementation doesn't require temporary storage
     return 0;
@@ -343,10 +362,15 @@ DEVICE inline unsigned int allocateDepletionTemporaryStorage(
     \returns the number of Shape::depletion_storage_type elements initialized for temporary storage
  */
 template<typename Method, class Shape>
-DEVICE inline unsigned int initializeDepletionTemporaryStorage(
-    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, typename Shape::depletion_storage_type *storage,
-    const OverlapReal V_sample, const Method)
+DEVICE inline unsigned int
+initializeDepletionTemporaryStorage(const Shape& shape_a,
+                                    const Shape& shape_b,
+                                    const vec3<Scalar>& r_ab,
+                                    OverlapReal r,
+                                    unsigned int dim,
+                                    typename Shape::depletion_storage_type* storage,
+                                    const OverlapReal V_sample,
+                                    const Method)
     {
     // default implementation doesn't require temporary storage
     return 0;
@@ -362,38 +386,50 @@ DEVICE inline unsigned int initializeDepletionTemporaryStorage(
     returns true if the covering of the intersection is non-empty
  */
 template<typename Method, class Shape>
-DEVICE inline bool excludedVolumeOverlap(
-    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const Method)
+DEVICE inline bool excludedVolumeOverlap(const Shape& shape_a,
+                                         const Shape& shape_b,
+                                         const vec3<Scalar>& r_ab,
+                                         OverlapReal r,
+                                         unsigned int dim,
+                                         const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
-        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
-        return (dot(r_ab,r_ab) <= (Ra+Rb)*(Ra+Rb));
+        return (dot(r_ab, r_ab) <= (Ra + Rb) * (Ra + Rb));
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
         vec3<Scalar> upper_a = aabb_a.getUpper();
-        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
-        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+        lower_a.x -= r;
+        lower_a.y -= r;
+        lower_a.z -= r;
+        upper_a.x += r;
+        upper_a.y += r;
+        upper_a.z += r;
 
         vec3<Scalar> lower_b = aabb_b.getLower();
         vec3<Scalar> upper_b = aabb_b.getUpper();
-        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
-        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+        lower_b.x -= r;
+        lower_b.y -= r;
+        lower_b.z -= r;
+        upper_b.x += r;
+        upper_b.y += r;
+        upper_b.z += r;
 
-        return overlap(aabb_a,aabb_b);
+        return overlap(aabb_a, aabb_b);
         }
     }
 
-//! Uniform rejection sampling in a volume covering the intersection of two shapes, defined by their Minkowski sums with a sphere of radius r
+//! Uniform rejection sampling in a volume covering the intersection of two shapes, defined by their
+//! Minkowski sums with a sphere of radius r
 /*! \param rng random number generator
     \param shape_a the first shape
     \param shape_b the second shape
@@ -408,22 +444,28 @@ DEVICE inline bool excludedVolumeOverlap(
     \returns true if the point was not rejected
  */
 template<typename Method, class RNG, class Shape>
-DEVICE inline bool sampleInExcludedVolumeIntersection(
-    RNG& rng, const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, vec3<OverlapReal>& p, unsigned int dim,
-    unsigned int storage_sz, const typename Shape::depletion_storage_type *storage,
-    const Method)
+DEVICE inline bool
+sampleInExcludedVolumeIntersection(RNG& rng,
+                                   const Shape& shape_a,
+                                   const Shape& shape_b,
+                                   const vec3<Scalar>& r_ab,
+                                   OverlapReal r,
+                                   vec3<OverlapReal>& p,
+                                   unsigned int dim,
+                                   unsigned int storage_sz,
+                                   const typename Shape::depletion_storage_type* storage,
+                                   const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
-        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
-        if (dot(r_ab,r_ab) > (Ra+Rb)*(Ra+Rb))
+        if (dot(r_ab, r_ab) > (Ra + Rb) * (Ra + Rb))
             return false;
 
         vec3<OverlapReal> dr(r_ab);
-        OverlapReal d = fast::sqrt(dot(dr,dr));
+        OverlapReal d = fast::sqrt(dot(dr, dr));
 
         // whether the intersection is the entire (smaller) sphere
         bool sphere = (d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0));
@@ -431,21 +473,21 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
         if (!sphere)
             {
             // heights spherical caps that constitute the intersection volume
-            OverlapReal ha = (Rb*Rb - (d-Ra)*(d-Ra))/(OverlapReal(2.0)*d);
-            OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
+            OverlapReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (OverlapReal(2.0) * d);
+            OverlapReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (OverlapReal(2.0) * d);
 
             // volumes of spherical caps
-            OverlapReal Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
-            OverlapReal Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+            OverlapReal Vcap_a = OverlapReal(M_PI / 3.0) * ha * ha * (OverlapReal(3.0) * Ra - ha);
+            OverlapReal Vcap_b = OverlapReal(M_PI / 3.0) * hb * hb * (OverlapReal(3.0) * Rb - hb);
 
             // choose one of the two caps randomly, with a weight proportional to their volume
             hoomd::UniformDistribution<OverlapReal> u;
             OverlapReal s = u(rng);
-            bool cap_a = s < Vcap_a/(Vcap_a+Vcap_b);
+            bool cap_a = s < Vcap_a / (Vcap_a + Vcap_b);
 
             // generate a depletant position in the spherical cap
             if (cap_a)
-                p = generatePositionInSphericalCap(rng, vec3<Scalar>(0.0,0.0,0.0), Ra, ha, dr);
+                p = generatePositionInSphericalCap(rng, vec3<Scalar>(0.0, 0.0, 0.0), Ra, ha, dr);
             else
                 p = generatePositionInSphericalCap(rng, dr, Rb, hb, -dr);
             }
@@ -454,7 +496,7 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
             // generate a random position in the smaller sphere
             if (Ra < Rb)
                 {
-                p = generatePositionInSphere(rng, vec3<Scalar>(0.0,0.0,0.0), Ra);
+                p = generatePositionInSphere(rng, vec3<Scalar>(0.0, 0.0, 0.0), Ra);
                 }
             else
                 {
@@ -467,7 +509,7 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         if (!overlap(aabb_a, aabb_b))
@@ -476,13 +518,21 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
         vec3<Scalar> upper_a = aabb_a.getUpper();
-        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
-        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+        lower_a.x -= r;
+        lower_a.y -= r;
+        lower_a.z -= r;
+        upper_a.x += r;
+        upper_a.y += r;
+        upper_a.z += r;
 
         vec3<Scalar> lower_b = aabb_b.getLower();
         vec3<Scalar> upper_b = aabb_b.getUpper();
-        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
-        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+        lower_b.x -= r;
+        lower_b.y -= r;
+        lower_b.z -= r;
+        upper_b.x += r;
+        upper_b.y += r;
+        upper_b.z += r;
 
         // we already know the AABBs are overlapping, compute their intersection
         vec3<Scalar> intersect_lower, intersect_upper;
@@ -514,35 +564,39 @@ DEVICE inline bool sampleInExcludedVolumeIntersection(
     returns the volume of the intersection
  */
 template<typename Method, class Shape>
-DEVICE inline OverlapReal getSamplingVolumeIntersection(
-    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, unsigned int dim, const Method)
+DEVICE inline OverlapReal getSamplingVolumeIntersection(const Shape& shape_a,
+                                                        const Shape& shape_b,
+                                                        const vec3<Scalar>& r_ab,
+                                                        OverlapReal r,
+                                                        unsigned int dim,
+                                                        const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
-        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
 
-        if (dot(r_ab,r_ab) > (Ra+Rb)*(Ra+Rb))
+        if (dot(r_ab, r_ab) > (Ra + Rb) * (Ra + Rb))
             return OverlapReal(0.0);
 
         vec3<OverlapReal> dr(r_ab);
-        OverlapReal d = fast::sqrt(dot(dr,dr));
+        OverlapReal d = fast::sqrt(dot(dr, dr));
 
         if ((d + Ra - Rb < OverlapReal(0.0)) || (d + Rb - Ra < OverlapReal(0.0)))
             {
             // the intersection is the entire (smaller) sphere
-            return (Ra < Rb) ? OverlapReal(M_PI*4.0/3.0)*Ra*Ra*Ra : OverlapReal(M_PI*4.0/3.0)*Rb*Rb*Rb;
+            return (Ra < Rb) ? OverlapReal(M_PI * 4.0 / 3.0) * Ra * Ra * Ra
+                             : OverlapReal(M_PI * 4.0 / 3.0) * Rb * Rb * Rb;
             }
         else
             {
             // heights spherical caps that constitute the intersection volume
-            OverlapReal ha = (Rb*Rb - (d-Ra)*(d-Ra))/(OverlapReal(2.0)*d);
-            OverlapReal hb = (Ra*Ra - (d-Rb)*(d-Rb))/(OverlapReal(2.0)*d);
+            OverlapReal ha = (Rb * Rb - (d - Ra) * (d - Ra)) / (OverlapReal(2.0) * d);
+            OverlapReal hb = (Ra * Ra - (d - Rb) * (d - Rb)) / (OverlapReal(2.0) * d);
 
             // volumes of spherical caps
-            OverlapReal Vcap_a = OverlapReal(M_PI/3.0)*ha*ha*(OverlapReal(3.0)*Ra-ha);
-            OverlapReal Vcap_b = OverlapReal(M_PI/3.0)*hb*hb*(OverlapReal(3.0)*Rb-hb);
+            OverlapReal Vcap_a = OverlapReal(M_PI / 3.0) * ha * ha * (OverlapReal(3.0) * Ra - ha);
+            OverlapReal Vcap_b = OverlapReal(M_PI / 3.0) * hb * hb * (OverlapReal(3.0) * Rb - hb);
 
             // volume of intersection
             return Vcap_a + Vcap_b;
@@ -550,7 +604,7 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         if (!overlap(aabb_a, aabb_b))
@@ -559,13 +613,21 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
         vec3<Scalar> upper_a = aabb_a.getUpper();
-        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
-        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+        lower_a.x -= r;
+        lower_a.y -= r;
+        lower_a.z -= r;
+        upper_a.x += r;
+        upper_a.y += r;
+        upper_a.z += r;
 
         vec3<Scalar> lower_b = aabb_b.getLower();
         vec3<Scalar> upper_b = aabb_b.getUpper();
-        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
-        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+        lower_b.x -= r;
+        lower_b.y -= r;
+        lower_b.z -= r;
+        upper_b.x += r;
+        upper_b.y += r;
+        upper_b.z += r;
 
         // we already know the AABBs are overlapping, compute their intersection
         vec3<Scalar> intersect_lower, intersect_upper;
@@ -577,10 +639,11 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
         intersect_upper.z = detail::min(upper_a.z, upper_b.z);
 
         // intersection AABB volume
-        Scalar V =  (intersect_upper.x-intersect_lower.x)*(intersect_upper.y-intersect_lower.y);
-        if(dim == 3)
-            V *= intersect_upper.z-intersect_lower.z;
-        return (OverlapReal) V;
+        Scalar V
+            = (intersect_upper.x - intersect_lower.x) * (intersect_upper.y - intersect_lower.y);
+        if (dim == 3)
+            V *= intersect_upper.z - intersect_lower.z;
+        return (OverlapReal)V;
         }
     }
 
@@ -592,44 +655,57 @@ DEVICE inline OverlapReal getSamplingVolumeIntersection(
     \param p the point to test (relative to the origin == shape_a)
     \param dim the spatial dimension
 
-    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is invalid
+    It is assumed that the circumspheres of the shapes are overlapping, otherwise the result is
+   invalid
 
     The point p is in the world frame, with shape a at the origin
 
     returns true if the point was not rejected
  */
 template<typename Method, class Shape>
-DEVICE inline bool isPointInExcludedVolumeIntersection(
-    const Shape& shape_a, const Shape& shape_b, const vec3<Scalar>& r_ab,
-    OverlapReal r, const vec3<OverlapReal>& p, unsigned int dim, const Method)
+DEVICE inline bool isPointInExcludedVolumeIntersection(const Shape& shape_a,
+                                                       const Shape& shape_b,
+                                                       const vec3<Scalar>& r_ab,
+                                                       OverlapReal r,
+                                                       const vec3<OverlapReal>& p,
+                                                       unsigned int dim,
+                                                       const Method)
     {
     if (dim == 3)
         {
-        OverlapReal Ra = OverlapReal(0.5)*shape_a.getCircumsphereDiameter()+r;
-        OverlapReal Rb = OverlapReal(0.5)*shape_b.getCircumsphereDiameter()+r;
+        OverlapReal Ra = OverlapReal(0.5) * shape_a.getCircumsphereDiameter() + r;
+        OverlapReal Rb = OverlapReal(0.5) * shape_b.getCircumsphereDiameter() + r;
         vec3<OverlapReal> dr(r_ab);
 
-        bool is_pt_in_sphere_a = dot(p,p) <= Ra*Ra;
-        bool is_pt_in_sphere_b = dot(p-dr,p-dr) <= Rb*Rb;
+        bool is_pt_in_sphere_a = dot(p, p) <= Ra * Ra;
+        bool is_pt_in_sphere_b = dot(p - dr, p - dr) <= Rb * Rb;
 
         // point has to be in the intersection of both spheres
         return is_pt_in_sphere_a && is_pt_in_sphere_b;
         }
     else
         {
-        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0,0.0,0.0));
+        detail::AABB aabb_a = shape_a.getAABB(vec3<Scalar>(0.0, 0.0, 0.0));
         detail::AABB aabb_b = shape_b.getAABB(r_ab);
 
         // extend AABBs by the excluded volume radius
         vec3<Scalar> lower_a = aabb_a.getLower();
         vec3<Scalar> upper_a = aabb_a.getUpper();
-        lower_a.x -= r; lower_a.y -= r; lower_a.z -= r;
-        upper_a.x += r; upper_a.y += r; upper_a.z += r;
+        lower_a.x -= r;
+        lower_a.y -= r;
+        lower_a.z -= r;
+        upper_a.x += r;
+        upper_a.y += r;
+        upper_a.z += r;
 
         vec3<Scalar> lower_b = aabb_b.getLower();
         vec3<Scalar> upper_b = aabb_b.getUpper();
-        lower_b.x -= r; lower_b.y -= r; lower_b.z -= r;
-        upper_b.x += r; upper_b.y += r; upper_b.z += r;
+        lower_b.x -= r;
+        lower_b.y -= r;
+        lower_b.z -= r;
+        upper_b.x += r;
+        upper_b.y += r;
+        upper_b.z += r;
 
         // we already know the AABBs are overlapping, compute their intersection
         vec3<Scalar> intersect_lower, intersect_upper;
@@ -642,31 +718,29 @@ DEVICE inline bool isPointInExcludedVolumeIntersection(
 
         detail::AABB aabb_intersect(intersect_lower, intersect_upper);
 
-        return intersect_lower.x <= p.x && p.x <= intersect_upper.x &&
-               intersect_lower.y <= p.y && p.y <= intersect_upper.y &&
-               ((dim == 2) || (intersect_lower.z <= p.z && p.z <= intersect_upper.z));
+        return intersect_lower.x <= p.x && p.x <= intersect_upper.x && intersect_lower.y <= p.y
+               && p.y <= intersect_upper.y
+               && ((dim == 2) || (intersect_lower.z <= p.z && p.z <= intersect_upper.z));
         }
     }
 
 #ifndef __HIPCC__
-template<class Shape>
-std::string getShapeSpec(const Shape& shape)
+template<class Shape> std::string getShapeSpec(const Shape& shape)
     {
     // default implementation
     throw std::runtime_error("Shape definition not supported for this shape class.");
     }
 
-template<>
-inline std::string getShapeSpec(const ShapeSphere& sphere)
+template<> inline std::string getShapeSpec(const ShapeSphere& sphere)
     {
     std::ostringstream shapedef;
-    shapedef << "{\"type\": \"Sphere\", \"diameter\": " << sphere.params.radius*OverlapReal(2.0) << "}";
+    shapedef << "{\"type\": \"Sphere\", \"diameter\": " << sphere.params.radius * OverlapReal(2.0)
+             << "}";
     return shapedef.str();
     }
 #endif
 
-
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE

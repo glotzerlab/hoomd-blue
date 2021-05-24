@@ -1,0 +1,75 @@
+ci:
+  skip: [clang-format]
+
+exclude: (?:^hoomd/extern/)
+
+repos:
+- repo: local
+  hooks:
+  - id: make_workflows
+    name: make_workflows
+    language: python
+    entry: python3 .github/workflows/make_workflows.py
+    pass_filenames: false
+    always_run: true
+    additional_dependencies: [jinja2==2.11.3, pyyaml==5.4.1]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 'v3.4.0'
+  hooks:
+  - id: end-of-file-fixer
+    exclude_types: [svg]
+  - id: trailing-whitespace
+    exclude_types: [svg]
+  - id: check-json
+  - id: check-yaml
+    exclude: (?:^.github/workflows/templates) # templates are not properly formatted yaml
+  - id: check-case-conflict
+- repo: https://github.com/google/yapf
+  rev: 'v0.31.0'
+  hooks:
+  - id: yapf
+- repo: https://gitlab.com/pycqa/flake8
+  rev: '3.9.1'
+  hooks:
+  - id: flake8
+    args:
+    - --show-source
+    additional_dependencies:
+    - pep8-naming==0.11.1
+    - pydocstyle==6.1.1
+    - flake8-docstrings==1.6.0
+    - flake8-rst-docstrings==0.2.3
+    # Exclude components not yet ported to hoomd v3
+    # TODO: Remove these exclusions as components are ported
+    # These also need to be removed in setup.cfg
+    exclude: |
+      (?x)(
+        ^hoomd/md/charge.py|
+        ^hoomd/md/wall.py|
+        ^hoomd/md/update.py|
+        ^hoomd/md/impropers.py|
+        ^hoomd/md/external.py|
+        ^hoomd/md/constrain.py|
+        ^hoomd/hpmc/analyze.py|
+        ^hoomd/hpmc/field.py|
+        ^hoomd/extern/|
+        ^hoomd/mpcd/|
+        ^hoomd/dem/|
+        ^hoomd/jit/|
+        ^hoomd/metal/|
+        ^hoomd/minimize/|
+        ^doc/dev/
+      )
+- repo: https://github.com/glotzerlab/pre-commit-clang-format
+  rev: v1.1.0
+  hooks:
+  - id: clang-format
+    stages: [manual]
+    exclude: |
+      (?x)(
+        ^CMake/|
+        ^hoomd/extern/|
+        ^hoomd/hpmc/UpdaterClusters\.h|
+        ^hoomd/hpmc/IntegratorHPMCMono\.h|
+        ^doc/dev/
+      )

@@ -15,16 +15,15 @@ using namespace std;
 */
 
 namespace hpmc
-{
-
+    {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
     : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
       m_past_first_run(false)
-      #ifdef ENABLE_MPI
-      ,m_communicator_ghost_width_connected(false),
-      m_communicator_flags_connected(false)
-      #endif
+#ifdef ENABLE_MPI
+      ,
+      m_communicator_ghost_width_connected(false), m_communicator_flags_connected(false)
+#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
@@ -39,15 +38,16 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
 
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::overwrite);
-    //set default values
-    for(unsigned int typ=0; typ < this->m_pdata->getNTypes(); typ++)
-      {
-      h_d.data[typ]=0.1;
-      h_a.data[typ]=0.1;
-      }
+    // set default values
+    for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+        {
+        h_d.data[typ] = 0.1;
+        h_a.data[typ] = 0.1;
+        }
 
     // Connect to number of types change signal
-    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(
+        this);
 
     resetStats();
     }
@@ -55,16 +55,18 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-    m_pdata->getNumTypesChangeSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal()
+        .disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     if (m_communicator_ghost_width_connected)
-        m_comm->getGhostLayerWidthRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+        m_comm->getGhostLayerWidthRequestSignal()
+            .disconnect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
     if (m_communicator_flags_connected)
-        m_comm->getCommFlagsRequestSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-    #endif
+        m_comm->getCommFlagsRequestSignal()
+            .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+#endif
     }
-
 
 void IntegratorHPMC::slotNumTypesChange()
     {
@@ -77,22 +79,24 @@ void IntegratorHPMC::slotNumTypesChange()
     m_a.resize(ntypes);
     m_d.resize(ntypes);
 
-    //set default values for newly added types
+    // set default values for newly added types
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    for(unsigned int typ=old_ntypes; typ < ntypes; typ++)
+    for (unsigned int typ = old_ntypes; typ < ntypes; typ++)
         {
-        h_d.data[typ]=0.1;
-        h_a.data[typ]=0.1;
+        h_d.data[typ] = 0.1;
+        h_a.data[typ] = 0.1;
         }
     }
 
 /*! \returns True if the particle orientations are normalized
-*/
+ */
 bool IntegratorHPMC::checkParticleOrientations()
     {
     // get the orientations data array
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     bool result = true;
 
@@ -102,17 +106,24 @@ bool IntegratorHPMC::checkParticleOrientations()
         quat<Scalar> o(h_orientation.data[i]);
         if (fabs(Scalar(1.0) - norm2(o)) > 1e-3)
             {
-            m_exec_conf->msg->notice(2) << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << endl;
+            m_exec_conf->msg->notice(2)
+                << "Particle " << h_tag.data[i] << " has an unnormalized orientation" << endl;
             result = false;
             }
         }
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     unsigned int result_int = (unsigned int)result;
     unsigned int result_reduced;
-    MPI_Reduce(&result_int, &result_reduced, 1, MPI_UNSIGNED, MPI_LOR, 0, m_exec_conf->getMPICommunicator());
+    MPI_Reduce(&result_int,
+               &result_reduced,
+               1,
+               MPI_UNSIGNED,
+               MPI_LOR,
+               0,
+               m_exec_conf->getMPICommunicator());
     result = bool(result_reduced);
-    #endif
+#endif
 
     return result;
     }
@@ -138,7 +149,9 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     // Use lexical scope block to make sure ArrayHandles get cleaned up
         {
         // Get particle positions
-        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
 
         // move the particles to be inside the new box
         for (unsigned int i = 0; i < N; i++)
@@ -165,16 +178,19 @@ bool IntegratorHPMC::attemptBoxResize(uint64_t timestep, const BoxDim& new_box)
     return !this->countOverlaps(true);
     }
 
-/*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
-    \return The current state of the acceptance counters
+/*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the
+   last executed step \return The current state of the acceptance counters
 
-    IntegratorHPMC maintains a count of the number of accepted and rejected moves since instantiation. getCounters()
-    provides the current value. The parameter *mode* controls whether the returned counts are absolute, relative
-    to the start of the run, or relative to the start of the last executed step.
+    IntegratorHPMC maintains a count of the number of accepted and rejected moves since
+   instantiation. getCounters() provides the current value. The parameter *mode* controls whether
+   the returned counts are absolute, relative to the start of the run, or relative to the start of
+   the last executed step.
 */
 hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     {
-    ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
+    ArrayHandle<hpmc_counters_t> h_counters(m_count_total,
+                                            access_location::host,
+                                            access_mode::read);
     hpmc_counters_t result;
 
     if (mode == 0)
@@ -188,12 +204,42 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     if (m_comm)
         {
         // MPI Reduction to total result values on all nodes.
-        MPI_Allreduce(MPI_IN_PLACE, &result.translate_accept_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.translate_reject_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.rotate_accept_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.rotate_reject_count, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_checks, 1, MPI_LONG_LONG_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-        MPI_Allreduce(MPI_IN_PLACE, &result.overlap_err_count, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.translate_accept_count,
+                      1,
+                      MPI_LONG_LONG_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.translate_reject_count,
+                      1,
+                      MPI_LONG_LONG_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.rotate_accept_count,
+                      1,
+                      MPI_LONG_LONG_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.rotate_reject_count,
+                      1,
+                      MPI_LONG_LONG_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.overlap_checks,
+                      1,
+                      MPI_LONG_LONG_INT,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE,
+                      &result.overlap_err_count,
+                      1,
+                      MPI_UNSIGNED,
+                      MPI_SUM,
+                      m_exec_conf->getMPICommunicator());
         }
 #endif
     return result;
@@ -201,8 +247,8 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
 
 void export_IntegratorHPMC(py::module& m)
     {
-    py::class_<IntegratorHPMC, Integrator, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC")
-        .def(py::init< std::shared_ptr<SystemDefinition>>())
+    py::class_<IntegratorHPMC, Integrator, std::shared_ptr<IntegratorHPMC>>(m, "IntegratorHPMC")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("setD", &IntegratorHPMC::setD)
         .def("setA", &IntegratorHPMC::setA)
         .def("setTranslationMoveProbability", &IntegratorHPMC::setTranslationMoveProbability)
@@ -219,18 +265,19 @@ void export_IntegratorHPMC(py::module& m)
         .def("communicate", &IntegratorHPMC::communicate)
         .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
         .def("disablePatchEnergyLogOnly", &IntegratorHPMC::disablePatchEnergyLogOnly)
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         .def("setCommunicator", &IntegratorHPMC::setCommunicator)
-        #endif
+#endif
         .def_property("nselect", &IntegratorHPMC::getNSelect, &IntegratorHPMC::setNSelect)
-        .def_property("translation_move_probability", &IntegratorHPMC::getTranslationMoveProbability, &IntegratorHPMC::setTranslationMoveProbability)
-        ;
+        .def_property("translation_move_probability",
+                      &IntegratorHPMC::getTranslationMoveProbability,
+                      &IntegratorHPMC::setTranslationMoveProbability);
 
-    py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
+    py::class_<hpmc_counters_t>(m, "hpmc_counters_t")
         .def_readonly("overlap_checks", &hpmc_counters_t::overlap_checks)
         .def_readonly("overlap_errors", &hpmc_counters_t::overlap_err_count)
         .def_property_readonly("translate", &hpmc_counters_t::getTranslateCounts)
         .def_property_readonly("rotate", &hpmc_counters_t::getRotateCounts);
     }
 
-} // end namespace hpmc
+    } // end namespace hpmc

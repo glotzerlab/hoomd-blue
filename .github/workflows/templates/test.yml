@@ -168,6 +168,8 @@ env:
 jobs:
   build:
 << job(name='Build', use_gpu_runners=False, configurations=unit_test_configurations) >>
+    env:
+      CXXFLAGS: '-Werror'
 << prepare_steps >>
 << build_steps >>
 << upload_steps >>
