@@ -13,7 +13,7 @@ Unit coversions between dervied units and base units.
      - :math:`[\sqrt{mass \cdot length^2 \cdot energy^{-1}}]`
    * - :math:`[force]`
      - :math:`[energy \cdot length^{-1}]`
-   * - :math:`[pressure`
+   * - :math:`[pressure]`
      - :math:`[energy \cdot length^{-3}]`
    * - :math:`[charge]`
      - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot energy \cdot length}]`
