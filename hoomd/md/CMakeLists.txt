@@ -78,8 +78,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
                 EvaluatorSpecialPairCoulomb.h
-                EvaluatorConstraintEllipsoid.h
-                EvaluatorConstraint.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h

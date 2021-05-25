@@ -74,8 +74,6 @@
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoHMAGPU.h"
-#include "ConstraintEllipsoidGPU.h"
-#include "ConstraintSphereGPU.h"
 #include "CosineSqAngleForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
