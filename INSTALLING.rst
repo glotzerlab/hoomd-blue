@@ -119,10 +119,9 @@ Install prerequisites
 
 **To build documentation**
 
-- Doxygen >= 1.8.5
-- Sphinx (>= 4.0 preferred)
-- sphinx_rtd_theme
-- nbsphinx
+- Doxygen >= 1.8.5 for C++ documentation (the C++ code is documented with comments, but Doxygen
+  documentation building and formatting is not regularly tested).
+- For Python see the :ref:`Build the documentation` section.
 
 Install these tools with your system or virtual environment package manager.
 HOOMD developers have had success with
@@ -296,13 +295,54 @@ These options control CUDA compilation via ``nvcc``:
 Build the documentation
 -----------------------
 
+Requirements
+
+- Sphinx (>= 4.0 preferred)
+- sphinx_rtd_theme
+- nbsphinx
+- IPython / Jupyter notebooks
+
+Install these packages using a package manager.
+This can be the same virtual environment as used for building the package.
+Here is an example creating of a virtual environment using Python's ``venv`` and ``pip`` from the
+base HOOMD directory:
+
+.. code-block:: shell
+
+    $ python3 -m venv ~/envs/hoomd-docs-env
+    $ . ~/envs/hoomd-docs-env/bin/activate
+    (hoomd-docs-env) $ python3 -m pip -r doc-requirements.txt
+
+With conda:
+
+.. code-block:: shell
+
+    $ conda create -n hoomd-docs-env python=3.9
+    $ conda activate hoomd-docs-env
+    (hoomd-docs-env) $ conda install -c conda-forge sphinx sphinx_rtd_theme nbsphinx jupyter
+
 Use sphinx to build the documentation::
 
     $ cd /path/to/hoomd-blue
     $ cd sphinx-doc
     $ make html
 
-Then, open the documentation in ``_build/html/index.html``. On some platforms, you can use this
-command to do open the file::
+Then, open the documentation in ``_build/html/index.html``. On some platforms, namely MacOS, you can
+use this command to do open the file::
 
     $ open _build/html/index.html
+
+For Linux,::
+
+    $ xdg-open _build/html/index.html
+
+should work.
+
+To open in a browser type in the address bar,::
+
+    file:///path/to/sphinx-doc/_build/html/index.html
+
+**Common Pitfalls**
+
+- If when building there are errors regarding tutorials, submodules are either not installed or not
+  updated and must be before documentation can build without error.

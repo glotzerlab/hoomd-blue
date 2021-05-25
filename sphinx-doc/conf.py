@@ -19,7 +19,8 @@ suppress_warnings = ['ref.any']
 extensions = [
     'nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary',
     'sphinx.ext.napoleon', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
-    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting'
+    'sphinx.ext.todo', 'IPython.sphinxext.ipython_console_highlighting',
+    'sphinx.ext.autosectionlabel'
 ]
 
 napoleon_include_special_with_doc = True
