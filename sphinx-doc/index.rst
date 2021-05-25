@@ -96,4 +96,4 @@ workflows all with Python code in your job.
    license
    credits
    indices
-   Units
+   units
