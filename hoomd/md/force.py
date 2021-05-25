@@ -307,7 +307,7 @@ class Active(Force):
         filter (:py:mod:`hoomd.filter`): Subset of particles on which to apply
             active forces.
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for
-            all particles in the group :math:`[time^{-1}]`.
+            all particles in the group. :math:`[time^{-1}]`
         active_force (tuple): active force vector in reference to the
             orientation of a particle. It is defined per particle type and stays
             constant during the simulation. :math:`[force]`
