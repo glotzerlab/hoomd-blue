@@ -531,9 +531,9 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
         cpp_cls_name = "RemoveDriftUpdater"
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
-        cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(sys_def, self.ref_positions)
         super()._attach()
+
 
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
