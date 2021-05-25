@@ -43,10 +43,18 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     public:
     //! Constructor
     RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<ExternalFieldLattice<Shape>> externalLattice,
-                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc)
-        : Updater(sysdef), m_externalLattice(externalLattice), m_mc(mc)
+                       pybind11:list ref_positions)
+        : Updater(sysdef)
         {
+        unsigned int N = len(ref_positions);
+        /// assert correct length
+        for (unsigned int i = 0; i < N; i++)
+            {
+            pybind11:tuple ref_positions_i = ref_positions[i];
+            m_ref_positions[i].x = ref_positions_i[0].cast<Scalar>();
+            m_ref_positions[i].y = ref_positions_i[1].cast<Scalar>();
+            m_ref_positions[i].z = ref_positions_i[2].cast<Scalar>();
+            }
         }
 
     //! Take one timestep forward
@@ -55,9 +63,6 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::readwrite);
-        ArrayHandle<Scalar3> h_r0(m_externalLattice->getReferenceLatticePositions(),
-                                  access_location::host,
-                                  access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(),
                                         access_location::host,
                                         access_mode::read);
@@ -76,7 +81,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
             int3 tmp_image = make_int3(0, 0, 0);
             box.wrap(postype_i, tmp_image);
-            vec3<Scalar> dr = postype_i - vec3<Scalar>(h_r0.data[tag_i]);
+            vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
             rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
             }
 
@@ -113,8 +118,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     protected:
-    std::shared_ptr<ExternalFieldLattice<Shape>> m_externalLattice;
-    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
+        std::std::vector<vec3<Scalar>> m_ref_positions;
     };
 
 //! Export the ExampleUpdater class to python
