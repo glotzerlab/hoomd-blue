@@ -513,9 +513,9 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
 
     def __init__(self, ref_positions, trigger=1):
         super().__init__(trigger)
-        _default_dict = dict(ref_positions=ref_positions,
+        _default_dict = dict(ref_positions=list(ref_positions),
                              trigger=trigger)
-
+        self._param_dict.update(_default_dict)
 
         # initialize base class
         # _updater.__init__(self)
