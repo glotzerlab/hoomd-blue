@@ -32,7 +32,6 @@ import math
 
 #           *** Helpers ***
 
-
 #           *** Potentials ***
 
 

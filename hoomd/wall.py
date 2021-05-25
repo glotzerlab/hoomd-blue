@@ -1,13 +1,17 @@
 from collections.abc import MutableSequence as _MutableSequence
 from hoomd.data.syncedlist import SyncedList as _SyncedList
 
+
 class _Base_Wall(object):
+
     def __init__(self):
         self._attached = False
         self._cpp_obj = None
         self._added = False
 
+
 class Sphere(_Base_Wall):
+
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r
         self.origin = origin
@@ -22,7 +26,9 @@ class Sphere(_Base_Wall):
         return "{'r': %s, 'origin': %s, 'inside': %s}" % (str(
             self.r), str(self.origin), str(self.inside))
 
+
 class Cylinder(_Base_Wall):
+
     def __init__(self,
                  r=0.0,
                  origin=(0.0, 0.0, 0.0),
@@ -44,6 +50,7 @@ class Cylinder(_Base_Wall):
 
 
 class Plane(_Base_Wall):
+
     def __init__(self,
                  origin=(0.0, 0.0, 0.0),
                  normal=(0.0, 0.0, 1.0),
@@ -65,22 +72,20 @@ class Plane(_Base_Wall):
 class _WallsMetaList(_MutableSequence):
 
     def __init__(self, attach_method, walls):
-        self.walls=[]
+        self.walls = []
         # self._walls = {
         #     Sphere:_SyncedList(Sphere,attach_method),
         #     Cylinder:_SyncedList(Cylinder,attach_method),
         #     Plane:_SyncedList(Plane,attach_method)}
-        self._walls={Sphere:[],Cylinder:[],Plane:[]}
-        self.index={Sphere:[],
-                        Cylinder:[],
-                        Plane:[]}
-                
+        self._walls = {Sphere: [], Cylinder: [], Plane: []}
+        self.index = {Sphere: [], Cylinder: [], Plane: []}
+
         for wall in walls:
             self.append(wall)
 
     def __getitem__(self, index):
         return self.walls[index]
-        
+
     def __setitem__(self, index, wall):
         old = self.walls[index]
         self.index[type(old)].remove(index)
@@ -90,28 +95,29 @@ class _WallsMetaList(_MutableSequence):
         self.walls[index] = wall
 
     def __delitem__(self, index):
-        if isinstance(index,slice):
-            for i in reversed(sorted(list(range(
-                index.start or 0,
-                index.stop or len(self),
-                index.step or 1)))):
+        if isinstance(index, slice):
+            for i in reversed(
+                    sorted(
+                        list(
+                            range(index.start or 0, index.stop or len(self),
+                                  index.step or 1)))):
                 self.__delitem__(i)
         else:
             self._walls[type(self.walls[index])].remove(self.walls[index])
             self.index[type(self.walls[index])].remove(index)
             for k in self.index.keys():
-                    self.index[k] = list(map(lambda i:i if i<index else i-1, self.index[k]))
+                self.index[k] = list(
+                    map(lambda i: i if i < index else i - 1, self.index[k]))
             del self.walls[index]
 
     def __len__(self):
         return len(self.walls)
-        
+
     def insert(self, index, wall):
         if not wall in self.walls:
             for k in self.index.keys():
-                self.index[k] = list(map(
-                    lambda i:i if i<index else i+1,
-                    self.index[k]))
+                self.index[k] = list(
+                    map(lambda i: i if i < index else i + 1, self.index[k]))
             self._walls[type(wall)].append(wall)
             self.index[type(wall)].append(index)
-            self.walls.insert(index,wall)
+            self.walls.insert(index, wall)
