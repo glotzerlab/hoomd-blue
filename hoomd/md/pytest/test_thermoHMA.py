@@ -1,7 +1,9 @@
 import hoomd
 import math
 from hoomd.logging import LoggerCategories
+from hoomd.data.attacherror import AttachedDataError
 from hoomd.conftest import logging_check
+import pytest
 
 
 def test_before_attaching():
@@ -11,8 +13,10 @@ def test_before_attaching():
     assert thermoHMA._filter == filt
     assert thermoHMA.kT == 1.0
     assert thermoHMA.harmonic_pressure == 0.0
-    assert thermoHMA.potential_energy is None
-    assert thermoHMA.pressure is None
+    with pytest.raises(AttachedDataError):
+        thermoHMA.potential_energy
+    with pytest.raises(AttachedDataError):
+        thermoHMA.pressure
 
     thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
         filt, 2.5, 0.6)
@@ -37,8 +41,10 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory):
 
     sim.operations.remove(thermoHMA)
     assert len(sim.operations.computes) == 0
-    assert thermoHMA.pressure is None
-    assert thermoHMA.potential_energy is None
+    with pytest.raises(AttachedDataError):
+        thermoHMA.potential_energy
+    with pytest.raises(AttachedDataError):
+        thermoHMA.pressure
 
 
 def test_logging(simulation_factory, two_particle_snapshot_factory):
