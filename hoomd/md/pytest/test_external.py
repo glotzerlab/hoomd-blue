@@ -1,12 +1,39 @@
 import copy as cp
+import numpy as np
 import numpy.testing as npt
 import pytest
 
 import hoomd
 
 
-def _evaluate_periodic(positions, params):
-    pass
+def _evaluate_periodic(snapshot, params):
+    box = hoomd.Box(*snapshot.configuration.box)
+    positions = snapshot.particles.position
+    A = params['A']
+    i = params['i']
+    w = params['w']
+    p = params['p']
+    a1, a2, a3 = box.lattice_vectors
+    V = np.dot(a1, np.cross(a2, a3))
+    b1 = 2 * np.pi / V * np.cross(a2, a3)
+    b2 = 2 * np.pi / V * np.cross(a3, a1)
+    b3 = 2 * np.pi / V * np.cross(a1, a2)
+    b = {0: b1, 1: b2, 2: b3}.get(i)
+    energies = A * np.tanh(1/(2*np.pi*p*w) * np.cos(p*np.dot(positions, b)))
+    forces = A / (2*np.pi*w) * np.sin(p*np.dot(positions, b))
+    forces *= 1 - (np.tanh(np.cos(p*np.dot(positions, b)) / (2 * np.pi * p * w))) **2
+    forces = np.outer(forces, b)
+    return forces, energies
+
+
+def _evaluate_electric(snapshot, params):
+    box = hoomd.Box(*snapshot.configuration.box)
+    positions = snapshot.particles.position
+    charges = snapshot.particles.charge
+    E_field = params['E']
+    energies = -charges * np.dot(positions, E_field)
+    forces = np.outer(charges, E_field)
+    return forces, energies
 
 
 def _external_params():
@@ -20,10 +47,9 @@ def _external_params():
     list_ext_params.append((hoomd.md.external.ElectricField,
                             list([dict(E=(1, 0, 0)),
                                  dict(E=(0, 2, 0)),
-                                 dict(E=(0, 0, 3)),
                                  ]
                                  ),
-                            _evaluate_periodic))
+                            _evaluate_electric))
     return list_ext_params
 
 
@@ -62,4 +88,24 @@ def test_get_set(simulation_factory, two_particle_snapshot_factory, external_par
     obj_instance.params['A'] = list_param_dicts[1]
     _assert_correct_params(obj_instance, list_param_dicts[1])
 
+def test_forces_and_energies(simulation_factory, lattice_snapshot_factory, external_params):
+    # unpack parameters
+    cls_obj, list_param_dicts, evaluator = external_params
 
+    # create class instance, get/set params when not attached
+    obj_instance = cls_obj()
+    obj_instance.params['A'] = list_param_dicts[0]
+
+    # set up simulation and run a bit
+    snap = lattice_snapshot_factory(n=2)
+    sim = simulation_factory(snap)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator.forces.append(obj_instance)
+    sim.run(10)
+
+    # test energies
+    forces = sim.operations.integrator.forces[0].forces
+    energies = sim.operations.integrator.forces[0].energies
+    F, E = evaluator(sim.state.snapshot, list_param_dicts[0])
+    np.testing.assert_allclose(F, forces)
+    np.testing.assert_allclose(E, energies)
