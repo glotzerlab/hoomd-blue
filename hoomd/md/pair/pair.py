@@ -113,8 +113,9 @@ class Pair(force.Force):
 
     .. py:attribute:: mode
         
-        *mode*, *optional*: defaults to ``none``
+        *mode*, *optional*: defaults to ``none``.
         Possible values: ``none``, ``shift``, ``xplor``
+
         Type: ``str``
     """
 
@@ -334,6 +335,7 @@ class SLJ(Pair):
     `SLJ` specifies that a shifted Lennard-Jones type pair potential
     should be applied between every non-excluded particle pair in the
     simulation.
+
     .. math::
         :nowrap:
 
@@ -494,8 +496,9 @@ class Ewald(Pair):
 
     The Ewald potential is designed to be used in conjunction with PPPM.
 
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use the `params` dictionary to set
+    See `Pair` for details on how forces are calculated. Note Ewald does not support
+    energy shifting or smoothing.
+    Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
 
@@ -1064,8 +1067,8 @@ class ZBL(Pair):
     - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
       :math:`a_0` is the Bohr radius (in distance units)
 
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use `params` dictionary to set
+    See `Pair` for details on how forces are calculated. Note ZBL does not support
+    energy shifting or smoothing. Use `params` dictionary to set
     potential coefficients.
 
     .. py:attribute:: params
@@ -1462,7 +1465,7 @@ class LJ0804(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
+        mode (str): Energy shifting/smoothing mode
 
     `LJ0804` specifies that a Lennard-Jones 8-4 pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -1604,8 +1607,8 @@ class OPP(Pair):
             + C_2 r^{-\eta_2} \cos{\left(k r - \phi\right)}
         \end{equation*}
 
-    See `Pair` for details on how forces are calculated and the available energy
-    shifting and smoothing modes.  Use `params` dictionary to set potential
+    See `Pair` for details on how forces are calculate. Note OPP does not support
+    energy shifting or smoothing.  Use `params` dictionary to set potential
     coefficients. The coefficients must be set per unique pair of particle
     types.
 
