@@ -1,6 +1,7 @@
 import hoomd
 import pytest
 import numpy as np
+from hoomd.data.attacherror import AttachedDataError
 
 
 def test_before_attaching():
@@ -9,7 +10,8 @@ def test_before_attaching():
 
     assert free_volume.test_particle_type == 'B'
     assert free_volume.num_samples == 100
-    assert free_volume.free_volume is None
+    with pytest.raises(AttachedDataError):
+        free_volume.free_volume
 
 
 def test_after_attaching(simulation_factory, lattice_snapshot_factory):
