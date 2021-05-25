@@ -66,7 +66,6 @@ class Dipole(AnisotropicPair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         default_r_cut (float): Default cutoff radius (units: [length]).
-        default_r_on (float): Default turn-on radius (units: [length]).
         mode (str): energy shifting/smoothing mode
 
     `Dipole` computes the (screened) interaction between pairs of
@@ -148,7 +147,6 @@ class GayBerne(AnisotropicPair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         default_r_cut (float): Default cutoff radius (units: [length]).
-        default_r_on (float): Default turn-on radius (units: [length]).
         mode (str): energy shifting/smoothing mode.
 
     `GayBerne` computes the Gay-Berne potential between anisotropic

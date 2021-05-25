@@ -900,13 +900,13 @@ class ForceShiftedLJ(Pair):
         \begin{eqnarray*}
         V(r) = & 4 \varepsilon \left[ \left( \frac{\sigma}{r}
           \right)^{12} - \left( \frac{\sigma}{r} \right)^{6}
-          \right] + \Delta V(r) & r < default_r_{\mathrm{cut}}\\
-             = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          \right] + \Delta V(r) & r < r_{\mathrm{cut}}\\
+             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     .. math::
 
-        \Delta V(r) = -(r - default_r_{\mathrm{cut}}) \frac{\partial
+        \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial
           V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
     See `Pair` for details on how forces are calculated and the
@@ -961,12 +961,12 @@ class Moliere(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Moliere}}(r)
-          = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 default_r_{ij}} \left[ 0.35 \exp
+          = & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.35 \exp
           \left( -0.3 \frac{r_{ij}}{a_F} \right) + \\
           0.55 \exp \left( -1.2 \frac{r_{ij}}{a_F} \right) + 0.10 \exp
           \left( -6.0 \frac{r_{ij}}{a_F} \right) \right]
-          & r < default_r_{\mathrm{cut}} \\
-          = & 0 & r > default_r_{\mathrm{cut}} \\
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     Where each parameter is defined as:
@@ -1002,7 +1002,7 @@ class Moliere(Pair):
     Example::
 
         nl = nlist.Cell()
-        moliere = pair.Moliere(r_cut = 3.0, nlist=nl)
+        moliere = pair.Moliere(default_r_cut = 3.0, nlist=nl)
 
         Zi = 54
         Zj = 7
@@ -1040,13 +1040,13 @@ class ZBL(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{ZBL}}(r) =
-          & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 default_r_{ij}} \left[ 0.1818
+          & \frac{Z_i Z_j e^2}{4 \pi \epsilon_0 r_{ij}} \left[ 0.1818
           \exp \left( -3.2 \frac{r_{ij}}{a_F} \right) \\
           + 0.5099 \exp \left( -0.9423 \frac{r_{ij}}{a_F} \right) \\
           + 0.2802 \exp \left( -0.4029 \frac{r_{ij}}{a_F} \right) \\
           + 0.02817 \exp \left( -0.2016 \frac{r_{ij}}{a_F} \right) \right],
-          & r < default_r_{\mathrm{cut}} \\
-          = & 0, & r > default_r_{\mathrm{cut}} \\
+          & r < r_{\mathrm{cut}} \\
+          = & 0, & r > r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     Where each parameter is defined as:
@@ -1119,8 +1119,8 @@ class Mie(Pair):
           = & \left( \frac{n}{n-m} \right) {\left( \frac{n}{m}
           \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left(
           \frac{\sigma}{r} \right)^{n} - \left( \frac{\sigma}{r}
-          \right)^{m} \right] & r < default_r_{\mathrm{cut}} \\
-          = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          \right)^{m} \right] & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     `Pair` for details on how forces are calculated and the available energy
@@ -1353,8 +1353,8 @@ class Buckingham(Pair):
 
         \begin{eqnarray*}
         V_{\mathrm{Buckingham}}(r) = & A \exp\left(-\frac{r}{\rho}\right)
-          - \frac{C}{r^6} & r < default_r_{\mathrm{cut}} \\
-          = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          - \frac{C}{r^6} & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1410,8 +1410,8 @@ class LJ1208(Pair):
         V_{\mathrm{LJ}}(r)
           = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
           \left( \frac{\sigma}{r} \right)^{8} \right]
-          & r < default_r_{\mathrm{cut}} \\
-          = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
@@ -1466,8 +1466,8 @@ class LJ0804(Pair):
         V_{\mathrm{LJ}}(r)
           = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{8} -
           \left( \frac{\sigma}{r} \right)^{4} \right]
-          & r < default_r_{\mathrm{cut}} \\
-          = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          & r < r_{\mathrm{cut}} \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
@@ -1525,8 +1525,8 @@ class Fourier(Pair):
           = & \frac{1}{r^{12}} + \frac{1}{r^2}\sum_{n=1}^4
           [a_n cos(\frac{n \pi r}{r_{cut}}) +
           b_n sin(\frac{n \pi r}{r_{cut}})]
-          & r < default_r_{\mathrm{cut}}  \\
-          = & 0 & r \ge default_r_{\mathrm{cut}} \\
+          & r < r_{\mathrm{cut}}  \\
+          = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
         where:
