@@ -377,7 +377,7 @@ class State:
 
         Args:
             filter (hoomd.filter.ParticleFilter): Particles to modify
-            kT (float): Thermal energy to set (in energy units)
+            kT (float): Thermal energy to set :math:`[energy]`
 
         `thermalize_particle_momenta` assigns the selected particle's velocities
         and angular momentum to random values drawn from a Gaussian distribution
