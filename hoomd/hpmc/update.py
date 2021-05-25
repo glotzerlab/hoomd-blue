@@ -490,13 +490,10 @@ class MuVT(Updater):
         return N_dict
 
 
-class remove_drift:  # noqa - will be rewritten for v3
+class RemoveDrift(Updater):  # noqa - will be rewritten for v3
     """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice
-          field where the lattice is defined.
         period (int): the period to call the updater
 
     The command hpmc.update.remove_drift sets up an updater that removes the
@@ -514,7 +511,12 @@ class remove_drift:  # noqa - will be rewritten for v3
 
     """
 
-    def __init__(self, mc, external_lattice, period=1):
+    def __init__(self, ref_positions, trigger=1):
+        super().__init__(trigger)
+        _default_dict = dict(ref_positions=ref_positions,
+                             trigger=trigger)
+
+
         # initialize base class
         # _updater.__init__(self)
         cls = None
