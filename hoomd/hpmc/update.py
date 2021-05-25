@@ -20,8 +20,7 @@ class BoxMC(Updater):
 
     Args:
         betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` (units of inverse area in 2D or
-            inverse volume in 3D).
+            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[area^{-1} in 2D or volume^{-1} in 3D]`.
         trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
             trial moves.
 
@@ -63,7 +62,7 @@ class BoxMC(Updater):
             * ``weight`` (float) - Maximum change of HOOMD-blue box parameters
               Lx, Ly, and Lz.
             * ``delta`` (tuple[float, float, float]) - Maximum change of the
-              box lengths ``(Lx, Ly, Lz)``.
+              box lengths ``(Lx, Ly, Lz)`` :math:`[length]`.
 
         shear (dict):
             Parameters for isovolume box shear moves. The dictionary has the
