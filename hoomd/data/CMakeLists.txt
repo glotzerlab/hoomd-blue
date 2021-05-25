@@ -8,6 +8,7 @@ set(files __init__.py
           syncedlist.py
           typeconverter.py
           typeparam.py
+          attacherror.py
     )
 
 install(FILES ${files}
