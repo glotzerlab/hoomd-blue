@@ -496,8 +496,8 @@ class Ewald(Pair):
 
     The Ewald potential is designed to be used in conjunction with PPPM.
 
-    See `Pair` for details on how forces are calculated. Note Ewald does not support
-    energy shifting or smoothing.
+    See `Pair` for details on how forces are calculated. Note Ewald does not
+    support energy shifting or smoothing.
     Use the `params` dictionary to set
     potential coefficients. The coefficients must be set per unique pair of
     particle types.
@@ -826,8 +826,9 @@ class DPDLJ(Pair):
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
    
-    DPDLJ does not support xplor smoothing mode. See Pair for details on how forces are
-    calculated and the available energy shifting and smoothing modes.
+    DPDLJ does not support xplor smoothing mode. See Pair for details on
+    how forces are calculated and the available energy shifting
+    and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1067,8 +1068,8 @@ class ZBL(Pair):
     - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
       :math:`a_0` is the Bohr radius (in distance units)
 
-    See `Pair` for details on how forces are calculated. Note ZBL does not support
-    energy shifting or smoothing. Use `params` dictionary to set
+    See `Pair` for details on how forces are calculated. Note ZBL does not
+    support energy shifting or smoothing. Use `params` dictionary to set
     potential coefficients.
 
     .. py:attribute:: params
@@ -1607,10 +1608,10 @@ class OPP(Pair):
             + C_2 r^{-\eta_2} \cos{\left(k r - \phi\right)}
         \end{equation*}
 
-    See `Pair` for details on how forces are calculate. Note OPP does not support
-    energy shifting or smoothing.  Use `params` dictionary to set potential
-    coefficients. The coefficients must be set per unique pair of particle
-    types.
+    See `Pair` for details on how forces are calculate. Note OPP does not
+    support energy shifting or smoothing.  Use `params` dictionary to set
+    potential coefficients. The coefficients must be set per unique pair
+    of particle types.
 
     The potential comes from Marek Mihalkovič and C. L. Henley 2012
     `paper link`_.
