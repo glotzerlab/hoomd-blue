@@ -71,7 +71,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
-                                      default_d=2,
+                                      d=2,
                                       L=50))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
@@ -118,7 +118,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
-                                      default_d=2,
+                                      d=2,
                                       L=50))
     sim.operations.updaters.append(cl)
     sim.operations.integrator = mc
