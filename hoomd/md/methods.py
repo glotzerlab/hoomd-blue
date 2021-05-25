@@ -235,11 +235,12 @@ class NPT(Method):
 
         tau (`float`): Coupling constant for the thermostat (in time units).
 
-        S (`tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
-           `hoomd.variant.Variant` or `float`): Stress components set point
-           for the barostat (in pressure units).  In Voigt notation:
+        S: Stress components set point for the barostat (in pressure units).
+           In Voigt notation:
            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
            isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`.
 
         tauS (`float`): Coupling constant for the barostat (in time units).
 
@@ -530,12 +531,12 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S (`tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
-           `hoomd.variant.Variant` or `float`]): Stress components set point
-           for the barostat (in pressure units). Converted to a tuple during NPH
-           instantiation.  In Voigt notation:
-           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}`.  In case of
+        S: Stress components set point for the barostat (in pressure units).
+           In Voigt notation:
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
            isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
+           `hoomd.variant.Variant` or `float`.
 
         tauS (float): Coupling constant for the barostat (in time units).
 
