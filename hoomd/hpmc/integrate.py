@@ -227,7 +227,7 @@ class HPMCIntegrator(BaseIntegrator):
         """
         if (not self._attached
                 or self._simulation.device.communicator.num_ranks > 1):
-            return None
+            return AttachedDataError("map_overlaps")
         return self._cpp_obj.mapOverlaps()
 
     def map_energies(self):
@@ -262,7 +262,7 @@ class HPMCIntegrator(BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
         if not self._attached:
-            return None
+            return AttachedDataError("overlaps")
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -323,7 +323,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).translate
         else:
-            return None
+            return AttachedDataError("translate_moves")
 
     @log(category='sequence')
     def rotate_moves(self):
@@ -336,7 +336,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).rotate
         else:
-            return None
+            return AttachedDataError("rotate_moves")
 
     @log
     def mps(self):
@@ -348,7 +348,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getMPS()
         else:
-            return None
+            return AttachedDataError("mps")
 
     @property
     def counters(self):
@@ -371,7 +371,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1)
         else:
-            return None
+            return AttachedDataError("counters")
 
 
 class Sphere(HPMCIntegrator):
