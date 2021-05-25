@@ -17,7 +17,6 @@
 
 // First, hoomd.h should be included
 
-#include "ExternalFieldLattice.h"
 #include "IntegratorHPMCMono.h"
 #include "hoomd/Updater.h"
 
@@ -54,11 +53,9 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         {
         unsigned int N = m_ref_positions.size();
         pybind11::list ret;
-        /// assert correct length
         for (unsigned int i = 0; i < N; i++)
             {
             pybind11::tuple ref_positions_i;
-            // ref_positions_i = pybind11::make_tuple(m_ref_positions[i].x,m_ref_positions[i].y,m_ref_positions[i].z);
             ref_positions_i[0] = m_ref_positions[i].x;
             ref_positions_i[1] = m_ref_positions[i].y;
             ref_positions_i[2] = m_ref_positions[i].z;
@@ -71,7 +68,11 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     void setRefPositions(pybind11::list ref_positions)
             {
             unsigned int N = len(ref_positions);
-            /// assert correct length
+            if (N != this->m_pdata->getN()):
+                {
+                throw std::runtime_error("The lenght of the list must be equal to the number of particles.\n");
+                }
+
             for (unsigned int i = 0; i < N; i++)
                 {
                 pybind11::tuple ref_positions_i = ref_positions[i];
