@@ -77,10 +77,10 @@ class Harmonic(Dihedral):
             The parameter of the harmonic bonds for each dihedral type. The
             dictionary has the following keys:
 
-            * ``k`` (`float`, **required**) - potential constant [energy]
+            * ``k`` (`float`, **required**) - potential constant :math:`[energy]`
             * ``d`` (`float`, **required**) - sign factor
             * ``n`` (`float`, **required**) - angle scaling factor
-            * ``phi0`` (`float`, **required**) - phase shift [radians]
+            * ``phi0`` (`float`, **required**) - phase shift :math:`[radians]`
 
     Examples::
 
@@ -336,16 +336,16 @@ class OPLS(Dihedral):
             The dictionary has the following keys:
 
             * ``k1`` (`float`, **required**) -  force constant of the first term
-              (in units of energy)
+              :math`[energy]`
 
             * ``k2`` (`float`, **required**) -  force constant of the second
-              term (in units of energy)
+              term :math`[energy]`
 
             * ``k3`` (`float`, **required**) -  force constant of the third
-              term (in units of energy)
+              term :math`[energy]`
 
             * ``k4`` (`float`, **required**) -  force constant of the fourth
-              term (in units of energy)
+              term :math`[energy]`
 
     Examples::
 
