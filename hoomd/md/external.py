@@ -83,10 +83,10 @@ class Periodic(External):
                                    _hoomd.int_as_scalar(p))
 
 
-class e_field(External):
+class ElectricField(External):
     R""" Electric field.
 
-    :py:class:`e_field` specifies that an external force should be
+    :py:class:`ElectricField` specifies that an external force should be
     added to every particle in the simulation that results from an electric field.
 
     The external potential :math:`V(\vec{r})` is implemented using the following formula:
@@ -101,31 +101,11 @@ class e_field(External):
     Example::
 
         # Apply an electric field in the x-direction
-        e_field = external.e_field((1,0,0))
+        e_field = external.ElectricField((1,0,0))
     """
 
-    def __init__(self, field, name=""):
-
-        # initialize the base class
-        _external_force.__init__(self, name)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.PotentialExternalElectricField(
-                hoomd.context.current.system_definition, self.name)
-        else:
-            self.cpp_force = _md.PotentialExternalElectricFieldGPU(
-                hoomd.context.current.system_definition, self.name)
-
-        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
-
-        # setup the coefficient options
-        self.required_coeffs = None
-
-        self.field_coeff = tuple(field)
-
-    def process_coeff(self, coeff):
-        pass
-
-    def process_field_coeff(self, field):
-        return _hoomd.make_scalar3(field[0], field[1], field[2])
+    _cpp_class_name = "PotentialExternalElectricField"
+    def __init__(self):
+        params = TypeParameter('params', 'particle_types',
+                TypeParameterDict(E=(float,float,float), len_keys=1))
+        self._add_typeparam(params)

@@ -282,7 +282,7 @@ PYBIND11_MODULE(_md, m)
     py::class_<wall_type, std::shared_ptr<wall_type>>(m, "wall_type").def(py::init<>());
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
-    //export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
+    export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
     //export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     //export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
     //export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
@@ -380,10 +380,10 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
         m,
         "PotentialExternalPeriodicGPU");
-    /*
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
+    /*
     export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
     export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(
         m,

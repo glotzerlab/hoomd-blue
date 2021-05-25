@@ -40,10 +40,37 @@
 class EvaluatorExternalElectricField
     {
     public:
-    //! type of parameters this external potential accepts
-    typedef struct param
-        {
-        } param_type;
+
+        //! type of parameters this external potential accepts
+        struct param_type
+            {
+            Scalar3 E;
+
+            #ifndef __HIPCC__
+            param_type() : E(make_scalar3(0, 0, 0)) {}
+
+            param_type(pybind11::dict params)
+                {
+                pybind11::list py_E(params["E"]);
+                E.x = pybind11::cast<Scalar>(py_E[0]);
+                E.y = pybind11::cast<Scalar>(py_E[1]);
+                E.z = pybind11::cast<Scalar>(py_E[2]);
+                }
+
+            pybind11::dict asDict()
+                {
+                pybind11::dict params;
+                params["E"] = pybind11::make_tuple(E.x, E.y, E.z);
+                return params;
+                }
+            #endif // ifndef __HIPCC__
+            }
+            #ifdef SINGLE_PRECISON
+            __attribute__((aligned(16)));
+            #else
+            __attribute__((aligned(32)));  // TODO check if this is right
+            #endif
+
     typedef Scalar3 field_type;
 
     //! Constructs the constraint evaluator
@@ -55,7 +82,7 @@ class EvaluatorExternalElectricField
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
-        : m_pos(X), m_box(box), m_field(field)
+        : m_pos(X), m_box(box), m_params(params)
         {
         }
 
@@ -69,12 +96,11 @@ class EvaluatorExternalElectricField
      */
     DEVICE void setDiameter(Scalar di) { }
 
-    //! External Periodic doesn't need charges
+    //! ExternalElectricField needs charges
     DEVICE static bool needsCharge()
         {
         return true;
         }
-    //! Accept the optional diameter value
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi)
@@ -97,8 +123,8 @@ class EvaluatorExternalElectricField
     */
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
         {
-        F = m_qi * m_field;
-        energy = -m_qi * dot(m_field, m_pos);
+        F = m_qi * m_params.E;
+        energy = -m_qi * dot(m_params.E, m_pos);
 
         virial[0] = F.x * m_pos.x;
         virial[1] = F.x * m_pos.y;
@@ -122,7 +148,7 @@ class EvaluatorExternalElectricField
     Scalar3 m_pos;   //!< particle position
     BoxDim m_box;    //!< box dimensions
     Scalar m_qi;     //!< particle charge
-    Scalar3 m_field; //!< the field vector
+    param_type m_params; //!< the field vector
     };
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

@@ -17,6 +17,13 @@ def _external_params():
                                  dict(A=10, i=0, w=3.4, p=2)]
                                  ),
                             _evaluate_periodic))
+    list_ext_params.append((hoomd.md.external.ElectricField,
+                            list([dict(E=(1, 0, 0)),
+                                 dict(E=(0, 2, 0)),
+                                 dict(E=(0, 0, 3)),
+                                 ]
+                                 ),
+                            _evaluate_periodic))
     return list_ext_params
 
 
