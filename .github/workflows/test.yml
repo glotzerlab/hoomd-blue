@@ -143,7 +143,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
@@ -151,7 +151,7 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -224,7 +224,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
 
   build_release:
@@ -336,7 +336,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
@@ -344,7 +344,7 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
