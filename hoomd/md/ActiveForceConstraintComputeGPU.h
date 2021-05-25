@@ -1,12 +1,11 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
+#include "ActiveForceComputeGPU.cuh"
 #include "ActiveForceConstraintCompute.h"
 #include "ActiveForceConstraintComputeGPU.cuh"
-#include "ActiveForceComputeGPU.cuh"
 
 /*! \file ActiveForceConstraintComputeGPU.h
     \brief Declares a class for computing active forces on the GPU
@@ -27,12 +26,12 @@ using namespace std;
 
 //! Adds an active force to a number of particles with confinement on the GPU
 /*! \ingroup computes
-*/
+ */
 template<class Manifold>
-class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstraintCompute<Manifold>
+class PYBIND11_EXPORT ActiveForceConstraintComputeGPU
+    : public ActiveForceConstraintCompute<Manifold>
     {
     public:
-
     //! Constructs the compute
     ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                     std::shared_ptr<ParticleGroup> group,
@@ -40,16 +39,16 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstr
                                     Manifold manifold);
 
     protected:
-        unsigned int m_block_size;  //!< block size to execute on the GPU
+    unsigned int m_block_size; //!< block size to execute on the GPU
 
-        //! Set forces for particles
-        virtual void setForces();
+    //! Set forces for particles
+    virtual void setForces();
 
-        //! Orientational diffusion for spherical particles
-        virtual void rotationalDiffusion(uint64_t timestep);
+    //! Orientational diffusion for spherical particles
+    virtual void rotationalDiffusion(uint64_t timestep);
 
-        //! Set constraints if particles confined to a surface
-        virtual void setConstraint();
+    //! Set constraints if particles confined to a surface
+    virtual void setConstraint();
     };
 
 /*! \file ActiveForceConstraintComputeGPU.cc
@@ -60,24 +59,28 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstr
            individual particle.
     \param orientation_link if True then forces and torques are applied in the
            particle's reference frame. If false, then the box reference frame is
-	   used. Only relevant for non-point-like anisotropic particles.
+       used. Only relevant for non-point-like anisotropic particles.
     \param orientation_reverse_link When True, the particle's orientation is set
            to match the active force vector. Useful for using a particle's
-	   orientation to log the active force vector. Not recommended for
-	   anisotropic particles
+       orientation to log the active force vector. Not recommended for
+       anisotropic particles
     \param rotation_diff rotational diffusion constant for all particles.
     \param manifold specifies a manfold surface, to which particles are confined.
 */
 template<class Manifold>
-ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                                                           std::shared_ptr<ParticleGroup> group,
-                                                                           Scalar rotation_diff,
-                                                                           Manifold manifold)
-    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold), m_block_size(256)
+ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleGroup> group,
+    Scalar rotation_diff,
+    Manifold manifold)
+    : ActiveForceConstraintCompute<Manifold>(sysdef, group, rotation_diff, manifold),
+      m_block_size(256)
     {
     if (!this->m_exec_conf->isCUDAEnabled())
         {
-        this->m_exec_conf->msg->error() << "Creating a ActiveForceConstraintComputeGPU with no GPU in the execution configuration" << endl;
+        this->m_exec_conf->msg->error() << "Creating a ActiveForceConstraintComputeGPU with no GPU "
+                                           "in the execution configuration"
+                                        << endl;
         throw std::runtime_error("Error initializing ActiveForceConstraintComputeGPU");
         }
 
@@ -98,7 +101,6 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(std::
             f_activeVec.data[i] = old_f_activeVec.data[i];
 
             t_activeVec.data[i] = old_t_activeVec.data[i];
-
             }
 
         this->last_computed = 10;
@@ -109,20 +111,29 @@ ActiveForceConstraintComputeGPU<Manifold>::ActiveForceConstraintComputeGPU(std::
     }
 
 /*! This function sets appropriate active forces and torques on all active particles.
-*/
-template<class Manifold>
-void ActiveForceConstraintComputeGPU<Manifold>::setForces()
+ */
+template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setForces()
     {
     //  array handles
-    ArrayHandle<Scalar4> d_f_actVec(this->m_f_activeVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_f_actVec(this->m_f_activeVec,
+                                    access_location::device,
+                                    access_mode::read);
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar4> d_t_actVec(this->m_t_activeVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_t_actVec(this->m_t_activeVec,
+                                    access_location::device,
+                                    access_mode::read);
     ArrayHandle<Scalar4> d_torque(this->m_torque, access_location::device, access_mode::overwrite);
 
-    ArrayHandle<Scalar4> d_pos(this->m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
+                                       access_location::device,
+                                       access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(),
+                                            access_location::device,
+                                            access_mode::read);
 
     // sanity check
     assert(d_force.data != NULL);
@@ -146,7 +157,8 @@ void ActiveForceConstraintComputeGPU<Manifold>::setForces()
                                         this->m_block_size);
     }
 
-/*! This function applies rotational diffusion to all active particles. The angle between the torque vector and
+/*! This function applies rotational diffusion to all active particles. The angle between the torque
+ vector and
  * force vector does not change
     \param timestep Current timestep
 */
@@ -154,10 +166,18 @@ template<class Manifold>
 void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t timestep)
     {
     //  array handles
-    ArrayHandle<Scalar4> d_pos(this->m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
+                                       access_location::device,
+                                       access_mode::readwrite);
+    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(),
+                                            access_location::device,
+                                            access_mode::read);
+    ArrayHandle<unsigned int> d_tag(this->m_pdata->getTags(),
+                                    access_location::device,
+                                    access_mode::read);
 
     assert(d_pos.data != NULL);
 
@@ -178,16 +198,22 @@ void ActiveForceConstraintComputeGPU<Manifold>::rotationalDiffusion(uint64_t tim
     }
 
 /*! This function sets an ellipsoid surface constraint for all active particles
-*/
-template<class Manifold>
-void ActiveForceConstraintComputeGPU<Manifold>::setConstraint()
+ */
+template<class Manifold> void ActiveForceConstraintComputeGPU<Manifold>::setConstraint()
     {
-
     //  array handles
-    ArrayHandle<Scalar4> d_f_actVec(this->m_f_activeVec, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar4> d_pos(this->m_pdata -> getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
-    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_f_actVec(this->m_f_activeVec,
+                                    access_location::device,
+                                    access_mode::readwrite);
+    ArrayHandle<Scalar4> d_pos(this->m_pdata->getPositions(),
+                               access_location::device,
+                               access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(),
+                                       access_location::device,
+                                       access_mode::readwrite);
+    ArrayHandle<unsigned int> d_index_array(this->m_group->getIndexArray(),
+                                            access_location::device,
+                                            access_mode::read);
 
     assert(d_pos.data != NULL);
 
@@ -205,11 +231,12 @@ void ActiveForceConstraintComputeGPU<Manifold>::setConstraint()
 template<class Manifold>
 void export_ActiveForceConstraintComputeGPU(py::module& m, const std::string& name)
     {
-    py::class_< ActiveForceConstraintComputeGPU<Manifold>, ActiveForceConstraintCompute<Manifold>, std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold> > >(m, name.c_str())
-        .def(py::init<  std::shared_ptr<SystemDefinition>,
-                        std::shared_ptr<ParticleGroup>,
-                        Scalar,
-                        Manifold >())
-    ;
+    py::class_<ActiveForceConstraintComputeGPU<Manifold>,
+               ActiveForceConstraintCompute<Manifold>,
+               std::shared_ptr<ActiveForceConstraintComputeGPU<Manifold>>>(m, name.c_str())
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      Scalar,
+                      Manifold>());
     }
 #endif

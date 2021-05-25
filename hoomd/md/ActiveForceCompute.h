@@ -28,7 +28,6 @@
 class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     {
     public:
-
     //! Constructs the compute
     ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
@@ -50,7 +49,6 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         {
         return m_rotationDiff;
         }
-
 
     /** Sets active force vector for a given particle type
         @param typ Particle type to set active force vector
@@ -80,10 +78,11 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     //! Orientational diffusion for spherical particles
     virtual void rotationalDiffusion(uint64_t timestep);
 
-    std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
+    std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
     Scalar m_rotationDiff;
     Scalar m_rotationConst;
-    GlobalVector<Scalar4> m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
+    GlobalVector<Scalar4>
+        m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
     GlobalVector<Scalar4>
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
