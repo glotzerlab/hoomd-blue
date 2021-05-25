@@ -367,3 +367,5 @@ class e_field(_external_force):
 
     def process_field_coeff(self, field):
         return _hoomd.make_scalar3(field[0], field[1], field[2])
+
+import hoomd.md.external.wall #TODO: Fix circular import, need _external_force class

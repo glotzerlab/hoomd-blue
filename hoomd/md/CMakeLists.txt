@@ -343,7 +343,6 @@ set(files __init__.py
           compute.py
           constrain.py
           dihedral.py
-          external.py
           force.py
           improper.py
           integrate.py
@@ -352,9 +351,10 @@ set(files __init__.py
           methods.py
           nlist.py
           update.py
-          wall.py
           special_pair.py
     )
+
+add_subdirectory(external)
 
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/md

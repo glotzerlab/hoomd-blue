@@ -118,7 +118,7 @@ class HPMCIntegrator(BaseIntegrator):
     _skip_for_equality = BaseIntegrator._skip_for_equality | {'_cpp_cell'}
     _cpp_cls = None
 
-    def __init__(self, d, a, translation_move_probability, nselect):
+    def __init__(self, d, a, translation_move_probability, nselect, walls):
         super().__init__()
 
         # Set base parameter dict for hpmc integrators
@@ -156,6 +156,30 @@ class HPMCIntegrator(BaseIntegrator):
             typeparam_d, typeparam_a, typeparam_fugacity, typeparam_ntrial,
             typeparam_inter_matrix
         ])
+        
+        super().__init__()
+        if walls is not None:
+            self._walls.extend(walls)
+            
+    def _attach_wall(self, wall):
+        if isinstance(wall, hoomd.integrate.Sphere):
+            _hpmc.make_sphere_wall(wall.r,wall.origin,wall.inside)
+        if isinstance(wall, hoomd.integrate.Cylinder):
+            _hpmc.make_cylinder_wall(wall.r,wall.origin,wall.axis,wall.inside)
+        if isinstance(wall, hoomd.integrate.Plane):
+            _hpmc.make_plane_wall(wall.normal,wall.origin,wall.inside)
+        elif isinstance(wall, hoomd.integrate._Base_Wall):
+            print("This wall type isn't implemented.")
+        else:
+            raise ValueError("Not a wall type.")
+        
+    
+    def _attach_walls(self):
+        assert (self.attached)
+        self._cpp_obj.SetSphereWalls(self._sphere_walls)
+        self._cpp_obj.SetCylinderWalls(self._cylinder_walls)
+        self._cpp_obj.SetPlaneWalls(self._plane_walls)
+        
 
     def _add(self, simulation):
         """Add the operation to a simulation.
