@@ -49,19 +49,19 @@ class EvaluatorPairForceShiftedLJ
     public:
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
-    {
-    Scalar lj1;
-    Scalar lj2;
+        {
+        Scalar lj1;
+        Scalar lj2;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
             // default implementation does nothing
             }
-    #endif
+#endif
 
-    #ifndef __HIPCC__
+#ifndef __HIPCC__
         param_type() : lj1(0), lj2(0) { }
 
         param_type(pybind11::dict v)
@@ -87,14 +87,13 @@ class EvaluatorPairForceShiftedLJ
             v["epsilon"] = lj2 / (sigma6 * 4.);
             return v;
             }
-    #endif
+#endif
         }
-    #ifdef SINGLE_PRECISION
+#ifdef SINGLE_PRECISION
     __attribute__((aligned(8)));
-    #else
+#else
     __attribute__((aligned(16)));
-    #endif
-
+#endif
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
