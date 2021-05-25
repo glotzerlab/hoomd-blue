@@ -124,5 +124,5 @@ Components
   - All GPU code is now written with HIP to support NVIDIA and AMD GPUs.
   - ``ActiveForceCompute`` always uses particle orientation in combination with
     per-type active forces and torques.
-  - ``getProvidedLogQuantities`` and ``getLogQuantities`` have been removed. Prove loggable
+  - ``getProvidedLogQuantities`` and ``getLogQuantities`` have been removed. Provide loggable
     properties instead.
