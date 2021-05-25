@@ -18,7 +18,7 @@ namespace py = pybind11;
 */
 
 /*! \param rotation_diff rotational diffusion constant for all particles.
-*/
+ */
 ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                                        std::shared_ptr<ParticleGroup> group,
                                        Scalar rotation_diff)
@@ -253,7 +253,8 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);
 
-        if( h_f_actVec.data[type].w != 0){
+        if (h_f_actVec.data[type].w != 0)
+            {
             unsigned int ptag = h_tag.data[idx];
             hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute,
                                                    timestep,
@@ -262,17 +263,18 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
 
             quat<Scalar> quati(h_orientation.data[idx]);
 
-
             if (m_sysdef->getNDimensions() == 2) // 2D
                 {
                 Scalar delta_theta; // rotational diffusion angle
                 delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
-                vec3<Scalar> b(0,0,slow::sin(theta));
+                Scalar theta
+                    = delta_theta
+                      / 2.0; // half angle to calculate the quaternion which represents the rotation
+                vec3<Scalar> b(0, 0, slow::sin(theta));
 
-                quat<Scalar> rot_quat(slow::cos(theta),b);// rotational diffusion quaternion
+                quat<Scalar> rot_quat(slow::cos(theta), b); // rotational diffusion quaternion
 
-                quati = rot_quat*quati; //rotational diffusion quaternion applied to orientation
+                quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
                 // In 2D, the only meaningful torque vector is out of plane and should not change
                 }
@@ -282,22 +284,29 @@ void ActiveForceCompute::rotationalDiffusion(uint64_t timestep)
                 vec3<Scalar> rand_vec;
                 unit_vec(rng, rand_vec);
 
-                vec3<Scalar> f(h_f_actVec.data[type].x, h_f_actVec.data[type].y, h_f_actVec.data[type].z);
-                vec3<Scalar> fi = rotate(quati, f); //rotate active force vector from local to global frame
+                vec3<Scalar> f(h_f_actVec.data[type].x,
+                               h_f_actVec.data[type].y,
+                               h_f_actVec.data[type].z);
+                vec3<Scalar> fi
+                    = rotate(quati, f); // rotate active force vector from local to global frame
 
-                vec3<Scalar> aux_vec = cross(fi,rand_vec); // rotation axis
-                Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec,aux_vec));
+                vec3<Scalar> aux_vec = cross(fi, rand_vec); // rotation axis
+                Scalar aux_vec_mag = slow::rsqrt(dot(aux_vec, aux_vec));
                 aux_vec *= aux_vec_mag;
 
                 Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
-                Scalar theta = delta_theta/2.0; // half angle to calculate the quaternion which represents the rotation
-                quat<Scalar> rot_quat(slow::cos(theta),slow::sin(theta)*aux_vec); // rotational diffusion quaternion
+                Scalar theta
+                    = delta_theta
+                      / 2.0; // half angle to calculate the quaternion which represents the rotation
+                quat<Scalar> rot_quat(slow::cos(theta),
+                                      slow::sin(theta)
+                                          * aux_vec); // rotational diffusion quaternion
 
                 quati = rot_quat * quati; // rotational diffusion quaternion applied to orientation
                 h_orientation.data[idx] = quat_to_scalar4(quati);
                 }
             }
-	}
+        }
     }
 
 /*! This function applies rotational diffusion and sets forces for all active particles
@@ -332,14 +341,13 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
 
 void export_ActiveForceCompute(py::module& m)
     {
-    py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, 
-		   std::shared_ptr<ParticleGroup>, 
-		   Scalar >())
-    .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
-    .def("setActiveForce", &ActiveForceCompute::setActiveForce)
-    .def("getActiveForce", &ActiveForceCompute::getActiveForce)
-    .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
-    .def("getActiveTorque", &ActiveForceCompute::getActiveTorque)
-    ;
+    py::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
+        m,
+        "ActiveForceCompute")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
+        .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
+        .def("setActiveForce", &ActiveForceCompute::setActiveForce)
+        .def("getActiveForce", &ActiveForceCompute::getActiveForce)
+        .def("setActiveTorque", &ActiveForceCompute::setActiveTorque)
+        .def("getActiveTorque", &ActiveForceCompute::getActiveTorque);
     }

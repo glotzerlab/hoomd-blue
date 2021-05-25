@@ -141,12 +141,10 @@ void ActiveForceComputeGPU::rotationalDiffusion(uint64_t timestep)
                                                   m_block_size);
     }
 
-
 void export_ActiveForceComputeGPU(py::module& m)
     {
-    py::class_< ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU")
-        .def(py::init<  std::shared_ptr<SystemDefinition>,
-                        std::shared_ptr<ParticleGroup>,
-                        Scalar >())
-    ;
+    py::class_<ActiveForceComputeGPU, ActiveForceCompute, std::shared_ptr<ActiveForceComputeGPU>>(
+        m,
+        "ActiveForceComputeGPU")
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>());
     }

@@ -24,7 +24,6 @@
 class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
-
     //! Constructs the compute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
@@ -38,7 +37,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
 
     //! Orientational diffusion for spherical particles
     virtual void rotationalDiffusion(uint64_t timestep);
-
     };
 
 //! Exports the ActiveForceComputeGPU Class to python
