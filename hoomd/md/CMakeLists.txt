@@ -6,10 +6,7 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
-                   ConstraintEllipsoid.cc
-                   ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
-                   OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
@@ -71,10 +68,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-                ConstraintEllipsoidGPU.h
-                ConstraintEllipsoid.h
-                ConstraintSphereGPU.h
-                ConstraintSphere.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
                 Enforce2DUpdaterGPU.h
@@ -85,7 +78,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorSpecialPairCoulomb.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
-                EvaluatorConstraintSphere.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
                 EvaluatorPairBuckingham.h
@@ -202,9 +194,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            CommunicatorGridGPU.cc
                            ComputeThermoGPU.cc
                            ComputeThermoHMAGPU.cc
-                           ConstraintEllipsoidGPU.cc
-                           ConstraintSphereGPU.cc
-                           OneDConstraintGPU.cc
                            Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
@@ -261,9 +250,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
-                      ConstraintEllipsoidGPU.cu
-                      ConstraintSphereGPU.cu
-                      OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
                       Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
