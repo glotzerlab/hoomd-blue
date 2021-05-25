@@ -525,46 +525,15 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
         if not integrator._attached:
             raise RuntimeError("Integrator is not attached yet.")
 
-        sys_def = self._simulation.state._cpp_sys_def
-        cls = None
-        if not sys_def.isCUDAEnabled():
-            if isinstance(integrator, integrate.sphere):
-                cls = _hpmc.RemoveDriftUpdaterSphere
-            elif isinstance(integrator, integrate.convex_polygon):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolygon
-            elif isinstance(integrator, integrate.simple_polygon):
-                cls = _hpmc.RemoveDriftUpdaterSimplePolygon
-            elif isinstance(integrator, integrate.convex_polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron
-            elif isinstance(integrator, integrate.convex_spheropolyhedron):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron
-            elif isinstance(integrator, integrate.ellipsoid):
-                cls = _hpmc.RemoveDriftUpdaterEllipsoid
-            elif isinstance(integrator, integrate.convex_spheropolygon):
-                cls = _hpmc.RemoveDriftUpdaterSpheropolygon
-            elif isinstance(integrator, integrate.faceted_sphere):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoid
-            elif isinstance(integrator, integrate.polyhedron):
-                cls = _hpmc.RemoveDriftUpdaterPolyhedron
-            elif isinstance(integrator, integrate.sphinx):
-                cls = _hpmc.RemoveDriftUpdaterSphinx
-            elif isinstance(integrator, integrate.sphere_union):
-                cls = _hpmc.RemoveDriftUpdaterSphereUnion
-            elif isinstance(integrator, integrate.convex_spheropolyhedron_union):
-                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion
-            elif isinstance(integrator, integrate.faceted_ellipsoid_union):
-                cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion
-            else:
-                hoomd.context.current.device.cpp_msg.error(
-                    "update.remove_drift: Unsupported integrator.\n")
-                raise RuntimeError("Error initializing update.remove_drift")
-        else:
-            raise RuntimeError(
-                "update.remove_drift: Error! GPU not implemented.")
+        if isinstance(self._simulation.device, hoomd.device.GPU):
+            raise RuntimeError("GPU not supported.")
 
-        self.cpp_updater = cls(sys_def, self.ref_positions)
+        cpp_cls_name = "RemoveDriftUpdater"
+        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        cpp_cls = getattr(_hpmc, cpp_cls_name)
+        self._cpp_obj = cpp_cls(sys_def, self.ref_positions)
         super()._attach()
-
 
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
