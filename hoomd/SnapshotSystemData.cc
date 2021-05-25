@@ -39,6 +39,15 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     pair_data.replicate(n, old_n);
     }
 
+
+template<class Real> void SnapshotSystemData<Real>::wrap()
+    {    
+    for (unsigned int i = 0; i < particle_data.size; i++)
+        {
+           global_box.wrap(particle_data.pos[i], particle_data.image[i]) 
+        }
+    }
+
 template<class Real>
 void SnapshotSystemData<Real>::broadcast_box(std::shared_ptr<MPIConfiguration> mpi_conf)
     {
