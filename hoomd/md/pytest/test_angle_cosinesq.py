@@ -104,8 +104,8 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
 
     integrator.forces.append(angle_potential)
 
-    nvt = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All(), alpha=0.1)
-    integrator.methods.append(nvt)
+    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All(), alpha=0.1)
+    integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
     sim.run(0)
