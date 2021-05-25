@@ -149,8 +149,6 @@ class enforce2d:
         self.setupUpdater(period)
 
 
-
-
 class mueller_plathe_flow:
     r"""Updater for a shear flow via an algorithm published by Mueller Plathe.
 

@@ -148,8 +148,6 @@ class ConstraintForce:
 ConstraintForce.cur_id = 0
 
 
-
-
 class distance(ConstraintForce):
     R"""Constrain pairwise particle distances.
 
@@ -479,4 +477,3 @@ class rigid(ConstraintForce):
     def update_coeffs(self):
         # validate copies of rigid bodies
         self.create_bodies(False)
-
