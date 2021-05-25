@@ -110,6 +110,12 @@ class Pair(force.Force):
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `float`])
+
+    .. py:attribute:: mode
+        
+        *mode*, *optional*: defaults to ``none``
+        Possible values: ``none``, ``shift``, ``xplor``
+        Type: ``str``
     """
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -210,7 +216,7 @@ class LJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
+        mode (str): Energy shifting/smoothing mode
 
     `LJ` specifies that a Lennard-Jones pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -266,7 +272,7 @@ class Gauss(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Gauss` specifies that a Gaussian pair potential should be applied
     between every non-excluded particle pair in the simulation.
@@ -323,12 +329,11 @@ class SLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting/smoothing mode
+        mode (str): Energy shifting mode
 
     `SLJ` specifies that a shifted Lennard-Jones type pair potential
     should be applied between every non-excluded particle pair in the
     simulation.
-
     .. math::
         :nowrap:
 
@@ -413,7 +418,7 @@ class Yukawa(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Yukawa` specifies that a Yukawa pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -469,7 +474,6 @@ class Ewald(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
 
     `Ewald` specifies that a Ewald pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -531,7 +535,7 @@ class Morse(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Morse` specifies that a Morse pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -758,6 +762,7 @@ class DPDLJ(Pair):
             thermostat (in energy units).
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
+        mode (str): Energy shifting mode.
 
     `DPDLJ` specifies that a DPD thermostat and a Lennard-Jones pair potential
     should be applied between every non-excluded particle pair in the
@@ -817,6 +822,9 @@ class DPDLJ(Pair):
     must be applied to the system and the user must specify a temperature.  Use
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
+   
+    DPDLJ does not support xplor smoothing mode. See Pair for details on how forces are
+    calculated and the available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -881,7 +889,7 @@ class ForceShiftedLJ(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should
     be applied between non-excluded particle pair in the simulation. The force
@@ -951,7 +959,7 @@ class Moliere(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Moliere` specifies that a Moliere type pair potential should be applied
     between every non-excluded particle pair in the simulation.
@@ -1029,7 +1037,6 @@ class ZBL(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
 
     `ZBL` specifies that a Ziegler-Biersack-Littmark pair potential
     should be applied between every non-excluded particle pair in the
@@ -1106,7 +1113,7 @@ class Mie(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Mie` specifies that a Mie pair potential should be applied between every
     non-excluded particle pair in the simulation.
@@ -1174,7 +1181,7 @@ class ReactionField(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
+        mode (str): Energy shifting/smoothing mode
 
     `ReactionField` specifies that an Onsager reaction field pair potential
     should be applied between every non-excluded particle pair in the
@@ -1255,6 +1262,7 @@ class DLVO(Pair):
         name (str): Name of the force instance.
         d_max (float): Maximum diameter particles in the simulation will have
           (in distance units)
+        mode (str): Energy shifting mode.
 
     `DLVO` specifies that a DLVO dispersion and electrostatic interaction should
     be applied between every non-excluded particle pair in the simulation.
@@ -1343,7 +1351,7 @@ class Buckingham(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
+        mode (str): Energy shifting/smoothing mode
 
     `Buckingham` specifies that a Buckingham pair potential should be applied
     between every non-excluded particle pair in the simulation.
@@ -1398,7 +1406,7 @@ class LJ1208(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
+        mode (str): Energy shifting/smoothing mode
 
     `LJ1208` specifies that a Lennard-Jones 12-8 pair potential should be
     applied between every non-excluded particle pair in the simulation.
@@ -1512,7 +1520,7 @@ class Fourier(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting mode.
+        mode (str): Energy shifting/smoothing mode.
 
     `Fourier` specifies that a Fourier pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -1583,7 +1591,6 @@ class OPP(Pair):
         nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
         r_cut (float): Default cutoff radius (in distance units).
         r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode
 
     `OPP` specifies that an oscillating pair potential should be applied between
     every non-excluded particle pair in the simulation. The OPP potential can
