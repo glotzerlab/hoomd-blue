@@ -129,8 +129,7 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                      Updater,
                      std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<ExternalFieldLattice<Shape>>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape>>>());
+                            pybind11:list >());
     }
     } // namespace hpmc
 
