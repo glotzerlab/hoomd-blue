@@ -73,14 +73,12 @@ class LJ(SpecialPair):
             The parameter of the lj forces for each particle type.
             The dictionary has the following keys:
 
-            * ``epsilon`` (`float`, **required**) - energy parameter
-              (in energy unit)
+            * ``epsilon`` (`float`, **required**) - energy parameter :math:`[energy]`
 
-            * ``sigma`` (`float`, **required**) - particle size
-              (in distance unit)
+            * ``sigma`` (`float`, **required**) - particle size :math:`[length]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential :math:`[length]`
 
     Examples::
 
@@ -134,11 +132,10 @@ class Coulomb(SpecialPair):
             The parameter of the Coulomb forces for each particle type.
             The dictionary has the following keys:
 
-            * ``alpha`` (`float`, **required**) - Coulomb scaling factor
-              (in energy unit)
+            * ``alpha`` (`float`, **required**) - Coulomb scaling factor :math:`[energy]`
 
         r_cut (TypeParameter[``special pair type``, float]):
-            The cut-off distance for special pair potential (in distance unit)
+            The cut-off distance for special pair potential :math:`[length]`
 
 
     Examples::
