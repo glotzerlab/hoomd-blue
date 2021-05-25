@@ -63,7 +63,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
-                                      d=2,
+                                      default_d=2,
                                       L=50))
     sim.operations.updaters.append(muvt)
     sim.operations.integrator = mc
@@ -112,7 +112,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
-                                      d=2,
+                                      default_d=2,
                                       L=50))
     sim.operations.updaters.append(muvt)
     sim.operations.integrator = mc
@@ -133,7 +133,7 @@ def test_insertion_removal(device, simulation_factory,
                                  n=7,
                                  r=0.1))
 
-    mc = hoomd.hpmc.integrate.Sphere(d=0.1, a=0.1)
+    mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape['A'] = dict(diameter=1.1)
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
