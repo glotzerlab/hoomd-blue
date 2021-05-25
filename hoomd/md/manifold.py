@@ -66,7 +66,7 @@ class Cylinder(Manifold):
     r"""Cylinder manifold.
 
     Args:
-        r (`float`): radius of the cylinder constraint (in distance units).
+        r (`float`): radius of the cylinder constraint :math:`[length]`.
         P (`tuple` [`float`, `float`, `float`]): point defining position of the
             cylinder axis (default origin).
 
@@ -170,12 +170,9 @@ class Ellipsoid(Manifold):
     r"""Ellipsoid manifold.
 
     Args:
-        a (`float`): length of the a-axis of the ellipsoidal constraint (in
-            distance units).
-        b (`float`): length of the b-axis of the ellipsoidal constraint (in
-            distance units).
-        c (`float`): length of the c-axis of the ellipsoidal constraint (in
-            distance units).
+        a (`float`): length of the a-axis of the ellipsoidal constraint :math:`[length]`.
+        b (`float`): length of the b-axis of the ellipsoidal constraint :math:`[length]`.
+        c (`float`): length of the c-axis of the ellipsoidal constraint :math:`[length]`.
         P (`tuple` [`float`, `float`, `float`]): center of the ellipsoidal
             constraint (default origin).
 
@@ -280,7 +277,7 @@ class Plane(Manifold):
     r"""Plane manifold.
 
     Args:
-        shift (`float`): z-shift of the xy-plane (in distance units).
+        shift (`float`): z-shift of the xy-plane :math:`[length]`.
 
     :py:class:`Plane` specifies that a xy-plane manifold is defined as
     a constraint.
@@ -369,8 +366,7 @@ class Sphere(Manifold):
     """Sphere manifold.
 
     Args:
-        r (`float`): raduis of the a-axis of the spherical constraint (in
-            distance units).
+        r (`float`): radius of the a-axis of the spherical constraint :math:`[length]`.
         P (`tuple` [`float`, `float`, `float`] ): center of the spherical
             constraint (default origin).
 
