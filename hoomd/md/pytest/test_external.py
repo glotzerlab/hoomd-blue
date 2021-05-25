@@ -38,7 +38,7 @@ def _evaluate_electric(snapshot, params):
 
 
 def _external_params():
-    """ Each entry is a tuple (class_object, list(dictionaries of params, evaluator function)). """
+    """Each entry is a tuple (class_object, list(param dicts), eval. func)."""
     list_ext_params = []
     list_ext_params.append(
         (hoomd.md.external.Periodic,
@@ -60,7 +60,7 @@ def external_params(request):
 
 
 def _assert_correct_params(external_obj, param_dict):
-    """ Assert the parameters of the external object match whats in the dictionary. """
+    """Assert the params of the external object match whats in the dict."""
     for param in param_dict.keys():
         npt.assert_allclose(external_obj.params['A'][param], param_dict[param])
 
