@@ -39,14 +39,13 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     pair_data.replicate(n, old_n);
     }
 
-
 template<class Real> void SnapshotSystemData<Real>::wrap()
     {
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-		vec3<double> p = particle_data.pos[i];
-		global_box.wrap(p, particle_data.image[i]);
-		particle_data.pos[i] = p;
+        vec3<double> p = particle_data.pos[i];
+        global_box.wrap(p, particle_data.image[i]);
+        particle_data.pos[i] = p;
         }
     }
 
