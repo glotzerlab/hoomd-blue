@@ -8,6 +8,7 @@ from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
+from hoomd.data.attacherror import AttachedDataError
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
@@ -208,7 +209,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     def _return_type_shapes(self):
         if not self._attached:
-            return None
+            raise AttachedDataError("type_shapes")
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret

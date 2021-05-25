@@ -2,7 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Implement AttachDataError."""
+"""Implement AttachedDataError."""
 
 
 class AttachedDataError(RuntimeError):
@@ -13,5 +13,5 @@ class AttachedDataError(RuntimeError):
 
     def __str__(self):
         """Returns the error message."""
-        return f"The property {self.data_name} is unavailable until the"
-        "simulation runs for 0 or more steps."
+        return (f'The property {self.data_name} is unavailable until the '
+                'simulation runs for 0 or more steps.')
