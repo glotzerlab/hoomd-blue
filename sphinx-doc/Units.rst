@@ -20,3 +20,5 @@ Unit conversion between dervied units and based units
      - :math:`[\sqrt{energy \cdot mass^{-1}}]`
    * - :math:`[pressure]`
      - :math:`[energy \cdot length^{-3}]`
+   * - :math:`[charge]`
+     - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot length \cdot energy}]`
