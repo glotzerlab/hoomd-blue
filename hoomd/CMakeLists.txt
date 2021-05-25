@@ -328,6 +328,7 @@ set(files box.py
           snapshot.py
           logging.py
           version.py
+          wall.py
     )
 
 install(FILES ${files}

@@ -32,7 +32,7 @@ def _set_synced_list(old_list, new_list):
 
 class _DynamicIntegrator(BaseIntegrator):
 
-    def __init__(self, forces, constraints, methods, walls):
+    def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -46,24 +46,6 @@ class _DynamicIntegrator(BaseIntegrator):
 
         self._methods = syncedlist.SyncedList(
             Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
-        
-        super().__init__()
-        if walls is not None:
-            self._walls.extend(walls)
-
-        # TODO: walls synced list, per type and metalist
-
-    def _attach_wall(self, wall):
-        if isinstance(wall, hoomd.integrate.Sphere):
-            _md
-        if isinstance(wall, hoomd.integrate.Cylinder):
-            _md
-        if isinstance(wall, hoomd.integrate.Plane):
-            _md
-        elif isinstance(wall, hoomd.integrate._Base_Wall):
-            print("This wall type isn't implemented.")
-        else:
-            raise ValueError("Not a wall type.")
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)

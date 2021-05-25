@@ -1,111 +1,18 @@
-
-# class group(object):
-
-#     def __init__(self, *walls):
-#         self.spheres = []
-#         self.cylinders = []
-#         self.planes = []
-#         for wall in walls:
-#             self.add(wall)
-
-#     def add(self, wall):
-
-#         if (isinstance(wall, sphere)):
-#             self.spheres.append(wall)
-#         elif (isinstance(wall, cylinder)):
-#             self.cylinders.append(wall)
-#         elif (isinstance(wall, plane)):
-#             self.planes.append(wall)
-#         elif (type(wall) == list):
-#             for wall_el in wall:
-#                 if (isinstance(wall_el, sphere)):
-#                     self.spheres.append(wall_el)
-#                 elif (isinstance(wall_el, cylinder)):
-#                     self.cylinders.append(wall_el)
-#                 elif (isinstance(wall_el, plane)):
-#                     self.planes.append(wall_el)
-#                 else:
-#                     print("Input of type " + str(type(wall_el))
-#                           + " is not allowed. Skipping invalid list element...")
-#         else:
-#             print("Input of type " + str(type(wall)) + " is not allowed.")
-
-#     def del_sphere(self, *indexs):
-#         for index in indexs:
-#             if type(index) is int:
-#                 index = [index]
-#             elif type(index) is range:
-#                 index = list(index)
-#             index = list(set(index))
-#             index.sort(reverse=True)
-#             for i in index:
-#                 try:
-#                     del (self.spheres[i])
-#                 except IndexValueError:
-#                     hoomd.context.current.device.cpp_msg.error(
-#                         "Specified index for deletion is not valid.\n")
-#                     raise RuntimeError("del_sphere failed")
-
-#     def del_cylinder(self, *indexs):
-#         for index in indexs:
-#             if type(index) is int:
-#                 index = [index]
-#             elif type(index) is range:
-#                 index = list(index)
-#             index = list(set(index))
-#             index.sort(reverse=True)
-#             for i in index:
-#                 try:
-#                     del (self.cylinders[i])
-#                 except IndexValueError:
-#                     hoomd.context.current.device.cpp_msg.error(
-#                         "Specified index for deletion is not valid.\n")
-#                     raise RuntimeError("del_cylinder failed")
-
-#     def del_plane(self, *indexs):
-#         for index in indexs:
-#             if type(index) is int:
-#                 index = [index]
-#             elif type(index) is range:
-#                 index = list(index)
-#             index = list(set(index))
-#             index.sort(reverse=True)
-#             for i in index:
-#                 try:
-#                     del (self.planes[i])
-#                 except IndexValueError:
-#                     hoomd.context.current.device.cpp_msg.error(
-#                         "Specified index for deletion is not valid.\n")
-#                     raise RuntimeError("del_plane failed")
-
-#     ## \internal
-#     # \brief Returns output for print
-#     def __str__(self):
-#         output = "Wall_Data_Structure:\nspheres:%s{" % (len(self.spheres))
-#         for index in range(len(self.spheres)):
-#             output += "\n[%s:\t%s]" % (repr(index), str(self.spheres[index]))
-
-#         output += "}\ncylinders:%s{" % (len(self.cylinders))
-#         for index in range(len(self.cylinders)):
-#             output += "\n[%s:\t%s]" % (repr(index), str(self.cylinders[index]))
-
-#         output += "}\nplanes:%s{" % (len(self.planes))
-#         for index in range(len(self.planes)):
-#             output += "\n[%s:\t%s]" % (repr(index), str(self.planes[index]))
-
-#         output += "}"
-#         return output
+from collections.abc import MutableSequence as _MutableSequence
+from hoomd.data.syncedlist import SyncedList as _SyncedList
 
 class _Base_Wall(object):
     def __init__(self):
         self._attached = False
         self._cpp_obj = None
+        self._added = False
 
 class Sphere(_Base_Wall):
     def __init__(self, r=0.0, origin=(0.0, 0.0, 0.0), inside=True):
         self.r = r
         self.origin = origin
         self.inside = inside
+        super().__init__()
 
     def __str__(self):
         return "Radius=%s\tOrigin=%s\tInside=%s" % (str(self.r), str(
@@ -125,6 +32,7 @@ class Cylinder(_Base_Wall):
         self.origin = origin
         self.axis = axis
         self.inside = inside
+        super().__init__()
 
     def __str__(self):
         return "Radius=%s\tOrigin=%s\tAxis=%s\tInside=%s" % (str(
@@ -143,6 +51,7 @@ class Plane(_Base_Wall):
         self.origin = origin
         self.normal = normal
         self.inside = inside
+        super().__init__()
 
     def __str__(self):
         return "Origin=%s\tNormal=%s\tInside=%s" % (str(
@@ -152,3 +61,57 @@ class Plane(_Base_Wall):
         return "{'origin':%s, 'normal': %s, 'inside': %s}" % (str(
             self.origin), str(self.normal), str(self.inside))
 
+
+class _WallsMetaList(_MutableSequence):
+
+    def __init__(self, attach_method, walls):
+        self.walls=[]
+        # self._walls = {
+        #     Sphere:_SyncedList(Sphere,attach_method),
+        #     Cylinder:_SyncedList(Cylinder,attach_method),
+        #     Plane:_SyncedList(Plane,attach_method)}
+        self._walls={Sphere:[],Cylinder:[],Plane:[]}
+        self.index={Sphere:[],
+                        Cylinder:[],
+                        Plane:[]}
+                
+        for wall in walls:
+            self.append(wall)
+
+    def __getitem__(self, index):
+        return self.walls[index]
+        
+    def __setitem__(self, index, wall):
+        old = self.walls[index]
+        self.index[type(old)].remove(index)
+        self._walls[type(old)].remove(old)
+        self.index[type(wall)].append(wall)
+        self._walls[type(wall)].append(index)
+        self.walls[index] = wall
+
+    def __delitem__(self, index):
+        if isinstance(index,slice):
+            for i in reversed(sorted(list(range(
+                index.start or 0,
+                index.stop or len(self),
+                index.step or 1)))):
+                self.__delitem__(i)
+        else:
+            self._walls[type(self.walls[index])].remove(self.walls[index])
+            self.index[type(self.walls[index])].remove(index)
+            for k in self.index.keys():
+                    self.index[k] = list(map(lambda i:i if i<index else i-1, self.index[k]))
+            del self.walls[index]
+
+    def __len__(self):
+        return len(self.walls)
+        
+    def insert(self, index, wall):
+        if not wall in self.walls:
+            for k in self.index.keys():
+                self.index[k] = list(map(
+                    lambda i:i if i<index else i+1,
+                    self.index[k]))
+            self._walls[type(wall)].append(wall)
+            self.index[type(wall)].append(index)
+            self.walls.insert(index,wall)
