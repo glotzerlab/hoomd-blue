@@ -112,7 +112,7 @@ class Pair(force.Force):
         `float`])
 
     .. py:attribute:: mode
-        
+
         *mode*, *optional*: defaults to ``none``.
         Possible values: ``none``, ``shift``, ``xplor``
 
@@ -822,10 +822,10 @@ class DPDLJ(Pair):
     be set per unique pair of particle types.
 
     To use the DPD thermostat, an `hoomd.md.methods.NVE` integrator
-    must be applied to the system and the user must specify a temperature.  Use
+    must be applied to the system and the user must specify a temperature. Use
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
-   
+    
     DPDLJ does not support xplor smoothing mode. See Pair for details on
     how forces are calculated and the available energy shifting
     and smoothing modes.
