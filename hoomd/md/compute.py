@@ -10,6 +10,7 @@
 from hoomd.md import _md
 from hoomd.operation import Compute
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.attacherror import AttachedDataError
 from hoomd.logging import log
 import hoomd
 
@@ -65,7 +66,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.kinetic_temperature
         else:
-            return None
+            raise AttachedDataError("kinetic_temperature")
 
     @log
     def pressure(self):
@@ -96,7 +97,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.pressure
         else:
-            return None
+            raise AttachedDataError("pressure")
 
     @log(category='sequence')
     def pressure_tensor(self):
@@ -118,7 +119,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.pressure_tensor
         else:
-            return None
+            raise AttachedDataError("pressure_tensor")
 
     @log
     def kinetic_energy(self):
@@ -133,7 +134,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.kinetic_energy
         else:
-            return None
+            raise AttachedDataError("kinetic_energy")
 
     @log
     def translational_kinetic_energy(self):
@@ -151,7 +152,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.translational_kinetic_energy
         else:
-            return None
+            raise AttachedDataError("translational_kinetic_energy")
 
     @log
     def rotational_kinetic_energy(self):
@@ -174,7 +175,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.rotational_kinetic_energy
         else:
-            return None
+            raise AttachedDataError("rotational_kinetic_energy")
 
     @log
     def potential_energy(self):
@@ -227,7 +228,7 @@ class ThermodynamicQuantities(_Thermo):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.potential_energy
         else:
-            return None
+            raise AttachedDataError("potential_energy")
 
     @log
     def degrees_of_freedom(self):
@@ -246,7 +247,7 @@ class ThermodynamicQuantities(_Thermo):
         if self._attached:
             return self._cpp_obj.degrees_of_freedom
         else:
-            return None
+            raise AttachedDataError("degrees_of_freedom")
 
     @log
     def translational_degrees_of_freedom(self):
@@ -270,7 +271,7 @@ class ThermodynamicQuantities(_Thermo):
         if self._attached:
             return self._cpp_obj.translational_degrees_of_freedom
         else:
-            return None
+            raise AttachedDataError("translational_degrees_of_freedom")
 
     @log
     def rotational_degrees_of_freedom(self):
@@ -282,7 +283,7 @@ class ThermodynamicQuantities(_Thermo):
         if self._attached:
             return self._cpp_obj.rotational_degrees_of_freedom
         else:
-            return None
+            raise AttachedDataError("rotational_degrees_of_freedom")
 
     @log
     def num_particles(self):
@@ -290,7 +291,7 @@ class ThermodynamicQuantities(_Thermo):
         if self._attached:
             return self._cpp_obj.num_particles
         else:
-            return None
+            raise AttachedDataError("num_particles")
 
 
 class HarmonicAveragedThermodynamicQuantities(Compute):
@@ -364,7 +365,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.potential_energy
         else:
-            return None
+            raise AttachedDataError("potential_energy")
 
     @log
     def pressure(self):
@@ -373,4 +374,4 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.pressure
         else:
-            return None
+            raise AttachedDataError("pressure")

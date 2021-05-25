@@ -11,6 +11,7 @@ from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
+from hoomd.data.attacherror import AttachedDataError
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
 from hoomd.variant import Variant
 from collections.abc import Sequence
@@ -218,7 +219,7 @@ class NVT(Method):
     def thermostat_energy(self):
         """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
-            return None
+            raise AttachedDataError("thermostat_energy")
         else:
             return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
@@ -511,7 +512,7 @@ class NPT(Method):
     def thermostat_energy(self):
         """Energy the thermostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
-            return None
+            raise AttachedDataError("thermostat_energy")
         else:
             return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
@@ -519,7 +520,7 @@ class NPT(Method):
     def barostat_energy(self):
         """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
-            return None
+            raise AttachedDataError("barostat_energy")
         else:
             return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
@@ -705,7 +706,7 @@ class NPH(Method):
     def barostat_energy(self):
         """Energy the barostat contributes to the Hamiltonian [energy]."""
         if not self._attached:
-            return None
+            raise AttachedDataError("barostat_energy")
         else:
             return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
 
