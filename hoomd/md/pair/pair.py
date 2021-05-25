@@ -1189,7 +1189,7 @@ class ReactionField(Pair):
     .. math::
 
        V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
-           \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) default_r_c^3} \right]
+           \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
 
     By default, the reaction field potential does not require charge or diameter
     to be set. Two parameters, :math:`\varepsilon` and :math:`\epsilon_{RF}`
@@ -1201,7 +1201,7 @@ class ReactionField(Pair):
     .. math::
 
         V_{\mathrm{RF}}(r) = q_i q_j \varepsilon \left[ \frac{1}{r} +
-          \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) default_r_c^3} \right]
+          \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
 
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
