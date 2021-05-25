@@ -72,7 +72,9 @@ def test_mode(make_two_particle_simulation, mode):
     """Test that all modes are correctly set on construction."""
     cell = md.nlist.Cell()
     # Test setting on construction
-    gay_berne = md.pair.aniso.GayBerne(nlist=cell, default_r_cut=2.5, mode=mode[0])
+    gay_berne = md.pair.aniso.GayBerne(nlist=cell,
+                                       default_r_cut=2.5,
+                                       mode=mode[0])
     assert gay_berne.mode == mode[0]
 
     # Test setting
@@ -245,7 +247,8 @@ def _valid_params(particle_types=['A', 'B']):
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_setting_params_and_shape(make_two_particle_simulation,
                                   pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+                                             default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
         assert _equivalent_data_structures(value, getattr(pair_potential, key))
@@ -379,7 +382,8 @@ def test_aniso_force_computes(make_two_particle_simulation,
 
 @pytest.mark.parametrize('pair_potential_spec', _valid_params())
 def test_pickling(make_two_particle_simulation, pair_potential_spec):
-    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(), default_r_cut=2.5)
+    pair_potential = pair_potential_spec.cls(nlist=md.nlist.Cell(),
+                                             default_r_cut=2.5)
     for key, value in pair_potential_spec.type_parameters.items():
         setattr(pair_potential, key, value)
         assert _equivalent_data_structures(value, getattr(pair_potential, key))

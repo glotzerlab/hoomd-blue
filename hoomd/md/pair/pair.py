@@ -105,7 +105,7 @@ class Pair(force.Force):
 
     .. py:attribute:: r_on
 
-        *r_on* (in distance units),  *optional*: defaults to the value 
+        *r_on* (in distance units),  *optional*: defaults to the value
         ``default_r_on`` specified on construction
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -669,7 +669,12 @@ class DPD(Pair):
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
 
-    def __init__(self, nlist, kT, default_r_cut=None, default_r_on=0., mode='none'):
+    def __init__(self,
+                 nlist,
+                 kT,
+                 default_r_cut=None,
+                 default_r_on=0.,
+                 mode='none'):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
@@ -843,7 +848,12 @@ class DPDLJ(Pair):
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
 
-    def __init__(self, nlist, kT, default_r_cut=None, default_r_on=0., mode='none'):
+    def __init__(self,
+                 nlist,
+                 kT,
+                 default_r_cut=None,
+                 default_r_on=0.,
+                 mode='none'):
         if mode == 'xplor':
             raise ValueError("xplor smoothing is not supported with pair.DPDLJ")
 
@@ -1703,7 +1713,11 @@ class TWF(Pair):
     """
     _cpp_class_name = "PotentialPairTWF"
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode='none'):
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
         super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',

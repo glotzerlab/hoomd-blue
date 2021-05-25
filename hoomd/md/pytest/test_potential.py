@@ -706,7 +706,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         E_rcut = sum(energies)
 
-    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(), mode='shift', default_r_cut=r_cut)
+    lj_shift = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='shift',
+                          default_r_cut=r_cut)
     lj_shift.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     integrator = md.Integrator(dt=0.005)
     integrator.forces.append(lj_shift)
@@ -725,7 +727,9 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     if energies is not None:
         assert sum(energies) == E_r - E_rcut
 
-    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(), mode='xplor', default_r_cut=r_cut)
+    lj_xplor = md.pair.LJ(nlist=md.nlist.Cell(),
+                          mode='xplor',
+                          default_r_cut=r_cut)
     lj_xplor.params[('A', 'A')] = {'sigma': 1, 'epsilon': 0.5}
     lj_xplor.r_on[('A', 'A')] = 0.5
     integrator = md.Integrator(dt=0.005)
