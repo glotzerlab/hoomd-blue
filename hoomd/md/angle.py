@@ -53,10 +53,10 @@ class Harmonic(Angle):
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
-              (in units of energy/radians^2)
+              :math:`[energy \cdot radians^{-2}]`
 
             * ``t0`` (`float`, **required**) - rest angle
-              (in units radians)
+              :math:`[radians]`
 
     Examples::
 
@@ -95,10 +95,10 @@ class Cosinesq(Angle):
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
-              (in units of energy/radians^2)
+              :math:`[energy \cdot radians^{-2}]`
 
             * ``t0`` (`float`, **required**) - rest angle :math:`\theta_0`
-              (in units radians)
+              :math:`[radians]`
 
     Parameters :math:`k` and :math:`\theta_0` must be set for each type of
     angle in the simulation.  Note that the value of :math:`k` for this angle
