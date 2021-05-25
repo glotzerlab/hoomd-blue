@@ -124,6 +124,14 @@ def test_configuration(s):
             s.configuration.dimensions = 2
         assert s.configuration.dimensions == 3
 
+def test_wrap(s):
+    if s.communicator.rank == 0:
+        # set up particles outside of the box
+
+        # wrap
+
+        # check the particles are where they should be
+
 
 def test_particles(s):
     if s.exists:
