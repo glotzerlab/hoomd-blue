@@ -225,9 +225,11 @@ class HPMCIntegrator(BaseIntegrator):
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
         """
-        if (not self._attached
-                or self._simulation.device.communicator.num_ranks > 1):
-            return AttachedDataError("map_overlaps")
+        if not self._attached:
+            raise AttachedDataError("map_overlaps")
+        elif self._simulation.device.communicator.num_ranks > 1:
+            return None
+
         return self._cpp_obj.mapOverlaps()
 
     def map_energies(self):
@@ -262,7 +264,7 @@ class HPMCIntegrator(BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
         if not self._attached:
-            return AttachedDataError("overlaps")
+            raise AttachedDataError("overlaps")
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -323,7 +325,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).translate
         else:
-            return AttachedDataError("translate_moves")
+            raise AttachedDataError("translate_moves")
 
     @log(category='sequence')
     def rotate_moves(self):
@@ -336,7 +338,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).rotate
         else:
-            return AttachedDataError("rotate_moves")
+            raise AttachedDataError("rotate_moves")
 
     @log
     def mps(self):
@@ -348,7 +350,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getMPS()
         else:
-            return AttachedDataError("mps")
+            raise AttachedDataError("mps")
 
     @property
     def counters(self):
@@ -371,7 +373,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1)
         else:
-            return AttachedDataError("counters")
+            raise AttachedDataError("counters")
 
 
 class Sphere(HPMCIntegrator):

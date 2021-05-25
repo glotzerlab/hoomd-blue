@@ -9,6 +9,7 @@ from enum import Flag, auto
 from itertools import count
 from functools import reduce
 from hoomd.util import dict_map, _SafeNamespaceDict
+from hoomd.data.attacherror import AttachedDataError
 from collections.abc import Sequence
 
 
@@ -464,7 +465,11 @@ class _LoggerEntry:
         return cls(entry[0], method, category)
 
     def __call__(self):
-        attr = getattr(self.obj, self.attr)
+        try:
+            attr = getattr(self.obj, self.attr)
+        except AttachedDataError:
+            attr = None
+
         if self.category is LoggerCategories.state:
             return attr
         if callable(attr):
