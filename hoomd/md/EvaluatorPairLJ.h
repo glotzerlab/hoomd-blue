@@ -128,10 +128,10 @@ class EvaluatorPairLJ
             }
 
         // this constructor facilitates unit testing
-        param_type(Scalar sigma, Scalar epsilon, Scalar alpha = 1.0)
+        param_type(Scalar sigma, Scalar epsilon)
             {
             lj1 = 4.0 * epsilon * pow(sigma, 12.0);
-            lj2 = 4.0 * epsilon * alpha * pow(sigma, 6.0);
+            lj2 = 4.0 * epsilon * pow(sigma, 6.0);
             }
 
         pybind11::dict asDict()

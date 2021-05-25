@@ -935,12 +935,10 @@ class ForceShiftedLJ(Pair):
     _cpp_class_name = "PotentialPairForceShiftedLJ"
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-        # initialize the base class
         super().__init__(nlist, r_cut, r_on, mode)
-
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(sigma=float, epsilon=float, len_keys=2))
+            TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
 
 
