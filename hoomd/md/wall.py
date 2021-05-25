@@ -478,6 +478,7 @@ class plane(object):
 
 #           *** Potentials ***
 
+
 class wallpotential(external.External):
     R""" Generic wall potential.
 

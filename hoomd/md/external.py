@@ -66,11 +66,11 @@ class Periodic(External):
         periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
     """
     _cpp_class_name = "PotentialExternalPeriodic"
+
     def __init__(self):
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(i=int, A=float, w=float, p=int,
-                                                 len_keys=1)
-                               )
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(i=int, A=float, w=float, p=int, len_keys=1))
         self._add_typeparam(params)
 
     def process_coeff(self, coeff):
@@ -105,7 +105,9 @@ class ElectricField(External):
     """
 
     _cpp_class_name = "PotentialExternalElectricField"
+
     def __init__(self):
-        params = TypeParameter('params', 'particle_types',
-                TypeParameterDict(E=(float,float,float), len_keys=1))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(E=(float, float, float), len_keys=1))
         self._add_typeparam(params)
