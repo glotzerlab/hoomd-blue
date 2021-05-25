@@ -333,8 +333,8 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
 void export_ActiveForceCompute(py::module& m)
     {
     py::class_< ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute")
-    .def(py::init< std::shared_ptr<SystemDefinition>, 
-		   std::shared_ptr<ParticleGroup>, 
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+		   std::shared_ptr<ParticleGroup>,
 		   Scalar >())
     .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
     .def("setActiveForce", &ActiveForceCompute::setActiveForce)

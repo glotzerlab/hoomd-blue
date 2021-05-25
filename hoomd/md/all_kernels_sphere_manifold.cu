@@ -91,7 +91,7 @@ template hipError_t gpu_include_rattle_force_nve<ManifoldSphere>(
                 bool zero_force,
                 unsigned int block_size);
 
-template hipError_t 
+template hipError_t
 gpu_compute_active_force_set_constraints<ManifoldSphere>(const unsigned int group_size,
                                                           unsigned int *d_index_array,
                                                           const Scalar4 *d_pos,

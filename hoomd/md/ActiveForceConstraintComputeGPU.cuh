@@ -43,7 +43,7 @@ hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsign
 
 #ifdef __HIPCC__
 
-//! Kernel for adjusting active force vectors to align parallel to an 
+//! Kernel for adjusting active force vectors to align parallel to an
 //  manifold surface constraint on the GPU
 /*! \param group_size number of particles
     \param d_index_array stores list to convert group index to global tag
@@ -111,7 +111,7 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 /*! \param group_size number of particles
     \param d_index_array stores list to convert group index to global tag
     \param d_pos particle positions on device
-    \param manifold constraint 
+    \param manifold constraint
     \param is2D check if simulation is 2D or 3D
     \param rotationConst particle rotational diffusion constant
     \param seed seed for random number generator
@@ -174,10 +174,10 @@ hipError_t gpu_compute_active_force_set_constraints(const unsigned int group_siz
 
     // run the kernel
     hipLaunchKernelGGL((gpu_compute_active_force_set_constraints_kernel<Manifold>),
-		        dim3(grid), 
-			dim3(threads), 
-			0, 
-			0, 
+		        dim3(grid),
+			dim3(threads),
+			0,
+			0,
 			group_size,
                         d_index_array,
                         d_pos,
@@ -205,11 +205,11 @@ hipError_t gpu_compute_active_force_constraint_rotational_diffusion(const unsign
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_constraint_rotational_diffusion_kernel<Manifold>), 
-		        dim3(grid), 
-			dim3(threads), 
-			0, 
-			0, 
+    hipLaunchKernelGGL((gpu_compute_active_force_constraint_rotational_diffusion_kernel<Manifold>),
+		        dim3(grid),
+			dim3(threads),
+			0,
+			0,
 			group_size,
                         d_tag,
                         d_index_array,

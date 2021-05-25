@@ -86,7 +86,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
     unsigned int idx = d_index_array[group_idx];
     Scalar4 posidx = __ldg(d_pos + idx);
     unsigned int type = __scalar_as_int(posidx.w);
-    
+
     Scalar4 fact = __ldg(d_f_act + type);
 
     if(fact.w != 0 ){
@@ -131,7 +131,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
             quati = rot_quat*quati;
             d_orientation[idx] = quat_to_scalar4(quati);
-                
+
             }
         }
     }
@@ -153,11 +153,11 @@ hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
 
     // run the kernel
     hipMemset(d_force, 0, sizeof(Scalar4)*N);
-    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel), 
-		        dim3(grid), 
-			dim3(threads), 
-			0, 
-			0,  
+    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel),
+		        dim3(grid),
+			dim3(threads),
+			0,
+			0,
 			group_size,
                         d_index_array,
                         d_force,
@@ -187,11 +187,11 @@ hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int grou
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel), 
-		        dim3(grid), 
-			dim3(threads), 
-			0, 
-			0, 
+    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel),
+		        dim3(grid),
+			dim3(threads),
+			0,
+			0,
 			group_size,
                         d_tag,
                         d_index_array,

@@ -56,14 +56,14 @@ class PYBIND11_EXPORT ActiveForceConstraintComputeGPU : public ActiveForceConstr
     \brief Contains code for the ActiveForceConstraintComputeGPU class
 */
 
-/*! \param f_list An array of (x,y,z) tuples for the active force vector for each 
+/*! \param f_list An array of (x,y,z) tuples for the active force vector for each
            individual particle.
-    \param orientation_link if True then forces and torques are applied in the 
-           particle's reference frame. If false, then the box reference frame is 
+    \param orientation_link if True then forces and torques are applied in the
+           particle's reference frame. If false, then the box reference frame is
 	   used. Only relevant for non-point-like anisotropic particles.
-    \param orientation_reverse_link When True, the particle's orientation is set 
-           to match the active force vector. Useful for using a particle's 
-	   orientation to log the active force vector. Not recommended for 
+    \param orientation_reverse_link When True, the particle's orientation is set
+           to match the active force vector. Useful for using a particle's
+	   orientation to log the active force vector. Not recommended for
 	   anisotropic particles
     \param rotation_diff rotational diffusion constant for all particles.
     \param manifold specifies a manfold surface, to which particles are confined.

@@ -203,8 +203,8 @@ template < class Manifold>
 void export_ActiveForceConstraintCompute(py::module& m, const std::string& name)
     {
     py::class_< ActiveForceConstraintCompute<Manifold>, ActiveForceCompute, std::shared_ptr<ActiveForceConstraintCompute<Manifold> > >(m, name.c_str() )
-    .def(py::init< std::shared_ptr<SystemDefinition>, 
-		   std::shared_ptr<ParticleGroup>, 
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+		   std::shared_ptr<ParticleGroup>,
 		   Scalar,
                    Manifold >())
     ;

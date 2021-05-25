@@ -339,18 +339,14 @@ class Active(Force):
 
     def __init__(self, filter, rotation_diff=0.1, manifold_constraint=None):
         # store metadata
-        param_dict = ParameterDict(
-            filter=ParticleFilter,
-            rotation_diff=float(rotation_diff),
-            manifold_constraint = OnlyTypes(Manifold, allow_none=True)
-        )
+        param_dict = ParameterDict(filter=ParticleFilter,
+                                   rotation_diff=float(rotation_diff),
+                                   manifold_constraint=OnlyTypes(
+                                       Manifold, allow_none=True))
         param_dict.update(
-            dict(
-                rotation_diff=rotation_diff,
-                filter=filter,
-                manifold_constraint=manifold_constraint
-            )
-        )
+            dict(rotation_diff=rotation_diff,
+                 filter=filter,
+                 manifold_constraint=manifold_constraint))
         # set defaults
         self._param_dict.update(param_dict)
 
@@ -405,27 +401,27 @@ class Active(Force):
             else:
                 my_class = _md.ActiveForceComputeGPU
 
-            self._cpp_obj = my_class(
-                sim.state._cpp_sys_def,
-                sim.state._get_group(self.filter),
-                self.rotation_diff
-            )
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                     sim.state._get_group(self.filter),
+                                     self.rotation_diff)
         else:
 
             if not self.manifold_constraint._attached:
                 self.manifold_constraint._attach()
 
             if isinstance(sim.device, hoomd.device.CPU):
-                my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__)
+                my_class = getattr(
+                    _md, 'ActiveForceConstraintCompute'
+                    + self.manifold_constraint.__class__.__name__)
             else:
-                my_class = getattr(_md, 'ActiveForceConstraintCompute' + self.manifold_constraint.__class__.__name__ + 'GPU')
+                my_class = getattr(
+                    _md, 'ActiveForceConstraintCompute'
+                    + self.manifold_constraint.__class__.__name__ + 'GPU')
 
-            self._cpp_obj = my_class(
-                sim.state._cpp_sys_def,
-                sim.state._get_group(self.filter),
-                self.rotation_diff,
-                self.manifold_constraint._cpp_obj
-            )
+            self._cpp_obj = my_class(sim.state._cpp_sys_def,
+                                     sim.state._get_group(self.filter),
+                                     self.rotation_diff,
+                                     self.manifold_constraint._cpp_obj)
 
         # Attach param_dict and typeparam_dict
         super()._attach()
