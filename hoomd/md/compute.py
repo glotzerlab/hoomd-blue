@@ -53,7 +53,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_temperature(self):
-        r""":math:`kT_k`, instantaneous thermal energy of the group :math:`[energy]`.
+        r""":math:`kT_k`, instantaneous thermal energy of the group. :math:`[energy]`
 
         Calculated as:
 
@@ -69,7 +69,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def pressure(self):
-        r""":math:`P`, instantaneous pressure of the group :math:`[pressure]`.
+        r""":math:`P`, instantaneous pressure of the group. :math:`[pressure]`
 
         Calculated as:
 
@@ -100,7 +100,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(category='sequence')
     def pressure_tensor(self):
-        r"""Instantaneous pressure tensor of the group :math:`[pressure]`.
+        r"""Instantaneous pressure tensor of the group. :math:`[pressure]`
 
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
         :math:`P_{yz}`, :math:`P_{zz}`). calculated as:
@@ -122,7 +122,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_energy(self):
-        r""":math:`K`, total kinetic energy of particles in the group :math:`[energy]`.
+        r""":math:`K`, total kinetic energy of particles in the group. :math:`[energy]`
 
         .. math::
 
@@ -139,7 +139,7 @@ class ThermodynamicQuantities(_Thermo):
     def translational_kinetic_energy(self):
         r""":math:`K_{\mathrm{trans}}`.
 
-        Translational kinetic energy of all particles in the group :math:`[energy]`.
+        Translational kinetic energy of all particles in the group. :math:`[energy]`
 
         .. math::
 
@@ -157,7 +157,7 @@ class ThermodynamicQuantities(_Thermo):
     def rotational_kinetic_energy(self):
         r""":math:`K_{\mathrm{rot}}`.
 
-        Rotational kinetic energy of all particles in the group :math:`[energy]`.
+        Rotational kinetic energy of all particles in the group. :math:`[energy]`
 
         Calculated as:
 
@@ -180,8 +180,8 @@ class ThermodynamicQuantities(_Thermo):
     def potential_energy(self):
         r""":math:`U`.
 
-        Potential energy that the group contributes to the entire system
-        :math:`[energy]`.
+        Potential energy that the group contributes to the entire system.
+        :math:`[energy]`
 
         The potential energy is calculated as a sum of per-particle energy
         contributions:
