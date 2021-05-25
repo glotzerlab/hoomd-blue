@@ -97,7 +97,7 @@ class Pair(force.Force):
 
     .. py:attribute:: r_cut
 
-        *r_cut* (in distance units), *optional*: defaults to the value ``r_cut``
+        *r_cut* :math:`[length]`, *optional*: defaults to the value ``r_cut``
         specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -105,7 +105,7 @@ class Pair(force.Force):
 
     .. py:attribute:: r_on
 
-        *r_on* (in distance units),  *optional*: defaults to the value ``r_on``
+        *r_on* :math:`[length]`,  *optional*: defaults to the value ``r_on``
         specified on construction
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -208,8 +208,8 @@ class LJ(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `LJ` specifies that a Lennard-Jones pair potential should be
@@ -235,9 +235,9 @@ class LJ(Pair):
         The LJ potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` (in energy units)
+          energy parameter :math:`\varepsilon` :math:`[energy]`
         * ``sigma`` (`float`, **required**) -
-          particle size :math:`\sigma` (in distance units)
+          particle size :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -264,8 +264,8 @@ class Gauss(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `Gauss` specifies that a Gaussian pair potential should be applied
@@ -292,9 +292,8 @@ class Gauss(Pair):
         keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\varepsilon` (in energy units)
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-          (in distance units)
+          :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -321,8 +320,8 @@ class SLJ(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): Energy shifting/smoothing mode
 
     `SLJ` specifies that a shifted Lennard-Jones type pair potential
@@ -366,9 +365,8 @@ class SLJ(Pair):
         The potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\varepsilon` (in energy units)
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-          (in distance units)
+          :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -411,8 +409,8 @@ class Yukawa(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): Energy shifting mode.
 
     `Yukawa` specifies that a Yukawa pair potential should be applied between
@@ -438,9 +436,9 @@ class Yukawa(Pair):
         keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\varepsilon` (in energy units)
+          :math:`\varepsilon` :math:`[energy]`
         * ``kappa`` (`float`, **required**) - scaling parameter
-          :math:`\kappa` (in units of 1/distance)
+          :math:`\kappa` :math:`[length^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -467,8 +465,8 @@ class Ewald(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): Energy shifting mode.
 
     `Ewald` specifies that a Ewald pair potential should be applied between
@@ -500,9 +498,9 @@ class Ewald(Pair):
         The Ewald potential parameters. The dictionary has the following keys:
 
         * ``kappa`` (`float`, **required**) - Splitting parameter
-          :math:`\kappa` (in units of 1/distance)
+          :math:`\kappa` :math:`[length^{-1}]`
         * ``alpha`` (`float`, **required**) - Debye screening length
-          :math:`\alpha` (in units of 1/distance)
+          :math:`\alpha` :math:`[length^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -529,8 +527,8 @@ class Morse(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `Morse` specifies that a Morse pair potential should be applied between
@@ -556,11 +554,11 @@ class Morse(Pair):
         The potential parameters. The dictionary has the following keys:
 
         * ``D0`` (`float`, **required**) - depth of the potential at its
-          minimum :math:`D_0` (in energy units)
+          minimum :math:`D_0` :math:`[energy]`
         * ``alpha`` (`float`, **required**) - the width of the potential well
-          :math:`\alpha` (in units of 1/distance)
+          :math:`\alpha` :math:`[length^{-1}]`
         * ``r0`` (`float`, **required**) - position of the minimum
-          :math:`r_0` (in distance units)
+          :math:`r_0` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -589,9 +587,9 @@ class DPD(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
-          thermostat (in energy units).
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+          thermostat :math:`[energy]`.
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
 
     `DPD` specifies that a DPD pair force should be applied between every
     non-excluded particle pair in the simulation, including an interaction
@@ -651,9 +649,8 @@ class DPD(Pair):
 
         The force parameters. The dictionary has the following keys:
 
-        * ``A`` (`float`, **required**) - :math:`A` (in force units)
-        * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
-          force/velocity)
+        * ``A`` (`float`, **required**) - :math:`A` :math:`[force]`
+        * ``gamma`` (`float`, **required**) - :math:`\gamma` :math:`[mass \cdot time^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -697,8 +694,8 @@ class DPDConservative(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
 
     `DPDConservative` specifies the conservative part of the DPD pair potential
     should be applied between every non-excluded particle pair in the
@@ -726,7 +723,7 @@ class DPDConservative(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``A`` (`float`, **required**) - :math:`A` (in force units)
+        * ``A`` (`float`, **required**) - :math:`A` :math:`[force]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -755,9 +752,9 @@ class DPDLJ(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
-            thermostat (in energy units).
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+            thermostat :math:`[energy]`.
+        r_cut (float): Default cutoff radius :math:`[length]`
+        r_on (float): Default turn-on radius :math:`[length]`.
 
     `DPDLJ` specifies that a DPD thermostat and a Lennard-Jones pair potential
     should be applied between every non-excluded particle pair in the
@@ -822,12 +819,9 @@ class DPDLJ(Pair):
 
         The DPDLJ potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-          (in energy units)
-        * ``sigma`` (`float`, **required**) - :math:`\sigma`
-          (in distance units)
-        * ``gamma`` (`float`, **required**) - :math:`\gamma` (in units of
-          force/velocity)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - :math:`\sigma` :math:`[length]`
+        * ``gamma`` (`float`, **required**) - :math:`\gamma` :math:`[mass \cdot time^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -879,8 +873,8 @@ class ForceShiftedLJ(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `ForceShiftedLJ` specifies that a modified Lennard-Jones pair force should
@@ -918,10 +912,8 @@ class ForceShiftedLJ(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
-          (in energy units)
-        * ``sigma`` (`float`, **required**) - :math:`\sigma`
-          (in distance units)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -949,8 +941,8 @@ class Moliere(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `Moliere` specifies that a Moliere type pair potential should be applied
@@ -971,11 +963,11 @@ class Moliere(Pair):
 
     Where each parameter is defined as:
 
-    - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
-    - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
-    - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
+    - :math:`Z_i` - *Z_i* - Atomic number of species i :math:`[dimensionless]`
+    - :math:`Z_j` - *Z_j* - Atomic number of species j :math:`[dimensionless]`
+    - :math:`e` - *elementary_charge* - The elementary charge :math:`[charge]`
     - :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
-      \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
+      \right)^{2/3}}`, where :math:`a_0` is the Bohr radius :math:`[length]`
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
@@ -987,14 +979,13 @@ class Moliere(Pair):
         The potential parameters. The dictionary has the following keys:
 
         * ``qi`` (`float`, **required**) -
-          :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}`
-          (in charge units)
+          :math:`q_i = Z_i \frac{e}{\sqrt{4 \pi \epsilon_0}}` :math:`[charge]`
         * ``qj`` (`float`, **required**) -
-          :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}`
-          (in charge units)
+          :math:`q_j = Z_j \frac{e}{\sqrt{4 \pi \epsilon_0}}` :math:`[charge]`
+
         * ``aF`` (`float`, **required**) -
           :math:`a_F = \frac{0.8853 a_0}{\left( \sqrt{Z_i} + \sqrt{Z_j}
-          \right)^{2/3}}`
+          \right)^{2/3}}` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1027,8 +1018,8 @@ class ZBL(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `ZBL` specifies that a Ziegler-Biersack-Littmark pair potential
@@ -1051,11 +1042,11 @@ class ZBL(Pair):
 
     Where each parameter is defined as:
 
-    - :math:`Z_i` - *Z_i* - Atomic number of species i (unitless)
-    - :math:`Z_j` - *Z_j* - Atomic number of species j (unitless)
-    - :math:`e` - *elementary_charge* - The elementary charge (in charge units)
+    - :math:`Z_i` - *Z_i* - Atomic number of species i :math:`[dimensionless]`
+    - :math:`Z_j` - *Z_j* - Atomic number of species j :math:`[dimensionless]`
+    - :math:`e` - *elementary_charge* - The elementary charge :math:`[charge]`
     - :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`, where
-      :math:`a_0` is the Bohr radius (in distance units)
+      :math:`a_0` is the Bohr radius :math:`[length]`
 
     See `Pair` for details on how forces are calculated and the available
     energy shifting and smoothing modes. Use `params` dictionary to set
@@ -1066,11 +1057,11 @@ class ZBL(Pair):
         The ZBL potential parameters. The dictionary has the following keys:
 
         * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
-          \pi \epsilon_0}}` (in charge units)
+          \pi \epsilon_0}}` :math:`[charge]`
         * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
-          \pi \epsilon_0}}` (in charge units)
+          \pi \epsilon_0}}` :math:`[charge]`
         * ``a_F`` (`float`, **required**) -
-          :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
+          :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1104,8 +1095,8 @@ class Mie(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode.
 
     `Mie` specifies that a Mie pair potential should be applied between every
@@ -1132,12 +1123,10 @@ class Mie(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-          of energy)
-        * ``sigma`` (`float`, **required**) - :math:`\sigma` (in distance
-          units)
-        * ``n`` (`float`, **required**) - :math:`n` (unitless)
-        * ``m`` (`float`, **required**) - :math:`m` (unitless)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - :math:`\sigma` :math:`[length]`
+        * ``n`` (`float`, **required**) - :math:`n` :math:`[dimensionless]`
+        * ``m`` (`float`, **required**) - :math:`m` :math:`[dimensionless]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1172,8 +1161,8 @@ class ReactionField(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `ReactionField` specifies that an Onsager reaction field pair potential
@@ -1214,10 +1203,8 @@ class ReactionField(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-          of energy*distance)
-        * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}`
-          (dimensionless)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` :math:`[energy \cdot length]`
+        * ``eps_rf`` (`float`, **required**) - :math:`\epsilon_{RF}` :math:`[dimensionless]`
         * ``use_charge`` (`boolean`, **optional**) - evaluate pair potential
           using particle charges (*default*: False)
 
@@ -1250,11 +1237,10 @@ class DLVO(Pair):
     r"""DLVO colloidal interaction.
 
     Args:
-        r_cut (float): Default cutoff radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         name (str): Name of the force instance.
-        d_max (float): Maximum diameter particles in the simulation will have
-          (in distance units)
+        d_max (float): Maximum diameter particles in the simulation will have :math:`[length]`
 
     `DLVO` specifies that a DLVO dispersion and electrostatic interaction should
     be applied between every non-excluded particle pair in the simulation.
@@ -1295,12 +1281,11 @@ class DLVO(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (in units
-          of energy)
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` :math:`[energy]`
         * ``kappa`` (`float`, **required**) - scaling parameter
-          :math:`\kappa` (in units of 1/distance)
-        * ``Z`` (`float`, **required**) - :math:`Z` (in units of 1/distance)
-        * ``A`` (`float`, **required**) - :math:`A` (in units of energy)
+          :math:`\kappa` :math:`[length^{-1}]`
+        * ``Z`` (`float`, **required**) - :math:`Z` :math:`[length^{-1}]`
+        * ``A`` (`float`, **required**) - :math:`A` :math:`[energy]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1341,8 +1326,8 @@ class Buckingham(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `Buckingham` specifies that a Buckingham pair potential should be applied
@@ -1365,9 +1350,9 @@ class Buckingham(Pair):
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``A`` (`float`, **required**) - :math:`A` (in energy units)
-        * ``rho`` (`float`, **required**) - :math:`\rho` (in distance units)
-        * ``C`` (`float`, **required**) - :math:`C` (in energy units)
+        * ``A`` (`float`, **required**) - :math:`A` :math:`[energy]`
+        * ``rho`` (`float`, **required**) - :math:`\rho` :math:`[length]`
+        * ``C`` (`float`, **required**) - :math:`C` :math:`[energy]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1396,8 +1381,8 @@ class LJ1208(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `LJ1208` specifies that a Lennard-Jones 12-8 pair potential should be
@@ -1423,9 +1408,8 @@ class LJ1208(Pair):
         The potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) - energy parameter
-          :math:`\varepsilon` (in energy units)
-        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma`
-          (in distance units)
+          :math:`\varepsilon` :math:`[energy]`
+        * ``sigma`` (`float`, **required**) - particle size :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1452,8 +1436,8 @@ class LJ0804(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `LJ0804` specifies that a Lennard-Jones 8-4 pair potential should be
@@ -1480,9 +1464,9 @@ class LJ0804(Pair):
         The LJ potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` (in energy units)
+          energy parameter :math:`\varepsilon` :math:`[energy]`
         * ``sigma`` (`float`, **required**) -
-          particle size :math:`\sigma` (in distance units)
+          particle size :math:`\sigma` :math:`[length]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1510,8 +1494,8 @@ class Fourier(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): Energy shifting mode.
 
     `Fourier` specifies that a Fourier pair potential should be applied between
@@ -1551,9 +1535,9 @@ class Fourier(Pair):
         keys:
 
         * ``a`` (`float`, **required**) - array of 3 values corresponding to
-          a2, a3 and a4 in the Fourier series, unitless)
+          a2, a3 and a4 in the Fourier series :math:`[dimensionless]`
         * ``b`` (`float`, **required**) - array of 3 values corresponding to
-          b2, b3 and b4 in the Fourier series, unitless)
+          b2, b3 and b4 in the Fourier series :math:`[dimensionless]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1581,8 +1565,8 @@ class OPP(Pair):
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
+        r_cut (float): Default cutoff radius :math:`[length]`.
+        r_on (float): Default turn-on radius :math:`[length]`.
         mode (str): energy shifting/smoothing mode
 
     `OPP` specifies that an oscillating pair potential should be applied between
@@ -1612,19 +1596,19 @@ class OPP(Pair):
         The OPP potential parameters. The dictionary has the following keys:
 
         * ``C1`` (`float`, **required**) -
-          Energy scale of the first term :math:`C_1` (energy units)
+          Energy scale of the first term :math:`C_1` :math:`[energy]`
         * ``C2`` (`float`, **required**) -
-          Energy scale of the second term :math:`C_2` (energy units)
+          Energy scale of the second term :math:`C_2` :math:`[energy]`
         * ``eta1`` (`float`, **required**) -
           The inverse power to take :math:`r` to in the first term,
-          :math:`\eta_1` (unitless).
+          :math:`\eta_1` :math:`[dimensionless]`.
         * ``eta2`` (`float`, **required**) -
           The inverse power to take :math:`r` to in the second term
-          :math:`\eta_2` (unitless).
+          :math:`\eta_2` :math:`[dimensionless]`.
         * ``k`` (`float`, **required**) -
-          oscillation frequency :math:`k` (inverse distance units)
+          oscillation frequency :math:`k` :math:`[length^{-1}]`
         * ``phi`` (`float`, **required**) -
-          potential phase shift :math:`\phi` (unitless)
+          potential phase shift :math:`\phi` :math:`[dimensionless]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -1685,11 +1669,11 @@ class TWF(Pair):
         The LJ potential parameters. The dictionary has the following keys:
 
         * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` (units: [energy])
+          energy parameter :math:`\varepsilon` :math:`[energy]`
         * ``sigma`` (`float`, **required**) -
-          particle size :math:`\sigma` (units: [length])
+          particle size :math:`\sigma` :math:`[length]`
         * ``alpha`` (`float`, **required**) -
-          controls well-width :math:`\alpha` (unitless)
+          controls well-width :math:`\alpha` :math:`[dimensionless]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
