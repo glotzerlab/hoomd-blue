@@ -6,16 +6,15 @@ Unit conversion between dervied units and based units
 .. list-table::
    :header-rows: 1
 
-   * - Feature
-     - Replace with
-   * - Python 2.7
-     - Python >= 3.6
-   * - ``static`` parameter in ``hoomd.dump.gsd``
-     - ``dynamic`` parameter
-   * - ``set_params`` and other ``set_*`` methods
-     - Parameters and type parameters accessed by properties.
-   * - ``context.initialize``
-     - ``device.CPU`` / ``device.GPU``
-   * - ``util.quiet_status`` and ``util.unquiet_status``
-     - No longer needed.
-
+   * - Derived units
+     - Based units
+   * - :math:`[force]`
+     - :math:`[energy \cdot length^{-1}]`
+   * - :math:`[volume]`
+     - :math:`[length^{-3}]`
+   * - :math:`[area]`
+     - :math:`[length^{-2}]`
+   * - :math:`[velocity]`
+     - :math:`[length \cdot time^{-1}]`
+   * - :math:`[time]`
+     - :math:`[length \cdot \sqrt{mass \cdot energy^{-1}}]`
