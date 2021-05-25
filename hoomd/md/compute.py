@@ -53,7 +53,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_temperature(self):
-        r""":math:`kT_k`, instantaneous thermal energy of the group [energy].
+        r""":math:`kT_k`, instantaneous thermal energy of the group :math:`[energy]`.
 
         Calculated as:
 
@@ -69,7 +69,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def pressure(self):
-        r""":math:`P`, instantaneous pressure of the group (in pressure units).
+        r""":math:`P`, instantaneous pressure of the group :math:`[pressure]`.
 
         Calculated as:
 
@@ -100,7 +100,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(category='sequence')
     def pressure_tensor(self):
-        r"""Instantaneous pressure tensor of the group [pressure].
+        r"""Instantaneous pressure tensor of the group :math:`[pressure]`.
 
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
         :math:`P_{yz}`, :math:`P_{zz}`). calculated as:
@@ -122,7 +122,7 @@ class ThermodynamicQuantities(_Thermo):
 
     @log
     def kinetic_energy(self):
-        r""":math:`K`, total kinetic energy of particles in the group [energy].
+        r""":math:`K`, total kinetic energy of particles in the group :math:`[energy]`.
 
         .. math::
 
@@ -139,7 +139,7 @@ class ThermodynamicQuantities(_Thermo):
     def translational_kinetic_energy(self):
         r""":math:`K_{\mathrm{trans}}`.
 
-        Translational kinetic energy of all particles in the group [energy].
+        Translational kinetic energy of all particles in the group :math:`[energy]`.
 
         .. math::
 
@@ -157,7 +157,7 @@ class ThermodynamicQuantities(_Thermo):
     def rotational_kinetic_energy(self):
         r""":math:`K_{\mathrm{rot}}`.
 
-        Rotational kinetic energy of all particles in the group [energy].
+        Rotational kinetic energy of all particles in the group :math:`[energy]`.
 
         Calculated as:
 
@@ -359,7 +359,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
     @log
     def potential_energy(self):
-        """Average potential energy [energy]."""
+        """Average potential energy :math:`[energy]`."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.potential_energy
@@ -368,7 +368,7 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
 
     @log
     def pressure(self):
-        """Average pressure [pressure]."""
+        """Average pressure :math:`[pressure]`."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.pressure
