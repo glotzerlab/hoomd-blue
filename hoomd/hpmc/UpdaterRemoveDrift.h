@@ -152,7 +152,8 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                      Updater,
                      std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            pybind11:list >());
+                            pybind11:list >())
+        .def_property("ref_positions", &RemoveDriftUpdater<Shape>::getRefPositions, &RemoveDriftUpdater<Shape>::setRefPositions);
     }
     } // namespace hpmc
 
