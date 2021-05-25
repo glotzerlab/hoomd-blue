@@ -517,35 +517,42 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
                              trigger=trigger)
         self._param_dict.update(_default_dict)
 
-        # initialize base class
-        # _updater.__init__(self)
+    def _attach(self):
+        integrator = self._simulation.operations.integrator
+        if not isinstance(integrator, integrate.HPMCIntegrator):
+            raise RuntimeError("The integrator must be a HPMC integrator.")
+
+        if not integrator._attached:
+            raise RuntimeError("Integrator is not attached yet.")
+
+        sys_def = self._simulation.state._cpp_sys_def
         cls = None
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            if isinstance(mc, integrate.sphere):
+        if not sys_def.isCUDAEnabled():
+            if isinstance(integrator, integrate.sphere):
                 cls = _hpmc.RemoveDriftUpdaterSphere
-            elif isinstance(mc, integrate.convex_polygon):
+            elif isinstance(integrator, integrate.convex_polygon):
                 cls = _hpmc.RemoveDriftUpdaterConvexPolygon
-            elif isinstance(mc, integrate.simple_polygon):
+            elif isinstance(integrator, integrate.simple_polygon):
                 cls = _hpmc.RemoveDriftUpdaterSimplePolygon
-            elif isinstance(mc, integrate.convex_polyhedron):
+            elif isinstance(integrator, integrate.convex_polyhedron):
                 cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron
-            elif isinstance(mc, integrate.convex_spheropolyhedron):
+            elif isinstance(integrator, integrate.convex_spheropolyhedron):
                 cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron
-            elif isinstance(mc, integrate.ellipsoid):
+            elif isinstance(integrator, integrate.ellipsoid):
                 cls = _hpmc.RemoveDriftUpdaterEllipsoid
-            elif isinstance(mc, integrate.convex_spheropolygon):
+            elif isinstance(integrator, integrate.convex_spheropolygon):
                 cls = _hpmc.RemoveDriftUpdaterSpheropolygon
-            elif isinstance(mc, integrate.faceted_sphere):
+            elif isinstance(integrator, integrate.faceted_sphere):
                 cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoid
-            elif isinstance(mc, integrate.polyhedron):
+            elif isinstance(integrator, integrate.polyhedron):
                 cls = _hpmc.RemoveDriftUpdaterPolyhedron
-            elif isinstance(mc, integrate.sphinx):
+            elif isinstance(integrator, integrate.sphinx):
                 cls = _hpmc.RemoveDriftUpdaterSphinx
-            elif isinstance(mc, integrate.sphere_union):
+            elif isinstance(integrator, integrate.sphere_union):
                 cls = _hpmc.RemoveDriftUpdaterSphereUnion
-            elif isinstance(mc, integrate.convex_spheropolyhedron_union):
+            elif isinstance(integrator, integrate.convex_spheropolyhedron_union):
                 cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion
-            elif isinstance(mc, integrate.faceted_ellipsoid_union):
+            elif isinstance(integrator, integrate.faceted_ellipsoid_union):
                 cls = _hpmc.RemoveDriftUpdaterFacetedEllipsoidUnion
             else:
                 hoomd.context.current.device.cpp_msg.error(
@@ -555,9 +562,8 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
             raise RuntimeError(
                 "update.remove_drift: Error! GPU not implemented.")
 
-        self.cpp_updater = cls(hoomd.context.current.system_definition,
-                               external_lattice.cpp_compute, mc.cpp_integrator)
-        self.setupUpdater(period)
+        self.cpp_updater = cls(sys_def, self.ref_positions)
+        super()._attach()
 
 
 class Clusters(Updater):
