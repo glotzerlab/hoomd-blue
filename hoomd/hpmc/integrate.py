@@ -80,13 +80,12 @@ class HPMCIntegrator(BaseIntegrator):
             Maximum size of rotation trial moves.
 
         d (`TypeParameter` [``particle type``, `float`]):
-            Maximum size of displacement trial moves
-            (distance units).
+            Maximum size of displacement trial moves :math:`[length]`.
 
         depletant_fugacity (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
                             `float`]):
-            Depletant fugacity (in units of 1/volume) (**default:** ``0``)
+            Depletant fugacity :math:`[volume^{-1}]` (**default:** ``0``)
 
             Allows setting the fugacity per particle type, e.g. `('A','A')`
             refers to a depletant of type **A**. The option to set a type pair
@@ -377,8 +376,7 @@ class Sphere(HPMCIntegrator):
     """Hard sphere Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -425,8 +423,7 @@ class Sphere(HPMCIntegrator):
             The shape parameters for each particle type. The dictionary has the
             following keys:
 
-            * ``diameter`` (`float`, **required**) - Sphere diameter
-              (distance units).
+            * ``diameter`` (`float`, **required**) - Sphere diameter :math:`[length]`.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
             * ``orientable`` (`bool`, **default:** `False`) - set to `True` to
@@ -470,8 +467,7 @@ class ConvexPolygon(HPMCIntegrator):
     """Hard convex polygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -509,7 +505,7 @@ class ConvexPolygon(HPMCIntegrator):
             following keys.
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
-              vertices of the polygon (distance units).
+              vertices of the polygon :math:`[length]`.
 
               * Vertices **MUST** be specified in a *counter-clockwise* order.
               * The origin **MUST** be contained within the polygon.
@@ -521,7 +517,7 @@ class ConvexPolygon(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `ConvexPolygon` shares data structures with
-              `ConvexSpheropolygon`.
+              `ConvexSpheropolygon` :math:`[length]`.
 
           Warning:
               HPMC does not check that all vertex requirements are met.
@@ -566,8 +562,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
     """Hard convex spheropolygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -613,7 +608,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
             following keys:
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
-              vertices of the polygon  (distance units).
+              vertices of the polygon  :math:`[length]`.
 
               * The origin **MUST** be contained within the spheropolygon.
               * Points inside the polygon should not be included.
@@ -623,7 +618,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (**default:** 0.0) - radius of the disk swept
-              around the edges of the polygon (distance units). Set a non-zero
+              around the edges of the polygon :math:`[length]`. Set a non-zero
               ``sweep_radius`` to create a spheropolygon.
 
             Warning:
@@ -668,8 +663,7 @@ class SimplePolygon(HPMCIntegrator):
     """Hard simple polygon Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -708,7 +702,7 @@ class SimplePolygon(HPMCIntegrator):
             following keys:
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`]], **required**) -
-              vertices of the polygon (distance units).
+              vertices of the polygon :math:`[length]`.
 
               * Vertices **MUST** be specified in a *counter-clockwise* order.
               * The polygon may be concave, but edges must not cross.
@@ -720,7 +714,7 @@ class SimplePolygon(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `SimplePolygon` shares data structures with
-              `ConvexSpheropolygon`.
+              `ConvexSpheropolygon` :math:`[length]`.
 
             Warning:
                 HPMC does not check that all vertex requirements are met.
@@ -765,8 +759,7 @@ class Polyhedron(HPMCIntegrator):
     """Hard polyhedra Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -860,7 +853,7 @@ class Polyhedron(HPMCIntegrator):
             following keys:
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-              **required**) - vertices of the polyhedron (distance units).
+              **required**) - vertices of the polyhedron :math:`[length]`.
 
               * The origin **MUST** strictly be contained in the generally
                 nonconvex volume defined by the vertices and faces.
@@ -876,8 +869,8 @@ class Polyhedron(HPMCIntegrator):
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
-              sphere swept around the surface of the polyhedron (distance
-              units). Set a non-zero sweep_radius to create a spheropolyhedron.
+              sphere swept around the surface of the polyhedron :math:`[length]`.
+              Set a non-zero sweep_radius to create a spheropolyhedron.
             * ``overlap`` (`list` [`int`], **default:** None) - Check for
               overlaps between faces when ``overlap [i] & overlap[j]`` is
               nonzero (``&`` is the bitwise AND operator). When not `None`,
@@ -942,8 +935,7 @@ class ConvexPolyhedron(HPMCIntegrator):
     """Hard convex polyhedron Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -993,7 +985,7 @@ class ConvexPolyhedron(HPMCIntegrator):
             following keys.
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-              **required**) - vertices of the polyhedron (distance units).
+              **required**) - vertices of the polyhedron :math:`[length]`.
 
               * The origin **MUST** be contained within the polyhedron.
               * The origin centered circle that encloses all vertices should
@@ -1003,7 +995,7 @@ class ConvexPolyhedron(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - Ignored, but
               present because `ConvexPolyhedron` shares data structures with
-              `ConvexSpheropolyhedron`.
+              `ConvexSpheropolyhedron` :math:`[length]`.
 
             Warning:
                 HPMC does not check that all vertex requirements are met.
@@ -1047,8 +1039,7 @@ class FacetedEllipsoid(HPMCIntegrator):
     r"""Hard faceted ellipsoid Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1122,13 +1113,13 @@ class FacetedEllipsoid(HPMCIntegrator):
             * ``normals`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - facet normals :math:`\\vec{n}_i`.
             * ``offsets`` (`list` [`float`], **required**) - list of offsets
-              :math:`b_i` (squared distance units)
+              :math:`b_i` :math:`[length^2]`
             * ``a`` (`float`, **required**) - half axis of ellipsoid in the *x*
-              direction (distance units)
+              direction :math:`[length]`
             * ``b`` (`float`, **required**) - half axis of ellipsoid in the *y*
-              direction (distance units)
+              direction :math:`[length]`
             * ``c`` (`float`, **required**) - half axis of ellipsoid in the *z*
-              direction (distance units)
+              direction :math:`[length]`
             * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
               **default:** []) - list of vertices for intersection polyhedron
               (see note below).
@@ -1186,8 +1177,7 @@ class Sphinx(HPMCIntegrator):
     """Hard sphinx particle Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1223,11 +1213,9 @@ class Sphinx(HPMCIntegrator):
             following keys:
 
             * ``diameters`` (`list` [`float`], **required**) -
-              diameters of spheres (positive OR negative real numbers) (distance
-              units).
+              diameters of spheres (positive OR negative real numbers) :math:`[length]`.
             * ``centers`` (`list` [`tuple` [`float`, `float`, `float`],
-              **required**) - centers of spheres in local coordinate frame
-              (distance units).
+              **required**) - centers of spheres in local coordinate frame :math:`[length]`.
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
     """
@@ -1257,8 +1245,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
     """Hard convex spheropolyhedron Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1308,7 +1295,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
             following keys:
 
             * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
-              **required**) - vertices of the polyhedron (distance units).
+              **required**) - vertices of the polyhedron :math:`[length]`.
 
               * The origin **MUST** be contained within the polyhedron.
               * The origin centered circle that encloses all vertices should
@@ -1317,8 +1304,8 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
-              sphere swept around the surface of the polyhedron (distance
-              units). Set a non-zero sweep_radius to create a spheropolyhedron.
+              sphere swept around the surface of the polyhedron :math:`[length]`.
+              Set a non-zero sweep_radius to create a spheropolyhedron.
 
             Warning:
                 HPMC does not check that all vertex requirements are met.
@@ -1362,8 +1349,7 @@ class Ellipsoid(HPMCIntegrator):
     """Hard ellipsoid Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1402,11 +1388,11 @@ class Ellipsoid(HPMCIntegrator):
             following keys:
 
             * ``a`` (`float`, **required**) - half axis of ellipsoid in the *x*
-              direction (distance units)
+              direction :math:`[length]`
             * ``b`` (`float`, **required**) - half axis of ellipsoid in the *y*
-              direction (distance units)
+              direction :math:`[length]`
             * ``c`` (`float`, **required**) - half axis of ellipsoid in the *z*
-              direction (distance units)
+              direction :math:`[length]`
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
     """
@@ -1448,8 +1434,7 @@ class SphereUnion(HPMCIntegrator):
     """Hard sphere union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1577,8 +1562,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
@@ -1695,8 +1679,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
     """Hard convex spheropolyhedron union Monte Carlo.
 
     Args:
-        d (float): Default maximum size of displacement trial moves
-            (distance units).
+        d (float): Default maximum size of displacement trial moves :math:`[length]`.
 
         a (float): Default maximum size of rotation trial moves.
 
