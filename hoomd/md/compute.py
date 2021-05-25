@@ -181,7 +181,7 @@ class ThermodynamicQuantities(_Thermo):
         r""":math:`U`.
 
         Potential energy that the group contributes to the entire system
-        [energy].
+        :math:`[energy]`.
 
         The potential energy is calculated as a sum of per-particle energy
         contributions:
@@ -330,9 +330,9 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         filter (hoomd.filter.ParticleFilter): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the system.
+        kT (hoomd.variant.Variant): Temperature of the system :math:`[energy]`.
 
-        harmonic_pressure (float): Harmonic contribution to the pressure.
+        harmonic_pressure (float): Harmonic contribution to the pressure :math:`[pressure]`.
     """
 
     def __init__(self, filter, kT, harmonic_pressure=0):
