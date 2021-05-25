@@ -387,6 +387,7 @@ void Messenger::reopenPythonIfNeeded()
 void Messenger::openSharedFile()
     {
     std::ostringstream oss;
+    bcast(m_shared_filename, 0, m_mpi_config->getCommunicator());
     oss << m_shared_filename << "." << m_mpi_config->getPartition();
     m_streambuf_out = std::shared_ptr<std::streambuf>(
         new mpi_io((const MPI_Comm&)m_mpi_config->getCommunicator(), oss.str()));
