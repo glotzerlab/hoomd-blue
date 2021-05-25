@@ -70,6 +70,7 @@ The following people have contributed to the to HOOMD-blue:
 * Michael Howard, University of Texas
 * Mike Henry, Boise State University
 * Nathan Horst
+* Nipuli Gunaratne, University of Michigan
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan
 * Pavani Medapuram Lakshmi Narasimha, University of Minnesota
