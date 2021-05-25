@@ -98,8 +98,9 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory, exter
 
     # set up simulation and run a bit
     snap = lattice_snapshot_factory(n=2)
+    snap.particles.charge[:] = np.random.random(snap.particles.N) * 2 - 1
     sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+    sim.operations.integrator = hoomd.md.Integrator(dt=0.00001)
     sim.operations.integrator.forces.append(obj_instance)
     sim.run(10)
 
