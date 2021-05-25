@@ -40,8 +40,7 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
     }
 
 
-template<class Real>
-void SnapshotSystemData<Real>::wrap()
+template<class Real> void SnapshotSystemData<Real>::wrap()
     {
     for (unsigned int i = 0; i < particle_data.size; i++)
         {

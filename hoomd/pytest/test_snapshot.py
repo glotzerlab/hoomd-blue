@@ -124,6 +124,7 @@ def test_configuration(s):
             s.configuration.dimensions = 2
         assert s.configuration.dimensions == 3
 
+
 def test_wrap(s):
     if s.communicator.rank == 0:
         s.configuration.box = [1, 1, 1, 0, 0, 0]
@@ -134,7 +135,6 @@ def test_wrap(s):
         s.wrap()
         # check the particles are where they should be
         assert numpy.all(s.particles.position == [[0.5, 0, 0], [0.3, 0.2, 0]])
-
 
 
 def test_particles(s):

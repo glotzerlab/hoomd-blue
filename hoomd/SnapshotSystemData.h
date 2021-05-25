@@ -68,7 +68,7 @@ template<class Real> struct SnapshotSystemData
 
     //! Wrap the snapshot
     void wrap();
-    
+
     // Broadcast information from rank 0 to all ranks
     /*! \param mpi_conf The MPI configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
