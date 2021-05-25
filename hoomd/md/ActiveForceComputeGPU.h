@@ -24,14 +24,11 @@
 class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
+
     //! Constructs the compute
     ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
-                          Scalar rotation_diff,
-                          Scalar3 P,
-                          Scalar rx,
-                          Scalar ry,
-                          Scalar rz);
+                          Scalar rotation_diff);
 
     protected:
     unsigned int m_block_size; //!< block size to execute on the GPU
@@ -42,8 +39,6 @@ class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     //! Orientational diffusion for spherical particles
     virtual void rotationalDiffusion(uint64_t timestep);
 
-    //! Set constraints if particles confined to a surface
-    virtual void setConstraint();
     };
 
 //! Exports the ActiveForceComputeGPU Class to python

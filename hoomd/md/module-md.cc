@@ -4,6 +4,7 @@
 // Maintainer: joaander All developers are free to add the calls needed to export their modules
 
 #include "ActiveForceCompute.h"
+#include "ActiveForceConstraintCompute.h"
 #include "AllAnisoPairPotentials.h"
 #include "AllBondPotentials.h"
 #include "AllExternalPotentials.h"
@@ -68,6 +69,7 @@
 // include GPU classes
 #ifdef ENABLE_HIP
 #include "ActiveForceComputeGPU.h"
+#include "ActiveForceConstraintComputeGPU.h"
 #include "AnisoPotentialPairGPU.h"
 #include "BondTablePotentialGPU.h"
 #include "ComputeThermoGPU.h"
@@ -218,6 +220,13 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
+    export_ActiveForceConstraintCompute<ManifoldZCylinder>(m,"ActiveForceConstraintComputeCylinder");
+    export_ActiveForceConstraintCompute<ManifoldDiamond>(m,"ActiveForceConstraintComputeDiamond");
+    export_ActiveForceConstraintCompute<ManifoldEllipsoid>(m,"ActiveForceConstraintComputeEllipsoid");
+    export_ActiveForceConstraintCompute<ManifoldGyroid>(m,"ActiveForceConstraintComputeGyroid");
+    export_ActiveForceConstraintCompute<ManifoldXYPlane>(m,"ActiveForceConstraintComputePlane");
+    export_ActiveForceConstraintCompute<ManifoldPrimitive>(m,"ActiveForceConstraintComputePrimitive");
+    export_ActiveForceConstraintCompute<ManifoldSphere>(m,"ActiveForceConstraintComputeSphere");
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
@@ -368,6 +377,27 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
+    export_ActiveForceConstraintComputeGPU<ManifoldZCylinder>(
+	m,
+	"ActiveForceConstraintComputeCylinderGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldDiamond>(
+	m,
+	"ActiveForceConstraintComputeDiamondGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldEllipsoid>(
+	m,
+	"ActiveForceConstraintComputeEllipsoidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldGyroid>(
+	m,
+	"ActiveForceConstraintComputeGyroidGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldXYPlane>(
+	m,
+	"ActiveForceConstraintComputePlaneGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldPrimitive>(
+	m,
+	"ActiveForceConstraintComputePrimitiveGPU");
+    export_ActiveForceConstraintComputeGPU<ManifoldSphere>(
+	m,
+	"ActiveForceConstraintComputeSphereGPU");
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
         m,
         "PotentialExternalPeriodicGPU");

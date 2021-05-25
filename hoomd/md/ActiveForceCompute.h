@@ -9,8 +9,6 @@
 #include "hoomd/VectorMath.h"
 #include <memory>
 
-#include "EvaluatorConstraintEllipsoid.h"
-
 /*! \file ActiveForceCompute.h
     \brief Declares a class for computing active forces and torques
 */
@@ -30,14 +28,11 @@
 class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     {
     public:
+
     //! Constructs the compute
     ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<ParticleGroup> group,
-                       Scalar rotation_diff,
-                       Scalar3 P,
-                       Scalar rx,
-                       Scalar ry,
-                       Scalar rz);
+                       Scalar rotation_diff);
 
     //! Destructor
     ~ActiveForceCompute();
@@ -55,6 +50,7 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
         {
         return m_rotationDiff;
         }
+
 
     /** Sets active force vector for a given particle type
         @param typ Particle type to set active force vector
@@ -84,18 +80,10 @@ class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     //! Orientational diffusion for spherical particles
     virtual void rotationalDiffusion(uint64_t timestep);
 
-    //! Set constraints if particles confined to a surface
-    virtual void setConstraint();
-
-    std::shared_ptr<ParticleGroup> m_group; //!< Group of particles on which this force is applied
+    std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
     Scalar m_rotationDiff;
     Scalar m_rotationConst;
-    Scalar3 m_P; //!< Position of the Ellipsoid
-    Scalar m_rx; //!< Radius in X direction of the Ellipsoid
-    Scalar m_ry; //!< Radius in Y direction of the Ellipsoid
-    Scalar m_rz; //!< Radius in Z direction of the Ellipsoid
-    GlobalVector<Scalar4>
-        m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
+    GlobalVector<Scalar4> m_f_activeVec; //! active force unit vectors and magnitudes for each particle type
 
     GlobalVector<Scalar4>
         m_t_activeVec; //! active torque unit vectors and magnitudes for each particle type
