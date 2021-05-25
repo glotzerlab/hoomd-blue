@@ -1,12 +1,12 @@
 #ifndef __PARTICLE_FILTER_RIGID_H__
 #define __PARTICLE_FILTER_RIGID_H__
 
-#include "ParticleFilter.h"
 #include "../SystemDefinition.h"
+#include "ParticleFilter.h"
+#include <memory>
+#include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
-#include <pybind11/pybind11.h>
-#include <memory>
 
 /// Utility class to select particles based on given conditions
 /** \b Overview
@@ -21,101 +21,100 @@ enum class RigidBodySelection
     FREE = 4
     };
 
-constexpr enum RigidBodySelection operator|(
-    const enum RigidBodySelection flag1, const enum RigidBodySelection flag2)
+constexpr enum RigidBodySelection operator|(const enum RigidBodySelection flag1,
+                                            const enum RigidBodySelection flag2)
     {
-        return static_cast<enum RigidBodySelection>(
-            static_cast<unsigned int>(flag1) | static_cast<unsigned int>(flag2));
+    return static_cast<enum RigidBodySelection>(static_cast<unsigned int>(flag1)
+                                                | static_cast<unsigned int>(flag2));
     }
 
-constexpr enum RigidBodySelection operator&(
-    const enum RigidBodySelection flag1, const enum RigidBodySelection flag2)
+constexpr enum RigidBodySelection operator&(const enum RigidBodySelection flag1,
+                                            const enum RigidBodySelection flag2)
     {
-        return static_cast<enum RigidBodySelection>(
-            static_cast<unsigned int>(flag1) & static_cast<unsigned int>(flag2));
+    return static_cast<enum RigidBodySelection>(static_cast<unsigned int>(flag1)
+                                                & static_cast<unsigned int>(flag2));
     }
 
-constexpr bool toBool (const enum RigidBodySelection& flag)
+constexpr bool toBool(const enum RigidBodySelection& flag)
     {
-        return static_cast<unsigned short>(flag) > 0;
+    return static_cast<unsigned short>(flag) > 0;
     }
 
 class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
     {
     public:
-        /// constructs a ParticleFilterRigid
-        ParticleFilterRigid(RigidBodySelection flag) : m_current_selection(flag) {};
+    /// constructs a ParticleFilterRigid
+    ParticleFilterRigid(RigidBodySelection flag) : m_current_selection {flag} {};
 
-        ParticleFilterRigid(pybind11::tuple flags) : m_current_selection(RigidBodySelection::NONE)
+    ParticleFilterRigid(pybind11::tuple flags) : m_current_selection(RigidBodySelection::NONE)
+        {
+        for (size_t i = 0; i < pybind11::len(flags); ++i)
             {
-            for (size_t i = 0; i < pybind11::len(flags); ++i)
+            auto flag = flags[i].cast<std::string>();
+            if (flag == "center")
                 {
-                auto flag = flags[i].cast<std::string>();
-                if (flag == "center")
-                    {
-                    m_current_selection = m_current_selection | RigidBodySelection::CENTERS;
-                    }
-                else if (flag == "constituent")
-                    {
-                    m_current_selection = m_current_selection | RigidBodySelection::CONSTITUENT;
-                    }
-                else if (flag == "free")
-                    {
-                    m_current_selection = m_current_selection | RigidBodySelection::FREE;
-                    }
+                m_current_selection = m_current_selection | RigidBodySelection::CENTERS;
+                }
+            else if (flag == "constituent")
+                {
+                m_current_selection = m_current_selection | RigidBodySelection::CONSTITUENT;
+                }
+            else if (flag == "free")
+                {
+                m_current_selection = m_current_selection | RigidBodySelection::FREE;
                 }
             }
+        }
 
-        virtual ~ParticleFilterRigid() {}
+    virtual ~ParticleFilterRigid() { }
 
-        /** Test if a particle meets the selection criteria.
-         *  The base case returns an empty vector.
-        */
-        virtual std::vector<unsigned int> getSelectedTags(
-                std::shared_ptr<SystemDefinition> sysdef) const
+    /** Test if a particle meets the selection criteria.
+     *  The base case returns an empty vector.
+     */
+    virtual std::vector<unsigned int>
+    getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
+        {
+        auto pdata = sysdef->getParticleData();
+
+        ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(pdata->getBodies(),
+                                         access_location::host,
+                                         access_mode::read);
+
+        std::vector<unsigned int> member_tags;
+        for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
             {
-            auto pdata = sysdef->getParticleData();
+            unsigned int tag = h_tag.data[idx];
 
-            ArrayHandle<unsigned int> h_tag(
-                pdata->getTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int> h_body(
-                pdata->getBodies(), access_location::host, access_mode::read);
+            // get position of particle
+            unsigned int body = h_body.data[idx];
 
-            std::vector<unsigned int> member_tags;
-            for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
+            // see if it matches the criteria
+            bool include_particle = false;
+            if (toBool(m_current_selection & RigidBodySelection::CENTERS))
                 {
-                unsigned int tag = h_tag.data[idx];
-
-                // get position of particle
-                unsigned int body = h_body.data[idx];
-
-                // see if it matches the criteria
-                bool include_particle = false;
-                if (toBool(m_current_selection & RigidBodySelection::CENTERS))
-                    {
-                    include_particle = include_particle || (tag == body);
-                    }
-                if (toBool(m_current_selection & RigidBodySelection::CONSTITUENT))
-                    {
-                    include_particle = include_particle || (
-                        body < MIN_FLOPPY && body != tag);
-                    }
-                if (toBool(m_current_selection & RigidBodySelection::FREE))
-                    {
-                    include_particle = include_particle || (body == NO_BODY);
-                    }
-
-                if (include_particle)
-                    {
-                    member_tags.push_back(tag);
-                    }
+                include_particle = include_particle || (tag == body);
                 }
-            return member_tags;
+            if (toBool(m_current_selection & RigidBodySelection::CONSTITUENT))
+                {
+                include_particle = include_particle || (body < MIN_FLOPPY && body != tag);
+                }
+            if (toBool(m_current_selection & RigidBodySelection::FREE))
+                {
+                include_particle = include_particle || (body == NO_BODY);
+                }
+
+            if (include_particle)
+                {
+                member_tags.push_back(tag);
+                }
             }
+        return member_tags;
+        }
 
     private:
-        /// Current selection of particles to chose from rigid body center, constituent particles,
-        /// and free bodies.
-        RigidBodySelection m_current_selection;
+    /// Current selection of particles to chose from rigid body center, constituent particles,
+    /// and free bodies.
+    RigidBodySelection m_current_selection;
     };
 #endif

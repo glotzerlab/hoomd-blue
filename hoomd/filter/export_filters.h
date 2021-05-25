@@ -3,14 +3,14 @@
 
 #include "ParticleFilter.h"
 #include "ParticleFilterAll.h"
-#include "ParticleFilterNull.h"
+#include "ParticleFilterCustom.h"
 #include "ParticleFilterIntersection.h"
+#include "ParticleFilterNull.h"
 #include "ParticleFilterRigid.h"
 #include "ParticleFilterSetDifference.h"
 #include "ParticleFilterTags.h"
 #include "ParticleFilterType.h"
 #include "ParticleFilterUnion.h"
-#include "ParticleFilterCustom.h"
 
 #include <pybind11/pybind11.h>
 

@@ -29,7 +29,7 @@ def test_body_setting(valid_body_definition):
         "constituent_types": [[4], "hello", ("A", 4)],
         "positions": [[(1, 2)], [(1.0, 4.0, "foo")], 1.0, "hello"],
         "orientations": [[(1, 2, 3)], [(1.0, 4.0, 5.0, "foo")], [1.0], 1.0,
-                        "foo"],
+                         "foo"],
         "charges": [0.0, ["foo"]],
         "diameters": [1.0, "foo", ["foo"]]
     }
@@ -39,8 +39,8 @@ def test_body_setting(valid_body_definition):
     rigid.body["A"] = current_body_definition
 
     for key, value in rigid.body["A"].items():
-        if (isinstance(value, Sequence)
-                and len(value) > 0 and not isinstance(value[0], str)):
+        if (isinstance(value, Sequence) and len(value) > 0
+                and not isinstance(value[0], str)):
             assert np.allclose(value, current_body_definition[key])
         else:
             assert value == current_body_definition[key]
@@ -77,10 +77,10 @@ def check_bodies(snapshot, definition):
         assert snapshot.particles.diameter[i + 2] == definition["diameters"][i]
         assert snapshot.particles.diameter[i + 6] == definition["diameters"][i]
 
-    particle_one = (
-        snapshot.particles.position[0], snapshot.particles.orientation[0])
-    particle_two = (
-        snapshot.particles.position[1], snapshot.particles.orientation[1])
+    particle_one = (snapshot.particles.position[0],
+                    snapshot.particles.orientation[0])
+    particle_two = (snapshot.particles.position[1],
+                    snapshot.particles.orientation[1])
 
     # Check positions
     def check_position(central_position, central_orientation,
@@ -142,8 +142,8 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
 
     for key, value in rigid.body["A"].items():
-        if (isinstance(value, Sequence)
-                and len(value) > 0 and not isinstance(value[0], str)):
+        if (isinstance(value, Sequence) and len(value) > 0
+                and not isinstance(value[0], str)):
             assert np.allclose(value, valid_body_definition[key])
         else:
             assert value == valid_body_definition[key]
@@ -176,7 +176,7 @@ def test_running_simulation(simulation_factory, two_particle_snapshot_factory,
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
-    lj.r_cut.default = 2 ** (1.0 / 6.0)
+    lj.r_cut.default = 2**(1.0 / 6.0)
     integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
     integrator.rigid = rigid
 
@@ -223,7 +223,7 @@ def test_setting_body_after_attaching(simulation_factory,
     lj.params.default = {"epsilon": 0.0, "sigma": 1}
     lj.params[("A", "A")] = {"epsilon": 1.0}
     lj.params[("B", "B")] = {"epsilon": 1.0}
-    lj.r_cut.default = 2 ** (1.0 / 6.0)
+    lj.r_cut.default = 2**(1.0 / 6.0)
     integrator = md.Integrator(dt=0.005, methods=[langevin], forces=[lj])
     integrator.rigid = rigid
 

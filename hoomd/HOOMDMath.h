@@ -203,7 +203,7 @@ HOSTDEVICE inline bool operator==(const Scalar3& a, const Scalar3& b)
     }
 
 //! Comparison operator needed for export of std::vector<Scalar3>
-HOSTDEVICE inline bool operator!= (const Scalar3 &a, const Scalar3 &b)
+HOSTDEVICE inline bool operator!=(const Scalar3& a, const Scalar3& b)
     {
     return !(a == b);
     }
@@ -215,7 +215,7 @@ HOSTDEVICE inline bool operator==(const Scalar4& a, const Scalar4& b)
     }
 
 //! Comparison operator needed for export of std::vector<Scalar4>
-HOSTDEVICE inline bool operator!= (const Scalar4 &a, const Scalar4 &b)
+HOSTDEVICE inline bool operator!=(const Scalar4& a, const Scalar4& b)
     {
     return !(a == b);
     }
