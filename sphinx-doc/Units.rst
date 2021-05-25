@@ -11,10 +11,12 @@ Unit conversion between dervied units and based units
    * - :math:`[force]`
      - :math:`[energy \cdot length^{-1}]`
    * - :math:`[volume]`
-     - :math:`[length^{-3}]`
+     - :math:`[length^3]`
    * - :math:`[area]`
-     - :math:`[length^{-2}]`
-   * - :math:`[velocity]`
-     - :math:`[length \cdot time^{-1}]`
+     - :math:`[length^2]`
    * - :math:`[time]`
      - :math:`[length \cdot \sqrt{mass \cdot energy^{-1}}]`
+   * - :math:`[velocity]`
+     - :math:`[\sqrt{energy \cdot mass^{-1}}]`
+   * - :math:`[pressure]`
+     - :math:`[energy \cdot length^{-3}]`
