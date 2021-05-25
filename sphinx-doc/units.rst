@@ -17,6 +17,7 @@ Unit coversions between dervied units and base units.
      - :math:`[energy \cdot length^{-3}]`
    * - :math:`[charge]`
      - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot energy \cdot length}]`
+       :math:`\epsilon_{0}`: the permitivitty of free space
    * - :math:`[velocity]`
      - :math:`[\sqrt{energy \cdot mass^{-1}}]`
    * - :math:`[volume]`
