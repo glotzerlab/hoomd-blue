@@ -341,10 +341,9 @@ class RevCross(Triplet):
 
         * ``sigma`` (`float`, **required**) - :math:`\sigma` :math:`[length]`
 
-        * ``n`` (`float`, **required**) - :math:`n` :math:`[unitless]`
+        * ``n`` (`float`, **required**) - :math:`n` :math:`[dimensionless]`
 
-        * ``lambda3`` (`float`, **required**) - :math:`\lambda_3`
-            :math:`[unitless]`
+        * ``lambda3`` (`float`, **required**) - :math:`\lambda_3` :math:`[dimensionless]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -419,7 +418,7 @@ class SquareDensity(Triplet):
         The SquareDensity potential parameters. The dictionary has the
         following keys:
 
-        * ``A`` (`float`, **required**) - :math:`A` - mean density (*default*:0) :math:`[volume^-1]`
+        * ``A`` (`float`, **required**) - :math:`A` - mean density (*default*:0) :math:`[volume^{-1}]`
         * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
           harmonic density term :math:`[energy \cdot volume^2]`
 
