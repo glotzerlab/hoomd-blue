@@ -18,6 +18,8 @@ import hoomd
 import sys
 import math
 
+from hoomd.data.parameterdicts import TypeParameterDict
+from hoomd.data.typeparam import TypeParameter
 
 
 class External(force.Force):
@@ -28,7 +30,7 @@ class External(force.Force):
         else:
             cls = getattr(_md, self._cpp_class_name + "GPU")
 
-        self._cpp_obj = cls(self._simulation._cpp_sys_def)
+        self._cpp_obj = cls(self._simulation.state._cpp_sys_def)
         super()._attach()
 
 

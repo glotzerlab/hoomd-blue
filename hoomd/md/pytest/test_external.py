@@ -1,3 +1,4 @@
+import copy as cp
 import numpy.testing as npt
 import pytest
 
@@ -12,8 +13,8 @@ def _external_params():
     """ Each entry is a tuple (class_object, list(dictionaries of params, evaluator function)). """
     list_ext_params = []
     list_ext_params.append((hoomd.md.external.Periodic,
-                            list(dict(A=1.5, i=1, w=3.5, p=5),
-                                 dict(A=10, i=0, w=3.4, p=2)
+                            list([dict(A=1.5, i=1, w=3.5, p=5),
+                                 dict(A=10, i=0, w=3.4, p=2)]
                                  ),
                             _evaluate_periodic))
     return list_ext_params
@@ -42,10 +43,10 @@ def test_get_set(simulation_factory, two_particle_snapshot_factory, external_par
     _assert_correct_params(obj_instance, list_param_dicts[1])
 
     # set up simulation
-    snap = two_particle_snapshot_factory(r=3.7)
-    sim.simulation_factory(snap)
+    snap = two_particle_snapshot_factory(d=3.7)
+    sim = simulation_factory(snap)
     sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
-    sim.operation.integrator.forces.append(obj_instance)
+    sim.operations.integrator.forces.append(obj_instance)
     sim.run(0)
 
     # get/set params while attached
