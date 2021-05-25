@@ -121,7 +121,7 @@ env:
       run: << invoke_pytest_serial >> << pytest_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: << invoke_pytest_serial >> << pytest_options >> -m cupy_optional
@@ -129,7 +129,7 @@ env:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> -m cupy_optional || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 <% endset %>
@@ -149,7 +149,7 @@ env:
       run: << invoke_pytest_serial >> << pytest_options >> << pytest_validate_options >>
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || cat pytest.out.1
+      run: << invoke_pytest_mpi >> << pytest_options >> << pytest_validate_options >> || (( cat pytest.out.1 && exit 1 ))
 <% endset %>
 <% set prepare_steps %>
     steps:
