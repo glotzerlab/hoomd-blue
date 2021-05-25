@@ -221,6 +221,7 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 */
 PYBIND11_MODULE(_md, m)
     {
+    std::cout << "EXPORTING MODULES" << std::endl;
     export_ActiveForceCompute(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
@@ -379,6 +380,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(
         m,
         "PotentialExternalPeriodicGPU");
+    /*
     export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(
         m,
         "PotentialExternalElectricFieldGPU");
@@ -397,6 +399,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(
         m,
         "WallsPotentialMorseGPU");
+    */
 #endif
 
     // updaters

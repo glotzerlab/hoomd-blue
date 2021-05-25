@@ -81,7 +81,7 @@ class Periodic(External):
                                    _hoomd.int_as_scalar(p))
 
 
-class e_field(_external_force):
+class e_field(External):
     R""" Electric field.
 
     :py:class:`e_field` specifies that an external force should be

@@ -478,8 +478,7 @@ class plane(object):
 
 #           *** Potentials ***
 
-
-class wallpotential(external._external_force):
+class wallpotential(external.External):
     R""" Generic wall potential.
 
     :py:class:`wallpotential` should not be used directly.

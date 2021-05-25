@@ -23,18 +23,18 @@ from hoomd import communicator
 from hoomd import util
 from hoomd import write
 from hoomd import _hoomd
-try:
-    from hoomd import md
-except ImportError:
-    pass
+#try:
+#    from hoomd import md
+#except ImportError:
+#    pass
 try:
     from hoomd import hpmc
 except ImportError:
     pass
-try:
-    from hoomd import dem
-except ImportError:
-    pass
+#try:
+#    from hoomd import dem
+#except ImportError:
+#    pass
 # TODO: enable this import after updating MPCD to the new API
 # try:
 #     from hoomd import mpcd
