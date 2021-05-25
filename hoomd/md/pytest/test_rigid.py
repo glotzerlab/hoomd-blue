@@ -45,11 +45,14 @@ def test_body_setting(valid_body_definition):
         else:
             assert value == current_body_definition[key]
 
+    # Test dictionaries with a single invalid input
     for key, values in invalid_body_definitions.items():
         for invalid_value in values:
             current_body_definition[key] = invalid_value
             with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
                 rigid.body["A"] = current_body_definition
+        # Reset the body definition to a valid state to ensure only one key is
+        # ever invalid.
         current_body_definition[key] = valid_body_definition[key]
 
 
