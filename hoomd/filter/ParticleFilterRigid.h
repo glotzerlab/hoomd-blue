@@ -37,7 +37,7 @@ constexpr enum RigidBodySelection operator&(const enum RigidBodySelection flag1,
 
 constexpr bool toBool(const enum RigidBodySelection& flag)
     {
-    return static_cast<unsigned short>(flag) > 0;
+    return static_cast<unsigned int>(flag) > 0;
     }
 
 class PYBIND11_EXPORT ParticleFilterRigid : public ParticleFilter
