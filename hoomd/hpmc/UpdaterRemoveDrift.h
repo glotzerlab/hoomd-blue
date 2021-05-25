@@ -68,7 +68,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     void setRefPositions(pybind11::list ref_positions)
             {
             unsigned int N = len(ref_positions);
-            if (N != this->m_pdata->getN()):
+            if (N != this->m_pdata->getN())
                 {
                 throw std::runtime_error("The lenght of the list must be equal to the number of particles.\n");
                 }
