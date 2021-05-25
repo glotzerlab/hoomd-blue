@@ -370,5 +370,5 @@ void export_OPLSDihedralForceCompute(py::module& m)
         "OPLSDihedralForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
-        .def("getParams", &OPLSDihedralForceCompute::setParams);
+        .def("getParams", &OPLSDihedralForceCompute::getParams);
     }
