@@ -368,7 +368,7 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
         GPUArray< Scalar > determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
-        std::vector<Scalar> stepsize = pybind11::cast<std::vector<Scalar>>(m_move_function->getStepsize());
+        std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
         for (unsigned int cur_type = 0; cur_type < m_type_select; cur_type++)
             {
@@ -453,7 +453,7 @@ void UpdaterShape<Shape>::update(uint64_t timestep)
         // access parameters and interaction matrix
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
-        std::vector<Scalar> stepsize = pybind11::cast<std::vector<Scalar>>(m_move_function->getStepsize());
+        std::vector<Scalar> stepsize = m_move_function->getStepSizeArray();
 
         // Loop over particles corresponding to m_type_select
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
