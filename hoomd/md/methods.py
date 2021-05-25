@@ -99,10 +99,9 @@ class NVT(Method):
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat. :math:`[energy]`.
 
-        tau (`float`): Coupling constant for the Nosé-Hoover thermostat.
-            (in time units).
+        tau (`float`): Coupling constant for the Nosé-Hoover thermostat. :math:`[time]`.
 
     `NVT` performs constant volume, constant temperature simulations
     using the Nosé-Hoover thermostat, using the MTK equations described in Refs.
@@ -147,10 +146,9 @@ class NVT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point
-            for the Nosé-Hoover thermostat. (in energy units).
+            for the Nosé-Hoover thermostat. :math:`[energy]`.
 
-        tau (float): Coupling constant for the Nosé-Hoover thermostat. (in time
-            units).
+        tau (float): Coupling constant for the Nosé-Hoover thermostat. :math:`[time]`.
 
         translational_thermostat_dof (tuple[float, float]): Additional degrees
             of freedom for the translational thermostat (:math:`\xi`,
@@ -216,7 +214,7 @@ class NVT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
-        """Energy the thermostat contributes to the Hamiltonian [energy]."""
+        """Energy the thermostat contributes to the Hamiltonian :math:`[energy]`."""
         if not self._attached:
             return None
         else:
@@ -231,18 +229,18 @@ class NPT(Method):
             apply this method.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat. :math:`[energy]`.
 
-        tau (`float`): Coupling constant for the thermostat (in time units).
+        tau (`float`): Coupling constant for the thermostat :math:`[time]`.
 
-        S: Stress components set point for the barostat (in pressure units).
+        S: Stress components set point for the barostat :math:`[pressure]`.
            In Voigt notation:
            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
            isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
            `hoomd.variant.Variant` or `float`.
 
-        tauS (`float`): Coupling constant for the barostat (in time units).
+        tauS (`float`): Coupling constant for the barostat :math:`[time]`.
 
         couple (`str`): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
@@ -370,18 +368,18 @@ class NPT(Method):
             apply this method.
 
         kT (hoomd.variant.Variant): Temperature set point for the
-            thermostat. (in energy units).
+            thermostat. :math:`[energy]`.
 
-        tau (float): Coupling constant for the thermostat (in time units).
+        tau (float): Coupling constant for the thermostat :math:`[time]`.
 
         S (List[hoomd.variant.Variant]): Stress components set
-            point for the barostat (in pressure units).
+            point for the barostat :math:`[pressure]`.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
             be reset after method object is created. For example, An isoropic
             pressure can be set by ``npt.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat :math:`[time]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
@@ -509,7 +507,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def thermostat_energy(self):
-        """Energy the thermostat contributes to the Hamiltonian [energy]."""
+        """Energy the thermostat contributes to the Hamiltonian :math:`[energy]`."""
         if not self._attached:
             return None
         else:
@@ -517,7 +515,7 @@ class NPT(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
-        """Energy the barostat contributes to the Hamiltonian [energy]."""
+        """Energy the barostat contributes to the Hamiltonian :math:`[energy]`."""
         if not self._attached:
             return None
         else:
@@ -531,14 +529,14 @@ class NPH(Method):
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this method.
 
-        S: Stress components set point for the barostat (in pressure units).
+        S: Stress components set point for the barostat :math:`[pressure]`.
            In Voigt notation:
            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`.  In case of
            isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
-           `hoomd.variant.Variant` or `float`.
+           `hoomd.variant.Variant` or `float` .
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat :math:`[time]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all", default to "all".
@@ -584,13 +582,13 @@ class NPH(Method):
             apply this method.
 
         S (`tuple` [`hoomd.variant.Variant`, ...]): Stress components set
-            point for the barostat (in pressure units) (totalling 6 components.
+            point for the barostat :math:`[pressure]` (totalling 6 components.
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress can
             be reset after method object is created. For example, An isoropic
             pressure can be set by ``nph.S = 4.``
 
-        tauS (float): Coupling constant for the barostat (in time units).
+        tauS (float): Coupling constant for the barostat :math:`[time]`.
 
         couple (str): Couplings of diagonal elements of the stress tensor,
             can be "none", "xy", "xz","yz", or "all".
@@ -703,7 +701,7 @@ class NPH(Method):
 
     @hoomd.logging.log
     def barostat_energy(self):
-        """Energy the barostat contributes to the Hamiltonian [energy]."""
+        """Energy the barostat contributes to the Hamiltonian :math:`[energy]`."""
         if not self._attached:
             return None
         else:
@@ -831,17 +829,17 @@ class Langevin(MethodRATTLE):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[energy]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None :math:`[mass \cdot length^{-1} \cdot time^{-1}]`.
 
         tally_reservoir_energy (`bool`): If true, the energy exchange
             between the thermal reservoir and the particles is tracked. Total
             energy conservation can then be monitored by adding
             ``langevin_reservoir_energy_groupname`` to the logged quantities.
-            Defaults to False.
+            Defaults to False :math:`[energy]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
@@ -927,11 +925,11 @@ class Langevin(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[energy]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None :math:`[mass \cdot length^{-1} \cdot time^{-1}]`.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
@@ -944,12 +942,12 @@ class Langevin(MethodRATTLE):
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero :math:`[mass \cdot time^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``,[`float`, `float` , `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero :math:`[mass \cdot time^{-1}]`.
 
     """
 
@@ -1035,11 +1033,11 @@ class Brownian(MethodRATTLE):
             apply this method to.
 
         kT (`hoomd.variant.Variant` or `float`): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[energy]`.
 
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None :math:`[mass \cdot length^{-1} \cdot time^{-1}]`.
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
             constraint. Defaults to None.
@@ -1131,11 +1129,11 @@ class Brownian(MethodRATTLE):
             apply this method to.
 
         kT (hoomd.variant.Variant): Temperature of the
-            simulation (in energy units).
+            simulation :math:`[energy]`.
 
         alpha (float): When set, use :math:`\alpha d_i` for the drag
             coefficient where :math:`d_i` is particle diameter.
-            Defaults to None.
+            Defaults to None :math:`[mass \cdot length^{-1} \cdot time^{-1}]`.
 
         manifold_constraint (hoomd.md.manifold.Manifold): Manifold constraint
             which is used by and as a trigger for the RATTLE algorithm of this
@@ -1148,12 +1146,12 @@ class Brownian(MethodRATTLE):
         gamma (TypeParameter[ ``particle type``, `float` ]): The drag
             coefficient can be directly set instead of the ratio of particle
             diameter (:math:`\gamma = \alpha d_i`). The type of ``gamma``
-            parameter is either positive float or zero.
+            parameter is either positive float or zero :math:`[mass \cdot time^{-1}]`.
 
         gamma_r (TypeParameter[``particle type``, [`float`, `float`, `float`]]):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
-            tuple is either positive float or zero.
+            tuple is either positive float or zero :math:`[mass \cdot time^{-1}]`.
     """
 
     def __init__(self,
