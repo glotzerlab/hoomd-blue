@@ -348,7 +348,7 @@ class SLJ(Pair):
     particle :math:`i`.
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes. 
+    available energy shifting and smoothing modes.
 
     Attention:
         Due to the way that `SLJ` modifies the cutoff criteria, a shift_mode
