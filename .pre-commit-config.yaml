@@ -32,8 +32,6 @@ repos:
   rev: '3.9.1'
   hooks:
   - id: flake8
-    args:
-    - --show-source
     additional_dependencies:
     - pep8-naming==0.11.1
     - pydocstyle==6.1.1
