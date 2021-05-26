@@ -7,6 +7,7 @@ import hoomd
 
 
 def _evaluate_periodic(snapshot, params):
+    """ Evaluate force and energy in python for Periodic. """
     box = hoomd.Box(*snapshot.configuration.box)
     positions = snapshot.particles.position
     A = params['A']
@@ -29,6 +30,7 @@ def _evaluate_periodic(snapshot, params):
 
 
 def _evaluate_electric(snapshot, params):
+    """ evaluate force and energy in python for ElectricField. """
     positions = snapshot.particles.position
     charges = snapshot.particles.charge
     E_field = params['E']
@@ -38,7 +40,7 @@ def _evaluate_electric(snapshot, params):
 
 
 def _external_params():
-    """Each entry is a tuple (class_object, list(param dicts), eval. func)."""
+    """Each entry is a tuple (class_object, list(param dicts), eval func)."""
     list_ext_params = []
     list_ext_params.append(
         (hoomd.md.external.Periodic,
@@ -47,8 +49,7 @@ def _external_params():
     list_ext_params.append((hoomd.md.external.ElectricField,
                             list([
                                 dict(E=(1, 0, 0)),
-                                dict(E=(0, 2, 0)),
-                            ]), _evaluate_electric))
+                                dict(E=(0, 2, 0)),]), _evaluate_electric))
     return list_ext_params
 
 
@@ -67,6 +68,7 @@ def _assert_correct_params(external_obj, param_dict):
 
 def test_get_set(simulation_factory, two_particle_snapshot_factory,
                  external_params):
+    """ test we can get and set parameter while attached and while not attached. """
     # unpack parameters
     cls_obj, list_param_dicts, evaluator = external_params
 
@@ -93,24 +95,29 @@ def test_get_set(simulation_factory, two_particle_snapshot_factory,
 
 def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
                              external_params):
+    """ Run a small simulation and make sure forces/energies are correct. """
     # unpack parameters
     cls_obj, list_param_dicts, evaluator = external_params
 
-    # create class instance, get/set params when not attached
-    obj_instance = cls_obj()
-    obj_instance.params['A'] = list_param_dicts[0]
+    for param_dict in list_param_dicts:
+        # create class instance
+        obj_instance = cls_obj()
+        obj_instance.params['A'] = param_dict
 
-    # set up simulation and run a bit
-    snap = lattice_snapshot_factory(n=2)
-    snap.particles.charge[:] = np.random.random(snap.particles.N) * 2 - 1
-    sim = simulation_factory(snap)
-    sim.operations.integrator = hoomd.md.Integrator(dt=0.00001)
-    sim.operations.integrator.forces.append(obj_instance)
-    sim.run(10)
+        # set up simulation and run a bit
+        snap = lattice_snapshot_factory(n=2)
+        if snap.communicator.rank == 0:
+            snap.particles.charge[:] = np.random.random(snap.particles.N) * 2 - 1
+        sim = simulation_factory(snap)
+        sim.operations.integrator = hoomd.md.Integrator(dt=0.001)
+        sim.operations.integrator.forces.append(obj_instance)
+        sim.run(10)
 
-    # test energies
-    forces = sim.operations.integrator.forces[0].forces
-    energies = sim.operations.integrator.forces[0].energies
-    F, E = evaluator(sim.state.snapshot, list_param_dicts[0])
-    np.testing.assert_allclose(F, forces)
-    np.testing.assert_allclose(E, energies)
+        # test energies
+        new_snap = sim.state.snapshot
+        forces = sim.operations.integrator.forces[0].forces
+        energies = sim.operations.integrator.forces[0].energies
+        if new_snap.communicator.rank == 0:
+            F, E = evaluator(new_snap, param_dict)
+            np.testing.assert_allclose(F, forces)
+            np.testing.assert_allclose(E, energies)

@@ -36,10 +36,10 @@ try:
 except ImportError:
     pass
 # TODO: enable this import after updating MPCD to the new API
-try:
-    from hoomd import mpcd
-except ImportError:
-    pass
+# try:
+#     from hoomd import mpcd
+# except ImportError:
+#     pass
 
 from hoomd.simulation import Simulation
 from hoomd.state import State
