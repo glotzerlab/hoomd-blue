@@ -46,7 +46,8 @@ template<class Shape> class RemoveDriftUpdater : public Updater
                        pybind11::list ref_positions)
         : Updater(sysdef), m_mc(mc)
         {
-        this->setRefPositions(ref_positions);
+        m_ref_positions.resize(m_pdata->getN());
+        setRefPositions(ref_positions);
         }
 
     //! Get reference positions as a python list of 3-tuples
@@ -56,11 +57,10 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         pybind11::list ret;
         for (unsigned int i = 0; i < N; i++)
             {
-            pybind11::tuple ref_positions_i;
-            ref_positions_i[0] = m_ref_positions[i].x;
-            ref_positions_i[1] = m_ref_positions[i].y;
-            ref_positions_i[2] = m_ref_positions[i].z;
-            ret[i] = ref_positions_i;
+            pybind11::tuple ref_pos_i = pybind11::make_tuple(m_ref_positions[i].x,
+                                                             m_ref_positions[i].y,
+                                                             m_ref_positions[i].z);
+            ret.append(ref_pos_i);
             }
         return ret;
         }
