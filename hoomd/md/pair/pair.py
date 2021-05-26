@@ -233,9 +233,7 @@ class LJ(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use `params` dictionary
-    to set potential coefficients. The coefficients must be set per
-    unique pair of particle types.
+    available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -289,9 +287,7 @@ class Gauss(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes. Use `params` dictionary to
-    set potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -352,9 +348,7 @@ class SLJ(Pair):
     particle :math:`i`.
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes. Use `params` dictionary to
-    set potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    available energy shifting and smoothing modes. 
 
     Attention:
         Due to the way that `SLJ` modifies the cutoff criteria, a shift_mode
@@ -435,9 +429,7 @@ class Yukawa(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -498,9 +490,6 @@ class Ewald(Pair):
 
     See `Pair` for details on how forces are calculated. Note Ewald does not
     support energy shifting or smoothing.
-    Use the `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
 
     .. py:attribute:: params
 
@@ -554,9 +543,7 @@ class Morse(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -642,9 +629,7 @@ class DPD(Pair):
     utilize the DPD functionality in your work.
 
     `DPD` does not implement and energy shift / smoothing modes due to the
-    function of the force. Use `params` dictionary to set potential
-    coefficients. The coefficients must be set per unique pair of particle
-    types.
+    function of the force.
 
     To use the DPD thermostat, an `hoomd.md.methods.NVE` integrator
     must be applied to the system and the user must specify a temperature.  Use
@@ -725,9 +710,7 @@ class DPDConservative(Pair):
 
 
     `DPDConservative` does not implement and energy shift / smoothing modes due
-    to the function of the force. Use `params` dictionary to set potential
-    coefficients. The coefficients must be set per unique pair of particle
-    types.
+    to the function of the force.
 
     .. py:attribute:: params
 
@@ -817,9 +800,6 @@ class DPDLJ(Pair):
     where :math:`\hat r_{ij}` is a normalized vector from particle i to
     particle j, :math:`v_{ij} = v_i - v_j`, and :math:`\theta_{ij}` is a
     uniformly distributed random number in the range [-1, 1].
-
-    Use `params` dictionary to set potential coefficients. The coefficients must
-    be set per unique pair of particle types.
 
     To use the DPD thermostat, an `hoomd.md.methods.NVE` integrator
     must be applied to the system and the user must specify a temperature. Use
@@ -922,9 +902,7 @@ class ForceShiftedLJ(Pair):
           V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes. Use `params` dictionary to
-    set potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -990,9 +968,7 @@ class Moliere(Pair):
       \right)^{2/3}}`, where :math:`a_0` is the Bohr radius (in distance units)
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1069,8 +1045,7 @@ class ZBL(Pair):
       :math:`a_0` is the Bohr radius (in distance units)
 
     See `Pair` for details on how forces are calculated. Note ZBL does not
-    support energy shifting or smoothing. Use `params` dictionary to set
-    potential coefficients.
+    support energy shifting or smoothing.
 
     .. py:attribute:: params
 
@@ -1135,9 +1110,7 @@ class Mie(Pair):
         \end{eqnarray*}
 
     `Pair` for details on how forces are calculated and the available energy
-    shifting and smoothing modes. Use the `params` dictionary to set potential
-    coefficients. The coefficients must be set per unique pair of particle
-    types.
+    shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1217,9 +1190,7 @@ class ReactionField(Pair):
     where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.  Use the `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1370,8 +1341,7 @@ class Buckingham(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.  Use the `params` dictionary to set
-    potential coefficients.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1427,8 +1397,7 @@ class LJ1208(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.  Use the `params` dictionary to set
-    potential coefficients.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1483,9 +1452,7 @@ class LJ0804(Pair):
         \end{eqnarray*}
 
     See `Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use the `params` dictionary
-    to set potential coefficients. The coefficients must be set per
-    unique pair of particle types.
+    available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1553,9 +1520,7 @@ class Fourier(Pair):
         is calculated to enforce close to zero value at r_cut.
 
     See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes. Use `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair of
-    particle types.
+    energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
@@ -1609,9 +1574,7 @@ class OPP(Pair):
         \end{equation*}
 
     See `Pair` for details on how forces are calculate. Note OPP does not
-    support energy shifting or smoothing.  Use `params` dictionary to set
-    potential coefficients. The coefficients must be set per unique pair
-    of particle types.
+    support energy shifting or smoothing.
 
     The potential comes from Marek Mihalkovič and C. L. Henley 2012
     `paper link`_.
@@ -1682,9 +1645,7 @@ class TWF(Pair):
         \end{equation}
 
     See `hoomd.md.pair.Pair` for details on how forces are calculated and the
-    available energy shifting and smoothing modes.  Use `params` dictionary
-    to set potential coefficients. The coefficients must be set per
-    unique pair of particle types.
+    available energy shifting and smoothing modes.
 
     The potential comes from Pieter Rein ten Wolde and Daan Frenkel 1997
     `paper link`_.
