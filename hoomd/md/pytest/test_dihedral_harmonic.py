@@ -26,7 +26,12 @@ def get_args_and_forces_and_energies():
 
 @pytest.fixture(scope='session')
 def dihedral_snapshot_factory(device):
-    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], dimensions=3, L=20):
+
+    def make_snapshot(d=1.0,
+                      phi_deg=45,
+                      particle_types=['A'],
+                      dimensions=3,
+                      L=20):
         phi_rad = phi_deg * (np.pi / 180)
         s = hoomd.Snapshot(device.communicator)
         N = 4
@@ -37,14 +42,16 @@ def dihedral_snapshot_factory(device):
             s.configuration.box = box
             s.particles.N = N
             # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [[0.0, 0.0, 0.1],
-                                       [d, 0.0, 0.1],
-                                       [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
-                                       [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]]
+            s.particles.position[:] = [
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
+            ]
 
             s.particles.types = particle_types
 
         return s
+
     return make_snapshot
 
 
@@ -59,7 +66,8 @@ def test_before_attaching(argument_dict):
 
 
 @pytest.mark.parametrize("argument_dict", get_args())
-def test_after_attaching(dihedral_snapshot_factory, simulation_factory, argument_dict):
+def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
+                         argument_dict):
     snap = dihedral_snapshot_factory()
     if snap.exists:
         snap.dihedrals.N = 1
@@ -101,7 +109,8 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     argument_dict, force, energy = args_and_force_and_energy
-    force_array = force * np.asarray([np.cos(phi_rad / 2), np.sin(phi_rad / 2), 0])
+    force_array = force * np.asarray(
+        [np.cos(phi_rad / 2), np.sin(phi_rad / 2), 0])
     dihedral_potential = hoomd.md.dihedral.Harmonic()
     dihedral_potential.params['backbone'] = argument_dict
 
@@ -119,19 +128,16 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
     sim_forces = sim.operations.integrator.forces[0].forces
     print(sim_energies)
     if sim.device.communicator.rank == 0:
-        np.testing.assert_allclose(sim_energies,
-                                   energy,
-                                   rtol=1e-2,
-                                   atol=1e-5)
+        np.testing.assert_allclose(sim_energies, energy, rtol=1e-2, atol=1e-5)
         np.testing.assert_allclose(sim_forces[0],
                                    force_array,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1],
-                                   [0, -1 * force, 0],
+        np.testing.assert_allclose(sim_forces[1], [0, -1 * force, 0],
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[2],
-                                   [-1 * force_array[0], force_array[1], force_array[2]],
-                                   rtol=1e-2,
-                                   atol=1e-5)
+        np.testing.assert_allclose(
+            sim_forces[2],
+            [-1 * force_array[0], force_array[1], force_array[2]],
+            rtol=1e-2,
+            atol=1e-5)

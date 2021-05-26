@@ -2,20 +2,28 @@ import hoomd
 import pytest
 import numpy as np
 
-_harmonic_args = {'k': [3.0, 10.0, 5.0],
-                  'd': [-1, 1, 1],
-                  'n': [0.75, 0.5, 0.25],
-                  'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]}
+_harmonic_args = {
+    'k': [3.0, 10.0, 5.0],
+    'd': [-1, 1, 1],
+    'n': [0.75, 0.5, 0.25],
+    'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]
+}
 
-_OPLS_args = {'k1': [1.0, 0.5, 2.0],
-              'k2': [1.5, 2.5, 1.0],
-              'k3': [0.5, 1.5, 0.25],
-              'k4': [0.75, 1.0, 3.5]}
+_OPLS_args = {
+    'k1': [1.0, 0.5, 2.0],
+    'k2': [1.5, 2.5, 1.0],
+    'k3': [0.5, 1.5, 0.25],
+    'k4': [0.75, 1.0, 3.5]
+}
 
 
 def get_dihedral_and_args():
-    harmonic_arg_list = [dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())]
-    OPLS_arg_list = [dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())]
+    harmonic_arg_list = [
+        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
+    ]
+    OPLS_arg_list = [
+        dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
+    ]
     dihedral_and_args = []
     for args in harmonic_arg_list:
         dihedral_and_args.append((hoomd.md.dihedral.Harmonic, args))
@@ -25,8 +33,12 @@ def get_dihedral_and_args():
 
 
 def get_dihedral_args_forces_and_energies():
-    harmonic_arg_list = [dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())]
-    OPLS_arg_list = [dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())]
+    harmonic_arg_list = [
+        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
+    ]
+    OPLS_arg_list = [
+        dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
+    ]
     harmonic_forces = [-0.9354, 0.9567, 0.2009]
     harmonic_energies = [0.6666, 9.6194, 4.8673]
     OPLS_forces = [0.616117, 0.732233, 0.0277282]
@@ -34,21 +46,24 @@ def get_dihedral_args_forces_and_energies():
 
     dihedral_args_forces_and_energies = []
     for i in range(3):
-        dihedral_args_forces_and_energies.append((hoomd.md.dihedral.Harmonic,
-                                                  harmonic_arg_list[i],
-                                                  harmonic_forces[i],
-                                                  harmonic_energies[i]))
+        dihedral_args_forces_and_energies.append(
+            (hoomd.md.dihedral.Harmonic, harmonic_arg_list[i],
+             harmonic_forces[i], harmonic_energies[i]))
     for i in range(3):
-        dihedral_args_forces_and_energies.append((hoomd.md.dihedral.OPLS,
-                                                  OPLS_arg_list[i],
-                                                  OPLS_forces[i],
-                                                  OPLS_energies[i]))
-    return dihedral_args_forces_and_energies          
+        dihedral_args_forces_and_energies.append(
+            (hoomd.md.dihedral.OPLS, OPLS_arg_list[i], OPLS_forces[i],
+             OPLS_energies[i]))
+    return dihedral_args_forces_and_energies
 
 
 @pytest.fixture(scope='session')
 def dihedral_snapshot_factory(device):
-    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], dimensions=3, L=20):
+
+    def make_snapshot(d=1.0,
+                      phi_deg=45,
+                      particle_types=['A'],
+                      dimensions=3,
+                      L=20):
         phi_rad = phi_deg * (np.pi / 180)
         s = hoomd.Snapshot(device.communicator)
         N = 4
@@ -59,14 +74,16 @@ def dihedral_snapshot_factory(device):
             s.configuration.box = box
             s.particles.N = N
             # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [[0.0, 0.0, 0.1],
-                                       [d, 0.0, 0.1],
-                                       [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
-                                       [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]]
+            s.particles.position[:] = [
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
+            ]
 
             s.particles.types = particle_types
 
         return s
+
     return make_snapshot
 
 
@@ -100,7 +117,9 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
 
     integrator.forces.append(dihedral_potential)
 
-    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All(), alpha=0.1)
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
@@ -133,7 +152,9 @@ def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
 
     integrator.forces.append(dihedral_potential)
 
-    langevin = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All(), alpha=0.1)
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
     integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
