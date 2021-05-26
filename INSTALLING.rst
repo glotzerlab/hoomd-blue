@@ -342,7 +342,6 @@ To open in a browser type in the address bar,::
 
     file:///path/to/sphinx-doc/_build/html/index.html
 
-**Common Pitfalls**
-
-- If when building there are errors regarding tutorials, submodules are either not installed or not
-  updated and must be before documentation can build without error.
+.. note::
+    The documentation build process requires git submodules. Either clone with the
+    ``--recursive`` option, or execute ``git submodule update --init`` to fetch the submodules.
