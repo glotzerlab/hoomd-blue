@@ -2,7 +2,7 @@ Migrating to HOOMD v3
 =====================
 
 HOOMD v3 introduces many breaking changes for both users and developers
-in order to provide a cleaner python interface, enable new functionalities, and
+in order to provide a cleaner Python interface, enable new functionalities, and
 move away from unsupported tools. This guide highlights those changes.
 
 Removed functionality
@@ -73,7 +73,7 @@ Compiling
   as appropriate.
 * ``COPY_HEADERS`` no longer exists. Users must ``make install`` HOOMD for use
   with external components.
-* ``CMAKE_INSTALL_PREFIX`` is set to the python ``site-packages`` directory (if
+* ``CMAKE_INSTALL_PREFIX`` is set to the Python ``site-packages`` directory (if
   not explicitly set by the user).
 * **cereal**, **eigen**, and **pybind11** headers must be provided to build
   HOOMD. See :doc:`installation` for details.
@@ -124,5 +124,5 @@ Components
   - All GPU code is now written with HIP to support NVIDIA and AMD GPUs.
   - ``ActiveForceCompute`` always uses particle orientation in combination with
     per-type active forces and torques.
-  - ``getProvidedLogQuantities`` and ``getLogQuantities`` have been removed. Prove loggable
+  - ``getProvidedLogQuantities`` and ``getLogQuantities`` have been removed. Provide loggable
     properties instead.
