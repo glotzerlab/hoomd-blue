@@ -5,7 +5,7 @@ import numpy as np
 _harmonic_args = {
     'k': [3.0, 10.0, 5.0],
     'd': [-1, 1, 1],
-    'n': [0.75, 0.5, 0.25],
+    'n': [1, 2, 3],
     'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
 
@@ -40,7 +40,7 @@ def get_dihedral_args_forces_and_energies():
         dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
     ]
     harmonic_forces = [-0.9354, 0.9567, 0.2009]
-    harmonic_energies = [0.6666, 9.6194, 4.8673]
+    harmonic_energies = [0.4393, 8.53553, 1.85295]
     OPLS_forces = [0.616117, 0.732233, 0.0277282]
     OPLS_energies = [2.42678, 2.89645, 5.74372]
 
