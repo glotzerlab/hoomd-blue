@@ -825,7 +825,7 @@ class DPDLJ(Pair):
     must be applied to the system and the user must specify a temperature. Use
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
-    
+
     DPDLJ does not support xplor smoothing mode. See Pair for details on
     how forces are calculated and the available energy shifting
     and smoothing modes.
