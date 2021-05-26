@@ -9,13 +9,13 @@ r"""Constraints.
 Constraint forces can constrain particles to be a set distance from each other,
 to have some relative orientation, or impose other types of constraint.
 
-
 The `Rigid` class is special in that only one is allowed in a system and is set
-to an `hoomd.md.Integator` object separately in the `rigid <hoomd.md.Integrator.rigid>` attribute.
+to an `hoomd.md.Integator` object separately in the
+`rigid <hoomd.md.Integator.rigid` attribute.
 
 Warning:
-    Constraints will be invalid if two separate constraint forces
-    apply to the same particle.
+    Constraints will be invalidated if two separate constraints apply to the
+    same particle.
 
 The degrees of freedom removed from the system by constraints are
 accounted for in `hoomd.md.ThermodynamicQuantities`.
@@ -120,15 +120,16 @@ class Rigid(Constraint):
 
     Rigid bodies are defined by a single central particle and a number of
     constituent particles. All of these are particles in the HOOMD system
-    configuration and can interact with other particles via force computes. The
+    configuration and can interact with other particles via md forces. The
     mass and moment of inertia of the central particle set the full mass and
     moment of inertia of the rigid body (constituent particle mass is ignored).
 
     The central particle is at the center of mass of the rigid body and the
     orientation quaternion defines the rotation from the body space into the
-    simulation box. In body space, the center of mass of the body is at 0,0,0
-    and the moment of inertia is diagonal. You specify the constituent particles
-    to `Rigid` for each type of body in body coordinates. Then,
+    simulation box. Body space refers to a rigid body viewed in a particular
+    reference frame, namely, in body space, the center of mass of the body is at
+    0,0,0 and the moment of inertia is diagonal. You specify the constituent
+    particles to `Rigid` for each type of body in body coordinates. Then,
     `Rigid` takes control of those particles, and sets their position
     and orientation in the simulation box relative to the position and
     orientation of the central particle. `Rigid` also transfers forces
@@ -164,7 +165,7 @@ class Rigid(Constraint):
     set the ``body`` field for each of the particles in the rigid body to the
     tag of the central particle (for both the central and constituent
     particles). Set ``body`` to -1 for particles that do not belong to a rigid
-    body.
+    body (i.e. free bodies).
 
     .. rubric:: Integrating bodies
 
@@ -198,19 +199,26 @@ class Rigid(Constraint):
     particle creation. You still need to specify the same local body space
     environment to `Rigid` as you did in the earlier simulation.
 
-    Set constituent particle types and coordinates for a rigid body.
+    To set constituent particle types and coordinates for a rigid body use the
+    `~.body` attribute.
 
-    Args:
-        type_name (str): The type of the central particle
-        types (list): List of types of constituent particles
-        positions (list): List of relative positions of constituent
-            particles
-        orientations (list): List of orientations of constituent particles
-            (**optional**)
-        charge (list): List of charges of constituent particles
-            (**optional**)
-        diameters (list): List of diameters of constituent particles
-            (**optional**)
+    .. py:attribute:: body
+
+        body is a mapping from the central particle type to a body definition
+        represented as a dictionary. The mapping respects ``None`` as meaning
+        that the type is not a rigid body center. All types are set to ``None``
+        by default. The keys for the body definition are
+
+        - ``types`` (list[str]): List of types of constituent particles
+        - ``positions`` (list[tuple[float, float, float]]): List of relative
+          positions of constituent particles
+        - ``orientations`` (list[tuple[float, float, float, float]]): List of
+          orientations (as quaterions) of constituent particles
+        - ``charge`` (list[float]): List of charges of constituent particles
+        - ``diameters`` (list[float]): List of diameters of constituent
+          particles
+
+        Type: `TypeParameter[``particle_type``, `dict`]
 
     .. caution::
         The constituent particle type must exist.
