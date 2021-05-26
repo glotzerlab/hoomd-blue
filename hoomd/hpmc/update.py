@@ -517,6 +517,16 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
                              trigger=trigger)
         self._param_dict.update(_default_dict)
 
+    def _add(self, simulation):
+        """Add the operation to a simulation.
+
+        HPMC uses RNGs. Warn the user if they did not set the seed.
+        """
+        if simulation is not None:
+            simulation._warn_if_seed_unset()
+
+        super()._add(simulation)
+
     def _attach(self):
         integrator = self._simulation.operations.integrator
         if not isinstance(integrator, integrate.HPMCIntegrator):
