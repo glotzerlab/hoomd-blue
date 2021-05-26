@@ -4,7 +4,7 @@ import numpy as np
 
 _k = [3.0, 10.0, 5.0]
 _d = [-1, 1, 1]
-_n = [0.75, 0.5, 0.25]
+_n = [2, 1, 3]
 _phi0 = [np.pi / 2, np.pi / 4, np.pi / 6]
 
 
@@ -16,8 +16,8 @@ def get_args():
 
 
 def get_args_and_forces_and_energies():
-    forces = [-0.9354, 0.9567, 0.2009]
-    energies = [0.6666, 9.6194, 4.8673]
+    forces = [0.0, 5.0, 1.9411]
+    energies = [3.0, 5.0, 0.0852]
     arg_dicts = []
     for _ki, _di, _ni, _phi0i in zip(_k, _d, _n, _phi0):
         arg_dicts.append({'k': _ki, 'd': _di, 'n': _ni, 'phi0': _phi0i})
@@ -42,9 +42,10 @@ def dihedral_snapshot_factory(device):
             s.configuration.box = box
             s.particles.N = N
             # shift particle positions slightly in z so MPI tests pass
+            # the positions defined below generates a dihedral angle of -phi_rad
             s.particles.position[:] = [
-                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
                 [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
                 [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
             ]
 
@@ -109,8 +110,9 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
     sim = simulation_factory(snap)
 
     argument_dict, force, energy = args_and_force_and_energy
+    # the dihedral angle is in yz plane, thus no force along x axis
     force_array = force * np.asarray(
-        [np.cos(phi_rad / 2), np.sin(phi_rad / 2), 0])
+        [0, np.sin(-phi_rad / 2), np.cos(-phi_rad / 2)])
     dihedral_potential = hoomd.md.dihedral.Harmonic()
     dihedral_potential.params['backbone'] = argument_dict
 
@@ -118,26 +120,31 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
 
     integrator.forces.append(dihedral_potential)
 
-    nvt = hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All(), alpha=0.1)
-    integrator.methods.append(nvt)
+    langevin = hoomd.md.methods.Langevin(kT=1,
+                                         filter=hoomd.filter.All(),
+                                         alpha=0.1)
+    integrator.methods.append(langevin)
     sim.operations.integrator = integrator
 
     sim.run(0)
 
     sim_energies = sim.operations.integrator.forces[0].energy
     sim_forces = sim.operations.integrator.forces[0].forces
-    print(sim_energies)
     if sim.device.communicator.rank == 0:
         np.testing.assert_allclose(sim_energies, energy, rtol=1e-2, atol=1e-5)
         np.testing.assert_allclose(sim_forces[0],
                                    force_array,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1], [0, -1 * force, 0],
+        np.testing.assert_allclose(sim_forces[1],
+                                   -1 * force_array,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(
-            sim_forces[2],
-            [-1 * force_array[0], force_array[1], force_array[2]],
-            rtol=1e-2,
-            atol=1e-5)
+        np.testing.assert_allclose(sim_forces[2],
+                                   [0, -1 * force_array[1], force_array[2]],
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces[3],
+                                   [0, force_array[1], -1 * force_array[2]],
+                                   rtol=1e-2,
+                                   atol=1e-5)
