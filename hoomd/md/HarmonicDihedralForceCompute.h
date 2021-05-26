@@ -91,7 +91,7 @@ class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     protected:
     Scalar* m_K;     //!< K parameter for multiple dihedral tyes
     Scalar* m_sign;  //!< sign parameter for multiple dihedral types
-    int* m_multi; //!< multiplicity parameter for multiple dihedral types
+    int* m_multi;    //!< multiplicity parameter for multiple dihedral types
     Scalar* m_phi_0; //!< phi_0 parameter for multiple dihedral types
 
     std::shared_ptr<DihedralData> m_dihedral_data; //!< Dihedral data to use in computing dihedrals
