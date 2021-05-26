@@ -161,7 +161,12 @@ class Integrator(_DynamicIntegrator):
 
         constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
-            The default value of ``None`` initializes an empty list.
+            The default value of ``None`` initializes an empty list. Rigid body
+            objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
+            list.
+
+        rigid (hoomd.md.constrain.Rigid): A rigid bodies object defining the
+            rigid bodies in the simulation.
 
 
     The following classes can be used as elements in `methods`
@@ -214,6 +219,9 @@ class Integrator(_DynamicIntegrator):
 
         constraints (List[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
+
+        rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
+            simulation associated with the integrator.
     """
 
     def __init__(self,

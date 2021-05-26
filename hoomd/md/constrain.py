@@ -11,7 +11,7 @@ to have some relative orientation, or impose other types of constraint.
 
 The `Rigid` class is special in that only one is allowed in a system and is set
 to an `hoomd.md.Integator` object separately in the
-`rigid <hoomd.md.Integator.rigid` attribute.
+`rigid <hoomd.md.Integator.rigid>` attribute.
 
 Warning:
     Constraints will be invalidated if two separate constraints apply to the
@@ -128,15 +128,14 @@ class Rigid(Constraint):
     orientation quaternion defines the rotation from the body space into the
     simulation box. Body space refers to a rigid body viewed in a particular
     reference frame, namely, in body space, the center of mass of the body is at
-    0,0,0 and the moment of inertia is diagonal. You specify the constituent
-    particles to `Rigid` for each type of body in body coordinates. Then,
-    `Rigid` takes control of those particles, and sets their position
-    and orientation in the simulation box relative to the position and
-    orientation of the central particle. `Rigid` also transfers forces
-    and torques from constituent particles to the central particle. Then, MD
-    integrators can use these forces and torques to integrate the equations of
-    motion of the central particles (representing the whole rigid body) forward
-    in time.
+    :math:`(0,0,0)` and the moment of inertia is diagonal. You specify the
+    constituent particles to `Rigid` for each type of body in body coordinates.
+    Then, `Rigid` takes control of those particles, and sets their position and
+    orientation in the simulation box relative to the position and orientation
+    of the central particle. `Rigid` also transfers forces and torques from
+    constituent particles to the central particle. Then, MD integrators can use
+    these forces and torques to integrate the equations of motion of the central
+    particles (representing the whole rigid body) forward in time.
 
     .. rubric:: Defining bodies
 
@@ -200,7 +199,7 @@ class Rigid(Constraint):
     environment to `Rigid` as you did in the earlier simulation.
 
     To set constituent particle types and coordinates for a rigid body use the
-    `~.body` attribute.
+    `body` attribute.
 
     .. py:attribute:: body
 
