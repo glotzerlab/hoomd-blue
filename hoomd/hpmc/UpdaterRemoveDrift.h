@@ -49,6 +49,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         this->setRefPositions(ref_positions);
         }
 
+    //! Get reference positions as a python list of 3-tuples
     pybind11::list getRefPositions()
         {
         unsigned int N = (unsigned int) m_ref_positions.size();
@@ -64,23 +65,23 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         return ret;
         }
 
-
+    //! Set reference positions from a python list of 3-tuples
+    //! to std vector of vec3's
     void setRefPositions(pybind11::list ref_positions)
+        {
+        unsigned int N = (unsigned int) len(ref_positions);
+        if (N != this->m_pdata->getN())
             {
-            unsigned int N = (unsigned int) len(ref_positions);
-            if (N != this->m_pdata->getN())
-                {
-                throw std::runtime_error("The lenght of the list must be equal to the number of particles.\n");
-                }
-
-            for (unsigned int i = 0; i < N; i++)
-                {
-                pybind11::tuple ref_positions_i = ref_positions[i];
-                m_ref_positions[i].x = ref_positions_i[0].cast<Scalar>();
-                m_ref_positions[i].y = ref_positions_i[1].cast<Scalar>();
-                m_ref_positions[i].z = ref_positions_i[2].cast<Scalar>();
-                }
+            throw std::runtime_error("The lenght of the list must be equal to the number of particles.\n");
             }
+        for (unsigned int i = 0; i < N; i++)
+            {
+            pybind11::tuple ref_positions_i = ref_positions[i];
+            m_ref_positions[i].x = ref_positions_i[0].cast<Scalar>();
+            m_ref_positions[i].y = ref_positions_i[1].cast<Scalar>();
+            m_ref_positions[i].z = ref_positions_i[2].cast<Scalar>();
+            }
+        }
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep)
@@ -157,7 +158,8 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape> >,
                             pybind11::list >())
-        .def_property("ref_positions", &RemoveDriftUpdater<Shape>::getRefPositions, &RemoveDriftUpdater<Shape>::setRefPositions);
+        .def_property("ref_positions", &RemoveDriftUpdater<Shape>::getRefPositions, &RemoveDriftUpdater<Shape>::setRefPositions)
+        ;
     }
     } // namespace hpmc
 
