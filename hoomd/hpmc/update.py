@@ -513,8 +513,7 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
 
     def __init__(self, ref_positions, trigger=1):
         super().__init__(trigger)
-        _default_dict = dict(ref_positions=list(ref_positions),
-                             trigger=trigger)
+        _default_dict = dict(ref_positions=list(ref_positions), trigger=trigger)
         self._param_dict.update(_default_dict)
 
     def _add(self, simulation):
@@ -542,8 +541,7 @@ class RemoveDrift(Updater):  # noqa - will be rewritten for v3
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                self.ref_positions)
+                                integrator._cpp_obj, self.ref_positions)
         super()._attach()
 
 
