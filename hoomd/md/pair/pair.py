@@ -116,7 +116,7 @@ class Pair(force.Force):
         *mode*, *optional*: defaults to ``none``.
         Possible values: ``none``, ``shift``, ``xplor``
 
-        Type: ``str``
+        Type: `str`
     """
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
@@ -806,7 +806,7 @@ class DPDLJ(Pair):
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
 
-    DPDLJ does not support xplor smoothing mode. See Pair for details on
+    DPDLJ does not support xplor smoothing mode. See `Pair` for details on
     how forces are calculated and the available energy shifting
     and smoothing modes.
 
