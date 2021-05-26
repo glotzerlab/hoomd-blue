@@ -21,8 +21,7 @@ class Rigid(ParticleFilter, ParticleFilterRigid):
     """
 
     def __init__(self, flags=("center",)):
-        if not all(
-                flag in {"center", "constituent", "free"} for flag in flags):
+        if not all(flag in {"center", "constituent", "free"} for flag in flags):
             raise ValueError(
                 "Only allowed flags are 'center', 'constituent', and 'free'.")
         ParticleFilter.__init__(self)
