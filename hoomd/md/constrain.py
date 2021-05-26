@@ -151,7 +151,7 @@ class Rigid(Constraint):
 
     Warning:
         Automatic creation of constituent particles changes particle tags. When
-        there are bonds between particles in the initial configuration, or bonds 
+        there are bonds between particles in the initial configuration, or bonds
         connect to constituent particles, include the constituent particles in the
         initial configuration manually.
 
