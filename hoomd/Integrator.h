@@ -91,7 +91,7 @@ class PYBIND11_EXPORT Integrator : public Updater
     virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
 
     /// Removes all ForceComputes from the list
-    virtual void removeForceComputes();
+    void removeForceComputes();
 
     /// Removes HalfStepHook
     virtual void removeHalfStepHook();

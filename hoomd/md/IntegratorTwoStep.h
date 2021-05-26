@@ -66,8 +66,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Change the timestep
     virtual void setDeltaT(Scalar deltaT);
 
-    virtual void removeForceComputes();
-
     /// Add a new integration method to the list that will be run
     virtual void addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method);
 

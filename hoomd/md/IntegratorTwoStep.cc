@@ -151,12 +151,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
         }
     }
 
-void IntegratorTwoStep::removeForceComputes()
-    {
-    m_rigid_bodies.reset();
-    Integrator::removeForceComputes();
-    }
-
 /*! \param new_method New integration method to add to the integrator
     Before the method is added, it is checked to see if the group intersects with any of the groups
    integrated by existing methods. If an intersection is found, an error is issued. If no
