@@ -4,23 +4,21 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-r""" Constraints.
+r"""Constraints.
 
 Constraint forces can constrain particles to be a set distance from each other,
 to have some relative orientation, or impose other types of constraint.
 
-As with other force commands in hoomd, multiple constrain commands can be issued
-to specify multiple constraints, which are additively applied.
 
 The `Rigid` class is special in that only one is allowed in a system and is set
-to an `hoomd.md.Integator` object separately in the `rigid` attribute.
+to an `hoomd.md.Integator` object separately in the `rigid <hoomd.md.Integrator.rigid>` attribute.
 
 Warning:
-    Constraints will be invalidated if two separate constraint commands
+    Constraints will be invalid if two separate constraint forces
     apply to the same particle.
 
-The degrees of freedom removed from the system by constraints are correctly
-taken into account when computing the temperature.
+The degrees of freedom removed from the system by constraints are
+accounted for in `hoomd.md.ThermodynamicQuantities`.
 """
 
 from hoomd.md import _md
@@ -149,13 +147,13 @@ class Rigid(Constraint):
     As a convenience, you do not need to create placeholder entries for all of
     the constituent particles in your initial configuration. You only need to
     specify the positions and orientations of all the central particles. When
-    you call `~.create_bodies`, it will create all constituent particles.
+    you call `create_bodies`, it will create all constituent particles.
 
     Warning:
-        Automatic creation of constituent particles can change particle tags. If
-        bonds have been defined between particles in the initial configuration,
-        or bonds connect to constituent particles, rigid bodies should be
-        created manually.
+        Automatic creation of constituent particles changes particle tags. When
+        there are bonds between particles in the initial configuration, or bonds 
+        connect to constituent particles, include the constituent particles in the
+        initial configuration manually.
 
     When you create the constituent particles manually (i.e. in an input file
     or with snapshots), the central particle of a rigid body must have a lower
