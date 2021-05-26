@@ -59,28 +59,33 @@ def get_dihedral_args_forces_and_energies():
 @pytest.fixture(scope='session')
 def dihedral_snapshot_factory(device):
 
-    def make_snapshot(d=1.0,
-                      phi_deg=45,
-                      particle_types=['A'],
-                      dimensions=3,
-                      L=20):
+    def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
         phi_rad = phi_deg * (np.pi / 180)
+        # the central particles are along the x-axis, so phi is determined from
+        # the angle in the yz plane. We position the first particle always at
+        # [x, 0, 1.1] (the whole molecule is shifted in the z by 0.1 for MPI
+        # reasons.
+        first_dihedral_pos = [d, 0, 1.1]
+        second_dihedral_pos = [
+            0, -np.sin(phi_rad) * first_dihedral_pos[2],
+            np.cos(phi_rad) * first_dihedral_pos[2]
+        ]
+
         s = hoomd.Snapshot(device.communicator)
         N = 4
-        if s.exists:
+        if s.communicator.rank == 0:
             box = [L, L, L, 0, 0, 0]
-            if dimensions == 2:
-                box[2] = 0
             s.configuration.box = box
             s.particles.N = N
-            # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [
-                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
-                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
-                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
-            ]
-
             s.particles.types = particle_types
+            # shift particle positions slightly in z so MPI tests pass
+            s.particles.position[:] = [[0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                                       first_dihedral_pos, second_dihedral_pos]
+
+            s.dihedrals.N = 1
+            s.dihedrals.types = ['dihedral']
+            s.dihedrals.typeid[0] = 0
+            s.dihedrals.group[0] = (0, 1, 2, 3)
 
         return s
 
@@ -99,14 +104,9 @@ def test_before_attaching(dihedral_and_args):
 
 
 @pytest.mark.parametrize("dihedral_and_args", get_dihedral_and_args())
-def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
+def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
                          dihedral_and_args):
-    snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.exists:
-        snap.dihedrals.N = 1
-        snap.dihedrals.types = ['dihedral']
-        snap.dihedrals.typeid[0] = 0
-        snap.dihedrals.group[0] = (0, 1, 2, 3)
+    snap = dihedral_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
     dihedral, args = dihedral_and_args
@@ -132,16 +132,9 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
 
 @pytest.mark.parametrize("dihedral_args_force_and_energy",
                          get_dihedral_args_forces_and_energies())
-def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
+def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                              dihedral_args_force_and_energy):
-    snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.exists:
-        snap.dihedrals.N = 1
-        snap.dihedrals.types = ['dihedral']
-        snap.dihedrals.typeid[0] = 0
-        snap.dihedrals.group[0] = (0, 1)
-        snap.particles.diameter[0] = 0.5
-        snap.particles.diameter[1] = 0.5
+    snap = dihedral_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
     dihedral, args, force, energy = dihedral_args_force_and_energy
