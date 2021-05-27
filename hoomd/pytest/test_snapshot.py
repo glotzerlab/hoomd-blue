@@ -135,7 +135,8 @@ def test_wrap(s):
         s.wrap()
         # check the particles are where they should be
         print(s.particles.position)
-        numpy.testing.assert_allclose(s.particles.position, [[-0.5, 0, 0], [0.3, 0.2, 0], [-0.5, 0, 0]])
+        numpy.testing.assert_allclose(
+            s.particles.position, [[-0.5, 0, 0], [0.3, 0.2, 0], [-0.5, 0, 0]])
 
 
 def test_particles(s):
