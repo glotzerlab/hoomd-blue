@@ -490,31 +490,26 @@ class MuVT(Updater):
         return N_dict
 
 
-class RemoveDrift(Updater):  # noqa - will be rewritten for v3
+class RemoveDrift(Updater):
     """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
-        period (int): the period to call the updater
+        ref_positions (`list` [`tuple` [`float`, `float`]], **required**) - the
+            reference positions of the lattice.
+        trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
-    The command hpmc.update.remove_drift sets up an updater that removes the
-    center of mass drift of a system every period timesteps,
+    During the time steps specified by *trigger*, particle positions are modified
+    such that the their center of mass coincides with that of *ref_positions*.
 
-    Example::
+    Examples::
 
-        mc = hpmc.integrate.convex_polyhedron(seed=seed);
-        mc.shape_param.set("A", vertices=verts)
-        mc.set_params(d=0.005, a=0.005)
-        lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice,
-                                             k=1000.0);
-        remove_drift = update.remove_drift(mc=mc, external_lattice=lattice,
-                                           period=1000);
-
+        rd = hpmc.update.RemoveDrift(ref_positions=[(0,0,0), (1,1,1)], trigger=hoomd.trigger.Periodic(100))
     """
 
     def __init__(self, ref_positions, trigger=1):
         super().__init__(trigger)
-        _default_dict = dict(ref_positions=list(ref_positions), trigger=trigger)
-        self._param_dict.update(_default_dict)
+        _param_dict = dict(ref_positions=list(ref_positions), trigger=trigger)
+        self._param_dict.update(_param_dict)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
