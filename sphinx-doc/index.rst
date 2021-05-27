@@ -59,6 +59,7 @@ workflows all with Python code in your job.
     :caption: Getting started
 
     installation
+    building
     migrating
     changelog
     citing
