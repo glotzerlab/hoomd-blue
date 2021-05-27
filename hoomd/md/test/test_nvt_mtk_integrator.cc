@@ -115,7 +115,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf,
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
     nvt_1->addIntegrationMethod(two_step_nvt_1);
-    nvt_1->addForceCompute(fc_1);
+    nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
@@ -221,7 +221,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
     nvt_1->addIntegrationMethod(two_step_nvt_1);
-    nvt_1->addForceCompute(fc_1);
+    nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
     thermo_nvt->setNDOF(ndof);
@@ -355,8 +355,8 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1,
         = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
     nvt2->addIntegrationMethod(two_step_nvt2);
 
-    nvt1->addForceCompute(fc1);
-    nvt2->addForceCompute(fc2);
+    nvt1->getForces().push_back(fc1);
+    nvt2->getForces().push_back(fc2);
 
     nvt1->prepRun(0);
     nvt2->prepRun(0);

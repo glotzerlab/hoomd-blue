@@ -78,7 +78,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator,
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
     std::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
-    bdnvt_up->addForceConstraint(cs);
+    bdnvt_up->getConstraintForces().push_back(cs);
     bdnvt_up->prepRun(0);
 
     for (int i = 0; i < 1000; i++)

@@ -46,8 +46,8 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
 
 /*! \param timestep Current time step of the simulation
     \post All integration methods previously added with addIntegrationMethod() are applied in order
-   to move the system state variables forward to \a timestep+1. \post Internally, all forces added
-   via Integrator::addForceCompute are evaluated at \a timestep+1
+   to move the system state variables forward to \a timestep+1. \post Internally, all forces present
+   in the m_forces std::vector are evaluated at \a timestep+1
 */
 void IntegratorTwoStep::update(uint64_t timestep)
     {
@@ -196,17 +196,6 @@ void IntegratorTwoStep::addForceComposite(std::shared_ptr<ForceComposite> fc)
     {
     assert(fc);
     m_composite_forces.push_back(fc);
-    }
-
-/*! Call removeForceComputes() to completely wipe out the list of force computes
-    that the integrator uses to sum forces.
-*/
-void IntegratorTwoStep::removeForceComputes()
-    {
-    Integrator::removeForceComputes();
-
-    // Remove ForceComposite objects
-    m_composite_forces.clear();
     }
 
 /*! \returns true If all added integration methods have valid restart information

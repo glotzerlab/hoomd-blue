@@ -84,9 +84,9 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator,
 
     // also test the ability of the updater to add two force computes together properly
     std::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1.5, 0.0, 0.0));
-    nve_up->addForceCompute(fc1);
+    nve_up->getForces().push_back(fc1);
     std::shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
-    nve_up->addForceCompute(fc2);
+    nve_up->getForces().push_back(fc2);
 
     nve_up->prepRun(0);
 
@@ -166,7 +166,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator,
 
     // create an insanely large force to test the limiting method
     std::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1e9, 2e9, 3e9));
-    nve_up->addForceCompute(fc1);
+    nve_up->getForces().push_back(fc1);
 
     // expected movement vectors
     Scalar dx = limit / sqrt(14.0);
@@ -261,7 +261,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator,
 
     // no forces on these particles
     std::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
-    nve_up->addForceCompute(fc1);
+    nve_up->getForces().push_back(fc1);
 
     nve_up->prepRun(0);
 
@@ -341,8 +341,8 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     std::shared_ptr<IntegratorTwoStep> nve2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
     nve2->addIntegrationMethod(two_step_nve2);
 
-    nve1->addForceCompute(fc1);
-    nve2->addForceCompute(fc2);
+    nve1->getForces().push_back(fc1);
+    nve2->getForces().push_back(fc2);
 
     nve1->prepRun(0);
     nve2->prepRun(0);
@@ -440,7 +440,7 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
     std::shared_ptr<TwoStepNVE> two_step_nve_1 = nve_creator(sysdef_1, group_all_1);
     ;
     nve_1->addIntegrationMethod(two_step_nve_1);
-    nve_1->addForceCompute(fc_1);
+    nve_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nve_1->getTranslationalDOF(group_all_1);
     thermo_1->setNDOF(ndof);

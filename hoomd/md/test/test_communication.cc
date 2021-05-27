@@ -2977,9 +2977,6 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     nve_up_1->addIntegrationMethod(two_step_nve_1);
     nve_up_2->addIntegrationMethod(two_step_nve_2);
 
-    //    nve_up_1->addForceCompute(fc_1);
-    //    nve_up_2->addForceCompute(fc_2);
-
     // set constant velocities
     for (unsigned int tag = 0; tag < n; ++tag)
         {

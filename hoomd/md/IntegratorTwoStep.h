@@ -99,9 +99,6 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Add a ForceComposite to the list
     virtual void addForceComposite(std::shared_ptr<ForceComposite> fc);
 
-    /// Removes all ForceComputes from the list
-    virtual void removeForceComputes();
-
 #ifdef ENABLE_MPI
     /// Set the communicator to use
     /** \param comm The Communicator

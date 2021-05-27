@@ -32,10 +32,10 @@
     property that they have a time step, \a deltaT.
 
     Any number of ForceComputes can be used to specify the net force
-    for use with this integrator. They are added via calling
-    addForceCompute(). Any number of forces can be added in this way.
+    for use with this integrator. They are added through m_forces accessed via getForces. Any number
+    of forces can be added in this way.
 
-    All forces added via addForceCompute() are computed independently and then totaled up to
+    All forces added to m_forces are computed independently and then totaled up to
    calculate the net force and energy on each particle. Constraint forces (ForceConstraint) are
    unique in that they need to be computed \b after the net forces is already available. To
    implement this behavior, call addForceConstraint() to add any number of constraint forces. All
@@ -47,7 +47,7 @@
     Integrators take "ownership" of the particle's accelerations. Any other updater
     that modifies the particles accelerations will produce undefined results. If
     accelerations are to be modified, they must be done through forces, and added to
-    an Integrator via addForceCompute().
+    an Integrator via the m_forces std::vector.
 
     No such ownership is taken of the particle positions and velocities. Other Updaters
     can modify particle positions and velocities as they wish. Those updates will be taken
@@ -69,17 +69,11 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// Take one timestep forward
     virtual void update(uint64_t timestep);
 
-    /// Add a ForceCompute to the list
-    virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
-
     /// Get the list of force computes
     std::vector<std::shared_ptr<ForceCompute>>& getForces()
         {
         return m_forces;
         }
-
-    /// Add a ForceConstraint to the list
-    virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
     /// Get the list of force computes
     std::vector<std::shared_ptr<ForceConstraint>>& getConstraintForces()
@@ -89,9 +83,6 @@ class PYBIND11_EXPORT Integrator : public Updater
 
     /// Set HalfStepHook
     virtual void setHalfStepHook(std::shared_ptr<HalfStepHook> hook);
-
-    /// Removes all ForceComputes from the list
-    virtual void removeForceComputes();
 
     /// Removes HalfStepHook
     virtual void removeHalfStepHook();

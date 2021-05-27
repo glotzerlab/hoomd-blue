@@ -103,7 +103,7 @@ void enforce2d_basic_test(enforce2d_creator creator,
     fc->setRcut(0, 0, Scalar(2.5));
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    nve_up->addForceCompute(fc);
+    nve_up->getForces().push_back(fc);
     nve_up->prepRun(0);
 
     // verify that the atoms leave the xy plane if no constraints are present

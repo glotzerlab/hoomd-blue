@@ -171,7 +171,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator,
     thermo_group->setNDOF(3 * pdata->getN() - 3);
     thermo_group_t->setNDOF(3 * pdata->getN() - 3);
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
     unsigned int offs = 0;
@@ -460,7 +460,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator,
     std::shared_ptr<TwoStepNPTMTK> two_step_npt = nph_creator(args);
     std::shared_ptr<IntegratorTwoStep> nph(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
     nph->addIntegrationMethod(two_step_npt);
-    nph->addForceCompute(fc);
+    nph->getForces().push_back(fc);
     nph->prepRun(0);
 
     // step for a 10,000 timesteps to relax pressure and temperature
@@ -630,7 +630,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
     thermo_group_t->setNDOF(3 * pdata->getN() - 3);
 
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
     unsigned int offs = 0;
