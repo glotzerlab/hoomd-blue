@@ -114,7 +114,7 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf,
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
-    nvt_1->addIntegrationMethod(two_step_nvt_1);
+    nvt_1->getIntegrationMethods().push_back(two_step_nvt_1);
     nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
@@ -220,7 +220,7 @@ void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1
         = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
     ;
-    nvt_1->addIntegrationMethod(two_step_nvt_1);
+    nvt_1->getIntegrationMethods().push_back(two_step_nvt_1);
     nvt_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nvt_1->getTranslationalDOF(group_all_1);
@@ -346,14 +346,14 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1,
     thermo1->setNDOF(3 * N - 3);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt1
         = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
-    nvt1->addIntegrationMethod(two_step_nvt1);
+    nvt1->getIntegrationMethods().push_back(two_step_nvt1);
 
     std::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.002)));
     std::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3 * N - 3);
     std::shared_ptr<TwoStepNVTMTK> two_step_nvt2
         = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
-    nvt2->addIntegrationMethod(two_step_nvt2);
+    nvt2->getIntegrationMethods().push_back(two_step_nvt2);
 
     nvt1->getForces().push_back(fc1);
     nvt2->getForces().push_back(fc2);

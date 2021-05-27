@@ -115,7 +115,7 @@ template<class PP_DPD> void dpd_temperature_test(std::shared_ptr<ExecutionConfig
     std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     group_all->setTranslationalDOF(3 * 1000);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
-    nve_up->addIntegrationMethod(two_step_nve);
+    nve_up->getIntegrationMethods().push_back(two_step_nve);
 
     // Construction of the Force Compute
     std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.0), Scalar(0.8)));

@@ -80,7 +80,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator,
     Scalar deltaT = Scalar(0.0001);
     std::shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
-    nve_up->addIntegrationMethod(two_step_nve);
+    nve_up->getIntegrationMethods().push_back(two_step_nve);
 
     // also test the ability of the updater to add two force computes together properly
     std::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1.5, 0.0, 0.0));
@@ -158,7 +158,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator,
     Scalar deltaT = Scalar(0.0001);
     std::shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
-    nve_up->addIntegrationMethod(two_step_nve);
+    nve_up->getIntegrationMethods().push_back(two_step_nve);
 
     // set the limit
     Scalar limit = Scalar(0.1);
@@ -257,7 +257,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator,
     Scalar deltaT = 1.0;
     std::shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef_6, group_all);
     std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef_6, deltaT));
-    nve_up->addIntegrationMethod(two_step_nve);
+    nve_up->getIntegrationMethods().push_back(two_step_nve);
 
     // no forces on these particles
     std::shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
@@ -335,11 +335,11 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
 
     std::shared_ptr<TwoStepNVE> two_step_nve1 = nve_creator1(sysdef1, group_all1);
     std::shared_ptr<IntegratorTwoStep> nve1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
-    nve1->addIntegrationMethod(two_step_nve1);
+    nve1->getIntegrationMethods().push_back(two_step_nve1);
 
     std::shared_ptr<TwoStepNVE> two_step_nve2 = nve_creator2(sysdef2, group_all2);
     std::shared_ptr<IntegratorTwoStep> nve2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
-    nve2->addIntegrationMethod(two_step_nve2);
+    nve2->getIntegrationMethods().push_back(two_step_nve2);
 
     nve1->getForces().push_back(fc1);
     nve2->getForces().push_back(fc2);
@@ -439,7 +439,7 @@ void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     std::shared_ptr<TwoStepNVE> two_step_nve_1 = nve_creator(sysdef_1, group_all_1);
     ;
-    nve_1->addIntegrationMethod(two_step_nve_1);
+    nve_1->getIntegrationMethods().push_back(two_step_nve_1);
     nve_1->getForces().push_back(fc_1);
 
     unsigned int ndof = nve_1->getTranslationalDOF(group_all_1);

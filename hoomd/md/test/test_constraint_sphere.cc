@@ -75,7 +75,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator,
     std::shared_ptr<TwoStepLangevin> two_step_bdnvt(
         new TwoStepLangevin(sysdef, group_all, T_variant));
     std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
-    bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+    bdnvt_up->getIntegrationMethods().push_back(two_step_bdnvt);
 
     std::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->getConstraintForces().push_back(cs);

@@ -276,7 +276,7 @@ void fire_smallsystem_test(fire_creator fire_creator1,
 
     std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_all);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
-    fire->addIntegrationMethod(nve);
+    fire->getIntegrationMethods().push_back(nve);
     fire->setFtol(5.0);
     fire->getForces().push_back(fc);
     fire->setMinSteps(10);
@@ -353,7 +353,7 @@ void fire_twoparticle_test(fire_creator fire_creator1,
 
     std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef, group_one);
     std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
-    fire->addIntegrationMethod(nve);
+    fire->getIntegrationMethods().push_back(nve);
 
     fire->getForces().push_back(fc);
     fire->setFtol(Scalar(5.0));
