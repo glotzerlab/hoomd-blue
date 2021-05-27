@@ -4,6 +4,21 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.7 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- [developers] pre-commit enforced style guidelines for the codebase.
+
+*Changed*
+
+*Fixed*
+
+- Some broken references in the documentation.
+
+*Removed*
+
 v3.0.0-beta.6 (2021-05-17)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
