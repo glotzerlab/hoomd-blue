@@ -11,7 +11,7 @@ Components can be compiled and installed as **built-in** components or as
 **external** components. The build process compiles HOOMD-blue and all built-in
 components together, requiring one ``cmake`` and ``make``. External components
 compile and link against a HOOMD-blue installation with a separate invocation of
-``cmake`` and ``make install``. A properly configured component may be compiled
+``cmake`` and ``cmake --install``. A properly configured component may be compiled
 either way. When the end user is compiling HOOMD-blue and components from
 source, built-in components compile and install everything at once which
 minimizes chances for errors (e.g. building HOOMD-blue against python 3.6, but
@@ -43,14 +43,14 @@ External components
 -------------------
 
 To compile an external component, you must first install HOOMD-blue. Then,
-configure your component with ``cmake`` and ``make install`` it into the hoomd
+configure your component with ``cmake`` and ``cmake --install`` it into the hoomd
 python library. Point ``CMAKE_PREFIX_PATH`` at your virtual environment (if
 needed) so that cmake can find HOOMD::
 
   $  cd /path/to/your_component
   $  mkdir build && cd build
   $  CMAKE_PREFIX_PATH=/path/to/virtual/environment cmake ..
-  $  make install
+  $  cmake --install .
 
 The component build environment, including the compiler, CUDA, MPI, python, and
 other libraries, must match exactly with those used to build HOOMD-blue.

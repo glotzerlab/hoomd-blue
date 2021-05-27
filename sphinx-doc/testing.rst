@@ -32,8 +32,8 @@ Execute the following commands to run the tests:
 * ``python3 -m pytest hoomd``
 
 **ctest** must be run in the **build** directory. When you run **pytest**
-outside of the **build** directory, it will test the HOOMD installed by ``make
-install``.
+outside of the **build** directory, it will the ``hoomd`` package that Python
+imports.
 
 See the `pytest invocation docs <https://docs.pytest.org/en/latest/usage.html>`_
 for information on how to control **pytest** output, select specific tests, and
