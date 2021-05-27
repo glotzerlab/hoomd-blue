@@ -32,6 +32,12 @@ else()
     set(_dem_built "False")
 endif()
 
+if (BUILD_METAL)
+    set(_metal_built "True")
+else()
+    set(_metal_built "False")
+endif()
+
 if (BUILD_MPCD)
     set(_mpcd_built "True")
 else()

@@ -12,7 +12,7 @@ Attributes:
     cxx_compiler (str): Name and version of the C++ compiler used to build
         HOOMD.
 
-    dem_built (bool): ``True`` when the `dem` package is built.
+    dem_built (bool): ``True`` when the `dem` component is built.
 
     git_branch (str):  Name of the git branch used when compiling this build.
 
@@ -25,13 +25,15 @@ Attributes:
     gpu_platform (str): Name of the GPU platform this build was compiled
         against.
 
-    hpmc_built (bool): ``True`` when the `hpmc` package is built.
+    hpmc_built (bool): ``True`` when the `hpmc` component is built.
 
     install_dir (str): The installation directory.
 
-    md_built (bool): ``True`` when the `md` package is built.
+    metal_built (bool): ``True`` when the `metal` component is built.
 
-    mpcd_built (bool): ``True`` when the `mpcd` package is built.
+    md_built (bool): ``True`` when the `md` component is built.
+
+    mpcd_built (bool): ``True`` when the `mpcd` component is built.
 
     mpi_enabled (bool): ``True`` when this build supports MPI parallel runs.
 
@@ -53,6 +55,7 @@ try:
     hpmc_built = hoomd.version_config.hpmc_built
     dem_built = hoomd.version_config.dem_built
     mpcd_built = hoomd.version_config.mpcd_built
+    metal_built = hoomd.version_config.metal_built
 except ImportError:
     # Allow sphinx docs to build when missing CMake generated python files
     compile_date = "n/a"
@@ -62,6 +65,7 @@ except ImportError:
     hpmc_built = "n/a"
     dem_built = "n/a"
     mpcd_built = "n/a"
+    metal_built = "n/a"
 
 version = _hoomd.BuildInfo.getVersion()
 compile_flags = _hoomd.BuildInfo.getCompileFlags()

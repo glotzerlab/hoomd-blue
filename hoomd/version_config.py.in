@@ -15,3 +15,5 @@ hpmc_built = ${_hpmc_built}
 dem_built = ${_dem_built}
 
 mpcd_built = ${_mpcd_built}
+
+metal_built = ${_metal_built}

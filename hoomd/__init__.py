@@ -29,6 +29,8 @@ if version.hpmc_built:
     from hoomd import hpmc
 if version.dem_built:
     from hoomd import dem
+# if version.metal_built:
+#     from hoomd import metal
 # if version.mpcd_built:
 #     from hoomd import mpcd
 
