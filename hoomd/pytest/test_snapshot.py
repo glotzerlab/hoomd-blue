@@ -127,21 +127,21 @@ def test_configuration(s):
 
 def test_wrap(s):
     if s.communicator.rank == 0:
-        s.configuration.box = [1,1,1,0,0,0]
+        s.configuration.box = [1, 1, 1, 0, 0, 0]
         # set up particles outside of the box
         s.particles.N = 4
-        s.particles.position[:] = [[ 1.5,  2,      1.8], # test all directions
-                                   [-1.0, -0.7,  -10.1], # test negative directions
-                                   [ 0.3,  0.2,   -0.1], # test no wrap
-                                   [ 2.5, 100.2,-100.2]]  # test multiple wrap
+        s.particles.position[:] = [
+            [1.5, 2, 1.8],  # test all directions
+            [-1.0, -0.7, -10.1],  # test negative directions
+            [0.3, 0.2, -0.1],  # test no wrap
+            [2.5, 100.2, -100.2]
+        ]  # test multiple wrap
         s.wrap()
         # check the particles are where they should be
         print(s.particles.position)
-        numpy.testing.assert_allclose(
-            s.particles.position, [[-0.5, 0.0, -0.2],
-                                   [ 0.0, 0.3, -0.1],
-                                   [ 0.3, 0.2, -0.1],
-                                   [-0.5, 0.2, -0.2]])
+        numpy.testing.assert_allclose(s.particles.position,
+                                      [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
+                                       [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]])
 
 
 def test_particles(s):
