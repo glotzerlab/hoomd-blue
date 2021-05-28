@@ -7,6 +7,7 @@
 
 #include "TwoStepNVTAlchemy.h"
 #include "hoomd/VectorMath.h"
+#include "hoomd/md/AlchemostatTwoStep.h"
 
 namespace py = pybind11;
 
@@ -102,6 +103,8 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
     // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
+    
+    m_validState=false;
 
     for (auto& alpha : m_alchemicalParticles)
         {
@@ -132,7 +135,7 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
 void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
     {
-    if (timestep != (m_nextAlchemTimeStep - 1))
+    if ((timestep != (m_nextAlchemTimeStep - 1)) || m_validState)
         return;
     // profile this step
     if (m_prof)
@@ -154,7 +157,7 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
 
         const Scalar& invM = alpha->mass.y;
         const Scalar& mu = alpha->mu;
-        const Scalar netForce = alpha->getNetForce(timestep);
+        const Scalar netForce = alpha->getNetForce(timestep+1);
 
         // rescale velocity
         p *= exp(-m_halfDeltaT * xi);
@@ -164,6 +167,8 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
         q += m_halfDeltaT * p * invM;
         m_alchem_KE += Scalar(0.5) * p * p * invM;
         }
+        
+    m_validState=true;
 
     // done profiling
     if (m_prof)
@@ -188,7 +193,9 @@ void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
 
 void export_TwoStepNVTAlchemy(py::module& m)
     {
-    py::class_<TwoStepNVTAlchemy, std::shared_ptr<TwoStepNVTAlchemy>>(
+    // export_AlchemostatTwoStep<TwoStepNVTAlchemy>(m,"AlchemostatTwoStepBase")
+
+    py::class_<TwoStepNVTAlchemy, AlchemostatTwoStep, std::shared_ptr<TwoStepNVTAlchemy>>(
         m,
         "TwoStepNVTAlchemy")
         .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<Variant>>())

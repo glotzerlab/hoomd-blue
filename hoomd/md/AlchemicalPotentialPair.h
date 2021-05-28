@@ -79,7 +79,7 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
 
     std::shared_ptr<AlchemicalPairParticle> getAlchemicalPairParticle(int i, int j, int k)
         {
-        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles);
+        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles,access_location::host,access_mode::readwrite);
         std::shared_ptr<AlchemicalPairParticle>& alpha_p
             = h_alpha_p.data[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
         if (alpha_p == nullptr)
@@ -129,6 +129,8 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
     inline extra_pkg pkgInitialze(const uint64_t& timestep) override;
     inline void pkgPerNeighbor(const unsigned int& i,
                                const unsigned int& j,
+                               const unsigned int& typei,
+                               const unsigned int& typej,
                                const bool in_rcut,
                                evaluator& eval,
                                extra_pkg&) override;
@@ -140,6 +142,13 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::AlchemicalPotentialPair(
     std::shared_ptr<NeighborList> nlist)
     : PotentialPair<evaluator, extra_pkg>(sysdef, nlist)
     {
+    
+    m_alchemy_index = Index2DUpperTriangular(this->m_pdata->getNTypes());
+    m_alchemical_particles = GlobalArray<std::shared_ptr<AlchemicalPairParticle>>(m_alchemy_index.getNumElements(),evaluator::num_alchemical_parameters,this->m_exec_conf);
+    m_alchemy_mask = GlobalArray<mask_type>(this->m_pdata->getNTypes(),this->m_exec_conf);
+    
+    
+    
     // TODO: proper logging variables
     this->m_exec_conf->msg->notice(5)
         << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
@@ -246,6 +255,8 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
                 // calculations
                 m_alchemical_time_steps.insert(
                     pkg.h_alchemical_particles.data[idx]->m_nextTimestep);
+                // m_alchemical_time_steps.insert(
+                    // pkg.h_alchemical_particles.data[idx]->m_nextTimestep-1);
                 }
             else
                 {
@@ -280,13 +291,15 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
 template<class evaluator, typename extra_pkg>
 inline void AlchemicalPotentialPair<evaluator, extra_pkg>::pkgPerNeighbor(const unsigned int& i,
                                                                           const unsigned int& j,
+                                                                          const unsigned int& typei,
+                                                                          const unsigned int& typej,
                                                                           const bool in_rcut,
                                                                           evaluator& eval,
                                                                           extra_pkg& pkg)
     {
-    unsigned int alchemy_index = m_alchemy_index(i, j);
-    mask_type& mask = pkg.h_alchemy_mask.data[alchemy_index];
-    alpha_array_t& alphas = pkg.alphas[alchemy_index];
+    unsigned int alchemy_index = m_alchemy_index(typei, typej);
+    mask_type& mask {pkg.h_alchemy_mask.data[alchemy_index]};
+    alpha_array_t& alphas {pkg.alphas[alchemy_index]};
 
     // TODO: make sure that when we disable an alchemical particle, we rewrite it's parameter
     // TODO: add support of aniso
@@ -326,7 +339,9 @@ void export_AlchemicalPotentialPair(pybind11::module& m, const std::string& name
     alchemicalpotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("getAlchemicalPairParticle", &T::getAlchemicalPairParticle)
-        .def("enableAlchemicalPairParticle", &T::enableAlchemicalPairParticle);
+        .def("enableAlchemicalPairParticle", &T::enableAlchemicalPairParticle)
+        // .def_property_readonly("")
+        ;
     }
 
 #endif // __ALCHEMICALPOTENTIALPAIR_H__

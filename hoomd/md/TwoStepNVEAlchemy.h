@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVEAlchemy : public AlchemostatTwoStep<TwoStepNVEAlchemy>
+class TwoStepNVEAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system

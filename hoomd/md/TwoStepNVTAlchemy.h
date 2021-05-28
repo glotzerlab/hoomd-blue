@@ -27,7 +27,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVTAlchemy : public AlchemostatTwoStep<TwoStepNVTAlchemy>
+class TwoStepNVTAlchemy : public AlchemostatTwoStep
     {
     public:
     //! Constructs the integration method and associates it with the system
@@ -56,10 +56,10 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep<TwoStepNVTAlchemy>
         return m_T;
         }
         
-    static unsigned int getIntegraorNDOF()
-    {
-    return 1;
-    }
+    // static unsigned int getIntegraorNDOF()
+    // {
+    // return 1;
+    // }
 
     //! Performs the first step of the integration
     void integrateStepOne(uint64_t timestep) override;
@@ -71,6 +71,8 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep<TwoStepNVTAlchemy>
     Scalar m_Q;
     Scalar m_alchem_KE;
     std::shared_ptr<Variant> m_T;
+    unsigned int m_iteratorDOF = 1;
+    
     //! advance the thermostat
     /*!\param timestep The time step
      * \param broadcast True if we should broadcast the integrator variables via MPI

@@ -134,7 +134,7 @@ class PYBIND11_EXPORT IntegrationMethodTwoStep
             }
 
         //! Change the timestep
-        void setDeltaT(Scalar deltaT);
+        virtual void setDeltaT(Scalar deltaT);
 
         //! Access the group
         std::shared_ptr<ParticleGroup> getGroup() { return m_group; }

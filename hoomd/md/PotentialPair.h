@@ -229,6 +229,8 @@ class PotentialPair : public ForceCompute
 
         virtual inline void pkgPerNeighbor(const unsigned int& i, 
                                            const unsigned int& j,
+                                           const unsigned int& typei,
+                                           const unsigned int& typej,
                                            const bool in_rcut,
                                            evaluator& eval,
                                            extra_pkg&) {};
@@ -676,7 +678,7 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i,j,(rsq < rcutsq),eval,pkg);
+            pkgPerNeighbor(i,j,typei,typej,(rsq < rcutsq),eval,pkg);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 
@@ -915,7 +917,7 @@ void PotentialPair<evaluator,extra_pkg>::validateTypes(unsigned int typ1,
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
 
-            pkgPerNeighbor(i,j,(rsq < rcutsq),eval,pkg);
+            pkgPerNeighbor(i,j,typei,typej,(rsq < rcutsq),eval,pkg);
 
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
 

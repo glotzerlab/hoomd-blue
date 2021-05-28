@@ -24,5 +24,6 @@ from .pair import (
     LJ0804,
     Fourier,
     OPP,
-    TWF
+    TWF,
+    LJGauss
 )
