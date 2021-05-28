@@ -45,14 +45,11 @@ class Force(_HOOMDBaseObject):
     Initializes some loggable quantities.
     """
 
-    @log
+    @log(requires_attach=True)
     def energy(self):
         """float: Sum of the energy of the whole system."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.calcEnergySum()
-        else:
-            raise AttachedDataError("energy")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.calcEnergySum()
 
     @log(category="particle")
     def energies(self):
