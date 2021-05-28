@@ -132,10 +132,15 @@ def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
                          get_dihedral_args_forces_and_energies())
 def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                              dihedral_args_force_and_energy):
-    snap = dihedral_snapshot_factory(d=0.969, L=5)
+    phi_deg = 45
+    phi_rad = phi_deg * (np.pi / 180)
+    snap = dihedral_snapshot_factory(phi_deg=phi_deg)
     sim = simulation_factory(snap)
 
     dihedral, args, force, energy = dihedral_args_force_and_energy
+    # the dihedral angle is in yz plane, thus no force along x axis
+    force_array = force * np.asarray(
+        [0, -1 * np.sin(-phi_rad / 2), -1 * np.cos(-phi_rad / 2)])
     dihedral_potential = dihedral()
     dihedral_potential.params['dihedral'] = args
 
