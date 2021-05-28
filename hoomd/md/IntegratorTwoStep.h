@@ -20,7 +20,7 @@
 
     Notable design elements:
     - setDeltaT results in deltaT being set on all current integration methods
-    - to interface with the python script, a the m_methods vectors is exposed with a list like API.
+    - to interface with the python script, the m_methods vectors is exposed with a list like API.
 
    TODO: ensure that the user does not make a mistake and specify more than one method operating on a
    single particle
