@@ -65,11 +65,6 @@ def dihedral_snapshot_factory(device):
         # the angle in the yz plane. We position the first particle always at
         # [x, 0, 1.1] (the whole molecule is shifted in the z by 0.1 for MPI
         # reasons.
-        first_dihedral_pos = [d, 0, 1.1]
-        second_dihedral_pos = [
-            0, -np.sin(phi_rad) * first_dihedral_pos[2],
-            np.cos(phi_rad) * first_dihedral_pos[2]
-        ]
 
         s = hoomd.Snapshot(device.communicator)
         N = 4
@@ -79,8 +74,11 @@ def dihedral_snapshot_factory(device):
             s.particles.N = N
             s.particles.types = particle_types
             # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [[0.0, 0.0, 0.1], [d, 0.0, 0.1],
-                                       first_dihedral_pos, second_dihedral_pos]
+            s.particles.position[:] = [
+                [0.0, d * np.cos(phi_rad / 2), d * np.sin(phi_rad / 2) + 0.1],
+                [0.0, 0.0, 0.1], [d, 0.0, 0.1],
+                [d, d * np.cos(phi_rad / 2), -d * np.sin(phi_rad / 2) + 0.1]
+            ]
 
             s.dihedrals.N = 1
             s.dihedrals.types = ['dihedral']
