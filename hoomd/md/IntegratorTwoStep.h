@@ -22,8 +22,8 @@
     - setDeltaT results in deltaT being set on all current integration methods
     - to interface with the python script, the m_methods vectors is exposed with a list like API.
 
-   TODO: ensure that the user does not make a mistake and specify more than one method operating on a
-   single particle
+   TODO: ensure that the user does not make a mistake and specify more than one method operating on
+   a single particle
 
     There is a special registration mechanism for ForceComposites which run after the integration
    steps one and two, and which can use the updated particle positions and velocities to update any
