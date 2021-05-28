@@ -158,9 +158,19 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
                                    energy,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[0], [force, 0.0, 0.0],
+        np.testing.assert_allclose(sim_forces[0],
+                                   force_array,
                                    rtol=1e-2,
                                    atol=1e-5)
-        np.testing.assert_allclose(sim_forces[1], [-1 * force, 0.0, 0.0],
+        np.testing.assert_allclose(sim_forces[1],
+                                   -1 * force_array,
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces[2],
+                                   [0, -1 * force_array[1], force_array[2]],
+                                   rtol=1e-2,
+                                   atol=1e-5)
+        np.testing.assert_allclose(sim_forces[3],
+                                   [0, force_array[1], -1 * force_array[2]],
                                    rtol=1e-2,
                                    atol=1e-5)
