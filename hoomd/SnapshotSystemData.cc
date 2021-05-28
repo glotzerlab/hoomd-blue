@@ -45,15 +45,12 @@ template<class Real> void SnapshotSystemData<Real>::wrap()
     vec3<double> old_pos;
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-        std::cout << "Starting new particle index " << i << std::endl;
         do
         {
         new_pos = particle_data.pos[i];
         old_pos = new_pos;
-        std::cout << "Before wrap\n OLD: " << old_pos.x << " NEW: " << new_pos.x << std::endl;
         global_box.wrap(new_pos, particle_data.image[i]);
         particle_data.pos[i] = new_pos;
-        std::cout << "After wrap\n OLD: " << old_pos.x << " NEW: " << new_pos.x << std::endl;
         }
         while (new_pos != old_pos);
         }

@@ -138,7 +138,6 @@ def test_wrap(s):
         ]  # test multiple wrap
         s.wrap()
         # check the particles are where they should be
-        print(s.particles.position)
         numpy.testing.assert_allclose(s.particles.position,
                                       [[-0.5, 0.0, -0.2], [0.0, 0.3, -0.1],
                                        [0.3, 0.2, -0.1], [-0.5, 0.2, -0.2]])
