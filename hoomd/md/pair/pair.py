@@ -1602,10 +1602,10 @@ class OPP(Pair):
     coefficients. The coefficients must be set per unique pair of particle
     types.
 
-    The potential comes from Marek Mihalkovič and C. L. Henley 2012
-    `paper link`_.
+    The potential comes from `Marek Mihalkovič and C. L. Henley 2012`_.
 
-    .. _paper link: https://dx.doi.org/10.1103/PhysRevB.85.092102
+    .. _Marek Mihalkovič and C. L. Henley 2012:
+       https://dx.doi.org/10.1103/PhysRevB.85.092102
 
     .. py:attribute:: params
 
@@ -1675,10 +1675,10 @@ class TWF(Pair):
     to set potential coefficients. The coefficients must be set per
     unique pair of particle types.
 
-    The potential comes from Pieter Rein ten Wolde and Daan Frenkel 1997
-    `paper link`_.
+    The potential comes from `Pieter Rein ten Wolde and Daan Frenkel 1997`_.
 
-    .. _paper link: https://dx.doi.org/10.1126/science.277.5334.1975
+    .. _Pieter Rein ten Wolde and Daan Frenkel 1997:
+       https://dx.doi.org/10.1126/science.277.5334.1975
 
     .. py:attribute:: params
 
