@@ -243,6 +243,10 @@ class Rigid(Constraint):
         # Can set rigid body definition to be None explicitly.
         rigid.body["A"] = None
 
+    Warning:
+        `Rigid` will significantly signifcantly slow down a simulation when
+        frequently changing rigid body definitions or adding/removing particles
+        from the simulation.
     """
 
     _cpp_class_name = "ForceComposite"
