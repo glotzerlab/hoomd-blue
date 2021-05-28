@@ -432,18 +432,16 @@ void ForceComposite::validateRigidBodies()
             {
             assert(snap.type[i] < ntypes);
 
-            // Particle is of a type with a non-zero body definition. This should only happen if it
-            // is a central particle.
-            bool is_central_particle = h_body_len.data[snap.type[i]] != 0;
-
-            // Validate central particle tag - body tag correspondence.
-            if (is_central_particle)
+            // If a particle is of a type with a non-zero body definition it should be a central
+            // particle and the body value should equal its particle tag.
+            if (h_body_len.data[snap.type[i]] != 0)
                 {
                 if (snap.body[i] != i)
                     {
                     throw std::runtime_error(
-                        "Error validating rigid bodies: Central particles must have a body tag "
-                        "identical to their particle tag.");
+                        "Error validating rigid bodies: Particles of types defining rigid bodies "
+                        "must have a body tag identical to their particle tag to be considered a "
+                        "central particle.");
                     }
 
                 // Create a new molecule count for central particle i.
