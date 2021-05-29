@@ -5,7 +5,7 @@ import numpy as np
 _harmonic_args = {
     'k': [3.0, 10.0, 5.0],
     'd': [-1, 1, 1],
-    'n': [1, 2, 3],
+    'n': [2, 1, 3],
     'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
 
@@ -39,9 +39,9 @@ def get_dihedral_args_forces_and_energies():
     OPLS_arg_list = [
         dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
     ]
-    harmonic_forces = [-0.9354, 0.9567, 0.2009]
-    harmonic_energies = [0.4393, 8.53553, 1.85295]
-    OPLS_forces = [0.616117, 0.732233, 0.0277282]
+    harmonic_forces = [0.0, 5.0, 1.9411]
+    harmonic_energies = [3.0, 5.0, 0.0852]
+    OPLS_forces = [-0.616117, -0.732233, -0.0277282]
     OPLS_energies = [2.42678, 2.89645, 5.74372]
 
     dihedral_args_forces_and_energies = []
@@ -62,9 +62,7 @@ def dihedral_snapshot_factory(device):
     def make_snapshot(d=1.0, phi_deg=45, particle_types=['A'], L=20):
         phi_rad = phi_deg * (np.pi / 180)
         # the central particles are along the x-axis, so phi is determined from
-        # the angle in the yz plane. We position the first particle always at
-        # [x, 0, 1.1] (the whole molecule is shifted in the z by 0.1 for MPI
-        # reasons.
+        # the angle in the yz plane.
 
         s = hoomd.Snapshot(device.communicator)
         N = 4
@@ -140,7 +138,7 @@ def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
     dihedral, args, force, energy = dihedral_args_force_and_energy
     # the dihedral angle is in yz plane, thus no force along x axis
     force_array = force * np.asarray(
-        [0, -1 * np.sin(-phi_rad / 2), -1 * np.cos(-phi_rad / 2)])
+        [0, np.sin(-phi_rad / 2), np.cos(-phi_rad / 2)])
     dihedral_potential = dihedral()
     dihedral_potential.params['dihedral'] = args
 
