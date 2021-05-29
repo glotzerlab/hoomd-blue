@@ -6,8 +6,6 @@ set(files __init__.py
     test_aniso_pair.py
     test_bond.py
     test_dihedral.py
-    test_dihedral_OPLS.py
-    test_dihedral_harmonic.py
     test_flags.py
     test_potential.py
     test_manifolds.py
