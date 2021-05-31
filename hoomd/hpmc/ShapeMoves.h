@@ -310,7 +310,7 @@ class PythonShapeMove : public ShapeMoveBase<Shape>
 
     Scalar getParamRatio()
         {
-        return m_select_ratio;
+        return (Scalar)m_select_ratio / 65535.0;
         }
 
     void setParamRatio(Scalar select_ratio)
@@ -448,7 +448,7 @@ class ConvexPolyhedronVertexShapeMove : public ShapeMoveBase<ShapeConvexPolyhedr
 
         Scalar getParamRatio()
             {
-            return m_select_ratio;
+            return (Scalar)m_select_ratio / 65535.0;
             }
 
         void setParamRatio(Scalar param_ratio)
