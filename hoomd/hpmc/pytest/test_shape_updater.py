@@ -10,9 +10,10 @@ from coxeter.shapes import ConvexPolyhedron
 
 def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-    mc.shape['A'] = {'vertices': np.array([(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5),
-                                           (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5),
-                                           (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])}
+    original_vertices = np.array([(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5),
+                                  (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5),
+                                  (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])
+    mc.shape['A'] = {'vertices': original_vertices}
     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
     sim.seed = 0
     sim.operations.add(mc)
@@ -20,6 +21,7 @@ def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
     shape_updater = hoomd.hpmc.update.Shape(shape_move=vertex_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
     sim.run(10)
+    assert not np.allclose(np.asarray(mc.shape['A']['vertices']), original_vertices)
 
 
 ttf = coxeter.families.TruncatedTetrahedronFamily()
@@ -44,8 +46,13 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     python_move = hoomd.hpmc.shape_move.Python(callback=TruncatedTetrahedron(), params={'A':[initial_value]}, stepsize={'A': 0.05}, param_ratio=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=python_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
+    expected_verts = np.asarray(TruncatedTetrahedron().__getitem__(initial_value))
+    sim.run(0)
+    assert np.allclose(np.asarray(mc.shape['A']["vertices"]), expected_verts)
+
     sim.run(10)
-    assert shape_updater.shape_param['A'] != initial_value
+    expected_verts = np.asarray(TruncatedTetrahedron().__getitem__(python_move.params['A'][0]))
+    assert np.allclose(np.asarray(mc.shape['A']["vertices"]), expected_verts)
 
 
 def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
