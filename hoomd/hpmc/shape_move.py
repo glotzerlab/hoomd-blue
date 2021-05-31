@@ -182,12 +182,12 @@ class Python(ShapeMove):
 
     """
     def __init__(self, callback, params, stepsize, param_ratio):
-        param_dict = ParameterDict(callback=callable,
-                                   params=dict(params),
+        param_dict = ParameterDict(params=dict(params),
                                    stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio))
-        param_dict["callback"] = callback
+        # param_dict["callback"] = callback
         self._param_dict.update(param_dict)
+        self.callback = callback
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
