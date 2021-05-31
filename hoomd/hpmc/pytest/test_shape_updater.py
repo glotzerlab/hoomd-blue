@@ -91,6 +91,24 @@ def test_before_attaching(move_and_args):
             assert _equivalent_data_structures(getattr(shape_move, key), val)
 
 
+@pytest.mark.parametrize("move_and_args", get_move_and_args())
+def test_after_attaching(device, simulation_factory, lattice_snapshot_factory, move_and_args):
+    move, move_args = move_and_args
+    shape_move = move(**move_args[0])
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron(_seed)
+    mc.shape['A'] = {'vertices': _ttf1_verts}
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=3))
+    sim.seed = _seed
+    sim.operations.add(mc)
+    shape_updater = hoomd.hpmc.update.Shape(shape_move=shape_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    sim.operations.add(shape_updater)
+    sim.run(0)
+    for key, val in move_args[1].items():
+        if key != 'callback':
+            setattr(shape_move, key, val)
+            assert _equivalent_data_structures(getattr(shape_move, key), val)
+
+
 def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
     original_vertices = np.array([(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5),
