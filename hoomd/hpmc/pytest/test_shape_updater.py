@@ -109,28 +109,25 @@ def test_after_attaching(device, simulation_factory, lattice_snapshot_factory, m
             assert _equivalent_data_structures(getattr(shape_move, key), val)
 
 
-def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-    original_vertices = np.array([(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5),
-                                  (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5),
-                                  (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)])
-    mc.shape['A'] = {'vertices': original_vertices}
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
-    sim.seed = 0
+def test_vertex(device, simulation_factory, lattice_snapshot_factory):
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron(_seed)
+    mc.shape['A'] = {'vertices': _ttf1_verts}
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=3))
+    sim.seed = _seed
     sim.operations.add(mc)
     vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=vertex_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
     sim.operations.add(shape_updater)
     sim.run(10)
-    assert not np.allclose(np.asarray(mc.shape['A']['vertices']), original_vertices)
+    assert not np.allclose(np.asarray(mc.shape['A']['vertices']), _ttf1_verts)
 
 
 def test_python(device, simulation_factory, lattice_snapshot_factory):
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
     initial_value = 1.0
-    mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(initial_value).vertices / (ttf.get_shape(initial_value).volume**(1/3))).vertices}
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
-    sim.seed = 0
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron(_seed)
+    mc.shape['A'] = {'vertices': _ttf1_verts}
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=3))
+    sim.seed = _seed
     sim.operations.add(mc)
     python_move = hoomd.hpmc.shape_move.Python(callback=TruncatedTetrahedron(), params={'A':[initial_value]}, stepsize={'A': 0.05}, param_ratio=1.0)
     shape_updater = hoomd.hpmc.update.Shape(shape_move=python_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
@@ -142,18 +139,6 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     sim.run(10)
     expected_verts = np.asarray(TruncatedTetrahedron().__getitem__(python_move.params['A'][0]))
     assert np.allclose(np.asarray(mc.shape['A']["vertices"]), expected_verts)
-
-
-def test_constant_moves(device, simulation_factory, lattice_snapshot_factory):
-    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-    mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(0.0).vertices / (ttf.get_shape(0.0).volume**(1/3))).vertices}
-    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
-    sim.seed = 0
-    sim.operations.add(mc)
-    constant_move = hoomd.hpmc.shape_move.Constant(shape_params={'A': dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices, ignore_statistics=0, sweep_radius=0.0)})
-    shape_updater = hoomd.hpmc.update.Shape(shape_move=constant_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
-    sim.operations.add(shape_updater)
-    sim.run(10)
 
 
 # def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
