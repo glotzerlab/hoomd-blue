@@ -86,6 +86,7 @@ def test_before_attaching(move_and_args):
     move, move_args = move_and_args
     shape_move = move(**move_args[0])
     for key, val in move_args[1].items():
+        assert _equivalent_data_structures(getattr(shape_move, key), move_args[0][key])
         if key != 'callback':
             setattr(shape_move, key, val)
             assert _equivalent_data_structures(getattr(shape_move, key), val)
