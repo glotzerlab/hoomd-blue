@@ -111,12 +111,12 @@ class UpdaterShape  : public Updater
 
         Scalar getMoveRatio()
             {
-            return m_move_ratio / 65535;
+            return (Scalar)m_move_ratio / 65535.0;
             }
 
         void setMoveRatio(Scalar move_ratio)
             {
-            m_move_ratio = move_ratio * 65535;
+            m_move_ratio = fmin(move_ratio, 1.0)*65535;
             }
 
         bool getPretend() {return m_pretend;}
