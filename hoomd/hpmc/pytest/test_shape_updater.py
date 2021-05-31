@@ -1,3 +1,6 @@
+from collections.abc import Sequence, Mapping
+import math
+from numbers import Number
 import hoomd
 import hoomd.write
 import hoomd.hpmc
@@ -6,6 +9,86 @@ import pytest
 from copy import deepcopy
 import coxeter
 from coxeter.shapes import ConvexPolyhedron
+
+_seed = 0
+
+
+def _equivalent_data_structures(reference, struct_2):
+    """Compare arbitrary data structures for equality.
+
+    ``reference`` is expected to be the reference data structure. Cannot handle
+    set like data structures.
+    """
+    if isinstance(reference, np.ndarray):
+        return np.allclose(reference, struct_2)
+    if isinstance(reference, Mapping):
+        # if the non-reference value does not have all the keys
+        # we don't check for the exact same keys, since some values may have
+        # defaults.
+        if set(reference.keys()) - set(struct_2.keys()):
+            return False
+        return all(
+            _equivalent_data_structures(reference[key], struct_2[key])
+            for key in reference
+        )
+    if isinstance(reference, Sequence):
+        if len(reference) != len(struct_2):
+            return False
+        return all(
+            _equivalent_data_structures(value_1, value_2)
+            for value_1, value_2 in zip(reference, struct_2)
+        )
+    if isinstance(reference, Number):
+        return math.isclose(reference, struct_2, rel_tol=1e-4)
+
+ttf = coxeter.families.TruncatedTetrahedronFamily()
+class TruncatedTetrahedron:
+    def __getitem__(self, trunc):
+        shape = ConvexPolyhedron(ttf.get_shape(trunc).vertices / (ttf.get_shape(trunc).volume**(1/3)))
+        return [v for v in shape.vertices]
+
+    def __call__(self, params):
+        verts = self.__getitem__(params[0])
+        args = {'vertices': verts, 'sweep_radius': 0.0, 'ignore_statistics': 0}
+        return hoomd.hpmc._hpmc.PolyhedronVertices(args)
+
+_ttf1_verts = ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices
+_ttf2_verts = ConvexPolyhedron(ttf.get_shape(0.5).vertices / (ttf.get_shape(0.5).volume**(1/3))).vertices
+
+_constant_args = [dict(shape_params={'A': dict(vertices=_ttf1_verts,
+                                               ignore_statistics=0,
+                                               sweep_radius=0.0)}),
+                  dict(shape_params={'A': dict(vertices=_ttf2_verts,
+                                               ignore_statistics=1,
+                                               sweep_radius=0.5)})]
+
+_python_args = [dict(callback=TruncatedTetrahedron(),
+                     params={'A': [1.0]},
+                     stepsize={'A': 0.05},
+                     param_ratio=1.0),
+                dict(callback=TruncatedTetrahedron(),
+                     params={'A': [0.5]},
+                     stepsize={'A': 0.02},
+                     param_ratio=0.7)]
+
+_vertex_args = [dict(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0),
+                dict(stepsize={'A': 0.02}, param_ratio=0.5, volume=0.5)]
+
+def get_move_and_args():
+    move_and_args = [(hoomd.hpmc.shape_move.Constant, _constant_args),
+                     (hoomd.hpmc.shape_move.Python, _python_args),
+                     (hoomd.hpmc.shape_move.Vertex, _vertex_args)]
+    return move_and_args
+
+
+@pytest.mark.parametrize("move_and_args", get_move_and_args())
+def test_before_attaching(move_and_args):
+    move, move_args = move_and_args
+    shape_move = move(**move_args[0])
+    for key, val in move_args[1].items():
+        if key != 'callback':
+            setattr(shape_move, key, val)
+            assert _equivalent_data_structures(getattr(shape_move, key), val)
 
 
 def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
@@ -22,18 +105,6 @@ def test_vertex_moves(device, simulation_factory, lattice_snapshot_factory):
     sim.operations.add(shape_updater)
     sim.run(10)
     assert not np.allclose(np.asarray(mc.shape['A']['vertices']), original_vertices)
-
-
-ttf = coxeter.families.TruncatedTetrahedronFamily()
-class TruncatedTetrahedron:
-    def __getitem__(self, trunc):
-        shape = ConvexPolyhedron(ttf.get_shape(trunc).vertices / (ttf.get_shape(trunc).volume**(1/3)))
-        return [v for v in shape.vertices]
-
-    def __call__(self, params):
-        verts = self.__getitem__(params[0])
-        args = {'vertices': verts, 'sweep_radius': 0.0, 'ignore_statistics': 0}
-        return hoomd.hpmc._hpmc.PolyhedronVertices(args)
 
 
 def test_python(device, simulation_factory, lattice_snapshot_factory):
