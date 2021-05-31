@@ -33,7 +33,7 @@ def test_before_attaching():
     assert shape_updater.nselect == nselect
 
 
-def test_after_attaching(device, simulation_factory, lattice_snapshot_factory, move_and_args):
+def test_after_attaching(device, simulation_factory, lattice_snapshot_factory):
     verts = np.asarray([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [1, -1, -1],
                         [-1, 1, 1], [1, -1, 1], [1, 1, -1], [1, 1, 1]])
     constant_move = hoomd.hpmc.shape_move.Constant(shape_params={'A': dict(vertices=verts,
