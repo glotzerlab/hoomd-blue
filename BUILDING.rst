@@ -8,30 +8,30 @@ To build the HOOMD-blue Python package from source:
 
 1. `Install prerequisites`_::
 
-    $ <package-manager> install cmake eigen git python numpy pybind11
+   $ <package-manager> install cmake eigen git python numpy pybind11
 
 2. `Obtain the source`_::
 
-    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
+   $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
 3. `Configure`_::
 
-    $ cmake -B build/hoomd -S hoomd-blue
+   $ cmake -B build/hoomd -S hoomd-blue
 
 4. `Build the package`_::
 
-    $ cmake --build build/hoomd
-    $ cmake --install build/hoomd
+   $ cmake --build build/hoomd
+   $ cmake --install build/hoomd
 
 To build the documentation from source:
 
 1. `Install prerequisites`_::
 
-    $ <package-manager> install sphinx sphinx_rtd_theme nbsphinx ipython
+   $ <package-manager> install sphinx sphinx_rtd_theme nbsphinx ipython
 
 2. `Build the documentation`_::
 
-    $ sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation
+   $ sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation
 
 The sections below provide details on each of these steps.
 
