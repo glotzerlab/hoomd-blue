@@ -188,8 +188,8 @@ template<unsigned int ndim> class EvaluatorPairALJ
             return pybind11::dict("epsilon"_a = epsilon,
                                   "sigma_i"_a = sigma_i,
                                   "sigma_j"_a = sigma_j,
-                                  "contact_sigma_i"_a = sigma_i, // This seems wrong.
-                                  "contact_sigma_j"_a = sigma_j,
+                                  "contact_ratio_i"_a = contact_sigma_i / sigma_i,
+                                  "contact_ratio_j"_a = contact_sigma_j / sigma_j,
                                   "alpha"_a = alpha,
                                   "average_simplices"_a = average_simplices);
             }
