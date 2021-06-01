@@ -351,9 +351,14 @@ class ALJ(AnisotropicPair):
  
         verts, faces = alj(cube_verts)
 
+    Warning:
+        Changing dimension in a simulation will invalidate this force and will
+        lead to error or unrealistic behavior.
     """
 
-    _cpp_class_name = "AnisoPotentialALJ"
+    # We don't define a _cpp_class_name since the dimension is a template
+    # parameter in C++, so use an instance level attribute instead that is
+    # created in _attach based on the dimension of the associated simulation.
 
     def __init__(self, nlist, r_cut=None, mode='none'):
         super().__init__(nlist, r_cut, mode)
@@ -388,3 +393,9 @@ class ALJ(AnisotropicPair):
             return shape.vertices, shape.faces
         else:
             return shape.vertices
+
+    def _attach(self):
+        self._cpp_class_name = "AnisoPotentialPairALJ{}".format(
+            "2D" if self._simulation.state.box.is2D else "3D")
+
+        super()._attach()
