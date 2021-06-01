@@ -384,7 +384,7 @@ class ALJ(AnisotropicPair):
             raise
         shape =  coxeter.shapes.ConvexPolyhedron(vertices)
         
-        if return_faces=True:
+        if return_faces:
             return shape.vertices, shape.faces
         else:
             return shape.vertices
