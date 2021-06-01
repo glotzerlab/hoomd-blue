@@ -172,10 +172,11 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
 
         param_type(pybind11::dict params, bool managed)
-            : epsilon(params["epsilon"].cast<Scalar>()), sigma_i(params["sigma_i"].cast<Scalar>()),
+            : epsilon(params["epsilon"].cast<Scalar>()),
+              sigma_i(params["sigma_i"].cast<Scalar>()),
               sigma_j(params["sigma_j"].cast<Scalar>()),
-              contact_sigma_i(params["contact_sigma_i"].cast<Scalar>()),
-              contact_sigma_j(params["contact_sigma_j"].cast<Scalar>()),
+              contact_sigma_i((params["sigma_i"] * params["contact_ratio_i"]).cast<Scalar>()),
+              contact_sigma_j((params["sigma_j"] * params["contact_ratio_j"]).cast<Scalar>()),
               alpha(params["alpha"].cast<unsigned int>()),
               average_simplices(params["average_simplices"].cast<bool>())
             {
@@ -187,7 +188,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             return pybind11::dict("epsilon"_a = epsilon,
                                   "sigma_i"_a = sigma_i,
                                   "sigma_j"_a = sigma_j,
-                                  "contact_sigma_i"_a = sigma_i,
+                                  "contact_sigma_i"_a = sigma_i, // This seems wrong.
                                   "contact_sigma_j"_a = sigma_j,
                                   "alpha"_a = alpha,
                                   "average_simplices"_a = average_simplices);

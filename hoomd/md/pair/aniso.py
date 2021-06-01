@@ -340,12 +340,12 @@ class ALJ(AnisotropicPair):
                       [3,1,5],
                       [3,5,7]]
 
-        alj.params["A"] = dict(epsilon=2.0,
+        alj.params[("A", "A")] = dict(epsilon=2.0,
                                       sigma_i=1.0,
                                       sigma_j=1.0,
                                       alpha=1,
                                       )
-        alj.shape["A"] = dict(vertices=cube_verts,
+        alj.shape[("A", "A")] = dict(vertices=cube_verts,
                               faces=cube_faces,
                               rounding_radii=[1])
  
@@ -363,8 +363,8 @@ class ALJ(AnisotropicPair):
                               sigma_i=float,
                               sigma_j=float,
                               alpha=int,
-                              contact_sigma_i=float,
-                              contact_sigma_j=float,
+                              contact_ratio_i=float,
+                              contact_ratio_j=float,
                               len_keys=2))  # Allen -I do not what to set this to.
 
         shape = TypeParameter(
