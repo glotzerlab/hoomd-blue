@@ -374,7 +374,7 @@ class ALJ(AnisotropicPair):
 
         shape = TypeParameter(
             'shape', 'particle_types',
-            TypeParameterDict(vertices=(float, float, float),
+            TypeParameterDict(vertices=[(float, float, float)],
                               faces=[[int]],
                               rounding_radii=[float],
                               len_keys=1))  # Allen -I do not what to set this to.
