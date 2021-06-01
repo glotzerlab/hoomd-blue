@@ -137,7 +137,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
 
 @pytest.mark.parametrize("angle_args_force_and_energy",
                          get_angle_args_forces_and_energies())
-def test_after_attaching(triplet_snapshot_factory, simulation_factory,
+def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
                          angle_args_force_and_energy):
     theta_deg = 60
     theta_rad = theta_deg * (np.pi / 180)
