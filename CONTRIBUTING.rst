@@ -1,11 +1,10 @@
 Contributing
 ============
 
-Contributions are welcomed via `pull requests on
-GitHub <https://github.com/glotzerlab/hoomd-blue/pulls>`__. Contact the
-**HOOMD-blue** developers before starting work to ensure it meshes well
-with the planned development direction and standards set for the
-project.
+Contributions are welcomed via `pull requests on GitHub
+<https://github.com/glotzerlab/hoomd-blue/pulls>`__. Contact the **HOOMD-blue** developers before
+starting work to ensure it meshes well with the planned development direction and standards set for
+the project.
 
 Features
 --------
@@ -13,9 +12,8 @@ Features
 Implement functionality in a general and flexible fashion
 _________________________________________________________
 
-New features should be applicable to a variety of use-cases. The
-**HOOMD-blue** developers can assist you in designing flexible
-interfaces.
+New features should be applicable to a variety of use-cases. The **HOOMD-blue** developers can
+assist you in designing flexible interfaces.
 
 Maintain performance of existing code paths
 ___________________________________________
@@ -25,8 +23,7 @@ Expensive code paths should only execute when requested.
 Optimize for the current GPU generation
 _______________________________________
 
-Write, test, and optimize your GPU kernels on the latest generation of
-GPUs.
+Write, test, and optimize your GPU kernels on the latest generation of GPUs.
 
 Version control
 ---------------
@@ -34,21 +31,18 @@ Version control
 Base your work off the correct branch
 _____________________________________
 
-During the v3.0.0-beta release cycle, all work must be based on
-``master``.
+During the v3.0.0-beta release cycle, all work must be based on ``master``.
 
 Propose a minimal set of related changes
 ________________________________________
 
-All changes in a pull request should be closely related. Multiple change
-sets that are loosely coupled should be proposed in separate pull
-requests.
+All changes in a pull request should be closely related. Multiple change sets that are loosely
+coupled should be proposed in separate pull requests.
 
 Agree to the Contributor Agreement
 __________________________________
 
-All contributors must agree to the Contributor Agreement before their
-pull request can be merged.
+All contributors must agree to the Contributor Agreement before their pull request can be merged.
 
 Source code
 -----------
@@ -56,14 +50,13 @@ Source code
 Use a consistent style
 ______________________
 
-The **Code style** section of the documentation sets the style
-guidelines for **HOOMD-blue** code.
+The **Code style** section of the documentation sets the style guidelines for **HOOMD-blue** code.
 
 Document code with comments
 ___________________________
 
-Use doxygen header comments for classes, functions, etc. Also comment
-complex sections of code so that other developers can understand them.
+Use doxygen header comments for classes, functions, etc. Also comment complex sections of code so
+that other developers can understand them.
 
 Compile without warnings
 ________________________
@@ -81,8 +74,8 @@ Add unit tests for all new functionality.
 Validity tests
 ______________
 
-The developer should run research-scale simulations using the new
-functionality and ensure that it behaves as intended.
+The developer should run research-scale simulations using the new functionality and ensure that it
+behaves as intended.
 
 User documentation
 ------------------
@@ -95,20 +88,18 @@ Document public-facing API with Python docstrings in Google style.
 Document version status
 _______________________
 
-Each user-facing Python class, method, etc. with a docstring should have
-`versionadded, versionchanged, and deprecated Sphinx
-directives <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded>`__
-so that users will be aware of how functionality changes from version to
-version.
+Add `versionadded, versionchanged, and deprecated Sphinx directives
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded>`__
+to each user-facing Python class, method, etc., so that users will be aware of how functionality
+changes from version to version. Remove this when breaking APIs in major releases.
 
 Add developer to the credits
 ____________________________
 
-Update the credits documentation to reference what each developer
+Update the credits documentation to list the name and affiliation of each individual that has
 contributed to the code.
 
 Propose a change log entry
 __________________________
 
-Propose a short concise entry describing the change in the pull request
-description.
+Propose a short concise entry describing the change in the pull request description.
