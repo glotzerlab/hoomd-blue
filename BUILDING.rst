@@ -21,6 +21,9 @@ To build the HOOMD-blue Python package from source:
 4. `Build the package`_::
 
    $ cmake --build build/hoomd
+
+5. `Install the package`_::
+
    $ cmake --install build/hoomd
 
 To build the documentation from source:
@@ -45,15 +48,14 @@ Install prerequisites
 
 .. note::
 
-    This documentation is written generically. Replace `<package-manager>` with the package or
-    module manager you choose to you. You may need to adjust the package names to the names that
-    your package manager uses and/or install additional packages, such as `-dev` packages that
-    provide headers needed to build hoomd.
+    This documentation is generic. Replace `<package-manager>` with your package or module manager.
+    You may need to adjust package names and/or install additional packages, such as `-dev` packages
+    that provide headers needed to build hoomd.
 
 .. tip::
 
-    When building HOOMD-blue on a shared system, such as a cluster, create a `virtual environment`_
-    where you can install the dependencies and **HOOMD-blue**::
+    Create a `virtual environment`_, one place where you can install dependencies and
+    **HOOMD-blue**::
 
         $ python3 -m venv hoomd-venv
 
@@ -63,12 +65,11 @@ Install prerequisites
 
 .. note::
 
-    Some package managers (such as *pip*) and many clusters are missing some or all of pybind11,
-    eigen, and cereal. ``install-prereq-headers.py`` will install these packages into your virtual
-    environment::
+    Some package managers (such as *pip*) and many clusters are missing some or all of **pybind11**,
+    **eigen**, and **cereal**. ``install-prereq-headers.py`` will install these packages into your
+    virtual environment::
 
-    $ cd hoomd-blue
-    $ python3 install-prereq-headers.py
+    $ python3 hoomd-blue/install-prereq-headers.py
 
 **General requirements**
 
@@ -161,7 +162,7 @@ to ``cmake`` to set options on the command line.
 
 .. tip::
 
-    Use Ninja_ to perform incremental builds faster::
+    Use Ninja_ to perform incremental builds in less time::
 
         $ cmake -B build/hoomd -S hoomd-blue -GNinja
 
@@ -196,15 +197,15 @@ options on the command line.
 
 - ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
-  - Default: ``python3.X`` detected on ``$PATH``
+  - Default: ``python3.X`` detected on ``$PATH``.
 
 - ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
 
-  - Default: location of ``nvcc`` detected on ``$PATH``
+  - Default: location of ``nvcc`` detected on ``$PATH``.
 
 - ``MPI_HOME`` (env var) - Specify the location where MPI is installed.
 
-  - Default: location of ``mpicc`` detected on the ``$PATH``
+  - Default: location of ``mpicc`` detected on the ``$PATH``.
 
 Other option changes take effect at any time:
 
@@ -243,8 +244,6 @@ Other option changes take effect at any time:
   - When set to ``on``, **HOOMD-blue** will make use of the capability of the MPI library to
     accelerate CUDA-buffer transfers.
   - When set to ``off``, standard MPI calls will be used.
-  - *Warning:* Manually setting this feature to ``on`` when the MPI library
-    does not support CUDA may cause **HOOMD-blue** to crash.
 
 - ``ENABLE_TBB`` - Enable support for Intel's Threading Building Blocks (TBB).
 
@@ -266,19 +265,18 @@ These options control CUDA compilation via ``nvcc``:
 Build the package
 -----------------
 
-The command ``cmake --build`` will build the HOOMD-blue Python package in the given build directory.
+The command ``cmake --build build/hoomd`` will build the HOOMD-blue Python package in the given
+build directory. After the build completes, the build directory will contain a functioning Python
+package.
 
-.. tip::
+.. _Install the package:
 
-    When using the default tool, perform the build in parallel for faster builds::
+Install the package
+-------------------
 
-        $ cmake --build build/hoomd -j $(getconf _NPROCESSORS_ONLN)
-
-    Note that the Ninja_ tool does this automatically without the ``-j`` option.
-
-The command ``cmake --install`` installs the given HOOMD build to
-``${CMAKE_PREFIX_PATH}/${PYTHON_SITE_INSTALL_DIR``. CMake autodetects these paths, but you can set
-them manually.
+The command ``cmake --install build/hoomd`` installs the given HOOMD build to
+``${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}``. CMake autodetects these paths, but you can
+set them manually in CMake.
 
 .. _Build the documentation:
 

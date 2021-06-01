@@ -25,8 +25,7 @@ You can fork HOOMD-blue and add your component directly, or you can create a sep
 repository for your component. Create a symbolic link to the component in the ``hoomd`` source
 directory to compile it as a built-in component::
 
-  $ cd hoomd-blue/hoomd
-  $ ln -s <path-to-component>/<component> <component>
+  $ ln -s <path-to-component>/<component> hoomd-blue/hoomd/<component>
 
 Built-in components may be used directly from the ``build`` directory or installed.
 

@@ -13,8 +13,8 @@ Singularity / Docker images
 ---------------------------
 
 See the glotzerlab-software_ documentation for instructions to install and use the containers on
-supported HPC clusters. Containers that include HOOMD-blue v3.0.0-beta releases have `beta` in their
-tag name.
+supported HPC clusters. Containers that include HOOMD-blue v3.0.0-beta releases have ``beta`` in
+their tag name.
 
 Conda package
 -------------
