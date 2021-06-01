@@ -40,7 +40,7 @@ package. Override this and force GPU package installation with::
 
 .. tip::
 
-    miniforge_ environments automatically add the ``conda-forge`` channel.
+    miniforge_ environments set ``conda-forge`` as the default channel.
 
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _miniconda: http://conda.pydata.org/miniconda.html
