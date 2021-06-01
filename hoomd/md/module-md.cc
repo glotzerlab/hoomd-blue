@@ -326,9 +326,9 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
     export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2DGPU>(
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ2DGPU, AnisoPotentialPairALJ2D>(
         m, "AnisoPotentialPairALJ2DGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3DGPU>(
+    export_AnisoPotentialPairGPU<AnisoPotentialPairALJ3DGPU, AnisoPotentialPairALJ3D>(
         m, "AnisoPotentialPairALJ3DGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
     export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
