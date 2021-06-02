@@ -17,82 +17,6 @@ import hoomd
 from hoomd.operation import Updater
 
 
-class rescale_temp:
-    r"""Rescales particle velocities.
-
-    Args:
-        kT (`hoomd.variant` or `float`): Temperature set point (in energy units)
-        period (int): Velocities will be rescaled every *period* time steps
-        phase (int): When -1, start on the current time step. When >= 0, execute
-            on steps where *(step + phase) % period == 0*.
-
-    Every *period* time steps, particle velocities and angular momenta are
-    rescaled by equal factors so that they are consistent with a given
-    temperature in the equipartition theorem
-
-    .. math::
-
-        \langle 1/2 m v^2 \rangle = k_B T
-
-        \langle 1/2 I \omega^2 \rangle = k_B T
-
-    .. attention::
-        `rescale_temp` does **not** run on the GPU, and will significantly slow
-        down simulations.
-
-    Examples::
-
-        update.rescale_temp(kT=1.2)
-        rescaler = update.rescale_temp(kT=0.5)
-        update.rescale_temp(period=100, kT=1.03)
-        update.rescale_temp(
-            period=100, kT=hoomd.variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
-
-    """
-
-    def __init__(self, kT, period=1, phase=0):
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        # setup the variant inputs
-        kT = hoomd.variant._setup_variant_input(kT)
-
-        # create the compute thermo
-        thermo = hoomd.compute._get_unique_thermo(
-            group=hoomd.context.current.group_all)
-
-        # create the c++ mirror class
-        self.cpp_updater = _md.TempRescaleUpdater(
-            hoomd.context.current.system_definition, thermo.cpp_compute,
-            kT.cpp_variant)
-        self.setupUpdater(period, phase)
-
-        # store metadata
-        self.kT = kT
-        self.period = period
-        self.metadata_fields = ['kT', 'period']
-
-    def set_params(self, kT=None):
-        """Change rescale_temp parameters.
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): New temperature set
-                point (in energy units)
-
-        Examples::
-
-            rescaler.set_params(kT=2.0)
-
-        """
-        self.check_initialization()
-
-        if kT is not None:
-            kT = hoomd.variant._setup_variant_input(kT)
-            self.cpp_updater.setT(kT.cpp_variant)
-            self.kT = kT
-
-
 class ZeroMomentum(Updater):
     """Zeroes system momentum.
 
@@ -117,36 +41,6 @@ class ZeroMomentum(Updater):
         self._cpp_obj = _md.ZeroMomentumUpdater(
             self._simulation.state._cpp_sys_def)
         super()._attach()
-
-
-class enforce2d:
-    """Enforces 2D simulation.
-
-    Every time step, particle velocities and accelerations are modified so that
-    their z components are 0: forcing 2D simulations when other calculations may
-    cause particles to drift out of the plane. Using enforce2d is only allowed
-    when the system is specified as having only 2 dimensions.
-
-    Examples::
-
-        update.enforce2d()
-
-    """
-
-    def __init__(self):
-        period = 1
-
-        # initialize base class
-        # _updater.__init__(self)
-
-        # create the c++ mirror class
-        if not hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            self.cpp_updater = _md.Enforce2DUpdater(
-                hoomd.context.current.system_definition)
-        else:
-            self.cpp_updater = _md.Enforce2DUpdaterGPU(
-                hoomd.context.current.system_definition)
-        self.setupUpdater(period)
 
 
 class constraint_ellipsoid:

@@ -6,6 +6,7 @@ set(files __init__.py
     test_bond_FENE.py
     test_external.py
     test_flags.py
+    test_lj_equation_of_state.py
     test_potential.py
     test_manifolds.py
     test_methods.py
