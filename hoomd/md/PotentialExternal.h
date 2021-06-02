@@ -7,6 +7,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GlobalArray.h"
 #include <memory>
+#include <stdexcept>
 
 /*! \file PotentialExternal.h
     \brief Declares a class for computing an external force field
@@ -39,6 +40,7 @@ template<class evaluator> class PotentialExternal : public ForceCompute
     pybind11::dict getParams(std::string type);
     void setParams(unsigned int type, const param_type& params);
     void setParamsPython(std::string typ, pybind11::dict params);
+    void validateType(unsigned int type, std::string action);
     void setField(field_type field);
 
     protected:
@@ -178,6 +180,15 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         m_prof->pop();
     }
 
+template <class evaluator>
+void PotentialExternal<evaluator>::validateType(unsigned int type, std::string action)
+    {
+    if (type >= m_pdata->getNTypes())
+        {
+        throw std::runtime_error("Invalid type encountered when " + action);
+        }
+    }
+
 //! Set the parameters for this potential
 /*! \param type type for which to set parameters
     \param params value of parameters
@@ -185,14 +196,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
 template<class evaluator>
 void PotentialExternal<evaluator>::setParams(unsigned int type, const param_type& params)
     {
-    if (type >= m_pdata->getNTypes())
-        {
-        this->m_exec_conf->msg->error() << "external.periodic: Trying to set external potential "
-                                           "params for a non existent type! "
-                                        << type << std::endl;
-        throw std::runtime_error("Error setting parameters in PotentialExternal");
-        }
-
+    validateType(type, std::string("setting parameters in PotentialExternal"));
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = params;
     }
@@ -202,6 +206,7 @@ template <class evaluator>
 pybind11::dict PotentialExternal<evaluator>::getParams(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
+    validateType(typ, std::string("getting parameters in PotentialExternal"));
 
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     return h_params.data[typ].asDict();
