@@ -70,49 +70,51 @@ template<class Real> struct vec3
 
     DEVICE Real& operator[](unsigned int i)
         {
-        switch(i) {
-            case 0:
-                return x;
-            case 1:
-                return y;
-            case 2:
-                return z;
-            default:
-                #ifdef __HIPCC__
-                // This branch should not be reached, but must include something to avoid
-                // compiler warnings on the GPU and it must be something that can be returned by
-                // reference, so x is as good a choice as any.
-                return x;
-                #else
-                // On the CPU we throw an error to help with debugging any errors in use of the
-                // code.
-                throw std::invalid_argument(
-                    "Attempting to access non-existent vec3 entry (i.e. i > 2)");
-                #endif
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+#ifdef __HIPCC__
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and it must be something that can be returned by
+            // reference, so x is as good a choice as any.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
             }
         }
 
     DEVICE const Real operator[](unsigned int i) const
         {
-        switch(i) {
-            case 0:
-                return x;
-            case 1:
-                return y;
-            case 2:
-                return z;
-            default:
-                #ifdef __HIPCC__
-                // This branch should not be reached, but must include something to avoid
-                // compiler warnings on the GPU and returning x matches the non-const version of the
-                // operator.
-                return x;
-                #else
-                // On the CPU we throw an error to help with debugging any errors in use of the
-                // code.
-                throw std::invalid_argument(
-                    "Attempting to access non-existent vec3 entry (i.e. i > 2)");
-                #endif
+        switch (i)
+            {
+        case 0:
+            return x;
+        case 1:
+            return y;
+        case 2:
+            return z;
+        default:
+#ifdef __HIPCC__
+            // This branch should not be reached, but must include something to avoid
+            // compiler warnings on the GPU and returning x matches the non-const version of the
+            // operator.
+            return x;
+#else
+            // On the CPU we throw an error to help with debugging any errors in use of the
+            // code.
+            throw std::invalid_argument(
+                "Attempting to access non-existent vec3 entry (i.e. i > 2)");
+#endif
             }
         }
 
