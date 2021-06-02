@@ -30,7 +30,7 @@ class ThermodynamicQuantities(_Thermo):
     :py:class:`ThermodynamicQuantities` acts on a given group of particles and
     calculates thermodynamic properties of those particles when requested. All
     specified :py:class:`ThermodynamicQuantities` objects can be added to a
-    logger for logging during a simulation, 
+    logger for logging during a simulation,
     see :py:class:`hoomd.logging.Logger` for more details.
 
     Examples::
