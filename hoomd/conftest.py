@@ -2,7 +2,10 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Pytest fixtures and common test functions."""
+"""Code to support unit and validation tests.
+
+``conftest`` is not part of HOOMD-blue's public API.
+"""
 
 import pickle
 import pytest
@@ -11,6 +14,8 @@ import atexit
 import os
 import numpy
 import itertools
+import math
+import warnings
 from hoomd.snapshot import Snapshot
 from hoomd import Simulation
 
@@ -163,6 +168,48 @@ def lattice_snapshot_factory(device):
     return make_snapshot
 
 
+@pytest.fixture(scope='session')
+def fcc_snapshot_factory(device):
+    """Make a snapshot with particles in a fcc structure."""
+
+    def make_snapshot(particle_types=['A'], a=1, n=7, r=0):
+        """Make a snapshot with particles in a fcc structure.
+
+        Args:
+            particle_types: List of particle type names
+            a: Lattice constant
+            n: Number of unit cells along each box edge
+            r: Amount to randomly perturb particles in x,y,z
+
+        Place particles in a fcc structure. The box is cubic with a side length
+        of ``n * a``. There will be ``4 * n**3`` particles in the snapshot.
+        """
+        s = Snapshot(device.communicator)
+
+        if s.exists:
+            # make one unit cell
+            s.configuration.box = [a, a, a, 0, 0, 0]
+            s.particles.N = 4
+            s.particles.types = particle_types
+            s.particles.position[:] = [
+                [0, 0, 0],
+                [0, a / 2, a / 2],
+                [a / 2, 0, a / 2],
+                [a / 2, a / 2, 0],
+            ]
+            # and replicate it
+            s.replicate(n, n, n)
+
+        # perturb the positions
+        if r > 0:
+            shift = numpy.random.uniform(-r, r, size=(s.particles.N, 3))
+            s.particles.position[:] += shift
+
+        return s
+
+    return make_snapshot
+
+
 @pytest.fixture(autouse=True)
 def skip_mpi(request):
     """Skip tests marked ``serial`` when running with MPI."""
@@ -286,3 +333,129 @@ def operation_pickling_check(instance, sim):
     sim.operations += instance
     sim.run(0)
     pickling_check(instance)
+
+
+class BlockAverage:
+    """Block average method for estimating standard deviation of the mean.
+
+    Args:
+        data: List of values
+    """
+
+    def __init__(self, data):
+        # round down to the nearest power of 2
+        N = 2**int(math.log(len(data)) / math.log(2))
+        if N != len(data):
+            warnings.warn(
+                "Ignoring some data. Data array should be a power of 2.")
+
+        block_sizes = []
+        block_mean = []
+        block_variance = []
+
+        # take means of blocks and the mean/variance of all blocks, growing
+        # blocks by factors of 2
+        block_size = 1
+        while block_size <= N // 8:
+            num_blocks = N // block_size
+            block_data = numpy.zeros(num_blocks)
+
+            for i in range(0, num_blocks):
+                start = i * block_size
+                end = start + block_size
+                block_data[i] = numpy.mean(data[start:end])
+
+            block_mean.append(numpy.mean(block_data))
+            block_variance.append(numpy.var(block_data) / (num_blocks - 1))
+
+            block_sizes.append(block_size)
+            block_size *= 2
+
+        self._block_mean = numpy.array(block_mean)
+        self._block_variance = numpy.array(block_variance)
+        self._block_sizes = numpy.array(block_sizes)
+        self.data = numpy.array(data)
+
+        # check for a plateau in the relative error before the last data point
+        block_relative_error = numpy.sqrt(self._block_variance) / numpy.fabs(
+            self._block_mean)
+        relative_error_derivative = (numpy.diff(block_relative_error)
+                                     / numpy.diff(self._block_sizes))
+        if numpy.all(relative_error_derivative > 0):
+            warnings.warn("Block averaging failed to plateau, run longer")
+
+    def get_hierarchical_errors(self):
+        """Get details on the hierarchical errors."""
+        return (self._block_sizes, self._block_mean, self._block_variance)
+
+    @property
+    def standard_deviation(self):
+        """float: The error estimate on the mean."""
+        if numpy.all(self.data == self.data[0]):
+            return 0
+
+        return numpy.sqrt(numpy.max(self._block_variance))
+
+    @property
+    def mean(self):
+        """float: The mean."""
+        return self._block_mean[-1]
+
+    @property
+    def relative_error(self):
+        """float: The relative error."""
+        return self.standard_deviation / numpy.fabs(self.mean)
+
+    def assert_close(self,
+                     reference_mean,
+                     reference_deviation,
+                     z=6,
+                     max_relative_error=0.02):
+        """Assert that the distribution is constent with a given reference.
+
+        Also assert that the relative error of the distribution is small.
+        Otherwise, test runs with massive fluctuations would likely lead to
+        passing tests.
+
+        Args:
+            reference_mean: Known good mean value
+            reference_deviation: Standard deviation of the known good value
+            z: Number of standard deviations
+            max_relative_error: Maximum relative error to allow
+        """
+        sample_mean = self.mean
+        sample_deviation = self.standard_deviation
+
+        assert sample_deviation / sample_mean <= max_relative_error
+
+        # compare if 0 is within the confidence interval around the difference
+        # of the means
+        deviation_diff = ((sample_deviation**2
+                           + reference_deviation**2)**(1 / 2.))
+        mean_diff = math.fabs(sample_mean - reference_mean)
+        deviation_allowed = z * deviation_diff
+        assert mean_diff <= deviation_allowed
+
+
+class ListWriter(hoomd.custom.Action):
+    """Log a single quantity to a list.
+
+    On each triggered timestep, access the given attribute and add the value
+    to `data`.
+
+    Args:
+        operation: Operation to log
+        attribute: Name of the attribute to log
+
+    Attributes:
+        data (list): Saved data
+    """
+
+    def __init__(self, operation, attribute):
+        self._operation = operation
+        self._attribute = attribute
+        self.data = []
+
+    def act(self, timestep):
+        """Add the attribute value to the list."""
+        self.data.append(getattr(self._operation, self._attribute))
