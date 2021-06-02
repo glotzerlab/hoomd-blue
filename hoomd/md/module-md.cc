@@ -443,7 +443,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEGPU<ManifoldSphere>(m,"TwoStepRATTLENVESphereGPU");
 #endif
 
-    // manifolds 
+    // manifolds
     export_ManifoldZCylinder(m);
     export_ManifoldDiamond(m);
     export_ManifoldEllipsoid(m);
