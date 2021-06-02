@@ -370,6 +370,7 @@ class ALJ(AnisotropicPair):
                               alpha=int,
                               contact_ratio_i=0.15,
                               contact_ratio_j=0.15,
+                              average_simplices=True,
                               len_keys=2))  # Allen -I do not what to set this to.
 
         shape = TypeParameter(

@@ -293,7 +293,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
                 }
 
             // Store the rounding radii.
-            auto rr = shape["rounding_radius"].cast<pybind11::tuple>();
+            auto rr = shape["rounding_radii"].cast<pybind11::tuple>();
             rounding_radii.x = pybind11::cast<Scalar>(rr[0]);
             rounding_radii.y = pybind11::cast<Scalar>(rr[1]);
             rounding_radii.z = pybind11::cast<Scalar>(rr[2]);
