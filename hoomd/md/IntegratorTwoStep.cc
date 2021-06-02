@@ -45,9 +45,9 @@ void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     }
 
 /*! \param timestep Current time step of the simulation
-    \post All integration methods previously added with addIntegrationMethod() are applied in order
-   to move the system state variables forward to \a timestep+1. \post Internally, all forces added
-   via Integrator::addForceCompute are evaluated at \a timestep+1
+    \post All integration methods in m_methods are applied in order to move the system state
+    variables forward to \a timestep+1.
+    \post Internally, all forces present in the m_forces std::vector are evaluated at \a timestep+1
 */
 void IntegratorTwoStep::update(uint64_t timestep)
     {
@@ -149,51 +149,6 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
         {
         m_rigid_bodies->setDeltaT(deltaT);
         }
-    }
-
-/*! \param new_method New integration method to add to the integrator
-    Before the method is added, it is checked to see if the group intersects with any of the groups
-   integrated by existing methods. If an intersection is found, an error is issued. If no
-   intersection is found, setDeltaT is called on the method and it is added to the list.
-*/
-void IntegratorTwoStep::addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method)
-    {
-    // check for intersections with existing methods
-    std::shared_ptr<ParticleGroup> new_group = new_method->getGroup();
-
-    if (new_group->getNumMembersGlobal() == 0)
-        m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been "
-                                       "added that operates on zero particles."
-                                    << endl;
-
-    for (auto& method : m_methods)
-        {
-        std::shared_ptr<ParticleGroup> current_group = method->getGroup();
-        std::shared_ptr<ParticleGroup> intersection
-            = ParticleGroup::groupIntersection(new_group, current_group);
-
-        if (intersection->getNumMembersGlobal() > 0)
-            {
-            m_exec_conf->msg->error() << "integrate.mode_standard: Multiple integration methods "
-                                         "are applied to the same particle"
-                                      << endl;
-            throw std::runtime_error("Error adding integration method");
-            }
-        }
-
-    // ensure that the method has a matching deltaT
-    new_method->setDeltaT(m_deltaT);
-
-    // add it to the list
-    m_methods.push_back(new_method);
-    }
-
-/*! \post All integration methods are removed from this integrator
- */
-void IntegratorTwoStep::removeAllIntegrationMethods()
-    {
-    m_methods.clear();
-    m_gave_warning = false;
     }
 
 /*! \returns true If all added integration methods have valid restart information

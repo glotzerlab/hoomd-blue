@@ -20,14 +20,10 @@
 
     Notable design elements:
     - setDeltaT results in deltaT being set on all current integration methods
-    - to ensure that new methods also get set, addIntegrationMethod() also calls setDeltaT on the
-   method
-    - to interface with the python script, a removeAllIntegrationMethods() method is provided to
-   clear the list so they can be cleared and re-added from hoomd's internal list
+    - to interface with the python script, the m_methods vectors is exposed with a list like API.
 
-    To ensure that the user does not make a mistake and specify more than one method operating on a
-   single particle, the particle groups are checked for intersections whenever a new method is added
-   in addIntegrationMethod()
+   TODO: ensure that the user does not make a mistake and specify more than one method operating on
+   a single particle
 
     There is a special registration mechanism for ForceComposites which run after the integration
    steps one and two, and which can use the updated particle positions and velocities to update any
@@ -66,17 +62,11 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Change the timestep
     virtual void setDeltaT(Scalar deltaT);
 
-    /// Add a new integration method to the list that will be run
-    virtual void addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method);
-
     /// Get the list of integration methods
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>& getIntegrationMethods()
         {
         return m_methods;
         }
-
-    /// Remove all integration methods
-    virtual void removeAllIntegrationMethods();
 
     /// Get the number of degrees of freedom granted to a given group
     virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group);
