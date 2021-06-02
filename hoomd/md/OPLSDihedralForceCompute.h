@@ -1,11 +1,10 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: ksil
 
-#include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
+#include "hoomd/ForceCompute.h"
 
 #include <memory>
 #include <vector>
@@ -30,12 +29,14 @@ struct dihedral_opls_params
     Scalar k3;
     Scalar k4;
 
-    #ifndef __HIPCC__
-    dihedral_opls_params(): k1(0.), k2(0.), k3(0.), k4(0.){}
+#ifndef __HIPCC__
+    dihedral_opls_params() : k1(0.), k2(0.), k3(0.), k4(0.) { }
 
     dihedral_opls_params(pybind11::dict v)
-        : k1(v["k1"].cast<Scalar>()), k2(v["k2"].cast<Scalar>()),
-          k3(v["k3"].cast<Scalar>()), k4(v["k4"].cast<Scalar>()){}
+        : k1(v["k1"].cast<Scalar>()), k2(v["k2"].cast<Scalar>()), k3(v["k3"].cast<Scalar>()),
+          k4(v["k4"].cast<Scalar>())
+        {
+        }
 
     pybind11::dict asDict()
         {
@@ -46,9 +47,8 @@ struct dihedral_opls_params
         v["k4"] = k4;
         return v;
         }
-    #endif
-    }
-    __attribute__((aligned(32)));
+#endif
+    } __attribute__((aligned(32)));
 //! Computes OPLS dihedral forces on each particle
 /*! OPLS dihedral forces are computed on every particle in the simulation.
 
@@ -58,41 +58,41 @@ struct dihedral_opls_params
 class PYBIND11_EXPORT OPLSDihedralForceCompute : public ForceCompute
     {
     public:
-        //! Constructs the compute
-        OPLSDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructs the compute
+    OPLSDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Destructor
-        virtual ~OPLSDihedralForceCompute();
+    //! Destructor
+    virtual ~OPLSDihedralForceCompute();
 
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar k1, Scalar k2, Scalar k3, Scalar k4);
+    //! Set the parameters
+    virtual void setParams(unsigned int type, Scalar k1, Scalar k2, Scalar k3, Scalar k4);
 
-        virtual void setParamsPython(std::string type, pybind11::dict params);
+    virtual void setParamsPython(std::string type, pybind11::dict params);
 
-        /// Get the parameters for a specified type
-        pybind11::dict getParams(std::string type);
+    /// Get the parameters for a specified type
+    pybind11::dict getParams(std::string type);
 
-        #ifdef ENABLE_MPI
-        //! Get ghost particle fields requested by this pair potential
-        /*! \param timestep Current time step
-        */
-        virtual CommFlags getRequestedCommFlags(uint64_t timestep)
-            {
-            CommFlags flags = CommFlags(0);
-            flags[comm_flag::tag] = 1;
-            flags |= ForceCompute::getRequestedCommFlags(timestep);
-            return flags;
-            }
-        #endif
+#ifdef ENABLE_MPI
+    //! Get ghost particle fields requested by this pair potential
+    /*! \param timestep Current time step
+     */
+    virtual CommFlags getRequestedCommFlags(uint64_t timestep)
+        {
+        CommFlags flags = CommFlags(0);
+        flags[comm_flag::tag] = 1;
+        flags |= ForceCompute::getRequestedCommFlags(timestep);
+        return flags;
+        }
+#endif
 
     protected:
-        GPUArray<Scalar4> m_params;
+    GPUArray<Scalar4> m_params;
 
-        //!< Dihedral data to use in computing dihedrals
-        std::shared_ptr<DihedralData> m_dihedral_data;
+    //!< Dihedral data to use in computing dihedrals
+    std::shared_ptr<DihedralData> m_dihedral_data;
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 //! Exports the DihedralForceCompute class to python

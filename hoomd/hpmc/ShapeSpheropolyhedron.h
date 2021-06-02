@@ -1,12 +1,12 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/BoxDim.h"
-#include "hoomd/VectorMath.h"
-#include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "ShapeConvexPolyhedron.h"
+#include "ShapeSphere.h" //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
 
 #ifndef __SHAPE_SPHEROPOLYHEDRON_H__
 #define __SHAPE_SPHEROPOLYHEDRON_H__
@@ -31,23 +31,26 @@
 #endif
 
 namespace hpmc
-{
-
+    {
 //! Convex (Sphero)Polyhedron shape template
-/*! ShapeSpheropolyhedron represents a convex polygon swept out by a sphere with special cases. A shape with zero
-    vertices is a sphere centered at the particle location. This is degenerate with the one-vertex case and marginal
-    more performant. As a consequence of the algorithm, two vertices with a sweep radius represents a prolate
-    spherocylinder but not according to any standard convention and a simulation of spherocylinders using
-    ShapeSpheropolyhedron will not perform as efficiently as a more specialized algorithm.
+/*! ShapeSpheropolyhedron represents a convex polygon swept out by a sphere with special cases. A
+   shape with zero vertices is a sphere centered at the particle location. This is degenerate with
+   the one-vertex case and marginal more performant. As a consequence of the algorithm, two vertices
+   with a sweep radius represents a prolate spherocylinder but not according to any standard
+   convention and a simulation of spherocylinders using ShapeSpheropolyhedron will not perform as
+   efficiently as a more specialized algorithm.
 
-    The parameter defining a polyhedron is a structure containing a list of N vertices, centered on 0,0. In fact, it is
-    **required** that the origin is inside the shape, and it is best if the origin is the center of mass.
+    The parameter defining a polyhedron is a structure containing a list of N vertices, centered on
+   0,0. In fact, it is
+    **required** that the origin is inside the shape, and it is best if the origin is the center of
+   mass.
 
-    ShapeSpheropolygon interprets two additional fields in the verts struct that ShapeConvexPolyhedron lacks.
-    The first is sweep_radius which defines the radius of the sphere to sweep around the polygon. The 2nd
-    is ignore. When two shapes are checked for overlap, if both of them have ignore set to true (non-zero) then
-    there is assumed to be no collision. This is intended for use with the penetrable hard-sphere model for depletants,
-    but could be useful in other cases.
+    ShapeSpheropolygon interprets two additional fields in the verts struct that
+   ShapeConvexPolyhedron lacks. The first is sweep_radius which defines the radius of the sphere to
+   sweep around the polygon. The 2nd is ignore. When two shapes are checked for overlap, if both of
+   them have ignore set to true (non-zero) then there is assumed to be no collision. This is
+   intended for use with the penetrable hard-sphere model for depletants, but could be useful in
+   other cases.
 
     \ingroup shape
 */
@@ -57,7 +60,9 @@ struct ShapeSpheropolyhedron
     typedef detail::PolyhedronVertices param_type;
 
     /// Temporary storage for depletant insertion
-    typedef struct {} depletion_storage_type;
+    typedef struct
+        {
+        } depletion_storage_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -66,7 +71,8 @@ struct ShapeSpheropolyhedron
         }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() const {
+    DEVICE bool hasOrientation() const
+        {
         if (verts.N > 1)
             {
             return true;
@@ -77,8 +83,11 @@ struct ShapeSpheropolyhedron
             }
         }
 
-    //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return verts.ignore; }
+    //! Ignore flag for acceptance statistics
+    DEVICE bool ignoreStatistics() const
+        {
+        return verts.ignore;
+        }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const
@@ -118,7 +127,7 @@ struct ShapeSpheropolyhedron
 
         // return detail::AABB(lower, upper);
         // ^^^^^^ The above method is slow, just use the bounding sphere
-        return detail::AABB(pos, verts.diameter/Scalar(2));
+        return detail::AABB(pos, verts.diameter / Scalar(2));
         }
 
     //! Return a tight fitting OBB
@@ -129,8 +138,12 @@ struct ShapeSpheropolyhedron
         return obb;
         }
 
-    //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return false; }
+    //! Returns true if this shape splits the overlap check over several threads of a warp using
+    //! threadIdx.x
+    HOSTDEVICE static bool isParallel()
+        {
+        return false;
+        }
 
     //! Returns true if the overlap check supports sweeping both shapes by a sphere of given radius
     HOSTDEVICE static bool supportsSweepRadius()
@@ -138,9 +151,9 @@ struct ShapeSpheropolyhedron
         return true;
         }
 
-    quat<Scalar> orientation;    //!< Orientation of the polyhedron
+    quat<Scalar> orientation; //!< Orientation of the polyhedron
 
-    const detail::PolyhedronVertices& verts;     //!< Vertices
+    const detail::PolyhedronVertices& verts; //!< Vertices
     };
 
 //! Convex polyhedron overlap test
@@ -154,19 +167,19 @@ struct ShapeSpheropolyhedron
 */
 template<>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                 const ShapeSpheropolyhedron& a,
-                                 const ShapeSpheropolyhedron& b,
-                                 unsigned int& err)
+                                const ShapeSpheropolyhedron& a,
+                                const ShapeSpheropolyhedron& b,
+                                unsigned int& err)
     {
     vec3<OverlapReal> dr = r_ab;
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts,a.verts.sweep_radius),
-                          detail::SupportFuncConvexPolyhedron(b.verts,b.verts.sweep_radius),
-                          rotate(conj(quat<OverlapReal>(a.orientation)),dr),
+    return xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts, a.verts.sweep_radius),
+                          detail::SupportFuncConvexPolyhedron(b.verts, b.verts.sweep_radius),
+                          rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
-                          DaDb/OverlapReal(2.0),
+                          DaDb / OverlapReal(2.0),
                           err);
 
     /*
@@ -180,17 +193,16 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     */
     }
 
-
 #ifndef __HIPCC__
-template<>
-inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
+template<> inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
     {
     std::ostringstream shapedef;
     auto& verts = spoly.verts;
     unsigned int nverts = verts.N;
     if (nverts == 1)
         {
-        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << verts.diameter << "}";
+        shapedef << "{\"type\": \"Sphere\", "
+                 << "\"diameter\": " << verts.diameter << "}";
         }
     else if (nverts == 2)
         {
@@ -198,18 +210,20 @@ inline std::string getShapeSpec(const ShapeSpheropolyhedron& spoly)
         }
     else
         {
-        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius << ", \"vertices\": [";
-        for (unsigned int i = 0; i < nverts-1; i++)
+        shapedef << "{\"type\": \"ConvexPolyhedron\", \"rounding_radius\": " << verts.sweep_radius
+                 << ", \"vertices\": [";
+        for (unsigned int i = 0; i < nverts - 1; i++)
             {
             shapedef << "[" << verts.x[i] << ", " << verts.y[i] << ", " << verts.z[i] << "], ";
             }
-        shapedef << "[" << verts.x[nverts-1] << ", " << verts.y[nverts-1] << ", " << verts.z[nverts-1] << "]]}";
+        shapedef << "[" << verts.x[nverts - 1] << ", " << verts.y[nverts - 1] << ", "
+                 << verts.z[nverts - 1] << "]]}";
         }
     return shapedef.str();
     }
 #endif
 
-}; // end namespace hpmc
+    }; // end namespace hpmc
 
 #undef DEVICE
 #undef HOSTDEVICE

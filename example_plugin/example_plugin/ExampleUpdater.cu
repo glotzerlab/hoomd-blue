@@ -13,11 +13,10 @@
 /*! \param d_vel Velocity-mass array from the ParticleData
     \param N Number of particles
 
-    This kernel executes one thread per particle and zeros the velocity of each. It can be run with any 1D block size
-    as long as block_size * num_blocks is >= the number of particles.
+    This kernel executes one thread per particle and zeros the velocity of each. It can be run with
+   any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__
-void gpu_zero_velocities_kernel(Scalar4 *d_vel, unsigned int N)
+extern "C" __global__ void gpu_zero_velocities_kernel(Scalar4* d_vel, unsigned int N)
     {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -34,17 +33,17 @@ void gpu_zero_velocities_kernel(Scalar4 *d_vel, unsigned int N)
     \param N Number of particles
     This is just a driver for gpu_zero_velocities_kernel(), see it for the details
 */
-hipError_t gpu_zero_velocities(Scalar4 *d_vel, unsigned int N)
+hipError_t gpu_zero_velocities(Scalar4* d_vel, unsigned int N)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (int)ceil((double)N / (double)block_size), 1, 1);
+    dim3 grid((int)ceil((double)N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_zero_velocities_kernel, dim3(grid), dim3(threads ), 0, 0, d_vel, N);
+    hipLaunchKernelGGL(gpu_zero_velocities_kernel, dim3(grid), dim3(threads), 0, 0, d_vel, N);
 
-    // this method always succeeds. If you had a cuda* call in this driver, you could return its error code if not
-    // hipSuccess
+    // this method always succeeds. If you had a cuda* call in this driver, you could return its
+    // error code if not hipSuccess
     return hipSuccess;
     }

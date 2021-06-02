@@ -555,7 +555,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
             {
             switch (pair_args.shift_mode)
                 {
-                case 0:
+            case 0:
                 {
                 AnisoPairForceComputeKernel<evaluator, 0, 1, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
@@ -564,7 +564,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     d_shape_params);
                 break;
                 }
-                case 1:
+            case 1:
                 {
                 AnisoPairForceComputeKernel<evaluator, 1, 1, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
@@ -573,7 +573,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     d_shape_params);
                 break;
                 }
-                default:
+            default:
                 return hipErrorUnknown;
                 }
             }
@@ -581,7 +581,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
             {
             switch (pair_args.shift_mode)
                 {
-                case 0:
+            case 0:
                 {
                 AnisoPairForceComputeKernel<evaluator, 0, 0, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
@@ -590,7 +590,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     d_shape_params);
                 break;
                 }
-                case 1:
+            case 1:
                 {
                 AnisoPairForceComputeKernel<evaluator, 1, 0, gpu_aniso_pair_force_max_tpp>::launch(
                     pair_args,
@@ -599,7 +599,7 @@ hipError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                     d_shape_params);
                 break;
                 }
-                default:
+            default:
                 return hipErrorUnknown;
                 }
             }

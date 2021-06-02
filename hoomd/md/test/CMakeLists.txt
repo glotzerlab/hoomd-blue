@@ -4,7 +4,6 @@ set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
     test_constraint_sphere
-    test_enforce2d_updater
     test_external_periodic
     test_fenebond_force
     test_fire_energy_minimizer
@@ -20,7 +19,6 @@ set(TEST_LIST
     test_table_angle_force
     test_table_dihedral_force
     test_table_potential
-    test_temp_rescale_updater
     test_walldata
     test_zero_momentum_updater
     )

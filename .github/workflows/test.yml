@@ -59,7 +59,12 @@ jobs:
         - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
+    env:
+      CXXFLAGS: '-Werror'
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Checkout
       uses: actions/checkout@v2.3.4
       with:
@@ -97,13 +102,13 @@ jobs:
     - name: 'Upload build'
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
         retention-days: 7
 
@@ -124,10 +129,13 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
@@ -135,7 +143,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
@@ -143,7 +151,7 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -164,10 +172,13 @@ jobs:
         - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
 
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download build
       uses: actions/download-artifact@v2.0.9
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
       run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 
@@ -198,10 +209,13 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
@@ -210,7 +224,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -p hoomd.pytest_plugin_validate -m validate --validate || (( cat pytest.out.1 && exit 1 ))
 
 
   build_release:
@@ -234,6 +248,9 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Checkout
       uses: actions/checkout@v2.3.4
       with:
@@ -271,13 +288,13 @@ jobs:
     - name: 'Upload build'
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: build.tar
         retention-days: 7
     - name: 'Upload install'
       uses: actions/upload-artifact@v2.2.3
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
         path: install.tar
         retention-days: 7
 
@@ -305,10 +322,13 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download install
       uses: actions/download-artifact@v2.0.9
       with:
-        name: install-${{ join(matrix.config, '_') }}
+        name: install-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar install
       run: tar --use-compress-program='zstd -10 -T0' -xvf install.tar
 
@@ -316,7 +336,7 @@ jobs:
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1
     - name: Run pytest (mpi)
       if: ${{ contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 || (( cat pytest.out.1 && exit 1 ))
     - name: Run pytest (serial without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') }}
       run: python3 -m pytest --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional
@@ -324,7 +344,7 @@ jobs:
         _HOOMD_DISALLOW_CUPY_: 1
     - name: Run pytest (mpi without cupy)
       if: ${{ contains(matrix.config[0], 'cuda') && contains(matrix.config, 'mpi') }}
-      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || cat pytest.out.1
+      run: mpirun -n 2 ${GITHUB_WORKSPACE}/install/hoomd/pytest/pytest-openmpi.sh -x --pyargs hoomd -v -ra --durations=0 --durations-min=0.1 -m cupy_optional || (( cat pytest.out.1 && exit 1 ))
       env:
         _HOOMD_DISALLOW_CUPY_: 1
 
@@ -352,10 +372,13 @@ jobs:
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
     steps:
+    - name: Clean workspace
+      run: rm -rf ./*
+
     - name: Download build
       uses: actions/download-artifact@v2.0.9
       with:
-        name: build-${{ join(matrix.config, '_') }}
+        name: build-${{ join(matrix.config, '_') }}-${{ github.sha }}
     - name: Untar build
       run: tar --use-compress-program='zstd -10 -T0' -xvf build.tar
 

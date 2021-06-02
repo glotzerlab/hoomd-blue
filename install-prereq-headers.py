@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Install pybind11, cereal, and eigen."""
+
 import os
 import sys
 import tempfile
@@ -16,17 +22,18 @@ def find_cmake_package(name,
                        version,
                        location_variable=None,
                        ignore_system=False):
-    """ Find a package with cmake
+    """Find a package with cmake.
 
     Return True if the package is found
     """
-
     if location_variable is None:
         location_variable = name + "_DIR"
 
     find_package_options = ''
     if ignore_system:
-        find_package_options += 'NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_PACKAGE_REGISTRY NO_CMAKE_SYSTEM_PATH NO_CMAKE_SYSTEM_PACKAGE_REGISTRY'
+        find_package_options += 'NO_SYSTEM_ENVIRONMENT_PATH ' \
+            'NO_CMAKE_PACKAGE_REGISTRY NO_CMAKE_SYSTEM_PATH ' \
+            'NO_CMAKE_SYSTEM_PACKAGE_REGISTRY'
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmp_path = pathlib.Path(tmpdirname)
@@ -71,6 +78,7 @@ find_package({name} {version} CONFIG REQUIRED {find_package_options})
 
 
 def install_cmake_package(url, cmake_options):
+    """Install a cmake package."""
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmp_path = pathlib.Path(tmpdirname)
 
@@ -104,9 +112,8 @@ def install_cmake_package(url, cmake_options):
         log.debug(cmake_out.stdout.strip())
 
         if cmake_out.returncode != 0:
-            log.error(
-                f"Error configuring {root} (run with -v to see detailed error messages)"
-            )
+            log.error(f"Error configuring {root} (run with -v to see detailed "
+                      "error messages)")
             raise RuntimeError('Failed to configure package')
 
         log.info(f"Installing {root}")
@@ -121,9 +128,8 @@ def install_cmake_package(url, cmake_options):
         log.debug(cmake_out.stdout.strip())
 
         if cmake_out.returncode != 0:
-            log.error(
-                f"Error installing {root} (run with -v to see detailed error messages)"
-            )
+            log.error(f"Error installing {root} (run with -v to see detailed "
+                      "error messages)")
             raise RuntimeError('Failed to install package')
 
 
@@ -201,7 +207,8 @@ if __name__ == "__main__":
 
             if not eigen:
                 install_cmake_package(
-                    'https://gitlab.com/libeigen/eigen/-/archive/3.3.8/eigen-3.3.8.tar.gz',
+                    'https://gitlab.com/libeigen/eigen/-/archive/3.3.8/'
+                    'eigen-3.3.8.tar.gz',
                     cmake_options=[
                         '-DBUILD_TESTING=off', '-DEIGEN_TEST_NOQT=on'
                     ])

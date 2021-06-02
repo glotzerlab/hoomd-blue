@@ -8,13 +8,13 @@
 
 #include "NoFriction.h"
 
-#include "DEMEvaluator.h"
-#include "WCAPotential.h"
-#include "SWCAPotential.h"
 #include "DEM2DForceCompute.h"
 #include "DEM2DForceComputeGPU.h"
 #include "DEM3DForceCompute.h"
 #include "DEM3DForceComputeGPU.h"
+#include "DEMEvaluator.h"
+#include "SWCAPotential.h"
+#include "WCAPotential.h"
 
 #include <iterator>
 #include <pybind11/pybind11.h>
@@ -38,14 +38,11 @@ PYBIND11_MODULE(_dem, m)
 // Export all of the parameter wrapper objects to the python interface
 void export_params(pybind11::module& m)
     {
-    pybind11::class_<NoFriction<Scalar> >(m, "NoFriction")
-        .def(pybind11::init());
+    pybind11::class_<NoFriction<Scalar>>(m, "NoFriction").def(pybind11::init());
 
-    typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
-    typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar> > SWCA;
+    typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar>> WCA;
+    typedef SWCAPotential<Scalar, Scalar4, NoFriction<Scalar>> SWCA;
 
-    pybind11::class_<WCA>(m, "WCAPotential")
-        .def(pybind11::init<Scalar, NoFriction<Scalar> >());
-    pybind11::class_<SWCA>(m, "SWCAPotential")
-        .def(pybind11::init<Scalar, NoFriction<Scalar> >());
+    pybind11::class_<WCA>(m, "WCAPotential").def(pybind11::init<Scalar, NoFriction<Scalar>>());
+    pybind11::class_<SWCA>(m, "SWCAPotential").def(pybind11::init<Scalar, NoFriction<Scalar>>());
     }

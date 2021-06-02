@@ -14,11 +14,9 @@
 #include "BondTablePotential.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoHMA.h"
-#include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
 #include "CosineSqAngleForceCompute.h"
-#include "Enforce2DUpdater.h"
 #include "EvaluatorRevCross.h"
 #include "EvaluatorSquareDensity.h"
 #include "EvaluatorTersoff.h"
@@ -55,7 +53,6 @@
 #include "TableAngleForceCompute.h"
 #include "TableDihedralForceCompute.h"
 #include "TablePotential.h"
-#include "TempRescaleUpdater.h"
 #include "TwoStepBD.h"
 #include "TwoStepBerendsen.h"
 #include "TwoStepLangevin.h"
@@ -79,7 +76,6 @@
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
 #include "CosineSqAngleForceComputeGPU.h"
-#include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ForceCompositeGPU.h"
 #include "ForceDistanceConstraintGPU.h"
@@ -223,7 +219,6 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
-    export_ConstExternalFieldDipoleForceCompute(m);
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_HarmonicAngleForceCompute(m);
@@ -382,7 +377,6 @@ PYBIND11_MODULE(_md, m)
     export_ConstraintSphereGPU(m);
     export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
-    // export_ConstExternalFieldDipoleForceComputeGPU(m);
     export_ComputeThermoGPU(m);
     export_ComputeThermoHMAGPU(m);
     export_PPPMForceComputeGPU(m);
@@ -413,7 +407,6 @@ PYBIND11_MODULE(_md, m)
     // updaters
     export_IntegratorTwoStep(m);
     export_IntegrationMethodTwoStep(m);
-    export_TempRescaleUpdater(m);
     export_ZeroMomentumUpdater(m);
     export_TwoStepNVE(m);
     export_TwoStepNVTMTK(m);
@@ -422,7 +415,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepBD(m);
     export_TwoStepNPTMTK(m);
     export_Berendsen(m);
-    export_Enforce2DUpdater(m);
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
     export_MuellerPlatheFlow(m);
@@ -459,7 +451,6 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepBDGPU(m);
     export_TwoStepNPTMTKGPU(m);
     export_BerendsenGPU(m);
-    export_Enforce2DUpdaterGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);

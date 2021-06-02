@@ -14,18 +14,17 @@
 #include <cuda_runtime.h>
 
 #include "SlitGeometry.h"
-#include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
-
+    {
 //! Draw virtual particles in the SlitGeometry
-cudaError_t slit_draw_particles(Scalar4 *d_pos,
-                                Scalar4 *d_vel,
-                                unsigned int *d_tag,
+cudaError_t slit_draw_particles(Scalar4* d_pos,
+                                Scalar4* d_vel,
+                                unsigned int* d_tag,
                                 const mpcd::detail::SlitGeometry& geom,
                                 const Scalar z_min,
                                 const Scalar z_max,
@@ -41,7 +40,7 @@ cudaError_t slit_draw_particles(Scalar4 *d_pos,
                                 const uint16_t seed,
                                 const unsigned int block_size);
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd
 
 #endif // MPCD_SLIT_GEOMETRY_FILLER_GPU_CUH_

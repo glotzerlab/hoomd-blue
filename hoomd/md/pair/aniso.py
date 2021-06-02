@@ -1,3 +1,10 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Anisotropic potentials."""
+
+from collections.abc import Sequence
 import json
 
 from hoomd import md
@@ -5,11 +12,12 @@ from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import OnlyTypes, OnlyFrom, positive_real
+from hoomd.data.typeconverter import (OnlyTypes, OnlyFrom, positive_real,
+                                      OnlyIf, to_type_converter)
 
 
 class AnisotropicPair(Pair):
-    R"""Generic anisotropic pair potential.
+    r"""Generic anisotropic pair potential.
 
     Users should not instantiate `AnisotropicPair` directly. It is a base
     class that provides common features to all anisotropic pair forces.
@@ -47,7 +55,7 @@ class AnisotropicPair(Pair):
 
 
 class Dipole(AnisotropicPair):
-    R""" Screened dipole-dipole interactions.
+    r"""Screened dipole-dipole interactions.
 
     Implements the force and energy calculations for both magnetic and
     electronic dipole-dipole interactions. When particles have charge as well as
@@ -93,22 +101,28 @@ class Dipole(AnisotropicPair):
     Note:
        All units are given for electronic dipole moments.
 
-    Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The dipole potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
-              scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+        The dipole potential parameters. The dictionary has the following
+        keys:
 
+        * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
+          scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+        * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
+          screening length (units: [length]^-1)
 
-            * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-              screening length (units: [length]^-1)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
 
-        mu (TypeParameter[``particle_type``, tuple[float, float, float]):
-            :math:`\mu` - the magnetic magnitude of the particle local reference
-            frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
-            [charge] [length]).
+    .. py:attribute:: mu
+
+        :math:`\mu` - the magnetic magnitude of the particle local reference
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
+        [charge] [length]).
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
+
     Example::
 
         nl = nlist.Cell()
@@ -129,7 +143,7 @@ class Dipole(AnisotropicPair):
 
 
 class GayBerne(AnisotropicPair):
-    R""" Gay-Berne anisotropic pair potential.
+    r"""Gay-Berne anisotropic pair potential.
 
     Warning: The code has yet to be updated to the current API.
 
@@ -143,10 +157,12 @@ class GayBerne(AnisotropicPair):
     particles.
 
     This version of the Gay-Berne potential supports identical pairs of uniaxial
-    ellipsoids, with orientation-independent energy-well depth.
+    ellipsoids, with orientation-independent energy-well depth. The potential
+    comes from the following paper Allen et. al. 2006 `paper link`_.
+
+    .. _paper link: http://dx.doi.org/10.1080/00268970601075238
 
     The interaction energy for this anisotropic pair potential is
-    (`Allen et. al. 2006 <http://dx.doi.org/10.1080/00268970601075238>`_):
 
     .. math::
         :nowrap:
@@ -184,19 +200,21 @@ class GayBerne(AnisotropicPair):
     Use ``params`` dictionary to set potential coefficients. The coefficients
     must be set per unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The Gay-Berne potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
-              [energy])
+        The Gay-Berne potential parameters. The dictionary has the following
+        keys:
 
-            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
-              [length])
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
+          [energy])
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
+          [length])
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
+          [length])
 
-            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
-              [length])
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
 
     Example::
 
@@ -234,13 +252,14 @@ class GayBerne(AnisotropicPair):
 
 
 class ALJ(AnisotropicPair):
-    R"""Anistropic LJ potential.
+    r"""Anistropic LJ potential.
 
     Args:
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
-        average_simplices (bool): Whether or not to perform simplex averaging (see below for more details).
+        average_simplices (bool): Whether or not to perform simplex averaging
+            (see below for more details).
 
     :py:class:`alj` computes the LJ potential between anisotropic particles.
     The anisotropy is implemented as a composite of two interactions, a
@@ -272,43 +291,52 @@ class ALJ(AnisotropicPair):
     averaging can be turned off by setting the ``average_simplices`` argument
     to ``False``.
 
-    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+    .. py:attribute:: params
 
-    The following coefficients must be set per unique pair of particle types:
+        The ALJ potential parameters. The dictionary has the following keys:
 
-    - *epsilon* - :math:`\varepsilon` (in energy units)
-    - *sigma_i* - the insphere radius of the first particle type.
-    - *sigma_j* - the insphere radius of the second particle type.
-    - *alpha* - Integer 0-3 indicating whether or not to include the attractive
-                component of the interaction (see above for details).
-    - *contact_sigma_i* - the contact sphere radius of the first type.
-      - *optional*: defaults to 0.15*sigma_i
-    - *contact_sigma_j* - the contact sphere radius of the second type.
-      - *optional*: defaults to 0.15*sigma_j
-    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
-      - *optional*: defaults to the global r_cut specified in the pair command
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+            :math:`[energy]`
+        * ``sigma_i`` (`float`, **required**) - the insphere radius of the first
+            particle type.
+        * ``sigma_j`` (`float, **required**) - the insphere radius of the second
+            particle type.
+        * ``alpha`` (`int`, **required**) - Integer 0-3 indicating whether or
+            not to include the attractive component of the interaction (see
+            above for details).
+        * ``contact_sigma_i`` (`float`, **optional**) - the contact sphere
+            radius of the first type. Defaults to :math:`0.15 \sigma_i`.
+        * ``contact_sigma_j`` (`float`, **optional**) - the contact sphere
+            radius of the second type. Defaults to :math:`0.15 \sigma_j`.
 
-    The following shape parameters may be set per particle type:
+        Type: `TypeParameter` [`tuple` [``particle_types``, ``particle_types``],
+        `dict`]
 
-    - *vertices* - The vertices of a convex polytope in 2 or 3 dimensions. The
-                   array may be :math:`N\times2` or :math:`N\times3` in 2D (in
-                   the latter case, the third dimension is ignored).
-    - *rounding radii* - The semimajor axes of a rounding ellipsoid. If a
-                         single number is specified, the rounding ellipsoid is
-                         a sphere.
-    - *faces* - The faces of the polyhedron specified as a (possible ragged) 2D
-                array of integers. The vertices must be ordered (see
-                :meth:`~.convexHull` for more information).
+    .. py:attribute:: shape
 
-    At least one of ``vertices`` or ``rounding_radii`` must be specified.
-    Specifying only ``rounding radii creates an ellipsoid, while specifying
-    only vertices creates a convex polytope. In general, the faces will be
-    inferred by computing the convex hull of the vertices and merging coplanar
-    faces. However, because merging of faces requires applying a numerical
-    threshold to find coplanar faces, in some cases the default value may
-    result in not all coplanar faces actually being merged. In such cases,
-    users can precompute the faces and provide them. The convenience class
-    method :meth:`~.get_ordered_vertices` can be used for this purpose.
+        The shape of a given type. The dictionary has the following keys per
+        type.
+
+        * ``vertices`` (`list` [`tuple` [`float`, `float`, `float`]],
+            **required**) - The
+            vertices of a convex polytope in 2 or 3 dimensions. The third
+            dimension in 2D is ignored.
+        * ``rounding` radii` (`tuple` [`float`, `float`, `float`] or `float`,
+            **required**) - The semimajor axes of a rounding ellipsoid. If a
+            single value is specified, the rounding ellipsoid is a sphere.
+        * ``faces`` (`list` [`list` [`int`]], **required**) - The faces of the
+            polyhedron specified as a list of list of integers.  The vertices
+            must be ordered (see :meth:`~.get_ordered_vertices` for more
+            information).
+
+    Specifying only ``rounding radii`` creates an ellipsoid, while specifying
+    only ``vertices`` creates a convex polytope (set ``vertices`` and ``faces``
+    to empty list to create the ellipsoid). To automate the computation of
+    faces, the convenience class method `get_ordered_vertices` can be used.
+    However, because merging of faces requires applying a numerical threshold to
+    find coplanar faces, in some cases `get_ordered_vertices` may result in not
+    all coplanar faces actually being merged. In such cases, users can
+    precompute the faces and provide them.
 
     Example::
 
@@ -342,11 +370,9 @@ class ALJ(AnisotropicPair):
                                       sigma_j=1.0,
                                       alpha=1,
                                       )
-        alj.shape[("A", "A")] = dict(vertices=cube_verts,
+        alj.shape["A"] = dict(vertices=cube_verts,
                               faces=cube_faces,
-                              rounding_radii=[1])
- 
-        verts, faces = alj(cube_verts)
+                              rounding_radii=1)
 
     Warning:
         Changing dimension in a simulation will invalidate this force and will
@@ -376,17 +402,34 @@ class ALJ(AnisotropicPair):
             TypeParameterDict(
                 vertices=[(float, float, float)],
                 faces=[[int]],
-                rounding_radii=[float],
+                rounding_radii=OnlyIf(to_type_converter((float, float, float)),
+                                      preprocess=self._to_three_tuple),
                 len_keys=1))  # Allen -I do not what to set this to.
 
         self._extend_typeparam((params, shape))
 
     def get_ordered_vertices(self, vertices, return_faces=True):
+        """Compute vertices and faces of a convex hull of given vertices.
+
+        Args:
+            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices to
+                take the convex hull of and get ordered vertices and faces from.
+            return_faces (`bool`, optional): Whether to return faces as a list
+                of list of int which index into the returned vertices. Defaults
+                to ``True``.
+
+        Returns:
+            vertices (:math:`(N_v, 3)` numpy.ndarray of float): The vertices of
+                the convex hull.
+            faces (`list` [`list` [`int`]]): The indices into the vertices of
+                vertices defining the faces.
+        """
         try:
             import coxeter
         except ImportError as error:
-            print("Functionality requires coxeter as a dependency")
-            raise
+            raise RuntimeError(
+                "Method requires coxeter as a dependency") from error
+
         shape = coxeter.shapes.ConvexPolyhedron(vertices)
 
         if return_faces:
@@ -399,3 +442,12 @@ class ALJ(AnisotropicPair):
             "2D" if self._simulation.state.box.is2D else "3D")
 
         super()._attach()
+
+    @staticmethod
+    def _to_three_tuple(value):
+        if isinstance(value, Sequence):
+            return value
+        if isinstance(value, float):
+            return (value, value, value)
+        else:
+            raise ValueError(f"Expected a float or tuple object got {value}")
