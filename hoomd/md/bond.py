@@ -55,10 +55,10 @@ class Harmonic(Bond):
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - potential constant
-              :math:`[energy \cdot length^{-2}]`
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
 
             * ``r0`` (`float`, **required**) - rest length
-              :math:`[length]`
+              :math:`[\mathrm{length}]`
 
     Examples::
 
@@ -107,16 +107,16 @@ class FENE(Bond):
             The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - attractive force strength
-              :math:`[energy \cdot length^{-2}]`
+              :math:`[\mathrm{energy} \cdot \mathrm{length}^{-2}]`
 
             * ``r0`` (`float`, **required**) - size parameter
-              :math:`[length]`
+              :math:`[\mathrm{length}]`
 
             * ``epsilon`` (`float`, **required**) - repulsive force strength
-              :math:`[energy]`
+              :math:`[\mathrm{energy}]`
 
             * ``sigma`` (`float`, **required**) - repulsive force interaction
-              :math:`[length]`
+              :math:`[\mathrm{length}]`
 
     Examples::
 
@@ -192,8 +192,8 @@ class table(force._force):  # noqa - Will be renamed when updated for v3
     - :math:`F_{\mathrm{user}}(r)` and :math:`V_{\mathrm{user}}(r)` - evaluated
       by ``func`` (see example)
     - coefficients passed to ``func`` - ``coeff`` (see example)
-    - :math:`r_{\mathrm{min}}` - ``rmin`` :math:`[length]`
-    - :math:`r_{\mathrm{max}}` - ``rmax`` :math:`[length]`
+    - :math:`r_{\mathrm{min}}` - ``rmin`` :math:`[\mathrm{length}]`
+    - :math:`r_{\mathrm{max}}` - ``rmax`` :math:`[\mathrm{length}]`
 
     The table *width* is set once when bond.table is specified.
     There are two ways to specify the other parameters.
