@@ -6,7 +6,6 @@ import tempfile
 
 import hoomd
 from hoomd import md
-import gsd.hoomd
 
 
 class TestALJ(unittest.TestCase):
