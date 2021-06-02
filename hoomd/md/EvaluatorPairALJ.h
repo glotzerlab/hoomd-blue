@@ -127,7 +127,6 @@ HOSTDEVICE inline void quat2mat(const quat<Scalar>& q, Scalar (&mat)[3][3])
         }
     }
 
-
 //! Anisotropic LJ (ALJ) potential.
 /*! The ALJ potential is a generalization of Lennard-Jones potential for convex
  * anisotropic shapes. The potential is defined by a mean-field approximation
@@ -172,8 +171,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
 
         param_type(pybind11::dict params, bool managed)
-            : epsilon(params["epsilon"].cast<Scalar>()),
-              sigma_i(params["sigma_i"].cast<Scalar>()),
+            : epsilon(params["epsilon"].cast<Scalar>()), sigma_i(params["sigma_i"].cast<Scalar>()),
               sigma_j(params["sigma_j"].cast<Scalar>()),
               contact_sigma_i((params["sigma_i"] * params["contact_ratio_i"]).cast<Scalar>()),
               contact_sigma_j((params["sigma_j"] * params["contact_ratio_j"]).cast<Scalar>()),
@@ -768,15 +766,15 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
         }
 
-    vec3<Scalar> dr;                 //!< Stored dr from the constructor
-    Scalar rcutsq;                   //!< Stored rcutsq from the constructor
-    quat<Scalar> qi;                 //!< Orientation quaternion for particle i
-    quat<Scalar> qj;                 //!< Orientation quaternion for particle j
-    unsigned int tag_i;              //!< Tag of particle i.
-    unsigned int tag_j;              //!< Tag of particle j.
+    vec3<Scalar> dr;           //!< Stored dr from the constructor
+    Scalar rcutsq;             //!< Stored rcutsq from the constructor
+    quat<Scalar> qi;           //!< Orientation quaternion for particle i
+    quat<Scalar> qj;           //!< Orientation quaternion for particle j
+    unsigned int tag_i;        //!< Tag of particle i.
+    unsigned int tag_j;        //!< Tag of particle j.
     const shape_type* shape_i; //!< Shape parameters of particle i.
     const shape_type* shape_j; //!< Shape parameters of particle j.
-    const param_type& _params;       //!< Potential parameters for the pair of interest.
+    const param_type& _params; //!< Potential parameters for the pair of interest.
 
     constexpr static Scalar TWO_P_13 = 1.2599210498948732; // 2^(1/3)
     constexpr static Scalar SHIFT_RHO_DIFF = -0.25;        // (1/(2^(1/6)))**12 - (1/(2^(1/6)))**6
@@ -1108,7 +1106,7 @@ HOSTDEVICE inline void findSimplex(const ManagedArray<vec3<Scalar>>& verts,
  * \param face The face on the shape closest to vector (overwritten by reference).
  * \param shape The shape parameters of the particle being tested.
  */
-template <unsigned int ndim>
+template<unsigned int ndim>
 HOSTDEVICE inline void findFace(const vec3<Scalar>& vector,
                                 const Scalar (&mat)[3][3],
                                 unsigned int& face,
@@ -1336,7 +1334,6 @@ EvaluatorPairALJ<3>::computeSimplexInteractions(const vec3<Scalar>& a,
     torque_i = vec_to_scalar3(torquei);
     torque_j = vec_to_scalar3(torquej);
     }
-
 
 #ifndef __HIPCC__
 

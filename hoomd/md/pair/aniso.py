@@ -33,12 +33,10 @@ class AnisotropicPair(Pair):
     def __init__(self, nlist, r_cut=None, mode="none"):
         self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2)
-                                 )
+                                 TypeParameterDict(positive_real, len_keys=2))
         if r_cut is not None:
             tp_r_cut.default = r_cut
-        self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shift'])))
+        self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
         self.mode = mode
         self._add_typeparam(tp_r_cut)
 
@@ -125,9 +123,8 @@ class Dipole(AnisotropicPair):
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, kappa=float, len_keys=2))
-        mu = TypeParameter(
-            'mu', 'particle_types',
-            TypeParameterDict((float, float, float), len_keys=1))
+        mu = TypeParameter('mu', 'particle_types',
+                           TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
 
 
@@ -364,21 +361,23 @@ class ALJ(AnisotropicPair):
         super().__init__(nlist, r_cut, mode)
         params = TypeParameter(
             'params', 'particle_types',
-            TypeParameterDict(epsilon=float,
-                              sigma_i=float,
-                              sigma_j=float,
-                              alpha=int,
-                              contact_ratio_i=0.15,
-                              contact_ratio_j=0.15,
-                              average_simplices=True,
-                              len_keys=2))  # Allen -I do not what to set this to.
+            TypeParameterDict(
+                epsilon=float,
+                sigma_i=float,
+                sigma_j=float,
+                alpha=int,
+                contact_ratio_i=0.15,
+                contact_ratio_j=0.15,
+                average_simplices=True,
+                len_keys=2))  # Allen -I do not what to set this to.
 
         shape = TypeParameter(
             'shape', 'particle_types',
-            TypeParameterDict(vertices=[(float, float, float)],
-                              faces=[[int]],
-                              rounding_radii=[float],
-                              len_keys=1))  # Allen -I do not what to set this to.
+            TypeParameterDict(
+                vertices=[(float, float, float)],
+                faces=[[int]],
+                rounding_radii=[float],
+                len_keys=1))  # Allen -I do not what to set this to.
 
         self._extend_typeparam((params, shape))
 
@@ -388,8 +387,8 @@ class ALJ(AnisotropicPair):
         except ImportError as error:
             print("Functionality requires coxeter as a dependency")
             raise
-        shape =  coxeter.shapes.ConvexPolyhedron(vertices)
-        
+        shape = coxeter.shapes.ConvexPolyhedron(vertices)
+
         if return_faces:
             return shape.vertices, shape.faces
         else:
