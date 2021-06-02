@@ -48,7 +48,7 @@ class EvaluatorPairForceShiftedLJ
     {
     public:
     //! Define the parameter type used by this pair potential evaluator
-typedef EvaluatorPairLJ::param_type param_type;
+    typedef EvaluatorPairLJ::param_type param_type;
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance between the particles
