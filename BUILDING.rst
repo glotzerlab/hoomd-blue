@@ -197,7 +197,7 @@ these options on the command line.
 
   - Default: location of ``mpicc`` detected on the ``$PATH``.
 
-- ``<package-name>_ROOT_DIR`` - Specify the location of a package.
+- ``<package-name>_ROOT`` - Specify the location of a package.
 
   - Default: Found on the `CMake`_ search path.
 
