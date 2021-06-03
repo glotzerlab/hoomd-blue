@@ -17,7 +17,6 @@ import hoomd
 from hoomd.operation import Updater
 
 
-
 class ZeroMomentum(Updater):
     """Zeroes system momentum.
 
