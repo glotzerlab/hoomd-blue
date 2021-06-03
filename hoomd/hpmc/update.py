@@ -646,36 +646,16 @@ class Shape(Updater):
                                     self.num_phase)
         super()._attach()
 
-    @property
-    def total_count(self):
-        """Total number of shape moves attempted
+    @log(category='sequence')
+    def shape_moves(self):
+        """tuple[int, int]: Count of the accepted and rejected shape moves.
+
+        None when not attached
         """
         if self._attached:
-            return self._cpp_obj.total_count
-        else:
-            return None
-
-    @property
-    def accepted_count(self):
-        """Total number of shape moves accepted
-        """
-        if self._attached:
-            return self._cpp_obj.accepted_count
-        else:
-            return None
-
-    @log(category='scalar')
-    def acceptance_ratio(self):
-        """float: Returns the shape move acceptance ratio for all particle types
-
-        Returns:
-            The combined shape move acceptance ratio for all particle types
-        """
-        if self._attached:
-            acc = 0.0
-            if self.total_count > 0:
-                acc = float(self.accepted_count) / float(self.total_count)
-            return acc
+            total = self._cpp_obj.total_count
+            accepted = self._cpp_obj.accepted_count
+            return (accepted, total - accepted)
         else:
             return None
 
