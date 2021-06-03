@@ -683,44 +683,6 @@ class Shape(Updater):
         else:
             return None
 
-    def get_step_size(self, typeid=0):
-        R""" Get the shape move stepsize for a particle type
-
-        Args:
-            typeid (int): The typeid of the particle type
-        Returns:
-            The shape move stepsize for a particle type
-
-        Example::
-
-            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                           (-1, 1, -1)])
-            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            stepsize = shape_updater.get_step_size(0)
-
-        """
-        if self._attached:
-            return self._cpp_obj.getStepSize(typeid)
-        else:
-            return None
-
-    def reset_statistics(self):
-        R""" Reset the acceptance statistics for the updater
-
-        Example::
-
-            mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-            mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                           (-1, 1, -1)])
-            shape_updater = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-            stepsize = shape_updater.reset_statistics()
-        """
-        if self._attached:
-            self._cpp_obj.resetStatistics()
-        else:
-            return None
-
 
 class Clusters(Updater):
     """Apply geometric cluster algorithm (GCA) moves.
