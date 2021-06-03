@@ -6,6 +6,7 @@
 
 #include "hoomd/Analyzer.h"
 #include "hoomd/GetarDumpIterators.h"
+#include "hoomd/ParticleGroup.h"
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/extern/libgetar/src/GTAR.hpp"
 #include "hoomd/extern/libgetar/src/Record.hpp"
@@ -233,6 +234,7 @@ class PYBIND11_EXPORT GetarDumpWriter : public Analyzer
     /// :param offset: Timestep offset
     GetarDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                     const std::string& filename,
+                    std::shared_ptr<ParticleGroup> group,
                     GetarDumpMode operationMode,
                     unsigned int offset = 0);
 
@@ -261,6 +263,8 @@ class PYBIND11_EXPORT GetarDumpWriter : public Analyzer
 
     /// Called every timestep
     void analyze(uint64_t timestep);
+
+    std::shared_ptr<ParticleGroup> getGroup();
 
     /// Calculate the correct period for all of the properties
     /// activated on this analyzer
@@ -315,6 +319,8 @@ class PYBIND11_EXPORT GetarDumpWriter : public Analyzer
 
     /// System snapshot to manipulate
     std::shared_ptr<SystemSnapshot> m_systemSnap;
+    /// Group to write out to the file
+    std::shared_ptr<ParticleGroup> m_group;
     /// Map detailing when we need which snapshots
     NeedSnapshotMap m_neededSnapshots;
     };
