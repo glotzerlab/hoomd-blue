@@ -1,10 +1,7 @@
 Building from source
 ====================
 
-Overview
---------
-
-To build the HOOMD-blue Python package from source:
+To build the **HOOMD-blue** Python package from source:
 
 1. `Install prerequisites`_::
 
@@ -22,11 +19,11 @@ To build the HOOMD-blue Python package from source:
 
    $ cmake --build build/hoomd
 
-5. `Install the package`_::
+5. `Install the package`_ (optional)::
 
    $ cmake --install build/hoomd
 
-To build the documentation from source:
+To build the documentation from source (optional):
 
 1. `Install prerequisites`_::
 
@@ -48,9 +45,9 @@ Install prerequisites
 
 .. note::
 
-    This documentation is generic. Replace `<package-manager>` with your package or module manager.
-    You may need to adjust package names and/or install additional packages, such as `-dev` packages
-    that provide headers needed to build hoomd.
+    This documentation is generic. Replace ``<package-manager>`` with your package or module
+    manager. You may need to adjust package names and/or install additional packages, such as
+    ``-dev`` packages that provide headers needed to build hoomd.
 
 .. tip::
 
@@ -59,7 +56,7 @@ Install prerequisites
 
         $ python3 -m venv hoomd-venv
 
-    You will need to activate your environment before configuring HOOMD-blue::
+    You will need to activate your environment before configuring **HOOMD-blue**::
 
         $ source hoomd-venv/bin/activate
 
@@ -71,7 +68,7 @@ Install prerequisites
 
     $ python3 hoomd-blue/install-prereq-headers.py
 
-**General requirements**
+**General requirements:**
 
 - C++14 capable compiler (tested with ``gcc`` 7, 8, 9, 10 / ``clang`` 6, 7, 8, 9, 10, 11)
 - Python >= 3.6
@@ -80,12 +77,12 @@ Install prerequisites
 - Eigen >= 3.2
 - CMake >= 3.9
 
-**For MPI parallel execution** (required when ``ENABLE_MPI=on``)
+**For MPI parallel execution** (required when ``ENABLE_MPI=on``):
 
 - MPI (tested with OpenMPI, MVAPICH)
 - cereal >= 1.1
 
-**For GPU execution** (required when ``ENABLE_GPU=on``)
+**For GPU execution** (required when ``ENABLE_GPU=on``):
 
 - NVIDIA CUDA Toolkit >= 9.0
 
@@ -102,21 +99,21 @@ Install prerequisites
   - roctracer-dev
   - Linux kernel >= 3.5.0
 
-  For HOOMD-blue on AMD GPUs, the following limitations currently apply.
+  For **HOOMD-blue** on AMD GPUs, the following limitations currently apply.
 
-   1. Certain HOOMD-blue kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
+   1. Certain kernels trigger an `unknown HSA error <https://github.com/ROCm-Developer-Tools/HIP/issues/1662>`_.
    2. The `mpcd` component is disabled on AMD GPUs.
    3. Multi-GPU execution via unified memory is not available.
 
-**For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``)
+**For threaded parallelism on the CPU** (required when ``ENABLE_TBB=on``):
 
 - Intel Threading Building Blocks >= 4.3
 
-**For runtime code generation** (required when ``BUILD_JIT=on``)
+**For runtime code generation** (required when ``BUILD_JIT=on``):
 
 - LLVM >= 6.0
 
-**To build the documentation**
+**To build the documentation:**
 
 - sphinx
 - sphinx_rtd_theme
@@ -130,35 +127,36 @@ Install prerequisites
 Obtain the source
 -----------------
 
-Clone using Git::
+Clone using Git_::
 
    $ git clone --recursive https://github.com/glotzerlab/hoomd-blue
 
-See the `git book`_ to learn how to update your clone, switch to a feature branch, or checkout a
-specific tag.
+Release tarballs are also available on the `downloads page`_.
 
-.. note::
+.. seealso::
+
+    See the `git book`_ to learn how to work with Git repositories.
+
+.. warning::
 
     **HOOMD-blue** uses Git submodules. Clone with the ``--recursive`` to clone the submodules.
 
-.. tip::
     Execute ``git submodule update --init`` to fetch the submodules each time you switch branches
     and the submodules show as modified.
 
-.. note::
-
-    Release tarballs are also available on the `downloads page`_.
-
 .. _downloads page: https://glotzerlab.engin.umich.edu/Downloads/hoomd
 .. _git book: https://git-scm.com/book
+.. _Git: https://git-scm.com/
 
 .. _Configure:
 
 Configure
 ---------
 
-Use CMake_ to configure a HOOMD-blue build in the given directory. Pass ``-D<option-name>=<value>``
-to ``cmake`` to set options on the command line.
+Use CMake_ to configure a **HOOMD-blue** build in the given directory. Pass
+``-D<option-name>=<value>`` to ``cmake`` to set options on the command line. When modifying code,
+you only need to repeat the build step to update your build - it will automatically reconfigure
+as needed.
 
 .. tip::
 
@@ -168,32 +166,24 @@ to ``cmake`` to set options on the command line.
 
 .. tip::
 
-    After modifying the code, you only need to repeat the build step to update your build. You do
-    not need to repeat the configure step.
-
-.. tip::
-
     Place your build directory in ``/tmp`` or ``/scratch`` for faster builds. CMake_ performs
     out-of-source builds, so the build directory can be anywhere on the filesystem.
 
 .. tip::
 
-    Pass the following options to ``cmake`` to optimize the build for your processor::
-
-        -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native
+    Pass the following options to ``cmake`` to optimize the build for your processor:
+    ``-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native``.
 
 .. important::
 
     When using a virtual environment, activate the environment and set the cmake prefix path
-    before running ``cmake``::
+    before running CMake_: ``$ export CMAKE_PREFIX_PATH=<path-to-environment>``.
 
-        $ export CMAKE_PREFIX_PATH=<path-to-environment>
+**HOOMD-blue**'s cmake configuration accepts a number of options.
 
-HOOMD-blue's cmake configuration accepts a number of options.
-
-Options that specify library versions only take effect on a clean invocation of CMake. To set these
-options, first remove ``CMakeCache.txt`` from the build directory and then run ``cmake`` with these
-options on the command line.
+Options that find libraries and executables only take effect on a clean invocation of CMake. To set
+these options, first remove ``CMakeCache.txt`` from the build directory and then run ``cmake`` with
+these options on the command line.
 
 - ``PYTHON_EXECUTABLE`` - Specify which ``python`` to build against. Example: ``/usr/bin/python3``.
 
@@ -207,6 +197,10 @@ options on the command line.
 
   - Default: location of ``mpicc`` detected on the ``$PATH``.
 
+- ``<package-name>_ROOT_DIR`` - Specify the location of a package.
+
+  - Default: Found on the `CMake`_ search path.
+
 Other option changes take effect at any time:
 
 - ``BUILD_HPMC`` - When enabled, build the ``hoomd.hpmc`` module (default: ``on``).
@@ -216,14 +210,14 @@ Other option changes take effect at any time:
 - ``CMAKE_BUILD_TYPE`` - Sets the build type (case sensitive) Options:
 
   - ``Debug`` - Compiles debug information into the library and executables. Enables asserts to
-    check for programming mistakes. HOOMD-blue will run slow when compiled in ``Debug`` mode,
+    check for programming mistakes. **HOOMD-blue** will run slow when compiled in ``Debug`` mode,
     but problems are easier to identify.
   - ``RelWithDebInfo`` - Compiles with optimizations and debug symbols.
   - ``Release`` - (default) All compiler optimizations are enabled and asserts are removed.
     Recommended for production builds.
 
-- ``CMAKE_INSTALL_PREFIX`` - Directory to install HOOMD. Defaults to the root path of the found
-  Python executable.
+- ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
+  found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
 - ``ENABLE_DOXYGEN`` - When enabled, generate developer documentation (default: ``off``).
 - ``SINGLE_PRECISION`` - Controls precision (default: ``off``).
@@ -247,8 +241,8 @@ Other option changes take effect at any time:
 
 - ``ENABLE_TBB`` - Enable support for Intel's Threading Building Blocks (TBB).
 
-  - When set to ``on``, HOOMD will use TBB to speed up calculations in some classes on multiple CPU
-    cores.
+  - When set to ``on``, **HOOMD-blue** will use TBB to speed up calculations in some classes on
+    multiple CPU cores.
 - ``PYTHON_SITE_INSTALL_DIR`` - Directory to install ``hoomd`` to relative to
   ``CMAKE_INSTALL_PREFIX``. Defaults to the ``site-packages`` directory used by the found Python
   executable.
@@ -265,7 +259,7 @@ These options control CUDA compilation via ``nvcc``:
 Build the package
 -----------------
 
-The command ``cmake --build build/hoomd`` will build the HOOMD-blue Python package in the given
+The command ``cmake --build build/hoomd`` will build the **HOOMD-blue** Python package in the given
 build directory. After the build completes, the build directory will contain a functioning Python
 package.
 
@@ -274,7 +268,7 @@ package.
 Install the package
 -------------------
 
-The command ``cmake --install build/hoomd`` installs the given HOOMD build to
+The command ``cmake --install build/hoomd`` installs the given **HOOMD-blue** build to
 ``${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_INSTALL_DIR}``. CMake autodetects these paths, but you can
 set them manually in CMake.
 
@@ -283,18 +277,17 @@ set them manually in CMake.
 Build the documentation
 -----------------------
 
-.. code::
-
-    $ sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation
-
-To view the built documentation. open the file ``build/hoomd-documentation/index.html`` in your
-web browser.
+Run `Sphinx`_ to build the documentation with the command
+``sphinx-build -b html hoomd-blue/sphinx-doc build/hoomd-documentation``. Open the file
+:file:`build/hoomd-documentation/index.html` in your web browser to view the documentation.
 
 .. tip::
 
     When iteratively modifying the documentation, the sphinx options ``-a -n -W -T --keep-going``
-    are helpful to produce docs with consistent links in the side panel and to get more useful error
+    are helpful to produce docs with consistent links in the side panel and to see more useful error
     messages::
 
-        sphinx-build -a -n -W -T --keep-going -b html \
+        $ sphinx-build -a -n -W -T --keep-going -b html \
             hoomd-blue/sphinx-doc build/hoomd-documentation
+
+.. _Sphinx: https://www.sphinx-doc.org/

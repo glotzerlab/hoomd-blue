@@ -38,9 +38,5 @@ package. Override this and force GPU package installation with::
     Use miniforge_ or miniconda_ instead of the full Anaconda distribution to avoid package
     conflicts with conda-forge_ packages.
 
-.. tip::
-
-    miniforge_ environments set ``conda-forge`` as the default channel.
-
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _miniconda: http://conda.pydata.org/miniconda.html
