@@ -26,7 +26,6 @@
         #include <cub/warp/warp_reduce.cuh>
         #include <cub/warp/warp_scan.cuh>
     #else
-        #include "hoomd/extern/cub/cub/cub.cuh"
         #include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
         #include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
     #endif

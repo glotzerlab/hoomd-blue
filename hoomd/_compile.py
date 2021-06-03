@@ -44,7 +44,6 @@ def get_gpu_compilation_settings(gpu):
     includes = [
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
         "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/HIP/include',
-        "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/cub',
         # order seems to matter; add cuda last
         "-I" + _jit.__cuda_include_path__,
     ]
