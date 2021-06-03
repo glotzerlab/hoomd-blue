@@ -1,4 +1,5 @@
 import hoomd
+from hoomd.conftest import operation_pickling_check
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -7,8 +8,7 @@ from copy import deepcopy
 
 
 def check_dict(shape_dict, args):
-    """
-    check_dict: Function to check that two dictionaries are equivalent
+    """Check that two dictionaries are equivalent.
 
     Arguments: shape_dict and args - dictionaries to test
 
@@ -480,21 +480,23 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
     assert mc.overlaps > 0
 
 
-_union_shapes = [({
-    'diameter': 1
-}, hoomd.hpmc.integrate.SphereUnion),
-                 ({
-                     "vertices": _tetrahedron_verts
-                 }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
-                 ({
-                     "normals": [(0, 0, 1)],
-                     "a": 0.5,
-                     "b": 0.5,
-                     "c": 1,
-                     "vertices": [],
-                     "origin": (0, 0, 0),
-                     "offsets": [0]
-                 }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),]
+_union_shapes = [
+    ({
+        'diameter': 1
+    }, hoomd.hpmc.integrate.SphereUnion),
+    ({
+        "vertices": _tetrahedron_verts
+    }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
+    ({
+        "normals": [(0, 0, 1)],
+        "a": 0.5,
+        "b": 0.5,
+        "c": 1,
+        "vertices": [],
+        "origin": (0, 0, 0),
+        "offsets": [0]
+    }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),
+]
 
 
 @pytest.fixture(scope="function", params=_union_shapes)
@@ -628,3 +630,25 @@ def test_overlaps_sphinx(device, simulation_factory,
         s.particles.position[1] = (0.76, 0, 0)
     sim.state.snapshot = s
     assert mc.overlaps == 0
+
+
+def test_pickling(valid_args, simulation_factory,
+                  two_particle_snapshot_factory):
+    integrator = valid_args[0]
+    args = valid_args[1]
+    # Need to unpack union integrators
+    if isinstance(integrator, tuple):
+        inner_integrator = integrator[0]
+        integrator = integrator[1]
+        inner_mc = inner_integrator()
+        for i in range(len(args["shapes"])):
+            # This will fill in default values for the inner shape objects
+            inner_mc.shape["A"] = args["shapes"][i]
+            args["shapes"][i] = inner_mc.shape["A"]
+    mc = integrator()
+    mc.shape["A"] = args
+    # L needs to be ridiculously large as to not be too small for the domain
+    # decomposition of some of the shapes definitions in valid_args which have
+    # shapes with large extent in at least one dimension.
+    sim = simulation_factory(two_particle_snapshot_factory(L=1000))
+    operation_pickling_check(mc, sim)

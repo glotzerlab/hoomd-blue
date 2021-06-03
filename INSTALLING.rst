@@ -55,7 +55,7 @@ https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 .. code-block:: bash
 
-   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.5.tar.gz
+   $ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v3.0.0-beta.6.tar.gz
 
 Or clone using Git:
 
@@ -120,7 +120,9 @@ Install prerequisites
 **To build documentation**
 
 - Doxygen >= 1.8.5
-- Sphinx >= 1.6
+- Sphinx (>= 4.0 preferred)
+- sphinx_rtd_theme
+- nbsphinx
 
 Install these tools with your system or virtual environment package manager.
 HOOMD developers have had success with
@@ -290,3 +292,17 @@ These options control CUDA compilation via ``nvcc``:
 
 - ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to
   compile in.
+
+Build the documentation
+-----------------------
+
+Use sphinx to build the documentation::
+
+    $ cd /path/to/hoomd-blue
+    $ cd sphinx-doc
+    $ make html
+
+Then, open the documentation in ``_build/html/index.html``. On some platforms, you can use this
+command to do open the file::
+
+    $ open _build/html/index.html

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file ClockSource.h
@@ -35,7 +34,7 @@
 */
 inline void Sleep(int msec)
     {
-    usleep(msec*1000);
+    usleep(msec * 1000);
     }
 
 //! Source of time measurements
@@ -47,15 +46,16 @@ inline void Sleep(int msec)
 class PYBIND11_EXPORT ClockSource
     {
     public:
-        //! Construct a ClockSource
-        ClockSource();
-        //! Get the current time in nanoseconds
-        int64_t getTime() const;
+    //! Construct a ClockSource
+    ClockSource();
+    //! Get the current time in nanoseconds
+    int64_t getTime() const;
 
-        //! Formats a given time value to HH:MM:SS
-        static std::string formatHMS(int64_t t);
+    //! Formats a given time value to HH:MM:SS
+    static std::string formatHMS(int64_t t);
+
     private:
-        int64_t m_start_time; //!< Stores a base time to reference from
+    int64_t m_start_time; //!< Stores a base time to reference from
     };
 
 //! Exports the ClockSource class to python
@@ -68,7 +68,7 @@ inline int64_t ClockSource::getTime() const
     timeval t;
     gettimeofday(&t, NULL);
 
-    int64_t nsec = int64_t(t.tv_sec) * int64_t(1000000000) + int64_t(t.tv_usec)*int64_t(1000);
+    int64_t nsec = int64_t(t.tv_sec) * int64_t(1000000000) + int64_t(t.tv_usec) * int64_t(1000);
     return nsec - m_start_time;
     }
 

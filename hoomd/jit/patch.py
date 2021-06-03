@@ -10,6 +10,7 @@ import os
 
 import numpy as np
 
+
 class user(object):
     R''' Define an arbitrary patch energy.
 
@@ -127,7 +128,14 @@ class user(object):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, clang_exec=None):
+
+    def __init__(self,
+                 mc,
+                 r_cut,
+                 array_size=1,
+                 code=None,
+                 llvm_ir_file=None,
+                 clang_exec=None):
 
         # check if initialization has occurred
         hoomd.context._verify_init()
@@ -136,7 +144,7 @@ class user(object):
 
         # Find a clang executable if none is provided (we need the CPU version even when running on GPU)
         if clang_exec is not None:
-            clang = clang_exec;
+            clang = clang_exec
         else:
             clang = 'clang'
 
@@ -144,43 +152,57 @@ class user(object):
             llvm_ir = self.compile_user(array_size, 1, code, clang)
         elif llvm_ir_file is not None:
             # IR is a text file
-            with open(llvm_ir_file,'r') as f:
+            with open(llvm_ir_file, 'r') as f:
                 llvm_ir = f.read()
         else:
             raise ValueError("llvm_ir_file and code cannot both be None.")
 
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include'
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
-            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+            options = [
+                "-I" + include_path_hoomd, "-I" + include_path_source,
+                "-I" + include_path_cuda
+            ]
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
 
             # select maximum supported compute capability out of those we compile for
-            compute_archs = _jit.__cuda_compute_archs__;
+            compute_archs = _jit.__cuda_compute_archs__
             compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(
+                0)  # GPU 0
             compute_major, compute_minor = compute_capability.split('.')
             max_arch = 0
             for a in compute_archs.split('_'):
-                if int(a) < int(compute_major)*10+int(compute_major):
+                if int(a) < int(compute_major) * 10 + int(compute_major):
                     max_arch = int(a)
 
             gpu_code = self.wrap_gpu_code(code)
-            self.cpp_evaluator = _jit.PatchEnergyJITGPU(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+            self.cpp_evaluator = _jit.PatchEnergyJITGPU(
+                hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut,
+                array_size, gpu_code,
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options,
+                cuda_devrt_library_path, max_arch)
         else:
-            self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut, array_size);
+            self.cpp_evaluator = _jit.PatchEnergyJIT(
+                hoomd.context.current.device.cpp_exec_conf, llvm_ir, r_cut,
+                array_size)
 
-        mc.set_PatchEnergyEvaluator(self);
+        mc.set_PatchEnergyEvaluator(self)
 
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha_iso[:] = [0]*array_size
+        self.cpp_evaluator.alpha_iso[:] = [0] * array_size
         self.alpha_iso = self.cpp_evaluator.alpha_iso
 
-    def compile_user(self, array_size_iso, array_size_union, code, clang_exec, fn=None):
+    def compile_user(self,
+                     array_size_iso,
+                     array_size_union,
+                     code,
+                     clang_exec,
+                     fn=None):
         R'''Helper function to compile the provided code into an executable
 
         Args:
@@ -220,29 +242,43 @@ float eval(const vec3<float>& r_ij,
 }
 """
 
-        include_path = os.path.dirname(hoomd.__file__) + '/include';
-        include_path_source = hoomd._hoomd.__hoomd_source_dir__;
+        include_path = os.path.dirname(hoomd.__file__) + '/include'
+        include_path_source = hoomd._hoomd.__hoomd_source_dir__
 
         if clang_exec is not None:
-            clang = clang_exec;
+            clang = clang_exec
         else:
-            clang = 'clang';
+            clang = 'clang'
 
         if fn is not None:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+            cmd = [
+                clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I',
+                include_path, '-I', include_path_source, '-S', '-emit-llvm',
+                '-x', 'c++', '-o', fn, '-'
+            ]
         else:
-            cmd = [clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
-        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            cmd = [
+                clang, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I',
+                include_path, '-I', include_path_source, '-S', '-emit-llvm',
+                '-x', 'c++', '-o', '-', '-'
+            ]
+        p = subprocess.Popen(cmd,
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
 
         # pass C++ function to stdin
         output = p.communicate(cpp_function.encode('utf-8'))
         llvm_ir = output[0].decode()
 
         if p.returncode != 0:
-            hoomd.context.current.device.cpp_msg.error("Error compiling provided code\n");
-            hoomd.context.current.device.cpp_msg.error("Command "+' '.join(cmd)+"\n");
-            hoomd.context.current.device.cpp_msg.error(output[1].decode()+"\n");
-            raise RuntimeError("Error initializing patch energy");
+            hoomd.context.current.device.cpp_msg.error(
+                "Error compiling provided code\n")
+            hoomd.context.current.device.cpp_msg.error("Command "
+                                                       + ' '.join(cmd) + "\n")
+            hoomd.context.current.device.cpp_msg.error(output[1].decode()
+                                                       + "\n")
+            raise RuntimeError("Error initializing patch energy")
 
         return llvm_ir
 
@@ -289,7 +325,8 @@ __device__ inline float eval(const vec3<float>& r_ij,
         log (bool): If true, only use patch energy as a log quantity
 
     '''
-    def disable(self,log=None):
+
+    def disable(self, log=None):
 
         if log:
             # enable only for logging purposes
@@ -297,7 +334,7 @@ __device__ inline float eval(const vec3<float>& r_ij,
             self.log = True
         else:
             # disable completely
-            self.mc.cpp_integrator.setPatchEnergy(None);
+            self.mc.cpp_integrator.setPatchEnergy(None)
             self.log = False
 
         self.enabled = False
@@ -305,8 +342,10 @@ __device__ inline float eval(const vec3<float>& r_ij,
     R''' (Re-)Enable the patch energy
 
     '''
+
     def enable(self):
-        self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
+        self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator)
+
 
 class user_union(user):
     R''' Define an arbitrary patch energy on a union of particles
@@ -371,14 +410,24 @@ class user_union(user):
 
     .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, array_size=1, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
-        llvm_ir_file_iso=None, array_size_iso=1, clang_exec=None):
+
+    def __init__(self,
+                 mc,
+                 r_cut,
+                 array_size=1,
+                 code=None,
+                 llvm_ir_file=None,
+                 r_cut_iso=None,
+                 code_iso=None,
+                 llvm_ir_file_iso=None,
+                 array_size_iso=1,
+                 clang_exec=None):
 
         # check if initialization has occurred
         hoomd.context._verify_init()
 
         if clang_exec is not None:
-            clang = clang_exec;
+            clang = clang_exec
         else:
             clang = 'clang'
 
@@ -386,19 +435,21 @@ class user_union(user):
             llvm_ir = self.compile_user(array_size_iso, array_size, code, clang)
         else:
             # IR is a text file
-            with open(llvm_ir_file,'r') as f:
+            with open(llvm_ir_file, 'r') as f:
                 llvm_ir = f.read()
 
         if code_iso is not None:
-            llvm_ir_iso = self.compile_user(array_size_iso, array_size, code_iso, clang)
+            llvm_ir_iso = self.compile_user(array_size_iso, array_size,
+                                            code_iso, clang)
         else:
             if llvm_ir_file_iso is not None:
                 # IR is a text file
-                with open(llvm_ir_file_iso,'r') as f:
+                with open(llvm_ir_file_iso, 'r') as f:
                     llvm_ir_iso = f.read()
             else:
                 # provide a dummy function
-                llvm_ir_iso = self.compile_user(array_size_iso, array_size, 'return 0;', clang)
+                llvm_ir_iso = self.compile_user(array_size_iso, array_size,
+                                                'return 0;', clang)
 
         if r_cut_iso is None:
             r_cut_iso = -1.0
@@ -406,10 +457,13 @@ class user_union(user):
         self.compute_name = "patch_union"
 
         if hoomd.context.current.device.cpp_exec_conf.isCUDAEnabled():
-            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_hoomd = os.path.dirname(hoomd.__file__) + '/include'
             include_path_source = hoomd._hoomd.__hoomd_source_dir__
             include_path_cuda = _jit.__cuda_include_path__
-            options = ["-I"+include_path_hoomd, "-I"+include_path_source, "-I"+include_path_cuda]
+            options = [
+                "-I" + include_path_hoomd, "-I" + include_path_source,
+                "-I" + include_path_cuda
+            ]
 
             # use union evaluator
             options += ["-DUNION_EVAL"]
@@ -417,34 +471,47 @@ class user_union(user):
             cuda_devrt_library_path = _jit.__cuda_devrt_library_path__
 
             # select maximum supported compute capability out of those we compile for
-            compute_archs = _jit.__cuda_compute_archs__;
+            compute_archs = _jit.__cuda_compute_archs__
             compute_archs_vec = _hoomd.std_vector_uint()
-            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(0) # GPU 0
+            compute_capability = hoomd.context.current.device.cpp_exec_conf.getComputeCapability(
+                0)  # GPU 0
             compute_major, compute_minor = compute_capability.split('.')
             max_arch = 0
             for a in compute_archs.split('_'):
-                if int(a) < int(compute_major)*10+int(compute_major):
+                if int(a) < int(compute_major) * 10 + int(compute_major):
                     max_arch = int(a)
 
             gpu_code = self.wrap_gpu_code(code)
-            self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
-                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size,
-                gpu_code, "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options, cuda_devrt_library_path, max_arch);
+            self.cpp_evaluator = _jit.PatchEnergyJITUnionGPU(
+                hoomd.context.current.system_definition,
+                hoomd.context.current.device.cpp_exec_conf, llvm_ir_iso,
+                r_cut_iso, array_size_iso, llvm_ir, r_cut, array_size, gpu_code,
+                "hpmc::gpu::kernel::hpmc_narrow_phase_patch", options,
+                cuda_devrt_library_path, max_arch)
         else:
-            self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.current.device.cpp_exec_conf,
-                llvm_ir_iso, r_cut_iso, array_size_iso, llvm_ir, r_cut,  array_size);
+            self.cpp_evaluator = _jit.PatchEnergyJITUnion(
+                hoomd.context.current.system_definition,
+                hoomd.context.current.device.cpp_exec_conf, llvm_ir_iso,
+                r_cut_iso, array_size_iso, llvm_ir, r_cut, array_size)
 
-        mc.set_PatchEnergyEvaluator(self);
+        mc.set_PatchEnergyEvaluator(self)
 
         self.mc = mc
         self.enabled = True
         self.log = False
-        self.cpp_evaluator.alpha_iso[:] = [0]*array_size_iso
-        self.cpp_evaluator.alpha_union[:] = [0]*array_size
+        self.cpp_evaluator.alpha_iso[:] = [0] * array_size_iso
+        self.cpp_evaluator.alpha_union[:] = [0] * array_size
         self.alpha_iso = self.cpp_evaluator.alpha_iso[:]
         self.alpha_union = self.cpp_evaluator.alpha_union[:]
 
-    def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
+    def set_params(self,
+                   type,
+                   positions,
+                   typeids,
+                   orientations=None,
+                   charges=None,
+                   diameters=None,
+                   leaf_capacity=4):
         R''' Set the union shape parameters for a given particle type
 
         Args:
@@ -457,13 +524,13 @@ class user_union(user):
         '''
 
         if orientations is None:
-            orientations = [[1,0,0,0]]*len(positions)
+            orientations = [[1, 0, 0, 0]] * len(positions)
 
         if charges is None:
-            charges = [0]*len(positions)
+            charges = [0] * len(positions)
 
         if diameters is None:
-            diameters = [0.0]*len(positions)
+            diameters = [0.0] * len(positions)
 
         positions = np.array(positions).tolist()
         orientations = np.array(orientations).tolist()
@@ -471,11 +538,17 @@ class user_union(user):
         charges = np.array(charges).tolist()
         typeids = np.array(typeids).tolist()
 
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        ntypes = hoomd.context.current.system_definition.getParticleData(
+        ).getNTypes()
+        type_names = [
+            hoomd.context.current.system_definition.getParticleData()
+            .getNameByType(i) for i in range(0, ntypes)
+        ]
         if not type in type_names:
-            hoomd.context.current.device.cpp_msg.error("{} is not a valid particle type.\n".format(type));
-            raise RuntimeError("Error initializing patch energy.");
+            hoomd.context.current.device.cpp_msg.error(
+                "{} is not a valid particle type.\n".format(type))
+            raise RuntimeError("Error initializing patch energy.")
         typeid = type_names.index(type)
 
-        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
+        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations,
+                                    diameters, charges, leaf_capacity)

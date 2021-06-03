@@ -149,28 +149,6 @@ void MuellerPlatheFlow::update(uint64_t timestep)
     // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
 
-std::vector<std::string> MuellerPlatheFlow::getProvidedLogQuantities()
-    {
-    std::vector<std::string> ret;
-    ret.push_back(string("summed_exchanged_momentum"));
-    return ret;
-    }
-
-Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == "summed_exchanged_momentum")
-        {
-        return this->summed_exchanged_momentum();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "update.mueller_plathe_flow: " << quantity
-                                  << " is not a valid log quantity." << endl;
-        throw runtime_error("Error getting log value");
-        }
-    return Scalar(0.0);
-    }
-
 void MuellerPlatheFlow::swap_min_max_slab(void)
     {
     std::swap(m_max_slab, m_min_slab);

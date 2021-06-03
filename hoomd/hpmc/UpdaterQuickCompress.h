@@ -129,7 +129,7 @@ class UpdaterQuickCompress : public Updater
     pybind11::object m_target_box;
 
     /// Unique ID for RNG seeding
-    unsigned int m_instance=0;
+    unsigned int m_instance = 0;
 
     /// hold backup copy of particle positions
     GPUArray<Scalar4> m_pos_backup;

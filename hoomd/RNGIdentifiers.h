@@ -18,8 +18,8 @@
 #ifndef HOOMD_RNGIDENTIFIERS_H__
 #define HOOMD_RNGIDENTIFIERS_H__
 
-namespace hoomd {
-
+namespace hoomd
+    {
 struct RNGIdentifier
     {
     static const uint8_t ComputeFreeVolume = 0;
@@ -65,6 +65,6 @@ struct RNGIdentifier
     static const uint8_t UpdaterClusters2 = 40;
     };
 
-}
+    } // namespace hoomd
 
 #endif

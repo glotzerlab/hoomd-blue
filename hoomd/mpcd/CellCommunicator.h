@@ -21,8 +21,8 @@
 #include "CellCommunicator.cuh"
 #endif // ENABLE_HIP
 
-#include "CommunicatorUtilities.h"
 #include "CellList.h"
+#include "CommunicatorUtilities.h"
 
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
@@ -35,145 +35,140 @@
 #include <set>
 
 namespace mpcd
-{
-
+    {
 //! Communicates properties across the MPCD cell list
 class PYBIND11_EXPORT CellCommunicator
     {
     public:
-        //! Constructor
-        CellCommunicator(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<mpcd::CellList> cl);
+    //! Constructor
+    CellCommunicator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<mpcd::CellList> cl);
 
-        //! Destructor
-        virtual ~CellCommunicator();
+    //! Destructor
+    virtual ~CellCommunicator();
 
-        //! Reduce cell list properties
-        /*!
-         * \param props Properties to reduce
-         * \param op Binary reduction operator
-         *
-         * Properties are reduced across domain boundaries, as marked in the cell list.
-         */
-        template<typename T, class PackOpT>
-        void communicate(const GPUArray<T>& props, const PackOpT op)
+    //! Reduce cell list properties
+    /*!
+     * \param props Properties to reduce
+     * \param op Binary reduction operator
+     *
+     * Properties are reduced across domain boundaries, as marked in the cell list.
+     */
+    template<typename T, class PackOpT> void communicate(const GPUArray<T>& props, const PackOpT op)
+        {
+        begin(props, op);
+        finalize(props, op);
+        }
+
+    //! Begin communication of the grid
+    template<typename T, class PackOpT> void begin(const GPUArray<T>& props, const PackOpT op);
+
+    //! Finalize communication of the grid
+    template<typename T, class PackOpT> void finalize(const GPUArray<T>& props, const PackOpT op);
+
+    //! Get the number of unique cells with communication
+    unsigned int getNCells()
+        {
+        if (m_needs_init)
             {
-            begin(props, op);
-            finalize(props, op);
+            initialize();
+            m_needs_init = false;
             }
+        return m_num_cells;
+        }
 
-        //! Begin communication of the grid
-        template<typename T, class PackOpT>
-        void begin(const GPUArray<T>& props, const PackOpT op);
-
-        //! Finalize communication of the grid
-        template<typename T, class PackOpT>
-        void finalize(const GPUArray<T>& props, const PackOpT op);
-
-        //! Get the number of unique cells with communication
-        unsigned int getNCells()
+    //! Get the list of unique cells with communication
+    const GPUArray<unsigned int>& getCells()
+        {
+        if (m_needs_init)
             {
-            if (m_needs_init)
-                {
-                initialize();
-                m_needs_init = false;
-                }
-            return m_num_cells;
+            initialize();
+            m_needs_init = false;
             }
+        return m_cells;
+        }
 
-        //! Get the list of unique cells with communication
-        const GPUArray<unsigned int>& getCells()
+    //! Set autotuner parameters
+    /*!
+     * \param enable Enable / disable autotuning
+     * \param period period (approximate) in time steps when retuning occurs
+     */
+    void setAutotunerParams(bool enable, unsigned int period)
+        {
+#ifdef ENABLE_HIP
+        if (m_tuner_pack)
             {
-            if (m_needs_init)
-                {
-                initialize();
-                m_needs_init = false;
-                }
-            return m_cells;
+            m_tuner_pack->setEnabled(enable);
+            m_tuner_pack->setPeriod(period);
             }
-
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable / disable autotuning
-         * \param period period (approximate) in time steps when retuning occurs
-         */
-        void setAutotunerParams(bool enable, unsigned int period)
+        if (m_tuner_unpack)
             {
-            #ifdef ENABLE_HIP
-            if (m_tuner_pack)
-                {
-                m_tuner_pack->setEnabled(enable);
-                m_tuner_pack->setPeriod(period);
-                }
-            if (m_tuner_unpack)
-                {
-                m_tuner_unpack->setEnabled(enable);
-                m_tuner_unpack->setPeriod(period);
-                }
-            #endif // ENABLE_HIP
+            m_tuner_unpack->setEnabled(enable);
+            m_tuner_unpack->setPeriod(period);
             }
+#endif // ENABLE_HIP
+        }
 
     private:
-        static unsigned int num_instances;      //!< Number of communicator instances
-        const unsigned int m_id;                //!< Id for this communicator to use in tags
+    static unsigned int num_instances; //!< Number of communicator instances
+    const unsigned int m_id;           //!< Id for this communicator to use in tags
 
-        std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
-        std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
-        const MPI_Comm m_mpi_comm;                                  //!< MPI Communicator
-        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
+    std::shared_ptr<SystemDefinition> m_sysdef;                //!< System definition
+    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+    const MPI_Comm m_mpi_comm;                                 //!< MPI Communicator
+    std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition
 
-        std::shared_ptr<mpcd::CellList> m_cl;   //!< MPCD cell list
+    std::shared_ptr<mpcd::CellList> m_cl; //!< MPCD cell list
 
-        bool m_communicating;   //!< Flag if communication is occurring
-        GPUVector<unsigned char> m_send_buf;    //!< Send buffer
-        GPUVector<unsigned char> m_recv_buf;    //!< Receive buffer
-        GPUArray<unsigned int> m_send_idx;      //!< Indexes of cells in send buffer
-        std::vector<MPI_Request> m_reqs;        //!< MPI request objects
+    bool m_communicating;                //!< Flag if communication is occurring
+    GPUVector<unsigned char> m_send_buf; //!< Send buffer
+    GPUVector<unsigned char> m_recv_buf; //!< Receive buffer
+    GPUArray<unsigned int> m_send_idx;   //!< Indexes of cells in send buffer
+    std::vector<MPI_Request> m_reqs;     //!< MPI request objects
 
-        std::vector<unsigned int> m_neighbors;  //!< Unique neighbor ranks
-        std::vector<unsigned int> m_begin;      //!< Begin offset of every neighbor
-        std::vector<unsigned int> m_num_send;   //!< Number of cells to send to every neighbor
+    std::vector<unsigned int> m_neighbors; //!< Unique neighbor ranks
+    std::vector<unsigned int> m_begin;     //!< Begin offset of every neighbor
+    std::vector<unsigned int> m_num_send;  //!< Number of cells to send to every neighbor
 
-        unsigned int m_num_cells;               //!< Number of unique cells to receive
-        GPUArray<unsigned int> m_cells;         //!< Unique cells to receive
-        GPUArray<unsigned int> m_recv;          //!< Reordered mapping of buffer from ranks to group received cells together
-        GPUArray<unsigned int> m_recv_begin;    //!< Begin offset of every unique cell
-        GPUArray<unsigned int> m_recv_end;      //!< End offset of every unique cell
+    unsigned int m_num_cells;       //!< Number of unique cells to receive
+    GPUArray<unsigned int> m_cells; //!< Unique cells to receive
+    GPUArray<unsigned int>
+        m_recv; //!< Reordered mapping of buffer from ranks to group received cells together
+    GPUArray<unsigned int> m_recv_begin; //!< Begin offset of every unique cell
+    GPUArray<unsigned int> m_recv_end;   //!< End offset of every unique cell
 
-        bool m_needs_init;      //!< Flag if grid needs to be initialized
-        //! Slot that communicator needs to be reinitialized
-        void slotInit()
-            {
-            m_needs_init = true;
-            }
+    bool m_needs_init; //!< Flag if grid needs to be initialized
+    //! Slot that communicator needs to be reinitialized
+    void slotInit()
+        {
+        m_needs_init = true;
+        }
 
-        //! Initialize the grid
-        void initialize();
+    //! Initialize the grid
+    void initialize();
 
-        //! Packs the property buffer
-        template<typename T, class PackOpT>
-        void packBuffer(const GPUArray<T>& props, const PackOpT op);
+    //! Packs the property buffer
+    template<typename T, class PackOpT> void packBuffer(const GPUArray<T>& props, const PackOpT op);
 
-        //! Unpacks the property buffer
-        template<typename T, class PackOpT>
-        void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
+    //! Unpacks the property buffer
+    template<typename T, class PackOpT>
+    void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
 
-        #ifdef ENABLE_HIP
-        std::unique_ptr<Autotuner> m_tuner_pack;    //!< Tuner for pack kernel
-        std::unique_ptr<Autotuner> m_tuner_unpack;  //!< Tuner for unpack kernel
+#ifdef ENABLE_HIP
+    std::unique_ptr<Autotuner> m_tuner_pack;   //!< Tuner for pack kernel
+    std::unique_ptr<Autotuner> m_tuner_unpack; //!< Tuner for unpack kernel
 
-        //! Packs the property buffer on the GPU
-        template<typename T, class PackOpT>
-        void packBufferGPU(const GPUArray<T>& props, const PackOpT op);
+    //! Packs the property buffer on the GPU
+    template<typename T, class PackOpT>
+    void packBufferGPU(const GPUArray<T>& props, const PackOpT op);
 
-        //! Unpacks the property buffer on the GPU
-        template<typename T, class PackOpT>
-        void unpackBufferGPU(const GPUArray<T>& props, const PackOpT op);
-        #endif // ENABLE_HIP
+    //! Unpacks the property buffer on the GPU
+    template<typename T, class PackOpT>
+    void unpackBufferGPU(const GPUArray<T>& props, const PackOpT op);
+#endif // ENABLE_HIP
     };
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 /*!
  * \param props Property buffer to pack
@@ -190,13 +185,16 @@ template<typename T, class PackOpT>
 void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
     {
     // check if communication is occurring and place a lock on
-    if (m_communicating) return;
+    if (m_communicating)
+        return;
     m_communicating = true;
 
     // ensure that the property grid is sufficiently sized compared to the cell list
     if (props.getNumElements() < m_cl->getNCells())
         {
-        m_exec_conf->msg->error() << "mpcd: cell property to be reduced is smaller than cell list dimensions" << std::endl;
+        m_exec_conf->msg->error()
+            << "mpcd: cell property to be reduced is smaller than cell list dimensions"
+            << std::endl;
         throw std::runtime_error("MPCD cell property has insufficient dimensions");
         }
 
@@ -211,13 +209,13 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
     m_send_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
     m_recv_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         packBufferGPU(props, op);
         }
     else
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
         {
         packBuffer(props, op);
         }
@@ -226,33 +224,48 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
         {
         // determine whether to use CPU or GPU CUDA buffers
         access_location::Enum mpi_loc;
-        #ifdef ENABLE_MPI_CUDA
+#ifdef ENABLE_MPI_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
             mpi_loc = access_location::device;
             }
         else
-        #endif // ENABLE_MPI_CUDA
+#endif // ENABLE_MPI_CUDA
             {
             mpi_loc = access_location::host;
             }
 
         ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
         ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
-        typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
-        typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
-        #ifdef ENABLE_MPI_CUDA
-        if (mpi_loc == access_location::device) cudaDeviceSynchronize();
-        #endif // ENABLE_MPI_CUDA
+        typename PackOpT::element* send_buf
+            = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
+        typename PackOpT::element* recv_buf
+            = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
+#ifdef ENABLE_MPI_CUDA
+        if (mpi_loc == access_location::device)
+            cudaDeviceSynchronize();
+#endif // ENABLE_MPI_CUDA
 
-        m_reqs.resize(2*m_neighbors.size());
-        for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
+        m_reqs.resize(2 * m_neighbors.size());
+        for (unsigned int idx = 0; idx < m_neighbors.size(); ++idx)
             {
             const unsigned int neigh = m_neighbors[idx];
             const unsigned int offset = m_begin[idx];
             const size_t num_bytes = sizeof(typename PackOpT::element) * m_num_send[idx];
-            MPI_Isend(send_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_buf + offset, (unsigned int)num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(send_buf + offset,
+                      (unsigned int)num_bytes,
+                      MPI_BYTE,
+                      neigh,
+                      0,
+                      m_mpi_comm,
+                      &m_reqs[2 * idx]);
+            MPI_Irecv(recv_buf + offset,
+                      (unsigned int)num_bytes,
+                      MPI_BYTE,
+                      neigh,
+                      0,
+                      m_mpi_comm,
+                      &m_reqs[2 * idx + 1]);
             }
         }
     }
@@ -272,23 +285,25 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
 template<typename T, class PackOpT>
 void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op)
     {
-    if (!m_communicating) return;
+    if (!m_communicating)
+        return;
 
     // finish all MPI requests
     MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
-    #ifdef ENABLE_MPI_CUDA
+#ifdef ENABLE_MPI_CUDA
     // MPI calls can execute in multiple streams, so force a synchronization before we move on
-    if (m_exec_conf->isCUDAEnabled()) cudaDeviceSynchronize();
-    #endif // ENABLE_MPI_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        cudaDeviceSynchronize();
+#endif // ENABLE_MPI_CUDA
 
-    // unpack the buffer
-    #ifdef ENABLE_HIP
+// unpack the buffer
+#ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
         unpackBufferGPU(props, op);
         }
     else
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
         {
         unpackBuffer(props, op);
         }
@@ -314,10 +329,13 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, const PackOpT 
     {
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::read);
-    ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
-    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
+    ArrayHandle<unsigned char> h_send_buf(m_send_buf,
+                                          access_location::host,
+                                          access_mode::overwrite);
+    typename PackOpT::element* send_buf
+        = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
 
-    for (unsigned int idx=0; idx < m_send_idx.getNumElements(); ++idx)
+    for (unsigned int idx = 0; idx < m_send_idx.getNumElements(); ++idx)
         {
         send_buf[idx] = op.pack(h_props.data[h_send_idx.data[idx]]);
         }
@@ -344,11 +362,12 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, const PackOp
     ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::read);
 
     ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
-    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
+    typename PackOpT::element* recv_buf
+        = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
 
     ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
 
-    for (unsigned int idx=0; idx < m_num_cells; ++idx)
+    for (unsigned int idx = 0; idx < m_num_cells; ++idx)
         {
         const unsigned int cell_idx = h_cells.data[idx];
         const unsigned int begin = h_recv_begin.data[idx];
@@ -385,8 +404,11 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
     {
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_send_idx(m_send_idx, access_location::device, access_mode::read);
-    ArrayHandle<unsigned char> d_send_buf(m_send_buf, access_location::device, access_mode::overwrite);
-    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(d_send_buf.data);
+    ArrayHandle<unsigned char> d_send_buf(m_send_buf,
+                                          access_location::device,
+                                          access_mode::overwrite);
+    typename PackOpT::element* send_buf
+        = reinterpret_cast<typename PackOpT::element*>(d_send_buf.data);
 
     m_tuner_pack->begin();
     mpcd::gpu::pack_cell_buffer(send_buf,
@@ -395,7 +417,8 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackO
                                 op,
                                 (unsigned int)m_send_idx.getNumElements(),
                                 m_tuner_pack->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner_pack->end();
     }
 
@@ -416,11 +439,14 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
     {
     ArrayHandle<unsigned int> d_recv(m_recv, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cells(m_cells, access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_recv_begin(m_recv_begin, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_recv_begin(m_recv_begin,
+                                           access_location::device,
+                                           access_mode::read);
     ArrayHandle<unsigned int> d_recv_end(m_recv_end, access_location::device, access_mode::read);
 
     ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
-    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(d_recv_buf.data);
+    typename PackOpT::element* recv_buf
+        = reinterpret_cast<typename PackOpT::element*>(d_recv_buf.data);
 
     ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
 
@@ -434,7 +460,8 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const Pac
                                   op,
                                   m_num_cells,
                                   m_tuner_unpack->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     m_tuner_unpack->end();
     }
 #endif // ENABLE_HIP

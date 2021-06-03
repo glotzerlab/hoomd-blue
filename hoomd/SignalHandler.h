@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file SignalHandler.h
@@ -30,14 +29,15 @@ extern volatile sig_atomic_t g_sigint_recvd;
 class ScopedSignalHandler
     {
     public:
-        /// Install the signal handler
-        ScopedSignalHandler();
+    /// Install the signal handler
+    ScopedSignalHandler();
 
-        /// Remove the signal handler and restore the previous
-        ~ScopedSignalHandler();
+    /// Remove the signal handler and restore the previous
+    ~ScopedSignalHandler();
+
     private:
-        /// Save the old action
-        struct sigaction m_old_action;
+    /// Save the old action
+    struct sigaction m_old_action;
     };
 
 #endif

@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -23,15 +22,14 @@ using namespace std;
     \ingroup unit_tests
 */
 
-
 #include "upp11_config.h"
 HOOMD_UP_MAIN();
 
-
 //! test case for testing the basic operation of GPUArray
-UP_TEST( GPUArray_basic_tests )
+UP_TEST(GPUArray_basic_tests)
     {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::CPU));
     GPUArray<int> gpu_array(100, exec_conf);
 
     // basic check: ensure that the number of elements is set correctly
@@ -86,14 +84,14 @@ UP_TEST( GPUArray_basic_tests )
         for (int i = 0; i < (int)array_c.getNumElements(); i++)
             UP_ASSERT_EQUAL(h_handle.data[i], i);
         }
-
     }
 
 #ifdef ENABLE_HIP
 //! test case for testing device to/from host transfers
-UP_TEST( GPUArray_transfer_tests )
+UP_TEST(GPUArray_transfer_tests)
     {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU));
     UP_ASSERT(exec_conf->isCUDAEnabled());
 
     GPUArray<int> gpu_array(100, exec_conf);
@@ -114,9 +112,9 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], i*i);
+            UP_ASSERT_EQUAL(h_handle.data[i], i * i);
             // overwrite the data as we verify
-            h_handle.data[i] = 100+i;
+            h_handle.data[i] = 100 + i;
             }
         }
 
@@ -137,9 +135,9 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], i*i+1);
+            UP_ASSERT_EQUAL(h_handle.data[i], i * i + 1);
             // overwrite the data as we verify
-            h_handle.data[i] = 100+i;
+            h_handle.data[i] = 100 + i;
             }
         }
 
@@ -160,7 +158,7 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], 100+i);
+            UP_ASSERT_EQUAL(h_handle.data[i], 100 + i);
             }
         }
 
@@ -180,7 +178,7 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], 100+i+1);
+            UP_ASSERT_EQUAL(h_handle.data[i], 100 + i + 1);
             }
         }
 
@@ -199,13 +197,13 @@ UP_TEST( GPUArray_transfer_tests )
         UP_ASSERT(h_handle.data != NULL);
         for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
             {
-            UP_ASSERT_EQUAL(h_handle.data[i], 100+i+1+1);
+            UP_ASSERT_EQUAL(h_handle.data[i], 100 + i + 1 + 1);
             }
         }
     }
 
 //! Tests operations on NULL GPUArrays
-UP_TEST( GPUArray_null_tests )
+UP_TEST(GPUArray_null_tests)
     {
     // Construct a NULL GPUArray
     GPUArray<int> a;
@@ -220,7 +218,8 @@ UP_TEST( GPUArray_null_tests )
     UP_ASSERT_EQUAL(b.getNumElements(), (unsigned)0);
 
     // check assignment of a NULL GPUArray
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU));
     GPUArray<int> c(1000, exec_conf);
     c = a;
 
@@ -239,9 +238,10 @@ UP_TEST( GPUArray_null_tests )
     }
 
 //! Tests resize methods
-UP_TEST( GPUArray_resize_tests )
+UP_TEST(GPUArray_resize_tests)
     {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     // create a 1D GPUArray
     GPUArray<unsigned int> a(5, exec_conf);
@@ -261,7 +261,7 @@ UP_TEST( GPUArray_resize_tests )
     a.resize(10);
 
     // check that it has the right size
-    UP_ASSERT_EQUAL(a.getNumElements(),(unsigned int)10);
+    UP_ASSERT_EQUAL(a.getNumElements(), (unsigned int)10);
         {
         // test that it still contains the data
         ArrayHandle<unsigned int> h_handle(a, access_location::host, access_mode::read);
@@ -280,79 +280,79 @@ UP_TEST( GPUArray_resize_tests )
         UP_ASSERT_EQUAL(h_handle.data[9], (unsigned int)0);
         }
 
-   // check that it also works for a GPUArray that is initially empty
-   GPUArray<unsigned int> b;
-   b.resize(7);
+    // check that it also works for a GPUArray that is initially empty
+    GPUArray<unsigned int> b;
+    b.resize(7);
 
-   UP_ASSERT_EQUAL(b.getNumElements(), (unsigned int)7);
+    UP_ASSERT_EQUAL(b.getNumElements(), (unsigned int)7);
 
-   // allocate a 2D GPUArray
-   unsigned int width=3;
-   unsigned int height=2;
-   GPUArray<unsigned int> c(width, height,exec_conf);
-   size_t pitch = c.getPitch();
-       {
-       // write some data to it
-       ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::overwrite);
+    // allocate a 2D GPUArray
+    unsigned int width = 3;
+    unsigned int height = 2;
+    GPUArray<unsigned int> c(width, height, exec_conf);
+    size_t pitch = c.getPitch();
+        {
+        // write some data to it
+        ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::overwrite);
 
-       h_handle.data[0] = 123;
-       h_handle.data[1] = 456;
-       h_handle.data[2] = 789;
+        h_handle.data[0] = 123;
+        h_handle.data[1] = 456;
+        h_handle.data[2] = 789;
 
-       h_handle.data[0+pitch] = 1234;
-       h_handle.data[1+pitch] = 3456;
-       h_handle.data[2+pitch] = 5678;
-       }
+        h_handle.data[0 + pitch] = 1234;
+        h_handle.data[1 + pitch] = 3456;
+        h_handle.data[2 + pitch] = 5678;
+        }
 
-   // resize it
-   width = 17;
-   height = 4;
-   c.resize(width,height);
-   pitch = c.getPitch();
+    // resize it
+    width = 17;
+    height = 4;
+    c.resize(width, height);
+    pitch = c.getPitch();
 
-   // check that it has the right size
-   UP_ASSERT_EQUAL(c.getNumElements(), pitch*height);
+    // check that it has the right size
+    UP_ASSERT_EQUAL(c.getNumElements(), pitch * height);
 
-       {
-       // test that we can still recover the data
-       ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::read);
+        {
+        // test that we can still recover the data
+        ArrayHandle<unsigned int> h_handle(c, access_location::host, access_mode::read);
 
-       UP_ASSERT_EQUAL(h_handle.data[0], (unsigned int)123);
-       UP_ASSERT_EQUAL(h_handle.data[1], (unsigned int)456);
-       UP_ASSERT_EQUAL(h_handle.data[2], (unsigned int)789);
+        UP_ASSERT_EQUAL(h_handle.data[0], (unsigned int)123);
+        UP_ASSERT_EQUAL(h_handle.data[1], (unsigned int)456);
+        UP_ASSERT_EQUAL(h_handle.data[2], (unsigned int)789);
 
-       // check that other elements of that row zero
-       for (unsigned int i = 3; i< 17; i++)
-           UP_ASSERT_EQUAL(h_handle.data[i], (unsigned int)0);
+        // check that other elements of that row zero
+        for (unsigned int i = 3; i < 17; i++)
+            UP_ASSERT_EQUAL(h_handle.data[i], (unsigned int)0);
 
-       UP_ASSERT_EQUAL(h_handle.data[0+pitch], (unsigned int)1234);
-       UP_ASSERT_EQUAL(h_handle.data[1+pitch], (unsigned int)3456);
-       UP_ASSERT_EQUAL(h_handle.data[2+pitch], (unsigned int)5678);
+        UP_ASSERT_EQUAL(h_handle.data[0 + pitch], (unsigned int)1234);
+        UP_ASSERT_EQUAL(h_handle.data[1 + pitch], (unsigned int)3456);
+        UP_ASSERT_EQUAL(h_handle.data[2 + pitch], (unsigned int)5678);
 
-       // check that other elements of that row are zero
-       for (unsigned int i = 3; i< 17; i++)
-           UP_ASSERT_EQUAL(h_handle.data[i+pitch], (unsigned int)0);
+        // check that other elements of that row are zero
+        for (unsigned int i = 3; i < 17; i++)
+            UP_ASSERT_EQUAL(h_handle.data[i + pitch], (unsigned int)0);
 
-       // check that the two new rows are zero
-       for (unsigned int i = 0; i< 17; i++)
-           {
-           UP_ASSERT_EQUAL(h_handle.data[i+2*pitch], (unsigned int)0);
-           UP_ASSERT_EQUAL(h_handle.data[i+3*pitch], (unsigned int)0);
-           }
-
-       }
-   }
+        // check that the two new rows are zero
+        for (unsigned int i = 0; i < 17; i++)
+            {
+            UP_ASSERT_EQUAL(h_handle.data[i + 2 * pitch], (unsigned int)0);
+            UP_ASSERT_EQUAL(h_handle.data[i + 3 * pitch], (unsigned int)0);
+            }
+        }
+    }
 
 //! Tests GPUVector
-UP_TEST( GPUVector_basic_tests )
+UP_TEST(GPUVector_basic_tests)
     {
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::GPU));
 
     // First create an empty GPUVector
     GPUVector<unsigned int> vec(exec_conf);
 
     // The size should be zero
-    UP_ASSERT_EQUAL(vec.size(),(unsigned int)0);
+    UP_ASSERT_EQUAL(vec.size(), (unsigned int)0);
 
     // Add some elements
     vec.push_back(1);
@@ -362,16 +362,16 @@ UP_TEST( GPUVector_basic_tests )
     UP_ASSERT_EQUAL(vec.size(), (unsigned int)3);
 
     // Test bracket operator
-    UP_ASSERT_EQUAL((unsigned int)vec[0],(unsigned int)1);
-    UP_ASSERT_EQUAL((unsigned int)vec[1],(unsigned int)2);
-    UP_ASSERT_EQUAL((unsigned int)vec[2],(unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)vec[0], (unsigned int)1);
+    UP_ASSERT_EQUAL((unsigned int)vec[1], (unsigned int)2);
+    UP_ASSERT_EQUAL((unsigned int)vec[2], (unsigned int)3);
 
     // Test assignment
     vec[1] = 4;
 
-    UP_ASSERT_EQUAL((unsigned int)vec[0],(unsigned int)1);
-    UP_ASSERT_EQUAL((unsigned int)vec[1],(unsigned int)4);
-    UP_ASSERT_EQUAL((unsigned int)vec[2],(unsigned int)3);
+    UP_ASSERT_EQUAL((unsigned int)vec[0], (unsigned int)1);
+    UP_ASSERT_EQUAL((unsigned int)vec[1], (unsigned int)4);
+    UP_ASSERT_EQUAL((unsigned int)vec[2], (unsigned int)3);
 
     // remove an element
     vec.pop_back();
@@ -385,7 +385,7 @@ UP_TEST( GPUVector_basic_tests )
 
     // resize it
     vec.resize(10);
-    UP_ASSERT_EQUAL(vec.size(), (unsigned int)10 );
+    UP_ASSERT_EQUAL(vec.size(), (unsigned int)10);
 
     // verify we can still write to it
     vec[0] = 234;

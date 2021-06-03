@@ -14,21 +14,20 @@
 #include <cuda_runtime.h>
 
 #include "SlitPoreGeometry.h"
-#include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/HOOMDMath.h"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
-
+    {
 //! Draw virtual particles in the SlitPoreGeometry
-cudaError_t slit_pore_draw_particles(Scalar4 *d_pos,
-                                     Scalar4 *d_vel,
-                                     unsigned int *d_tag,
+cudaError_t slit_pore_draw_particles(Scalar4* d_pos,
+                                     Scalar4* d_vel,
+                                     unsigned int* d_tag,
                                      const BoxDim& box,
-                                     const Scalar4 *d_boxes,
-                                     const uint2 *d_ranges,
+                                     const Scalar4* d_boxes,
+                                     const uint2* d_ranges,
                                      const unsigned int num_boxes,
                                      const unsigned int N_tot,
                                      const Scalar mass,
@@ -40,7 +39,7 @@ cudaError_t slit_pore_draw_particles(Scalar4 *d_pos,
                                      const uint16_t seed,
                                      const unsigned int block_size);
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd
 
 #endif // MPCD_SLIT_PORE_GEOMETRY_FILLER_GPU_CUH_

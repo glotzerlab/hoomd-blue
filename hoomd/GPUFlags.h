@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file GPUFlags.h
@@ -29,15 +28,17 @@
 /*!
 \b Overview:
 
-GPUFlags is an efficient container for a small set of flags. It is optimized for use when a given set of flags is
-set via a kernel call on the GPU and then read on the host. The host may also reset the flag to a known value.
+GPUFlags is an efficient container for a small set of flags. It is optimized for use when a given
+set of flags is set via a kernel call on the GPU and then read on the host. The host may also reset
+the flag to a known value.
 
 \b Implementation details:
-Like GPUArray, GPUFlags keeps around an ExecutionConfiguration to keep the GPU alive, and the flags are "mirrored" on the
-host and device. In order to optimize for the fastest performance of the host reading flags that were set on the GPU,
-the flags are stored in host mapped memory (on devices that support it). GPUFlags inserts synchronization points 1) when
-resetFlags() is called to reset the value of the flags (otherwise a running kernel may overwrite the reset value) and
-2) when reading the flags on the host with readFlags(). These synchronizations cost about 5-10 microseconds, so do
+Like GPUArray, GPUFlags keeps around an ExecutionConfiguration to keep the GPU alive, and the flags
+are "mirrored" on the host and device. In order to optimize for the fastest performance of the host
+reading flags that were set on the GPU, the flags are stored in host mapped memory (on devices that
+support it). GPUFlags inserts synchronization points 1) when resetFlags() is called to reset the
+value of the flags (otherwise a running kernel may overwrite the reset value) and 2) when reading
+the flags on the host with readFlags(). These synchronizations cost about 5-10 microseconds, so do
 not read or reset the flags more times than is needed.
 
 \ingroup data_structs
@@ -45,80 +46,83 @@ not read or reset the flags more times than is needed.
 template<class T> class PYBIND11_EXPORT GPUFlags
     {
     public:
-        //! Constructs a NULL GPUFlags
-        GPUFlags();
-        //! Constructs a GPUFlags attached to a GPU
-        GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf);
-        //! Frees memory
-        ~GPUFlags();
+    //! Constructs a NULL GPUFlags
+    GPUFlags();
+    //! Constructs a GPUFlags attached to a GPU
+    GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf);
+    //! Frees memory
+    ~GPUFlags();
 
-        //! Copy constructor
-        GPUFlags(const GPUFlags& from);
-        //! = operator
-        GPUFlags& operator=(const GPUFlags& rhs);
+    //! Copy constructor
+    GPUFlags(const GPUFlags& from);
+    //! = operator
+    GPUFlags& operator=(const GPUFlags& rhs);
 
-        //! Swap the pointers in two GPUFlags
-        inline void swap(GPUFlags& from);
+    //! Swap the pointers in two GPUFlags
+    inline void swap(GPUFlags& from);
 
-        //! Test if the GPUFlags is NULL
-        bool isNull() const
-            {
-            return (h_data == NULL);
-            }
+    //! Test if the GPUFlags is NULL
+    bool isNull() const
+        {
+        return (h_data == NULL);
+        }
 
-        //! Read the flags on the host
-        inline const T readFlags();
+    //! Read the flags on the host
+    inline const T readFlags();
 
-        //! Reset the flags on the host
-        inline void resetFlags(const T flags);
+    //! Reset the flags on the host
+    inline void resetFlags(const T flags);
 
 #ifdef ENABLE_HIP
-        //! Get the flags on the device
-        T* getDeviceFlags()
-            {
-            return d_data;
-            }
+    //! Get the flags on the device
+    T* getDeviceFlags()
+        {
+        return d_data;
+        }
 #endif
 
     private:
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
-        bool m_mapped;          //!< Set to true when using host mapped memory
+    std::shared_ptr<const ExecutionConfiguration>
+        m_exec_conf; //!< execution configuration for working with CUDA
+    bool m_mapped;   //!< Set to true when using host mapped memory
 
 #ifdef ENABLE_HIP
-        mutable T* d_data;      //!< Pointer to allocated device memory
+    mutable T* d_data; //!< Pointer to allocated device memory
 #endif
-        mutable T* h_data;      //!< Pointer to allocated host memory
+    mutable T* h_data; //!< Pointer to allocated host memory
 
-        //! Helper function to allocate memory
-        inline void allocate();
-        //! Helper function to free memory
-        inline void deallocate();
-        //! Helper function to clear memory
-        inline void memclear();
-
+    //! Helper function to allocate memory
+    inline void allocate();
+    //! Helper function to free memory
+    inline void deallocate();
+    //! Helper function to clear memory
+    inline void memclear();
     };
 
 //******************************************
 // GPUFlags implementation
 // *****************************************
 
-template<class T> GPUFlags<T>::GPUFlags() :
-        m_mapped(false),
+template<class T>
+GPUFlags<T>::GPUFlags()
+    : m_mapped(false),
 #ifdef ENABLE_HIP
-        d_data(NULL),
+      d_data(NULL),
 #endif
-        h_data(NULL)
+      h_data(NULL)
     {
     }
 
-/*! \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
-*/
-template<class T> GPUFlags<T>::GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf) :
-        m_exec_conf(exec_conf), m_mapped(false),
+/*! \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization
+ * and shutdown
+ */
+template<class T>
+GPUFlags<T>::GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf)
+    : m_exec_conf(exec_conf), m_mapped(false),
 #ifdef ENABLE_HIP
-        d_data(NULL),
+      d_data(NULL),
 #endif
-        h_data(NULL)
+      h_data(NULL)
     {
 #ifdef ENABLE_HIP
     // set mapping if requested and supported
@@ -140,11 +144,13 @@ template<class T> GPUFlags<T>::~GPUFlags()
     deallocate();
     }
 
-template<class T> GPUFlags<T>::GPUFlags(const GPUFlags& from) : m_exec_conf(from.m_exec_conf), m_mapped(false),
+template<class T>
+GPUFlags<T>::GPUFlags(const GPUFlags& from)
+    : m_exec_conf(from.m_exec_conf), m_mapped(false),
 #ifdef ENABLE_HIP
-        d_data(NULL),
+      d_data(NULL),
 #endif
-        h_data(NULL)
+      h_data(NULL)
     {
     // allocate and clear new memory the same size as the data in from
     allocate();
@@ -185,8 +191,9 @@ a = b;
 b = c;
     \endcode
 
-    But it will be done in a super-efficient way by just swapping the internal pointers, thus avoiding all the expensive
-    memory deallocations/allocations and copies using the copy constructor and assignment operator.
+    But it will be done in a super-efficient way by just swapping the internal pointers, thus
+avoiding all the expensive memory deallocations/allocations and copies using the copy constructor
+and assignment operator.
 */
 template<class T> void GPUFlags<T>::swap(GPUFlags& from)
     {
@@ -213,8 +220,8 @@ template<class T> void GPUFlags<T>::allocate()
         {
         if (m_mapped)
             {
-            #ifdef ENABLE_MPI
-            void *ptr = NULL;
+#ifdef ENABLE_MPI
+            void* ptr = NULL;
             // need to use hooks provided by MPI library
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
@@ -222,30 +229,30 @@ template<class T> void GPUFlags<T>::allocate()
                 m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
                 throw std::runtime_error("Error allocating GPUArray.");
                 }
-            h_data = (T *) ptr;
+            h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
-            #else
+#else
             hipHostMalloc(&h_data, sizeof(T), hipHostMallocMapped);
-            #endif
+#endif
             CHECK_CUDA_ERROR();
-            hipHostGetDevicePointer((void **)&d_data, h_data, 0);
+            hipHostGetDevicePointer((void**)&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
             {
-            #ifdef ENABLE_MPI
-            void *ptr = NULL;
+#ifdef ENABLE_MPI
+            void* ptr = NULL;
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
                 m_exec_conf->msg->errorAllRanks() << "Error allocating aligned memory" << std::endl;
                 throw std::runtime_error("Error allocating GPUArray.");
                 }
-            h_data = (T *) ptr;
+            h_data = (T*)ptr;
             hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);
-            #else
+#else
             hipHostMalloc(&h_data, sizeof(T), hipHostMallocDefault);
-            #endif
+#endif
             CHECK_CUDA_ERROR();
             hipMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
@@ -261,26 +268,26 @@ template<class T> void GPUFlags<T>::allocate()
     }
 
 /*! \post All allocated memory is freed
-*/
+ */
 template<class T> void GPUFlags<T>::deallocate()
     {
     // don't do anything if the pointers have not been allocated
     if (h_data == NULL)
         return;
 
-    // free memory
+        // free memory
 #ifdef ENABLE_HIP
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         hipHostUnregister(h_data);
         CHECK_CUDA_ERROR();
         free(h_data);
-        #else
+#else
         hipHostFree(h_data);
         CHECK_CUDA_ERROR();
-        #endif
+#endif
         if (!m_mapped)
             {
             hipFree(d_data);
@@ -333,9 +340,9 @@ template<class T> void GPUFlags<T>::memclear()
     }
 
 /*! \returns Current value of the flags
-    \note readFlags implicitly synchronizes with the GPU execution stream. If there are any previous asynch kernel
-    launches that may set the flags, readFlags() will wait until they complete and will return any flags possibly
-    set by those kernels.
+    \note readFlags implicitly synchronizes with the GPU execution stream. If there are any previous
+   asynch kernel launches that may set the flags, readFlags() will wait until they complete and will
+   return any flags possibly set by those kernels.
 */
 template<class T> const T GPUFlags<T>::readFlags()
     {
@@ -360,9 +367,9 @@ template<class T> const T GPUFlags<T>::readFlags()
     }
 
 /*! \param flags Value of flags to set
-    \note resetFlags synchronizes with the GPU execution stream. It waits for all prior kernel launches to complete
-    before actually resetting the flags so that a possibly executing kernel doesn't unintentionally overwrite the
-    intended reset value.
+    \note resetFlags synchronizes with the GPU execution stream. It waits for all prior kernel
+   launches to complete before actually resetting the flags so that a possibly executing kernel
+   doesn't unintentionally overwrite the intended reset value.
 */
 template<class T> void GPUFlags<T>::resetFlags(const T flags)
     {

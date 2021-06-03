@@ -13,6 +13,15 @@
 #ifndef __MUELLER_PLATHE_FLOW_H__
 #define __MUELLER_PLATHE_FLOW_H__
 
+#ifndef __HIPCC__
+#include "hoomd/ParticleGroup.h"
+#include "hoomd/Updater.h"
+#include "hoomd/Variant.h"
+#include <pybind11/pybind11.h>
+
+#include <cfloat>
+#include <memory>
+
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
@@ -27,16 +36,6 @@ struct flow_enum
         Z      //!< Z-direction
         };
     };
-
-// Above this line shared constructs can be declared.
-#ifndef __HIPCC__
-#include "hoomd/ParticleGroup.h"
-#include "hoomd/Updater.h"
-#include "hoomd/Variant.h"
-#include <pybind11/pybind11.h>
-
-#include <cfloat>
-#include <memory>
 
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
@@ -67,12 +66,6 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
-
-    //! Returns a list of log quantities this compute calculates
-    virtual std::vector<std::string> getProvidedLogQuantities(void);
-
-    //! Calculates the requested log value and returns it
-    virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
     Scalar summed_exchanged_momentum(void) const
         {

@@ -19,7 +19,11 @@ hoomd.variant
     :no-members:
 
     .. autoclass:: Constant(value)
+        :members: __eq__
     .. autoclass:: Cycle(A, B, t_start, t_A, t_AB, t_B, t_BA)
+        :members: __eq__
     .. autoclass:: Power(A, B, power, t_start, t_ramp)
+        :members: __eq__
     .. autoclass:: Ramp(A, B, t_start, t_ramp)
+        :members: __eq__
     .. autoclass:: Variant()

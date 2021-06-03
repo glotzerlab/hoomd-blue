@@ -1,9 +1,15 @@
-from hoomd.custom import (
-    CustomOperation, _InternalCustomOperation, Action)
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement CustomUpdater."""
+
+from hoomd.custom import (CustomOperation, _InternalCustomOperation, Action)
 from hoomd.operation import Updater
 
 
 class _UpdaterProperty:
+
     @property
     def updater(self):
         return self._action
@@ -26,7 +32,7 @@ class CustomUpdater(CustomOperation, _UpdaterProperty, Updater):
     _cpp_class_name = 'PythonUpdater'
 
 
-class _InternalCustomUpdater(
-        _InternalCustomOperation, _UpdaterProperty, Updater):
+class _InternalCustomUpdater(_InternalCustomOperation, _UpdaterProperty,
+                             Updater):
     _cpp_list_name = 'updaters'
     _cpp_class_name = 'PythonUpdater'

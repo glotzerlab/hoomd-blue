@@ -1,9 +1,9 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-#include <memory>
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
+#include <memory>
 
 #include <vector>
 
@@ -24,66 +24,54 @@
 
     \ingroup computes
 */
-template < class evaluator >
-class PotentialBond : public ForceCompute
+template<class evaluator> class PotentialBond : public ForceCompute
     {
     public:
-        //! Param type from evaluator
-        typedef typename evaluator::param_type param_type;
+    //! Param type from evaluator
+    typedef typename evaluator::param_type param_type;
 
-        //! Constructs the compute
-        PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix="");
+    //! Constructs the compute
+    PotentialBond(std::shared_ptr<SystemDefinition> sysdef);
 
-        //! Destructor
-        virtual ~PotentialBond();
+    //! Destructor
+    virtual ~PotentialBond();
 
-        /// Set the parameters
-        virtual void setParams(unsigned int type, const param_type &param);
-        virtual void setParamsPython(std::string type,
-                                     pybind11::dict param);
+    /// Set the parameters
+    virtual void setParams(unsigned int type, const param_type& param);
+    virtual void setParamsPython(std::string type, pybind11::dict param);
 
-        /// Get the parameters
-        pybind11::dict getParams(std::string type);
+    /// Get the parameters
+    pybind11::dict getParams(std::string type);
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+    /// Validate bond type
+    virtual void validateType(unsigned int type, std::string action);
 
-        /// Validate bond type
-        virtual void validateType(unsigned int type, std::string action);
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
-        #ifdef ENABLE_MPI
-        //! Get ghost particle fields requested by this pair potential
-        virtual CommFlags getRequestedCommFlags(uint64_t timestep);
-        #endif
+#ifdef ENABLE_MPI
+    //! Get ghost particle fields requested by this pair potential
+    virtual CommFlags getRequestedCommFlags(uint64_t timestep);
+#endif
 
     protected:
-        GPUArray<param_type> m_params;              //!< Bond parameters per type
-        std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        std::string m_log_name;                     //!< Cached log name
-        std::string m_prof_name;                    //!< Cached profiler name
+    GPUArray<param_type> m_params;         //!< Bond parameters per type
+    std::shared_ptr<BondData> m_bond_data; //!< Bond data to use in computing bonds
+    std::string m_prof_name;               //!< Cached profiler name
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 /*! \param sysdef System to compute forces on
-    \param log_suffix Name given to this instance of the force
-*/
-template< class evaluator >
-PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
-                      const std::string& log_suffix)
+ */
+template<class evaluator>
+PotentialBond<evaluator>::PotentialBond(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
     {
-    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">" << std::endl;
+    m_exec_conf->msg->notice(5) << "Constructing PotentialBond<" << evaluator::getName() << ">"
+                                << std::endl;
     assert(m_pdata);
 
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    m_log_name = std::string("bond_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Bond ") + evaluator::getName();
 
     // allocate the parameters
@@ -91,10 +79,10 @@ PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysd
     m_params.swap(params);
     }
 
-template< class evaluator >
-PotentialBond< evaluator >::~PotentialBond()
+template<class evaluator> PotentialBond<evaluator>::~PotentialBond()
     {
-    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">" << std::endl;
+    m_exec_conf->msg->notice(5) << "Destroying PotentialBond<" << evaluator::getName() << ">"
+                                << std::endl;
     }
 
 /*! \param type Type of the bond to set parameters for
@@ -102,9 +90,8 @@ PotentialBond< evaluator >::~PotentialBond()
 
     Sets the parameters for the potential of a particular bond type
 */
-template< class evaluator >
-void PotentialBond< evaluator >::validateType(unsigned int type,
-                                              std::string action)
+template<class evaluator>
+void PotentialBond<evaluator>::validateType(unsigned int type, std::string action)
     {
     // make sure the type is valid
     if (type >= m_bond_data->getNTypes())
@@ -115,8 +102,8 @@ void PotentialBond< evaluator >::validateType(unsigned int type,
         }
     }
 
-template<class evaluator >
-void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& param)
+template<class evaluator>
+void PotentialBond<evaluator>::setParams(unsigned int type, const param_type& param)
     {
     // make sure the type is valid
     validateType(type, "setting params");
@@ -124,15 +111,13 @@ void PotentialBond< evaluator >::setParams(unsigned int type, const param_type& 
     h_params.data[type] = param;
     }
 
-
 /*! \param types Type of the bond to set parameters for using string
     \param param Parameter to set
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator >
-void PotentialBond< evaluator >::setParamsPython(std::string type,
-                                                 pybind11::dict param)
+template<class evaluator>
+void PotentialBond<evaluator>::setParamsPython(std::string type, pybind11::dict param)
     {
     auto itype = m_bond_data->getTypeByName(type);
     auto struct_param = param_type(param);
@@ -144,67 +129,37 @@ void PotentialBond< evaluator >::setParamsPython(std::string type,
 
     Sets the parameters for the potential of a particular bond type
 */
-template<class evaluator >
-pybind11::dict PotentialBond< evaluator >::getParams(std::string type)
+template<class evaluator> pybind11::dict PotentialBond<evaluator>::getParams(std::string type)
     {
     auto itype = m_bond_data->getTypeByName(type);
     validateType(itype, "getting params");
-    ArrayHandle<param_type> h_params(m_params, access_location::host,
-                                     access_mode::read);
+    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     return h_params.data[itype].asDict();
-    }
-
-/*! PotentialBond provides
-    - \c bond_"name"_energy
-*/
-template< class evaluator >
-std::vector< std::string > PotentialBond< evaluator >::getProvidedLogQuantities()
-    {
-    std::vector<std::string> list;
-    list.push_back(m_log_name);
-    return list;
-    }
-
-/*! \param quantity Name of the log value to get
-    \param timestep Current timestep of the simulation
-*/
-template< class evaluator >
-Scalar PotentialBond< evaluator >::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    if (quantity == m_log_name)
-        {
-        compute(timestep);
-        return calcEnergySum();
-        }
-    else
-        {
-        this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
     }
 
 /*! Actually perform the force computation
     \param timestep Current time step
  */
-template< class evaluator >
-void PotentialBond< evaluator >::computeForces(uint64_t timestep)
+template<class evaluator> void PotentialBond<evaluator>::computeForces(uint64_t timestep)
     {
-    if (m_prof) m_prof->push(m_prof_name);
+    if (m_prof)
+        m_prof->push(m_prof_name);
 
     assert(m_pdata);
 
     // access the particle data arrays
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
 
     // access the parameters
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
@@ -214,22 +169,27 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
     assert(h_charge.data);
 
     // Zero data for force calculation
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // we are using the minimum image of the global box here
-    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain length)
+    // to ensure that ghosts are always correctly wrapped (even if a bond exceeds half the domain
+    // length)
     const BoxDim& box = m_pdata->getGlobalBox();
 
     PDataFlags flags = this->m_pdata->getFlags();
     bool compute_virial = flags[pdata_flag::pressure_tensor];
 
     Scalar bond_virial[6];
-    for (unsigned int i = 0; i< 6; i++)
-        bond_virial[i]=Scalar(0.0);
+    for (unsigned int i = 0; i < 6; i++)
+        bond_virial[i] = Scalar(0.0);
 
-    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(), access_location::host, access_mode::read);
-    ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(), access_location::host, access_mode::read);
+    ArrayHandle<typename BondData::members_t> h_bonds(m_bond_data->getMembersArray(),
+                                                      access_location::host,
+                                                      access_mode::read);
+    ArrayHandle<typeval_t> h_typeval(m_bond_data->getTypeValArray(),
+                                     access_location::host,
+                                     access_mode::read);
 
     unsigned int max_local = m_pdata->getN() + m_pdata->getNGhosts();
 
@@ -240,8 +200,8 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
         {
         // lookup the tag of each of the particles participating in the bond
         const typename BondData::members_t& bond = h_bonds.data[i];
-        assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
-        assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
+        assert(bond.tag[0] < m_pdata->getMaximumTag() + 1);
+        assert(bond.tag[1] < m_pdata->getMaximumTag() + 1);
 
         // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
@@ -251,8 +211,10 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
-                bond.tag[0] << " " << bond.tag[1] << " incomplete." << std::endl << std::endl;
+            this->m_exec_conf->msg->error()
+                << "bond." << evaluator::getName() << ": bond " << bond.tag[0] << " " << bond.tag[1]
+                << " incomplete." << std::endl
+                << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
 
@@ -285,16 +247,16 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
         dx = box.minImage(dx);
 
         // calculate r_ab squared
-        Scalar rsq = dot(dx,dx);
+        Scalar rsq = dot(dx, dx);
 
         // compute the force and potential energy
         Scalar force_divr = Scalar(0.0);
         Scalar bond_eng = Scalar(0.0);
         evaluator eval(rsq, h_params.data[h_typeval.data[i].type]);
         if (evaluator::needsDiameter())
-            eval.setDiameter(diameter_a,diameter_b);
+            eval.setDiameter(diameter_a, diameter_b);
         if (evaluator::needsCharge())
-            eval.setCharge(charge_a,charge_b);
+            eval.setCharge(charge_a, charge_b);
 
         bool evaluated = eval.evalForceAndEnergy(force_divr, bond_eng);
 
@@ -306,7 +268,7 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
             // calculate virial
             if (compute_virial)
                 {
-                Scalar force_div2r = Scalar(1.0/2.0)*force_divr;
+                Scalar force_div2r = Scalar(1.0 / 2.0) * force_divr;
                 bond_virial[0] = dx.x * dx.x * force_div2r; // xx
                 bond_virial[1] = dx.x * dx.y * force_div2r; // xy
                 bond_virial[2] = dx.x * dx.z * force_div2r; // xz
@@ -324,7 +286,7 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
                 h_force.data[idx_b].w += bond_eng;
                 if (compute_virial)
                     for (unsigned int i = 0; i < 6; i++)
-                        h_virial.data[i*m_virial_pitch+idx_b]  += bond_virial[i];
+                        h_virial.data[i * m_virial_pitch + idx_b] += bond_virial[i];
                 }
 
             if (idx_a < m_pdata->getN())
@@ -335,24 +297,27 @@ void PotentialBond< evaluator >::computeForces(uint64_t timestep)
                 h_force.data[idx_a].w += bond_eng;
                 if (compute_virial)
                     for (unsigned int i = 0; i < 6; i++)
-                        h_virial.data[i*m_virial_pitch+idx_a]  += bond_virial[i];
+                        h_virial.data[i * m_virial_pitch + idx_a] += bond_virial[i];
                 }
             }
         else
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << std::endl << std::endl;
+            this->m_exec_conf->msg->error()
+                << "bond." << evaluator::getName() << ": bond out of bounds" << std::endl
+                << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof)
+        m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
 /*! \param timestep Current time step
  */
-template < class evaluator >
-CommFlags PotentialBond< evaluator >::getRequestedCommFlags(uint64_t timestep)
+template<class evaluator>
+CommFlags PotentialBond<evaluator>::getRequestedCommFlags(uint64_t timestep)
     {
     CommFlags flags = CommFlags(0);
 
@@ -374,13 +339,12 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(uint64_t timestep)
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
 */
-template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
+template<class T> void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
-        .def("getParams", &T::getParams)
-        ;
+        .def("getParams", &T::getParams);
     }
 
 #endif

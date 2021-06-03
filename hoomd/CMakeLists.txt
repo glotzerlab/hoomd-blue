@@ -7,6 +7,43 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/include
         )
 
+# translate cmake true/false to Python
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_MD)
+    set(_md_built "True")
+else()
+    set(_md_built "False")
+endif()
+
+if (BUILD_HPMC)
+    set(_hpmc_built "True")
+else()
+    set(_hpmc_built "False")
+endif()
+
+if (BUILD_DEM)
+    set(_dem_built "True")
+else()
+    set(_dem_built "False")
+endif()
+
+if (BUILD_METAL)
+    set(_metal_built "True")
+else()
+    set(_metal_built "False")
+endif()
+
+if (BUILD_MPCD)
+    set(_mpcd_built "True")
+else()
+    set(_mpcd_built "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}
@@ -38,15 +75,10 @@ set(_hoomd_sources Analyzer.cc
                    GSDReader.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
-                   IMDInterface.cc
                    Initializers.cc
                    Integrator.cc
                    IntegratorData.cc
                    LoadBalancer.cc
-                   Logger.cc
-                   LogPlainTXT.cc
-                   LogMatrix.cc
-                   LogHDF5.cc
                    Messenger.cc
                    MemoryTraceback.cc
                    MPIConfiguration.cc
@@ -126,7 +158,6 @@ set(_hoomd_headers
     HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
-    IMDInterface.h
     Index1D.h
     Initializers.h
     Integrator.cuh
@@ -135,10 +166,6 @@ set(_hoomd_headers
     LoadBalancerGPU.cuh
     LoadBalancerGPU.h
     LoadBalancer.h
-    Logger.h
-    LogPlainTXT.h
-    LogMatrix.h
-    LogHDF5.h
     managed_allocator.h
     ManagedArray.h
     MemoryTraceback.h
@@ -321,8 +348,7 @@ install(TARGETS _hoomd quickhull EXPORT HOOMDTargets
 
 ################ Python only modules
 # copy python modules to the build directory to make it a working python package
-set(files benchmark.py
-          box.py
+set(files box.py
           communicator.py
           conftest.py
           device.py
@@ -330,6 +356,7 @@ set(files benchmark.py
           integrate.py
           operation.py
           operations.py
+          pytest_plugin_validate.py
           util.py
           variant.py
           simulation.py
