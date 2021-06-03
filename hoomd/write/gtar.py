@@ -4,6 +4,7 @@ import hoomd
 from hoomd.operation import Writer
 from hoomd import _hoomd
 
+
 class GTAR(Writer):
     """Analyzer for dumping system properties to a getar file at intervals.
 
@@ -83,104 +84,124 @@ class GTAR(Writer):
 
     """
 
-    class DumpProp(namedtuple('DumpProp', ['name', 'highPrecision', 'compression'])):
+    class DumpProp(
+            namedtuple('DumpProp', ['name', 'highPrecision', 'compression'])):
         """Simple, internal, read-only namedtuple wrapper for specifying how
         getar properties will be dumped"""
 
-        def __new__(self, name, highPrecision=False,
-                     compression=_hoomd.GetarCompression.FastCompress):
+        def __new__(self,
+                    name,
+                    highPrecision=False,
+                    compression=_hoomd.GetarCompression.FastCompress):
             """Initialize a property dump description tuple.
 
             :param name: property name (string; see `Supported Property Table`_)
             :param highPrecision: if True, try to save this data in high-precision
             :param compression: one of `hoomd.write.GTAR.Compression.{NoCompress, FastCompress, MediumCompress, SlowCompress`}.
             """
-            return super(GTAR.DumpProp, self).__new__(
-                self, name=name, highPrecision=highPrecision,
-                compression=compression)
+            return super(GTAR.DumpProp,
+                         self).__new__(self,
+                                       name=name,
+                                       highPrecision=highPrecision,
+                                       compression=compression)
 
     Compression = _hoomd.GetarCompression
 
-    dump_modes = {'w': _hoomd.GetarDumpMode.Overwrite,
-                  'a': _hoomd.GetarDumpMode.Append,
-                  '1': _hoomd.GetarDumpMode.OneShot}
+    dump_modes = {
+        'w': _hoomd.GetarDumpMode.Overwrite,
+        'a': _hoomd.GetarDumpMode.Append,
+        '1': _hoomd.GetarDumpMode.OneShot
+    }
 
     substitutions = {
-        'all': ['particle_all', 'angle_all', 'bond_all',
-                'dihedral_all', 'improper_all', 'global_all'],
-        'particle_all':
-            ['angular_momentum', 'body', 'charge', 'diameter', 'image', 'mass', 'moment_inertia',
-             'orientation', 'position', 'type', 'type_names', 'velocity'],
+        'all': [
+            'particle_all', 'angle_all', 'bond_all', 'dihedral_all',
+            'improper_all', 'global_all'
+        ],
+        'particle_all': [
+            'angular_momentum', 'body', 'charge', 'diameter', 'image', 'mass',
+            'moment_inertia', 'orientation', 'position', 'type', 'type_names',
+            'velocity'
+        ],
         'angle_all': ['angle_type_names', 'angle_tag', 'angle_type'],
         'bond_all': ['bond_type_names', 'bond_tag', 'bond_type'],
-        'dihedral_all': ['dihedral_type_names', 'dihedral_tag', 'dihedral_type'],
-        'improper_all': ['improper_type_names', 'improper_tag', 'improper_type'],
+        'dihedral_all': [
+            'dihedral_type_names', 'dihedral_tag', 'dihedral_type'
+        ],
+        'improper_all': [
+            'improper_type_names', 'improper_tag', 'improper_type'
+        ],
         'global_all': ['box', 'dimensions'],
         'viz_dynamic': ['position', 'box'],
         'viz_static': ['type', 'type_names', 'dimensions'],
         'viz_all': ['viz_static', 'viz_dynamic'],
         'viz_aniso_dynamic': ['viz_dynamic', 'orientation'],
-        'viz_aniso_all': ['viz_static', 'viz_aniso_dynamic']}
+        'viz_aniso_all': ['viz_static', 'viz_aniso_dynamic']
+    }
 
     # List of properties we know how to dump and their enums
-    known_properties = {'angle_type_names': _hoomd.GetarProperty.AngleNames,
-                        'angle_tag': _hoomd.GetarProperty.AngleTags,
-                        'angle_type': _hoomd.GetarProperty.AngleTypes,
-                        'angular_momentum': _hoomd.GetarProperty.AngularMomentum,
-                        'body': _hoomd.GetarProperty.Body,
-                        'bond_type_names': _hoomd.GetarProperty.BondNames,
-                        'bond_tag': _hoomd.GetarProperty.BondTags,
-                        'bond_type': _hoomd.GetarProperty.BondTypes,
-                        'box': _hoomd.GetarProperty.Box,
-                        'charge': _hoomd.GetarProperty.Charge,
-                        'diameter': _hoomd.GetarProperty.Diameter,
-                        'dihedral_type_names': _hoomd.GetarProperty.DihedralNames,
-                        'dihedral_tag': _hoomd.GetarProperty.DihedralTags,
-                        'dihedral_type': _hoomd.GetarProperty.DihedralTypes,
-                        'dimensions': _hoomd.GetarProperty.Dimensions,
-                        'image': _hoomd.GetarProperty.Image,
-                        'improper_type_names': _hoomd.GetarProperty.ImproperNames,
-                        'improper_tag': _hoomd.GetarProperty.ImproperTags,
-                        'improper_type': _hoomd.GetarProperty.ImproperTypes,
-                        'mass': _hoomd.GetarProperty.Mass,
-                        'moment_inertia': _hoomd.GetarProperty.MomentInertia,
-                        'orientation': _hoomd.GetarProperty.Orientation,
-                        'position': _hoomd.GetarProperty.Position,
-                        'potential_energy': _hoomd.GetarProperty.PotentialEnergy,
-                        'type': _hoomd.GetarProperty.Type,
-                        'type_names': _hoomd.GetarProperty.TypeNames,
-                        'velocity': _hoomd.GetarProperty.Velocity,
-                        'virial': _hoomd.GetarProperty.Virial}
+    known_properties = {
+        'angle_type_names': _hoomd.GetarProperty.AngleNames,
+        'angle_tag': _hoomd.GetarProperty.AngleTags,
+        'angle_type': _hoomd.GetarProperty.AngleTypes,
+        'angular_momentum': _hoomd.GetarProperty.AngularMomentum,
+        'body': _hoomd.GetarProperty.Body,
+        'bond_type_names': _hoomd.GetarProperty.BondNames,
+        'bond_tag': _hoomd.GetarProperty.BondTags,
+        'bond_type': _hoomd.GetarProperty.BondTypes,
+        'box': _hoomd.GetarProperty.Box,
+        'charge': _hoomd.GetarProperty.Charge,
+        'diameter': _hoomd.GetarProperty.Diameter,
+        'dihedral_type_names': _hoomd.GetarProperty.DihedralNames,
+        'dihedral_tag': _hoomd.GetarProperty.DihedralTags,
+        'dihedral_type': _hoomd.GetarProperty.DihedralTypes,
+        'dimensions': _hoomd.GetarProperty.Dimensions,
+        'image': _hoomd.GetarProperty.Image,
+        'improper_type_names': _hoomd.GetarProperty.ImproperNames,
+        'improper_tag': _hoomd.GetarProperty.ImproperTags,
+        'improper_type': _hoomd.GetarProperty.ImproperTypes,
+        'mass': _hoomd.GetarProperty.Mass,
+        'moment_inertia': _hoomd.GetarProperty.MomentInertia,
+        'orientation': _hoomd.GetarProperty.Orientation,
+        'position': _hoomd.GetarProperty.Position,
+        'potential_energy': _hoomd.GetarProperty.PotentialEnergy,
+        'type': _hoomd.GetarProperty.Type,
+        'type_names': _hoomd.GetarProperty.TypeNames,
+        'velocity': _hoomd.GetarProperty.Velocity,
+        'virial': _hoomd.GetarProperty.Virial
+    }
 
     # List of properties we know how to dump and their enums
-    known_resolutions = {'angle_type_names': _hoomd.GetarResolution.Text,
-                         'angle_tag': _hoomd.GetarResolution.Individual,
-                         'angle_type': _hoomd.GetarResolution.Individual,
-                         'angular_momentum': _hoomd.GetarResolution.Individual,
-                         'body': _hoomd.GetarResolution.Individual,
-                         'bond_type_names': _hoomd.GetarResolution.Text,
-                         'bond_tag': _hoomd.GetarResolution.Individual,
-                         'bond_type': _hoomd.GetarResolution.Individual,
-                         'box': _hoomd.GetarResolution.Uniform,
-                         'charge': _hoomd.GetarResolution.Individual,
-                         'diameter': _hoomd.GetarResolution.Individual,
-                         'dihedral_type_names': _hoomd.GetarResolution.Text,
-                         'dihedral_tag': _hoomd.GetarResolution.Individual,
-                         'dihedral_type': _hoomd.GetarResolution.Individual,
-                         'dimensions': _hoomd.GetarResolution.Uniform,
-                         'image': _hoomd.GetarResolution.Individual,
-                         'improper_type_names': _hoomd.GetarResolution.Text,
-                         'improper_tag': _hoomd.GetarResolution.Individual,
-                         'improper_type': _hoomd.GetarResolution.Individual,
-                         'mass': _hoomd.GetarResolution.Individual,
-                         'moment_inertia': _hoomd.GetarResolution.Individual,
-                         'orientation': _hoomd.GetarResolution.Individual,
-                         'position': _hoomd.GetarResolution.Individual,
-                         'potential_energy': _hoomd.GetarResolution.Individual,
-                         'type': _hoomd.GetarResolution.Individual,
-                         'type_names': _hoomd.GetarResolution.Text,
-                         'velocity': _hoomd.GetarResolution.Individual,
-                         'virial': _hoomd.GetarResolution.Individual}
+    known_resolutions = {
+        'angle_type_names': _hoomd.GetarResolution.Text,
+        'angle_tag': _hoomd.GetarResolution.Individual,
+        'angle_type': _hoomd.GetarResolution.Individual,
+        'angular_momentum': _hoomd.GetarResolution.Individual,
+        'body': _hoomd.GetarResolution.Individual,
+        'bond_type_names': _hoomd.GetarResolution.Text,
+        'bond_tag': _hoomd.GetarResolution.Individual,
+        'bond_type': _hoomd.GetarResolution.Individual,
+        'box': _hoomd.GetarResolution.Uniform,
+        'charge': _hoomd.GetarResolution.Individual,
+        'diameter': _hoomd.GetarResolution.Individual,
+        'dihedral_type_names': _hoomd.GetarResolution.Text,
+        'dihedral_tag': _hoomd.GetarResolution.Individual,
+        'dihedral_type': _hoomd.GetarResolution.Individual,
+        'dimensions': _hoomd.GetarResolution.Uniform,
+        'image': _hoomd.GetarResolution.Individual,
+        'improper_type_names': _hoomd.GetarResolution.Text,
+        'improper_tag': _hoomd.GetarResolution.Individual,
+        'improper_type': _hoomd.GetarResolution.Individual,
+        'mass': _hoomd.GetarResolution.Individual,
+        'moment_inertia': _hoomd.GetarResolution.Individual,
+        'orientation': _hoomd.GetarResolution.Individual,
+        'position': _hoomd.GetarResolution.Individual,
+        'potential_energy': _hoomd.GetarResolution.Individual,
+        'type': _hoomd.GetarResolution.Individual,
+        'type_names': _hoomd.GetarResolution.Text,
+        'velocity': _hoomd.GetarResolution.Individual,
+        'virial': _hoomd.GetarResolution.Individual
+    }
 
     # List of properties which can't run in MPI mode
     bad_mpi_properties = ['potential_energy', 'virial']
@@ -197,8 +218,10 @@ class GTAR(Writer):
         for val in vals:
             val = self._getStatic(val)
             if val.name in self.substitutions:
-                subs = [self.DumpProp(name, val.highPrecision, val.compression) for name in
-                        self.substitutions[val.name]]
+                subs = [
+                    self.DumpProp(name, val.highPrecision, val.compression)
+                    for name in self.substitutions[val.name]
+                ]
                 result.extend(self._expandNames(subs))
             else:
                 result.append(val)
@@ -257,11 +280,13 @@ class GTAR(Writer):
 
         for val in self._static:
             if prop.name not in self.known_properties:
-                raise RuntimeError('Unknown static property in write.GTAR: {}'.format(val))
+                raise RuntimeError(
+                    'Unknown static property in write.GTAR: {}'.format(val))
 
         for val in self._dynamic:
             if val.name not in self.known_properties:
-                raise RuntimeError('Unknown dynamic property in write.GTAR: {}'.format(val))
+                raise RuntimeError(
+                    'Unknown dynamic property in write.GTAR: {}'.format(val))
 
         try:
             dumpMode = self.dump_modes[mode]
@@ -280,9 +305,9 @@ class GTAR(Writer):
         if simulation is None:
             simulation = self._simulation
 
-        cpp_obj = _hoomd.GetarDumpWriter(
-            simulation.state._cpp_sys_def, self.filename,
-            self.dumpMode, simulation.timestep)
+        cpp_obj = _hoomd.GetarDumpWriter(simulation.state._cpp_sys_def,
+                                         self.filename, self.dumpMode,
+                                         simulation.timestep)
 
         for val in set(self._static):
             prop = self._getStatic(val)
@@ -290,11 +315,10 @@ class GTAR(Writer):
                 raise RuntimeError(('write.GTAR: Can\'t dump property {} '
                                     'with MPI!').format(prop.name))
             else:
-                cpp_obj.setPeriod(
-                    self.known_properties[prop.name],
-                    self.known_resolutions[prop.name],
-                    _hoomd.GetarBehavior.Constant,
-                    prop.highPrecision, prop.compression, 0)
+                cpp_obj.setPeriod(self.known_properties[prop.name],
+                                  self.known_resolutions[prop.name],
+                                  _hoomd.GetarBehavior.Constant,
+                                  prop.highPrecision, prop.compression, 0)
 
         for prop in self._dynamic:
             try:
@@ -303,23 +327,21 @@ class GTAR(Writer):
                                         'with MPI!').format(prop.name))
                 else:
                     for period in self._dynamic[prop]:
-                        cpp_obj.setPeriod(
-                            self.known_properties[prop.name],
-                            self.known_resolutions[prop.name],
-                            _hoomd.GetarBehavior.Discrete,
-                            prop.highPrecision, prop.compression,
-                            int(period))
-            except TypeError: # We got a single value, not an iterable
+                        cpp_obj.setPeriod(self.known_properties[prop.name],
+                                          self.known_resolutions[prop.name],
+                                          _hoomd.GetarBehavior.Discrete,
+                                          prop.highPrecision, prop.compression,
+                                          int(period))
+            except TypeError:  # We got a single value, not an iterable
                 if simulation.device.communicator.num_ranks > 1 and prop.name in self.bad_mpi_properties:
                     raise RuntimeError(('write.GTAR: Can\'t dump property {} '
                                         'with MPI!').format(prop.name))
                 else:
-                    cpp_obj.setPeriod(
-                        self.known_properties[prop.name],
-                        self.known_resolutions[prop.name],
-                        _hoomd.GetarBehavior.Discrete,
-                        prop.highPrecision, prop.compression,
-                        int(self._dynamic[prop]))
+                    cpp_obj.setPeriod(self.known_properties[prop.name],
+                                      self.known_resolutions[prop.name],
+                                      _hoomd.GetarBehavior.Discrete,
+                                      prop.highPrecision, prop.compression,
+                                      int(self._dynamic[prop]))
 
         return cpp_obj
 
@@ -381,8 +403,11 @@ class GTAR(Writer):
 
         """
         dynamicDict = {name: 1 for name in dynamic}
-        return cls(filename=filename, trigger=trigger, mode=mode,
-                   static=static, dynamic=dynamicDict)
+        return cls(filename=filename,
+                   trigger=trigger,
+                   mode=mode,
+                   static=static,
+                   dynamic=dynamicDict)
 
     @classmethod
     def immediate(cls, state, filename, static, dynamic):
