@@ -42,7 +42,7 @@ def _equivalent_data_structures(reference, struct_2):
         return math.isclose(reference, struct_2, rel_tol=1e-4)
 
 ttf = coxeter.families.TruncatedTetrahedronFamily()
-class TruncatedTetrahedron:
+class TruncatedTetrahedron(hoomd.hpmc.shape_move.Callback):
     def __getitem__(self, trunc):
         shape = ConvexPolyhedron(ttf.get_shape(trunc).vertices / (ttf.get_shape(trunc).volume**(1/3)))
         return [v for v in shape.vertices]

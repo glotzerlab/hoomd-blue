@@ -12,6 +12,11 @@ class ShapeMove(_HOOMDBaseObject):
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
 
+class Callback(_HOOMDBaseObject):
+    def __init__(self):
+        pass
+
+
 class Constant(ShapeMove):
     R"""
     Enable constant shape move and set parameters. Changes a particle shape by
@@ -182,12 +187,12 @@ class Python(ShapeMove):
 
     """
     def __init__(self, callback, params, stepsize, param_ratio):
-        param_dict = ParameterDict(params=dict(params),
+        param_dict = ParameterDict(callback=Callback,
+                                   params=dict(params),
                                    stepsize=dict(stepsize),
                                    param_ratio=float(param_ratio))
-        # param_dict["callback"] = callback
+        param_dict["callback"] = callback
         self._param_dict.update(param_dict)
-        self.callback = callback
 
     def _attach(self):
         integrator = self._simulation.operations.integrator
