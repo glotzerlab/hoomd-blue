@@ -62,7 +62,7 @@ void export_union_convex_polyhedron(py::module& m)
         "ExternalFieldCompositeConvexPolyhedronUnion");
     export_RemoveDriftUpdater<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
-        "RemoveDriftUpdaterConvexPolyhedronUnion");
+        "RemoveDriftUpdaterConvexSpheropolyhedronUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m, "WallConvexPolyhedronUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(
         m,
