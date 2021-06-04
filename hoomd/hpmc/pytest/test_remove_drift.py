@@ -13,17 +13,15 @@ import hoomd.hpmc.pytest.conftest
 # here that require preprocessing
 valid_constructor_args = [
     dict(trigger=hoomd.trigger.Periodic(10),
-         ref_positions=[(0,0,0), (1,0,1)]),
-    dict(trigger=hoomd.trigger.After(10),
-         ref_positions=[(0,0,0), (1,0,1)]),
-    dict(trigger=hoomd.trigger.Before(10),
-         ref_positions=[(0,0,0), (1,0,1)])
+         ref_positions=[(0, 0, 0), (1, 0, 1)]),
+    dict(trigger=hoomd.trigger.After(10), ref_positions=[(0, 0, 0), (1, 0, 1)]),
+    dict(trigger=hoomd.trigger.Before(10), ref_positions=[(0, 0, 0), (1, 0, 1)])
 ]
 
 valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
                ('trigger', hoomd.trigger.After(100)),
                ('trigger', hoomd.trigger.Before(12345)),
-               ('ref_positions', [(0,0,0), (1,0,1)])]
+               ('ref_positions', [(0, 0, 0), (1, 0, 1)])]
 
 
 @pytest.mark.serial
@@ -80,7 +78,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
 def test_valid_setattr(device, attr, value):
     """Test that RemoveDrift can get and set attributes."""
     cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
-                                       ref_positions=[(0,0,1), (-1,0,1)])
+                                       ref_positions=[(0, 0, 1), (-1, 0, 1)])
 
     setattr(cl, attr, value)
     assert getattr(cl, attr) == value
@@ -107,7 +105,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     mc.shape["B"] = args
 
     cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
-                                       ref_positions=[(0,0,1), (-1,0,1)])
+                                       ref_positions=[(0, 0, 1), (-1, 0, 1)])
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
@@ -133,5 +131,5 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     sim.operations.integrator = mc
 
     cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(5),
-                                       ref_positions=[(0,0,1), (-1,0,1)])
+                                       ref_positions=[(0, 0, 1), (-1, 0, 1)])
     operation_pickling_check(cl, sim)
