@@ -356,7 +356,12 @@ class Loggable(type):
             getattr(new_cls, attr).__doc__ += str_msg.format(' ' * indent)
 
 
-def log(func=None, *, is_property=True, category='scalar', default=True):
+def log(func=None,
+        *,
+        is_property=True,
+        category='scalar',
+        default=True,
+        requires_attach=False):
     """Creates loggable quantities for classes of type Loggable.
 
     For users this should be used with `hoomd.custom.Action` for exposing
@@ -378,6 +383,8 @@ def log(func=None, *, is_property=True, category='scalar', default=True):
             quantities even when logging other quantities of that type. The
             default category allows for these to be pass over by
             `hoomd.logging.Logger` objects by default. Argument keyword only.
+        requires_attach (`bool`, optional): Whether this property is
+            accessible before attaching.
 
     Note:
         The namespace (where the loggable object is stored in the
@@ -397,6 +404,14 @@ def log(func=None, *, is_property=True, category='scalar', default=True):
                 "Multiple loggable quantities named {}.".format(name))
         Loggable._meta_export_dict[name] = _LoggableEntry(
             LoggerCategories[category], default)
+        if requires_attach:
+
+            def wrapped_with_exception(self, *args, **kwargs):
+                if not self._attached:
+                    raise DataAccessError(name)
+                return func(*args, **kwargs)
+
+            func = wrapped_with_exception
         if is_property:
             return property(func)
         else:
