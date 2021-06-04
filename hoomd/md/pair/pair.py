@@ -1421,6 +1421,72 @@ class Mie(Pair):
 
         self._add_typeparam(params)
 
+class SMie(Pair):
+    """Shifted Mie pair potential.
+
+    Args:
+        nlist (`hoomd.md.nlist.NList`): Neighbor list
+        r_cut (float): Default cutoff radius (in distance units).
+        r_on (float): Default turn-on radius (in distance units).
+        mode (str): energy shifting/smoothing mode.
+
+    `SMie` specifies that a Mie pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \\begin{eqnarray*}
+        V_{\\mathrm{mie}}(r)
+          = & \\left( \\frac{n}{n-m} \\right) {\\left( \\frac{n}{m}
+          \\right)}^{\\frac{m}{n-m}} \\varepsilon \\left[ \\left(
+          \\frac{\\sigma}{r} \\right)^{n} - \\left( \\frac{\\sigma}{r}
+          \\right)^{m} \\right] & r < r_{\\mathrm{cut}} \\\\
+          = & 0 & r \\ge r_{\\mathrm{cut}} \\\\
+        \\end{eqnarray*}
+
+    `Pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes. Use the `params` dictionary to set potential
+    coefficients. The coefficients must be set per unique pair of particle
+    types.
+
+    Attributes:
+        params (`TypeParameter` [\
+          `tuple` [``particle_type``, ``particle_type``],\
+          `dict`]):
+          The potential parameters. The dictionary has the following keys:
+
+          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units
+            of energy)
+
+          * ``sigma`` (`float`, **required**) - :math:`\\sigma` (in distance
+            units)
+
+          * ``n`` (`float`, **required**) - :math:`n` (unitless)
+
+          * ``m`` (`float`, **required**) - :math:`m` (unitless)
+          
+          * ``Delta`` (`float`, **required**) - :math:`\\Delta` (in distance units)
+
+    Example::
+
+        nl = nlist.Cell()
+        smie = pair.SMie(nlist=nl, r_cut=3.0)
+        mie.params[('A', 'B')] = dict(epsilon=1.0, sigma=1.0, n=12, m=6, Delta=0.5)
+        mie.r_cut[('A', 'B')] = 2**(1.0/6.0)
+        mie.r_on[('A', 'B')] = 2.0
+        mie.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=1.5, sigma=2.0, n=12, m=6, Delta=0.5))
+    """
+    _cpp_class_name = "PotentialPairSMie"
+
+    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
+
+        super().__init__(nlist, r_cut, r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(epsilon=float, sigma=float,
+                                                 n=float, m=float, Delta=float, len_keys=2))
+
+        self._add_typeparam(params)
 
 class ReactionField(Pair):
     """Onsager reaction field pair potential.

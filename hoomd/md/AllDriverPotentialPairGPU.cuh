@@ -25,6 +25,7 @@
 #include "EvaluatorPairMoliere.h"
 #include "EvaluatorPairZBL.h"
 #include "EvaluatorPairMie.h"
+#include "EvaluatorPairSMie.h"
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairBuckingham.h"
 #include "EvaluatorPairLJ1208.h"
@@ -104,11 +105,10 @@ gpu_compute_force_shifted_lj_forces(const pair_args_t & args,
 hipError_t __attribute__((visibility("default")))
 gpu_compute_mie_forces(const pair_args_t & args,
                                     const EvaluatorPairMie::param_type *d_params);
-
-//! Compute mie potential pair forces on the GPU with PairEvaluatorReactionField
+                                    
+//! Compute smie potential pair forces on the GPU with PairEvaluatorSMie
 hipError_t __attribute__((visibility("default")))
-gpu_compute_reaction_field_forces(const pair_args_t & args,
-                                    const EvaluatorPairReactionField::param_type *d_params);
+gpu_compute_smie_forces(const pair_args_t & args,SMieReactionField::param_type *d_params);
 
 //! Compute buckingham pair forces on the GPU with PairEvaluatorBuckingham
 hipError_t __attribute__((visibility("default")))

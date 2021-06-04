@@ -33,6 +33,7 @@ typedef PotentialExternal<EvaluatorExternalElectricField> PotentialExternalElect
 
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJ;
+typedef PotentialExternal<EvaluatorWalls<EvaluatorPairSMie> > WallsPotentialSMie;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJ;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMie;
 typedef PotentialExternal<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGauss;
@@ -46,6 +47,7 @@ typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodi
 typedef PotentialExternalGPU<EvaluatorExternalElectricField> PotentialExternalElectricFieldGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairLJ> > WallsPotentialLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSLJ> > WallsPotentialSLJGPU;
+typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairSMie> > WallsPotentialSMieGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairForceShiftedLJ> > WallsPotentialForceShiftedLJGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairMie> > WallsPotentialMieGPU;
 typedef PotentialExternalGPU<EvaluatorWalls<EvaluatorPairGauss> > WallsPotentialGaussGPU;

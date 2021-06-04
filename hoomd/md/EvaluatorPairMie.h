@@ -101,7 +101,7 @@ class EvaluatorPairMie
         /*! \param _rsq Squared distance between the particles
             \param _rcutsq Squared distance at which the potential goes to 0
             \param _n First, larger exponent that captures hard-core repulsion
-            \param -m Second, smaller exponent that captures attraction
+            \param _m Second, smaller exponent that captures attraction
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairMie(Scalar _rsq, Scalar _rcutsq,  const param_type& _params)
