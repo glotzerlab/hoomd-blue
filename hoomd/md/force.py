@@ -12,7 +12,7 @@ from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 from hoomd.filter import ParticleFilter
 from hoomd.md.constrain import ConstraintForce
 
@@ -52,7 +52,7 @@ class Force(_HOOMDBaseObject):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.calcEnergySum()
         else:
-            raise AttachedDataError("energy")
+            raise DataAccessError("energy")
 
     @log(category="particle")
     def energies(self):
@@ -62,7 +62,7 @@ class Force(_HOOMDBaseObject):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getEnergies()
         else:
-            raise AttachedDataError("energies")
+            raise DataAccessError("energies")
 
     @log(category="particle")
     def forces(self):
@@ -72,7 +72,7 @@ class Force(_HOOMDBaseObject):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getForces()
         else:
-            raise AttachedDataError("forces")
+            raise DataAccessError("forces")
 
     @log(category="particle")
     def torques(self):
@@ -82,7 +82,7 @@ class Force(_HOOMDBaseObject):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getTorques()
         else:
-            raise AttachedDataError("torques")
+            raise DataAccessError("torques")
 
     @log(category="particle")
     def virials(self):
@@ -92,7 +92,7 @@ class Force(_HOOMDBaseObject):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.getVirials()
         else:
-            raise AttachedDataError("virials")
+            raise DataAccessError("virials")
 
 
 class constant(Force):  # noqa - this will be renamed when it is ported to v3

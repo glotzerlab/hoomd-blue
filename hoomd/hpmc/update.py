@@ -10,7 +10,7 @@ from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
@@ -426,7 +426,7 @@ class MuVT(Updater):
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            raise AttachedDataError("insert_moves")
+            raise DataAccessError("insert_moves")
         else:
             return counter.insert
 
@@ -442,7 +442,7 @@ class MuVT(Updater):
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            raise AttachedDataError("remove_moves")
+            raise DataAccessError("remove_moves")
         else:
             return counter.remove
 
@@ -458,7 +458,7 @@ class MuVT(Updater):
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            raise AttachedDataError("exchange_moves")
+            raise DataAccessError("exchange_moves")
         else:
             return counter.exchange
 
@@ -474,7 +474,7 @@ class MuVT(Updater):
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            raise AttachedDataError("volume_moves")
+            raise DataAccessError("volume_moves")
         else:
             return counter.volume
 
@@ -661,7 +661,7 @@ class Clusters(Updater):
             counter = self._cpp_obj.getCounters(1)
 
         if counter is None:
-            raise AttachedDataError("avg_cluster_size")
+            raise DataAccessError("avg_cluster_size")
         else:
             return counter.average_cluster_size
 

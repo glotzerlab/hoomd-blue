@@ -15,7 +15,7 @@ neighbor lists are shared, they find neighbors within the the maximum
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject
@@ -113,7 +113,7 @@ class NList(_HOOMDBaseObject):
         list rebuilds during the previous `Simulation.run`.
         """
         if not self._attached:
-            raise AttachedDataError("shortest_rebuild")
+            raise DataAccessError("shortest_rebuild")
         else:
             return self._cpp_obj.getSmallestRebuild()
 

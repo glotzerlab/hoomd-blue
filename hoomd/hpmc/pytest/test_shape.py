@@ -1,6 +1,6 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -109,9 +109,9 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
     sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
     sim.operations.add(mc)
 
-    with pytest.raises(AttachedDataError):
+    with pytest.raises(DataAccessError):
         sim.operations.integrator.translate_moves
-    with pytest.raises(AttachedDataError):
+    with pytest.raises(DataAccessError):
         sim.operations.integrator.rotate_moves
     sim.operations._schedule()
 

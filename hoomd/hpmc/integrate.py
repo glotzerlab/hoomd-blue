@@ -8,7 +8,7 @@ from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
@@ -209,7 +209,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     def _return_type_shapes(self):
         if not self._attached:
-            raise AttachedDataError("type_shapes")
+            raise DataAccessError("type_shapes")
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
@@ -226,7 +226,7 @@ class HPMCIntegrator(BaseIntegrator):
             `map_overlaps` does not support MPI parallel simulations.
         """
         if not self._attached:
-            raise AttachedDataError("map_overlaps")
+            raise DataAccessError("map_overlaps")
         elif self._simulation.device.communicator.num_ranks > 1:
             return None
 
@@ -264,7 +264,7 @@ class HPMCIntegrator(BaseIntegrator):
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
         if not self._attached:
-            raise AttachedDataError("overlaps")
+            raise DataAccessError("overlaps")
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -325,7 +325,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).translate
         else:
-            raise AttachedDataError("translate_moves")
+            raise DataAccessError("translate_moves")
 
     @log(category='sequence')
     def rotate_moves(self):
@@ -338,7 +338,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1).rotate
         else:
-            raise AttachedDataError("rotate_moves")
+            raise DataAccessError("rotate_moves")
 
     @log
     def mps(self):
@@ -350,7 +350,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getMPS()
         else:
-            raise AttachedDataError("mps")
+            raise DataAccessError("mps")
 
     @property
     def counters(self):
@@ -373,7 +373,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1)
         else:
-            raise AttachedDataError("counters")
+            raise DataAccessError("counters")
 
 
 class Sphere(HPMCIntegrator):

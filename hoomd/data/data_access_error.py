@@ -2,11 +2,11 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Implement AttachedDataError."""
+"""Implement DataAccessError."""
 
 
-class AttachedDataError(RuntimeError):
-    """Raised when data is inaccessible until the simulation is attached."""
+class DataAccessError(RuntimeError):
+    """Raised when data is inaccessible until the simulation is run."""
 
     def __init__(self, data_name):
         self.data_name = data_name

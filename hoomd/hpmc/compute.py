@@ -11,7 +11,7 @@ from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 from hoomd.logging import log
 import hoomd
 
@@ -103,4 +103,4 @@ class FreeVolume(Compute):
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.free_volume
         else:
-            raise AttachedDataError("free_volume")
+            raise DataAccessError("free_volume")

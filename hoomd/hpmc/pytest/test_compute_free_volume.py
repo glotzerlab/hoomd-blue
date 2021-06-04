@@ -1,7 +1,7 @@
 import hoomd
 import pytest
 import numpy as np
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 
 
 def test_before_attaching():
@@ -10,7 +10,7 @@ def test_before_attaching():
 
     assert free_volume.test_particle_type == 'B'
     assert free_volume.num_samples == 100
-    with pytest.raises(AttachedDataError):
+    with pytest.raises(DataAccessError):
         free_volume.free_volume
 
 
