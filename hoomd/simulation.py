@@ -9,7 +9,7 @@ import hoomd._hoomd as _hoomd
 from hoomd.logging import log, Loggable
 from hoomd.state import State
 from hoomd.snapshot import Snapshot
-from hoomd.data.attacherror import AttachedDataError
+from hoomd.data.data_access_error import DataAccessError
 from hoomd.operations import Operations
 import hoomd
 import json
@@ -215,7 +215,7 @@ class Simulation(metaclass=Loggable):
     def state(self):
         """hoomd.State: The current simulation state."""
         if self._state is None:
-            raise AttachedDataError("state")
+            raise DataAccessError("state")
         else:
             return self._state
 
