@@ -111,6 +111,10 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
             {
             return "Z";
             }
+        else
+            {
+            throw std::runtime_error("Direction must be X, Y, or Z");
+            }
         }
 
     enum flow_enum::Direction getDirectionFromString(std::string direction_str) const
@@ -126,6 +130,10 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         else if (direction_str == "Z")
             {
             return flow_enum::Direction::Z;
+            }
+        else
+            {
+            throw std::runtime_error("Direction must be X, Y, or Z");
             }
         }
 
