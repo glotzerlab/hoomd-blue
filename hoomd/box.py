@@ -58,12 +58,12 @@ class Box:
     """Define box dimensions.
 
     Args:
-        Lx (float): box extent in the x direction :math:`[length]`.
-        Ly (float): box extent in the y direction :math:`[length]`.
-        Lz (float): box extent in the z direction :math:`[length]`.
-        xy (float): tilt factor xy :math:`[dimensionless]`.
-        xz (float): tilt factor xz :math:`[dimensionless]`.
-        yz (float): tilt factor yz :math:`[dimensionless]`.
+        Lx (float): box extent in the x direction :math:`[\\mathrm{length}]`.
+        Ly (float): box extent in the y direction :math:`[\\mathrm{length}]`.
+        Lz (float): box extent in the z direction :math:`[\\mathrm{length}]`.
+        xy (float): tilt factor xy :math:`[\\mathrm{dimensionless}]`.
+        xz (float): tilt factor xz :math:`[\\mathrm{dimensionless}]`.
+        yz (float): tilt factor yz :math:`[\\mathrm{dimensionless}]`.
 
     Simulation boxes in hoomd are specified by six parameters, ``Lx``, ``Ly``,
     ``Lz``, ``xy``, ``xz``, and ``yz``. `Box` provides a way to specify all
@@ -112,7 +112,7 @@ class Box:
         """Create a cube with side lengths ``L``.
 
         Args:
-            L (float): The box side length :math:`[length]`.
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 3D box.
@@ -124,7 +124,7 @@ class Box:
         """Create a square with side lengths ``L``.
 
         Args:
-            L (float): The box side length :math:`[length]`.
+            L (float): The box side length :math:`[\\mathrm{length}]`.
 
         Returns:
             hoomd.Box: The created 2D box.
@@ -247,7 +247,8 @@ class Box:
     # Length based properties
     @property
     def L(self):  # noqa: N802 - allow function name
-        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` :math:`[length]`.
+        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]``.
+            :math:`[\\mathrm{length}]`
 
         Can be set with a float which sets all lengths, or a length 3 vector.
         """
@@ -262,7 +263,9 @@ class Box:
 
     @property
     def Lx(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the x dimension :math:`[length]`."""
+        """float: The length of the box in the x dimension.
+            :math:`[\\mathrm{length}]`
+        """
         return self.L[0]
 
     @Lx.setter
@@ -273,7 +276,9 @@ class Box:
 
     @property
     def Ly(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the y dimension :math:`[length]`."""
+        """float: The length of the box in the y dimension.
+            :math:`[\\mathrm{length}]`
+        """
         return self.L[1]
 
     @Ly.setter
@@ -284,7 +289,9 @@ class Box:
 
     @property
     def Lz(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the z dimension :math:`[length]`."""
+        """float: The length of the box in the z dimension.
+            :math:`[\\mathrm{length}]`
+        """
         return self.L[2]
 
     @Lz.setter
