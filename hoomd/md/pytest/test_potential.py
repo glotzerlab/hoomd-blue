@@ -280,7 +280,7 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(twf_invalid_dicts, hoomd.md.pair.TWF, {}))
 
-    ljgauss_valid_dict = {'sigma': 1.8, 'epsilon': 2.0, 'sigma2': 0.02}
+    ljgauss_valid_dict = {'r0': 1.8, 'epsilon': 2.0, 'sigma2': 0.02}
     ljgauss_invalid_dicts = _make_invalid_param_dict(ljgauss_valid_dict)
     invalid_params_list.extend(
         _make_invalid_params(ljgauss_invalid_dicts, hoomd.md.pair.LJGauss, {}))
@@ -570,7 +570,11 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
 
-    ljgauss_arg_dict = {'sigma': 1.8, 'epsilon': 2.0, 'sigma2': 0.02}
+    ljgauss_arg_dict = {
+        'r0': [1.8],
+        'epsilon': [2.0],
+        'sigma2': [0.02]
+    }
     ljgauss_valid_param_dicts = _make_valid_param_dicts(ljgauss_arg_dict)
     valid_params_list.append(
         paramtuple(hoomd.md.pair.LJGauss,
