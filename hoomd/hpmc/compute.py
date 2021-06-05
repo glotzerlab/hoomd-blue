@@ -97,7 +97,7 @@ class FreeVolume(Compute):
 
     @log
     def free_volume(self):
-        """Free volume available to the test particle. :math:`[volume]`"""
+        """Free volume available to the test particle."""
         if self._attached:
             self._cpp_obj.compute(self._simulation.timestep)
             return self._cpp_obj.free_volume
