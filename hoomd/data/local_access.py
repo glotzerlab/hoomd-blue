@@ -101,38 +101,43 @@ class ParticleLocalAccessBase(_LocalAccess):
             ``particles.rtag[0]`` represents the current index accessing data
             for the particle with tag 0.
         position ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            particle positions :math:`[length]`
+            particle positions :math:`[\\mathrm{length}]`
         image ((N_particles, 3) `hoomd.data.array` object of ``int``):
             The periodic image a particle occupies
         velocity ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            particle velocities :math:`[velocity]`
+            particle velocities :math:`[\\mathrm{velocity}]`
         acceleration ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            particle accelerations :math:`[velocity \cdot time^{-1}]`
+            particle accelerations
+            :math:`[\\mathrm{velocity} \\cdot \\mathrm{time}^{-1}]`
         mass ((N_particles) `hoomd.data.array` object of ``float``):
-            particles' masses :math:`[mass]`
+            particles' masses :math:`[\\mathrm{mass}]`
         orientation ((N_particles, 4) `hoomd.data.array` object of ``float``):
             particle orientations expressed as quaternions
         angular_momentum ((N_particles, 4) `hoomd.data.array` object of \
             ``float``):
-            particle angular momenta expressed as quaternions :math:`[mass \cdot velocity \cdot length]`
+            particle angular momenta expressed as quaternions
+            :math:`[\\mathrm{mass} \\cdot \\mathrm{velocity} \\cdot
+            \\mathrm{length}]`
         moment_of_inertia ((N_particles, 3) `hoomd.data.array` object of \
             ``float``):
-            particle principal moments of inertia :math:`[mass \cdot length^2]`
+            particle principal moments of inertia
+            :math:`[\\mathrm{mass} \\cdot \\mathrm{length}^2]`
         charge ((N_particles) `hoomd.data.array` object of ``float``):
-            particle electrical charges :math:`[charge]`
+            particle electrical charges :math:`[\\mathrm{charge}]`
         diameter ((N_particles) `hoomd.data.array` object of ``float``):
-            particle diameters :math:`[length]`
+            particle diameters :math:`[\\mathrm{length}]`
         rigid_body_id ((N_particles) `hoomd.data.array` object of ``int``):
             The id of the rigid body the particle is in.
         net_force ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            net force on particle :math:`[force]`
+            net force on particle :math:`[\\mathrm{force}]`
         net_torque ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            net torque on particle :math:`[force \cdot length]`
+            net torque on particle
+            :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`
         net_virial ((N_particles, 3) `hoomd.data.array` object of ``float``):
-            net virial on particle :math:`[energy]`
+            net virial on particle :math:`[\\mathrm{energy}]`
         net_energy ((N_particles,) `hoomd.data.array` object of ``float``):
             net energy of a particle (accounts for duplicate counting of an
-            interaction). :math:`[energy]`
+            interaction). :math:`[\\mathrm{energy}]`
 
     Note:
         That changing some attributes like (``velocity`` or ``acceleration``)
