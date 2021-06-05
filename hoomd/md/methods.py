@@ -1054,7 +1054,7 @@ class Brownian(MethodRATTLE):
         alpha (`float`): When set, use :math:`\alpha d_i` for the
             drag coefficient where :math:`d_i` is particle diameter.
             Defaults to None.
-            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1} 
+            :math:`[\mathrm{mass} \cdot \mathrm{length}^{-1}
             \cdot \mathrm{time}^{-1}]`
 
         manifold_constraint (:py:mod:`hoomd.md.manifold.Manifold`): Manifold
