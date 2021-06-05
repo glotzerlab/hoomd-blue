@@ -7,7 +7,6 @@
 #ifndef __TWOSTEP_NVT_ALCHEMY_H__
 #define __TWOSTEP_NVT_ALCHEMY_H__
 
-
 #include "AlchemostatTwoStep.h"
 #include "hoomd/Variant.h"
 
@@ -38,7 +37,7 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
         {
         m_Q = Q;
         }
-        
+
     /// get the Q value
     Scalar getQ()
         {
@@ -49,13 +48,13 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
         {
         m_T = T;
         }
-        
+
     /// Get the current temperature variant
     std::shared_ptr<Variant> getT()
         {
         return m_T;
         }
-        
+
     // static unsigned int getIntegraorNDOF()
     // {
     // return 1;
@@ -72,7 +71,7 @@ class TwoStepNVTAlchemy : public AlchemostatTwoStep
     Scalar m_alchem_KE;
     std::shared_ptr<Variant> m_T;
     unsigned int m_iteratorDOF = 1;
-    
+
     //! advance the thermostat
     /*!\param timestep The time step
      * \param broadcast True if we should broadcast the integrator variables via MPI

@@ -79,7 +79,9 @@ class AlchemicalPotentialPair : public PotentialPair<evaluator, extra_pkg>
 
     std::shared_ptr<AlchemicalPairParticle> getAlchemicalPairParticle(int i, int j, int k)
         {
-        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles,access_location::host,access_mode::readwrite);
+        ArrayHandle<std::shared_ptr<AlchemicalPairParticle>> h_alpha_p(m_alchemical_particles,
+                                                                       access_location::host,
+                                                                       access_mode::readwrite);
         std::shared_ptr<AlchemicalPairParticle>& alpha_p
             = h_alpha_p.data[k * m_alchemy_index.getNumElements() + m_alchemy_index(i, j)];
         if (alpha_p == nullptr)
@@ -142,13 +144,13 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::AlchemicalPotentialPair(
     std::shared_ptr<NeighborList> nlist)
     : PotentialPair<evaluator, extra_pkg>(sysdef, nlist)
     {
-    
     m_alchemy_index = Index2DUpperTriangular(this->m_pdata->getNTypes());
-    m_alchemical_particles = GlobalArray<std::shared_ptr<AlchemicalPairParticle>>(m_alchemy_index.getNumElements(),evaluator::num_alchemical_parameters,this->m_exec_conf);
-    m_alchemy_mask = GlobalArray<mask_type>(this->m_pdata->getNTypes(),this->m_exec_conf);
-    
-    
-    
+    m_alchemical_particles
+        = GlobalArray<std::shared_ptr<AlchemicalPairParticle>>(m_alchemy_index.getNumElements(),
+                                                               evaluator::num_alchemical_parameters,
+                                                               this->m_exec_conf);
+    m_alchemy_mask = GlobalArray<mask_type>(this->m_pdata->getNTypes(), this->m_exec_conf);
+
     // TODO: proper logging variables
     this->m_exec_conf->msg->notice(5)
         << "Constructing AlchemicalPotentialPair<" << evaluator::getName() << ">" << std::endl;
@@ -256,7 +258,7 @@ AlchemicalPotentialPair<evaluator, extra_pkg>::pkgInitialze(const uint64_t& time
                 m_alchemical_time_steps.insert(
                     pkg.h_alchemical_particles.data[idx]->m_nextTimestep);
                 // m_alchemical_time_steps.insert(
-                    // pkg.h_alchemical_particles.data[idx]->m_nextTimestep-1);
+                // pkg.h_alchemical_particles.data[idx]->m_nextTimestep-1);
                 }
             else
                 {
@@ -332,10 +334,9 @@ template<class evaluator>
 void export_AlchemicalPotentialPair(pybind11::module& m, const std::string& name)
     {
     typedef PotentialPair<evaluator, AlchemyPackage<evaluator>> base;
-    export_PotentialPair<base>(m,name+std::string("Base").c_str());
+    export_PotentialPair<base>(m, name + std::string("Base").c_str());
     typedef AlchemicalPotentialPair<evaluator> T;
-    pybind11::class_<T, base, std::shared_ptr<T>>
-        alchemicalpotentialpair(m, name.c_str());
+    pybind11::class_<T, base, std::shared_ptr<T>> alchemicalpotentialpair(m, name.c_str());
     alchemicalpotentialpair
         .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
         .def("getAlchemicalPairParticle", &T::getAlchemicalPairParticle)

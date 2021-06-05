@@ -3,10 +3,8 @@
 
 // Maintainer: jproc
 
-
 #ifndef __TWO_STEP_NVE_ALCHEMY_H__
 #define __TWO_STEP_NVE_ALCHEMY_H__
-
 
 #include "AlchemostatTwoStep.h"
 

@@ -99,9 +99,9 @@ class AlchemicalMDParticle : public AlchemicalParticle
         return value;
         }
 
-    Scalar momentum=0.; // the momentum of the particle
-    Scalar2 mass;    // mass (x) and it's inverse (y) (don't have to recompute constantly)
-    Scalar mu=0.;       //!< the alchemical potential of the particle
+    Scalar momentum = 0.; // the momentum of the particle
+    Scalar2 mass;         // mass (x) and it's inverse (y) (don't have to recompute constantly)
+    Scalar mu = 0.;       //!< the alchemical potential of the particle
     GlobalArray<Scalar> m_alchemical_derivatives; //!< Per particle alchemical forces
     protected:
     // the timestep the net force was computed and the netforce
@@ -117,7 +117,6 @@ class AlchemicalPairParticle : public AlchemicalMDParticle
     int3 m_type_pair_param;
     };
 
-
 inline void export_AlchemicalMDParticle(pybind11::module& m)
     {
     pybind11::class_<AlchemicalMDParticle, std::shared_ptr<AlchemicalMDParticle>>(
@@ -125,16 +124,14 @@ inline void export_AlchemicalMDParticle(pybind11::module& m)
         "AlchemicalMDParticle")
         .def("setMass", &AlchemicalMDParticle::setMass)
         .def_property_readonly("getMass", &AlchemicalMDParticle::getMass)
-        .def_property_readonly("alpha", &AlchemicalMDParticle::getValue)
-        ;
+        .def_property_readonly("alpha", &AlchemicalMDParticle::getValue);
     }
-
 
 inline void export_AlchemicalPairParticle(pybind11::module& m)
     {
-    pybind11::class_<AlchemicalPairParticle, AlchemicalMDParticle, std::shared_ptr<AlchemicalPairParticle>>(
-        m,
-        "AlchemicalPairParticle")
+    pybind11::class_<AlchemicalPairParticle,
+                     AlchemicalMDParticle,
+                     std::shared_ptr<AlchemicalPairParticle>>(m, "AlchemicalPairParticle")
         // .def("setMass", &AlchemicalPairParticle::setMass)
         // .def_property_readonly("getMass", &AlchemicalPairParticle::getMass)
         // .def_property_readonly("alpha", &AlchemicalPairParticle::getValue)

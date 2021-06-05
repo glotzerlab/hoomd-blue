@@ -118,9 +118,6 @@ void TwoStepNVEAlchemy::integrateStepTwo(uint64_t timestep)
 
 void export_TwoStepNVEAlchemy(py::module& m)
     {
-    py::class_<TwoStepNVEAlchemy, std::shared_ptr<TwoStepNVEAlchemy>>(
-        m,
-        "TwoStepNVEAlchemy")
-        .def(py::init<std::shared_ptr<SystemDefinition> >())
-        ;
+    py::class_<TwoStepNVEAlchemy, std::shared_ptr<TwoStepNVEAlchemy>>(m, "TwoStepNVEAlchemy")
+        .def(py::init<std::shared_ptr<SystemDefinition>>());
     }

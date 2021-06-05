@@ -103,8 +103,8 @@ void TwoStepNVTAlchemy::integrateStepOne(uint64_t timestep)
 
     // TODO: get any external derivatives, mapped?
     Scalar dUextdalpha = Scalar(0);
-    
-    m_validState=false;
+
+    m_validState = false;
 
     for (auto& alpha : m_alchemicalParticles)
         {
@@ -157,7 +157,7 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
 
         const Scalar& invM = alpha->mass.y;
         const Scalar& mu = alpha->mu;
-        const Scalar netForce = alpha->getNetForce(timestep+1);
+        const Scalar netForce = alpha->getNetForce(timestep + 1);
 
         // rescale velocity
         p *= exp(-m_halfDeltaT * xi);
@@ -167,8 +167,8 @@ void TwoStepNVTAlchemy::integrateStepTwo(uint64_t timestep)
         q += m_halfDeltaT * p * invM;
         m_alchem_KE += Scalar(0.5) * p * p * invM;
         }
-        
-    m_validState=true;
+
+    m_validState = true;
 
     // done profiling
     if (m_prof)
@@ -184,7 +184,8 @@ void TwoStepNVTAlchemy::advanceThermostat(uint64_t timestep, bool broadcast)
     // update the state variables Xi and eta
     Scalar half_delta_xi
         = m_halfDeltaT
-          * ((Scalar(2) * m_alchem_KE) - (Scalar(m_alchemicalParticles.size()) * (*m_T)(timestep))) / m_Q;
+          * ((Scalar(2) * m_alchem_KE) - (Scalar(m_alchemicalParticles.size()) * (*m_T)(timestep)))
+          / m_Q;
     eta += (half_delta_xi + xi) * m_deltaT * m_nTimeFactor;
     xi += half_delta_xi + half_delta_xi;
 
