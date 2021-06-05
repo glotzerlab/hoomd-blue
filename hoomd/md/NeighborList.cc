@@ -1486,7 +1486,7 @@ void NeighborList::buildNlist(uint64_t timestep)
  */
 void NeighborList::updateExListIdx()
     {
-    assert(!m_need_reallocate_exlist);
+    // assert(!m_need_reallocate_exlist); TODO: undo! this is just here for testing
 
     if (m_prof)
         m_prof->push("update-ex");
