@@ -9,6 +9,8 @@ import pytest
 from copy import deepcopy
 import coxeter
 from coxeter.shapes import ConvexPolyhedron
+from hoomd.logging import LoggerCategories
+from hoomd.conftest import logging_check
 
 _seed = 0
 
@@ -140,6 +142,11 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
     sim.run(10)
     expected_verts = np.asarray(TruncatedTetrahedron().__getitem__(python_move.params['A'][0]))
     assert np.allclose(np.asarray(mc.shape['A']["vertices"]), expected_verts)
+    logging_check(hoomd.hpmc.shape_move.Python,
+                  ('hpmc', 'shape_move'),
+                  {'shape_param': {'category': LoggerCategories.object,
+                                   'default': True}}
+                  )
 
 
 # def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
