@@ -5,12 +5,11 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairDLVO.h"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "EvaluatorPairDLVO.h"
 
-hipError_t gpu_compute_dlvo_forces(const pair_args_t & args,
-                                                const EvaluatorPairDLVO::param_type *d_params)
+hipError_t gpu_compute_dlvo_forces(const pair_args_t& args,
+                                   const EvaluatorPairDLVO::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairDLVO>(args,
-                                                     d_params);
+    return gpu_compute_pair_forces<EvaluatorPairDLVO>(args, d_params);
     }

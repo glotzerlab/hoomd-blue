@@ -17,37 +17,36 @@
 #include <cuda_runtime.h>
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
-
+    {
 //! Kernel driver to pack cell communication buffer
 template<typename T, class PackOpT>
 cudaError_t __attribute__((visibility("default")))
-pack_cell_buffer(typename PackOpT::element *d_send_buf,
-                             const T *d_props,
-                             const unsigned int *d_send_idx,
-                             const PackOpT op,
-                             const unsigned int num_send,
-                             unsigned int block_size);
+pack_cell_buffer(typename PackOpT::element* d_send_buf,
+                 const T* d_props,
+                 const unsigned int* d_send_idx,
+                 const PackOpT op,
+                 const unsigned int num_send,
+                 unsigned int block_size);
 
 //! Kernel driver to unpack cell communication buffer
 template<typename T, class PackOpT>
 cudaError_t __attribute__((visibility("default")))
-unpack_cell_buffer(T *d_props,
-                               const unsigned int *d_cells,
-                               const unsigned int *d_recv,
-                               const unsigned int *d_recv_begin,
-                               const unsigned int *d_recv_end,
-                               const typename PackOpT::element *d_recv_buf,
-                               const PackOpT op,
-                               const unsigned int num_cells,
-                               const unsigned int block_size);
+unpack_cell_buffer(T* d_props,
+                   const unsigned int* d_cells,
+                   const unsigned int* d_recv,
+                   const unsigned int* d_recv_begin,
+                   const unsigned int* d_recv_end,
+                   const typename PackOpT::element* d_recv_buf,
+                   const PackOpT op,
+                   const unsigned int num_cells,
+                   const unsigned int block_size);
 
 #ifdef __HIPCC__
 
 namespace kernel
-{
+    {
 //! Kernel to pack cell communication buffer
 /*!
  * \param d_send_buf Send buffer to pack (output)
@@ -65,9 +64,9 @@ namespace kernel
  * and packed into the send buffer.
  */
 template<typename T, class PackOpT>
-__global__ void pack_cell_buffer(typename PackOpT::element *d_send_buf,
-                                 const T *d_props,
-                                 const unsigned int *d_send_idx,
+__global__ void pack_cell_buffer(typename PackOpT::element* d_send_buf,
+                                 const T* d_props,
+                                 const unsigned int* d_send_idx,
                                  const PackOpT op,
                                  const unsigned int num_send)
     {
@@ -99,12 +98,12 @@ __global__ void pack_cell_buffer(typename PackOpT::element *d_send_buf,
  * has received, and applies the unpacking operator to each in turn.
  */
 template<typename T, class PackOpT>
-__global__ void unpack_cell_buffer(T *d_props,
-                                   const unsigned int *d_cells,
-                                   const unsigned int *d_recv,
-                                   const unsigned int *d_recv_begin,
-                                   const unsigned int *d_recv_end,
-                                   const typename PackOpT::element *d_recv_buf,
+__global__ void unpack_cell_buffer(T* d_props,
+                                   const unsigned int* d_cells,
+                                   const unsigned int* d_recv,
+                                   const unsigned int* d_recv_begin,
+                                   const unsigned int* d_recv_end,
+                                   const typename PackOpT::element* d_recv_buf,
                                    const PackOpT op,
                                    const unsigned int num_cells)
     {
@@ -128,7 +127,7 @@ __global__ void unpack_cell_buffer(T *d_props,
     d_props[cell_idx] = val;
     }
 
-} // end namespace kernel
+    } // end namespace kernel
 
 /*!
  * \param d_send_buf Send buffer to pack (output)
@@ -146,9 +145,9 @@ __global__ void unpack_cell_buffer(T *d_props,
  * \sa mpcd::gpu::kernel::pack_cell_buffer
  */
 template<typename T, class PackOpT>
-cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
-                             const T *d_props,
-                             const unsigned int *d_send_idx,
+cudaError_t pack_cell_buffer(typename PackOpT::element* d_send_buf,
+                             const T* d_props,
+                             const unsigned int* d_send_idx,
                              const PackOpT op,
                              const unsigned int num_send,
                              unsigned int block_size)
@@ -158,7 +157,7 @@ cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T,PackOpT>);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T, PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
     const unsigned int run_block_size = min(block_size, max_block_size);
@@ -191,12 +190,12 @@ cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
  * \sa mpcd::gpu::kernel::unpack_cell_buffer
  */
 template<typename T, class PackOpT>
-cudaError_t unpack_cell_buffer(T *d_props,
-                               const unsigned int *d_cells,
-                               const unsigned int *d_recv,
-                               const unsigned int *d_recv_begin,
-                               const unsigned int *d_recv_end,
-                               const typename PackOpT::element *d_recv_buf,
+cudaError_t unpack_cell_buffer(T* d_props,
+                               const unsigned int* d_cells,
+                               const unsigned int* d_recv,
+                               const unsigned int* d_recv_begin,
+                               const unsigned int* d_recv_end,
+                               const typename PackOpT::element* d_recv_buf,
                                const PackOpT op,
                                const unsigned int num_cells,
                                const unsigned int block_size)
@@ -206,7 +205,8 @@ cudaError_t unpack_cell_buffer(T *d_props,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T,PackOpT>);
+        cudaFuncGetAttributes(&attr,
+                              (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T, PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
     const unsigned int run_block_size = min(block_size, max_block_size);
@@ -225,7 +225,7 @@ cudaError_t unpack_cell_buffer(T *d_props,
     }
 #endif // __HIPCC__
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd
 
 #endif // MPCD_CELL_COMMUNICATOR_CUH_

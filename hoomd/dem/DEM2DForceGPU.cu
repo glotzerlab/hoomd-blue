@@ -9,21 +9,22 @@
 #include <assert.h>
 #endif
 
-#include "VectorMath.h"
-#include "hoomd/ParticleData.cuh"
-#include "hoomd/Index1D.h"
 #include "DEM2DForceGPU.cuh"
-#include "hoomd/HOOMDMath.h"
-#include "hoomd/TextureTools.h"
 #include "DEMEvaluator.h"
-#include "atomics.cuh"
-#include "WCAPotential.h"
 #include "SWCAPotential.h"
+#include "VectorMath.h"
+#include "WCAPotential.h"
+#include "atomics.cuh"
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
+#include "hoomd/ParticleData.cuh"
+#include "hoomd/TextureTools.h"
 
 #include "NoFriction.h"
 
 /*! \file DEM2DForceGPU.cu
-  \brief Defines GPU kernel code for calculating conservative DEM pair forces. Used by DEM2DForceComputeGPU.
+  \brief Defines GPU kernel code for calculating conservative DEM pair forces. Used by
+  DEM2DForceComputeGPU.
 */
 
 //! Kernel for calculating 2D DEM forces
@@ -52,99 +53,97 @@
 
   Developer information:
   Each block will calculate the forces for blockDim.y particles.
-  Each thread will calculate the force contribution for one vertex being treated as a vertex or an edge.
-  The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
+  Each thread will calculate the force contribution for one vertex being treated as a vertex or an
+  edge. The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
 
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
-__global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
-    const Scalar4 *d_quat,
-    Scalar4* d_force,
-    Scalar4* d_torque,
-    Scalar* d_virial,
-    const size_t virial_pitch,
-    const unsigned int N,
-    const Real2 *d_vertices,
-    const unsigned int *d_num_shape_verts,
-    const Scalar *d_diam,
-    const Scalar4 *d_velocity,
-    const unsigned int vertexCount,
-    const BoxDim box,
-    const unsigned int *d_n_neigh,
-    const unsigned int *d_nlist,
-    const unsigned int *d_head_list,
-    Evaluator evaluator,
-    const Real r_cutsq,
-    const unsigned int n_shapes,
-    const unsigned int maxVerts)
+__global__ void gpu_compute_dem2d_forces_kernel(const Scalar4* d_pos,
+                                                const Scalar4* d_quat,
+                                                Scalar4* d_force,
+                                                Scalar4* d_torque,
+                                                Scalar* d_virial,
+                                                const size_t virial_pitch,
+                                                const unsigned int N,
+                                                const Real2* d_vertices,
+                                                const unsigned int* d_num_shape_verts,
+                                                const Scalar* d_diam,
+                                                const Scalar4* d_velocity,
+                                                const unsigned int vertexCount,
+                                                const BoxDim box,
+                                                const unsigned int* d_n_neigh,
+                                                const unsigned int* d_nlist,
+                                                const unsigned int* d_head_list,
+                                                Evaluator evaluator,
+                                                const Real r_cutsq,
+                                                const unsigned int n_shapes,
+                                                const unsigned int maxVerts)
     {
-    HIP_DYNAMIC_SHARED( int, sh)
+    HIP_DYNAMIC_SHARED(int, sh)
     // part{ForceTorques, Virials} are the forces and torques
     // (force.x, force.y, torque.z, potentialEnergy), and virials for
     // each particle that this block will calculate for (blockDim.y
     // particles)
-    Real4 *partForceTorques((Real4*)sh);
-    size_t shOffset(sizeof(Real4)/sizeof(int)*blockDim.y);
+    Real4* partForceTorques((Real4*)sh);
+    size_t shOffset(sizeof(Real4) / sizeof(int) * blockDim.y);
 
     // vertices and vertexIndices are the 2D vertices and an index
     // into these lists of the next vertex for the corresponding edge,
     // respectively
-    Real2 *vertices((Real2*)&sh[shOffset]);
-    shOffset += sizeof(Real2)/sizeof(int)*vertexCount;
+    Real2* vertices((Real2*)&sh[shOffset]);
+    shOffset += sizeof(Real2) / sizeof(int) * vertexCount;
 
     // per-particle virials
-    Real *partVirials((Real*)&sh[shOffset]);
-    shOffset += sizeof(Real)/sizeof(int)*6*blockDim.y;
+    Real* partVirials((Real*)&sh[shOffset]);
+    shOffset += sizeof(Real) / sizeof(int) * 6 * blockDim.y;
 
     // numShapeVerts is an array of shape index -> number of
     // vertices in that shape
-    unsigned int *numShapeVerts((unsigned int*)&sh[shOffset]);
+    unsigned int* numShapeVerts((unsigned int*)&sh[shOffset]);
     shOffset += n_shapes;
     // firstShapeVert is an array of shape index -> first vertex in
     // vertices
-    unsigned int *firstShapeVert((unsigned int*)&sh[shOffset]);
+    unsigned int* firstShapeVert((unsigned int*)&sh[shOffset]);
     shOffset += n_shapes;
 
     // partIdx is the absolute index of the particle this thread is
     // calculating for
-    size_t partIdx(blockIdx.x*blockDim.y + threadIdx.y);
+    size_t partIdx(blockIdx.x * blockDim.y + threadIdx.y);
 
     // localThreadIdx is just this thread's index in the block; use it
     // to load vertices
-    const size_t localThreadIdx(threadIdx.z*blockDim.x*blockDim.y +
-        threadIdx.y*blockDim.x + threadIdx.x);
+    const size_t localThreadIdx(threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x
+                                + threadIdx.x);
     int offset(0);
     do
         {
-        if(localThreadIdx + offset < vertexCount)
+        if (localThreadIdx + offset < vertexCount)
             {
             vertices[localThreadIdx + offset] = d_vertices[localThreadIdx + offset];
             }
-        offset += blockDim.x*blockDim.y*blockDim.z;
-        }
-    while(offset < vertexCount);
+        offset += blockDim.x * blockDim.y * blockDim.z;
+        } while (offset < vertexCount);
 
     offset = 0;
     do
         {
-        if(localThreadIdx + offset < n_shapes)
+        if (localThreadIdx + offset < n_shapes)
             {
             numShapeVerts[localThreadIdx + offset] = d_num_shape_verts[localThreadIdx + offset];
             unsigned int firstVert(0);
-            for(int i(localThreadIdx + offset - 1); i >= 0; --i)
+            for (int i(localThreadIdx + offset - 1); i >= 0; --i)
                 firstVert += d_num_shape_verts[i];
             firstShapeVert[localThreadIdx + offset] = firstVert;
             }
-        offset += blockDim.x*blockDim.y*blockDim.z;
-        }
-    while(offset < n_shapes);
+        offset += blockDim.x * blockDim.y * blockDim.z;
+        } while (offset < n_shapes);
 
     // zero the accumulator values
-    if(threadIdx.z == 0 && threadIdx.x == 0)
+    if (threadIdx.z == 0 && threadIdx.x == 0)
         {
         partForceTorques[threadIdx.y] = make_scalar4(0.0f, 0.0f, 0.0f, 0.0f);
-        for(size_t i(0); i < 6; ++i)
-            partVirials[6*threadIdx.y + i] = 0.0f;
+        for (size_t i(0); i < 6; ++i)
+            partVirials[6 * threadIdx.y + i] = 0.0f;
         }
 
     // zero the calculated force, torque, and virial for this particle
@@ -152,14 +151,14 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
     // force.y, torque.z, potentialEnergy).
     Real4 localForceTorque(make_scalar4(0.0f, 0.0f, 0.0f, 0.0f));
     Real localVirial[6];
-    for(size_t i(0); i < 6; ++i)
+    for (size_t i(0); i < 6; ++i)
         localVirial[i] = 0.0f;
 
     // make sure the shared memory initializations above are visible
     // for the whole block
     __syncthreads();
 
-    if(partIdx < N)
+    if (partIdx < N)
         {
         const size_t n_neigh(d_n_neigh[partIdx]);
         const unsigned int myHead(d_head_list[partIdx]);
@@ -175,23 +174,23 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
         if (Evaluator::needsDiameter())
             di = __ldg(d_diam + partIdx);
         else
-            di += 1.0f; //shut up compiler warning. Vestigial from HOOMD
+            di += 1.0f; // shut up compiler warning. Vestigial from HOOMD
 
         vec3<Scalar> vi;
         if (Evaluator::needsVelocity())
-            vi = vec3<Scalar>(
-                __ldg(d_velocity + partIdx));
+            vi = vec3<Scalar>(__ldg(d_velocity + partIdx));
 
-        for(unsigned int featureEpoch(0);
-            featureEpoch < (numShapeVerts[type_i] + blockDim.x - 1)/blockDim.x; ++featureEpoch)
+        for (unsigned int featureEpoch(0);
+             featureEpoch < (numShapeVerts[type_i] + blockDim.x - 1) / blockDim.x;
+             ++featureEpoch)
             {
-
-            const unsigned int localFeatureIdx(featureEpoch*blockDim.x + threadIdx.x);
-            if(localFeatureIdx >= numShapeVerts[type_i])
+            const unsigned int localFeatureIdx(featureEpoch * blockDim.x + threadIdx.x);
+            if (localFeatureIdx >= numShapeVerts[type_i])
                 continue;
 
             // go ahead and fetch/rotate the vertex this thread will deal with
-            vec2<Real> r0(vec_from_scalar2<Real>(vertices[firstShapeVert[type_i] + localFeatureIdx]));
+            vec2<Real> r0(
+                vec_from_scalar2<Real>(vertices[firstShapeVert[type_i] + localFeatureIdx]));
             r0 = rotate(quat_i, r0);
 
             // prefetch neighbor index
@@ -228,12 +227,13 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
                         evaluator.setDiameter(di, dj);
                         }
 
-                    if(evaluator.withinCutoff(rsq,r_cutsq))
+                    if (evaluator.withinCutoff(rsq, r_cutsq))
                         {
                         // fetch neighbor's orientation
                         const Scalar4 neighQuatF(__ldg(d_quat + cur_neigh));
                         const quat<Real> neighQuat(
-                            neighQuatF.x, vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
+                            neighQuatF.x,
+                            vec3<Real>(neighQuatF.y, neighQuatF.z, neighQuatF.w));
 
                         if (Evaluator::needsVelocity())
                             {
@@ -241,8 +241,8 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
                             evaluator.setVelocity(vi - vec3<Scalar>(vj));
                             }
 
-                        for(unsigned int neighVertex(0);
-                            neighVertex < numShapeVerts[neigh_type]; ++neighVertex)
+                        for (unsigned int neighVertex(0); neighVertex < numShapeVerts[neigh_type];
+                             ++neighVertex)
                             {
                             // Intermediate force/torque storage values
                             Real potentialE(0.0f);
@@ -253,33 +253,44 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
 
                             // threadIdx.z == 1: treat this vertex as
                             // the first vertex of an edge
-                            if(threadIdx.z)
+                            if (threadIdx.z)
                                 {
-                                const unsigned int nextVert((localFeatureIdx + 1)%numShapeVerts[type_i]);
+                                const unsigned int nextVert((localFeatureIdx + 1)
+                                                            % numShapeVerts[type_i]);
                                 // Only evaluate the edge if we aren't
                                 // already going to evaluate it
                                 // elsewhere (in the case of a
                                 // spherocylinder) and we have edges
                                 // to evaluate (i.e., the "edge"
                                 // doesn't belong to a point particle)
-                                if(numShapeVerts[type_i] > 2 || nextVert > localFeatureIdx)
+                                if (numShapeVerts[type_i] > 2 || nextVert > localFeatureIdx)
                                     {
                                     evaluator.swapij();
-                                    vec2<Real> r1(vec_from_scalar2<Real>(vertices[firstShapeVert[neigh_type] + neighVertex]));
+                                    vec2<Real> r1(vec_from_scalar2<Real>(
+                                        vertices[firstShapeVert[neigh_type] + neighVertex]));
                                     r1 = rotate(neighQuat, r1);
-                                    vec2<Real> r2(vec_from_scalar2<Real>(vertices[firstShapeVert[type_i] + nextVert]));
+                                    vec2<Real> r2(vec_from_scalar2<Real>(
+                                        vertices[firstShapeVert[type_i] + nextVert]));
                                     r2 = rotate(quat_i, r2);
 
-                                    evaluator.vertexEdge(-rij, r1, r0, r2, potentialE,
-                                        forceji, torqueji, forceij,
-                                        torqueij);
+                                    evaluator.vertexEdge(-rij,
+                                                         r1,
+                                                         r0,
+                                                         r2,
+                                                         potentialE,
+                                                         forceji,
+                                                         torqueji,
+                                                         forceij,
+                                                         torqueij);
                                     }
                                 }
                             else // threadIdx.z == 0: treat this
-                                // vertex as a vertex
+                                 // vertex as a vertex
                                 {
-                                const unsigned int nextVert((neighVertex + 1)%numShapeVerts[neigh_type]);
-                                vec2<Real> r1(vec_from_scalar2<Real>(vertices[firstShapeVert[neigh_type] + neighVertex]));
+                                const unsigned int nextVert((neighVertex + 1)
+                                                            % numShapeVerts[neigh_type]);
+                                vec2<Real> r1(vec_from_scalar2<Real>(
+                                    vertices[firstShapeVert[neigh_type] + neighVertex]));
                                 r1 = rotate(neighQuat, r1);
                                 // if neighVertex==nextVert then
                                 // particle j has no edges and no need
@@ -287,23 +298,35 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
                                 // if the neighbor shape is a
                                 // spherocylinder, only count its edge
                                 // once.
-                                if(numShapeVerts[neigh_type] > 2 || nextVert > neighVertex)
+                                if (numShapeVerts[neigh_type] > 2 || nextVert > neighVertex)
                                     {
-                                    vec2<Real> r2(vec_from_scalar2<Real>(vertices[firstShapeVert[neigh_type] + nextVert]));
+                                    vec2<Real> r2(vec_from_scalar2<Real>(
+                                        vertices[firstShapeVert[neigh_type] + nextVert]));
                                     r2 = rotate(neighQuat, r2);
 
-                                    evaluator.vertexEdge(rij, r0, r1, r2, potentialE,
-                                        forceij, torqueij, forceji,
-                                        torqueji);
+                                    evaluator.vertexEdge(rij,
+                                                         r0,
+                                                         r1,
+                                                         r2,
+                                                         potentialE,
+                                                         forceij,
+                                                         torqueij,
+                                                         forceji,
+                                                         torqueji);
                                     }
 
-                                // if i and j are both disks, evaluate the vertex-vertex potential here
-                                if(numShapeVerts[type_i] == 1 && numShapeVerts[neigh_type] == 1)
+                                // if i and j are both disks, evaluate the vertex-vertex potential
+                                // here
+                                if (numShapeVerts[type_i] == 1 && numShapeVerts[neigh_type] == 1)
                                     {
-                                    evaluator.vertexVertex(rij, r0, rij + r1,
-                                        potentialE, forceij,
-                                        torqueij, forceji,
-                                        torqueji);
+                                    evaluator.vertexVertex(rij,
+                                                           r0,
+                                                           rij + r1,
+                                                           potentialE,
+                                                           forceij,
+                                                           torqueij,
+                                                           forceji,
+                                                           torqueji);
                                     }
                                 }
 
@@ -312,9 +335,9 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
                             localForceTorque.z += torqueij;
                             localForceTorque.w += potentialE;
 
-                            localVirial[0] -= .5f*rij.x*forceij.x;
-                            localVirial[1] -= .5f*rij.y*forceij.x;
-                            localVirial[3] -= .5f*rij.y*forceij.y;
+                            localVirial[0] -= .5f * rij.x * forceij.x;
+                            localVirial[1] -= .5f * rij.y * forceij.x;
+                            localVirial[3] -= .5f * rij.y * forceij.y;
                             }
                         }
                     }
@@ -324,30 +347,30 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
 
     // sum all the intermediate force and torque values for each
     // particle we calculate for in the block
-    if(partIdx < N)
+    if (partIdx < N)
         {
-        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].x, (Real) localForceTorque.x);
-        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].y, (Real) localForceTorque.y);
-        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].z, (Real) localForceTorque.z);
-        genAtomicAdd((Real *) &partForceTorques[threadIdx.y].w, (Real) localForceTorque.w);
-        genAtomicAdd(partVirials + 6*threadIdx.y + 0, localVirial[0]);
-        genAtomicAdd(partVirials + 6*threadIdx.y + 1, localVirial[1]);
-        genAtomicAdd(partVirials + 6*threadIdx.y + 3, localVirial[3]);
+        genAtomicAdd((Real*)&partForceTorques[threadIdx.y].x, (Real)localForceTorque.x);
+        genAtomicAdd((Real*)&partForceTorques[threadIdx.y].y, (Real)localForceTorque.y);
+        genAtomicAdd((Real*)&partForceTorques[threadIdx.y].z, (Real)localForceTorque.z);
+        genAtomicAdd((Real*)&partForceTorques[threadIdx.y].w, (Real)localForceTorque.w);
+        genAtomicAdd(partVirials + 6 * threadIdx.y + 0, localVirial[0]);
+        genAtomicAdd(partVirials + 6 * threadIdx.y + 1, localVirial[1]);
+        genAtomicAdd(partVirials + 6 * threadIdx.y + 3, localVirial[3]);
         }
 
     __syncthreads();
 
     // finally, write the result
-    if(partIdx < N && threadIdx.z == 0 && threadIdx.x == 0)
+    if (partIdx < N && threadIdx.z == 0 && threadIdx.x == 0)
         {
         partForceTorques[threadIdx.y].w *= .5f;
         d_force[partIdx].x = partForceTorques[threadIdx.y].x;
         d_force[partIdx].y = partForceTorques[threadIdx.y].y;
         d_force[partIdx].w = partForceTorques[threadIdx.y].w;
         d_torque[partIdx].z = partForceTorques[threadIdx.y].z;
-        d_virial[0*virial_pitch + partIdx] = partVirials[6*threadIdx.y + 0];
-        d_virial[1*virial_pitch + partIdx] = partVirials[6*threadIdx.y + 1];
-        d_virial[3*virial_pitch + partIdx] = partVirials[6*threadIdx.y + 3];
+        d_virial[0 * virial_pitch + partIdx] = partVirials[6 * threadIdx.y + 0];
+        d_virial[1 * virial_pitch + partIdx] = partVirials[6 * threadIdx.y + 1];
+        d_virial[3 * virial_pitch + partIdx] = partVirials[6 * threadIdx.y + 3];
         }
     }
 
@@ -374,51 +397,75 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
 
   \returns Any error code resulting from the kernel launch
 
-  This is just a driver for gpu_compute_dem2d_forces_kernel, see the documentation for it for more information.
+  This is just a driver for gpu_compute_dem2d_forces_kernel, see the documentation for it for more
+  information.
 */
 template<typename Real, typename Real2, typename Real4, typename Evaluator>
 hipError_t gpu_compute_dem2d_forces(Scalar4* d_force,
-    Scalar4* d_torque,
-    Scalar* d_virial,
-    const size_t virial_pitch,
-    const unsigned int N,
-    const unsigned int n_ghosts,
-    const Scalar4 *d_pos,
-    const Scalar4 *d_quat,
-    const Real2 *d_vertices,
-    const unsigned int *d_num_shape_verts,
-    const Scalar *d_diam,
-    const Scalar4 *d_velocity,
-    const unsigned int vertexCount,
-    const BoxDim& box,
-    const unsigned int *d_n_neigh,
-    const unsigned int *d_nlist,
-    const unsigned int *d_head_list,
-    Evaluator potential,
-    const Real r_cutsq,
-    const unsigned int n_shapes,
-    const unsigned int particlesPerBlock,
-    const unsigned int maxVerts)
+                                    Scalar4* d_torque,
+                                    Scalar* d_virial,
+                                    const size_t virial_pitch,
+                                    const unsigned int N,
+                                    const unsigned int n_ghosts,
+                                    const Scalar4* d_pos,
+                                    const Scalar4* d_quat,
+                                    const Real2* d_vertices,
+                                    const unsigned int* d_num_shape_verts,
+                                    const Scalar* d_diam,
+                                    const Scalar4* d_velocity,
+                                    const unsigned int vertexCount,
+                                    const BoxDim& box,
+                                    const unsigned int* d_n_neigh,
+                                    const unsigned int* d_nlist,
+                                    const unsigned int* d_head_list,
+                                    Evaluator potential,
+                                    const Real r_cutsq,
+                                    const unsigned int n_shapes,
+                                    const unsigned int particlesPerBlock,
+                                    const unsigned int maxVerts)
     {
-
     // setup the grid to run the kernel
     dim3 grid((int)ceil((double)N / (double)particlesPerBlock), 1, 1);
 
     hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>));
-    const unsigned int numFeatures(min(maxVerts, attr.maxThreadsPerBlock/particlesPerBlock/2));
+    hipFuncGetAttributes(&attr,
+                         reinterpret_cast<const void*>(
+                             gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>));
+    const unsigned int numFeatures(min(maxVerts, attr.maxThreadsPerBlock / particlesPerBlock / 2));
     assert(numFeatures);
 
     dim3 threads(numFeatures, particlesPerBlock, 2);
 
     // Calculate the amount of shared memory required
-    size_t shmSize(vertexCount*sizeof(Real2) + n_shapes*2*sizeof(unsigned int) +
-        particlesPerBlock*(sizeof(Real4) + 6*sizeof(Real)));
+    size_t shmSize(vertexCount * sizeof(Real2) + n_shapes * 2 * sizeof(unsigned int)
+                   + particlesPerBlock * (sizeof(Real4) + 6 * sizeof(Real)));
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>), grid, threads, shmSize, 0, d_pos, d_quat, d_force, d_torque, d_virial, virial_pitch, N, d_vertices,
-        d_num_shape_verts, d_diam, d_velocity, vertexCount, box, d_n_neigh,
-        d_nlist, d_head_list, potential, r_cutsq, n_shapes, maxVerts);
+    hipLaunchKernelGGL((gpu_compute_dem2d_forces_kernel<Real, Real2, Real4, Evaluator>),
+                       grid,
+                       threads,
+                       shmSize,
+                       0,
+                       d_pos,
+                       d_quat,
+                       d_force,
+                       d_torque,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_vertices,
+                       d_num_shape_verts,
+                       d_diam,
+                       d_velocity,
+                       vertexCount,
+                       box,
+                       d_n_neigh,
+                       d_nlist,
+                       d_head_list,
+                       potential,
+                       r_cutsq,
+                       n_shapes,
+                       maxVerts);
 
     return hipSuccess;
     }

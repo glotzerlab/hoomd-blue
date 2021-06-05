@@ -6,13 +6,13 @@
 
 #include <pybind11/pybind11.h>
 
-// specify the python module. Note that the name must explicitly match the PROJECT() name provided in CMakeLists
-// (with an underscore in front)
+// specify the python module. Note that the name must explicitly match the PROJECT() name provided
+// in CMakeLists (with an underscore in front)
 PYBIND11_MODULE(_example_plugin, m)
     {
     export_ExampleUpdater(m);
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     export_ExampleUpdaterGPU(m);
-    #endif
+#endif
     }

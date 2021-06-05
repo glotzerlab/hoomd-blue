@@ -21,46 +21,54 @@ unsigned int mpcd::CellCommunicator::num_instances = 0;
  */
 mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysdef,
                                          std::shared_ptr<mpcd::CellList> cl)
-    : m_id(num_instances++),
-      m_sysdef(sysdef),
-      m_pdata(sysdef->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()),
-      m_mpi_comm(m_exec_conf->getMPICommunicator()),
-      m_decomposition(m_pdata->getDomainDecomposition()),
-      m_cl(cl),
-      m_communicating(false),
-      m_send_buf(m_exec_conf),
-      m_recv_buf(m_exec_conf),
-      m_needs_init(true)
+    : m_id(num_instances++), m_sysdef(sysdef), m_pdata(sysdef->getParticleData()),
+      m_exec_conf(m_pdata->getExecConf()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
+      m_decomposition(m_pdata->getDomainDecomposition()), m_cl(cl), m_communicating(false),
+      m_send_buf(m_exec_conf), m_recv_buf(m_exec_conf), m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack_" + std::to_string(m_id), m_exec_conf));
-        m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack_" + std::to_string(m_id), m_exec_conf));
+        m_tuner_pack.reset(new Autotuner(32,
+                                         1024,
+                                         32,
+                                         5,
+                                         100000,
+                                         "mpcd_cell_comm_pack_" + std::to_string(m_id),
+                                         m_exec_conf));
+        m_tuner_unpack.reset(new Autotuner(32,
+                                           1024,
+                                           32,
+                                           5,
+                                           100000,
+                                           "mpcd_cell_comm_unpack_" + std::to_string(m_id),
+                                           m_exec_conf));
         }
-    #endif // ENABLE_HIP
+#endif // ENABLE_HIP
 
-    m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
+    m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(
+        this);
     }
 
 mpcd::CellCommunicator::~CellCommunicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD CellCommunicator" << std::endl;
-    m_cl->getSizeChangeSignal().disconnect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
+    m_cl->getSizeChangeSignal()
+        .disconnect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
     }
 
 namespace mpcd
-{
+    {
 namespace detail
-{
+    {
 //! Unary operator to wrap global cell indexes into the local domain
 struct LocalCellWrapOp
     {
     LocalCellWrapOp(std::shared_ptr<mpcd::CellList> cl_)
         : cl(cl_), ci(cl_->getCellIndexer()), gci(cl_->getGlobalCellIndexer())
-        { }
+        {
+        }
 
     //! Transform the global 1D cell index into a local 1D cell index
     inline unsigned int operator()(unsigned int cell_idx)
@@ -71,15 +79,22 @@ struct LocalCellWrapOp
         // convert the global cell tuple to a local cell tuple
         int3 local_cell = cl->getLocalCell(make_int3(cell.x, cell.y, cell.z));
 
-        // wrap the local cell through the global boundaries, which should work for all reasonable cell comms.
-        if (local_cell.x >= (int)gci.getW()) local_cell.x -= gci.getW();
-        else if (local_cell.x < 0) local_cell.x += gci.getW();
+        // wrap the local cell through the global boundaries, which should work for all reasonable
+        // cell comms.
+        if (local_cell.x >= (int)gci.getW())
+            local_cell.x -= gci.getW();
+        else if (local_cell.x < 0)
+            local_cell.x += gci.getW();
 
-        if (local_cell.y >= (int)gci.getH()) local_cell.y -= gci.getH();
-        else if (local_cell.y < 0) local_cell.y += gci.getH();
+        if (local_cell.y >= (int)gci.getH())
+            local_cell.y -= gci.getH();
+        else if (local_cell.y < 0)
+            local_cell.y += gci.getH();
 
-        if (local_cell.z >= (int)gci.getD()) local_cell.z -= gci.getD();
-        else if (local_cell.z < 0) local_cell.z += gci.getD();
+        if (local_cell.z >= (int)gci.getD())
+            local_cell.z -= gci.getD();
+        else if (local_cell.z < 0)
+            local_cell.z += gci.getD();
 
         // convert the local cell tuple back to an index
         return ci(local_cell.x, local_cell.y, local_cell.z);
@@ -89,37 +104,42 @@ struct LocalCellWrapOp
     const Index3D ci;                   //!< Cell indexer
     const Index3D gci;                  //!< Global cell indexer
     };
-} // end namespace detail
-} // end namespace mpcd
+    } // end namespace detail
+    } // end namespace mpcd
 
 void mpcd::CellCommunicator::initialize()
     {
     // obtain domain decomposition
     const Index3D& di = m_decomposition->getDomainIndexer();
-    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(),
+                                           access_location::host,
+                                           access_mode::read);
     const uint3 my_pos = m_decomposition->getGridPos();
 
     // use the cell list to compute the bounds
     const Index3D& ci = m_cl->getCellIndexer();
     const Index3D& global_ci = m_cl->getGlobalCellIndexer();
     auto num_comm_cells = m_cl->getNComm();
-    const uint3 max_lo = make_uint3(num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::west)],
-                                    num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::south)],
-                                    num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::down)]);
-    const uint3 min_hi = make_uint3(ci.getW() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::east)],
-                                    ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)],
-                                    ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)]);
+    const uint3 max_lo
+        = make_uint3(num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::west)],
+                     num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::south)],
+                     num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::down)]);
+    const uint3 min_hi = make_uint3(
+        ci.getW() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::east)],
+        ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)],
+        ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)]);
 
     // check to make sure box is not overdecomposed
         {
         const unsigned int nextra = m_cl->getNExtraCells();
-        unsigned int err = ((max_lo.x + nextra) > min_hi.x ||
-                            (max_lo.y + nextra) > min_hi.y ||
-                            (max_lo.z + nextra) > min_hi.z);
+        unsigned int err = ((max_lo.x + nextra) > min_hi.x || (max_lo.y + nextra) > min_hi.y
+                            || (max_lo.z + nextra) > min_hi.z);
         MPI_Allreduce(MPI_IN_PLACE, &err, 1, MPI_UNSIGNED, MPI_MAX, m_mpi_comm);
         if (err)
             {
-            m_exec_conf->msg->error() << "mpcd: Simulation box is overdecomposed, decrease the number of ranks." << std::endl;
+            m_exec_conf->msg->error()
+                << "mpcd: Simulation box is overdecomposed, decrease the number of ranks."
+                << std::endl;
             throw std::runtime_error("Simulation box is overdecomposed for MPCD");
             }
         }
@@ -127,22 +147,22 @@ void mpcd::CellCommunicator::initialize()
     // loop over all cells in the grid and determine where to send them
     std::multimap<unsigned int, unsigned int> send_map;
     std::set<unsigned int> neighbors;
-    for (unsigned int k=0; k < ci.getD(); ++k)
+    for (unsigned int k = 0; k < ci.getD(); ++k)
         {
-        for (unsigned int j=0; j < ci.getH(); ++j)
+        for (unsigned int j = 0; j < ci.getH(); ++j)
             {
-            for (unsigned int i=0; i < ci.getW(); ++i)
+            for (unsigned int i = 0; i < ci.getW(); ++i)
                 {
                 // skip any cells interior to the grid, which will not be communicated
                 // this is wasteful loop logic, but initialize will only be called rarely
-                if (i >= max_lo.x && i < min_hi.x &&
-                    j >= max_lo.y && j < min_hi.y &&
-                    k >= max_lo.z && k < min_hi.z)
+                if (i >= max_lo.x && i < min_hi.x && j >= max_lo.y && j < min_hi.y && k >= max_lo.z
+                    && k < min_hi.z)
                     continue;
 
                 // obtain the 1D global index of this cell
-                const int3 global_cell = m_cl->getGlobalCell(make_int3(i,j,k));
-                const unsigned int global_cell_idx = global_ci(global_cell.x, global_cell.y, global_cell.z);
+                const int3 global_cell = m_cl->getGlobalCell(make_int3(i, j, k));
+                const unsigned int global_cell_idx
+                    = global_ci(global_cell.x, global_cell.y, global_cell.z);
 
                 // check which direction the cell lies off rank in x,y,z
                 std::vector<int> dx = {0};
@@ -171,7 +191,8 @@ void mpcd::CellCommunicator::initialize()
                         for (auto ddz = dz.begin(); ddz != dz.end(); ++ddz)
                             {
                             // skip self
-                            if (*ddx == 0 && *ddy == 0 && *ddz == 0) continue;
+                            if (*ddx == 0 && *ddy == 0 && *ddz == 0)
+                                continue;
 
                             // get neighbor rank tuple
                             int3 neigh = make_int3((int)my_pos.x + *ddx,
@@ -194,16 +215,18 @@ void mpcd::CellCommunicator::initialize()
                             else if (neigh.z >= (int)di.getD())
                                 neigh.z -= di.getD();
 
-                            // convert neighbor to a linear rank and push it into the unique neighbor set
-                            const unsigned int neigh_rank = h_cart_ranks.data[di(neigh.x,neigh.y,neigh.z)];
+                            // convert neighbor to a linear rank and push it into the unique
+                            // neighbor set
+                            const unsigned int neigh_rank
+                                = h_cart_ranks.data[di(neigh.x, neigh.y, neigh.z)];
                             neighbors.insert(neigh_rank);
                             send_map.insert(std::make_pair(neigh_rank, global_cell_idx));
                             } // ddz
-                        } // ddy
-                    } // ddx
-                } // i
-            } // j
-        } // k
+                        }     // ddy
+                    }         // ddx
+                }             // i
+            }                 // j
+        }                     // k
 
     // allocate send / receive index arrays
         {
@@ -214,7 +237,9 @@ void mpcd::CellCommunicator::initialize()
     // fill the send indexes with the global values
     // flood the array of unique neighbors and count the number to send
         {
-        ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_send_idx(m_send_idx,
+                                             access_location::host,
+                                             access_mode::overwrite);
         unsigned int idx = 0;
         for (auto it = send_map.begin(); it != send_map.end(); ++it)
             {
@@ -242,22 +267,39 @@ void mpcd::CellCommunicator::initialize()
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::read);
 
-        m_reqs.resize(2*m_neighbors.size());
-        for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
+        m_reqs.resize(2 * m_neighbors.size());
+        for (unsigned int idx = 0; idx < m_neighbors.size(); ++idx)
             {
             const unsigned int offset = m_begin[idx];
-            MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(h_send_idx.data + offset,
+                      m_num_send[idx],
+                      MPI_INT,
+                      m_neighbors[idx],
+                      0,
+                      m_mpi_comm,
+                      &m_reqs[2 * idx]);
+            MPI_Irecv(recv_idx.data() + offset,
+                      m_num_send[idx],
+                      MPI_INT,
+                      m_neighbors[idx],
+                      0,
+                      m_mpi_comm,
+                      &m_reqs[2 * idx + 1]);
             }
         MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
 
     // transform all of the global cell indexes back into local cell indexes
         {
-        ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_send_idx(m_send_idx,
+                                             access_location::host,
+                                             access_mode::readwrite);
 
         mpcd::detail::LocalCellWrapOp wrapper(m_cl);
-        std::transform(h_send_idx.data, h_send_idx.data + m_send_idx.getNumElements(), h_send_idx.data, wrapper);
+        std::transform(h_send_idx.data,
+                       h_send_idx.data + m_send_idx.getNumElements(),
+                       h_send_idx.data,
+                       wrapper);
         std::transform(recv_idx.begin(), recv_idx.end(), recv_idx.begin(), wrapper);
         }
 
@@ -265,7 +307,7 @@ void mpcd::CellCommunicator::initialize()
         {
         std::multimap<unsigned int, unsigned int> cell_map;
         std::set<unsigned int> unique_cells;
-        for (unsigned int idx=0; idx < recv_idx.size(); ++idx)
+        for (unsigned int idx = 0; idx < recv_idx.size(); ++idx)
             {
             const unsigned int cell = recv_idx[idx];
             unique_cells.insert(cell);
@@ -305,8 +347,12 @@ void mpcd::CellCommunicator::initialize()
          * determines the range of data belonging to each received cell.
          */
         ArrayHandle<unsigned int> h_recv(m_recv, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_begin(m_recv_begin,
+                                               access_location::host,
+                                               access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_end(m_recv_end,
+                                             access_location::host,
+                                             access_mode::overwrite);
         unsigned int last_cell = UINT_MAX;
         unsigned int cell_idx = 0;
         idx = 0;

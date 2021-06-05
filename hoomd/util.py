@@ -1,47 +1,45 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander
-
-R""" Utilities.
-"""
+"""Utilities."""
 
 import io
-from numpy import ndarray
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
 
 
-## \internal
-# \brief Checks if a variable is an instance of a string and always returns a list.
-# \param s Variable to turn into a list
-# \returns A list
-def listify(s):
-    if isinstance(s, _basestring):
-        return [s]
-    else:
-        return list(s)
-
-## \internal
-# \brief Internal flag tracking if status lines should be quieted
-_status_quiet_count = 0
-
-
-def to_camel_case(string):
+def _to_camel_case(string):
+    """Switch from snake to camelcase strict."""
     return string.replace('_', ' ').title().replace(' ', '')
 
 
-def is_iterable(obj):
-    '''Returns True if object is iterable and not a str or dict.'''
-    return isinstance(obj, Iterable) and not bad_iterable_type(obj)
+def _is_iterable(obj):
+    """Returns True if object is iterable and not a str or dict."""
+    return isinstance(obj, Iterable) and not _bad_iterable_type(obj)
 
 
-def bad_iterable_type(obj):
-    '''Returns True if str, dict, or IO (file) type.'''
+def _bad_iterable_type(obj):
+    """Returns True if str, dict, or IO (file) type."""
     return isinstance(obj, (str, dict, io.IOBase))
 
 
 def dict_map(dict_, func):
+    r"""Perform a recursive map on a nested mapping.
+
+    Args:
+        dict\_ (dict): The nested mapping to perform the map on.
+        func (callable): A callable taking in one value use to map over
+            dictionary values.
+
+    Returns:
+        dict : A `dict` that has the same keys as the passed in ``dict_`` but
+            with the values modified by ``func``.
+
+    Note:
+        This can be useful for handling dictionaries returned by
+        `hoomd.logging.Logger.log`.
+    """
     new_dict = dict()
     for key, value in dict_.items():
         if isinstance(value, Mapping):
@@ -52,6 +50,29 @@ def dict_map(dict_, func):
 
 
 def dict_fold(dict_, func, init_value, use_keys=False):
+    r"""Perform a recursive fold on a nested mapping's values or keys.
+
+    A fold is for a unnested mapping looks as follows.
+
+    .. code-block:: python
+
+        mapping = {'a': 0, 'b': 1, 'c': 2}
+        accumulated_value = 0
+        func = lambda x, y: x + y
+        for value in mapping.values():
+            accumulated_value = func(accumulated_value, value)
+
+    Args:
+        dict\_ (dict): The nested mapping to perform the map on.
+        func (callable): A callable taking in one value use to fold over
+            dictionary values or keys if ``use_keys`` is set.
+        init_value: An initial value to use for the fold.
+        use_keys (bool, optional): If true use keys instead of values for the
+            fold. Defaults to ``False``.
+
+    Returns:
+        The final value of the fold.
+    """
     final_value = init_value
     for key, value in dict_.items():
         if isinstance(value, dict):
@@ -65,6 +86,18 @@ def dict_fold(dict_, func, init_value, use_keys=False):
 
 
 def dict_flatten(dict_):
+    r"""Flattens a nested mapping into a flat mapping.
+
+    Args:
+        dict\_ (dict): The nested mapping to flatten.
+
+    Returns:
+        dict: The flattened mapping as a `dict`.
+
+    Note:
+        This can be useful for handling dictionaries returned by
+        `hoomd.logging.Logger.log`.
+    """
     return _dict_flatten(dict_, None)
 
 
@@ -84,6 +117,23 @@ def _dict_flatten(value, key):
 
 
 def dict_filter(dict_, filter_):
+    r"""Perform a recursive filter on a nested mapping.
+
+    Args:
+        dict\_ (dict): The nested mapping to perform the filter on.
+        func (callable): A callable taking in one value use to filter over
+            mapping values.
+
+    Returns:
+        dict : A `dict` that has the same keys as the passed in ``dict_`` with
+        key value pairs with values that the filter returned ``False`` for
+        removed.
+
+    Note:
+        This can be useful for handling dictionaries returned by
+        `hoomd.logging.Logger.log`.
+
+    """
     new_dict = dict()
     for key in dict_:
         if not isinstance(dict_[key], Mapping):
@@ -96,30 +146,14 @@ def dict_filter(dict_, filter_):
     return new_dict
 
 
-class NamespaceDict:
+class _NamespaceDict:
+    """A nested dictionary when can be nested indexed by tuples."""
+
     def __init__(self, dict_=None):
         self._dict = dict() if dict_ is None else dict_
 
     def __len__(self):
         return dict_fold(self._dict, lambda x, incr: incr + 1, 0)
-
-    def key_exists(self, namespace):
-        try:
-            namespace = self.validate_namespace(namespace)
-        except ValueError:
-            return False
-        current_dict = self._dict
-        # traverse through dictionary hierarchy
-        for name in namespace:
-            try:
-                if name in current_dict:
-                    current_dict = current_dict[name]
-                    continue
-                else:
-                    return False
-            except (TypeError, AttributeError):
-                return False
-        return True
 
     def keys(self):
         raise NotImplementedError
@@ -163,14 +197,29 @@ class NamespaceDict:
         return ret_val
 
     def __delitem__(self, namespace):
-        '''Does not check that key exists.'''
+        """Does not check that key exists."""
         if isinstance(namespace, str):
             namespace = (namespace,)
         parent_dict = self._unsafe_getitem(namespace[:-1])
         del parent_dict[namespace[-1]]
 
     def __contains__(self, namespace):
-        return self.key_exists(namespace)
+        try:
+            namespace = self.validate_namespace(namespace)
+        except ValueError:
+            return False
+        current_dict = self._dict
+        # traverse through dictionary hierarchy
+        for name in namespace:
+            try:
+                if name in current_dict:
+                    current_dict = current_dict[name]
+                    continue
+                else:
+                    return False
+            except (TypeError, AttributeError):
+                return False
+        return True
 
     def validate_namespace(self, namespace):
         if isinstance(namespace, str):
@@ -180,7 +229,9 @@ class NamespaceDict:
         return namespace
 
 
-class SafeNamespaceDict(NamespaceDict):
+class _SafeNamespaceDict(_NamespaceDict):
+    """A _NamespaceDict where keys cannot be overwritten."""
+
     def __setitem__(self, namespace, value):
         if namespace in self:
             raise KeyError("Namespace {} is being used. Remove before "
@@ -192,70 +243,14 @@ class SafeNamespaceDict(NamespaceDict):
         return deepcopy(super().__getitem__(namespace))
 
 
-# Functions for parsing stringified tuples
-def _escaped_character(string, end):
-    esc_char = string[end + 1]
-    return _escaped_character.dict.get(esc_char, esc_char)
-
-
-_escaped_character.dict = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b',
-                           'f': '\f', 'v': '\v', '0': '\0', "'": "'", '"': '"'}
-
-
-def str_to_tuple_parse(string):
-    type_list = []
-    next_type = ''
-    final_location = len(string) - 2
-    quote = string[1]
-    beg = 2
-    end = 2
-    # find all types until the last
-    while end < final_location:
-        # if the type name is complete
-        if string[end] == quote:
-            type_list.append(next_type + string[beg:end])
-            next_type = ''
-            # Move to next type beginning
-            end += 3
-            quote = string[end]
-            end += 1
-            beg = end
-        # Convert escaped character
-        elif string[end] == '\\':
-            next_type += string[beg:end] + _escaped_character(string, end)
-            end += 2
-            beg = end
-        # Otherwise move forward one character
-        else:
-            end += 1
-    # Add the last type
-    type_list.append(next_type + string[beg:end])
-    return tuple(type_list)
-
-
-def str_to_tuple_keys(dict_):
-    return {str_to_tuple_parse(key): value
-            for key, value in dict_.items()}
-
-
-def array_to_strings(value):
-    if isinstance(value, ndarray):
-        string_list = []
-        for string in value:
-            string_list.append(
-                string.view(dtype='|S{}'.format(value.shape[1])
-                            ).decode('UTF-8')
-                )
-        return string_list
-    else:
-        return value
-
-
 class GPUNotAvailableError(NotImplementedError):
+    """Error for when a GPU specific feature was requested without a GPU."""
     pass
 
 
-class NoGPU:
+class _NoGPU:
+    """Used in nonGPU builds of hoomd to raise errors for attempted use."""
+
     def __init__(self, *args, **kwargs):
         raise GPUNotAvailableError(
             "This build of HOOMD-blue does not support GPUs.")
