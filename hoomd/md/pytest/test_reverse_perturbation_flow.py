@@ -1,6 +1,5 @@
 import hoomd
 import pytest
-import numpy
 from itertools import permutations
 
 _directions = permutations(['X', 'Y', 'Z'], 2)
