@@ -15,7 +15,7 @@ neighbor lists are shared, they find neighbors within the the maximum
 import hoomd
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 from hoomd.logging import log
 from hoomd.md import _md
 from hoomd.operation import _HOOMDBaseObject

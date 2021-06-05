@@ -1,6 +1,6 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 import pytest
 import numpy as np
 """ Each entry is a quantity and its type """

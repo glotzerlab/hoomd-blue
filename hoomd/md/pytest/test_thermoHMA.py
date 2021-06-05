@@ -1,7 +1,7 @@
 import hoomd
 import math
 from hoomd.logging import LoggerCategories
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 from hoomd.conftest import logging_check
 import pytest
 

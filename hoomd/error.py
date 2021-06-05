@@ -2,7 +2,12 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-"""Implement DataAccessError."""
+"""HOOMD Errors."""
+
+
+class TypeConversionError(ValueError):
+    """Error when validatimg TypeConverter subclasses."""
+    pass
 
 
 class DataAccessError(RuntimeError):

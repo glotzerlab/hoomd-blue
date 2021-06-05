@@ -11,7 +11,7 @@ from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 from hoomd.logging import log
 import hoomd
 

@@ -10,7 +10,7 @@ from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd

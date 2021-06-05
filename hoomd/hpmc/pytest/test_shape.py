@@ -1,6 +1,6 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -70,7 +70,7 @@ def test_invalid_shape_params(invalid_args):
         integrator = integrator[1]
     args = invalid_args[1]
     mc = integrator()
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.error.TypeConversionError):
         mc.shape["A"] = args
 
 

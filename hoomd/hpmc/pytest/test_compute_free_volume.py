@@ -1,7 +1,7 @@
 import hoomd
 import pytest
 import numpy as np
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 
 
 def test_before_attaching():

@@ -12,7 +12,7 @@ import pytest
 import hoomd
 from hoomd.conftest import pickling_check
 from hoomd import md
-from hoomd.data.typeconverter import TypeConversionError
+from hoomd.error import TypeConversionError
 
 
 def _equivalent_data_structures(struct_1, struct_2):

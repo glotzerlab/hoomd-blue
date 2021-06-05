@@ -9,10 +9,10 @@ import hoomd
 from hoomd.md.manifold import Manifold
 from hoomd.operation import _HOOMDBaseObject
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.filter import ParticleFilter
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.data_access_error import DataAccessError
 from hoomd.data.typeconverter import OnlyTypes, OnlyIf, to_type_converter
+from hoomd.error import DataAccessError
+from hoomd.filter import ParticleFilter
 from hoomd.variant import Variant
 from collections.abc import Sequence
 

@@ -9,10 +9,10 @@ from itertools import product, combinations_with_replacement
 from copy import copy
 
 from hoomd.util import _to_camel_case, _is_iterable
-from hoomd.data.typeconverter import (to_type_converter, TypeConversionError,
-                                      RequiredArg)
+from hoomd.data.typeconverter import (to_type_converter, RequiredArg)
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
+from hoomd.error import TypeConversionError
 
 
 def has_str_elems(obj):

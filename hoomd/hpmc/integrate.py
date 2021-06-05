@@ -8,7 +8,7 @@ from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log

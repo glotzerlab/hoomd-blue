@@ -9,7 +9,7 @@ from enum import Flag, auto
 from itertools import count
 from functools import reduce
 from hoomd.util import dict_map, _SafeNamespaceDict
-from hoomd.data.data_access_error import DataAccessError
+from hoomd.error import DataAccessError
 from collections.abc import Sequence
 
 
