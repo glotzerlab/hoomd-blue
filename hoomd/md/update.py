@@ -15,6 +15,7 @@ from hoomd import _hoomd
 from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater
+from hoomd.data.parameterdicts import ParameterDict
 
 
 class ZeroMomentum(Updater):
