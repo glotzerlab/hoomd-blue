@@ -42,7 +42,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     public:
     //! Constructor
     RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
-                       std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                       std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
                        pybind11::list ref_positions)
         : Updater(sysdef), m_mc(mc)
         {
@@ -53,7 +53,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     //! Get reference positions as a python list of 3-tuples
     pybind11::list getRefPositions()
         {
-        unsigned int N = (unsigned int) m_ref_positions.size();
+        unsigned int N = (unsigned int)m_ref_positions.size();
         pybind11::list ret;
         for (unsigned int i = 0; i < N; i++)
             {
@@ -69,10 +69,11 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     //! to std vector of vec3's
     void setRefPositions(pybind11::list ref_positions)
         {
-        unsigned int N = (unsigned int) len(ref_positions);
+        unsigned int N = (unsigned int)len(ref_positions);
         if (N != this->m_pdata->getN())
             {
-            throw std::runtime_error("The lenght of the list must be equal to the number of particles.\n");
+            throw std::runtime_error(
+                "The lenght of the list must be equal to the number of particles.\n");
             }
         for (unsigned int i = 0; i < N; i++)
             {
@@ -144,8 +145,8 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     protected:
-        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;
-        std::vector<vec3<Scalar>> m_ref_positions;
+    std::shared_ptr<IntegratorHPMCMono<Shape>> m_mc;
+    std::vector<vec3<Scalar>> m_ref_positions;
     };
 
 //! Export the ExampleUpdater class to python
@@ -156,10 +157,11 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                      Updater,
                      std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
-                            std::shared_ptr<IntegratorHPMCMono<Shape> >,
-                            pybind11::list >())
-        .def_property("ref_positions", &RemoveDriftUpdater<Shape>::getRefPositions, &RemoveDriftUpdater<Shape>::setRefPositions)
-        ;
+                            std::shared_ptr<IntegratorHPMCMono<Shape>>,
+                            pybind11::list>())
+        .def_property("ref_positions",
+                      &RemoveDriftUpdater<Shape>::getRefPositions,
+                      &RemoveDriftUpdater<Shape>::setRefPositions);
     }
     } // namespace hpmc
 

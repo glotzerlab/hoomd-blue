@@ -498,12 +498,14 @@ class RemoveDrift(Updater):
             reference positions of the lattice.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
-    During the time steps specified by *trigger*, particle positions are modified
-    such that the their center of mass coincides with that of *ref_positions*.
+    During the time steps specified by *trigger*, particle positions are
+    modified such that the their center of mass coincides with that of
+    *ref_positions*.
 
     Examples::
 
-        rd = hpmc.update.RemoveDrift(ref_positions=[(0,0,0), (1,1,1)], trigger=hoomd.trigger.Periodic(100))
+        rd = hpmc.update.RemoveDrift(ref_positions=[(0, 0, 0), (1, 1, 1)],
+                                     trigger=hoomd.trigger.Periodic(100))
     """
 
     def __init__(self, ref_positions, trigger=1):
