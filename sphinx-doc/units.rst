@@ -9,18 +9,18 @@ Unit coversions between dervied units and base units.
 
    * - Derived units
      - Base units
-   * - :math:`[time]`
-     - :math:`[\sqrt{mass \cdot length^2 \cdot energy^{-1}}]`
-   * - :math:`[force]`
-     - :math:`[energy \cdot length^{-1}]`
-   * - :math:`[pressure]`
-     - :math:`[energy \cdot length^{-3}]`
-   * - :math:`[charge]`
-     - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot energy \cdot length}]`
+   * - :math:`[\mathrm{time}]`
+     - :math:`[\sqrt{\mathrm{mass} \cdot \mathrm{length}^2 \cdot \mathrm{energy}^{-1}}]`
+   * - :math:`[\mathrm{force}]`
+     - :math:`[\mathrm{energy} \cdot \mathrm{length}^{-1}]`
+   * - :math:`[\mathrm{pressure}]`
+     - :math:`[\mathrm{energy} \cdot \mathrm{length}^{-3}]`
+   * - :math:`[\mathrm{charge}]`
+     - :math:`[\sqrt{4 \cdot \pi \cdot \epsilon_{0} \cdot \mathrm{energy} \cdot \mathrm{length}}]`
        :math:`\epsilon_{0}`: the permitivitty of free space
-   * - :math:`[velocity]`
-     - :math:`[\sqrt{energy \cdot mass^{-1}}]`
-   * - :math:`[volume]`
-     - :math:`[length^3]`
-   * - :math:`[area]`
-     - :math:`[length^2]`
+   * - :math:`[\mathrm{velocity}]`
+     - :math:`[\sqrt{\mathrm{energy} \cdot \mathrm{mass}^{-1}}]`
+   * - :math:`[\mathrm{volume}]`
+     - :math:`[\mathrm{length}^3]`
+   * - :math:`[\mathrm{area}]`
+     - :math:`[\mathrm{length}^2]`
