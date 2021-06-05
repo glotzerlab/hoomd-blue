@@ -69,7 +69,7 @@ class UpdaterShape  : public Updater
 
         float getShapeParam(std::string quantity, unsigned int timestep) {return m_move_function->getLogValue(quantity, timestep);}
 
-        unsigned int getAcceptedCount(unsigned int ndx)
+        unsigned int getAcceptedCount()
             {
             unsigned int total_accepted = 0;
             for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
@@ -79,7 +79,7 @@ class UpdaterShape  : public Updater
             return total_accepted;
             }
 
-        unsigned int getTotalCount(unsigned int ndx)
+        unsigned int getTotalCount()
             {
             unsigned int total_count = 0;
             for (unsigned int ndx = 0; ndx < m_ntypes.getNumElements(); ndx++)
