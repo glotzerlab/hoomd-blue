@@ -74,3 +74,13 @@ def test_after_attaching(device, simulation_factory, lattice_snapshot_factory):
     assert sum(shape_updater.shape_moves) == 2
     assert shape_updater.shape_move_energy == 0.0
     assert shape_updater.particle_volume == N * particle_volume
+
+    logging_check(hoomd.hpmc.update.Shape,
+                  ('hpmc', 'update'),
+                  {'shape_moves': {'category': LoggerCategories.sequence,
+                                   'default': True},
+                   'shape_move_energy': {'category': LoggerCategories.scalar,
+                                         'default': True},
+                   'particle_volume': {'category': LoggerCategories.scalar,
+                                       'default': True}}
+                  )
