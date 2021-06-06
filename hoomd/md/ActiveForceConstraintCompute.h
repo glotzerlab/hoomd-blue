@@ -84,11 +84,11 @@ void ActiveForceConstraintCompute<Manifold>::rotationalDiffusion(uint64_t timest
 
         quat<Scalar> quati(h_orientation.data[idx]);
 
-        Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
-        Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
+        vec3<Scalar> current_pos(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+        Scalar3 norm_scalar3 = m_manifold.derivative(vec_to_scalar3(current_pos));
         Scalar norm_normal = fast::rsqrt(dot(norm_scalar3, norm_scalar3));
         norm_scalar3 *= norm_normal;
-        vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
+        vec3<Scalar> norm(norm_scalar3);
 
         Scalar delta_theta = hoomd::NormalDistribution<Scalar>(m_rotationConst)(rng);
         Scalar theta
@@ -129,21 +129,20 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
 
         if (h_f_actVec.data[type].w != 0)
             {
-            Scalar3 current_pos
-                = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
+            vec3<Scalar> current_pos(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
 
-            Scalar3 norm_scalar3 = m_manifold.derivative(current_pos);
+            Scalar3 norm_scalar3 = m_manifold.derivative(vec_to_scalar3(current_pos));
             Scalar norm_normal = fast::rsqrt(dot(norm_scalar3, norm_scalar3));
             norm_scalar3 *= norm_normal;
             vec3<Scalar> norm = vec3<Scalar>(norm_scalar3);
 
-            Scalar3 f = make_scalar3(h_f_actVec.data[type].x,
+            vec3<Scalar> f(h_f_actVec.data[type].x,
                                      h_f_actVec.data[type].y,
                                      h_f_actVec.data[type].z);
             quat<Scalar> quati(h_orientation.data[idx]);
             vec3<Scalar> fi
                 = rotate(quati,
-                         vec3<Scalar>(f)); // rotate active force vector from local to global frame
+                         f); // rotate active force vector from local to global frame
 
             Scalar dot_prod = dot(fi, norm);
 
@@ -155,7 +154,7 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
             fi.y -= norm.y * dot_prod;
             fi.z -= norm.z * dot_prod;
 
-            Scalar new_norm = slow::rsqrt(dot(fi, fi));
+            Scalar new_norm = slow::rsqrt(dot(fi,fi));
             fi *= new_norm;
 
             vec3<Scalar> rot_vec = cross(norm, fi);

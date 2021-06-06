@@ -70,9 +70,9 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
 
     if (fact.w != 0)
         {
-        Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
+        vec3<Scalar> current_pos(posidx.x, posidx.y, posidx.z);
 
-        Scalar3 norm_scalar3 = manifold.derivative(current_pos);
+        Scalar3 norm_scalar3 = manifold.derivative(vec_to_scalar3(current_pos));
         Scalar norm_normal
             = fast::rsqrt(norm_scalar3.x * norm_scalar3.x + norm_scalar3.y * norm_scalar3.y
                           + norm_scalar3.z * norm_scalar3.z);
@@ -145,8 +145,8 @@ gpu_compute_active_force_constraint_rotational_diffusion_kernel(const unsigned i
         hoomd::Seed(hoomd::RNGIdentifier::ActiveForceCompute, timestep, seed),
         hoomd::Counter(ptag));
 
-    Scalar3 current_pos = make_scalar3(posidx.x, posidx.y, posidx.z);
-    Scalar3 norm_scalar3 = manifold.derivative(current_pos);
+    vec3<Scalar> current_pos(posidx.x, posidx.y, posidx.z);
+    Scalar3 norm_scalar3 = manifold.derivative(vec_to_scalar3(current_pos));
     Scalar norm_normal
         = fast::rsqrt(norm_scalar3.x * norm_scalar3.x + norm_scalar3.y * norm_scalar3.y
                       + norm_scalar3.z * norm_scalar3.z);
