@@ -26,7 +26,8 @@
 #endif
 
 #ifdef ENABLE_TBB
-#include <tbb/tbb.h>
+#define TBB_PREVIEW_GLOBAL_CONTROL 1
+#include <tbb/global_control.h>
 #endif
 
 #include "Messenger.h"
@@ -263,7 +264,7 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     //! set number of TBB threads
     void setNumThreads(unsigned int num_threads)
         {
-        m_task_scheduler.reset(new tbb::task_scheduler_init(num_threads));
+        tbb_thread_control.reset(new tbb::global_control(tbb::global_control::parameter::max_allowed_parallelism, num_threads));
         m_num_threads = num_threads;
         }
     #endif
@@ -359,7 +360,6 @@ private:
     #endif
 
     #ifdef ENABLE_TBB
-    std::unique_ptr<tbb::task_scheduler_init> m_task_scheduler; //!< The TBB task scheduler
     unsigned int m_num_threads;            //!<  The number of TBB threads used
     #endif
 
@@ -367,6 +367,10 @@ private:
     void setupStats();
 
     std::unique_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
+
+    #ifdef ENABLE_TBB
+    static std::unique_ptr<tbb::global_control> tbb_thread_control;
+    #endif
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
