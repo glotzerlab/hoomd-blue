@@ -20,9 +20,6 @@
 #ifndef __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 #define __ACTIVEFORCECONSTRAINTCOMPUTE_H__
 
-using namespace std;
-namespace py = pybind11;
-
 //! Adds an active force to a number of particles
 /*! \ingroup computes
  */
@@ -42,7 +39,7 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     //! Destructor
     ~ActiveForceConstraintCompute()
         {
-        m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << endl;
+        m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << std::endl;
         }
 
     protected:
@@ -207,12 +204,12 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     }
 
 template<class Manifold>
-void export_ActiveForceConstraintCompute(py::module& m, const std::string& name)
+void export_ActiveForceConstraintCompute(pybind11::module& m, const std::string& name)
     {
-    py::class_<ActiveForceConstraintCompute<Manifold>,
+    pybind11::class_<ActiveForceConstraintCompute<Manifold>,
                ActiveForceCompute,
                std::shared_ptr<ActiveForceConstraintCompute<Manifold>>>(m, name.c_str())
-        .def(py::init<std::shared_ptr<SystemDefinition>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                       std::shared_ptr<ParticleGroup>,
                       Scalar,
                       Manifold>());

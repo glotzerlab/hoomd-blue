@@ -9,9 +9,7 @@
 
 #include <vector>
 
-using namespace std;
 using namespace hoomd;
-namespace py = pybind11;
 
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
@@ -66,7 +64,7 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
 
 ActiveForceCompute::~ActiveForceCompute()
     {
-    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying ActiveForceCompute" << std::endl;
     }
 
 void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::tuple v)
@@ -75,13 +73,13 @@ void ActiveForceCompute::setActiveForce(const std::string& type_name, pybind11::
 
     if (pybind11::len(v) != 3)
         {
-        throw invalid_argument("gamma_r values must be 3-tuples");
+        throw std::invalid_argument("gamma_r values must be 3-tuples");
         }
 
     // check for user errors
     if (typ >= m_pdata->getNTypes())
         {
-        throw invalid_argument("Type does not exist");
+        throw std::invalid_argument("Type does not exist");
         }
 
     Scalar4 f_activeVec;
@@ -133,13 +131,13 @@ void ActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11:
 
     if (pybind11::len(v) != 3)
         {
-        throw invalid_argument("gamma_r values must be 3-tuples");
+        throw std::invalid_argument("gamma_r values must be 3-tuples");
         }
 
     // check for user errors
     if (typ >= m_pdata->getNTypes())
         {
-        throw invalid_argument("Type does not exist");
+        throw std::invalid_argument("Type does not exist");
         }
 
     Scalar4 t_activeVec;
@@ -339,12 +337,12 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_ActiveForceCompute(py::module& m)
+void export_ActiveForceCompute(pybind11::module& m)
     {
-    py::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
+    pybind11::class_<ActiveForceCompute, ForceCompute, std::shared_ptr<ActiveForceCompute>>(
         m,
         "ActiveForceCompute")
-        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar>())
         .def_property("rotation_diff", &ActiveForceCompute::getRdiff, &ActiveForceCompute::setRdiff)
         .def("setActiveForce", &ActiveForceCompute::setActiveForce)
         .def("getActiveForce", &ActiveForceCompute::getActiveForce)
