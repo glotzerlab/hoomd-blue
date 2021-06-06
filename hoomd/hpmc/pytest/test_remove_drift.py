@@ -25,6 +25,7 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
 
 
 @pytest.mark.serial
+@pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(device, constructor_args):
     """Test that RemoveDrift can be constructed with valid arguments."""
@@ -36,6 +37,7 @@ def test_valid_construction(device, constructor_args):
 
 
 @pytest.mark.serial
+@pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction_and_attach(device, simulation_factory,
                                        two_particle_snapshot_factory,
@@ -74,6 +76,7 @@ def test_valid_construction_and_attach(device, simulation_factory,
 
 
 @pytest.mark.serial
+@pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(device, attr, value):
     """Test that RemoveDrift can get and set attributes."""
@@ -85,6 +88,7 @@ def test_valid_setattr(device, attr, value):
 
 
 @pytest.mark.serial
+@pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr_attached(device, attr, value, simulation_factory,
                                 two_particle_snapshot_factory, valid_args):
@@ -122,6 +126,7 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
 
 
 @pytest.mark.serial
+@pytest.mark.cpu
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
     """Test that RemoveDrift objects are picklable."""
     sim = simulation_factory(two_particle_snapshot_factory())
