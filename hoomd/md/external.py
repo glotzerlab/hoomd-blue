@@ -97,24 +97,38 @@ class Periodic(External):
 
 
 class ElectricField(External):
-    R""" Electric field.
+    """ Electric field.
 
-    :py:class:`ElectricField` specifies that an external force should be
-    added to every particle in the simulation that results from an electric field.
+    `ElectricField` specifies that an external force should be added to every
+    particle in the simulation that results from an electric field.
 
-    The external potential :math:`V(\vec{r})` is implemented using the following formula:
+    The external potential :math:`V(\\vec{r})` is implemented using the following
+    formula:
 
     .. math::
 
-       V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
+       V(\\vec{r}) = - q_i \\vec{E} \\cdot \\vec{r}
 
 
-    where :math:`q_i` is the particle charge and :math:`\vec{E}` is the field vector
+    where :math:`q_i` is the particle charge and :math:`\\vec{E}` is the field
+    vector. The field vector :math:`\\vec{E}` must be set per unique particle
+    types.
+
+    .. py:attribute:: params
+
+        The `ElectricField` potential parameters. The dictionary has the
+        following keys:
+
+        * ``E`` (`tuple` [`float`, `float`, `float`], **required**) -
+            The electric field vector :math:`\\vec{E}`.
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
 
     Example::
 
         # Apply an electric field in the x-direction
-        e_field = external.ElectricField((1,0,0))
+        e_field = external.ElectricField()
+        e_field.params['A'] = dict(E=(1,0,0))
     """
 
     _cpp_class_name = "PotentialExternalElectricField"
