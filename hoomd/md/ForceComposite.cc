@@ -632,6 +632,7 @@ void ForceComposite::createRigidBodies()
                     = m_body_charge[body_type][current_body_index];
                 snap.diameter[constituent_particle_tag]
                     = m_body_diameter[body_type][current_body_index];
+                snap.pos[constituent_particle_tag] = snap.pos[central_particle_tag];
 
                 // Since the central particle tags here will be [0, n_central_particles), we know
                 // that the molecule number will be the same as the central particle tag.
