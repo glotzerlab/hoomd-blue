@@ -1166,7 +1166,7 @@ class Mie(Pair):
 
 
 class SMie(Pair):
-    """Shifted Mie pair potential.
+    r"""Shifted Mie pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1204,22 +1204,25 @@ class SMie(Pair):
             of energy)
 
           * ``sigma`` (`float`, **required**) - :math:`\\sigma` (in distance
-            units)
+          units)
 
           * ``n`` (`float`, **required**) - :math:`n` (unitless)
 
           * ``m`` (`float`, **required**) - :math:`m` (unitless)
 
-          * ``Delta`` (`float`, **required**) - :math:`\\Delta` (in distance units)
+          * ``Delta`` (`float`, **required**) - :math:`\\Delta`
+          (in distance units)
 
     Example::
 
         nl = nlist.Cell()
         smie = pair.SMie(nlist=nl, r_cut=3.0)
-        mie.params[('A', 'B')] = dict(epsilon=1.0, sigma=1.0, n=12, m=6, Delta=0.5)
+        mie.params[('A', 'B')] = \
+        dict(epsilon=1.0, sigma=1.0, n=12, m=6, Delta=0.5)
         mie.r_cut[('A', 'B')] = 2**(1.0/6.0)
         mie.r_on[('A', 'B')] = 2.0
-        mie.params[(['A', 'B'], ['C', 'D'])] = dict(epsilon=1.5, sigma=2.0, n=12, m=6, Delta=0.5))
+        mie.params[(['A', 'B'], ['C', 'D'])] = \
+        dict(epsilon=1.5, sigma=2.0, n=12, m=6, Delta=0.5))
     """
     _cpp_class_name = "PotentialPairSMie"
 
