@@ -3,8 +3,8 @@
 
 // Maintainer: mphoward
 
-#include "utils.h"
 #include "hoomd/mpcd/SRDCollisionMethod.h"
+#include "utils.h"
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/SRDCollisionMethodGPU.h"
 #endif // ENABLE_HIP
@@ -19,7 +19,7 @@ HOOMD_UP_MAIN()
 template<class CM>
 void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -43,9 +43,11 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
 
         orig_vel.resize(mpcd_snap->size);
         // stash initial velocities for reference
-        for (unsigned int i=0; i < mpcd_snap->size; ++i)
+        for (unsigned int i = 0; i < mpcd_snap->size; ++i)
             {
-            orig_vel[i] = make_scalar3(mpcd_snap->velocity[i].x, mpcd_snap->velocity[i].y, mpcd_snap->velocity[i].z);
+            orig_vel[i] = make_scalar3(mpcd_snap->velocity[i].x,
+                                       mpcd_snap->velocity[i].y,
+                                       mpcd_snap->velocity[i].z);
             }
         }
     // Save original momentum for comparison as well
@@ -61,7 +63,8 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     AllThermoRequest thermo_req(thermo);
 
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 2, 1, 42, thermo);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 2, 1, 42, thermo);
     collide->enableGridShifting(false);
     // 130 degrees, forces all components of the rotation matrix to act
     const double rot_angle = 2.2689280275926285;
@@ -70,8 +73,10 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     UP_ASSERT(!collide->peekCollide(0));
     collide->collide(0);
         {
-        ArrayHandle<Scalar4> h_vel(pdata_4->getVelocities(), access_location::host, access_mode::read);
-        for (unsigned int i=0; i < pdata_4->getN(); ++i)
+        ArrayHandle<Scalar4> h_vel(pdata_4->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
+        for (unsigned int i = 0; i < pdata_4->getN(); ++i)
             {
             CHECK_CLOSE(h_vel.data[i].x, orig_vel[i].x, tol_small);
             CHECK_CLOSE(h_vel.data[i].y, orig_vel[i].y, tol_small);
@@ -95,10 +100,14 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
     UP_ASSERT(collide->peekCollide(1));
     collide->collide(1);
         {
-        ArrayHandle<Scalar4> h_vel(pdata_4->getVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<double3> h_rotvec(collide->getRotationVectors(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(pdata_4->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
+        ArrayHandle<double3> h_rotvec(collide->getRotationVectors(),
+                                      access_location::host,
+                                      access_mode::read);
 
-        for (unsigned int i=0; i < pdata_4->getN(); ++i)
+        for (unsigned int i = 0; i < pdata_4->getN(); ++i)
             {
             Scalar3 avg_vel;
             if (i < 2)
@@ -116,8 +125,9 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
 
             // all rotation vectors should be unit norm
             const unsigned int cell = __scalar_as_int(h_vel.data[i].w);
-            const Scalar3 rot_vec = make_scalar3(h_rotvec.data[cell].x, h_rotvec.data[cell].y, h_rotvec.data[cell].z);
-            CHECK_CLOSE(dot(rot_vec,rot_vec), 1.0, tol_small);
+            const Scalar3 rot_vec
+                = make_scalar3(h_rotvec.data[cell].x, h_rotvec.data[cell].y, h_rotvec.data[cell].z);
+            CHECK_CLOSE(dot(rot_vec, rot_vec), 1.0, tol_small);
 
             // norm of velocity relative to average is unchanged by rotation
             const Scalar3 vel = make_scalar3(h_vel.data[i].x, h_vel.data[i].y, h_vel.data[i].z);
@@ -128,7 +138,7 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
                 }
             else
                 {
-                CHECK_CLOSE(norm, 3.0*3.0 + 2.0*2.0 + 4.0*4.0, tol_small);
+                CHECK_CLOSE(norm, 3.0 * 3.0 + 2.0 * 2.0 + 4.0 * 4.0, tol_small);
                 }
 
             // compute the angle between the two vectors relative to the cell average velocity
@@ -137,12 +147,12 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
             Scalar3 v2 = orig_vel[i] - avg_vel;
             CHECK_CLOSE(dot(v1, rot_vec), dot(v2, rot_vec), tol_small);
 
-            // check the rotation angle of the velocities by projecting the velocities orthogonally into the plane
-            // that the rotation vector is the normal of. Given the plane is through the origin with normal n,
-            // the projection of v is: q = v - dot(v,n) * n
-            Scalar3 q1 = v1 - dot(v1, rot_vec)*rot_vec;
-            Scalar3 q2 = v2 - dot(v2, rot_vec)*rot_vec;
-            Scalar cos_angle = dot(q1, q2)/(sqrt(dot(q1,q1))*sqrt(dot(q2,q2)));
+            // check the rotation angle of the velocities by projecting the velocities orthogonally
+            // into the plane that the rotation vector is the normal of. Given the plane is through
+            // the origin with normal n, the projection of v is: q = v - dot(v,n) * n
+            Scalar3 q1 = v1 - dot(v1, rot_vec) * rot_vec;
+            Scalar3 q2 = v2 - dot(v2, rot_vec) * rot_vec;
+            Scalar cos_angle = dot(q1, q2) / (sqrt(dot(q1, q1)) * sqrt(dot(q2, q2)));
             CHECK_CLOSE(cos_angle, slow::cos(rot_angle), tol_small);
             }
         }
@@ -166,7 +176,7 @@ template<class CM>
 void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // initialize a big empty system
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(50.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -174,13 +184,14 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 42, thermo);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 42, thermo);
 
     // initialize the histograms
     const double mpcd_pi = 3.141592653589793;
     const unsigned int nbins = 25;
-    const double dphi = mpcd_pi/static_cast<double>(nbins); // [0, pi)
-    const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
+    const double dphi = mpcd_pi / static_cast<double>(nbins);         // [0, pi)
+    const double dtheta = 2.0 * mpcd_pi / static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
     // size cell list and count number of cells
@@ -191,17 +202,20 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
     for (unsigned int sample_i = 0; sample_i < nsamples; ++sample_i)
         {
         collide->collide(sample_i);
-        ArrayHandle<double3> h_rotvec(collide->getRotationVectors(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_rotvec(collide->getRotationVectors(),
+                                      access_location::host,
+                                      access_mode::read);
 
         for (unsigned int cell_i = 0; cell_i < ncells; ++cell_i)
             {
             const double3 rotvec = h_rotvec.data[cell_i];
-            const double r = slow::sqrt(rotvec.x * rotvec.x + rotvec.y*rotvec.y +rotvec.z*rotvec.z);
+            const double r
+                = slow::sqrt(rotvec.x * rotvec.x + rotvec.y * rotvec.y + rotvec.z * rotvec.z);
             CHECK_CLOSE(r, 1.0, tol_small);
 
             // z = r cos(phi)
             const double phi = std::acos(rotvec.z / r);
-            const unsigned int phi_bin = static_cast<unsigned int>(phi/dphi);
+            const unsigned int phi_bin = static_cast<unsigned int>(phi / dphi);
             UP_ASSERT(phi_bin < nbins);
             fphi[phi_bin] += 1;
 
@@ -209,9 +223,9 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
             double theta = std::atan2(rotvec.y, rotvec.x);
             if (theta < 0.0)
                 {
-                theta += 2.0*mpcd_pi;
+                theta += 2.0 * mpcd_pi;
                 }
-            const unsigned int theta_bin = static_cast<unsigned int>(theta/dtheta);
+            const unsigned int theta_bin = static_cast<unsigned int>(theta / dtheta);
             UP_ASSERT(theta_bin < nbins);
             ftheta[theta_bin] += 1;
             }
@@ -232,10 +246,12 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
      */
     for (unsigned int bin_i = 0; bin_i < nbins; ++bin_i)
         {
-        const double ftheta_i = static_cast<double>(ftheta[bin_i]) / (dtheta * static_cast<double>(nsamples*ncells));
-        const double fphi_i = static_cast<double>(fphi[bin_i]) / (dphi * static_cast<double>(nsamples*ncells));
-        CHECK_CLOSE(ftheta_i, 1.0/(2.0*mpcd_pi), 2.0);
-        CHECK_CLOSE(fphi_i, 0.5*sin(dphi*(0.5+static_cast<double>(bin_i))), 2.0);
+        const double ftheta_i = static_cast<double>(ftheta[bin_i])
+                                / (dtheta * static_cast<double>(nsamples * ncells));
+        const double fphi_i
+            = static_cast<double>(fphi[bin_i]) / (dphi * static_cast<double>(nsamples * ncells));
+        CHECK_CLOSE(ftheta_i, 1.0 / (2.0 * mpcd_pi), 2.0);
+        CHECK_CLOSE(fphi_i, 0.5 * sin(dphi * (0.5 + static_cast<double>(bin_i))), 2.0);
         }
     }
 
@@ -247,7 +263,7 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
 template<class CM>
 void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
@@ -283,7 +299,8 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     AllThermoRequest thermo_req(thermo);
 
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
     collide->enableGridShifting(false);
     // 130 degrees, forces all components of the rotation matrix to act
     const double rot_angle = 2.2689280275926285;
@@ -302,7 +319,9 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     collide->collide(0);
         {
         // velocity should be different now, but the mass should stay the same
-        ArrayHandle<Scalar4> h_vel(sysdef->getParticleData()->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(sysdef->getParticleData()->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
         UP_ASSERT(h_vel.data[0].x != 1.0);
         UP_ASSERT(h_vel.data[0].y != 2.0);
         UP_ASSERT(h_vel.data[0].z != 3.0);
@@ -333,7 +352,8 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, pdata);
 
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
-    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
 
     // timestep counter and number of samples to make
     uint64_t timestep = 0;
@@ -344,7 +364,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
         std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(2.0);
         collide->setTemperature(T);
         double mean(0.0);
-        for (unsigned int i=0; i < N; ++i)
+        for (unsigned int i = 0; i < N; ++i)
             {
             collide->collide(timestep++);
             mean += thermo->getTemperature();
@@ -358,7 +378,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
         std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(4.0);
         collide->setTemperature(T);
         double mean(0.0);
-        for (unsigned int i=0; i < N; ++i)
+        for (unsigned int i = 0; i < N; ++i)
             {
             collide->collide(timestep++);
             mean += thermo->getTemperature();
@@ -369,42 +389,50 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     }
 
 //! basic test case for MPCD SRDCollisionMethod class
-UP_TEST( srd_collision_method_basic )
+UP_TEST(srd_collision_method_basic)
     {
-    srd_collision_method_basic_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    srd_collision_method_basic_test<mpcd::SRDCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 //! test distribution of random rotation vectors for the MPCD SRDCollisionMethod class
-UP_TEST( srd_collision_method_rotvec )
+UP_TEST(srd_collision_method_rotvec)
     {
-    srd_collision_method_rotvec_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    srd_collision_method_rotvec_test<mpcd::SRDCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 //! test embedding of particles into the MPCD SRDCollisionMethod class
-UP_TEST( srd_collision_method_embed )
+UP_TEST(srd_collision_method_embed)
     {
-    srd_collision_method_embed_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    srd_collision_method_embed_test<mpcd::SRDCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-UP_TEST( srd_collision_method_thermostat )
+UP_TEST(srd_collision_method_thermostat)
     {
-    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
 //! basic test case for MPCD SRDCollisionMethodGPU class
-UP_TEST( srd_collision_method_basic_gpu )
+UP_TEST(srd_collision_method_basic_gpu)
     {
-    srd_collision_method_basic_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    srd_collision_method_basic_test<mpcd::SRDCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 //! test distribution of random rotation vectors for the MPCD SRDCollisionMethodGPU class
-UP_TEST( srd_collision_method_rotvec_gpu )
+UP_TEST(srd_collision_method_rotvec_gpu)
     {
-    srd_collision_method_rotvec_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    srd_collision_method_rotvec_test<mpcd::SRDCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 //! test embedding of particles into the MPCD SRDCollisionMethodGPU class
-UP_TEST( srd_collision_method_embed_gpu )
+UP_TEST(srd_collision_method_embed_gpu)
     {
-    srd_collision_method_embed_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    srd_collision_method_embed_test<mpcd::SRDCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-UP_TEST( srd_collision_method_thermostat_gpu )
+UP_TEST(srd_collision_method_thermostat_gpu)
     {
-    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

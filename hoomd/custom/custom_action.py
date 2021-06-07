@@ -1,3 +1,9 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement Action."""
+
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 from hoomd.logging import Loggable
@@ -6,6 +12,7 @@ from hoomd.operation import _HOOMDGetSetAttrBase
 
 class _AbstractLoggable(Loggable, ABCMeta):
     """Allows the use of abstractmethod with log."""
+
     def __init__(cls, name, base, dct):
         Loggable.__init__(cls, name, base, dct)
         ABCMeta.__init__(cls, name, base, dct)
@@ -76,6 +83,7 @@ class Action(metaclass=_AbstractLoggable):
             `hoomd.custom.Action.Flags`. Used to tell the integrator if
             specific quantities are needed for the action.
     """
+
     class Flags(IntEnum):
         """Flags to indictate the integrator should calcuate certain quantities.
 
@@ -131,7 +139,7 @@ class Action(metaclass=_AbstractLoggable):
 
 
 class _InternalAction(Action, _HOOMDGetSetAttrBase):
-    """An internal class for Python ``Action``s.
+    """An internal class for Python Actions.
 
     Gives additional support in using HOOMD constructs like ``ParameterDict``s
     and ``TypeParameters``.
@@ -145,6 +153,7 @@ class _InternalAction(Action, _HOOMDGetSetAttrBase):
     should be specified in the subclass. No other methods or attributes should
     be created.
     """
+
     def _setattr_param(self, attr, value):
         """Necessary to prevent errors on setting after attaching.
 

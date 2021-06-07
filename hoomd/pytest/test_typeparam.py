@@ -1,3 +1,4 @@
+from hoomd.conftest import pickling_check
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
@@ -12,8 +13,7 @@ def typedict():
 def test_instantiation(typedict):
     return TypeParameter(name='type_param',
                          type_kind='particle_types',
-                         param_dict=typedict
-                         )
+                         param_dict=typedict)
 
 
 @fixture(scope='function')
@@ -78,3 +78,8 @@ def test_attached_type_checking(attached):
         _ = attached['C']
     with raises(KeyError):
         attached['C'] = dict(bar=2)
+
+
+def test_pickling(all_, attached):
+    pickling_check(all_)
+    pickling_check(attached)

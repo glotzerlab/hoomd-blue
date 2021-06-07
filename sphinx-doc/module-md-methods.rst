@@ -10,6 +10,7 @@ md.methods
 
     Brownian
     Langevin
+    NPH
     NPT
     NVE
     NVT
@@ -19,10 +20,11 @@ md.methods
 
 .. automodule:: hoomd.md.methods
     :synopsis: Integration methods.
-    :undoc-members:
-    :members: _Method,
+    :members: Method,
+              MethodRATTLE,
               Brownian,
               Langevin,
+              NPH,
               NPT,
               NVE,
               NVT

@@ -4,6 +4,50 @@ Change Log
 v3.x
 ----
 
+v3.0.0-beta.7 (not yet released)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- [developers] pre-commit enforced style guidelines for the codebase.
+
+*Changed*
+
+*Fixed*
+
+- Some broken references in the documentation.
+
+*Removed*
+
+v3.0.0-beta.6 (2021-05-17)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+- ``md.pair.LJ0804`` - 8,4 Lennard-Jones pair potential.
+- ``md.nlist.Stencil`` - Stencil algorithm to generate neighbor lists.
+- ``md.nlist.Tree`` - BVH algorithm to generate neighbor lists.
+- ``hoomd.md.Force``, ``hoomd.md.Operation``, and ``hoomd.md.Operations`` objects are now picklable.
+- Manifold constraints using RATTLE with ``md.methods.NVE``, ``md.methods.Langevin`` and
+  ``md.methods.Brownian``
+  - Supporting sphere, ellipsoid, plane, cylinder, gyroid, diamond, and primitive manifolds.
+- ``md.compute.HarmonicAveragedThermodynamicQuantities`` - More accurate thermodynamic quantities
+  for crystals
+
+*Changed*
+
+- Raise an exception when initializing systems with invalid particle type ids.
+
+*Fixed*
+
+- Setting the operations attribute in ``Simulation`` objects in specific circumstances.
+- Misc documentation updates.
+- ``'sim' is not defined`` error when using ``md.dihedral`` potentials.
+
+*Removed*
+
+- C++ implemtation of v2 logging infrastructure.
+
 v3.0.0-beta.5 (2021-03-23)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

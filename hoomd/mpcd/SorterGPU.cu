@@ -17,11 +17,11 @@
 #pragma GCC diagnostic pop
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Kernel to apply sorted particle order
 /*!
  * \param d_pos_alt Alternate array of particle positions (output)
@@ -37,13 +37,13 @@ namespace kernel
  * Using one thread per particle, particle data is reordered from the old arrays
  * into the new arrays. This coalesces writes but fragments reads.
  */
-__global__ void sort_apply(Scalar4 *d_pos_alt,
-                           Scalar4 *d_vel_alt,
-                           unsigned int *d_tag_alt,
-                           const Scalar4 *d_pos,
-                           const Scalar4 *d_vel,
-                           const unsigned int *d_tag,
-                           const unsigned int *d_order,
+__global__ void sort_apply(Scalar4* d_pos_alt,
+                           Scalar4* d_vel_alt,
+                           unsigned int* d_tag_alt,
+                           const Scalar4* d_pos,
+                           const Scalar4* d_vel,
+                           const unsigned int* d_tag,
+                           const unsigned int* d_order,
                            const unsigned int N)
     {
     // one thread per particle
@@ -72,8 +72,8 @@ __global__ void sort_apply(Scalar4 *d_pos_alt,
  * larger than the number of MPCD particles in the system. (A good value would be
  * 0xffffffff). The cell list can subsequently be compacted by mpcd::gpu::sort_cell_compact.
  */
-__global__ void sort_set_sentinel(unsigned int *d_cell_list,
-                                  const unsigned int *d_cell_np,
+__global__ void sort_set_sentinel(unsigned int* d_cell_list,
+                                  const unsigned int* d_cell_np,
                                   const Index2D cli,
                                   const unsigned int sentinel,
                                   const unsigned int N_cli)
@@ -104,9 +104,8 @@ __global__ void sort_set_sentinel(unsigned int *d_cell_list,
  * is read and reversed so that new particle indexes can be looked up from old
  * particle indexes.
  */
-__global__ void sort_gen_reverse(unsigned int *d_rorder,
-                                 const unsigned int *d_order,
-                                 const unsigned int N)
+__global__ void
+sort_gen_reverse(unsigned int* d_rorder, const unsigned int* d_order, const unsigned int N)
     {
     // one thread per particle
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -119,7 +118,7 @@ __global__ void sort_gen_reverse(unsigned int *d_rorder,
     d_rorder[pid] = idx;
     }
 
-} // end namespace kernel
+    } // end namespace kernel
 
 /*!
  * \param d_pos_alt Alternate array of particle positions (output)
@@ -136,17 +135,18 @@ __global__ void sort_gen_reverse(unsigned int *d_rorder,
  *
  * \sa mpcd::gpu::kernel::sort_apply
  */
-cudaError_t sort_apply(Scalar4 *d_pos_alt,
-                       Scalar4 *d_vel_alt,
-                       unsigned int *d_tag_alt,
-                       const Scalar4 *d_pos,
-                       const Scalar4 *d_vel,
-                       const unsigned int *d_tag,
-                       const unsigned int *d_order,
+cudaError_t sort_apply(Scalar4* d_pos_alt,
+                       Scalar4* d_vel_alt,
+                       unsigned int* d_tag_alt,
+                       const Scalar4* d_pos,
+                       const Scalar4* d_vel,
+                       const unsigned int* d_tag,
+                       const unsigned int* d_order,
                        const unsigned int N,
                        const unsigned int block_size)
     {
-    if (N == 0) return cudaSuccess;
+    if (N == 0)
+        return cudaSuccess;
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -182,8 +182,8 @@ cudaError_t sort_apply(Scalar4 *d_pos_alt,
  *
  * \sa mpcd::gpu::kernel::sort_set_sentinel
  */
-cudaError_t sort_set_sentinel(unsigned int *d_cell_list,
-                              const unsigned int *d_cell_np,
+cudaError_t sort_set_sentinel(unsigned int* d_cell_list,
+                              const unsigned int* d_cell_np,
                               const Index2D& cli,
                               const unsigned int sentinel,
                               const unsigned int block_size)
@@ -216,24 +216,20 @@ struct LessThan
     /*!
      * \param compare_ Value to compare less than
      */
-    __host__ __device__
-    LessThan(unsigned int compare_)
-        : compare(compare_) {}
+    __host__ __device__ LessThan(unsigned int compare_) : compare(compare_) { }
 
     //! Less than comparison functor
     /*!
      * \param val
      * \returns True if \a val is less than \a compare
      */
-    __host__ __device__
-    bool operator()(const unsigned int& val) const
+    __host__ __device__ bool operator()(const unsigned int& val) const
         {
         return (val < compare);
         }
 
     unsigned int compare; //!< Value to compare less-than to
     };
-
 
 /*!
  * \param d_order Compacted MPCD particle indexes in cell-list order (output)
@@ -256,13 +252,17 @@ struct LessThan
  * I decided to replace it with thrust since this is not so performance critical, and I was unable
  * to find the proper root cause of it.
  */
-unsigned int sort_cell_compact(unsigned int *d_order,
-                               const unsigned int *d_cell_list,
+unsigned int sort_cell_compact(unsigned int* d_order,
+                               const unsigned int* d_cell_list,
                                const unsigned int num_items,
                                const unsigned int N_mpcd)
     {
-    unsigned int* last = thrust::copy_if(thrust::device, d_cell_list, d_cell_list+num_items, d_order, LessThan(N_mpcd));
-    return (unsigned int)(last-d_order);
+    unsigned int* last = thrust::copy_if(thrust::device,
+                                         d_cell_list,
+                                         d_cell_list + num_items,
+                                         d_order,
+                                         LessThan(N_mpcd));
+    return (unsigned int)(last - d_order);
     }
 
 /*!
@@ -274,12 +274,13 @@ unsigned int sort_cell_compact(unsigned int *d_order,
  *
  * \sa mpcd::gpu::kernel::sort_gen_reverse
  */
-cudaError_t sort_gen_reverse(unsigned int *d_rorder,
-                             const unsigned int *d_order,
+cudaError_t sort_gen_reverse(unsigned int* d_rorder,
+                             const unsigned int* d_order,
                              const unsigned int N,
                              const unsigned int block_size)
     {
-    if (N == 0) return cudaSuccess;
+    if (N == 0)
+        return cudaSuccess;
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -295,5 +296,5 @@ cudaError_t sort_gen_reverse(unsigned int *d_rorder,
 
     return cudaSuccess;
     }
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd

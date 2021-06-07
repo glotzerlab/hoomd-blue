@@ -1,7 +1,7 @@
+from hoomd.conftest import pickling_check
 from pytest import raises, fixture
-from hoomd.logging import (
-    _LoggerQuantity, SafeNamespaceDict, Logger, dict_map, Loggable, LoggerCategories,
-    log)
+from hoomd.logging import (_LoggerQuantity, _SafeNamespaceDict, Logger,
+                           dict_map, Loggable, LoggerCategories, log)
 
 
 class DummyNamespace:
@@ -15,6 +15,7 @@ def dummy_namespace():
 
 # ------- Test _LoggerQuantity
 class TestLoggerQuantity:
+
     def test_initialization(self, dummy_namespace):
         logquant = _LoggerQuantity('foo', DummyNamespace, category='particle')
         assert logquant.category == LoggerCategories['particle']
@@ -52,6 +53,9 @@ class DummyLoggable(metaclass=Loggable):
     def proplist(self):
         return [1, 2, 3]
 
+    def __eq__(self, other):
+        return isinstance(other, type(self))
+
 
 class TestLoggableMetaclass():
 
@@ -75,8 +79,8 @@ class TestLoggableMetaclass():
 
     def test_logger_functor_application(self):
         loggable_list = ['prop', 'proplist']
-        assert set(self.dummy_loggable._export_dict.keys()
-                   ) == set(loggable_list)
+        assert set(
+            self.dummy_loggable._export_dict.keys()) == set(loggable_list)
         expected_namespace = _LoggerQuantity._generate_namespace(
             self.dummy_loggable)
         expected_categories = ['scalar', 'sequence']
@@ -89,10 +93,14 @@ class TestLoggableMetaclass():
     def test_loggable_inherentence(self):
         inherented_list = ['prop', 'proplist', 'propinherented']
         assert 'propinherented' not in self.dummy_loggable._export_dict.keys()
-        assert all([p in self.dummy_loggable_inher._export_dict.keys()
-                    for p in inherented_list])
-        assert all([p not in self.not_dummy_loggable_inher._export_dict.keys()
-                    for p in inherented_list])
+        assert all([
+            p in self.dummy_loggable_inher._export_dict.keys()
+            for p in inherented_list
+        ])
+        assert all([
+            p not in self.not_dummy_loggable_inher._export_dict.keys()
+            for p in inherented_list
+        ])
         assert 'propnotinherented' in \
             self.not_dummy_loggable_inher._export_dict.keys()
 
@@ -113,6 +121,7 @@ def expected_mapped_dict():
 
 
 def test_dict_map(base_dict, expected_mapped_dict):
+
     def func(x):
         return 1
 
@@ -122,30 +131,30 @@ def test_dict_map(base_dict, expected_mapped_dict):
 
 @fixture
 def namespace_dict(base_dict):
-    dict_ = SafeNamespaceDict(base_dict)
+    dict_ = _SafeNamespaceDict(base_dict)
     return dict_
 
 
 @fixture
 def blank_namespace_dict():
-    return SafeNamespaceDict()
+    return _SafeNamespaceDict()
 
 
 @fixture
 def good_keys():
-    return [('a',), ('a', 'b'), ('a', 'b', 'c'), ('a', 'd'), ('e'),
-            ('f'), ('f', 'g'), 'a', 'e', 'f']
+    return [('a',), ('a', 'b'), ('a', 'b', 'c'), ('a', 'd'), ('e'), ('f'),
+            ('f', 'g'), 'a', 'e', 'f']
 
 
 class TestSafeNamespaceDict:
 
-    def test_key_exists(self, namespace_dict, good_keys):
+    def test_contains(self, namespace_dict, good_keys):
         bad_keys = [('z', 'q'), dict(), ('f', 'g', 'h')]
         for key in good_keys:
-            assert namespace_dict.key_exists(key)
+            assert key in namespace_dict
             assert key in namespace_dict
         for key in bad_keys:
-            assert not namespace_dict.key_exists(key)
+            assert key not in namespace_dict
             assert key not in namespace_dict
 
     def test_setitem(self, blank_namespace_dict):
@@ -196,6 +205,7 @@ def base_namespace():
 
 
 class TestLogger:
+
     def test_setitem(self, blank_logger):
         logger = blank_logger
         logger['a'] = (5, '__eq__', 'scalar')
@@ -222,18 +232,20 @@ class TestLogger:
 
     def test_get_loggables_by_names(self, blank_logger, logged_obj):
         # Check when quantities is None
-        log_quanities = blank_logger._get_loggables_by_name(
-            logged_obj, None)
+        log_quanities = blank_logger._get_loggables_by_name(logged_obj, None)
         logged_names = ['prop', 'proplist']
-        assert all([log_quantity.name in logged_names
-                    for log_quantity in log_quanities])
+        assert all([
+            log_quantity.name in logged_names for log_quantity in log_quanities
+        ])
 
         # Check when quantities is given
         accepted_quantities = ['prop', 'proplist']
         log_quanities = blank_logger._get_loggables_by_name(
             logged_obj, accepted_quantities)
-        assert all([log_quantity.name in accepted_quantities
-                    for log_quantity in log_quanities])
+        assert all([
+            log_quantity.name in accepted_quantities
+            for log_quantity in log_quanities
+        ])
 
         # Check when quantities has a bad value
         bad_quantities = ['bad', 'quant']
@@ -245,8 +257,9 @@ class TestLogger:
 
         # Test adding everything
         blank_logger.add(logged_obj)
-        expected_namespaces = [base_namespace + ('prop',),
-                               base_namespace + ('proplist',)]
+        expected_namespaces = [
+            base_namespace + ('prop',), base_namespace + ('proplist',)
+        ]
         assert all(ns in blank_logger for ns in expected_namespaces)
         assert len(blank_logger) == 2
 
@@ -260,8 +273,9 @@ class TestLogger:
         # Test multiple quantities
         blank_logger._dict = dict()
         blank_logger.add(logged_obj, ['prop', 'proplist'])
-        expected_namespaces = [base_namespace + ('prop',),
-                               base_namespace + ('proplist',)]
+        expected_namespaces = [
+            base_namespace + ('prop',), base_namespace + ('proplist',)
+        ]
         assert all([ns in blank_logger for ns in expected_namespaces])
         assert len(blank_logger) == 2
 
@@ -273,15 +287,16 @@ class TestLogger:
         assert expected_namespace in blank_logger
         assert len(blank_logger) == 1
 
-    def test_add_with_user_names(
-            self, blank_logger, logged_obj, base_namespace):
+    def test_add_with_user_names(self, blank_logger, logged_obj,
+                                 base_namespace):
         # Test adding a user specified identifier into the namespace
         user_name = 'UserName'
         blank_logger.add(logged_obj, user_name=user_name)
         assert base_namespace[:-1] + (user_name, 'prop') in blank_logger
         assert base_namespace[:-1] + (user_name, 'proplist') in blank_logger
 
-    def test_add_with_categories(self, blank_logger, logged_obj, base_namespace):
+    def test_add_with_categories(self, blank_logger, logged_obj,
+                                 base_namespace):
         blank_logger._categories = LoggerCategories['scalar']
         # Test adding everything should filter non-scalar
         blank_logger.add(logged_obj)
@@ -341,8 +356,8 @@ class TestLogger:
         assert prop_namespace[:-2] + (prop_namespace[-2] + '_1',
                                       prop_namespace[-1]) not in log
 
-    def test_remove_with_user_name(
-            self, blank_logger, logged_obj, base_namespace):
+    def test_remove_with_user_name(self, blank_logger, logged_obj,
+                                   base_namespace):
         # Test remove using a user specified namespace identifier
         user_name = 'UserName'
         blank_logger.add(logged_obj, user_name=user_name)
@@ -393,3 +408,7 @@ class TestLogger:
         inner_dict = logged['pytest']['test_logging']['DummyLoggable']
         assert inner_dict['prop'] == (logged_obj.prop, 'scalar')
         assert inner_dict['proplist'] == (logged_obj.proplist, 'sequence')
+
+    def test_pickling(self, blank_logger, logged_obj):
+        blank_logger.add(logged_obj)
+        pickling_check(blank_logger)

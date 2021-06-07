@@ -12,14 +12,15 @@ class ParticleFilter(_hoomd.ParticleFilter):
         Users should instantiate one of the subclasses. Calling `ParticleFilter`
         directly may result in an error.
     """
+
     def __hash__(self):
         """Return a hash of the filter parameters."""
         return NotImplementedError("Must implement hash for ParticleFilters.")
 
     def __eq__(self, other):
         """Test for equality between two particle filters."""
-        raise NotImplementedError(
-            "Equality between {} is not defined.".format(self.__class__))
+        raise NotImplementedError("Equality between {} is not defined.".format(
+            self.__class__))
 
     def __str__(self):
         """Format a human readable string describing the filter."""

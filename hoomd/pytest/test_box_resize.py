@@ -2,6 +2,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 import hoomd
+from hoomd.conftest import operation_pickling_check
 
 
 @pytest.fixture(scope="function")
@@ -14,12 +15,12 @@ _n_points = 10
 
 @pytest.fixture(scope="function")
 def fractional_coordinates(n=_n_points):
-    """
+    """Return fractional coordinates for testing.
+
     Args:
         n: number of particles
 
     Returns: absolute fractional coordinates
-
     """
     return np.random.uniform(-0.5, 0.5, size=(n, 3))
 
@@ -40,11 +41,11 @@ def sys(request, fractional_coordinates):
     """System box sizes and particle positions.
 
     Args:
+        request: Fixture request information.
         fractional_coordinates: Array of fractional coordinates
 
     Returns: HOOMD box object and points for the initial and final system.
              Function to generate system at halfway point of the simulation.
-
     """
     box_start = request.param[0]
     box_end = request.param[1]
@@ -110,9 +111,9 @@ def variant():
 def box_resize(sys, trigger, variant):
     sys1, _, sys2 = sys
     b = hoomd.update.BoxResize(box1=sys1[0],
-                                  box2=sys2[0],
-                                  variant=variant,
-                                  trigger=trigger)
+                               box2=sys2[0],
+                               variant=variant,
+                               trigger=trigger)
     return b
 
 
@@ -120,11 +121,15 @@ def assert_positions(sim, reference_points, filter=None):
     with sim.state.cpu_local_snapshot as data:
         if filter is not None:
             filter_tags = np.copy(filter(sim.state)).astype(int)
-            is_particle_local = np.isin(data.particles.tag, filter_tags, assume_unique=True)
-            reference_point = reference_points[data.particles.tag[is_particle_local]]
+            is_particle_local = np.isin(data.particles.tag,
+                                        filter_tags,
+                                        assume_unique=True)
+            reference_point = reference_points[
+                data.particles.tag[is_particle_local]]
             pos = data.particles.position[is_particle_local]
         else:
-            pos = data.particles.position[data.particles.rtag[data.particles.tag]]
+            pos = data.particles.position[data.particles.rtag[
+                data.particles.tag]]
             reference_point = reference_points[data.particles.tag]
         npt.assert_allclose(pos, reference_point)
 
@@ -162,14 +167,13 @@ def test_update(simulation_factory, get_snapshot, sys):
     assert_positions(sim, sys2[1])
 
 
-_filter = (
-    [
-        [hoomd.filter.All(), hoomd.filter.Null()],
-        [hoomd.filter.Null(), hoomd.filter.All()],
-        [hoomd.filter.Tags([0, 5]),
-         hoomd.filter.SetDifference(hoomd.filter.Tags([0]), hoomd.filter.All())]
-    ]
-)
+_filter = ([[hoomd.filter.All(), hoomd.filter.Null()],
+            [hoomd.filter.Null(), hoomd.filter.All()],
+            [
+                hoomd.filter.Tags([0, 5]),
+                hoomd.filter.SetDifference(hoomd.filter.Tags([0]),
+                                           hoomd.filter.All())
+            ]])
 
 
 @pytest.fixture(scope="function", params=_filter, ids=["All", "None", "Tags"])
@@ -223,3 +227,9 @@ def test_update_filters(device, get_snapshot, sys, filters):
     sim = hoomd.Simulation(device)
     sim.create_state_from_snapshot(get_snapshot())
     hoomd.update.BoxResize.update(sim.state, sys2[0], filter=filter_scale)
+
+
+def test_pickling(simulation_factory, two_particle_snapshot_factory,
+                  box_resize):
+    sim = simulation_factory(two_particle_snapshot_factory())
+    operation_pickling_check(box_resize, sim)

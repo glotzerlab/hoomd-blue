@@ -3,8 +3,8 @@
 
 // Maintainer: mphoward
 
-#include "utils.h"
 #include "hoomd/mpcd/ATCollisionMethod.h"
+#include "utils.h"
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/ATCollisionMethodGPU.h"
 #endif // ENABLE_HIP
@@ -19,7 +19,7 @@ HOOMD_UP_MAIN()
 template<class CM>
 void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -56,7 +56,8 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
 
-    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 2, 1, thermo, rand_thermo, T);
     collide->enableGridShifting(false);
 
     // nothing should happen on the first step
@@ -93,7 +94,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     // perform the collision many times, and ensure that the average temperature is correct
     const unsigned int num_sample = 50000;
     double Tavg = 0.0;
-    for (uint64_t timestep=2; timestep < 2+num_sample; ++timestep)
+    for (uint64_t timestep = 2; timestep < 2 + num_sample; ++timestep)
         {
         thermo->compute(timestep);
         Tavg += thermo->getTemperature();
@@ -104,11 +105,12 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     CHECK_CLOSE(Tavg, 1.5, 0.02);
     }
 
-//! Test that embedding a particle produces valid values (not a rigorous test of physics of embedding)
+//! Test that embedding a particle produces valid values (not a rigorous test of physics of
+//! embedding)
 template<class CM>
 void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
         {
@@ -148,7 +150,8 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     auto rand_thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
     std::shared_ptr<::Variant> T = std::make_shared<::VariantConstant>(1.5);
 
-    std::shared_ptr<mpcd::ATCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);
+    std::shared_ptr<mpcd::ATCollisionMethod> collide
+        = std::make_shared<CM>(mpcd_sys, 0, 1, -1, thermo, rand_thermo, T);
     collide->enableGridShifting(false);
 
     // embed the particle group into the mpcd system
@@ -162,7 +165,9 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     collide->collide(0);
         {
         // velocity should be different now, but the mass should stay the same
-        ArrayHandle<Scalar4> h_vel(sysdef->getParticleData()->getVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(sysdef->getParticleData()->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
         UP_ASSERT(h_vel.data[0].x != 1.0);
         UP_ASSERT(h_vel.data[0].y != 2.0);
         UP_ASSERT(h_vel.data[0].z != 3.0);
@@ -178,24 +183,28 @@ void at_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exec
     }
 
 //! basic test case for MPCD ATCollisionMethod class
-UP_TEST( at_collision_method_basic )
+UP_TEST(at_collision_method_basic)
     {
-    at_collision_method_basic_test<mpcd::ATCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    at_collision_method_basic_test<mpcd::ATCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 //! test embedding of particles into the MPCD ATCollisionMethod class
-UP_TEST( at_collision_method_embed )
+UP_TEST(at_collision_method_embed)
     {
-    at_collision_method_embed_test<mpcd::ATCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    at_collision_method_embed_test<mpcd::ATCollisionMethod>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
 //! basic test case for MPCD ATCollisionMethodGPU class
-UP_TEST( at_collision_method_basic_gpu )
+UP_TEST(at_collision_method_basic_gpu)
     {
-    at_collision_method_basic_test<mpcd::ATCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    at_collision_method_basic_test<mpcd::ATCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 //! test embedding of particles into the MPCD ATCollisionMethodGPU class
-UP_TEST( at_collision_method_embed_gpu )
+UP_TEST(at_collision_method_embed_gpu)
     {
-    at_collision_method_embed_test<mpcd::ATCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    at_collision_method_embed_test<mpcd::ATCollisionMethodGPU>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

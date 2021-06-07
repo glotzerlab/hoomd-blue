@@ -5,7 +5,6 @@ set(files __init__.py
           test_box_resize.py
           test_dcd.py
           test_device.py
-          test_example.py
           test_trigger.py
           test_type_parameter_dict.py
           test_typeparam.py
@@ -22,7 +21,6 @@ set(files __init__.py
           test_table.py
           test_variant.py
           test_sorter.py
-          pytest-openmpi.sh
     )
 
 install(FILES ${files}
@@ -30,3 +28,10 @@ install(FILES ${files}
        )
 
 copy_files_to_build("${files}" "hoomd_pytest" "*.py")
+
+set(programs pytest-openmpi.sh)
+install(PROGRAMS ${programs}
+        DESTINATION ${PYTHON_SITE_INSTALL_DIR}/pytest
+       )
+
+copy_files_to_build("${programs}" "hoomd_pytest_programs" "*.py")

@@ -2,13 +2,12 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TwoStepLangevinGPU.cuh"
 
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 using namespace hoomd;
 
 #include <assert.h>
@@ -38,35 +37,36 @@ using namespace hoomd;
     \param tally Boolean indicating whether energy tally is performed or not
     \param d_partial_sum_bdenergy Placeholder for the partial sum
 
-    This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for design details.
+    This kernel is implemented in a very similar manner to gpu_nve_step_two_kernel(), see it for
+   design details.
 
     This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
 
     This kernel must be launched with enough dynamic shared memory per block to read in d_gamma
 */
-__global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
-                                 Scalar4 *d_vel,
-                                 Scalar3 *d_accel,
-                                 const Scalar *d_diameter,
-                                 const unsigned int *d_tag,
-                                 unsigned int *d_group_members,
-                                 unsigned int group_size,
-                                 Scalar4 *d_net_force,
-                                 Scalar *d_gamma,
-                                 unsigned int n_types,
-                                 bool use_alpha,
-                                 Scalar alpha,
-                                 uint64_t timestep,
-                                 uint16_t seed,
-                                 Scalar T,
-                                 bool noiseless_t,
-                                 Scalar deltaT,
-                                 unsigned int D,
-                                 bool tally,
-                                 Scalar *d_partial_sum_bdenergy)
+__global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
+                                             Scalar4* d_vel,
+                                             Scalar3* d_accel,
+                                             const Scalar* d_diameter,
+                                             const unsigned int* d_tag,
+                                             unsigned int* d_group_members,
+                                             unsigned int group_size,
+                                             Scalar4* d_net_force,
+                                             Scalar* d_gamma,
+                                             unsigned int n_types,
+                                             bool use_alpha,
+                                             Scalar alpha,
+                                             uint64_t timestep,
+                                             uint16_t seed,
+                                             Scalar T,
+                                             bool noiseless_t,
+                                             Scalar deltaT,
+                                             unsigned int D,
+                                             bool tally,
+                                             Scalar* d_partial_sum_bdenergy)
     {
-    HIP_DYNAMIC_SHARED( char, s_data)
-    Scalar *s_gammas = (Scalar *)s_data;
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar* s_gammas = (Scalar*)s_data;
 
     if (!use_alpha)
         {
@@ -101,12 +101,12 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             {
             // read in the tag of our particle.
             // (MEM TRANSFER: 4 bytes)
-            gamma = alpha*d_diameter[idx];
+            gamma = alpha * d_diameter[idx];
             }
         else
             {
-            // read in the type of our particle. A texture read of only the fourth part of the position Scalar4
-            // (where type is stored) is used.
+            // read in the type of our particle. A texture read of only the fourth part of the
+            // position Scalar4 (where type is stored) is used.
             unsigned int typ = __scalar_as_int(d_pos[idx].w);
             gamma = s_gammas[typ];
             }
@@ -116,7 +116,7 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         if (noiseless_t)
             coeff = Scalar(0.0);
 
-        //Initialize the Random Number Generator and generate the 3 random numbers
+        // Initialize the Random Number Generator and generate the 3 random numbers
         RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevin, timestep, seed),
                             hoomd::Counter(ptag));
         UniformDistribution<Scalar> uniform(-1, 1);
@@ -125,14 +125,14 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         Scalar randomy = uniform(rng);
         Scalar randomz = uniform(rng);
 
-        bd_force.x = randomx*coeff - gamma*vel.x;
-        bd_force.y = randomy*coeff - gamma*vel.y;
+        bd_force.x = randomx * coeff - gamma * vel.x;
+        bd_force.y = randomy * coeff - gamma * vel.y;
         if (D > 2)
-            bd_force.z = randomz*coeff - gamma*vel.z;
+            bd_force.z = randomz * coeff - gamma * vel.z;
 
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar4 net_force = d_net_force[idx];
-        Scalar3 accel = make_scalar3(net_force.x,net_force.y,net_force.z);
+        Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
         // MEM TRANSFER: 4 bytes   FLOPS: 3
         Scalar mass = vel.w;
         Scalar minv = Scalar(1.0) / mass;
@@ -142,21 +142,20 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
 
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)
-        vel.x += (Scalar(1.0)/Scalar(2.0)) * accel.x * deltaT;
-        vel.y += (Scalar(1.0)/Scalar(2.0)) * accel.y * deltaT;
-        vel.z += (Scalar(1.0)/Scalar(2.0)) * accel.z * deltaT;
+        vel.x += (Scalar(1.0) / Scalar(2.0)) * accel.x * deltaT;
+        vel.y += (Scalar(1.0) / Scalar(2.0)) * accel.y * deltaT;
+        vel.z += (Scalar(1.0) / Scalar(2.0)) * accel.z * deltaT;
 
         // tally the energy transfer from the bd thermal reservoir to the particles (FLOPS: 6)
-        bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
+        bd_energy_transfer = bd_force.x * vel.x + bd_force.y * vel.y + bd_force.z * vel.z;
 
         // write out data (MEM TRANSFER: 32 bytes)
         d_vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
         d_accel[idx] = accel;
-
         }
 
-    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
+    Scalar* bdtally_sdata = (Scalar*)&s_data[0];
     if (tally)
         {
         // don't overwrite values in the s_gammas array with bd_energy transfer
@@ -182,20 +181,17 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
         }
     }
 
-
-
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
     \param d_partial_sum Array containing the partial sum
     \param num_blocks Number of blocks to execute
 */
-__global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
-                                            Scalar* d_partial_sum,
-                                            unsigned int num_blocks)
+__global__ void
+gpu_bdtally_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
-    HIP_DYNAMIC_SHARED( char, s_data)
-    Scalar *bdtally_sdata = (Scalar *)&s_data[0];
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar* bdtally_sdata = (Scalar*)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
     for (int start = 0; start < num_blocks; start += blockDim.x)
@@ -225,7 +221,6 @@ __global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
         *d_sum = sum;
     }
 
-
 //! NO_SQUISH angular part of the second half step
 /*!
     \param d_pos array of particle positions (4th dimension is particle type)
@@ -245,28 +240,26 @@ __global__ void gpu_bdtally_reduce_partial_sum_kernel(Scalar *d_sum,
     \param D dimensionality of the system
 */
 
-__global__ void gpu_langevin_angular_step_two_kernel(
-                             const Scalar4 *d_pos,
-                             Scalar4 *d_orientation,
-                             Scalar4 *d_angmom,
-                             const Scalar3 *d_inertia,
-                             Scalar4 *d_net_torque,
-                             const unsigned int *d_group_members,
-                             const Scalar3 *d_gamma_r,
-                             const unsigned int *d_tag,
-                             unsigned int n_types,
-                             unsigned int group_size,
-                             uint64_t timestep,
-                             uint16_t seed,
-                             Scalar T,
-                             bool noiseless_r,
-                             Scalar deltaT,
-                             unsigned int D,
-                             Scalar scale
-                            )
+__global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
+                                                     Scalar4* d_orientation,
+                                                     Scalar4* d_angmom,
+                                                     const Scalar3* d_inertia,
+                                                     Scalar4* d_net_torque,
+                                                     const unsigned int* d_group_members,
+                                                     const Scalar3* d_gamma_r,
+                                                     const unsigned int* d_tag,
+                                                     unsigned int n_types,
+                                                     unsigned int group_size,
+                                                     uint64_t timestep,
+                                                     uint16_t seed,
+                                                     Scalar T,
+                                                     bool noiseless_r,
+                                                     Scalar deltaT,
+                                                     unsigned int D,
+                                                     Scalar scale)
     {
-    HIP_DYNAMIC_SHARED( char, s_data)
-    Scalar3 *s_gammas_r = (Scalar3 *)s_data;
+    HIP_DYNAMIC_SHARED(char, s_data)
+    Scalar3* s_gammas_r = (Scalar3*)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
     for (int cur_offset = 0; cur_offset < n_types; cur_offset += blockDim.x)
@@ -296,17 +289,19 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             vec3<Scalar> I(d_inertia[idx]);
 
             vec3<Scalar> s;
-            s = (Scalar(1./2.) * conj(q) * p).v;
+            s = (Scalar(1. / 2.) * conj(q) * p).v;
 
             // first calculate in the body frame random and damping torque imposed by the dynamics
             vec3<Scalar> bf_torque;
 
             // original Gaussian random torque
-            // for future reference: if gamma_r is different for xyz, then we need to generate 3 sigma_r
-            Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0)*gamma_r.x*T/deltaT),
-                                           fast::sqrt(Scalar(2.0)*gamma_r.y*T/deltaT),
-                                           fast::sqrt(Scalar(2.0)*gamma_r.z*T/deltaT));
-            if (noiseless_r) sigma_r = make_scalar3(0,0,0);
+            // for future reference: if gamma_r is different for xyz, then we need to generate 3
+            // sigma_r
+            Scalar3 sigma_r = make_scalar3(fast::sqrt(Scalar(2.0) * gamma_r.x * T / deltaT),
+                                           fast::sqrt(Scalar(2.0) * gamma_r.y * T / deltaT),
+                                           fast::sqrt(Scalar(2.0) * gamma_r.z * T / deltaT));
+            if (noiseless_r)
+                sigma_r = make_scalar3(0, 0, 0);
 
             RandomGenerator rng(hoomd::Seed(RNGIdentifier::TwoStepLangevinAngular, timestep, seed),
                                 hoomd::Counter(ptag));
@@ -316,16 +311,21 @@ __global__ void gpu_langevin_angular_step_two_kernel(
 
             // check for zero moment of inertia
             bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+            x_zero = (I.x < Scalar(EPSILON));
+            y_zero = (I.y < Scalar(EPSILON));
+            z_zero = (I.z < Scalar(EPSILON));
 
             bf_torque.x = rand_x - gamma_r.x * (s.x / I.x);
             bf_torque.y = rand_y - gamma_r.y * (s.y / I.y);
             bf_torque.z = rand_z - gamma_r.z * (s.z / I.z);
 
             // ignore torque component along an axis for which the moment of inertia zero
-            if (x_zero) bf_torque.x = 0;
-            if (y_zero) bf_torque.y = 0;
-            if (z_zero) bf_torque.z = 0;
+            if (x_zero)
+                bf_torque.x = 0;
+            if (y_zero)
+                bf_torque.y = 0;
+            if (z_zero)
+                bf_torque.z = 0;
 
             // change to lab frame and update the net torque
             bf_torque = rotate(q, bf_torque);
@@ -334,8 +334,10 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             d_net_torque[idx].z += bf_torque.z;
 
             // with the wishful mind that compiler may use conditional move to avoid branching
-            if (D < 3) d_net_torque[idx].x = 0;
-            if (D < 3) d_net_torque[idx].y = 0;
+            if (D < 3)
+                d_net_torque[idx].x = 0;
+            if (D < 3)
+                d_net_torque[idx].y = 0;
             }
 
         //////////////////////////////
@@ -346,22 +348,27 @@ __global__ void gpu_langevin_angular_step_two_kernel(
         vec3<Scalar> I(d_inertia[idx]);
 
         // rotate torque into principal frame
-        t = rotate(conj(q),t);
+        t = rotate(conj(q), t);
 
         // check for zero moment of inertia
         bool x_zero, y_zero, z_zero;
-        x_zero = (I.x < Scalar(EPSILON)); y_zero = (I.y < Scalar(EPSILON)); z_zero = (I.z < Scalar(EPSILON));
+        x_zero = (I.x < Scalar(EPSILON));
+        y_zero = (I.y < Scalar(EPSILON));
+        z_zero = (I.z < Scalar(EPSILON));
 
         // ignore torque component along an axis for which the moment of inertia zero
-        if (x_zero) t.x = Scalar(0.0);
-        if (y_zero) t.y = Scalar(0.0);
-        if (z_zero) t.z = Scalar(0.0);
+        if (x_zero)
+            t.x = Scalar(0.0);
+        if (y_zero)
+            t.y = Scalar(0.0);
+        if (z_zero)
+            t.z = Scalar(0.0);
 
         // rescale
-        p = p*scale;
+        p = p * scale;
 
         // advance p(t)->p(t+deltaT/2), q(t)->q(t+deltaT)
-        p += deltaT*q*t;
+        p += deltaT * q * t;
 
         d_angmom[idx] = quat_to_scalar4(p);
         }
@@ -376,57 +383,58 @@ __global__ void gpu_langevin_angular_step_two_kernel(
     \param d_gamma_r List of per-type gamma_rs (rotational drag coeff.)
     \param d_tag array of particle tags
     \param group_size Number of members in the group
-    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()
-    \param deltaT timestep
-    \param D dimensionality of the system
+    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and
+   gpu_langevin_angular_step_two() \param deltaT timestep \param D dimensionality of the system
 
     This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
 
 */
-hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
-                             Scalar4 *d_orientation,
-                             Scalar4 *d_angmom,
-                             const Scalar3 *d_inertia,
-                             Scalar4 *d_net_torque,
-                             const unsigned int *d_group_members,
-                             const Scalar3 *d_gamma_r,
-                             const unsigned int *d_tag,
-                             unsigned int group_size,
-                             const langevin_step_two_args& langevin_args,
-                             Scalar deltaT,
-                             unsigned int D,
-                             Scalar scale)
+hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
+                                         Scalar4* d_orientation,
+                                         Scalar4* d_angmom,
+                                         const Scalar3* d_inertia,
+                                         Scalar4* d_net_torque,
+                                         const unsigned int* d_group_members,
+                                         const Scalar3* d_gamma_r,
+                                         const unsigned int* d_tag,
+                                         unsigned int group_size,
+                                         const langevin_step_two_args& langevin_args,
+                                         Scalar deltaT,
+                                         unsigned int D,
+                                         Scalar scale)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_langevin_angular_step_two_kernel, grid, threads, max( (unsigned int)(sizeof(Scalar3)*langevin_args.n_types),
-                                                                (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
-                                        d_pos,
-                                        d_orientation,
-                                        d_angmom,
-                                        d_inertia,
-                                        d_net_torque,
-                                        d_group_members,
-                                        d_gamma_r,
-                                        d_tag,
-                                        langevin_args.n_types,
-                                        group_size,
-                                        langevin_args.timestep,
-                                        langevin_args.seed,
-                                        langevin_args.T,
-                                        langevin_args.noiseless_r,
-                                        deltaT,
-                                        D,
-                                        scale
-                                        );
+    hipLaunchKernelGGL(gpu_langevin_angular_step_two_kernel,
+                       grid,
+                       threads,
+                       max((unsigned int)(sizeof(Scalar3) * langevin_args.n_types),
+                           (unsigned int)(langevin_args.block_size * sizeof(Scalar))),
+                       0,
+                       d_pos,
+                       d_orientation,
+                       d_angmom,
+                       d_inertia,
+                       d_net_torque,
+                       d_group_members,
+                       d_gamma_r,
+                       d_tag,
+                       langevin_args.n_types,
+                       group_size,
+                       langevin_args.timestep,
+                       langevin_args.seed,
+                       langevin_args.T,
+                       langevin_args.noiseless_r,
+                       deltaT,
+                       D,
+                       scale);
 
     return hipSuccess;
     }
-
 
 /*! \param d_pos array of particle positions and types
     \param d_vel array of particle positions and masses
@@ -436,25 +444,24 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4 *d_pos,
     \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and gpu_langevin_angular_step_two()
-    \param deltaT Amount of real time to step forward in one time step
-    \param D Dimensionality of the system
+    \param langevin_args Collected arguments for gpu_langevin_step_two_kernel() and
+   gpu_langevin_angular_step_two() \param deltaT Amount of real time to step forward in one time
+   step \param D Dimensionality of the system
 
     This is just a driver for gpu_langevin_step_two_kernel(), see it for details.
 */
-hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
-                                  Scalar4 *d_vel,
-                                  Scalar3 *d_accel,
-                                  const Scalar *d_diameter,
-                                  const unsigned int *d_tag,
-                                  unsigned int *d_group_members,
-                                  unsigned int group_size,
-                                  Scalar4 *d_net_force,
-                                  const langevin_step_two_args& langevin_args,
-                                  Scalar deltaT,
-                                  unsigned int D)
+hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
+                                 Scalar4* d_vel,
+                                 Scalar3* d_accel,
+                                 const Scalar* d_diameter,
+                                 const unsigned int* d_tag,
+                                 unsigned int* d_group_members,
+                                 unsigned int group_size,
+                                 Scalar4* d_net_force,
+                                 const langevin_step_two_args& langevin_args,
+                                 Scalar deltaT,
+                                 unsigned int D)
     {
-
     // setup the grid to run the kernel
     dim3 grid(langevin_args.num_blocks, 1, 1);
     dim3 grid1(1, 1, 1);
@@ -462,37 +469,43 @@ hipError_t gpu_langevin_step_two(const Scalar4 *d_pos,
     dim3 threads1(256, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_langevin_step_two_kernel), grid, threads, max((unsigned int)(sizeof(Scalar)*langevin_args.n_types), (unsigned int)(langevin_args.block_size*sizeof(Scalar))), 0,
-                                d_pos,
-                                 d_vel,
-                                 d_accel,
-                                 d_diameter,
-                                 d_tag,
-                                 d_group_members,
-                                 group_size,
-                                 d_net_force,
-                                 langevin_args.d_gamma,
-                                 langevin_args.n_types,
-                                 langevin_args.use_alpha,
-                                 langevin_args.alpha,
-                                 langevin_args.timestep,
-                                 langevin_args.seed,
-                                 langevin_args.T,
-                                 langevin_args.noiseless_t,
-                                 deltaT,
-                                 D,
-                                 langevin_args.tally,
-                                 langevin_args.d_partial_sum_bdenergy);
+    hipLaunchKernelGGL((gpu_langevin_step_two_kernel),
+                       grid,
+                       threads,
+                       max((unsigned int)(sizeof(Scalar) * langevin_args.n_types),
+                           (unsigned int)(langevin_args.block_size * sizeof(Scalar))),
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_diameter,
+                       d_tag,
+                       d_group_members,
+                       group_size,
+                       d_net_force,
+                       langevin_args.d_gamma,
+                       langevin_args.n_types,
+                       langevin_args.use_alpha,
+                       langevin_args.alpha,
+                       langevin_args.timestep,
+                       langevin_args.seed,
+                       langevin_args.T,
+                       langevin_args.noiseless_t,
+                       deltaT,
+                       D,
+                       langevin_args.tally,
+                       langevin_args.d_partial_sum_bdenergy);
 
     // run the summation kernel
     if (langevin_args.tally)
-        hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel), dim3(grid1), dim3(threads1), langevin_args.block_size*sizeof(Scalar), 0, &langevin_args.d_sum_bdenergy[0],
-                                                 langevin_args.d_partial_sum_bdenergy,
-                                                 langevin_args.num_blocks);
-
-
+        hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel),
+                           dim3(grid1),
+                           dim3(threads1),
+                           langevin_args.block_size * sizeof(Scalar),
+                           0,
+                           &langevin_args.d_sum_bdenergy[0],
+                           langevin_args.d_partial_sum_bdenergy,
+                           langevin_args.num_blocks);
 
     return hipSuccess;
     }
-
-

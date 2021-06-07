@@ -2,18 +2,13 @@ from math import isclose
 import pytest
 
 from hoomd import hpmc
-from hoomd.hpmc.tune.move_size import (
-    _MoveSizeTuneDefinition, MoveSize)
+from hoomd.conftest import operation_pickling_check
+from hoomd.hpmc.tune.move_size import (_MoveSizeTuneDefinition, MoveSize)
 
 
 @pytest.fixture
 def move_definition_dict():
-    return dict(
-        attr='d',
-        type='A',
-        target=0.5,
-        domain=(1e-5, None)
-        )
+    return dict(attr='d', type='A', target=0.5, domain=(1e-5, None))
 
 
 @pytest.fixture
@@ -31,7 +26,8 @@ def simulation(simulation_factory, lattice_snapshot_factory):
     return sim
 
 
-class Test_MoveSizeTuneDefinition:
+class TestMoveSizeTuneDefinition:
+
     def test_getting_attrs(self, move_definition_dict, move_size_definition):
         for attr in move_definition_dict:
             assert move_definition_dict[attr] == getattr(
@@ -92,23 +88,21 @@ class Test_MoveSizeTuneDefinition:
         assert different_definition != move_size_definition
 
 
-_move_size_options = [
-    (MoveSize.scale_solver, dict(
-        trigger=300,
-        moves=['d'],
-        target=0.5,
-        types=['A'],
-        max_translation_move=5,
-        max_rotation_move=3.,
-        tol=1e-1
-        )),
-    (MoveSize.secant_solver, dict(
-        trigger=300,
-        moves=['d'],
-        target=0.6,
-        types=['A'],
-        ))
-    ]
+_move_size_options = [(MoveSize.scale_solver,
+                       dict(trigger=300,
+                            moves=['d'],
+                            target=0.5,
+                            types=['A'],
+                            max_translation_move=5,
+                            max_rotation_move=3.,
+                            tol=1e-1)),
+                      (MoveSize.secant_solver,
+                       dict(
+                           trigger=300,
+                           moves=['d'],
+                           target=0.6,
+                           types=['A'],
+                       ))]
 
 
 @pytest.fixture(params=_move_size_options,
@@ -123,6 +117,7 @@ def move_size_tuner(move_size_tuner_pairs):
 
 
 class TestMoveSize:
+
     def test_construction(self, move_size_tuner_pairs):
         move_size_dict = move_size_tuner_pairs[1]
         move_size = move_size_tuner_pairs[0](**move_size_dict)
@@ -138,8 +133,8 @@ class TestMoveSize:
                 # have an attribute. This allows us to check that all attributes
                 # are getting set correctly.
                 except AttributeError:
-                    assert getattr(
-                        move_size.solver, attr) == move_size_dict[attr]
+                    assert getattr(move_size.solver,
+                                   attr) == move_size_dict[attr]
 
     def test_attach(self, move_size_tuner, simulation):
         simulation.operations.tuners.append(move_size_tuner)
@@ -203,3 +198,6 @@ class TestMoveSize:
         tolerance = move_size_tuner.solver.tol
         assert abs(acceptance_rate - move_size_tuner.target) <= tolerance
         print(simulation.timestep)
+
+    def test_pickling(self, move_size_tuner, simulation):
+        operation_pickling_check(move_size_tuner, simulation)

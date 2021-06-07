@@ -1,22 +1,19 @@
-# coding: utf-8
-
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-# Maintainer: joaander / All Developers are free to add commands for new
-# features
+"""Implement MD Integrator."""
 
+import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
 from hoomd.data.typeconverter import OnlyFrom
 from hoomd.integrate import BaseIntegrator
-from hoomd.data.syncedlist import SyncedList
-from hoomd.md.methods import _Method
+from hoomd.data import syncedlist
+from hoomd.md.methods import Method
 from hoomd.md.force import Force
 from hoomd.md.constrain import ConstraintForce
-import itertools
 
 
 def _preprocess_aniso(value):
@@ -34,22 +31,21 @@ def _set_synced_list(old_list, new_list):
 
 
 class _DynamicIntegrator(BaseIntegrator):
+
     def __init__(self, forces, constraints, methods):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
-        self._forces = SyncedList(lambda x: isinstance(x, Force),
-                                  to_synced_list=lambda x: x._cpp_obj,
-                                  iterable=forces)
+        self._forces = syncedlist.SyncedList(
+            Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
 
-        self._constraints = SyncedList(lambda x: isinstance(x,
-                                                            ConstraintForce),
-                                       to_synced_list=lambda x: x._cpp_obj,
-                                       iterable=constraints)
+        self._constraints = syncedlist.SyncedList(
+            ConstraintForce,
+            syncedlist._PartialGetAttr('_cpp_obj'),
+            iterable=constraints)
 
-        self._methods = SyncedList(lambda x: isinstance(x, _Method),
-                                   to_synced_list=lambda x: x._cpp_obj,
-                                   iterable=methods)
+        self._methods = syncedlist.SyncedList(
+            Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
 
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
@@ -95,12 +91,12 @@ class _DynamicIntegrator(BaseIntegrator):
 
 
 class Integrator(_DynamicIntegrator):
-    R""" Enables a variety of standard integration methods.
+    """Enables a variety of standard integration methods.
 
     Args:
         dt (float): Integrator time step size (in time units).
 
-        methods (Sequence[hoomd.md.methods._Method]): Sequence of integration
+        methods (Sequence[hoomd.md.methods.Method]): Sequence of integration
             methods. Each integration method can be applied to only a specific
             subset of particles. The intersection of the subsets must be null.
             The default value of ``None`` initializes an empty list.
@@ -157,7 +153,7 @@ class Integrator(_DynamicIntegrator):
     Attributes:
         dt (float): Integrator time step size (in time units).
 
-        methods (List[hoomd.md.methods._Method]): List of integration methods.
+        methods (List[hoomd.md.methods.Method]): List of integration methods.
             Each integration method can be applied to only a specific subset of
             particles.
 
@@ -170,17 +166,20 @@ class Integrator(_DynamicIntegrator):
             constraint forces applied to the particles in the system.
     """
 
-    def __init__(self, dt, aniso='auto', forces=None, constraints=None,
+    def __init__(self,
+                 dt,
+                 aniso='auto',
+                 forces=None,
+                 constraints=None,
                  methods=None):
 
         super().__init__(forces, constraints, methods)
 
-        self._param_dict = ParameterDict(
-            dt=float(dt),
-            aniso=OnlyFrom(['true', 'false', 'auto'],
-                           preprocess=_preprocess_aniso),
-            _defaults=dict(aniso="auto")
-            )
+        self._param_dict = ParameterDict(dt=float(dt),
+                                         aniso=OnlyFrom(
+                                             ['true', 'false', 'auto'],
+                                             preprocess=_preprocess_aniso),
+                                         _defaults=dict(aniso="auto"))
         if aniso is not None:
             self.aniso = aniso
 

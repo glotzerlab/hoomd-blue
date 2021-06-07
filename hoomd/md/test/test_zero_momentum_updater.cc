@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
@@ -24,21 +23,29 @@ HOOMD_UP_MAIN();
 */
 
 //! test case to verify proper operation of ZeroMomentumUpdater
-UP_TEST( ZeroMomentumUpdater_basic )
+UP_TEST(ZeroMomentumUpdater_basic)
     {
     // create a simple particle data to test with
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    {
-    ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
 
-    h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    h_vel.data[0].x = 1.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
-    h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
-    h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
-    }
+        h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
+        h_vel.data[0].x = 1.0;
+        h_vel.data[0].y = 2.0;
+        h_vel.data[0].z = 3.0;
+        h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
+        h_vel.data[1].x = 4.0;
+        h_vel.data[1].y = 5.0;
+        h_vel.data[1].z = 6.0;
+        }
 
     // construct the updater and make sure everything is set properly
     std::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
@@ -54,16 +61,18 @@ UP_TEST( ZeroMomentumUpdater_basic )
     Scalar sum_pz = 0.0;
 
     // note: assuming mass == 1 for now
-    {
-    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
-
-    for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        sum_px += h_vel.data[i].x;
-        sum_py += h_vel.data[i].y;
-        sum_pz += h_vel.data[i].z;
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::read);
+
+        for (unsigned int i = 0; i < pdata->getN(); i++)
+            {
+            sum_px += h_vel.data[i].x;
+            sum_py += h_vel.data[i].y;
+            sum_pz += h_vel.data[i].z;
+            }
         }
-    }
 
     // calculate the average
     Scalar avg_px = sum_px / Scalar(pdata->getN());

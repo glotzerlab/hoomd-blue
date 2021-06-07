@@ -9,27 +9,27 @@
 #include "hoomd/md/ComputeThermo.h"
 #include "hoomd/md/TwoStepNPTMTK.h"
 #ifdef ENABLE_HIP
-#include "hoomd/md/TwoStepNPTMTKGPU.h"
 #include "hoomd/md/ComputeThermoGPU.h"
+#include "hoomd/md/TwoStepNPTMTKGPU.h"
 #endif
 #include "hoomd/md/IntegratorTwoStep.h"
 
-#include "hoomd/SnapshotSystemData.h"
 #include "hoomd/CellList.h"
+#include "hoomd/Initializers.h"
+#include "hoomd/SnapshotSystemData.h"
+#include "hoomd/md/AllAnisoPairPotentials.h"
+#include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborList.h"
 #include "hoomd/md/NeighborListBinned.h"
-#include "hoomd/Initializers.h"
-#include "hoomd/md/AllPairPotentials.h"
-#include "hoomd/md/AllAnisoPairPotentials.h"
 
 #ifdef ENABLE_HIP
-#include "hoomd/md/NeighborListGPUBinned.h"
 #include "hoomd/CellListGPU.h"
+#include "hoomd/md/NeighborListGPUBinned.h"
 #endif
 
 #include "hoomd/RandomNumbers.h"
-#include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
 #include "hoomd/Variant.h"
@@ -54,7 +54,6 @@ PYBIND11_EMBEDDED_MODULE(variant, m)
     export_Variant(m);
     }
 
-
 typedef struct
     {
     std::shared_ptr<SystemDefinition> sysdef;
@@ -70,10 +69,11 @@ typedef struct
     } args_t;
 
 //! Typedef'd NPTMTKUpdater class factory
-typedef std::function<std::shared_ptr<TwoStepNPTMTK> (args_t args) > twostep_npt_mtk_creator;
+typedef std::function<std::shared_ptr<TwoStepNPTMTK>(args_t args)> twostep_npt_mtk_creator;
 
 //! Basic functionality test of a generic TwoStepNPTMTK
-void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator,
+                          std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // we use a tightly packed cubic LJ crystal for testing,
     // because this one has a sufficient shear elasticity
@@ -84,11 +84,13 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     Scalar deltaT = 0.001;
 
     const TwoStepNPTMTK::couplingMode coupling_modes[] = {TwoStepNPTMTK::couple_xyz,
-                                             TwoStepNPTMTK::couple_none,
-                                             TwoStepNPTMTK::couple_yz,
-                                             TwoStepNPTMTK::couple_none};
-    const unsigned int orthorhombic = TwoStepNPTMTK::baro_x | TwoStepNPTMTK::baro_y |TwoStepNPTMTK::baro_z;
-    const unsigned int all = orthorhombic | TwoStepNPTMTK::baro_xy | TwoStepNPTMTK::baro_xz |TwoStepNPTMTK::baro_yz;
+                                                          TwoStepNPTMTK::couple_none,
+                                                          TwoStepNPTMTK::couple_yz,
+                                                          TwoStepNPTMTK::couple_none};
+    const unsigned int orthorhombic
+        = TwoStepNPTMTK::baro_x | TwoStepNPTMTK::baro_y | TwoStepNPTMTK::baro_z;
+    const unsigned int all
+        = orthorhombic | TwoStepNPTMTK::baro_xy | TwoStepNPTMTK::baro_xz | TwoStepNPTMTK::baro_yz;
 
     const unsigned int npt_flags[] = {orthorhombic, orthorhombic, orthorhombic, all};
     const std::string mode_name[] = {"cubic", "orthorhombic", "tetragonal", "triclinic"};
@@ -97,10 +99,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     Scalar tau = .1;
     Scalar tauP = .1;
 
-
     // create two identical random particle systems to simulate
     SimpleCubicInitializer cubic_init(L, Scalar(0.89), "A");
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap = cubic_init.getSnapshot();
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
@@ -109,25 +110,28 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     flags[pdata_flag::pressure_tensor] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(
+        new ParticleFilterTag(sysdef, 0, pdata->getN() - 1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
-        cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = std::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.4),cl));
-        fc = std::shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        cl = std::shared_ptr<CellList>(new CellListGPU(sysdef));
+        nlist = std::shared_ptr<NeighborList>(
+            new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.4), cl));
+        fc = std::shared_ptr<PotentialPairLJ>(new PotentialPairLJGPU(sysdef, nlist));
         }
     else
-    #endif
+#endif
         {
-        cl = std::shared_ptr<CellList>( new CellList(sysdef) );
-        nlist = std::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.4),cl));
-        fc = std::shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        cl = std::shared_ptr<CellList>(new CellList(sysdef));
+        nlist = std::shared_ptr<NeighborList>(
+            new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.4), cl));
+        fc = std::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
         }
 
     fc->setRcut(0, 0, Scalar(2.5));
@@ -136,37 +140,41 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setParams(0, 0, make_scalar2(lj1, lj2));
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
     fc->setShiftMode(PotentialPairLJ::shift);
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
-        thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
-        thermo_group_t = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name_t"));
+        thermo_group
+            = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
+        thermo_group_t
+            = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name_t"));
         }
     else
-    #endif
+#endif
         {
-        thermo_group = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name")));
-        thermo_group_t = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name_t")));
+        thermo_group
+            = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name")));
+        thermo_group_t
+            = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name_t")));
         }
 
-    thermo_group->setNDOF(3*pdata->getN()-3);
-    thermo_group_t->setNDOF(3*pdata->getN()-3);
+    thermo_group->setNDOF(3 * pdata->getN() - 3);
+    thermo_group_t->setNDOF(3 * pdata->getN() - 3);
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
-    unsigned int offs=0;
+    unsigned int offs = 0;
     for (unsigned int i_mode = 0; i_mode < n_modes; i_mode++)
         {
         TwoStepNPTMTK::couplingMode mode = coupling_modes[i_mode];
@@ -174,7 +182,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         std::cout << "Testing NPT with mode " << mode_name[i_mode] << std::endl;
 
         args_t args;
-        args.sysdef=sysdef;
+        args.sysdef = sysdef;
         args.group = group_all;
         args.thermo_group = thermo_group;
         args.thermo_group_t = thermo_group_t;
@@ -186,8 +194,8 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         args.flags = flags;
 
         std::shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(args);
-        npt_mtk->removeAllIntegrationMethods();
-        npt_mtk->addIntegrationMethod(two_step_npt_mtk);
+        npt_mtk->getIntegrationMethods().clear();
+        npt_mtk->getIntegrationMethods().push_back(two_step_npt_mtk);
         npt_mtk->prepRun(0);
 
         // step for a 10,000 timesteps to relax pressure and temperature
@@ -204,8 +212,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 BoxDim box = pdata->getBox();
                 Scalar3 npd = box.getNearestPlaneDistance();
                 std::cout << "Box L: " << box.getL().x << " " << box.getL().y << " " << box.getL().z
-                          << " t: " << box.getTiltFactorXY() << " " << box.getTiltFactorXZ() << " " << box.getTiltFactorYZ()
-                          << " npd: " << npd.x << " " << npd.y << " " << npd.z << std::endl;
+                          << " t: " << box.getTiltFactorXY() << " " << box.getTiltFactorXZ() << " "
+                          << box.getTiltFactorYZ() << " npd: " << npd.x << " " << npd.y << " "
+                          << npd.z << std::endl;
                 }
             npt_mtk->update(timestep);
             }
@@ -224,9 +233,10 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         thermo_group_t->compute(0);
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
-        Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar enthalpy = thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy()
+                          + P * volume;
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.02 % accuracy for conserved quantity
@@ -244,9 +254,9 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 std::cout << i << std::endl;
                 }
 
-            if (i% 100 == 0)
+            if (i % 100 == 0)
                 {
-                thermo_group_t->compute(timestep+1);
+                thermo_group_t->compute(timestep + 1);
                 PressureTensor P_current = thermo_group_t->getPressureTensor();
                 avrPxx += P_current.xx;
                 avrPxy += P_current.xy;
@@ -260,11 +270,12 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
 
                 box = pdata->getBox();
                 volume = box.getVolume();
-                enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                enthalpy = thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy()
+                           + P * volume;
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
-                MY_CHECK_CLOSE(H_ref,H,H_tol);
+                MY_CHECK_CLOSE(H_ref, H, H_tol);
 
                 /*
                 box = pdata->getBox();
@@ -274,16 +285,17 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
                 }
             }
 
-        thermo_group_t->compute(timestep+1);
+        thermo_group_t->compute(timestep + 1);
         box = pdata->getBox();
         volume = box.getVolume();
-        enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        enthalpy = thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy()
+                   + P * volume;
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
-        MY_CHECK_CLOSE(H_ref,H_final,H_tol);
+        MY_CHECK_CLOSE(H_ref, H_final, H_tol);
 
         avrPxx /= Scalar(count);
         avrPxy /= Scalar(count);
@@ -292,7 +304,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         avrPyz /= Scalar(count);
         avrPzz /= Scalar(count);
         avrT /= Scalar(count);
-        Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
+        Scalar avrP = Scalar(1. / 3.) * (avrPxx + avrPyy + avrPzz);
         Scalar rough_tol = 2.0;
         if (i_mode == 0) // cubic
             MY_CHECK_CLOSE(avrP, P, rough_tol);
@@ -305,24 +317,25 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         else if (i_mode == 2) // tetragonal
             {
             MY_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
+            MY_CHECK_CLOSE(Scalar(1.0 / 2.0) * (avrPyy + avrPzz), avrP, rough_tol);
             }
-       else if (mode == 3) // triclinic
+        else if (mode == 3) // triclinic
             {
             MY_CHECK_CLOSE(avrPxx, P, rough_tol);
             MY_CHECK_CLOSE(avrPyy, P, rough_tol);
             MY_CHECK_CLOSE(avrPzz, P, rough_tol);
-            MY_CHECK_SMALL(avrPxy,rough_tol);
-            MY_CHECK_SMALL(avrPxz,rough_tol);
-            MY_CHECK_SMALL(avrPyz,rough_tol);
+            MY_CHECK_SMALL(avrPxy, rough_tol);
+            MY_CHECK_SMALL(avrPxz, rough_tol);
+            MY_CHECK_SMALL(avrPyz, rough_tol);
             }
         MY_CHECK_CLOSE(T0, avrT, rough_tol);
-        offs+=timestep;
+        offs += timestep;
         }
     }
 
 //! Test ability to integrate in the NPH ensemble
-void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void nph_integration_test(twostep_npt_mtk_creator nph_creator,
+                          std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
     Scalar P = 1.0;
@@ -334,7 +347,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
     rand_init.setSeed(12345);
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap = rand_init.getSnapshot();
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
@@ -343,11 +356,11 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);
-    unsigned int nparticles= pdata->getN();
+    unsigned int nparticles = pdata->getN();
 
     // generate the gaussian velocity distribution
     for (unsigned int idx = 0; idx < nparticles; idx++)
-    {
+        {
         // generate gaussian velocities
         Scalar mass = pdata->getMass(idx);
         Scalar sigma = T0 / mass;
@@ -362,76 +375,78 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
         total_momentum.z += vz * mass;
 
         // assign the velocities
-        pdata->setVelocity(idx,make_scalar3(vx,vy,vz));
-    }
+        pdata->setVelocity(idx, make_scalar3(vx, vy, vz));
+        }
 
     // loop through the particles again and remove the system momentum
     total_momentum.x /= nparticles;
     total_momentum.y /= nparticles;
     total_momentum.z /= nparticles;
-    {
-    ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    for (unsigned int idx = 0; idx < nparticles; idx++)
-    {
-        Scalar mass = h_vel.data[idx].w;
-        h_vel.data[idx].x -= total_momentum.x / mass;
-        h_vel.data[idx].y -= total_momentum.y / mass;
-        h_vel.data[idx].z -= total_momentum.z / mass;
-    }
-
-    }
-
+        {
+        ArrayHandle<Scalar4> h_vel(pdata->getVelocities(),
+                                   access_location::host,
+                                   access_mode::readwrite);
+        for (unsigned int idx = 0; idx < nparticles; idx++)
+            {
+            Scalar mass = h_vel.data[idx].w;
+            h_vel.data[idx].x -= total_momentum.x / mass;
+            h_vel.data[idx].y -= total_momentum.y / mass;
+            h_vel.data[idx].z -= total_momentum.z / mass;
+            }
+        }
 
     // enable the energy computation
     PDataFlags flags;
     flags[pdata_flag::pressure_tensor] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(
+        new ParticleFilterTag(sysdef, 0, pdata->getN() - 1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
     std::shared_ptr<PotentialPairLJ> fc;
     std::shared_ptr<CellList> cl;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
-        cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = std::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = std::shared_ptr<PotentialPairLJ>( new PotentialPairLJGPU(sysdef, nlist));
+        cl = std::shared_ptr<CellList>(new CellListGPU(sysdef));
+        nlist = std::shared_ptr<NeighborList>(
+            new NeighborListGPUBinned(sysdef, Scalar(2.5), Scalar(0.8), cl));
+        fc = std::shared_ptr<PotentialPairLJ>(new PotentialPairLJGPU(sysdef, nlist));
         }
     else
-    #endif
+#endif
         {
-        cl = std::shared_ptr<CellList>( new CellList(sysdef) );
-        nlist = std::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8),cl));
-        fc = std::shared_ptr<PotentialPairLJ>( new PotentialPairLJ(sysdef, nlist));
+        cl = std::shared_ptr<CellList>(new CellList(sysdef));
+        nlist = std::shared_ptr<NeighborList>(
+            new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.8), cl));
+        fc = std::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef, nlist));
         }
 
-
-    fc->setRcut(0, 0, Scalar(pow(Scalar(2.0),Scalar(1./6.))));
+    fc->setRcut(0, 0, Scalar(pow(Scalar(2.0), Scalar(1. / 6.))));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
 
     // specify the force parameters
-    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setParams(0, 0, make_scalar2(lj1, lj2));
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
     fc->setShiftMode(PotentialPairLJ::shift);
 
     std::shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
-    group_all->setTranslationalDOF(3*N-3);
+    group_all->setTranslationalDOF(3 * N - 3);
 
     std::shared_ptr<ComputeThermo> compute_thermo_t(new ComputeThermo(sysdef, group_all, "name"));
 
     // set up integration without thermostat
     args_t args;
-    args.sysdef=sysdef;
+    args.sysdef = sysdef;
     args.group = group_all;
     args.thermo_group = compute_thermo;
     args.thermo_group_t = compute_thermo_t;
@@ -444,8 +459,8 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
 
     std::shared_ptr<TwoStepNPTMTK> two_step_npt = nph_creator(args);
     std::shared_ptr<IntegratorTwoStep> nph(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    nph->addIntegrationMethod(two_step_npt);
-    nph->addForceCompute(fc);
+    nph->getIntegrationMethods().push_back(two_step_npt);
+    nph->getForces().push_back(fc);
     nph->prepRun(0);
 
     // step for a 10,000 timesteps to relax pressure and temperature
@@ -466,9 +481,10 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     compute_thermo_t->compute(0);
     BoxDim box = pdata->getBox();
     Scalar3 L = box.getL();
-    Scalar volume = L.x*L.y*L.z;
-    Scalar enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    Scalar barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    Scalar volume = L.x * L.y * L.z;
+    Scalar enthalpy = compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy()
+                      + P * volume;
+    Scalar barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_ref = enthalpy + barostat_energy; // the conserved quantity
 
     for (int i = 10001; i < 20000; i++)
@@ -486,31 +502,33 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
         nph->update(i);
         }
 
-    compute_thermo_t->compute(count+1);
+    compute_thermo_t->compute(count + 1);
     box = pdata->getBox();
     L = box.getL();
-    volume = L.x*L.y*L.z;
-    enthalpy =  compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy() + P * volume;
-    barostat_energy = nph->getLogValue("npt_barostat_energy", flag);
+    volume = L.x * L.y * L.z;
+    enthalpy = compute_thermo_t->getKineticEnergy() + compute_thermo_t->getPotentialEnergy()
+               + P * volume;
+    barostat_energy = nph->getBarostatEnergy(timestep);
     Scalar H_final = enthalpy + barostat_energy;
     // check conserved quantity
     Scalar tol = 0.01;
-    MY_CHECK_CLOSE(H_ref,H_final,tol);
+    MY_CHECK_CLOSE(H_ref, H_final, tol);
 
     avrPxx /= Scalar(count);
     avrPyy /= Scalar(count);
     avrPzz /= Scalar(count);
-    Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
+    Scalar avrP = Scalar(1. / 3.) * (avrPxx + avrPyy + avrPzz);
     Scalar rough_tol = 2.0;
     MY_CHECK_CLOSE(P, avrP, rough_tol);
     }
 
 //! Basic functionality test of a generic TwoStepNPTMTK for anisotropic pair potential
-void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator,
+                           std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     Scalar phi_p = 0.2;
     unsigned int N = 1000;
-    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
+    Scalar L = pow(M_PI / 6.0 / phi_p * Scalar(N), 1.0 / 3.0);
     BoxDim box_g(L);
 
     Scalar P = 1.2;
@@ -518,11 +536,13 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar deltaT = 0.001;
 
     const TwoStepNPTMTK::couplingMode coupling_modes[] = {TwoStepNPTMTK::couple_xyz,
-                                             TwoStepNPTMTK::couple_none,
-                                             TwoStepNPTMTK::couple_yz,
-                                             TwoStepNPTMTK::couple_none};
-    const unsigned int orthorhombic = TwoStepNPTMTK::baro_x | TwoStepNPTMTK::baro_y |TwoStepNPTMTK::baro_z;
-    const unsigned int all = orthorhombic | TwoStepNPTMTK::baro_xy | TwoStepNPTMTK::baro_xz |TwoStepNPTMTK::baro_yz;
+                                                          TwoStepNPTMTK::couple_none,
+                                                          TwoStepNPTMTK::couple_yz,
+                                                          TwoStepNPTMTK::couple_none};
+    const unsigned int orthorhombic
+        = TwoStepNPTMTK::baro_x | TwoStepNPTMTK::baro_y | TwoStepNPTMTK::baro_z;
+    const unsigned int all
+        = orthorhombic | TwoStepNPTMTK::baro_xy | TwoStepNPTMTK::baro_xz | TwoStepNPTMTK::baro_yz;
 
     const unsigned int npt_flags[] = {orthorhombic, orthorhombic, orthorhombic, all};
     const std::string mode_name[] = {"cubic", "orthorhombic", "tetragonal", "triclinic"};
@@ -532,10 +552,10 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar tauP = .1;
 
     SimpleCubicInitializer cubic_init(10, Scalar(0.89), "A");
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap = cubic_init.getSnapshot();
 
     // have to set moment of inertia to actually test aniso integration
-    for(unsigned int i(0); i < snap->particle_data.size; ++i)
+    for (unsigned int i(0); i < snap->particle_data.size; ++i)
         snap->particle_data.inertia[i] = vec3<Scalar>(1.0, 1.0, 1.0);
 
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -547,7 +567,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     flags[pdata_flag::rotational_kinetic_energy] = 1;
     pdata->setFlags(flags);
 
-    std::shared_ptr<ParticleFilter> selector_all(new ParticleFilterTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleFilter> selector_all(
+        new ParticleFilterTag(sysdef, 0, pdata->getN() - 1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     std::shared_ptr<NeighborList> nlist;
@@ -559,17 +580,17 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar r_cut = 2.5;
     Scalar r_buff = 0.3;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
-        cl = std::shared_ptr<CellList>( new CellListGPU(sysdef) );
-        nlist = std::shared_ptr<NeighborList>( new NeighborListGPUBinned(sysdef, r_cut, r_buff,cl));
+        cl = std::shared_ptr<CellList>(new CellListGPU(sysdef));
+        nlist = std::shared_ptr<NeighborList>(new NeighborListGPUBinned(sysdef, r_cut, r_buff, cl));
         fc = std::shared_ptr<AnisoPotentialPairGBGPU>(new AnisoPotentialPairGBGPU(sysdef, nlist));
         }
     else
-    #endif
+#endif
         {
-        cl = std::shared_ptr<CellList>( new CellList(sysdef) );
+        cl = std::shared_ptr<CellList>(new CellList(sysdef));
         nlist = std::shared_ptr<NeighborList>(new NeighborListBinned(sysdef, r_cut, r_buff, cl));
         fc = std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef, nlist));
         }
@@ -580,7 +601,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar epsilon = Scalar(1.0);
     Scalar lperp = Scalar(0.3);
     Scalar lpar = Scalar(0.5);
-    fc->setParams(0,0,make_pair_gb_params(epsilon,lperp,lpar));
+    fc->setParams(0, 0, make_pair_gb_params(epsilon, lperp, lpar));
 
     // If we want accurate calculation of potential energy, we need to apply the
     // energy shift
@@ -588,27 +609,31 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
     std::shared_ptr<ComputeThermo> thermo_group;
     std::shared_ptr<ComputeThermo> thermo_group_t;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     if (exec_conf->isCUDAEnabled())
         {
-        thermo_group = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
-        thermo_group_t = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name_t"));
+        thermo_group
+            = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name"));
+        thermo_group_t
+            = std::shared_ptr<ComputeThermo>(new ComputeThermoGPU(sysdef, group_all, "name_t"));
         }
     else
-    #endif
+#endif
         {
-        thermo_group = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name")));
-        thermo_group_t = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name_t")));
+        thermo_group
+            = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name")));
+        thermo_group_t
+            = std::shared_ptr<ComputeThermo>((new ComputeThermo(sysdef, group_all, "name_t")));
         }
 
-    thermo_group->setNDOF(3*pdata->getN()-3);
-    thermo_group_t->setNDOF(3*pdata->getN()-3);
+    thermo_group->setNDOF(3 * pdata->getN() - 3);
+    thermo_group_t->setNDOF(3 * pdata->getN() - 3);
 
     std::shared_ptr<IntegratorTwoStep> npt_mtk(new IntegratorTwoStep(sysdef, Scalar(deltaT)));
-    npt_mtk->addForceCompute(fc);
+    npt_mtk->getForces().push_back(fc);
 
     // successively integrate the system using different methods
-    unsigned int offs=0;
+    unsigned int offs = 0;
     for (unsigned int i_mode = 0; i_mode < n_modes; i_mode++)
         {
         TwoStepNPTMTK::couplingMode mode = coupling_modes[i_mode];
@@ -616,7 +641,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         std::cout << "Testing NPT with Gay-Berne in mode " << mode_name[i_mode] << std::endl;
 
         args_t args;
-        args.sysdef=sysdef;
+        args.sysdef = sysdef;
         args.group = group_all;
         args.thermo_group = thermo_group;
         args.thermo_group_t = thermo_group_t;
@@ -628,8 +653,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         args.flags = flags;
 
         std::shared_ptr<TwoStepNPTMTK> two_step_npt_mtk = npt_mtk_creator(args);
-        npt_mtk->removeAllIntegrationMethods();
-        npt_mtk->addIntegrationMethod(two_step_npt_mtk);
+        npt_mtk->getIntegrationMethods().clear();
+        npt_mtk->getIntegrationMethods().push_back(two_step_npt_mtk);
 
         unsigned int ndof_rot = npt_mtk->getRotationalDOF(group_all);
         thermo_group->setRotationalNDOF(ndof_rot);
@@ -652,8 +677,9 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 BoxDim box = pdata->getBox();
                 Scalar3 npd = box.getNearestPlaneDistance();
                 std::cout << "Box L: " << box.getL().x << " " << box.getL().y << " " << box.getL().z
-                          << " t: " << box.getTiltFactorXY() << " " << box.getTiltFactorXZ() << " " << box.getTiltFactorYZ()
-                          << " npd: " << npd.x << " " << npd.y << " " << npd.z << std::endl;
+                          << " t: " << box.getTiltFactorXY() << " " << box.getTiltFactorXZ() << " "
+                          << box.getTiltFactorYZ() << " npd: " << npd.x << " " << npd.y << " "
+                          << npd.z << std::endl;
                 }
             npt_mtk->update(timestep);
             }
@@ -672,9 +698,10 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         thermo_group_t->compute(0);
         BoxDim box = pdata->getBox();
         Scalar volume = box.getVolume();
-        Scalar enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        Scalar barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        Scalar thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        Scalar enthalpy = thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy()
+                          + P * volume;
+        Scalar barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        Scalar thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_ref = enthalpy + barostat_energy + thermostat_energy; // the conserved quantity
 
         // 0.25 % accuracy for conserved quantity
@@ -682,7 +709,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
         unsigned int n_measure_steps = 10000;
         std::cout << "Measuring over " << n_measure_steps << " steps... " << std::endl;
-        for (unsigned int i = n_equil_steps; i < n_equil_steps+n_measure_steps; i++)
+        for (unsigned int i = n_equil_steps; i < n_equil_steps + n_measure_steps; i++)
             {
             timestep = offs + i;
             npt_mtk->update(timestep);
@@ -690,9 +717,9 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 {
                 std::cout << i << std::endl;
                 }
-            if (i% 100 == 0)
+            if (i % 100 == 0)
                 {
-                thermo_group_t->compute(timestep+1);
+                thermo_group_t->compute(timestep + 1);
                 PressureTensor P_current = thermo_group_t->getPressureTensor();
                 avrPxx += P_current.xx;
                 avrPxy += P_current.xy;
@@ -709,13 +736,14 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 Scalar ke = thermo_group_t->getKineticEnergy();
                 Scalar rotational_ke = thermo_group_t->getRotationalKineticEnergy();
                 Scalar pe = thermo_group_t->getPotentialEnergy();
-                enthalpy =  ke + pe + P * volume;
-                barostat_energy = npt_mtk->getLogValue("npt_barostat_energy",flag);
-                thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy",flag);
+                enthalpy = ke + pe + P * volume;
+                barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+                thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
                 Scalar H = enthalpy + barostat_energy + thermostat_energy;
-                std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P*volume << std::endl;
-                std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy << " rot KE: " << rotational_ke << std::endl;
-                MY_CHECK_CLOSE(H_ref,H,H_tol);
+                std::cout << "KE: " << ke << " PE: " << pe << " PV: " << P * volume << std::endl;
+                std::cout << "baro: " << barostat_energy << " thermo: " << thermostat_energy
+                          << " rot KE: " << rotational_ke << std::endl;
+                MY_CHECK_CLOSE(H_ref, H, H_tol);
 
                 /*
                 box = pdata->getBox();
@@ -725,16 +753,17 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
                 }
             }
 
-        thermo_group_t->compute(timestep+1);
+        thermo_group_t->compute(timestep + 1);
         box = pdata->getBox();
         volume = box.getVolume();
-        enthalpy =  thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy() + P * volume;
-        barostat_energy = npt_mtk->getLogValue("npt_barostat_energy", flag);
-        thermostat_energy = npt_mtk->getLogValue("npt_thermostat_energy", flag);
+        enthalpy = thermo_group_t->getKineticEnergy() + thermo_group_t->getPotentialEnergy()
+                   + P * volume;
+        barostat_energy = npt_mtk->getBarostatEnergy(timestep);
+        thermostat_energy = npt_mtk->getThermostatEnergy(timestep);
         Scalar H_final = enthalpy + barostat_energy + thermostat_energy;
 
         // check conserved quantity, required accuracy 2*10^-4
-        MY_CHECK_CLOSE(H_ref,H_final,H_tol);
+        MY_CHECK_CLOSE(H_ref, H_final, H_tol);
 
         avrPxx /= Scalar(count);
         avrPxy /= Scalar(count);
@@ -743,7 +772,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         avrPyz /= Scalar(count);
         avrPzz /= Scalar(count);
         avrT /= Scalar(count);
-        Scalar avrP= Scalar(1./3.)*(avrPxx+avrPyy+avrPzz);
+        Scalar avrP = Scalar(1. / 3.) * (avrPxx + avrPyy + avrPzz);
         Scalar rough_tol = 5.0;
         if (i_mode == 0) // cubic
             MY_CHECK_CLOSE(avrP, P, rough_tol);
@@ -756,19 +785,19 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
         else if (i_mode == 2) // tetragonal
             {
             MY_CHECK_CLOSE(avrPxx, P, rough_tol);
-            MY_CHECK_CLOSE(Scalar(1.0/2.0)*(avrPyy+avrPzz), avrP, rough_tol);
+            MY_CHECK_CLOSE(Scalar(1.0 / 2.0) * (avrPyy + avrPzz), avrP, rough_tol);
             }
-       else if (mode == 3) // triclinic
+        else if (mode == 3) // triclinic
             {
             MY_CHECK_CLOSE(avrPxx, P, rough_tol);
             MY_CHECK_CLOSE(avrPyy, P, rough_tol);
             MY_CHECK_CLOSE(avrPzz, P, rough_tol);
-            MY_CHECK_SMALL(avrPxy,rough_tol);
-            MY_CHECK_SMALL(avrPxz,rough_tol);
-            MY_CHECK_SMALL(avrPyz,rough_tol);
+            MY_CHECK_SMALL(avrPxy, rough_tol);
+            MY_CHECK_SMALL(avrPxz, rough_tol);
+            MY_CHECK_SMALL(avrPyz, rough_tol);
             }
         MY_CHECK_CLOSE(T0, avrT, rough_tol);
-        offs+=timestep;
+        offs += timestep;
         }
     }
 
@@ -778,7 +807,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard{};
+    py::scoped_interpreter guard {};
     py::module::import("variant");
     py::list S;
     S.append(P_variant);
@@ -791,16 +820,16 @@ std::shared_ptr<TwoStepNPTMTK> base_class_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(args.sysdef,
-        args.group,
-        args.thermo_group,
-        args.thermo_group_t,
-        args.tau,
-        args.tauP,
-        T_variant,
-        S,
-        args.mode,
-        args.flags,
-        false));
+                                                            args.group,
+                                                            args.thermo_group,
+                                                            args.thermo_group_t,
+                                                            args.tau,
+                                                            args.tauP,
+                                                            T_variant,
+                                                            S,
+                                                            args.mode,
+                                                            args.flags,
+                                                            false));
     }
 
 std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
@@ -808,7 +837,7 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard{};
+    py::scoped_interpreter guard {};
     py::module::import("variant");
     py::list S;
     S.append(P_variant);
@@ -822,15 +851,16 @@ std::shared_ptr<TwoStepNPTMTK> base_class_nph_creator(args_t args)
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
     return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTK(args.sysdef,
-        args.group,
-        args.thermo_group,
-        args.thermo_group_t,
-        args.tau,
-        args.tauP,
-        T_variant,
-        S,
-        args.mode,
-        args.flags,true));
+                                                            args.group,
+                                                            args.thermo_group,
+                                                            args.thermo_group_t,
+                                                            args.tau,
+                                                            args.tauP,
+                                                            T_variant,
+                                                            S,
+                                                            args.mode,
+                                                            args.flags,
+                                                            true));
     }
 
 #ifdef ENABLE_HIP
@@ -840,7 +870,7 @@ std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard{};
+    py::scoped_interpreter guard {};
     py::module::import("variant");
     py::list S;
     S.append(P_variant);
@@ -851,8 +881,17 @@ std::shared_ptr<TwoStepNPTMTK> gpu_npt_mtk_creator(args_t args)
     S.append(zero_variant);
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
     // for the tests, we can assume that group is the all group
-    return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef, args.group, args.thermo_group, args.thermo_group_t,
-        args.tau, args.tauP, T_variant, S,args.mode,args.flags,false));
+    return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef,
+                                                               args.group,
+                                                               args.thermo_group,
+                                                               args.thermo_group_t,
+                                                               args.tau,
+                                                               args.tauP,
+                                                               T_variant,
+                                                               S,
+                                                               args.mode,
+                                                               args.flags,
+                                                               false));
     }
 
 std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
@@ -860,7 +899,7 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     std::shared_ptr<Variant> P_variant(new VariantConst(args.P));
     std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
     // necessary to create python objects
-    py::scoped_interpreter guard{};
+    py::scoped_interpreter guard {};
     py::module::import("variant");
     py::list S;
     S.append(P_variant);
@@ -871,56 +910,75 @@ std::shared_ptr<TwoStepNPTMTK> gpu_nph_creator(args_t args)
     S.append(zero_variant);
 
     std::shared_ptr<Variant> T_variant(new VariantConst(args.T));
-    return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef, args.group, args.thermo_group, args.thermo_group_t,
-        args.tau, args.tauP, T_variant, S, args.mode,args.flags,true));
+    return std::shared_ptr<TwoStepNPTMTK>(new TwoStepNPTMTKGPU(args.sysdef,
+                                                               args.group,
+                                                               args.thermo_group,
+                                                               args.thermo_group_t,
+                                                               args.tau,
+                                                               args.tauP,
+                                                               T_variant,
+                                                               S,
+                                                               args.mode,
+                                                               args.flags,
+                                                               true));
     }
 #endif
 
 //! test case for base class integration tests
-UP_TEST( TwoStepNPTMTK_tests )
+UP_TEST(TwoStepNPTMTK_tests)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::CPU));
     npt_mtk_updater_test(npt_mtk_creator, exec_conf);
     }
 
 //! test case for base class integration tests
-UP_TEST( TwoStepNPTMTK_aniso )
+UP_TEST(TwoStepNPTMTK_aniso)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_npt_mtk_creator, _1);
-    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(
+        new ExecutionConfiguration(ExecutionConfiguration::CPU));
     npt_mtk_updater_aniso(npt_mtk_creator, exec_conf);
     }
 
 //! test case for NPH integration
-UP_TEST( TwoStepNPTMTK_cubic_NPH )
+UP_TEST(TwoStepNPTMTK_cubic_NPH)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(base_class_nph_creator, _1);
-    nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    nph_integration_test(npt_mtk_creator,
+                         std::shared_ptr<ExecutionConfiguration>(
+                             new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_HIP
 //! test case for GPU integration tests
-UP_TEST( TwoStepNPTMTKGPU_tests )
+UP_TEST(TwoStepNPTMTKGPU_tests)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);
-    npt_mtk_updater_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    npt_mtk_updater_test(npt_mtk_creator,
+                         std::shared_ptr<ExecutionConfiguration>(
+                             new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! test case for GPU integration tests
-UP_TEST( TwoStepNPTMTKGPU_aniso )
+UP_TEST(TwoStepNPTMTKGPU_aniso)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_npt_mtk_creator, _1);
-    npt_mtk_updater_aniso(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    npt_mtk_updater_aniso(npt_mtk_creator,
+                          std::shared_ptr<ExecutionConfiguration>(
+                              new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-UP_TEST( TwoStepNPTMTKGPU_cubic_NPH)
+UP_TEST(TwoStepNPTMTKGPU_cubic_NPH)
     {
     twostep_npt_mtk_creator npt_mtk_creator = bind(gpu_nph_creator, _1);
-    nph_integration_test(npt_mtk_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    nph_integration_test(npt_mtk_creator,
+                         std::shared_ptr<ExecutionConfiguration>(
+                             new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 
 #ifdef WIN32
-#pragma warning( pop )
+#pragma warning(pop)
 #endif
