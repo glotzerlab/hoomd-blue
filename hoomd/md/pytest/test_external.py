@@ -7,7 +7,7 @@ import hoomd
 
 
 def _evaluate_periodic(snapshot, params):
-    """ Evaluate force and energy in python for Periodic. """
+    """Evaluate force and energy in python for Periodic."""
     box = hoomd.Box(*snapshot.configuration.box)
     positions = snapshot.particles.position
     A = params['A']
@@ -30,7 +30,7 @@ def _evaluate_periodic(snapshot, params):
 
 
 def _evaluate_electric(snapshot, params):
-    """ evaluate force and energy in python for ElectricField. """
+    """Evaluate force and energy in python for ElectricField."""
     positions = snapshot.particles.position
     charges = snapshot.particles.charge
     E_field = params['E']
@@ -69,7 +69,7 @@ def _assert_correct_params(external_obj, param_dict):
 
 def test_get_set(simulation_factory, two_particle_snapshot_factory,
                  external_params):
-    """ test we can get and set parameter while attached and while not attached. """
+    """Test we can get/set parameter while attached and while not attached."""
     # unpack parameters
     cls_obj, list_param_dicts, evaluator = external_params
 
@@ -96,7 +96,7 @@ def test_get_set(simulation_factory, two_particle_snapshot_factory,
 
 def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
                              external_params):
-    """ Run a small simulation and make sure forces/energies are correct. """
+    """Run a small simulation and make sure forces/energies are correct."""
     # unpack parameters
     cls_obj, list_param_dicts, evaluator = external_params
 
