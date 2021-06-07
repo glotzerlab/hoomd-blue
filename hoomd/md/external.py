@@ -5,9 +5,9 @@
 
 R""" External forces.
 
-Apply an external force to all particles in the simulation. This module organizes all external forces.
-As an example, a force derived from a :py:class:`periodic` potential can be used to induce a concentration modulation
-in the system.
+Apply an external force to all particles in the simulation. This module
+organizes all external forces. As an example, a force derived from a `Periodic`
+potential can be used to induce a concentration modulation in the system.
 """
 
 from hoomd import _hoomd
@@ -23,6 +23,13 @@ from hoomd.data.typeparam import TypeParameter
 
 
 class External(force.Force):
+    """
+    Common External potential documentation.
+
+    Users should not invoke `External` directly. Documentation common to all
+    external potentials is located here. External potentials represent forces
+    which are applied to all particle in the simulation by an external agent.
+    """
 
     def _attach(self):
         if isinstance(self._simulation.device, hoomd.device.CPU):
@@ -39,9 +46,10 @@ class Periodic(External):
 
     `Periodic` specifies that an external force should be added to every
     particle in the simulation to induce a periodic modulation in the particle
-    concentration. The force parameters can be set on a per particle type basis.
-    The potential can e.g. be used to induce an ordered phase in a
-    block-copolymer melt.
+    concentration. The modulation is one-dimensional and extends along the
+    lattice vector :math:`\\mathbf{a}_i` of the simulation cell. The force
+    parameters can be set on a per particle type basis. This potential can, for
+    example, be used to induce an ordered phase in a block-copolymer melt.
 
     The external potential :math:`V(\\vec{r})` is implemented using the following
     formula:
@@ -51,19 +59,33 @@ class Periodic(External):
        V(\\vec{r}) = A * \\tanh\\left[\\frac{1}{2 \\pi p w} \\cos\\left(
        p \\vec{b}_i\\cdot\\vec{r}\\right)\\right]
 
-    where :math:`A` is the ordering parameter, :math:`\\vec{b}_i` is the
-    reciprocal lattice vector direction :math:`i=0..2`, :math:`p` the
-    periodicity and :math:`w` the interface width (relative to the distance
-    :math:`2\\pi/|\\mathbf{b_i}|` between planes in the :math:`i`-direction).
-    The modulation is one-dimensional. It extends along the lattice vector
-    :math:`\\mathbf{a}_i` of the simulation cell.
+    The coefficients above must be set per unique particle type.
 
-    Examples::
+    .. py:attribute:: params
+
+        The `Periodic` external potential parameters. The dictionary has the
+        following keys:
+
+        * ``A`` (`float`, **required**) -
+            Ordering parameter :math:`A` (in energy units).
+        * ``i`` (`int`, **required**) -
+            :math:`\\vec{b}_i`, :math:`i=0, 1, 2`, is the simulation box's
+            reciprocal lattice vector in the :math:`i` direction (dimensionless).
+        * ``w`` (`float`, **required**) -
+            The interface width :math:`w` relative to the distance
+            :math:`2\\pi/|\\mathbf{b_i}|` between planes in the
+            :math:`i`-direction. (dimensionless).
+        * ``p`` (`int`, **required**) -
+            The periodicity :math:`p` of the modulation (dimensionless).
+
+        Type: `TypeParameter` [``particle_type``, `dict`]
+
+    Example::
 
         # Apply a periodic composition modulation along the first lattice vector
         periodic = external.Periodic()
-        periodic.force_coeff.set('A', A=1.0, i=0, w=0.02, p=3)
-        periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
+        periodic.params['A'] = dict(A=1.0, i=0, w=0.02, p=3)
+        periodic.params['B'] = dict(A=-1.0, i=0, w=0.02, p=3)
     """
     _cpp_class_name = "PotentialExternalPeriodic"
 
@@ -72,15 +94,6 @@ class Periodic(External):
             'params', 'particle_types',
             TypeParameterDict(i=int, A=float, w=float, p=int, len_keys=1))
         self._add_typeparam(params)
-
-    def process_coeff(self, coeff):
-        A = coeff['A']
-        i = coeff['i']
-        w = coeff['w']
-        p = coeff['p']
-
-        return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w,
-                                   _hoomd.int_as_scalar(p))
 
 
 class ElectricField(External):
