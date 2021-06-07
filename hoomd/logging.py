@@ -383,8 +383,8 @@ def log(func=None,
             quantities even when logging other quantities of that type. The
             default category allows for these to be pass over by
             `hoomd.logging.Logger` objects by default. Argument keyword only.
-        requires_attach (`bool`, optional): Whether this property is
-            accessible before attaching.
+        requires_attach (`bool`, optional): Whether this property requires
+            attachment before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the
