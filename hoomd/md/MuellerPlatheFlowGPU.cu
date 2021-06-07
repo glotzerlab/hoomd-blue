@@ -19,26 +19,26 @@ struct vel_search_un_opt : public thrust::unary_function<const unsigned int, Sca
     {
     vel_search_un_opt(const Scalar4* const d_vel,
                       const unsigned int* const d_tag,
-                      flow_enum::Direction flow_direction)
+                      MuellerPlatheFlow::flow_enum::Direction flow_direction)
         : m_vel(d_vel), m_tag(d_tag), m_flow_direction(flow_direction)
         {
         }
     const Scalar4* const m_vel;
     const unsigned int* const m_tag;
-    const flow_enum::Direction m_flow_direction;
+    const MuellerPlatheFlow::flow_enum::Direction m_flow_direction;
     __host__ __device__ Scalar3 operator()(const unsigned int idx) const
         {
         const unsigned int tag = m_tag[idx];
         Scalar vel;
         switch (m_flow_direction)
             {
-        case flow_enum::X:
+        case MuellerPlatheFlow::flow_enum::X:
             vel = m_vel[idx].x;
             break;
-        case flow_enum::Y:
+        case MuellerPlatheFlow::flow_enum::Y:
             vel = m_vel[idx].y;
             break;
-        case flow_enum::Z:
+        case MuellerPlatheFlow::flow_enum::Z:
             vel = m_vel[idx].z;
             break;
             }
@@ -60,7 +60,7 @@ struct vel_search_binary_opt : public thrust::binary_function<Scalar3, Scalar3, 
                           const unsigned int Nslabs,
                           const unsigned int slab_index,
                           const Scalar3 invalid,
-                          const flow_enum::Direction slab_direction)
+                          const MuellerPlatheFlow::flow_enum::Direction slab_direction)
         : m_rtag(d_rtag), m_pos(d_pos), m_gl_box(gl_box), m_Nslabs(Nslabs),
           m_slab_index(slab_index), m_invalid(invalid), m_slab_direction(slab_direction)
         {
@@ -71,7 +71,7 @@ struct vel_search_binary_opt : public thrust::binary_function<Scalar3, Scalar3, 
     const unsigned int m_Nslabs;
     const unsigned int m_slab_index;
     const Scalar3 m_invalid;
-    const flow_enum::Direction m_slab_direction;
+    const MuellerPlatheFlow::flow_enum::Direction m_slab_direction;
 
     __host__ __device__ Scalar3 operator()(const Scalar3& a, const Scalar3& b) const
         {
@@ -88,15 +88,15 @@ struct vel_search_binary_opt : public thrust::binary_function<Scalar3, Scalar3, 
         unsigned int index_a, index_b;
         switch (m_slab_direction)
             {
-        case flow_enum::X:
+        case MuellerPlatheFlow::flow_enum::X:
             index_a = (m_pos[idx_a].x / m_gl_box.getL().x + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].x / m_gl_box.getL().x + .5) * m_Nslabs;
             break;
-        case flow_enum::Y:
+        case MuellerPlatheFlow::flow_enum::Y:
             index_a = (m_pos[idx_a].y / m_gl_box.getL().y + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].y / m_gl_box.getL().y + .5) * m_Nslabs;
             break;
-        case flow_enum::Z:
+        case MuellerPlatheFlow::flow_enum::Z:
             index_a = (m_pos[idx_a].z / m_gl_box.getL().z + .5) * m_Nslabs;
             index_b = (m_pos[idx_b].z / m_gl_box.getL().z + .5) * m_Nslabs;
             break;
@@ -141,8 +141,8 @@ hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                        const bool has_max_slab,
                                        const bool has_min_slab,
                                        const unsigned int blocksize,
-                                       const flow_enum::Direction flow_direction,
-                                       const flow_enum::Direction slab_direction)
+                                       const MuellerPlatheFlow::flow_enum::Direction flow_direction,
+                                       const MuellerPlatheFlow::flow_enum::Direction slab_direction)
     {
     thrust::device_ptr<const unsigned int> member_ptr(d_group_members);
 
@@ -180,7 +180,7 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
                                                    const unsigned int Ntotal,
                                                    const Scalar3 last_max_vel,
                                                    const Scalar3 last_min_vel,
-                                                   const flow_enum::Direction flow_direction)
+                                                   const MuellerPlatheFlow::flow_enum::Direction flow_direction)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= 1)
@@ -196,13 +196,13 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
         const Scalar new_min_vel = last_max_vel.x / last_min_vel.y;
         switch (flow_direction)
             {
-        case flow_enum::X:
+        case MuellerPlatheFlow::flow_enum::X:
             d_vel[min_idx].x = new_min_vel;
             break;
-        case flow_enum::Y:
+        case MuellerPlatheFlow::flow_enum::Y:
             d_vel[min_idx].y = new_min_vel;
             break;
-        case flow_enum::Z:
+        case MuellerPlatheFlow::flow_enum::Z:
             d_vel[min_idx].z = new_min_vel;
             break;
             }
@@ -213,13 +213,13 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
         const Scalar new_max_vel = last_min_vel.x / last_max_vel.y;
         switch (flow_direction)
             {
-        case flow_enum::X:
+        case MuellerPlatheFlow::flow_enum::X:
             d_vel[max_idx].x = new_max_vel;
             break;
-        case flow_enum::Y:
+        case MuellerPlatheFlow::flow_enum::Y:
             d_vel[max_idx].y = new_max_vel;
             break;
-        case flow_enum::Z:
+        case MuellerPlatheFlow::flow_enum::Z:
             d_vel[max_idx].z = new_max_vel;
             break;
             }
@@ -231,7 +231,7 @@ hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
                                        const unsigned int Ntotal,
                                        const Scalar3 last_max_vel,
                                        const Scalar3 last_min_vel,
-                                       const flow_enum::Direction flow_direction)
+                                       const MuellerPlatheFlow::flow_enum::Direction flow_direction)
     {
     dim3 grid(1, 1, 1);
     dim3 threads(1, 1, 1);

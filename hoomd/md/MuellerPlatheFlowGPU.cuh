@@ -27,13 +27,13 @@ hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                        const bool has_max_slab,
                                        const bool has_min_slab,
                                        const unsigned int blocksize,
-                                       flow_enum::Direction flow_direction,
-                                       flow_enum::Direction slab_direction);
+                                       MuellerPlatheFlow::flow_enum::Direction flow_direction,
+                                       MuellerPlatheFlow::flow_enum::Direction slab_direction);
 
 hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
                                        Scalar4* const d_vel,
                                        const unsigned int Ntotal,
                                        const Scalar3 last_max_vel,
                                        const Scalar3 last_min_vel,
-                                       const flow_enum::Direction flow_direction);
+                                       const MuellerPlatheFlow::flow_enum::Direction flow_direction);
 #endif //__MUELLER_PLATHE_FLOW_GPU_CUH__
