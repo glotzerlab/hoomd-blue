@@ -806,9 +806,9 @@ class DPDLJ(Pair):
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
 
-    DPDLJ does not support smoothing with ``mode="xplor"``. See `Pair` for details on
-    how forces are calculated and the available energy shifting
-    and smoothing modes.
+    DPDLJ does not support smoothing with ``mode="xplor"``.
+    See `Pair` for details on how forces are calculated and the
+    available energy shifting and smoothing modes.
 
     .. py:attribute:: params
 
