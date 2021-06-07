@@ -31,16 +31,10 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group,
                                  Scalar rotation_diff,
-                                 Manifold manifold)
-        : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold)
-        {
-        }
-
+                                 Manifold manifold);
+    //
     //! Destructor
-    ~ActiveForceConstraintCompute()
-        {
-        m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << std::endl;
-        }
+    ~ActiveForceConstraintCompute();
 
     protected:
     //! Actually compute the forces
@@ -52,8 +46,37 @@ class PYBIND11_EXPORT ActiveForceConstraintCompute : public ActiveForceCompute
     //! Set constraints if particles confined to a surface
     virtual void setConstraint();
 
+    //! Helper function to be called when box changes
+    void setBoxChange()
+        {
+        m_box_changed = true;
+        }
+
     Manifold m_manifold; //!< Constraining Manifold
+    bool m_box_changed;
     };
+
+/*! \param sysdef The system definition
+    \param group Particle group
+    \param rotation_diff Rotational diffusion coefficient
+    \param manifold Manifold constraint
+ */
+template<class Manifold>
+ActiveForceConstraintCompute<Manifold>::ActiveForceConstraintCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<ParticleGroup> group,
+                                 Scalar rotation_diff,
+                                 Manifold manifold)
+        : ActiveForceCompute(sysdef, group, rotation_diff), m_manifold(manifold), m_box_changed(true)
+        {
+         m_pdata->getBoxChangeSignal().template connect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
+        }
+
+template<class Manifold>
+ActiveForceConstraintCompute<Manifold>::~ActiveForceConstraintCompute()
+        {
+    	m_pdata->getBoxChangeSignal().template disconnect<ActiveForceConstraintCompute<Manifold>, &ActiveForceConstraintCompute<Manifold>::setBoxChange>(this);
+        m_exec_conf->msg->notice(5) << "Destroying ActiveForceConstraintCompute" << std::endl;
+        }
 
 /*! This function applies rotational diffusion to the orientations of all active particles. The
  orientation of any torque vector
@@ -117,11 +140,6 @@ template<class Manifold> void ActiveForceConstraintCompute<Manifold>::setConstra
     assert(h_pos.data != NULL);
     assert(h_orientation.data != NULL);
 
-    if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
-        {
-        throw std::runtime_error("Parts of the manifold are outside the box");
-        }
-
     for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
@@ -181,6 +199,16 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
     if (last_computed != timestep)
         {
         m_rotationConst = slow::sqrt(2.0 * m_rotationDiff * m_deltaT);
+
+    	if(m_box_changed)
+    		{
+    		if (!m_manifold.fitsInsideBox(m_pdata->getGlobalBox()))
+    		    {
+    		    throw std::runtime_error("Parts of the manifold are outside the box");
+    		    }
+ 		m_box_changed = false;
+    		}
+
 
         last_computed = timestep;
 
