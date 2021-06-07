@@ -245,15 +245,19 @@ def _invalid_params():
 
     slj_valid_dict = {"sigma": 0.5, "epsilon": 0.0005}
     slj_invalid_dicts = _make_invalid_param_dict(slj_valid_dict)
-    invalid_params_list.extend(_make_invalid_params(slj_invalid_dicts,
-                                                    md.pair.SLJ,
-                                                    {}))
-    
-    smie_valid_dict = {"epsilon": 0.05, "sigma": 0.5, "n": 12, "m": 6, "Delta": 0.25}
+    invalid_params_list.extend(
+        _make_invalid_params(slj_invalid_dicts, md.pair.SLJ, {}))
+
+    smie_valid_dict = {
+        "epsilon": 0.05,
+        "sigma": 0.5,
+        "n": 12,
+        "m": 6,
+        "Delta": 0.25
+    }
     smie_invalid_dicts = _make_invalid_param_dict(smie_valid_dict)
-    invalid_params_list.extend(_make_invalid_params(smie_invalid_dicts,
-                                                    md.pair.SMie,
-                                                    {}))
+    invalid_params_list.extend(
+        _make_invalid_params(smie_invalid_dicts, md.pair.SMie, {}))
 
     dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
     dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)

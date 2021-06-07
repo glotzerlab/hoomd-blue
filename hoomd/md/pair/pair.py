@@ -1164,6 +1164,7 @@ class Mie(Pair):
 
         self._add_typeparam(params)
 
+
 class SMie(Pair):
     """Shifted Mie pair potential.
 
@@ -1208,7 +1209,7 @@ class SMie(Pair):
           * ``n`` (`float`, **required**) - :math:`n` (unitless)
 
           * ``m`` (`float`, **required**) - :math:`m` (unitless)
-          
+
           * ``Delta`` (`float`, **required**) - :math:`\\Delta` (in distance units)
 
     Example::
@@ -1225,11 +1226,17 @@ class SMie(Pair):
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(epsilon=float, sigma=float,
-                                                 n=float, m=float, Delta=float, len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(epsilon=float,
+                              sigma=float,
+                              n=float,
+                              m=float,
+                              Delta=float,
+                              len_keys=2))
 
         self._add_typeparam(params)
+
 
 class ReactionField(Pair):
     r"""Onsager reaction field pair potential.

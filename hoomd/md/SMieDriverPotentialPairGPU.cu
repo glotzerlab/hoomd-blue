@@ -14,4 +14,3 @@ hipError_t gpu_compute_smie_forces(const pair_args_t& pair_args,
     return gpu_compute_pair_forces<EvaluatorPairSMie>(pair_args,
                                                     d_params);
     }
-
