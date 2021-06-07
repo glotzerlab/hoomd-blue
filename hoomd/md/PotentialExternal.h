@@ -180,7 +180,7 @@ template<class evaluator> void PotentialExternal<evaluator>::computeForces(uint6
         m_prof->pop();
     }
 
-template <class evaluator>
+template<class evaluator>
 void PotentialExternal<evaluator>::validateType(unsigned int type, std::string action)
     {
     if (type >= m_pdata->getNTypes())
@@ -201,9 +201,7 @@ void PotentialExternal<evaluator>::setParams(unsigned int type, const param_type
     h_params.data[type] = params;
     }
 
-
-template <class evaluator>
-pybind11::dict PotentialExternal<evaluator>::getParams(std::string type)
+template<class evaluator> pybind11::dict PotentialExternal<evaluator>::getParams(std::string type)
     {
     auto typ = m_pdata->getTypeByName(type);
     validateType(typ, std::string("getting parameters in PotentialExternal"));
@@ -212,7 +210,6 @@ pybind11::dict PotentialExternal<evaluator>::getParams(std::string type)
     return h_params.data[typ].asDict();
     }
 
-
 template<class evaluator>
 void PotentialExternal<evaluator>::setParamsPython(std::string typ, pybind11::dict params)
     {
@@ -220,8 +217,7 @@ void PotentialExternal<evaluator>::setParamsPython(std::string typ, pybind11::di
     setParams(type_idx, param_type(params));
     }
 
-template<class evaluator>
-void PotentialExternal<evaluator>::setField(field_type field)
+template<class evaluator> void PotentialExternal<evaluator>::setField(field_type field)
     {
     ArrayHandle<field_type> h_field(m_field, access_location::host, access_mode::overwrite);
     *(h_field.data) = field;
@@ -233,8 +229,8 @@ void PotentialExternal<evaluator>::setField(field_type field)
 */
 template<class T> void export_PotentialExternal(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_<T, ForceCompute, std::shared_ptr<T> >(m, name.c_str())
-        .def(pybind11::init< std::shared_ptr<SystemDefinition>>())
+    pybind11::class_<T, ForceCompute, std::shared_ptr<T>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
         .def("setField", &T::setField);

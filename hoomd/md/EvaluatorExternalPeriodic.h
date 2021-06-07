@@ -46,63 +46,62 @@
 class EvaluatorExternalPeriodic
     {
     public:
+    //! type of parameters this external potential accepts
+    struct param_type
+        {
+        int i;
+        Scalar A;
+        Scalar w;
+        int p;
 
-        //! type of parameters this external potential accepts
-        struct param_type
+#ifndef __HIPCC__
+        param_type() : i(0), A(1.0), w(1.0), p(1) { }
+
+        param_type(pybind11::dict params)
             {
-            int i;
-            Scalar A;
-            Scalar w;
-            int p;
-
-            #ifndef __HIPCC__
-            param_type() : i(0), A(1.0), w(1.0), p(1) {}
-
-            param_type(pybind11::dict params)
-                {
-                i = params["i"].cast<int>();
-                A = params["A"].cast<Scalar>();
-                w = params["w"].cast<Scalar>();
-                p = params["p"].cast<int>();
-                }
-
-            param_type(int i_, Scalar A_, Scalar w_, int p_) :
-                i(i_), A(A_), w(w_), p(p_) {}
-
-            pybind11::dict asDict()
-                {
-                pybind11::dict d;
-                d["i"] = i;
-                d["A"] = A;
-                d["w"] = w;
-                d["p"] = p;
-                return d;
-                }
-            #endif
+            i = params["i"].cast<int>();
+            A = params["A"].cast<Scalar>();
+            w = params["w"].cast<Scalar>();
+            p = params["p"].cast<int>();
             }
-            #ifdef SINGLE_PRECISON
-            __attribute__((aligned(16)));
-            #else
-            __attribute__((aligned(32)));  // TODO check if this is right
-            #endif
 
+        param_type(int i_, Scalar A_, Scalar w_, int p_) : i(i_), A(A_), w(w_), p(p_) { }
 
-        typedef Scalar field_type; // dummy type
-
-        //! Constructs the constraint evaluator
-        /*! \param X position of particle
-            \param box box dimensions
-            \param params per-type parameters of external potential
-        */
-        DEVICE EvaluatorExternalPeriodic(Scalar3 X, const BoxDim& box, const param_type& params, const field_type& field)
-            : m_pos(X),
-              m_box(box)
+        pybind11::dict asDict()
             {
-            m_index = params.i;
-            m_orderParameter = params.A;
-            m_interfaceWidth = params.w;
-            m_periodicity = params.p;
+            pybind11::dict d;
+            d["i"] = i;
+            d["A"] = A;
+            d["w"] = w;
+            d["p"] = p;
+            return d;
             }
+#endif
+        }
+#ifdef SINGLE_PRECISON
+    __attribute__((aligned(16)));
+#else
+    __attribute__((aligned(32))); // TODO check if this is right
+#endif
+
+    typedef Scalar field_type; // dummy type
+
+    //! Constructs the constraint evaluator
+    /*! \param X position of particle
+        \param box box dimensions
+        \param params per-type parameters of external potential
+    */
+    DEVICE EvaluatorExternalPeriodic(Scalar3 X,
+                                     const BoxDim& box,
+                                     const param_type& params,
+                                     const field_type& field)
+        : m_pos(X), m_box(box)
+        {
+        m_index = params.i;
+        m_orderParameter = params.A;
+        m_interfaceWidth = params.w;
+        m_periodicity = params.p;
+        }
 
     //! External Periodic doesn't need diameters
     DEVICE static bool needsDiameter()
