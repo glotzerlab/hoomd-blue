@@ -484,9 +484,9 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("max_slab", &MuellerPlatheFlow::get_max_slab)
         .def_property_readonly("has_min_slab", &MuellerPlatheFlow::has_min_slab)
         .def_property_readonly("has_max_slab", &MuellerPlatheFlow::has_max_slab)
-        .def_property_readonly("flow_target", &MuellerPlatheFlow::get_flow_target)
-        .def_property_readonly("slab_direction", &MuellerPlatheFlow::get_slab_direction)
-        .def_property_readonly("flow_direction", &MuellerPlatheFlow::get_flow_direction)
+        .def_property_readonly("flow_target", &MuellerPlatheFlow::getFlowTarget)
+        .def_property_readonly("slab_direction", &MuellerPlatheFlow::getSlabDirection)
+        .def_property_readonly("flow_direction", &MuellerPlatheFlow::getFlowDirection)
         .def_property("flow_epsilon",
                       &MuellerPlatheFlow::getFlowEpsilon,
                       &MuellerPlatheFlow::setFlowEpsilon)
