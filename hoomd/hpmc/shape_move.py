@@ -126,7 +126,7 @@ class Elastic(ShapeMove):
                                  ntypes,
                                  self.stepsize,
                                  self.param_ratio)
-        self._log_boltzmann_function = boltzmann_cls(self.stiffness, self.reference, self._cpp_obj)
+        self._log_boltzmann_function = boltzmann_cls(self._param_dict["stiffness"], self._param_dict["reference"], self._cpp_obj)
         super()._attach()
 
     @property
