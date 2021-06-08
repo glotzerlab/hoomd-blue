@@ -131,7 +131,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
             }
         else
             {
-            update_min_max_velocity();
+            updateMinMaxVelocity();
 
             m_exchanged_momentum += sign * (m_last_max_vel.x - m_last_min_vel.x);
             }
@@ -306,7 +306,7 @@ void MuellerPlatheFlow::searchMinMaxVelocity(void)
         m_prof->pop();
     }
 
-void MuellerPlatheFlow::update_min_max_velocity(void)
+void MuellerPlatheFlow::updateMinMaxVelocity(void)
     {
     if (m_prof)
         m_prof->push("MuellerPlatheFlow::update");

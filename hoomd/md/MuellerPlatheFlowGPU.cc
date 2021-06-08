@@ -108,7 +108,7 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
         m_prof->pop();
     }
 
-void MuellerPlatheFlowGPU::update_min_max_velocity(void)
+void MuellerPlatheFlowGPU::updateMinMaxVelocity(void)
     {
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::update");

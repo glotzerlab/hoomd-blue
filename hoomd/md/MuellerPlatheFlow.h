@@ -160,7 +160,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     std::shared_ptr<ParticleGroup> m_group;
 
     virtual void searchMinMaxVelocity(void);
-    virtual void update_min_max_velocity(void);
+    virtual void updateMinMaxVelocity(void);
 
     //! Temporary variables to store last found min vel info.
     //!
