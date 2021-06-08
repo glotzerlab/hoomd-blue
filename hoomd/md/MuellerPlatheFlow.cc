@@ -418,7 +418,7 @@ void MuellerPlatheFlow::initMPISwap(struct MPI_SWAP* ms, const int color)
     ms->initialized = true;
     }
 
-void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op)
+void MuellerPlatheFlow::bcastVelToAll(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op)
     {
     if (ms->rank != MPI_UNDEFINED)
         {
@@ -457,8 +457,8 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        bcast_vel_to_all(&m_min_swap, &m_last_min_vel, MPI_MINLOC);
-        bcast_vel_to_all(&m_max_swap, &m_last_max_vel, MPI_MAXLOC);
+        bcastVelToAll(&m_min_swap, &m_last_min_vel, MPI_MINLOC);
+        bcastVelToAll(&m_max_swap, &m_last_max_vel, MPI_MAXLOC);
         }
 #endif // ENABLE_MPI
     }
