@@ -139,7 +139,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         {
         return m_flow_epsilon;
         }
-    //! Get the ignored variance between flow target and summed flow.
+    //! Set the ignored variance between flow target and summed flow.
     void setFlowEpsilon(const Scalar flow_epsilon)
         {
         m_flow_epsilon = flow_epsilon;
