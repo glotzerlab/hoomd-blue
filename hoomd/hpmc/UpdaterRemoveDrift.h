@@ -53,9 +53,6 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     pybind11::object getReferencePositionsNP(pybind11::object self)
         {
         auto self_cpp = self.cast<RemoveDriftUpdater<Shape>*>();
-        // // mark as dirty when accessing internal data
-        // self_cpp->is_accel_set = false;
-
         std::vector<size_t> dims(2);
         dims[0] = self_cpp->m_ref_positions.size();
         dims[1] = 3;
