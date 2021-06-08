@@ -1,22 +1,13 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-/*! \file MuellerPlatheFlow.h
+#pragma once
 
-    \brief Declares a class to exchange velocities of
-           different spatial region, to create a flow.
-*/
-
-//! Indicate a direction in a simulation box.
 #include "hoomd/HOOMDMath.h"
-
-#ifndef __MUELLER_PLATHE_FLOW_H__
-#define __MUELLER_PLATHE_FLOW_H__
-
-#ifndef __HIPCC__
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
+#include "MuellerPlatheFlowEnum.h"
 #include <pybind11/pybind11.h>
 
 #include <cfloat>
@@ -24,18 +15,6 @@
 
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
-
-//! Dummy struct to keep the enums out of global scope
-struct flow_enum
-    {
-    //! Enum for dimensions
-    enum Direction
-        {
-        X = 0, //!< X-direction
-        Y,     //!< Y-direction
-        Z      //!< Z-direction
-        };
-    };
 
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
@@ -245,6 +224,3 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 
 //! Exports the MuellerPlatheFlow class to python
 void export_MuellerPlatheFlow(pybind11::module& m);
-
-#endif // __HIPCC__
-#endif //__MUELLER_PLATHE_FLOW_H__
