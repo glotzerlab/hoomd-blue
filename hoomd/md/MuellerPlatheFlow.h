@@ -116,8 +116,8 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
             }
         }
 
-    void set_min_slab(const unsigned int slab_id);
-    void set_max_slab(const unsigned int slab_id);
+    void setMinSlab(const unsigned int slab_id);
+    void setMaxSlab(const unsigned int slab_id);
 
     //! Determine, whether this part of the domain decomposition
     //! has particles in the min slab.
@@ -152,7 +152,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 
     protected:
     //! Swap min and max slab for a reverse flow.
-    //! More efficient than separate calls of set_min_slab() and set_max_slab(),
+    //! More efficient than separate calls of setMinSlab() and setMaxSlab(),
     //! especially in MPI runs.
     void swap_min_max_slab(void);
 
