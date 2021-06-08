@@ -63,7 +63,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         {
         return m_max_slab;
         }
-    std::shared_ptr<Variant> get_flow_target(void) const
+    std::shared_ptr<Variant> getFlowTarget(void) const
         {
         return m_flow_target;
         }
