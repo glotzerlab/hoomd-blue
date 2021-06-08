@@ -64,6 +64,19 @@ _constant_args = [dict(shape_params={'A': dict(vertices=_ttf1_verts,
                                                ignore_statistics=1,
                                                sweep_radius=0.5)})]
 
+_elastic_args = [dict(stiffness=hoomd.variant.Constant(1.0),
+                      reference=dict(vertices=_ttf1_verts,
+                                     ignore_statistics=0,
+                                     sweep_radius=0.0),
+                      stepsize=0.001,
+                      param_ratio=0.5),
+                 dict(stiffness=hoomd.variant.Ramp(0.5, 5.0, 1, 100),
+                      reference=dict(vertices=_ttf2_verts,
+                                     ignore_statistics=0,
+                                     sweep_radius=0.0),
+                      stepsize=0.005,
+                      param_ratio=0.75)]
+
 _python_args = [dict(callback=TruncatedTetrahedron(),
                      params={'A': [1.0]},
                      stepsize={'A': 0.05},
@@ -78,6 +91,7 @@ _vertex_args = [dict(stepsize={'A': 0.01}, param_ratio=0.2, volume=1.0),
 
 def get_move_and_args():
     move_and_args = [(hoomd.hpmc.shape_move.Constant, _constant_args),
+                     (hoomd.hpmc.shape_move.Elastic, _elastic_args),
                      (hoomd.hpmc.shape_move.Python, _python_args),
                      (hoomd.hpmc.shape_move.Vertex, _vertex_args)]
     return move_and_args
@@ -88,7 +102,7 @@ def test_before_attaching(move_and_args):
     move, move_args = move_and_args
     shape_move = move(**move_args[0])
     for key, val in move_args[1].items():
-        if key != 'callback':
+        if key not in ['callback', 'reference', 'stiffness']:
             assert _equivalent_data_structures(getattr(shape_move, key), move_args[0][key])
             setattr(shape_move, key, val)
             assert _equivalent_data_structures(getattr(shape_move, key), val)
@@ -107,7 +121,7 @@ def test_after_attaching(device, simulation_factory, lattice_snapshot_factory, m
     sim.operations.add(shape_updater)
     sim.run(0)
     for key, val in move_args[1].items():
-        if key != 'callback':
+        if key not in ['callback', 'reference', 'stiffness']:
             setattr(shape_move, key, val)
             assert _equivalent_data_structures(getattr(shape_move, key), val)
 
@@ -149,18 +163,21 @@ def test_python(device, simulation_factory, lattice_snapshot_factory):
                   )
 
 
-# def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
-#     mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-#     mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(0.0).vertices / (ttf.get_shape(0.0).volume**(1/3))).vertices}
-#     sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
-#     sim.seed = 0
-#     sim.operations.add(mc)
-#     elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=hoomd.variant.Constant(1.0),
-#                                                  reference={'A': dict(vertices=ConvexPolyhedron(ttf.get_shape(1.0).vertices / (ttf.get_shape(1.0).volume**(1/3))).vertices,
-#                                                                       ignore_statistics=0,
-#                                                                       sweep_radius=0.0)},
-#                                                  stepsize={'A': 0.001},
-#                                                  param_ratio=0.5)
-#     shape_updater = hoomd.hpmc.update.Shape(shape_move=elastic_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
-#     sim.operations.add(shape_updater)
-#     sim.run(0)
+def test_elastic_moves(device, simulation_factory, lattice_snapshot_factory):
+    mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+    mc.shape['A'] = {'vertices': ConvexPolyhedron(ttf.get_shape(0.0).vertices / (ttf.get_shape(0.0).volume**(1/3))).vertices}
+    sim = simulation_factory(lattice_snapshot_factory(dimensions=3, a=2.0, n=4))
+    sim.seed = 0
+    sim.operations.add(mc)
+    c = hoomd.variant.Constant(1.0)
+    elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=c,
+                                                 reference=dict(vertices=_ttf1_verts,
+                                                                ignore_statistics=0,
+                                                                sweep_radius=0.0),
+                                                 stepsize=0.001,
+                                                 param_ratio=0.5)
+    assert elastic_move.stiffness is c
+    shape_updater = hoomd.hpmc.update.Shape(shape_move=elastic_move, move_ratio=1.0, trigger=hoomd.trigger.Periodic(1), nselect=1)
+    sim.operations.add(shape_updater)
+    sim.run(0)
+    assert elastic_move.stiffness is c
