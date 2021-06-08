@@ -625,7 +625,7 @@ class ElasticShapeMove : public ShapeMoveBase<Shape>
 
         Scalar getParamRatio()
             {
-            return m_select_ratio;
+            return (Scalar)m_select_ratio / 65535.0;
             }
 
         void setParamRatio(Scalar param_ratio)
@@ -805,7 +805,7 @@ class ElasticShapeMove<ShapeEllipsoid> : public ShapeMoveBase<ShapeEllipsoid>
 
         Scalar getParamRatio()
             {
-            return m_select_ratio;
+            return (Scalar)m_select_ratio / 65535.0;
             }
 
         void setParamRatio(Scalar param_ratio)
@@ -916,10 +916,10 @@ class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
     };
 
 template< class Shape >
-class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
+class ShapeSpring : public ShapeLogBoltzmannFunction<Shape>
     {
     public:
-    ShapeSpringBase(std::shared_ptr<Variant> k, pybind11::dict shape_params) : m_k(k)
+    ShapeSpring(std::shared_ptr<Variant> k, pybind11::dict shape_params, std::shared_ptr<ElasticShapeMove<Shape>> shape_move) : m_k(k), m_shape_move(shape_move)
             {
             typename Shape::param_type shape(shape_params);
             m_reference_shape = shape;
@@ -946,7 +946,7 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
             m_volume = mp.getVolume();
             }
 
-        pybind11::dict getReference() const
+        pybind11::dict getReference()
             {
             std::vector<pybind11::dict> references;
             return m_reference_shape.asDict();
@@ -972,25 +972,8 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
                 }
             return false;
             }
-    protected:
-        Scalar m_volume;                                               // volume of shape
-        typename Shape::param_type m_reference_shape; // shape to reference shape move against
-        std::shared_ptr<Variant> m_k;                                  // shape move stiffness
-        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities; // provided log quantites
-    };
 
-template<class Shape>
-class ShapeSpring : public ShapeSpringBase< Shape >
-    {
-    public:
-        ShapeSpring(std::shared_ptr<Variant> k,
-                    pybind11::dict reference,
-                    std::shared_ptr<ElasticShapeMove<Shape> > P)
-            : ShapeSpringBase <Shape> (k, reference) , m_shape_move(P)
-            {
-            }
-
-        Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+        virtual Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
             {
             Scalar stiff = this->m_k->operator()(timestep);
             Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
@@ -1002,38 +985,82 @@ class ShapeSpring : public ShapeSpringBase< Shape >
             return N*stiff*(e_ddot_e_last-e_ddot_e)*this->m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold);
             }
 
-        Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
+        virtual Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
             {
             Scalar stiff = this->m_k->operator()(timestep);
             Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
             Scalar e_ddot_e = (eps*eps.transpose()).trace();
             return N*stiff*e_ddot_e*this->m_volume;
             }
-    private:
+
+    protected:
+        Scalar m_volume;                                               // volume of shape
+        typename Shape::param_type m_reference_shape; // shape to reference shape move against
+        std::shared_ptr<Variant> m_k;                                  // shape move stiffness
+        using ShapeLogBoltzmannFunction<Shape>::m_provided_quantities; // provided log quantites
         std::shared_ptr<ElasticShapeMove<Shape> > m_shape_move; // shape move to apply the spring on
     };
 
+
 template<>
-class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
+class ShapeSpring<ShapeEllipsoid> : public ShapeLogBoltzmannFunction<ShapeEllipsoid>
     {
-
-    typedef typename ShapeEllipsoid::param_type param_type;
-
     public:
-        ShapeSpring(std::shared_ptr<Variant> k,
-                    pybind11::dict reference,
-                    std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> shape_move)
-                    : ShapeSpringBase<ShapeEllipsoid>(k, reference), m_shape_move(shape_move)
+    ShapeSpring(std::shared_ptr<Variant> k, pybind11::dict shape_params, std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> shape_move) : m_k(k), m_shape_move(shape_move)
             {
+            typename ShapeEllipsoid::param_type shape(shape_params);
+            m_reference_shape = shape;
+            detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
+            m_volume = mp.getVolume();
+            m_provided_quantities.push_back("shape_move_stiffness");
             }
 
-        Scalar operator()(const unsigned int& timestep,
-                          const unsigned int& N,
-                          const unsigned int type_id,
-                          const param_type& shape_new,
-                          const Scalar& inew,
-                          const param_type& shape_old,
-                          const Scalar& iold)
+        void setStiffness(std::shared_ptr<Variant> stiff)
+            {
+            m_k = stiff;
+            }
+
+        std::shared_ptr<Variant> getStiffness() const
+            {
+            return m_k;
+            }
+
+        void setReference(pybind11::dict reference)
+            {
+            typename ShapeEllipsoid::param_type shape(reference);
+            m_reference_shape = shape;
+            detail::MassProperties<ShapeEllipsoid> mp(m_reference_shape);
+            m_volume = mp.getVolume();
+            }
+
+        pybind11::dict getReference()
+            {
+            std::vector<pybind11::dict> references;
+            return m_reference_shape.asDict();
+            }
+
+        //! Calculates the requested log value and returns it
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+            {
+            if(quantity == "shape_move_stiffness")
+                {
+                return (*m_k)(timestep);
+                }
+            else {return 0.0;}
+            }
+
+        //! Checks if the requested log value is provided
+        virtual bool isProvidedQuantity(const std::string& quantity)
+            {
+            if(std::find(m_provided_quantities.begin(), m_provided_quantities.end(), quantity)
+               != m_provided_quantities.end())
+                {
+                return true;
+                }
+            return false;
+            }
+
+        virtual Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename ShapeEllipsoid::param_type& shape_new, const Scalar& inew, const typename ShapeEllipsoid::param_type& shape_old, const Scalar& iold)
             {
             Scalar stiff = this->m_k->operator()(timestep);
             Scalar x_new = shape_new.x/shape_new.y;
@@ -1041,19 +1068,19 @@ class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
             return stiff*(log(x_old)*log(x_old) - log(x_new)*log(x_new));
             }
 
-        Scalar computeEnergy(const unsigned int &timestep,
-                             const unsigned int& N,
-                             const unsigned int type_id,
-                             const param_type& shape,
-                             const Scalar& inertia)
+        virtual Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename ShapeEllipsoid::param_type& shape, const Scalar& inertia)
             {
             Scalar stiff = (*m_k)(timestep);
             Scalar logx = log(shape.x/shape.y);
             return N*stiff*logx*logx;
             }
 
-    private:
-        std::shared_ptr<ElasticShapeMove<ShapeEllipsoid>> m_shape_move; // shape move to apply the spring on
+    protected:
+        Scalar m_volume;                                               // volume of shape
+        typename ShapeEllipsoid::param_type m_reference_shape; // shape to reference shape move against
+        std::shared_ptr<Variant> m_k;                                  // shape move stiffness
+        using ShapeLogBoltzmannFunction<ShapeEllipsoid>::m_provided_quantities; // provided log quantites
+        std::shared_ptr<ElasticShapeMove<ShapeEllipsoid> > m_shape_move; // shape move to apply the spring on
     };
 
 template<class Shape>
