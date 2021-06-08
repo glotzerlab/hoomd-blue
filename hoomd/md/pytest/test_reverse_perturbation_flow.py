@@ -2,7 +2,7 @@ import hoomd
 import pytest
 from itertools import permutations
 
-_directions = permutations(['X', 'Y', 'Z'], 2)
+_directions = list(permutations(['X', 'Y', 'Z'], 2))
 
 
 @pytest.mark.parametrize("slab_direction, flow_direction", _directions)
@@ -21,8 +21,6 @@ def test_before_attaching(slab_direction, flow_direction):
     assert mpf.max_slab == n_slabs / 2
     assert mpf.min_slab == 0
     assert mpf.trigger == hoomd.trigger.Periodic(1)
-    assert mpf.has_max_slab is None
-    assert mpf.has_min_slab is None
     assert mpf.summed_exchanged_momentum is None
     assert mpf.flow_epsilon == 1e-2
 
@@ -49,8 +47,6 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     assert mpf.max_slab == n_slabs / 2
     assert mpf.min_slab == 0
     assert mpf.trigger == hoomd.trigger.Periodic(1)
-    assert isinstance(mpf.has_max_slab, bool)
-    assert isinstance(mpf.has_min_slab, bool)
     assert mpf.summed_exchanged_momentum == 0
 
     with pytest.raises(AttributeError):
@@ -74,12 +70,6 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     with pytest.raises(AttributeError):
         # max_slab cannot be set after scheduling
         mpf.max_slab = 10
-    with pytest.raises(AttributeError):
-        # has_max_slab cannot be set
-        mpf.has_max_slab = False
-    with pytest.raises(AttributeError):
-        # has_min_slab cannot be set
-        mpf.has_max_slab = False
     with pytest.raises(AttributeError):
         # summed_exchanged_momentum cannot be set
         mpf.summed_exchanged_momentum = 1.5
