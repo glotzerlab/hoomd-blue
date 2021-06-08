@@ -153,9 +153,8 @@ class ReversePerturbationFlow(Updater):
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
             apply this updater.
 
-        flow_target (`hoomd.variant.Variant`): Integrated target flow. The unit
-            is in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
-            The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
+        flow_target (`hoomd.variant.Variant`): Integrated target flow.
+            :math:`[mass \cdot length \cdot time^{-1}]`
 
         slab_direction (str): Direction perpendicular to the slabs. Can be "X",
             "Y", or "Z"
