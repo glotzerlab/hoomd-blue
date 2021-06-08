@@ -154,6 +154,7 @@ def test_attaching(simulation_factory, two_particle_snapshot_factory,
             assert value == valid_body_definition[key]
 
 
+@pytest.mark.serial
 def test_error_on_invalid_body(simulation_factory,
                                two_particle_snapshot_factory,
                                valid_body_definition):
@@ -222,6 +223,7 @@ def test_running_without_body_definition(simulation_factory,
     sim.run(1)
 
 
+@pytest.mark.serial
 def test_setting_body_after_attaching(simulation_factory,
                                       two_particle_snapshot_factory,
                                       valid_body_definition):
@@ -241,7 +243,6 @@ def test_setting_body_after_attaching(simulation_factory,
     sim = simulation_factory(initial_snapshot)
     sim.seed = 5
 
-    rigid.create_bodies(sim.state)
     sim.operations += integrator
     sim.run(1)
     rigid.body["A"] = valid_body_definition
