@@ -10,6 +10,7 @@ from . import integrate
 from hoomd.analyze import _analyzer
 import hoomd
 
+
 class sdf(_analyzer):
     R""" Compute the scale distribution function.
 
@@ -73,40 +74,46 @@ class sdf(_analyzer):
         analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.02, dx=1e-4, navg=100, period=100)
         analyze.sdf(mc=mc, filename='sdf.dat', xmax=0.002, dx=1e-5, navg=100, period=100)
     """
-    def __init__(self, mc, filename, xmax, dx, navg, period, overwrite=False, phase=0):
+
+    def __init__(self,
+                 mc,
+                 filename,
+                 xmax,
+                 dx,
+                 navg,
+                 period,
+                 overwrite=False,
+                 phase=0):
 
         # initialize base class
-        _analyzer.__init__(self);
+        _analyzer.__init__(self)
 
         # create the c++ mirror class
-        cls = None;
+        cls = None
         if isinstance(mc, integrate.sphere):
-            cls = _hpmc.AnalyzerSDFSphere;
+            cls = _hpmc.AnalyzerSDFSphere
         elif isinstance(mc, integrate.convex_polygon):
-            cls = _hpmc.AnalyzerSDFConvexPolygon;
+            cls = _hpmc.AnalyzerSDFConvexPolygon
         elif isinstance(mc, integrate.simple_polygon):
-            cls = _hpmc.AnalyzerSDFSimplePolygon;
+            cls = _hpmc.AnalyzerSDFSimplePolygon
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = _hpmc.AnalyzerSDFConvexPolyhedron;
+            cls = _hpmc.AnalyzerSDFConvexPolyhedron
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = _hpmc.AnalyzerSDFSpheropolyhedron;
+            cls = _hpmc.AnalyzerSDFSpheropolyhedron
         elif isinstance(mc, integrate.ellipsoid):
-            cls = _hpmc.AnalyzerSDFEllipsoid;
+            cls = _hpmc.AnalyzerSDFEllipsoid
         elif isinstance(mc, integrate.convex_spheropolygon):
-            cls =_hpmc.AnalyzerSDFSpheropolygon;
+            cls = _hpmc.AnalyzerSDFSpheropolygon
         else:
-            hoomd.context.current.device.cpp_msg.error("analyze.sdf: Unsupported integrator.\n");
-            raise runtime_error("Error initializing analyze.sdf");
+            hoomd.context.current.device.cpp_msg.error(
+                "analyze.sdf: Unsupported integrator.\n")
+            raise runtime_error("Error initializing analyze.sdf")
 
         self.cpp_analyzer = cls(hoomd.context.current.system_definition,
-                                mc.cpp_integrator,
-                                xmax,
-                                dx,
-                                navg,
-                                filename,
-                                overwrite);
+                                mc.cpp_integrator, xmax, dx, navg, filename,
+                                overwrite)
 
-        self.setupAnalyzer(period, phase);
+        self.setupAnalyzer(period, phase)
 
         # meta data
         self.filename = filename
@@ -115,4 +122,6 @@ class sdf(_analyzer):
         self.navg = navg
         self.period = period
         self.overwrite = overwrite
-        self.metadata_fields = ['filename', 'xmax', 'dx', 'navg', 'period', 'overwrite']
+        self.metadata_fields = [
+            'filename', 'xmax', 'dx', 'navg', 'period', 'overwrite'
+        ]

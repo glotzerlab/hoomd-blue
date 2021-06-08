@@ -3,8 +3,8 @@
 
 #ifdef ENABLE_HIP
 
-#include "PatchEnergyJIT.h"
 #include "GPUEvalFactory.h"
+#include "PatchEnergyJIT.h"
 #include <pybind11/stl.h>
 
 #include <vector>
@@ -31,50 +31,54 @@ class PYBIND11_EXPORT PatchEnergyJITGPU : public PatchEnergyJIT
             {
             m_gpu_factory.setAlphaPtr(&m_alpha.front());
 
-            // tuning params for patch narrow phase
-            std::vector<unsigned int> valid_params_patch;
-            const unsigned int narrow_phase_max_threads_per_eval = this->m_exec_conf->dev_prop.warpSize;
-            auto& launch_bounds = m_gpu_factory.getLaunchBounds();
-            for (auto cur_launch_bounds: launch_bounds)
+        // tuning params for patch narrow phase
+        std::vector<unsigned int> valid_params_patch;
+        const unsigned int narrow_phase_max_threads_per_eval = this->m_exec_conf->dev_prop.warpSize;
+        auto& launch_bounds = m_gpu_factory.getLaunchBounds();
+        for (auto cur_launch_bounds : launch_bounds)
+            {
+            for (unsigned int group_size = 1; group_size <= cur_launch_bounds; group_size *= 2)
                 {
-                for (unsigned int group_size=1; group_size <= cur_launch_bounds; group_size*=2)
+                for (unsigned int eval_threads = 1;
+                     eval_threads <= narrow_phase_max_threads_per_eval;
+                     eval_threads *= 2)
                     {
-                    for (unsigned int eval_threads=1; eval_threads <= narrow_phase_max_threads_per_eval; eval_threads *= 2)
-                        {
-                        if ((cur_launch_bounds % (group_size*eval_threads)) == 0)
-                            valid_params_patch.push_back(cur_launch_bounds*1000000 + group_size*100 + eval_threads);
-                        }
+                    if ((cur_launch_bounds % (group_size * eval_threads)) == 0)
+                        valid_params_patch.push_back(cur_launch_bounds * 1000000 + group_size * 100
+                                                     + eval_threads);
                     }
                 }
-
-            m_tuner_narrow_patch.reset(new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
             }
 
-        //! Asynchronously launch the JIT kernel
-        /*! \param args Kernel arguments
-            \param hStream stream to execute on
-            */
-        virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
+        m_tuner_narrow_patch.reset(
+            new Autotuner(valid_params_patch, 5, 100000, "hpmc_narrow_patch", this->m_exec_conf));
+        }
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
+    //! Asynchronously launch the JIT kernel
+    /*! \param args Kernel arguments
+        \param hStream stream to execute on
         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            m_tuner_narrow_patch->setPeriod(period);
-            m_tuner_narrow_patch->setEnabled(enable);
-            }
+    virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream);
+
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        m_tuner_narrow_patch->setPeriod(period);
+        m_tuner_narrow_patch->setEnabled(enable);
+        }
 
     protected:
-        std::unique_ptr<Autotuner> m_tuner_narrow_patch;     //!< Autotuner for the narrow phase
+    std::unique_ptr<Autotuner> m_tuner_narrow_patch; //!< Autotuner for the narrow phase
 
     private:
-        GPUEvalFactory m_gpu_factory;                       //!< JIT implementation
+    GPUEvalFactory m_gpu_factory; //!< JIT implementation
     };
 
 //! Exports the PatchEnergyJIT class to python
-inline void export_PatchEnergyJITGPU(pybind11::module &m)
+inline void export_PatchEnergyJITGPU(pybind11::module& m)
     {
     pybind11::class_<PatchEnergyJITGPU, PatchEnergyJIT, std::shared_ptr<PatchEnergyJITGPU> >(m, "PatchEnergyJITGPU")
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,

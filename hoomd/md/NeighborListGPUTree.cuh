@@ -13,55 +13,55 @@
 #include <hip/hip_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
-#include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
+#include "hoomd/ParticleData.cuh"
 
 // forward declaration
 namespace neighbor
     {
-    class LBVH;
-    class LBVHTraverser;
-    }
+class LBVH;
+class LBVHTraverser;
+    } // namespace neighbor
 
 //! Sentinel for an invalid particle (e.g., ghost)
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
-hipError_t gpu_nlist_mark_types(unsigned int *d_types,
-                                 unsigned int *d_indexes,
-                                 unsigned int *d_lbvh_errors,
-                                 Scalar4 *d_last_pos,
-                                 const Scalar4 *d_pos,
-                                 const unsigned int N,
-                                 const unsigned int nghosts,
-                                 const BoxDim& box,
-                                 const Scalar3 ghost_width,
-                                 const unsigned int block_size);
+hipError_t gpu_nlist_mark_types(unsigned int* d_types,
+                                unsigned int* d_indexes,
+                                unsigned int* d_lbvh_errors,
+                                Scalar4* d_last_pos,
+                                const Scalar4* d_pos,
+                                const unsigned int N,
+                                const unsigned int nghosts,
+                                const BoxDim& box,
+                                const Scalar3 ghost_width,
+                                const unsigned int block_size);
 
 //! Kernel driver to sort particles by type
-uchar2 gpu_nlist_sort_types(void *d_tmp,
-                            size_t &tmp_bytes,
-                            unsigned int *d_types,
-                            unsigned int *d_sorted_types,
-                            unsigned int *d_indexes,
-                            unsigned int *d_sorted_indexes,
+uchar2 gpu_nlist_sort_types(void* d_tmp,
+                            size_t& tmp_bytes,
+                            unsigned int* d_types,
+                            unsigned int* d_sorted_types,
+                            unsigned int* d_indexes,
+                            unsigned int* d_sorted_indexes,
                             const unsigned int N,
                             const unsigned int num_bits);
 
 //! Kernel driver to count particles by type
-hipError_t gpu_nlist_count_types(unsigned int *d_first,
-                                  unsigned int *d_last,
-                                  const unsigned int *d_types,
-                                  const unsigned int ntypes,
-                                  const unsigned int N,
-                                  const unsigned int block_size);
+hipError_t gpu_nlist_count_types(unsigned int* d_first,
+                                 unsigned int* d_last,
+                                 const unsigned int* d_types,
+                                 const unsigned int ntypes,
+                                 const unsigned int N,
+                                 const unsigned int block_size);
 
 //! Kernel driver to rearrange primitives for faster traversal
-hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
-                                      const unsigned int *d_indexes,
-                                      const unsigned int *d_primitives,
-                                      const unsigned int N,
-                                      const unsigned int block_size);
+hipError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
+                                     const unsigned int* d_indexes,
+                                     const unsigned int* d_primitives,
+                                     const unsigned int N,
+                                     const unsigned int block_size);
 
 //! Wrapper around the neighbor::LBVH class
 /*!
@@ -72,41 +72,38 @@ hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
 class LBVHWrapper
     {
     public:
-        //! Constructor
-        LBVHWrapper();
+    //! Constructor
+    LBVHWrapper();
 
-        //! Setup the LBVH
-        void setup(const Scalar4* points,
-                   const unsigned int* map,
-                   unsigned int N,
-                   hipStream_t stream);
+    //! Setup the LBVH
+    void setup(const Scalar4* points, const unsigned int* map, unsigned int N, hipStream_t stream);
 
-        //! Build the LBVH
-        void build(const Scalar4* points,
-                   const unsigned int* map,
-                   unsigned int N,
-                   const Scalar3& lo,
-                   const Scalar3& hi,
-                   hipStream_t stream,
-                   unsigned int block_size);
+    //! Build the LBVH
+    void build(const Scalar4* points,
+               const unsigned int* map,
+               unsigned int N,
+               const Scalar3& lo,
+               const Scalar3& hi,
+               hipStream_t stream,
+               unsigned int block_size);
 
-        //! Get the underlying LBVH
-        std::shared_ptr<neighbor::LBVH> get()
-            {
-            return lbvh_;
-            }
+    //! Get the underlying LBVH
+    std::shared_ptr<neighbor::LBVH> get()
+        {
+        return lbvh_;
+        }
 
-        //! Get the number of particles in the LBVH
-        unsigned int getN() const;
+    //! Get the number of particles in the LBVH
+    unsigned int getN() const;
 
-        //! Get the sorted order of the primitives from the LBVH
-        const unsigned int* getPrimitives() const;
+    //! Get the sorted order of the primitives from the LBVH
+    const unsigned int* getPrimitives() const;
 
-        //! Get the list of tunable parameters
-        std::vector<unsigned int> getTunableParameters() const;
+    //! Get the list of tunable parameters
+    std::vector<unsigned int> getTunableParameters() const;
 
     private:
-        std::shared_ptr<neighbor::LBVH> lbvh_;  //!< Underlying neighbor::LBVH
+    std::shared_ptr<neighbor::LBVH> lbvh_; //!< Underlying neighbor::LBVH
     };
 
 //! Wrapper around the neighbor::LBVHTraverser class
@@ -118,52 +115,50 @@ class LBVHWrapper
 class LBVHTraverserWrapper
     {
     public:
-        //! Structure to group together all the parameters needed for a traversal
-        struct TraverserArgs
-            {
-            // map
-            unsigned int* map;
+    //! Structure to group together all the parameters needed for a traversal
+    struct TraverserArgs
+        {
+        // map
+        unsigned int* map;
 
-            // particle query
-            Scalar4* positions;
-            unsigned int* bodies;
-            Scalar* diams;
-            unsigned int* order;
-            unsigned int N;
-            unsigned int Nown;
-            Scalar rcut;
-            Scalar rlist;
-            BoxDim box;
+        // particle query
+        Scalar4* positions;
+        unsigned int* bodies;
+        Scalar* diams;
+        unsigned int* order;
+        unsigned int N;
+        unsigned int Nown;
+        Scalar rcut;
+        Scalar rlist;
+        BoxDim box;
 
-            // neighbor list
-            unsigned int* neigh_list;
-            unsigned int* nneigh;
-            unsigned int* new_max_neigh;
-            unsigned int* first_neigh;
-            unsigned int max_neigh;
-            };
+        // neighbor list
+        unsigned int* neigh_list;
+        unsigned int* nneigh;
+        unsigned int* new_max_neigh;
+        unsigned int* first_neigh;
+        unsigned int max_neigh;
+        };
 
-        //! Constructor
-        LBVHTraverserWrapper();
+    //! Constructor
+    LBVHTraverserWrapper();
 
-        //! Setup the LBVH traverser
-        void setup(const unsigned int* map,
-                   neighbor::LBVH& lbvh,
-                   hipStream_t stream);
+    //! Setup the LBVH traverser
+    void setup(const unsigned int* map, neighbor::LBVH& lbvh, hipStream_t stream);
 
-        //! Traverse the LBVH
-        void traverse(TraverserArgs& args,
-                      neighbor::LBVH& lbvh,
-                      const Scalar3* images,
-                      const unsigned int Nimages,
-                      hipStream_t stream,
-                      unsigned int block_size);
+    //! Traverse the LBVH
+    void traverse(TraverserArgs& args,
+                  neighbor::LBVH& lbvh,
+                  const Scalar3* images,
+                  const unsigned int Nimages,
+                  hipStream_t stream,
+                  unsigned int block_size);
 
-        //! Get the list of tunable parameters
-        std::vector<unsigned int> getTunableParameters() const;
+    //! Get the list of tunable parameters
+    std::vector<unsigned int> getTunableParameters() const;
 
     private:
-        std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
+    std::shared_ptr<neighbor::LBVHTraverser> trav_; //!< Underlying neighbor::LBVHTraverser
     };
 
 #endif //__NEIGHBORLISTGPUTREE_CUH__

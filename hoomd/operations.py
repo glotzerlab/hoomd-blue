@@ -1,3 +1,7 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
 """Implement a storage and management class for HOOMD-blue operations.
 
 Defines the `Operations` class which serves as the main class for storing and
@@ -9,10 +13,10 @@ added and removed from a `hoomd.Simulation`.
 # destroying C++ objects) for all hoomd operations.
 
 from collections.abc import Collection
+from copy import copy
 from itertools import chain
 import hoomd.integrate
-from hoomd.data.syncedlist import SyncedList
-from hoomd.data.typeconverter import OnlyTypes
+from hoomd.data import syncedlist
 from hoomd.operation import Writer, Updater, Tuner, Compute
 from hoomd.tune import ParticleSorter
 
@@ -43,8 +47,8 @@ class Operations(Collection):
     only ever hold one integrator at a time. On the other hand, an `Operations`
     object can hold any number of tuners, updaters, writers, or computes. To
     see examples of these types of operations see `hoomd.tune` (tuners),
-    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.integrate`
-    (integrators), , `hoomd.write` (writers), and `hoomd.md.thermo`
+    `hoomd.update` (updaters), `hoomd.hpmc.integrate` or `hoomd.md.Integrator`
+    (integrators), `hoomd.write` (writers), and `hoomd.md.thermo`
     (computes).
 
     A given instance of an operation class can only be added to a single
@@ -62,15 +66,15 @@ class Operations(Collection):
     """
 
     def __init__(self):
-        self._compute = list()
         self._scheduled = False
         self._simulation = None
-        self._updaters = SyncedList(OnlyTypes(Updater),
-                                    _triggered_op_conversion)
-        self._writers = SyncedList(OnlyTypes(Writer),
-                                   _triggered_op_conversion)
-        self._tuners = SyncedList(OnlyTypes(Tuner), lambda x: x._cpp_obj)
-        self._computes = SyncedList(OnlyTypes(Compute), lambda x: x._cpp_obj)
+        self._updaters = syncedlist.SyncedList(Updater,
+                                               _triggered_op_conversion)
+        self._writers = syncedlist.SyncedList(Writer, _triggered_op_conversion)
+        self._tuners = syncedlist.SyncedList(
+            Tuner, syncedlist._PartialGetAttr('_cpp_obj'))
+        self._computes = syncedlist.SyncedList(
+            Compute, syncedlist._PartialGetAttr('_cpp_obj'))
         self._integrator = None
         self._tuners.append(ParticleSorter())
 
@@ -84,8 +88,7 @@ class Operations(Collection):
         elif isinstance(operation, Compute):
             return self._computes
         else:
-            raise TypeError(
-                f"{type(operation)} is not a valid operation type.")
+            raise TypeError(f"{type(operation)} is not a valid operation type.")
 
     def add(self, operation):
         """Add an operation to this container.
@@ -193,6 +196,7 @@ class Operations(Collection):
             raise RuntimeError("System not initialized yet")
         sim = self._simulation
         if not (self.integrator is None or self.integrator._attached):
+            self._integrator._add(self._simulation)
             self.integrator._attach()
         if not self.updaters._synced:
             self.updaters._sync(sim, sim._cpp_sys.updaters)
@@ -226,9 +230,8 @@ class Operations(Collection):
     def __iter__(self):
         """Iterates through all contained operations."""
         integrator = (self._integrator,) if self._integrator else []
-        yield from chain(
-            self._tuners, self._updaters, integrator, self._writers,
-            self._computes)
+        yield from chain(self._tuners, self._updaters, integrator,
+                         self._writers, self._computes)
 
     def __len__(self):
         """Return the number of operations contained in this collection."""
@@ -302,3 +305,11 @@ class Operations(Collection):
         be modified as a standard Python list.
         """
         return self._computes
+
+    def __getstate__(self):
+        """Get the current state of the operations container for pickling."""
+        # ensure that top level changes to self.__dict__ are not propagated
+        state = copy(self.__dict__)
+        state['_simulation'] = None
+        state['_scheduled'] = False
+        return state

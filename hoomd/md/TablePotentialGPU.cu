@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TablePotentialGPU.cuh"
@@ -34,32 +33,32 @@
 
     See TablePotential for information on the memory layout.
 
-    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
-                           is used depending on architecture.
+    \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero,
+   textures or __ldg is used depending on architecture.
 */
 __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
                                                 Scalar* d_virial,
                                                 const size_t virial_pitch,
                                                 const unsigned int nwork,
-                                                const Scalar4 *d_pos,
+                                                const Scalar4* d_pos,
                                                 const BoxDim box,
-                                                const unsigned int *d_n_neigh,
-                                                const unsigned int *d_nlist,
-                                                const unsigned int *d_head_list,
-                                                const Scalar2 *d_tables,
-                                                const Scalar4 *d_params,
+                                                const unsigned int* d_n_neigh,
+                                                const unsigned int* d_nlist,
+                                                const unsigned int* d_head_list,
+                                                const Scalar2* d_tables,
+                                                const Scalar4* d_params,
                                                 const unsigned int ntypes,
                                                 const unsigned int table_width,
-                                                const unsigned int offset
-                                                )
+                                                const unsigned int offset)
     {
     // index calculation helpers
     Index2DUpperTriangular table_index(ntypes);
     Index2D table_value(table_width);
 
     // read in params for easy and fast access in the kernel
-    HIP_DYNAMIC_SHARED( Scalar4, s_params)
-    for (unsigned int cur_offset = 0; cur_offset < table_index.getNumElements(); cur_offset += blockDim.x)
+    HIP_DYNAMIC_SHARED(Scalar4, s_params)
+    for (unsigned int cur_offset = 0; cur_offset < table_index.getNumElements();
+         cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < table_index.getNumElements())
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
@@ -78,7 +77,8 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     unsigned int n_neigh = d_n_neigh[idx];
     const unsigned int head_idx = d_head_list[idx];
 
-    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
+    // read in the position of our particle. Texture reads of Scalar4's are faster than global reads
+    // on compute 1.0 hardware
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
     unsigned int typei = __scalar_as_int(postype.w);
@@ -103,7 +103,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
         // read the current neighbor index
         // prefetch the next value and set the current one
         cur_neigh = next_neigh;
-        next_neigh = __ldg(d_nlist + head_idx + neigh_idx+1);
+        next_neigh = __ldg(d_nlist + head_idx + neigh_idx + 1);
 
         // get the neighbor's position
         Scalar4 neigh_postype = __ldg(d_pos + cur_neigh);
@@ -135,7 +135,7 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             // compute index into the table and read in values
             unsigned int value_i = floor(value_f);
             Scalar2 VF0 = __ldg(d_tables + table_value(value_i, cur_table_index));
-            Scalar2 VF1 = __ldg(d_tables + table_value(value_i+1, cur_table_index));
+            Scalar2 VF1 = __ldg(d_tables + table_value(value_i + 1, cur_table_index));
 
             // unpack the data
             Scalar V0 = VF0.x;
@@ -157,12 +157,12 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
             Scalar pair_eng = V;
             // calculate the virial
             Scalar force_div2r = Scalar(0.5) * forcemag_divr;
-            virialxx +=  dx.x * dx.x * force_div2r;
-            virialxy +=  dx.x * dx.y * force_div2r;
-            virialxz +=  dx.x * dx.z * force_div2r;
-            virialyy +=  dx.y * dx.y * force_div2r;
-            virialyz +=  dx.y * dx.z * force_div2r;
-            virialzz +=  dx.z * dx.z * force_div2r;
+            virialxx += dx.x * dx.x * force_div2r;
+            virialxy += dx.x * dx.y * force_div2r;
+            virialxz += dx.x * dx.z * force_div2r;
+            virialyy += dx.y * dx.y * force_div2r;
+            virialyz += dx.y * dx.z * force_div2r;
+            virialzz += dx.z * dx.z * force_div2r;
 
             // add up the force vector components (FLOPS: 7)
             force.x += dx.x * forcemag_divr;
@@ -176,12 +176,12 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     force.w *= Scalar(0.5);
     // now that the force calculation is complete, write out the result
     d_force[idx] = force;
-    d_virial[0*virial_pitch+idx] = virialxx;
-    d_virial[1*virial_pitch+idx] = virialxy;
-    d_virial[2*virial_pitch+idx] = virialxz;
-    d_virial[3*virial_pitch+idx] = virialyy;
-    d_virial[4*virial_pitch+idx] = virialyz;
-    d_virial[5*virial_pitch+idx] = virialzz;
+    d_virial[0 * virial_pitch + idx] = virialxx;
+    d_virial[1 * virial_pitch + idx] = virialxy;
+    d_virial[2 * virial_pitch + idx] = virialxz;
+    d_virial[3 * virial_pitch + idx] = virialyy;
+    d_virial[4 * virial_pitch + idx] = virialyz;
+    d_virial[5 * virial_pitch + idx] = virialzz;
     }
 
 /*! \param d_force Device memory to write computed forces
@@ -204,22 +204,22 @@ __global__ void gpu_compute_table_forces_kernel(Scalar4* d_force,
     \note This is just a kernel driver. See gpu_compute_table_forces_kernel for full documentation.
 */
 hipError_t gpu_compute_table_forces(Scalar4* d_force,
-                                     Scalar* d_virial,
-                                     const size_t virial_pitch,
-                                     const unsigned int N,
-                                     const unsigned int n_ghost,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim& box,
-                                     const unsigned int *d_n_neigh,
-                                     const unsigned int *d_nlist,
-                                     const unsigned int *d_head_list,
-                                     const Scalar2 *d_tables,
-                                     const Scalar4 *d_params,
-                                     const size_t size_nlist,
-                                     const unsigned int ntypes,
-                                     const unsigned int table_width,
-                                     const unsigned int block_size,
-                                     const GPUPartition& gpu_partition)
+                                    Scalar* d_virial,
+                                    const size_t virial_pitch,
+                                    const unsigned int N,
+                                    const unsigned int n_ghost,
+                                    const Scalar4* d_pos,
+                                    const BoxDim& box,
+                                    const unsigned int* d_n_neigh,
+                                    const unsigned int* d_nlist,
+                                    const unsigned int* d_head_list,
+                                    const Scalar2* d_tables,
+                                    const Scalar4* d_params,
+                                    const size_t size_nlist,
+                                    const unsigned int ntypes,
+                                    const unsigned int table_width,
+                                    const unsigned int block_size,
+                                    const GPUPartition& gpu_partition)
     {
     assert(d_params);
     assert(d_tables);
@@ -238,7 +238,8 @@ hipError_t gpu_compute_table_forces(Scalar4* d_force,
         if (max_block_size == UINT_MAX)
             {
             hipFuncAttributes attr;
-            hipFuncGetAttributes(&attr, reinterpret_cast<const void *>(gpu_compute_table_forces_kernel));
+            hipFuncGetAttributes(&attr,
+                                 reinterpret_cast<const void*>(gpu_compute_table_forces_kernel));
             max_block_size = attr.maxThreadsPerBlock;
             }
 
@@ -248,23 +249,28 @@ hipError_t gpu_compute_table_forces(Scalar4* d_force,
         Index2DUpperTriangular table_index(ntypes);
 
         // setup the grid to run the kernel
-        dim3 grid( (range.second-range.first) / run_block_size + 1, 1, 1);
+        dim3 grid((range.second - range.first) / run_block_size + 1, 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        hipLaunchKernelGGL((gpu_compute_table_forces_kernel), dim3(grid), dim3(threads), sizeof(Scalar4)*table_index.getNumElements() , 0, d_force,
-                                                                                                           d_virial,
-                                                                                                           virial_pitch,
-                                                                                                           range.second-range.first,
-                                                                                                           d_pos,
-                                                                                                           box,
-                                                                                                           d_n_neigh,
-                                                                                                           d_nlist,
-                                                                                                           d_head_list,
-                                                                                                           d_tables,
-                                                                                                           d_params,
-                                                                                                           ntypes,
-                                                                                                           table_width,
-                                                                                                           range.first);
+        hipLaunchKernelGGL((gpu_compute_table_forces_kernel),
+                           dim3(grid),
+                           dim3(threads),
+                           sizeof(Scalar4) * table_index.getNumElements(),
+                           0,
+                           d_force,
+                           d_virial,
+                           virial_pitch,
+                           range.second - range.first,
+                           d_pos,
+                           box,
+                           d_n_neigh,
+                           d_nlist,
+                           d_head_list,
+                           d_tables,
+                           d_params,
+                           ntypes,
+                           table_width,
+                           range.first);
         }
     return hipSuccess;
     }

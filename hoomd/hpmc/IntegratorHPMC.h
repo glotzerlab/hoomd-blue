@@ -13,11 +13,11 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
+#include "hoomd/Integrator.h"
 
-#include "HPMCCounters.h"
 #include "ExternalField.h"
+#include "HPMCCounters.h"
 
 #ifndef __HIPCC__
 #include <pybind11/pybind11.h>
@@ -25,16 +25,14 @@
 #endif
 
 #ifdef ENABLE_HIP
-#include "hoomd/GPUPartition.cuh"
 #include "hoomd/Autotuner.h"
+#include "hoomd/GPUPartition.cuh"
 #endif
 
 namespace hpmc
-{
-
+    {
 namespace detail
-{
-
+    {
 #ifdef ENABLE_HIP
 //! Wraps arguments to kernel::narow_phase_patch functions
 struct hpmc_patch_args_t
@@ -126,15 +124,16 @@ struct hpmc_patch_args_t
     };
 #endif
 
-} // end namespace detail
+    } // end namespace detail
 
 //! Integrator that implements the HPMC approach
 /*! **Overview** <br>
-    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC integrators have.
-    This provides a base interface that any other code can use when given a shared pointer to an IntegratorHPMC.
+    IntegratorHPMC is an non-templated base class that implements the basic methods that all HPMC
+   integrators have. This provides a base interface that any other code can use when given a shared
+   pointer to an IntegratorHPMC.
 
-    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the move ratio is exactly
-    at 100%.
+    The move ratio is stored as an unsigned int (0xffff = 100%) to avoid numerical issues when the
+   move ratio is exactly at 100%.
 
     \ingroup hpmc_integrators
 */
@@ -145,62 +144,63 @@ class PatchEnergy : public Compute
         PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef),  m_build_obb(false) { }
         virtual ~PatchEnergy() { }
 
-        #ifdef ENABLE_HIP
-        //! A struct that contains the kernel arguments
-        typedef detail::hpmc_patch_args_t gpu_args_t;
-        #endif
+#ifdef ENABLE_HIP
+    //! A struct that contains the kernel arguments
+    typedef detail::hpmc_patch_args_t gpu_args_t;
+#endif
 
         virtual Scalar getRelevantRCut()
             {
             return 0;
             }
 
-        //! Returns the cut-off radius
+        //! Returns the geometric extent, per type
         virtual Scalar getRCut()
             {
             return 0;
             }
 
-        //! Returns the geometric extent, per type
-        virtual Scalar getAdditiveCutoff(unsigned int type)
-            {
-            return 0;
-            }
+    //! Get the maximum r_ij radius beyond which energies are always 0
+    virtual inline Scalar getAdditiveCutoff(unsigned int type)
+        {
+        // this potential corresponds to a point particle
+        return 0.0;
+        }
 
-        //! evaluate the energy of the patch interaction
-        /*! \param r_ij Vector pointing from particle i to j
-            \param type_i Integer type index of particle i
-            \param d_i Diameter of particle i
-            \param charge_i Charge of particle i
-            \param q_i Orientation quaternion of particle i
-            \param type_j Integer type index of particle j
-            \param q_j Orientation quaternion of particle j
-            \param d_j Diameter of particle j
-            \param charge_j Charge of particle j
-            \returns Energy of the patch interaction.
-        */
-        virtual float energy(const vec3<float>& r_ij,
-            unsigned int type_i,
-            const quat<float>& q_i,
-            float d_i,
-            float charge_i,
-            unsigned int type_j,
-            const quat<float>& q_j,
-            float d_j,
-            float charge_j)
-            {
-            return 0;
-            }
+    //! evaluate the energy of the patch interaction
+    /*! \param r_ij Vector pointing from particle i to j
+        \param type_i Integer type index of particle i
+        \param d_i Diameter of particle i
+        \param charge_i Charge of particle i
+        \param q_i Orientation quaternion of particle i
+        \param type_j Integer type index of particle j
+        \param q_j Orientation quaternion of particle j
+        \param d_j Diameter of particle j
+        \param charge_j Charge of particle j
+        \returns Energy of the patch interaction.
+    */
+    virtual float energy(const vec3<float>& r_ij,
+                         unsigned int type_i,
+                         const quat<float>& q_i,
+                         float d_i,
+                         float charge_i,
+                         unsigned int type_j,
+                         const quat<float>& q_j,
+                         float d_j,
+                         float charge_j)
+        {
+        return 0;
+        }
 
-        #ifdef ENABLE_HIP
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
-            }
+#ifdef ENABLE_HIP
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
+        }
 
         //! Asynchronously launch the JIT kernel
         /*! \param args Kernel arguments
@@ -397,12 +397,6 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
             return 1;
             }
 
-        //! Get a list of logged quantities
-        virtual std::vector< std::string > getProvidedLogQuantities();
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
-
         //! Check the particle data for non-normalized orientations
         virtual bool checkParticleOrientations();
 
@@ -505,62 +499,63 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         #endif
 
     protected:
-        unsigned int m_translation_move_probability;     //!< Fraction of moves that are translation moves.
-        unsigned int m_nselect;                     //!< Number of particles to select for trial moves
+    unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
+    unsigned int m_nselect;                      //!< Number of particles to select for trial moves
 
-        GPUVector<Scalar> m_d;                      //!< Maximum move displacement by type
-        GPUVector<Scalar> m_a;                      //!< Maximum angular displacement by type
+    GPUVector<Scalar> m_d; //!< Maximum move displacement by type
+    GPUVector<Scalar> m_a; //!< Maximum angular displacement by type
 
-        GlobalArray< hpmc_counters_t > m_count_total;  //!< Accept/reject total count
+    GlobalArray<hpmc_counters_t> m_count_total; //!< Accept/reject total count
 
-        Scalar m_nominal_width;                      //!< nominal cell width
-        Scalar m_extra_ghost_width;                  //!< extra ghost width to add
-        ClockSource m_clock;                           //!< Timer for self-benchmarking
+    Scalar m_nominal_width;     //!< nominal cell width
+    Scalar m_extra_ghost_width; //!< extra ghost width to add
+    ClockSource m_clock;        //!< Timer for self-benchmarking
 
-        /// Moves-per-second value last recorded
-        double m_mps = 0;
+    /// Moves-per-second value last recorded
+    double m_mps = 0;
 
-        ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
+    ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
+                                    //! used in a more general setting.
 
         std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
 
-        bool m_past_first_run;                      //!< Flag to test if the first run() has started
-        //! Update the nominal width of the cells
-        /*! This method is virtual so that derived classes can set appropriate widths
-            (for example, some may want max diameter while others may want a buffer distance).
-        */
-        virtual void updateCellWidth()
-            {
-            }
+    bool m_past_first_run; //!< Flag to test if the first run() has started
+    //! Update the nominal width of the cells
+    /*! This method is virtual so that derived classes can set appropriate widths
+        (for example, some may want max diameter while others may want a buffer distance).
+    */
+    virtual void updateCellWidth() { }
 
-        //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth(unsigned int type)
-            {
-            return Scalar(0.0);
-            }
+    //! Return the requested ghost layer width
+    virtual Scalar getGhostLayerWidth(unsigned int type)
+        {
+        return Scalar(0.0);
+        }
 
-        #ifdef ENABLE_MPI
-        //! Return the requested communication flags for ghost particles
-        virtual CommFlags getCommFlags(uint64_t timestep)
-            {
-            return CommFlags(0);
-            }
+#ifdef ENABLE_MPI
+    //! Return the requested communication flags for ghost particles
+    virtual CommFlags getCommFlags(uint64_t timestep)
+        {
+        return CommFlags(0);
+        }
 
-        #endif
+#endif
 
     private:
-        hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
-        hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
+    hpmc_counters_t m_count_run_start;  //!< Count saved at run() start
+    hpmc_counters_t m_count_step_start; //!< Count saved at the start of the last step
 
-        #ifdef ENABLE_MPI
-        bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
-        bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
-        #endif
+#ifdef ENABLE_MPI
+    bool m_communicator_ghost_width_connected; //!< True if we have connected to Communicator's
+                                               //!< ghost layer width signal
+    bool m_communicator_flags_connected;       //!< True if we have connected to Communicator's
+                                               //!< communication flags signal
+#endif
     };
 
 //! Export the IntegratorHPMC class to python
 void export_IntegratorHPMC(pybind11::module& m);
 
-} // end namespace hpmc
+    } // end namespace hpmc
 
 #endif // _INTEGRATOR_HPMC_H_

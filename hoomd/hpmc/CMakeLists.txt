@@ -172,7 +172,6 @@ set(files   analyze.py
             __init__.py
             integrate.py
             update.py
-            util.py
             field.py
     )
 
@@ -193,12 +192,7 @@ add_subdirectory(pair)
 add_subdirectory(external)
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
     add_subdirectory(test)
-endif()
-
-if (BUILD_VALIDATION)
-    # add_subdirectory(validation)
 endif()
 
 if (BUILD_JIT)

@@ -7,12 +7,12 @@
 #include "hoomd/Index1D.h"
 
 #pragma once
-namespace hpmc {
-
-namespace gpu {
-
-namespace kernel {
-
+namespace hpmc
+    {
+namespace gpu
+    {
+namespace kernel
+    {
 //! Device function to compute the cell that a particle sits in
 /*! \param p particle position
     \param box box dimensions
@@ -29,7 +29,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
                                                    bool strict)
     {
     // find the bin each particle belongs in
-    Scalar3 f = box.makeFraction(p,ghost_width);
+    Scalar3 f = box.makeFraction(p, ghost_width);
     uchar3 periodic = box.getPeriodic();
     int ib = (unsigned int)(f.x * cell_dim.x);
     int jb = (unsigned int)(f.y * cell_dim.y);
@@ -44,14 +44,14 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
         kb = 0;
 
     // identify the bin
-    if (!strict || (f.x >= Scalar(0.0) && f.x < Scalar(1.0) &&
-        f.y >= Scalar(0.0) && f.y < Scalar(1.0) &&
-        f.z >= Scalar(0.0) && f.z < Scalar(1.0)))
-        return ci(ib,jb,kb);
+    if (!strict
+        || (f.x >= Scalar(0.0) && f.x < Scalar(1.0) && f.y >= Scalar(0.0) && f.y < Scalar(1.0)
+            && f.z >= Scalar(0.0) && f.z < Scalar(1.0)))
+        return ci(ib, jb, kb);
     else
         return 0xffffffff;
     }
 
-} // end namespace hpmc
-} // end namespace gpu
-} // end namespace kernel
+    } // namespace kernel
+    } // end namespace gpu
+    } // namespace hpmc

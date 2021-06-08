@@ -64,12 +64,10 @@ class FreeVolume(Compute):
         num_samples (int): Number of samples to evaluate.
 
     """
+
     def __init__(self, test_particle_type, num_samples):
         # store metadata
-        param_dict = ParameterDict(
-            test_particle_type=str,
-            num_samples=int
-        )
+        param_dict = ParameterDict(test_particle_type=str, num_samples=int)
         param_dict.update(
             dict(test_particle_type=test_particle_type,
                  num_samples=num_samples))
@@ -93,9 +91,7 @@ class FreeVolume(Compute):
 
         cl = _hoomd.CellList(self._simulation.state._cpp_sys_def)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                cl,
-                                "")
+                                integrator._cpp_obj, cl)
 
         super()._attach()
 

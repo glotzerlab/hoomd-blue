@@ -3,50 +3,56 @@
 
 #ifdef ENABLE_HIP
 
-#include "hoomd/hpmc/IntegratorHPMC.h"
 #include "PatchEnergyJITGPU.h"
+#include "hoomd/hpmc/IntegratorHPMC.h"
 
 //! Kernel driver for kernel::hpmc_narrow_phase_patch
 void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
     {
-    #ifdef __HIP_PLATFORM_NVCC__
+#ifdef __HIP_PLATFORM_NVCC__
     assert(args.d_postype);
     assert(args.d_orientation);
 
     unsigned int param = m_tuner_narrow_patch->getParam();
-    unsigned int block_size = param/1000000;
-    unsigned int req_tpp = (param%1000000)/100;
+    unsigned int block_size = param / 1000000;
+    unsigned int req_tpp = (param % 1000000) / 100;
     unsigned int eval_threads = param % 100;
 
     this->m_exec_conf->beginMultiGPU();
     m_tuner_narrow_patch->begin();
 
-    // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
-    unsigned int run_block_size = std::min(block_size, m_gpu_factory.getKernelMaxThreads(0, eval_threads, block_size)); // fixme GPU 0
+    // choose a block size based on the max block size by regs (max_block_size) and include dynamic
+    // shared memory usage
+    unsigned int run_block_size
+        = std::min(block_size,
+                   m_gpu_factory.getKernelMaxThreads(0, eval_threads, block_size)); // fixme GPU 0
 
-    unsigned int tpp = std::min(req_tpp,run_block_size);
-    while (eval_threads*tpp > run_block_size || run_block_size % (eval_threads*tpp) != 0)
+    unsigned int tpp = std::min(req_tpp, run_block_size);
+    while (eval_threads * tpp > run_block_size || run_block_size % (eval_threads * tpp) != 0)
         {
         tpp--;
         }
     auto& devprop = m_exec_conf->dev_prop;
-    tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
+    tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
-    unsigned int n_groups = run_block_size/(tpp*eval_threads);
+    unsigned int n_groups = run_block_size / (tpp * eval_threads);
 
-    unsigned int max_queue_size = n_groups*tpp;
+    unsigned int max_queue_size = n_groups * tpp;
 
     const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
 
-    unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
-            + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
-        + max_queue_size * 2 * sizeof(unsigned int)
-        + min_shared_bytes;
+    unsigned int shared_bytes
+        = n_groups
+              * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
+                 + 2 * sizeof(Scalar) + 2 * sizeof(float))
+          + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
 
     if (min_shared_bytes >= devprop.sharedMemPerBlock)
-        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
+        throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
+                                 "particle types or size of shape parameters");
 
-    unsigned int kernel_shared_bytes = m_gpu_factory.getKernelSharedSize(0, eval_threads, block_size); //fixme GPU 0
+    unsigned int kernel_shared_bytes
+        = m_gpu_factory.getKernelSharedSize(0, eval_threads, block_size); // fixme GPU 0
     while (shared_bytes + kernel_shared_bytes >= devprop.sharedMemPerBlock)
         {
         run_block_size -= devprop.warpSize;
@@ -54,19 +60,20 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
         tpp = std::min(req_tpp, run_block_size);
-        while (eval_threads*tpp > run_block_size || run_block_size % (eval_threads*tpp) != 0)
+        while (eval_threads * tpp > run_block_size || run_block_size % (eval_threads * tpp) != 0)
             {
             tpp--;
             }
-        tpp = std::min((unsigned int) devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
+        tpp = std::min((unsigned int)devprop.maxThreadsDim[2], tpp); // clamp blockDim.z
 
-        n_groups = run_block_size / (tpp*eval_threads);
-        max_queue_size = n_groups*tpp;
+        n_groups = run_block_size / (tpp * eval_threads);
+        max_queue_size = n_groups * tpp;
 
-        shared_bytes = (unsigned int) (n_groups * (sizeof(unsigned int) + 2*sizeof(Scalar4)
-                + 2*sizeof(Scalar3) + 2*sizeof(Scalar) + 2*sizeof(float))
-            + max_queue_size * 2 * sizeof(unsigned int)
-            + min_shared_bytes);
+        shared_bytes
+            = (unsigned int)(n_groups
+                                 * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
+                                    + 2 * sizeof(Scalar) + 2 * sizeof(float))
+                             + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes);
         }
 
     dim3 thread(eval_threads, n_groups, tpp);
@@ -78,14 +85,20 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         auto range = gpu_partition.getRangeAndSetGPU(idev);
 
         unsigned int nwork = range.second - range.first;
-        const unsigned int num_blocks = (nwork + n_groups - 1)/n_groups;
+        const unsigned int num_blocks = (nwork + n_groups - 1) / n_groups;
 
         dim3 grid(num_blocks, 1, 1);
 
         unsigned int max_extra_bytes = 0;
 
         // configure the kernel
-        auto launcher = m_gpu_factory.configureKernel(idev, grid, thread, shared_bytes, hStream, eval_threads, block_size);
+        auto launcher = m_gpu_factory.configureKernel(idev,
+                                                      grid,
+                                                      thread,
+                                                      shared_bytes,
+                                                      hStream,
+                                                      eval_threads,
+                                                      block_size);
 
         CUresult res = launcher(args.d_postype,
             args.d_orientation,
@@ -120,9 +133,9 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
         if (res != CUDA_SUCCESS)
             {
-            char *error;
-            cuGetErrorString(res, const_cast<const char **>(&error));
-            throw std::runtime_error("Error launching NVRTC kernel: "+std::string(error));
+            char* error;
+            cuGetErrorString(res, const_cast<const char**>(&error));
+            throw std::runtime_error("Error launching NVRTC kernel: " + std::string(error));
             }
         }
 
@@ -130,7 +143,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
         CHECK_CUDA_ERROR();
     m_tuner_narrow_patch->end();
     m_exec_conf->endMultiGPU();
-    #endif
+#endif
     }
 
 #endif

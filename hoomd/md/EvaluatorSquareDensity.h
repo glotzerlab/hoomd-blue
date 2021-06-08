@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 #ifndef __EVALUATOR_SQUARE_DENSITY__
 #define __EVALUATOR_SQUARE_DENSITY__
 
@@ -30,184 +29,192 @@
 class EvaluatorSquareDensity
     {
     public:
-        struct param_type
+    struct param_type
+        {
+        Scalar A;
+        Scalar B;
+
+#ifdef ENABLE_HIP
+        //! Set CUDA memory hints
+        void set_memory_hint() const
             {
-            Scalar A;
-            Scalar B;
-
-            #ifdef ENABLE_HIP
-            //! Set CUDA memory hints
-            void set_memory_hint() const
-                {
-                // default implementation does nothing
-                }
-            #endif
-
-            #ifndef __HIPCC__
-            param_type() : A(0), B(0) {}
-
-            param_type(pybind11::dict v)
-                {
-                A = v["A"].cast<Scalar>();
-                B = v["B"].cast<Scalar>();
-                }
-
-            pybind11::dict asDict()
-                {
-                pybind11::dict v;
-                v["A"] = A;
-                v["B"] = B;
-                return v;
-                }
-            #endif
+            // default implementation does nothing
             }
-            #ifdef SINGLE_PRECISION
-            __attribute__((aligned(8)));
-            #else
-            __attribute__((aligned(16)));
-            #endif
+#endif
 
-        //! Constructs the evaluator
-        /*! \param _rij_sq Squared distance between particles i and j
-            \param _rcutsq Squared distance at which the potential goes to zero
-            \param _params Per type-pair parameters for this potential
-        */
-        DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
-            : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.A), B(_params.B)
+#ifndef __HIPCC__
+        param_type() : A(0), B(0) { }
+
+        param_type(pybind11::dict v)
             {
+            A = v["A"].cast<Scalar>();
+            B = v["B"].cast<Scalar>();
             }
 
-        //! Set the square distance between particles i and j
-        DEVICE void setRij(Scalar rsq)
+        pybind11::dict asDict()
             {
-            rij_sq = rsq;
+            pybind11::dict v;
+            v["A"] = A;
+            v["B"] = B;
+            return v;
             }
+#endif
+        }
+#ifdef SINGLE_PRECISION
+    __attribute__((aligned(8)));
+#else
+    __attribute__((aligned(16)));
+#endif
 
-        //! Set the square distance between particles i and k
-        DEVICE void setRik(Scalar rsq)
+    //! Constructs the evaluator
+    /*! \param _rij_sq Squared distance between particles i and j
+        \param _rcutsq Squared distance at which the potential goes to zero
+        \param _params Per type-pair parameters for this potential
+    */
+    DEVICE EvaluatorSquareDensity(Scalar _rij_sq, Scalar _rcutsq, const param_type& _params)
+        : rij_sq(_rij_sq), rcutsq(_rcutsq), A(_params.A), B(_params.B)
+        {
+        }
+
+    //! Set the square distance between particles i and j
+    DEVICE void setRij(Scalar rsq)
+        {
+        rij_sq = rsq;
+        }
+
+    //! Set the square distance between particles i and k
+    DEVICE void setRik(Scalar rsq)
+        {
+        rik_sq = rsq;
+        }
+
+    //! We have a per-particl excess free energy
+    DEVICE static bool hasPerParticleEnergy()
+        {
+        return true;
+        }
+
+    //! We don't need per-particle-pair chi
+    DEVICE static bool needsChi()
+        {
+        return false;
+        }
+
+    //! We don't have ik-forces
+    DEVICE static bool hasIkForce()
+        {
+        return false;
+        }
+
+    //! The SquareDensity potential needs the bond angle
+    DEVICE static bool needsAngle()
+        {
+        return false;
+        }
+
+    //! Set the bond angle value
+    //! \param _cos_th Cosine of the angle between ij and ik
+    DEVICE void setAngle(Scalar _cos_th) { }
+
+    //! Check whether a pair of particles is interactive
+    DEVICE bool areInteractive()
+        {
+        return true;
+        }
+
+    //! Evaluate the repulsive and attractive terms of the force
+    DEVICE bool evalRepulsiveAndAttractive(Scalar& fR, Scalar& fA)
+        {
+        // this method does nothing except checking if we're inside the cut-off
+        return (rij_sq < rcutsq);
+        }
+
+    //! Evaluate chi (the scalar ik contribution) for this triplet
+    DEVICE void evalChi(Scalar& chi) { }
+
+    //! Evaluate chi (the scalar ij contribution) for this triplet
+    DEVICE void evalPhi(Scalar& phi)
+        {
+        // add up density n_i
+        if (rij_sq < rcutsq)
             {
-            rik_sq = rsq;
+            Scalar norm(15.0 / (2.0 * M_PI));
+            Scalar rcut = fast::sqrt(rcutsq);
+            norm /= rcutsq * rcut;
+
+            Scalar rij = fast::sqrt(rij_sq);
+            Scalar fac = Scalar(1.0) - rij / rcut;
+            phi += fac * fac * norm;
             }
+        }
 
-        //! We have a per-particl excess free energy
-        DEVICE static bool hasPerParticleEnergy() { return true; }
-
-        //! We don't need per-particle-pair chi
-        DEVICE static bool needsChi() { return false; }
-
-        //! We don't have ik-forces
-        DEVICE static bool hasIkForce() { return false; }
-
-        //! The SquareDensity potential needs the bond angle
-        DEVICE static bool needsAngle() { return false; }
-
-        //! Set the bond angle value
-        //! \param _cos_th Cosine of the angle between ij and ik
-        DEVICE void setAngle(Scalar _cos_th)
-            { }
-
-        //! Check whether a pair of particles is interactive
-        DEVICE bool areInteractive()
-            {
-            return true;
-            }
-
-        //! Evaluate the repulsive and attractive terms of the force
-        DEVICE bool evalRepulsiveAndAttractive(Scalar& fR, Scalar& fA)
-            {
-            // this method does nothing except checking if we're inside the cut-off
-            return (rij_sq < rcutsq);
-            }
-
-        //! Evaluate chi (the scalar ik contribution) for this triplet
-        DEVICE void evalChi(Scalar& chi)
-            {
-            }
-
-        //! Evaluate chi (the scalar ij contribution) for this triplet
-        DEVICE void evalPhi(Scalar& phi)
-            {
-            // add up density n_i
-            if (rij_sq < rcutsq)
-                {
-                Scalar norm(15.0/(2.0*M_PI));
-                Scalar rcut = fast::sqrt(rcutsq);
-                norm /= rcutsq*rcut;
-
-                Scalar rij = fast::sqrt(rij_sq);
-                Scalar fac = Scalar(1.0)-rij/rcut;
-                phi += fac*fac*norm;
-                }
-            }
-
-        //! Evaluate the force and potential energy due to ij interactions
-        DEVICE void evalForceij(Scalar fR,
-                                Scalar fA,
-                                Scalar chi,
-                                Scalar phi,
-                                Scalar& bij,
-                                Scalar& force_divr,
-                                Scalar& potential_eng)
-            {
-            if (rij_sq < rcutsq)
-                {
-                Scalar rho_i = phi;
-                Scalar norm(15.0/(2.0*M_PI));
-                Scalar rcut = fast::sqrt(rcutsq);
-                norm /= rcutsq*rcut;
-
-                Scalar rij = fast::sqrt(rij_sq);
-                Scalar fac = Scalar(1.0)-rij/rcut;
-
-                // compute the ij force
-                Scalar w_prime = Scalar(2.0)*norm*fac/rcut/rij;
-                force_divr = B*(rho_i-A)*w_prime;
-                }
-            }
-
-        DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
+    //! Evaluate the force and potential energy due to ij interactions
+    DEVICE void evalForceij(Scalar fR,
+                            Scalar fA,
+                            Scalar chi,
+                            Scalar phi,
+                            Scalar& bij,
+                            Scalar& force_divr,
+                            Scalar& potential_eng)
+        {
+        if (rij_sq < rcutsq)
             {
             Scalar rho_i = phi;
+            Scalar norm(15.0 / (2.0 * M_PI));
+            Scalar rcut = fast::sqrt(rcutsq);
+            norm /= rcutsq * rcut;
 
-            // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
-            energy = Scalar(0.5)*B*(rho_i-A)*(rho_i-A);
+            Scalar rij = fast::sqrt(rij_sq);
+            Scalar fac = Scalar(1.0) - rij / rcut;
+
+            // compute the ij force
+            Scalar w_prime = Scalar(2.0) * norm * fac / rcut / rij;
+            force_divr = B * (rho_i - A) * w_prime;
             }
+        }
 
-        //! Evaluate the forces due to ijk interactions
-        DEVICE bool evalForceik(Scalar fR,
-                                Scalar fA,
-                                Scalar chi,
-                                Scalar bij,
-                                Scalar3& force_divr_ij,
-                                Scalar3& force_divr_ik)
-            {
-            return false;
-            }
+    DEVICE void evalSelfEnergy(Scalar& energy, Scalar phi)
+        {
+        Scalar rho_i = phi;
 
-        #ifndef __HIPCC__
-        //! Get the name of this potential
-        /*! \returns The potential name.  Must be short and all lowercase, as this is the name
-            energies will be logged as via analyze.log.
-        */
-        static std::string getName()
-            {
-            return std::string("squared_density");
-            }
+        // *excess* free energy of a vdW fluid (subtract ideal gas contribution)
+        energy = Scalar(0.5) * B * (rho_i - A) * (rho_i - A);
+        }
 
-        std::string getShapeSpec() const
-            {
-            throw std::runtime_error("Shape definition not supported for this pair potential.");
-            }
-        #endif
+    //! Evaluate the forces due to ijk interactions
+    DEVICE bool evalForceik(Scalar fR,
+                            Scalar fA,
+                            Scalar chi,
+                            Scalar bij,
+                            Scalar3& force_divr_ij,
+                            Scalar3& force_divr_ik)
+        {
+        return false;
+        }
 
-        static const bool flag_for_RevCross=false;
+#ifndef __HIPCC__
+    //! Get the name of this potential
+    /*! \returns The potential name.
+     */
+    static std::string getName()
+        {
+        return std::string("squared_density");
+        }
+
+    std::string getShapeSpec() const
+        {
+        throw std::runtime_error("Shape definition not supported for this pair potential.");
+        }
+#endif
+
+    static const bool flag_for_RevCross = false;
 
     protected:
-        Scalar rij_sq; //!< Stored rij_sq from the constructor
-        Scalar rik_sq; //!< Stored rik_sq
-        Scalar rcutsq; //!< Stored rcutsq from the constructor
-        Scalar A;      //!< center of harmonic potential
-        Scalar B;      //!< repulsion parameter
+    Scalar rij_sq; //!< Stored rij_sq from the constructor
+    Scalar rik_sq; //!< Stored rik_sq
+    Scalar rcutsq; //!< Stored rcutsq from the constructor
+    Scalar A;      //!< center of harmonic potential
+    Scalar B;      //!< repulsion parameter
     };
 
 #endif

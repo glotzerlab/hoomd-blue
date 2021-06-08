@@ -20,11 +20,11 @@
 #include "hoomd/WarpTools.cuh"
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Begins the cell thermo compute by summing cell quantities on outer cells
 /*!
  * \param d_cell_vel Velocity and mass per cell (output)
@@ -50,17 +50,17 @@ namespace kernel
  * global memory.
  */
 template<bool need_energy, unsigned int tpp>
-__global__ void begin_cell_thermo(double4 *d_cell_vel,
-                                  double3 *d_cell_energy,
-                                  const unsigned int *d_cells,
-                                  const unsigned int *d_cell_np,
-                                  const unsigned int *d_cell_list,
+__global__ void begin_cell_thermo(double4* d_cell_vel,
+                                  double3* d_cell_energy,
+                                  const unsigned int* d_cells,
+                                  const unsigned int* d_cell_np,
+                                  const unsigned int* d_cell_list,
                                   const Index2D cli,
-                                  const Scalar4 *d_vel,
+                                  const Scalar4* d_vel,
                                   const unsigned int N_mpcd,
                                   const Scalar mpcd_mass,
-                                  const Scalar4 *d_embed_vel,
-                                  const unsigned int *d_embed_idx,
+                                  const Scalar4* d_embed_vel,
+                                  const unsigned int* d_embed_idx,
                                   const unsigned int num_cells)
     {
     // tpp threads per cell
@@ -100,7 +100,8 @@ __global__ void begin_cell_thermo(double4 *d_cell_vel,
 
         // also compute ke of the particle
         if (need_energy)
-            ke += (double)(0.5) * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
+            ke += (double)(0.5) * mass_i
+                  * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
         }
 
     // reduce quantities down into the 0-th lane per logical warp
@@ -139,9 +140,9 @@ __global__ void begin_cell_thermo(double4 *d_cell_vel,
  * etc. The temperature is computed from the cell kinetic energy.
  */
 template<bool need_energy>
-__global__ void end_cell_thermo(double4 *d_cell_vel,
-                                double3 *d_cell_energy,
-                                const unsigned int *d_cells,
+__global__ void end_cell_thermo(double4* d_cell_vel,
+                                double3* d_cell_energy,
+                                const unsigned int* d_cells,
                                 const unsigned int Ncell,
                                 const unsigned int n_dimensions)
     {
@@ -160,7 +161,9 @@ __global__ void end_cell_thermo(double4 *d_cell_vel,
     if (mass > 0.)
         {
         // average velocity is only defined when there is some mass in the cell
-        vel_cm.x /= mass; vel_cm.y /= mass; vel_cm.z /= mass;
+        vel_cm.x /= mass;
+        vel_cm.y /= mass;
+        vel_cm.z /= mass;
         }
     d_cell_vel[cell_id] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
 
@@ -173,8 +176,9 @@ __global__ void end_cell_thermo(double4 *d_cell_vel,
         // temperature is only defined for 2 or more particles
         if (np > 1)
             {
-            const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
-            temp = 2. * (ke - ke_cm) / (n_dimensions * (np-1));
+            const double ke_cm
+                = 0.5 * mass * (vel_cm.x * vel_cm.x + vel_cm.y * vel_cm.y + vel_cm.z * vel_cm.z);
+            temp = 2. * (ke - ke_cm) / (n_dimensions * (np - 1));
             }
         d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_double(np));
         }
@@ -210,19 +214,19 @@ __global__ void end_cell_thermo(double4 *d_cell_vel,
  * without the normalization at the end, which is used for the outer cells.
  */
 template<bool need_energy, unsigned int tpp>
-__global__ void inner_cell_thermo(double4 *d_cell_vel,
-                                  double3 *d_cell_energy,
+__global__ void inner_cell_thermo(double4* d_cell_vel,
+                                  double3* d_cell_energy,
                                   const Index3D ci,
                                   const Index3D inner_ci,
                                   const uint3 offset,
-                                  const unsigned int *d_cell_np,
-                                  const unsigned int *d_cell_list,
+                                  const unsigned int* d_cell_np,
+                                  const unsigned int* d_cell_list,
                                   const Index2D cli,
-                                  const Scalar4 *d_vel,
+                                  const Scalar4* d_vel,
                                   const unsigned int N_mpcd,
                                   const Scalar mpcd_mass,
-                                  const Scalar4 *d_embed_vel,
-                                  const unsigned int *d_embed_idx,
+                                  const Scalar4* d_embed_vel,
+                                  const unsigned int* d_embed_idx,
                                   const unsigned int n_dimensions)
     {
     // tpp threads per cell
@@ -233,8 +237,9 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
     // reinterpret the thread id as a cell by first mapping the thread into the inner indexer,
     // shifting by the offset of the inner indexer from the full indexer, and then compressing
     // back into a 1D cell id
-    const uint3 inner_cell = inner_ci.getTriple(idx/tpp);
-    const uint3 cell = make_uint3(inner_cell.x + offset.x, inner_cell.y + offset.y, inner_cell.z + offset.z);
+    const uint3 inner_cell = inner_ci.getTriple(idx / tpp);
+    const uint3 cell
+        = make_uint3(inner_cell.x + offset.x, inner_cell.y + offset.y, inner_cell.z + offset.z);
     const unsigned int cell_id = ci(cell.x, cell.y, cell.z);
 
     const unsigned int np = d_cell_np[cell_id];
@@ -287,7 +292,7 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
     if (idx % tpp == 0)
         {
         const double mass = momentum.w;
-        double3 vel_cm = make_double3(0.0,0.0,0.0);
+        double3 vel_cm = make_double3(0.0, 0.0, 0.0);
         if (mass > 0.)
             {
             vel_cm.x = momentum.x / mass;
@@ -301,8 +306,10 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
             double temp(0.0);
             if (np > 1)
                 {
-                const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
-                temp = 2. * (ke - ke_cm) / (n_dimensions * (np-1));
+                const double ke_cm
+                    = 0.5 * mass
+                      * (vel_cm.x * vel_cm.x + vel_cm.y * vel_cm.y + vel_cm.z * vel_cm.z);
+                temp = 2. * (ke - ke_cm) / (n_dimensions * (np - 1));
                 }
             d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_double(np));
             }
@@ -326,9 +333,9 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
  * be used in averaging the total temperature.
  */
 template<bool need_energy>
-__global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_thermo,
-                                      const double4 *d_cell_vel,
-                                      const double3 *d_cell_energy,
+__global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
+                                      const double4* d_cell_vel,
+                                      const double3* d_cell_energy,
                                       const Index3D tmp_ci,
                                       const Index3D ci)
     {
@@ -347,9 +354,7 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
     const double mass = vel_mass.w;
 
     mpcd::detail::cell_thermo_element thermo;
-    thermo.momentum = make_double3(mass * vel.x,
-                                   mass * vel.y,
-                                   mass * vel.z);
+    thermo.momentum = make_double3(mass * vel.x, mass * vel.y, mass * vel.z);
 
     if (need_energy)
         {
@@ -368,13 +373,15 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
         }
     else
         {
-        thermo.energy = 0.; thermo.temperature = 0.; thermo.flag = 0;
+        thermo.energy = 0.;
+        thermo.temperature = 0.;
+        thermo.flag = 0;
         }
 
     d_tmp_thermo[tmp_idx] = thermo;
     }
 
-} // end namespace kernel
+    } // end namespace kernel
 
 //! Templated launcher for multiple threads-per-cell kernel for outer cells
 /*
@@ -395,7 +402,7 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
  */
 template<unsigned int cur_tpp>
 inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
-                                     const unsigned int *d_cells,
+                                     const unsigned int* d_cells,
                                      const unsigned int num_cells,
                                      const unsigned int block_size,
                                      const unsigned int tpp)
@@ -408,24 +415,27 @@ inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
             if (max_block_size_energy == UINT_MAX)
                 {
                 cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo<true,cur_tpp>);
+                cudaFuncGetAttributes(
+                    &attr,
+                    (const void*)mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>);
                 max_block_size_energy = attr.maxThreadsPerBlock;
                 }
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
-            dim3 grid(cur_tpp*num_cells / run_block_size + 1);
-            mpcd::gpu::kernel::begin_cell_thermo<true,cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
-                                                                                         args.cell_energy,
-                                                                                         d_cells,
-                                                                                         args.cell_np,
-                                                                                         args.cell_list,
-                                                                                         args.cli,
-                                                                                         args.vel,
-                                                                                         args.N_mpcd,
-                                                                                         args.mass,
-                                                                                         args.embed_vel,
-                                                                                         args.embed_idx,
-                                                                                         num_cells);
+            dim3 grid(cur_tpp * num_cells / run_block_size + 1);
+            mpcd::gpu::kernel::begin_cell_thermo<true, cur_tpp>
+                <<<grid, run_block_size>>>(args.cell_vel,
+                                           args.cell_energy,
+                                           d_cells,
+                                           args.cell_np,
+                                           args.cell_list,
+                                           args.cli,
+                                           args.vel,
+                                           args.N_mpcd,
+                                           args.mass,
+                                           args.embed_vel,
+                                           args.embed_idx,
+                                           num_cells);
             }
         else
             {
@@ -433,43 +443,43 @@ inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
             if (max_block_size_noenergy == UINT_MAX)
                 {
                 cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo<false,cur_tpp>);
+                cudaFuncGetAttributes(
+                    &attr,
+                    (const void*)mpcd::gpu::kernel::begin_cell_thermo<false, cur_tpp>);
                 max_block_size_noenergy = attr.maxThreadsPerBlock;
                 }
 
             unsigned int run_block_size = min(block_size, max_block_size_noenergy);
-            dim3 grid(cur_tpp*num_cells / run_block_size + 1);
-            mpcd::gpu::kernel::begin_cell_thermo<false,cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
-                                                                                          args.cell_energy,
-                                                                                          d_cells,
-                                                                                          args.cell_np,
-                                                                                          args.cell_list,
-                                                                                          args.cli,
-                                                                                          args.vel,
-                                                                                          args.N_mpcd,
-                                                                                          args.mass,
-                                                                                          args.embed_vel,
-                                                                                          args.embed_idx,
-                                                                                          num_cells);
+            dim3 grid(cur_tpp * num_cells / run_block_size + 1);
+            mpcd::gpu::kernel::begin_cell_thermo<false, cur_tpp>
+                <<<grid, run_block_size>>>(args.cell_vel,
+                                           args.cell_energy,
+                                           d_cells,
+                                           args.cell_np,
+                                           args.cell_list,
+                                           args.cli,
+                                           args.vel,
+                                           args.N_mpcd,
+                                           args.mass,
+                                           args.embed_vel,
+                                           args.embed_idx,
+                                           num_cells);
             }
         }
     else
         {
-        launch_begin_cell_thermo<cur_tpp/2>(args,
-                                            d_cells,
-                                            num_cells,
-                                            block_size,
-                                            tpp);
+        launch_begin_cell_thermo<cur_tpp / 2>(args, d_cells, num_cells, block_size, tpp);
         }
     }
 //! Template specialization to break recursion
 template<>
 inline void launch_begin_cell_thermo<0>(const mpcd::detail::thermo_args_t& args,
-                                        const unsigned int *d_cells,
+                                        const unsigned int* d_cells,
                                         const unsigned int num_cells,
                                         const unsigned int block_size,
                                         const unsigned int tpp)
-    { }
+    {
+    }
 
 /*
  * \param args Common arguments to thermo kernels
@@ -484,18 +494,15 @@ inline void launch_begin_cell_thermo<0>(const mpcd::detail::thermo_args_t& args,
  * \sa mpcd::gpu::kernel::begin_cell_thermo
  */
 cudaError_t begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
-                              const unsigned int *d_cells,
+                              const unsigned int* d_cells,
                               const unsigned int num_cells,
                               const unsigned int block_size,
                               const unsigned int tpp)
     {
-    if (num_cells == 0) return cudaSuccess;
+    if (num_cells == 0)
+        return cudaSuccess;
 
-    launch_begin_cell_thermo<32>(args,
-                                 d_cells,
-                                 num_cells,
-                                 block_size,
-                                 tpp);
+    launch_begin_cell_thermo<32>(args, d_cells, num_cells, block_size, tpp);
     return cudaSuccess;
     }
 
@@ -511,15 +518,16 @@ cudaError_t begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
  *
  * \sa mpcd::gpu::kernel::end_cell_thermo
  */
-cudaError_t end_cell_thermo(double4 *d_cell_vel,
-                            double3 *d_cell_energy,
-                            const unsigned int *d_cells,
+cudaError_t end_cell_thermo(double4* d_cell_vel,
+                            double3* d_cell_energy,
+                            const unsigned int* d_cells,
                             const unsigned int Ncell,
                             const unsigned int n_dimensions,
                             const bool need_energy,
                             const unsigned int block_size)
     {
-    if (Ncell == 0) return cudaSuccess;
+    if (Ncell == 0)
+        return cudaSuccess;
 
     if (need_energy)
         {
@@ -533,11 +541,8 @@ cudaError_t end_cell_thermo(double4 *d_cell_vel,
 
         unsigned int run_block_size = min(block_size, max_block_size_energy);
         dim3 grid(Ncell / run_block_size + 1);
-        mpcd::gpu::kernel::end_cell_thermo<true><<<grid, run_block_size>>>(d_cell_vel,
-                                                                           d_cell_energy,
-                                                                           d_cells,
-                                                                           Ncell,
-                                                                           n_dimensions);
+        mpcd::gpu::kernel::end_cell_thermo<true>
+            <<<grid, run_block_size>>>(d_cell_vel, d_cell_energy, d_cells, Ncell, n_dimensions);
         }
     else
         {
@@ -551,11 +556,8 @@ cudaError_t end_cell_thermo(double4 *d_cell_vel,
 
         unsigned int run_block_size = min(block_size, max_block_size_noenergy);
         dim3 grid(Ncell / run_block_size + 1);
-        mpcd::gpu::kernel::end_cell_thermo<false><<<grid, run_block_size>>>(d_cell_vel,
-                                                                            d_cell_energy,
-                                                                            d_cells,
-                                                                            Ncell,
-                                                                            n_dimensions);
+        mpcd::gpu::kernel::end_cell_thermo<false>
+            <<<grid, run_block_size>>>(d_cell_vel, d_cell_energy, d_cells, Ncell, n_dimensions);
         }
 
     return cudaSuccess;
@@ -597,26 +599,29 @@ inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
             if (max_block_size_energy == UINT_MAX)
                 {
                 cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::inner_cell_thermo<true,cur_tpp>);
+                cudaFuncGetAttributes(
+                    &attr,
+                    (const void*)mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>);
                 max_block_size_energy = attr.maxThreadsPerBlock;
                 }
 
             unsigned int run_block_size = min(block_size, max_block_size_energy);
-            dim3 grid(cur_tpp*ci.getNumElements() / run_block_size + 1);
-            mpcd::gpu::kernel::inner_cell_thermo<true,cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
-                                                                                         args.cell_energy,
-                                                                                         ci,
-                                                                                         inner_ci,
-                                                                                         offset,
-                                                                                         args.cell_np,
-                                                                                         args.cell_list,
-                                                                                         args.cli,
-                                                                                         args.vel,
-                                                                                         args.N_mpcd,
-                                                                                         args.mass,
-                                                                                         args.embed_vel,
-                                                                                         args.embed_idx,
-                                                                                         n_dimensions);
+            dim3 grid(cur_tpp * ci.getNumElements() / run_block_size + 1);
+            mpcd::gpu::kernel::inner_cell_thermo<true, cur_tpp>
+                <<<grid, run_block_size>>>(args.cell_vel,
+                                           args.cell_energy,
+                                           ci,
+                                           inner_ci,
+                                           offset,
+                                           args.cell_np,
+                                           args.cell_list,
+                                           args.cli,
+                                           args.vel,
+                                           args.N_mpcd,
+                                           args.mass,
+                                           args.embed_vel,
+                                           args.embed_idx,
+                                           n_dimensions);
             }
         else
             {
@@ -624,37 +629,40 @@ inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
             if (max_block_size_noenergy == UINT_MAX)
                 {
                 cudaFuncAttributes attr;
-                cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::inner_cell_thermo<false,cur_tpp>);
+                cudaFuncGetAttributes(
+                    &attr,
+                    (const void*)mpcd::gpu::kernel::inner_cell_thermo<false, cur_tpp>);
                 max_block_size_noenergy = attr.maxThreadsPerBlock;
                 }
 
             unsigned int run_block_size = min(block_size, max_block_size_noenergy);
-            dim3 grid(cur_tpp*ci.getNumElements() / run_block_size + 1);
-            mpcd::gpu::kernel::inner_cell_thermo<false,cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
-                                                                                          args.cell_energy,
-                                                                                          ci,
-                                                                                          inner_ci,
-                                                                                          offset,
-                                                                                          args.cell_np,
-                                                                                          args.cell_list,
-                                                                                          args.cli,
-                                                                                          args.vel,
-                                                                                          args.N_mpcd,
-                                                                                          args.mass,
-                                                                                          args.embed_vel,
-                                                                                          args.embed_idx,
-                                                                                          n_dimensions);
+            dim3 grid(cur_tpp * ci.getNumElements() / run_block_size + 1);
+            mpcd::gpu::kernel::inner_cell_thermo<false, cur_tpp>
+                <<<grid, run_block_size>>>(args.cell_vel,
+                                           args.cell_energy,
+                                           ci,
+                                           inner_ci,
+                                           offset,
+                                           args.cell_np,
+                                           args.cell_list,
+                                           args.cli,
+                                           args.vel,
+                                           args.N_mpcd,
+                                           args.mass,
+                                           args.embed_vel,
+                                           args.embed_idx,
+                                           n_dimensions);
             }
         }
     else
         {
-        launch_inner_cell_thermo<cur_tpp/2>(args,
-                                            ci,
-                                            inner_ci,
-                                            offset,
-                                            n_dimensions,
-                                            block_size,
-                                            tpp);
+        launch_inner_cell_thermo<cur_tpp / 2>(args,
+                                              ci,
+                                              inner_ci,
+                                              offset,
+                                              n_dimensions,
+                                              block_size,
+                                              tpp);
         }
     }
 //! Template specialization to break recursion
@@ -666,7 +674,8 @@ inline void launch_inner_cell_thermo<0>(const mpcd::detail::thermo_args_t& args,
                                         const unsigned int n_dimensions,
                                         const unsigned int block_size,
                                         const unsigned int tpp)
-    { }
+    {
+    }
 
 /*!
  * \param args Common arguments for cell thermo compute
@@ -690,15 +699,10 @@ cudaError_t inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
                               const unsigned int block_size,
                               const unsigned int tpp)
     {
-    if (inner_ci.getNumElements() == 0) return cudaSuccess;
+    if (inner_ci.getNumElements() == 0)
+        return cudaSuccess;
 
-    launch_inner_cell_thermo<32>(args,
-                                 ci,
-                                 inner_ci,
-                                 offset,
-                                 n_dimensions,
-                                 block_size,
-                                 tpp);
+    launch_inner_cell_thermo<32>(args, ci, inner_ci, offset, n_dimensions, block_size, tpp);
 
     return cudaSuccess;
     }
@@ -716,9 +720,9 @@ cudaError_t inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
  *
  * \sa mpcd::gpu::kernel::stage_net_cell_thermo
  */
-cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_thermo,
-                                  const double4 *d_cell_vel,
-                                  const double3 *d_cell_energy,
+cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
+                                  const double4* d_cell_vel,
+                                  const double3* d_cell_energy,
                                   const Index3D& tmp_ci,
                                   const Index3D& ci,
                                   bool need_energy,
@@ -730,17 +734,15 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_therm
         if (max_block_size_energy == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<true>);
             max_block_size_energy = attr.maxThreadsPerBlock;
             }
 
         unsigned int run_block_size = min(block_size, max_block_size_energy);
         dim3 grid(tmp_ci.getNumElements() / run_block_size + 1);
-        mpcd::gpu::kernel::stage_net_cell_thermo<true><<<grid, run_block_size>>>(d_tmp_thermo,
-                                                                                 d_cell_vel,
-                                                                                 d_cell_energy,
-                                                                                 tmp_ci,
-                                                                                 ci);
+        mpcd::gpu::kernel::stage_net_cell_thermo<true>
+            <<<grid, run_block_size>>>(d_tmp_thermo, d_cell_vel, d_cell_energy, tmp_ci, ci);
         }
     else
         {
@@ -748,17 +750,15 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_therm
         if (max_block_size_noenergy == UINT_MAX)
             {
             cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
+            cudaFuncGetAttributes(&attr,
+                                  (const void*)mpcd::gpu::kernel::stage_net_cell_thermo<false>);
             max_block_size_noenergy = attr.maxThreadsPerBlock;
             }
 
         unsigned int run_block_size = min(block_size, max_block_size_noenergy);
         dim3 grid(tmp_ci.getNumElements() / run_block_size + 1);
-        mpcd::gpu::kernel::stage_net_cell_thermo<false><<<grid, run_block_size>>>(d_tmp_thermo,
-                                                                                  d_cell_vel,
-                                                                                  d_cell_energy,
-                                                                                  tmp_ci,
-                                                                                  ci);
+        mpcd::gpu::kernel::stage_net_cell_thermo<false>
+            <<<grid, run_block_size>>>(d_tmp_thermo, d_cell_vel, d_cell_energy, tmp_ci, ci);
         }
     return cudaSuccess;
     }
@@ -779,10 +779,10 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_therm
  * the required bytes, and call the function a second time. This performs the
  * reduction and returns the result in \a d_reduced.
  */
-cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
-                                   void *d_tmp,
+cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
+                                   void* d_tmp,
                                    size_t& tmp_bytes,
-                                   const mpcd::detail::cell_thermo_element *d_tmp_thermo,
+                                   const mpcd::detail::cell_thermo_element* d_tmp_thermo,
                                    const size_t Ncell)
     {
     cub::DeviceReduce::Sum(d_tmp, tmp_bytes, d_tmp_thermo, d_reduced, (unsigned int)Ncell);
@@ -791,45 +791,45 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
 
 //! Explicit template instantiation of pack for cell velocity
 template cudaError_t __attribute__((visibility("default")))
-pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_send_buf,
-                                      const double4 *d_props,
-                                      const unsigned int *d_send_idx,
-                                      const mpcd::detail::CellVelocityPackOp op,
-                                      const unsigned int num_send,
-                                      unsigned int block_size);
+pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element* d_send_buf,
+                 const double4* d_props,
+                 const unsigned int* d_send_idx,
+                 const mpcd::detail::CellVelocityPackOp op,
+                 const unsigned int num_send,
+                 unsigned int block_size);
 
 //! Explicit template instantiation of pack for cell energy
 template cudaError_t __attribute__((visibility("default")))
-pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_send_buf,
-                                      const double3 *d_props,
-                                      const unsigned int *d_send_idx,
-                                      const mpcd::detail::CellEnergyPackOp op,
-                                      const unsigned int num_send,
-                                      unsigned int block_size);
+pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element* d_send_buf,
+                 const double3* d_props,
+                 const unsigned int* d_send_idx,
+                 const mpcd::detail::CellEnergyPackOp op,
+                 const unsigned int num_send,
+                 unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell velocity
 template cudaError_t __attribute__((visibility("default")))
-unpack_cell_buffer(double4 *d_props,
-                                        const unsigned int *d_cells,
-                                        const unsigned int *d_recv,
-                                        const unsigned int *d_recv_begin,
-                                        const unsigned int *d_recv_end,
-                                        const typename mpcd::detail::CellVelocityPackOp::element *d_recv_buf,
-                                        const mpcd::detail::CellVelocityPackOp op,
-                                        const unsigned int num_cells,
-                                        const unsigned int block_size);
+unpack_cell_buffer(double4* d_props,
+                   const unsigned int* d_cells,
+                   const unsigned int* d_recv,
+                   const unsigned int* d_recv_begin,
+                   const unsigned int* d_recv_end,
+                   const typename mpcd::detail::CellVelocityPackOp::element* d_recv_buf,
+                   const mpcd::detail::CellVelocityPackOp op,
+                   const unsigned int num_cells,
+                   const unsigned int block_size);
 
 //! Explicit template instantiation of unpack for cell energy
 template cudaError_t __attribute__((visibility("default")))
-unpack_cell_buffer(double3 *d_props,
-                                        const unsigned int *d_cells,
-                                        const unsigned int *d_recv,
-                                        const unsigned int *d_recv_begin,
-                                        const unsigned int *d_recv_end,
-                                        const typename mpcd::detail::CellEnergyPackOp::element *d_recv_buf,
-                                        const mpcd::detail::CellEnergyPackOp op,
-                                        const unsigned int num_cells,
-                                        const unsigned int block_size);
+unpack_cell_buffer(double3* d_props,
+                   const unsigned int* d_cells,
+                   const unsigned int* d_recv,
+                   const unsigned int* d_recv_begin,
+                   const unsigned int* d_recv_end,
+                   const typename mpcd::detail::CellEnergyPackOp::element* d_recv_buf,
+                   const mpcd::detail::CellEnergyPackOp op,
+                   const unsigned int num_cells,
+                   const unsigned int block_size);
 
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace gpu
+    } // end namespace mpcd

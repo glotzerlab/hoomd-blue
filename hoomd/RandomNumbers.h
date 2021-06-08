@@ -5,9 +5,9 @@
    \file RandomNumbers.h
    \brief Declaration of hoomd::RandomNumbers
 
-   This header includes templated generators for various types of random numbers required used throughout hoomd. These
-   work with the RandomGenerator generator that wraps random123's Philox4x32 RNG with an API that handles streams of
-   random numbers originated from a seed.
+   This header includes templated generators for various types of random numbers required used
+   throughout hoomd. These work with the RandomGenerator generator that wraps random123's Philox4x32
+   RNG with an API that handles streams of random numbers originated from a seed.
  */
 
 #ifndef HOOMD_RANDOM_NUMBERS_H_
@@ -29,7 +29,8 @@
 #pragma GCC diagnostic pop
 #endif
 
-namespace r123 {
+namespace r123
+    {
 using std::make_signed;
 using std::make_unsigned;
 
@@ -46,15 +47,13 @@ using std::make_unsigned;
 //
 // In both cases, we find max() by computing ~(unsigned)0 right-shifted
 // by is_signed.
-template <typename T>
-R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue()
+template<typename T> R123_CONSTEXPR R123_STATIC_INLINE R123_CUDA_DEVICE T maxTvalue()
     {
     typedef typename make_unsigned<T>::type uT;
     return (~uT(0)) >> std::numeric_limits<T>::is_signed;
     }
 #else
-template <typename T>
-R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue()
+template<typename T> R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue()
     {
     return std::numeric_limits<T>::max();
     }
@@ -73,16 +72,16 @@ R123_CONSTEXPR R123_STATIC_INLINE T maxTvalue()
 //  Let M be the number of mantissa bits in Ftype.
 //  If W>M  then the largest value retured is 1.0.
 //  If W<=M then the largest value returned is the largest Ftype less than 1.0.
-template <typename Ftype, typename Itype>
-R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
+template<typename Ftype, typename Itype> R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
     {
     typedef typename make_unsigned<Itype>::type Utype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Utype>()) + Ftype(1.));
-    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
+    R123_CONSTEXPR Ftype factor = Ftype(1.) / (Ftype(maxTvalue<Utype>()) + Ftype(1.));
+    R123_CONSTEXPR Ftype halffactor = Ftype(0.5) * factor;
 #if R123_UNIFORM_FLOAT_STORE
-    volatile Ftype x = Utype(in)*factor; return x+halffactor;
+    volatile Ftype x = Utype(in) * factor;
+    return x + halffactor;
 #else
-    return Ftype(Utype(in))*factor + halffactor;
+    return Ftype(Utype(in)) * factor + halffactor;
 #endif
     }
 
@@ -100,21 +99,21 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype u01(Itype in)
 //  If W>M  then the largest value retured is 1.0 and the smallest is -1.0.
 //  If W<=M then the largest value returned is the largest Ftype less than 1.0
 //    and the smallest value returned is the smallest Ftype greater than -1.0.
-template <typename Ftype, typename Itype>
-R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
+template<typename Ftype, typename Itype> R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
     {
     typedef typename make_signed<Itype>::type Stype;
-    R123_CONSTEXPR Ftype factor = Ftype(1.)/(Ftype(maxTvalue<Stype>()) + Ftype(1.));
-    R123_CONSTEXPR Ftype halffactor = Ftype(0.5)*factor;
+    R123_CONSTEXPR Ftype factor = Ftype(1.) / (Ftype(maxTvalue<Stype>()) + Ftype(1.));
+    R123_CONSTEXPR Ftype halffactor = Ftype(0.5) * factor;
 #if R123_UNIFORM_FLOAT_STORE
-    volatile Ftype x = Stype(in)*factor; return x+halffactor;
+    volatile Ftype x = Stype(in) * factor;
+    return x + halffactor;
 #else
-    return Ftype(Stype(in))*factor + halffactor;
+    return Ftype(Stype(in)) * factor + halffactor;
 #endif
     }
 
 // end code copied from random123 examples
-}
+    } // namespace r123
 
 #ifdef __HIPCC__
 #define DEVICE __device__
@@ -123,7 +122,7 @@ R123_CUDA_DEVICE R123_STATIC_INLINE Ftype uneg11(Itype in)
 #endif // __HIPCC__
 
 namespace hoomd
-{
+    {
 /** RNG seed
 
     RandomGenerator initializes with a 64-bit seed and a 128-bit counter. Seed and Counter provide
@@ -182,7 +181,8 @@ class Counter
     Note: Only use the 4th argument when absolutely necessary and when you know that the resulting
     RNG stream will not need to sample more than 65536 values.
     */
-    DEVICE Counter(uint32_t a=0, uint32_t b=0, uint32_t c=0, uint16_t d=0) : m_ctr({{static_cast<uint32_t>(d) << 16, c, b, a}})
+    DEVICE Counter(uint32_t a = 0, uint32_t b = 0, uint32_t c = 0, uint16_t d = 0)
+        : m_ctr({{static_cast<uint32_t>(d) << 16, c, b, a}})
         {
         }
 
@@ -223,31 +223,31 @@ class Counter
 class RandomGenerator
     {
     public:
-        /** Construct a random generator from a Seed and a Counter
+    /** Construct a random generator from a Seed and a Counter
 
-            @param seed RNG seed.
-            @param counter Initial value of the RNG counter.
-        */
-        DEVICE inline RandomGenerator(const Seed& seed, const Counter& counter);
+        @param seed RNG seed.
+        @param counter Initial value of the RNG counter.
+    */
+    DEVICE inline RandomGenerator(const Seed& seed, const Counter& counter);
 
-        /// Generate uniformly distributed 128-bit values
-        DEVICE inline r123::Philox4x32::ctr_type operator()();
+    /// Generate uniformly distributed 128-bit values
+    DEVICE inline r123::Philox4x32::ctr_type operator()();
 
-        /// Get the key
-        DEVICE inline r123::Philox4x32::key_type getKey()
-            {
-            return m_key;
-            }
+    /// Get the key
+    DEVICE inline r123::Philox4x32::key_type getKey()
+        {
+        return m_key;
+        }
 
-        /// Get the counter
-        DEVICE inline r123::Philox4x32::ctr_type getCounter()
-            {
-            return m_ctr;
-            }
+    /// Get the counter
+    DEVICE inline r123::Philox4x32::ctr_type getCounter()
+        {
+        return m_ctr;
+        }
 
     private:
-        r123::Philox4x32::key_type m_key;   //!< RNG key
-        r123::Philox4x32::ctr_type m_ctr;   //!< RNG counter
+    r123::Philox4x32::key_type m_key; //!< RNG key
+    r123::Philox4x32::ctr_type m_ctr; //!< RNG counter
     };
 
 DEVICE inline RandomGenerator::RandomGenerator(const Seed& seed, const Counter& counter)
@@ -269,19 +269,16 @@ DEVICE inline r123::Philox4x32::ctr_type RandomGenerator::operator()()
     }
 
 namespace detail
-{
-
+    {
 //! Generate a uniform random uint32_t
-template <class RNG>
-DEVICE inline uint32_t generate_u32(RNG& rng)
+template<class RNG> DEVICE inline uint32_t generate_u32(RNG& rng)
     {
     auto u = rng();
     return u.v[0];
     }
 
 //! Generate a uniform random uint64_t
-template <class RNG>
-DEVICE inline uint64_t generate_u64(RNG& rng)
+template<class RNG> DEVICE inline uint64_t generate_u64(RNG& rng)
     {
     auto u = rng();
     return uint64_t(u.v[0]) << 32 | u.v[1];
@@ -291,8 +288,7 @@ DEVICE inline uint64_t generate_u64(RNG& rng)
 /*! \param out1 [out] A random uniform 64-bit unsigned integer.
     \param out2 [out] A random uniform 64-bit unsigned integer.
  */
-template <class RNG>
-DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
+template<class RNG> DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
     {
     auto u = rng();
     out1 = uint64_t(u.v[0]) << 32 | u.v[1];
@@ -305,138 +301,132 @@ DEVICE inline void generate_2u64(uint64_t& out1, uint64_t& out2, RNG& rng)
 
     \post The state of the generator is advanced one step.
  */
-template <class Real, class RNG>
-DEVICE inline Real generate_canonical(RNG& rng)
+template<class Real, class RNG> DEVICE inline Real generate_canonical(RNG& rng)
     {
     return r123::u01<Real>(generate_u64(rng));
     }
-} // namespace detail
+    } // namespace detail
 
 //! Generate a uniform random value in [a,b]
-/*! For all practical purposes, the range returned by this function is [a,b]. This is due to round off error:
-    e.g. for a=1.0, 1.0+2**(-65) == 1.0. For small values of a, the range may become (a,b]. It depends
-    on the round off that occurs in a + (b-a)*u, where u is in the range [2**(-65), 1].
+/*! For all practical purposes, the range returned by this function is [a,b]. This is due to round
+   off error: e.g. for a=1.0, 1.0+2**(-65) == 1.0. For small values of a, the range may become
+   (a,b]. It depends on the round off that occurs in a + (b-a)*u, where u is in the range [2**(-65),
+   1].
 */
-template<typename Real>
-class UniformDistribution
+template<typename Real> class UniformDistribution
     {
     public:
-        //! Constructor
-        /*! \param _a Left end point of the interval
-            \param _b Right end point of the interval
-        */
-        DEVICE explicit UniformDistribution(Real _a=Real(0.0), Real _b=Real(1.0))
-            : a(_a), width(_b - _a)
-            {
-            }
+    //! Constructor
+    /*! \param _a Left end point of the interval
+        \param _b Right end point of the interval
+    */
+    DEVICE explicit UniformDistribution(Real _a = Real(0.0), Real _b = Real(1.0))
+        : a(_a), width(_b - _a)
+        {
+        }
 
-        //! Draw a value from the distribution
-        /*! \param rng Random number generator
-            \returns uniform random value in [a,b]
-        */
-        template<typename RNG>
-        DEVICE inline Real operator()(RNG& rng)
-            {
-            return a + width * detail::generate_canonical<Real>(rng);
-            }
+    //! Draw a value from the distribution
+    /*! \param rng Random number generator
+        \returns uniform random value in [a,b]
+    */
+    template<typename RNG> DEVICE inline Real operator()(RNG& rng)
+        {
+        return a + width * detail::generate_canonical<Real>(rng);
+        }
 
     private:
-        const Real a;     //!< Left end point of the interval
-        const Real width; //!< Width of the interval
+    const Real a;     //!< Left end point of the interval
+    const Real width; //!< Width of the interval
     };
 
 //! Generate normally distributed random values
 /*! Use the Box-Muller method to generate normally distributed random values.
-*/
-template<typename Real>
-class NormalDistribution
+ */
+template<typename Real> class NormalDistribution
     {
     public:
-        //! Constructor
-        /*! \param _sigma Standard deviation of the distribution
-            \param _mu Mean of the distribution
-        */
-        DEVICE explicit NormalDistribution(Real _sigma=Real(1.0), Real _mu=Real(0.0))
-            : sigma(_sigma), mu(_mu)
-            {
-            }
+    //! Constructor
+    /*! \param _sigma Standard deviation of the distribution
+        \param _mu Mean of the distribution
+    */
+    DEVICE explicit NormalDistribution(Real _sigma = Real(1.0), Real _mu = Real(0.0))
+        : sigma(_sigma), mu(_mu)
+        {
+        }
 
-        //! Draw a value from the distribution
-        /*! \param rng Random number generator
-            \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
-        */
-        template<typename RNG>
-        DEVICE inline Real operator()(RNG& rng)
-            {
-            uint64_t u0, u1;
-            detail::generate_2u64(u0, u1, rng);
+    //! Draw a value from the distribution
+    /*! \param rng Random number generator
+        \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
+    */
+    template<typename RNG> DEVICE inline Real operator()(RNG& rng)
+        {
+        uint64_t u0, u1;
+        detail::generate_2u64(u0, u1, rng);
 
-            // from random123/examples/boxmuller.hpp
-            Real x, y;
-            fast::sincospi(r123::uneg11<Real>(u0), x, y);
-            Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
-            x *= r;
-            return x * sigma + mu;
-            }
+        // from random123/examples/boxmuller.hpp
+        Real x, y;
+        fast::sincospi(r123::uneg11<Real>(u0), x, y);
+        Real r = fast::sqrt(Real(-2.0)
+                            * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
+        x *= r;
+        return x * sigma + mu;
+        }
 
-        //! Draw two values from the distribution
-        /*! \param out1 [out] First output
-            \param out2 [out] Second output
-            \param rng Random number generator
-            \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
-        */
-        template<typename RNG>
-        DEVICE inline void operator()(Real& out1, Real& out2, RNG& rng)
-            {
-            uint64_t u0, u1;
-            detail::generate_2u64(u0, u1, rng);
+    //! Draw two values from the distribution
+    /*! \param out1 [out] First output
+        \param out2 [out] Second output
+        \param rng Random number generator
+        \returns normally distributed random value in with standard deviation *sigma* and mean *mu*.
+    */
+    template<typename RNG> DEVICE inline void operator()(Real& out1, Real& out2, RNG& rng)
+        {
+        uint64_t u0, u1;
+        detail::generate_2u64(u0, u1, rng);
 
-            // from random123/examples/boxmuller.hpp
-            Real x, y;
-            fast::sincospi(r123::uneg11<Real>(u0), x, y);
-            Real r = fast::sqrt(Real(-2.0) * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
-            r = r * sigma;
-            x *= r;
-            y *= r;
-            out1 = x + mu;
-            out2 = y + mu;
-            }
+        // from random123/examples/boxmuller.hpp
+        Real x, y;
+        fast::sincospi(r123::uneg11<Real>(u0), x, y);
+        Real r = fast::sqrt(Real(-2.0)
+                            * fast::log(r123::u01<Real>(u1))); // u01 is guaranteed to avoid 0.
+        r = r * sigma;
+        x *= r;
+        y *= r;
+        out1 = x + mu;
+        out2 = y + mu;
+        }
 
     private:
-        const Real sigma;     //!< Standard deviation
-        const Real mu;        //!< Mean
+    const Real sigma; //!< Standard deviation
+    const Real mu;    //!< Mean
     };
 
 //! Generate random points on the surface of a sphere
-template<typename Real>
-class SpherePointGenerator
+template<typename Real> class SpherePointGenerator
     {
     public:
-        DEVICE explicit SpherePointGenerator() {}
+    DEVICE explicit SpherePointGenerator() { }
 
-        template<typename RNG, typename Real3>
-        DEVICE inline void operator()(RNG& rng, Real3& point)
+    template<typename RNG, typename Real3> DEVICE inline void operator()(RNG& rng, Real3& point)
+        {
+        // draw a random angle
+        const Real theta = UniformDistribution<Real>(Real(0), Real(2.0 * M_PI))(rng);
+
+        // draw u (should typically only happen once) ensuring that
+        // 1-u^2 > 0 so that the square-root is defined
+        Real u, one_minus_u2;
+        do
             {
-            // draw a random angle
-            const Real theta = UniformDistribution<Real>(Real(0), Real(2.0*M_PI))(rng);
+            u = UniformDistribution<Real>(Real(-1.0), Real(1.0))(rng);
+            one_minus_u2 = 1.0f - u * u;
+            } while (one_minus_u2 < Real(0.0));
 
-            // draw u (should typically only happen once) ensuring that
-            // 1-u^2 > 0 so that the square-root is defined
-            Real u, one_minus_u2;
-            do
-                {
-                u = UniformDistribution<Real>(Real(-1.0), Real(1.0))(rng);
-                one_minus_u2 = 1.0f-u*u;
-                }
-            while (one_minus_u2 < Real(0.0));
-
-            // project onto the sphere surface
-            const Real sqrtu = fast::sqrt(one_minus_u2);
-            fast::sincos(theta, (Real &) point.y, (Real& ) point.x);
-            point.x *= sqrtu;
-            point.y *= sqrtu;
-            point.z = u;
-            }
+        // project onto the sphere surface
+        const Real sqrtu = fast::sqrt(one_minus_u2);
+        fast::sincos(theta, (Real&)point.y, (Real&)point.x);
+        point.x *= sqrtu;
+        point.y *= sqrtu;
+        point.z = u;
+        }
     };
 
 //! Generator for gamma-distributed random variables
@@ -460,218 +450,212 @@ class SpherePointGenerator
  *
  * \tparam Real Precision of the random number
  */
-template<typename Real>
-class GammaDistribution
+template<typename Real> class GammaDistribution
     {
     public:
-        //! Constructor
-        /*!
-         * \param alpha
-         * \param b
-         */
-        DEVICE explicit GammaDistribution(const Real alpha, const Real b)
-            : m_b(b)
-            {
-            m_d = alpha - Real(1./3.);
-            m_c = fast::rsqrt(m_d)/Real(3.);
-            }
+    //! Constructor
+    /*!
+     * \param alpha
+     * \param b
+     */
+    DEVICE explicit GammaDistribution(const Real alpha, const Real b) : m_b(b)
+        {
+        m_d = alpha - Real(1. / 3.);
+        m_c = fast::rsqrt(m_d) / Real(3.);
+        }
 
-        //! Draw a random number from the gamma distribution
-        /*!
-         * \param rng Philox random number generator
-         * \returns A gamma distributed random variate
-         *
-         * The implementation of this method is inspired by that of the GSL,
-         * and also as discussed online:
-         *
-         *      http://www.hongliangjie.com/2012/12/19/how-to-generate-gamma-random-variables/
-         *
-         * The squeeze test is performed to bypass some transcendental calls.
-         */
-        template<typename RNG>
-        DEVICE inline Real operator()(RNG& rng)
+    //! Draw a random number from the gamma distribution
+    /*!
+     * \param rng Philox random number generator
+     * \returns A gamma distributed random variate
+     *
+     * The implementation of this method is inspired by that of the GSL,
+     * and also as discussed online:
+     *
+     *      http://www.hongliangjie.com/2012/12/19/how-to-generate-gamma-random-variables/
+     *
+     * The squeeze test is performed to bypass some transcendental calls.
+     */
+    template<typename RNG> DEVICE inline Real operator()(RNG& rng)
+        {
+        Real v;
+        while (1)
             {
-            Real v;
-            while(1)
+            // first draw a valid Marsaglia v value using the normal distribution
+            Real x;
+            do
                 {
-                // first draw a valid Marsaglia v value using the normal distribution
-                Real x;
-                do
-                    {
-                    x = m_normal(rng);
-                    v = 1.0f + m_c * x;
-                    }
-                while (v <= Real(0.));
-                v = v*v*v;
+                x = m_normal(rng);
+                v = 1.0f + m_c * x;
+                } while (v <= Real(0.));
+            v = v * v * v;
 
-                // draw uniform and perform cheap squeeze test first
-                const Real x2 = x*x;
-                Real u = detail::generate_canonical<Real>(rng);
-                if (u < 1.0f-0.0331f*x2*x2) break;
+            // draw uniform and perform cheap squeeze test first
+            const Real x2 = x * x;
+            Real u = detail::generate_canonical<Real>(rng);
+            if (u < 1.0f - 0.0331f * x2 * x2)
+                break;
 
-                // otherwise, do expensive log comparison
-                if (fast::log(u) < 0.5f*x2 + m_d*(1.0f-v+fast::log(v))) break;
-                }
-
-            // convert the Gamma(alpha,1) to Gamma(alpha,beta)
-            return m_d * v * m_b;
+            // otherwise, do expensive log comparison
+            if (fast::log(u) < 0.5f * x2 + m_d * (1.0f - v + fast::log(v)))
+                break;
             }
+
+        // convert the Gamma(alpha,1) to Gamma(alpha,beta)
+        return m_d * v * m_b;
+        }
 
     private:
-        Real m_b;       //!< Gamma-distribution b-parameter
-        Real m_c;       //!< c-parameter for Marsaglia and Tsang method
-        Real m_d;       //!< d-parameter for Marasglia and Tsang method
+    Real m_b; //!< Gamma-distribution b-parameter
+    Real m_c; //!< c-parameter for Marsaglia and Tsang method
+    Real m_d; //!< d-parameter for Marasglia and Tsang method
 
-        NormalDistribution<Real> m_normal; //!< Normal variate generator
+    NormalDistribution<Real> m_normal; //!< Normal variate generator
     };
 
 //! Generate uniform random unsigned integers in the range [0,m]
 /*! This distribution is useful when selecting from a number of finite choices.
-*/
+ */
 class UniformIntDistribution
     {
     public:
-        //! Constructor
-        /*! \param _m Maximum value this distribution will return
-        */
-        DEVICE explicit UniformIntDistribution(uint32_t _m)
-            : m(_m)
+    //! Constructor
+    /*! \param _m Maximum value this distribution will return
+     */
+    DEVICE explicit UniformIntDistribution(uint32_t _m) : m(_m) { }
+
+    //! Draw a value from the distribution
+    /*! \param rng RNG to utilize in the move
+        \returns a random number 0 <= i <= m with uniform probability.
+
+        **Method**
+
+        First, round m+1 up to the next nearest power of two -> max2. Then draw random numbers in
+       the range [0 ... max2) using 32-but random values and a bitwise and with max2-1. Return the
+       first random number found in the range.
+    */
+    template<typename RNG> DEVICE inline uint32_t operator()(RNG& rng)
+        {
+        // handle degenerate case where m==0
+        if (m == 0)
+            return 0;
+
+        // algorithm to round up to the nearest power of two from
+        // https://en.wikipedia.org/wiki/Power_of_two
+        unsigned int n = m + 1;
+        n = n - 1;
+        n = n | (n >> 1);
+        n = n | (n >> 2);
+        n = n | (n >> 4);
+        n = n | (n >> 8);
+        n = n | (n >> 16);
+        // Note: leaving off the n = n + 1 because we are going to & with next highest power of 2 -1
+
+        unsigned int result;
+        do
             {
-            }
+            result = detail::generate_u32(rng) & n;
+            } while (result > m);
 
-        //! Draw a value from the distribution
-        /*! \param rng RNG to utilize in the move
-            \returns a random number 0 <= i <= m with uniform probability.
-
-            **Method**
-
-            First, round m+1 up to the next nearest power of two -> max2. Then draw random numbers in the range [0 ... max2)
-            using 32-but random values and a bitwise and with max2-1. Return the first random number found in the range.
-        */
-        template<typename RNG>
-        DEVICE inline uint32_t operator()(RNG& rng)
-            {
-            // handle degenerate case where m==0
-            if (m == 0)
-                return 0;
-
-            // algorithm to round up to the nearest power of two from https://en.wikipedia.org/wiki/Power_of_two
-            unsigned int n = m+1;
-            n = n - 1;
-            n = n | (n >> 1);
-            n = n | (n >> 2);
-            n = n | (n >> 4);
-            n = n | (n >> 8);
-            n = n | (n >> 16);
-            // Note: leaving off the n = n + 1 because we are going to & with next highest power of 2 -1
-
-            unsigned int result;
-            do
-                {
-                result = detail::generate_u32(rng) & n;
-                } while(result > m);
-
-            return result;
-            }
+        return result;
+        }
 
     private:
-        const uint32_t m;     //!< Maximum value
+    const uint32_t m; //!< Maximum value
     };
 
 //! Generate Poisson distributed random values
-/*! Use the method from: https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
+/*! Use the method from:
+   https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
     (code posted there is in the public domain)
 */
-template <class Real>
-class PoissonDistribution
+template<class Real> class PoissonDistribution
     {
     public:
-        //! Constructor
-        /*! \param _mean Distribution mean
-        */
-        DEVICE explicit PoissonDistribution(Real _mean)
-            : mean(_mean)
-            {
-            }
+    //! Constructor
+    /*! \param _mean Distribution mean
+     */
+    DEVICE explicit PoissonDistribution(Real _mean) : mean(_mean) { }
 
-        //! Draw a value from the distribution
-        /*! \param rng Random number generator
-            \returns normally Poisson distributed random number with mean *mean*.
-        */
-        template<typename RNG>
-        DEVICE inline int operator()(RNG& rng)
+    //! Draw a value from the distribution
+    /*! \param rng Random number generator
+        \returns normally Poisson distributed random number with mean *mean*.
+    */
+    template<typename RNG> DEVICE inline int operator()(RNG& rng)
+        {
+        // the value 13 is determined by empirical performance testing
+        if (mean < 13)
             {
-            // the value 13 is determined by empirical performance testing
-            if (mean < 13)
-                {
-                return poissrnd_small(rng);
-                }
-            else
-                {
-                return poissrnd_large(rng);
-                }
+            return poissrnd_small(rng);
             }
+        else
+            {
+            return poissrnd_large(rng);
+            }
+        }
 
     private:
-        const Real mean;    //!< Sample mean
+    const Real mean; //!< Sample mean
 
-        Real _lgamma(Real xx)
-            {
-            // code from /*! Use the method from: https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
-            // compute lgamma from series expansion
-            Real pi = M_PI;
-            Real xx2 = xx*xx;
-            Real xx3 = xx2*xx;
-            Real xx5 = xx3*xx2;
-            Real xx7 = xx5*xx2;
-            Real xx9 = xx7*xx2;
-            Real xx11 = xx9*xx2;
-            return xx*fast::log(xx) - xx - Real(0.5)*fast::log(xx/(Real(2)*pi)) +
-                   Real(1)/(Real(12)*xx) - Real(1)/(Real(360)*xx3) + Real(1)/(Real(1260)*xx5) -
-                   Real(1)/(Real(1680)*xx7) + Real(1)/(Real(1188)*xx9) - Real(691)/(Real(360360)*xx11);
-            }
+    Real _lgamma(Real xx)
+        {
+        // code from /*! Use the method from:
+        // https://scicomp.stackexchange.com/questions/27330/how-to-generate-poisson-distributed-random-numbers-quickly-and-accurately/27334
+        // compute lgamma from series expansion
+        Real pi = M_PI;
+        Real xx2 = xx * xx;
+        Real xx3 = xx2 * xx;
+        Real xx5 = xx3 * xx2;
+        Real xx7 = xx5 * xx2;
+        Real xx9 = xx7 * xx2;
+        Real xx11 = xx9 * xx2;
+        return xx * fast::log(xx) - xx - Real(0.5) * fast::log(xx / (Real(2) * pi))
+               + Real(1) / (Real(12) * xx) - Real(1) / (Real(360) * xx3)
+               + Real(1) / (Real(1260) * xx5) - Real(1) / (Real(1680) * xx7)
+               + Real(1) / (Real(1188) * xx9) - Real(691) / (Real(360360) * xx11);
+        }
 
-        template<typename RNG>
-        DEVICE int poissrnd_small(RNG& rng)
+    template<typename RNG> DEVICE int poissrnd_small(RNG& rng)
+        {
+        Real L = fast::exp(-mean);
+        Real p = 1;
+        int result = 0;
+        do
             {
-            Real L = fast::exp(-mean);
-            Real p = 1;
-            int result = 0;
+            result++;
+            p *= detail::generate_canonical<Real>(rng);
+            } while (p > L);
+        result--;
+        return result;
+        }
+
+    template<typename RNG> DEVICE int poissrnd_large(RNG& rng)
+        {
+        Real r;
+        Real x, m;
+        Real pi = Real(M_PI);
+        Real sqrt_mean = fast::sqrt(mean);
+        Real log_mean = fast::log(mean);
+        Real g_x;
+        Real f_m;
+
+        do
+            {
             do
                 {
-                result++;
-                p *= detail::generate_canonical<Real>(rng);
-                } while (p > L);
-            result--;
-            return result;
-            }
-
-        template<typename RNG>
-        DEVICE int poissrnd_large(RNG& rng)
-            {
-            Real r;
-            Real x, m;
-            Real pi = Real(M_PI);
-            Real sqrt_mean = fast::sqrt(mean);
-            Real log_mean = fast::log(mean);
-            Real g_x;
-            Real f_m;
-
-            do
-                {
-                do
-                    {
-                    x = mean + sqrt_mean*slow::tan(pi*(detail::generate_canonical<Real>(rng)-Real(0.5)));
-                    } while (x < 0);
-                g_x = sqrt_mean/(pi*((x-mean)*(x-mean) + mean));
-                m = slow::floor(x);
-                f_m = fast::exp(m*log_mean - mean - lgamma(m + 1));
-                r = f_m / g_x / Real(2.4);
+                x = mean
+                    + sqrt_mean
+                          * slow::tan(pi * (detail::generate_canonical<Real>(rng) - Real(0.5)));
+                } while (x < 0);
+            g_x = sqrt_mean / (pi * ((x - mean) * (x - mean) + mean));
+            m = slow::floor(x);
+            f_m = fast::exp(m * log_mean - mean - lgamma(m + 1));
+            r = f_m / g_x / Real(2.4);
             } while (detail::generate_canonical<Real>(rng) > r);
-          return (int)m;
-          }
+        return (int)m;
+        }
     };
 
-} // end namespace hoomd
+    } // end namespace hoomd
 #undef DEVICE
 #endif // #define HOOMD_RANDOM_NUMBERS_H_

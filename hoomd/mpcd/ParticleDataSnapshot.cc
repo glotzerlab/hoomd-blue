@@ -11,15 +11,12 @@
 #include "ParticleDataSnapshot.h"
 #include <pybind11/numpy.h>
 
-mpcd::ParticleDataSnapshot::ParticleDataSnapshot()
-    : size(0), mass(1.0)
-    {}
+mpcd::ParticleDataSnapshot::ParticleDataSnapshot() : size(0), mass(1.0) { }
 
 /*!
  * \param N Number of particles in the snapshot
  */
-mpcd::ParticleDataSnapshot::ParticleDataSnapshot(unsigned int N)
-    : size(N), mass(1.0)
+mpcd::ParticleDataSnapshot::ParticleDataSnapshot(unsigned int N) : size(N), mass(1.0)
     {
     resize(N);
     }
@@ -53,10 +50,12 @@ bool mpcd::ParticleDataSnapshot::validate() const
     // the type map must not be empty, and every type must fall in the range of known types
     if (size > 0)
         {
-        if (type_mapping.size() == 0) return false;
-        for (unsigned int i=0; i < size; ++i)
+        if (type_mapping.size() == 0)
+            return false;
+        for (unsigned int i = 0; i < size; ++i)
             {
-            if (type[i] >= type_mapping.size()) return false;
+            if (type[i] >= type_mapping.size())
+                return false;
             }
         }
 
@@ -83,7 +82,7 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
 
     const unsigned int old_size = size;
 
-    resize(old_size*nx*ny*nz);
+    resize(old_size * nx * ny * nz);
 
     for (unsigned int i = 0; i < old_size; ++i)
         {
@@ -100,32 +99,34 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
                     {
                     Scalar3 f_new;
                     // replicate particle
-                    f_new.x = f.x/(Scalar)nx + (Scalar)l/(Scalar)nx;
-                    f_new.y = f.y/(Scalar)ny + (Scalar)m/(Scalar)ny;
-                    f_new.z = f.z/(Scalar)nz + (Scalar)n/(Scalar)nz;
+                    f_new.x = f.x / (Scalar)nx + (Scalar)l / (Scalar)nx;
+                    f_new.y = f.y / (Scalar)ny + (Scalar)m / (Scalar)ny;
+                    f_new.z = f.z / (Scalar)nz + (Scalar)n / (Scalar)nz;
 
-                    unsigned int k = j*old_size + i;
+                    unsigned int k = j * old_size + i;
 
                     // coordinates in new box
                     Scalar3 q = new_box.makeCoordinates(f_new);
-                    int3 image = make_int3(0,0,0);
-                    new_box.wrap(q,image);
+                    int3 image = make_int3(0, 0, 0);
+                    new_box.wrap(q, image);
 
                     position[k] = vec3<Scalar>(q);
                     velocity[k] = velocity[i];
                     type[k] = type[i];
                     ++j;
                     } // n
-                } // m
-            } // l
-        } // i
+                }     // m
+            }         // l
+        }             // i
     }
 
-namespace mpcd { namespace detail {
-
+namespace mpcd
+    {
+namespace detail
+    {
 pybind11::object ParticleDataSnapshotGetPosition(pybind11::object self)
     {
-    auto self_cpp = self.cast<ParticleDataSnapshot *>();
+    auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
     std::vector<ssize_t> dims(2);
     dims[0] = self_cpp->position.size();
@@ -135,7 +136,7 @@ pybind11::object ParticleDataSnapshotGetPosition(pybind11::object self)
 
 pybind11::object ParticleDataSnapshotGetVelocity(pybind11::object self)
     {
-    auto self_cpp = self.cast<ParticleDataSnapshot *>();
+    auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
     std::vector<ssize_t> dims(2);
     dims[0] = self_cpp->velocity.size();
@@ -145,16 +146,16 @@ pybind11::object ParticleDataSnapshotGetVelocity(pybind11::object self)
 
 pybind11::object ParticleDataSnapshotGetType(pybind11::object self)
     {
-    auto self_cpp = self.cast<ParticleDataSnapshot *>();
+    auto self_cpp = self.cast<ParticleDataSnapshot*>();
     return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
     }
 
 pybind11::list ParticleDataSnapshotGetTypeNames(pybind11::object self)
     {
-    auto self_cpp = self.cast<ParticleDataSnapshot *>();
+    auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
     pybind11::list py_types;
-    for (unsigned int i=0; i < self_cpp->type_mapping.size(); ++i)
+    for (unsigned int i = 0; i < self_cpp->type_mapping.size(); ++i)
         {
         py_types.append(pybind11::str(self_cpp->type_mapping[i]));
         }
@@ -166,30 +167,34 @@ pybind11::list ParticleDataSnapshotGetTypeNames(pybind11::object self)
  */
 void ParticleDataSnapshotSetTypeNames(pybind11::object self, pybind11::list types)
     {
-    auto self_cpp = self.cast<ParticleDataSnapshot *>();
+    auto self_cpp = self.cast<ParticleDataSnapshot*>();
 
     self_cpp->type_mapping.resize(len(types));
-    for (unsigned int i=0; i < len(types); ++i)
+    for (unsigned int i = 0; i < len(types); ++i)
         {
         self_cpp->type_mapping[i] = pybind11::cast<std::string>(types[i]);
         }
     }
 
-} }
+    } // namespace detail
+    } // namespace mpcd
 
 /*!
  * \param m Python module to export to
  */
 void mpcd::detail::export_ParticleDataSnapshot(pybind11::module& m)
     {
-    pybind11::class_< mpcd::ParticleDataSnapshot, std::shared_ptr<mpcd::ParticleDataSnapshot> >(m, "MPCDParticleDataSnapshot")
-    .def_property_readonly("position", &mpcd::detail::ParticleDataSnapshotGetPosition)
-    .def_property_readonly("velocity", &mpcd::detail::ParticleDataSnapshotGetVelocity)
-    .def_property_readonly("typeid", &mpcd::detail::ParticleDataSnapshotGetType)
-    .def_readwrite("mass", &mpcd::ParticleDataSnapshot::mass)
-    .def_property("types", &mpcd::detail::ParticleDataSnapshotGetTypeNames, &mpcd::detail::ParticleDataSnapshotSetTypeNames)
-    .def_readonly("N", &mpcd::ParticleDataSnapshot::size)
-    .def("resize", &mpcd::ParticleDataSnapshot::resize)
-    .def("replicate", &mpcd::ParticleDataSnapshot::replicate)
-    ;
+    pybind11::class_<mpcd::ParticleDataSnapshot, std::shared_ptr<mpcd::ParticleDataSnapshot>>(
+        m,
+        "MPCDParticleDataSnapshot")
+        .def_property_readonly("position", &mpcd::detail::ParticleDataSnapshotGetPosition)
+        .def_property_readonly("velocity", &mpcd::detail::ParticleDataSnapshotGetVelocity)
+        .def_property_readonly("typeid", &mpcd::detail::ParticleDataSnapshotGetType)
+        .def_readwrite("mass", &mpcd::ParticleDataSnapshot::mass)
+        .def_property("types",
+                      &mpcd::detail::ParticleDataSnapshotGetTypeNames,
+                      &mpcd::detail::ParticleDataSnapshotSetTypeNames)
+        .def_readonly("N", &mpcd::ParticleDataSnapshot::size)
+        .def("resize", &mpcd::ParticleDataSnapshot::resize)
+        .def("replicate", &mpcd::ParticleDataSnapshot::replicate);
     }

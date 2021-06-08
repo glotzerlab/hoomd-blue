@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: csadorf,samnola
 
 /*! \file CallbackAnalyzer.h
@@ -18,10 +17,10 @@
 #include "Analyzer.h"
 #include "ParticleGroup.h"
 
-#include <string>
 #include <fstream>
 #include <memory>
 #include <pybind11/pybind11.h>
+#include <string>
 
 //! Calls a python functor object
 /*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.
@@ -32,20 +31,18 @@
 class CallbackAnalyzer : public Analyzer
     {
     public:
-        //! Construct the callback analyzer
-        CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
-                    pybind11::object callback);
+    //! Construct the callback analyzer
+    CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef, pybind11::object callback);
 
-        //! Destructor
-        ~CallbackAnalyzer();
+    //! Destructor
+    ~CallbackAnalyzer();
 
-        //! Call the analyzer callback
-        void analyze(uint64_t timestep);
+    //! Call the analyzer callback
+    void analyze(uint64_t timestep);
 
     private:
-
-        ////! The callback function to be called at each analyzer period.
-        pybind11::object callback;
+    ////! The callback function to be called at each analyzer period.
+    pybind11::object callback;
     };
 
 //! Exports the CallbackAnalyzer class to python

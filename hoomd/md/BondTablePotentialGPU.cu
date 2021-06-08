@@ -2,17 +2,16 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "BondTablePotentialGPU.cuh"
 #include "hoomd/TextureTools.h"
 
-
 #include <assert.h>
 
 /*! \file BondTablePotentialGPU.cu
-    \brief Defines GPU kernel code for calculating the table bond forces. Used by BondTablePotentialGPU.
+    \brief Defines GPU kernel code for calculating the table bond forces. Used by
+   BondTablePotentialGPU.
 */
 
 /*!  This kernel is called to calculate the table pair forces on all N particles
@@ -29,36 +28,34 @@
     \param n_bond_type number of bond types
     \param d_params Parameters for each table associated with a type pair
     \param table_value index helper function
-    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be evaluated
+    \param d_flags Flag allocated on the device for use in checking for bonds that cannot be
+   evaluated
 
     See BondTablePotential for information on the memory layout.
 */
 __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
-                                     Scalar* d_virial,
-                                     const size_t virial_pitch,
-                                     const unsigned int N,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim box,
-                                     const group_storage<2> *blist,
-                                     size_t pitch,
-                                     const unsigned int *n_bonds_list,
-                                     const unsigned int n_bond_type,
-                                     const Scalar2 *d_tables,
-                                     const Scalar4 *d_params,
-                                     const Index2D table_value,
-                                     unsigned int *d_flags)
+                                                    Scalar* d_virial,
+                                                    const size_t virial_pitch,
+                                                    const unsigned int N,
+                                                    const Scalar4* d_pos,
+                                                    const BoxDim box,
+                                                    const group_storage<2>* blist,
+                                                    size_t pitch,
+                                                    const unsigned int* n_bonds_list,
+                                                    const unsigned int n_bond_type,
+                                                    const Scalar2* d_tables,
+                                                    const Scalar4* d_params,
+                                                    const Index2D table_value,
+                                                    unsigned int* d_flags)
     {
-
-
     // read in params for easy and fast access in the kernel
-    HIP_DYNAMIC_SHARED( Scalar4, s_params)
+    HIP_DYNAMIC_SHARED(Scalar4, s_params)
     for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_bond_type)
             s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
         }
     __syncthreads();
-
 
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,7 +64,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
         return;
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_bonds =n_bonds_list[idx];
+    int n_bonds = n_bonds_list[idx];
 
     // read in the position of our particle.
     Scalar4 postype = d_pos[idx];
@@ -84,7 +81,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
         {
         // MEM TRANSFER: 8 bytes
-        group_storage<2> cur_bond = blist[pitch*bond_idx + idx];
+        group_storage<2> cur_bond = blist[pitch * bond_idx + idx];
 
         int cur_bond_idx = cur_bond.idx[0];
         int cur_bond_type = cur_bond.idx[1];
@@ -118,7 +115,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
             unsigned int value_i = floor(value_f);
 
             Scalar2 VF0 = __ldg(d_tables + table_value(value_i, cur_bond_type));
-            Scalar2 VF1 = __ldg(d_tables + table_value(value_i+1, cur_bond_type));
+            Scalar2 VF1 = __ldg(d_tables + table_value(value_i + 1, cur_bond_type));
             // unpack the data
             Scalar V0 = VF0.x;
             Scalar V1 = VF1.x;
@@ -158,13 +155,11 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
             }
         }
 
-
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force;
-    for (unsigned int i = 0; i < 6 ; i++)
-        d_virial[i*virial_pitch + idx] = virial[i];
+    for (unsigned int i = 0; i < 6; i++)
+        d_virial[i * virial_pitch + idx] = virial[i];
     }
-
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -184,24 +179,25 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                    of forces failed for any bond
     \param block_size Block size at which to run the kernel
 
-    \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full documentation.
+    \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full
+   documentation.
 */
 hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
-                                     Scalar* d_virial,
-                                     size_t virial_pitch,
-                                     const unsigned int N,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim &box,
-                                     const group_storage<2> *blist,
-                                     const unsigned int pitch,
-                                     const unsigned int *n_bonds_list,
-                                     const unsigned int n_bond_type,
-                                     const Scalar2 *d_tables,
-                                     const Scalar4 *d_params,
-                                     const unsigned int table_width,
-                                     const Index2D &table_value,
-                                     unsigned int *d_flags,
-                                     const unsigned int block_size)
+                                        Scalar* d_virial,
+                                        size_t virial_pitch,
+                                        const unsigned int N,
+                                        const Scalar4* d_pos,
+                                        const BoxDim& box,
+                                        const group_storage<2>* blist,
+                                        const unsigned int pitch,
+                                        const unsigned int* n_bonds_list,
+                                        const unsigned int n_bond_type,
+                                        const Scalar2* d_tables,
+                                        const Scalar4* d_params,
+                                        const unsigned int table_width,
+                                        const Index2D& table_value,
+                                        unsigned int* d_flags,
+                                        const unsigned int block_size)
     {
     assert(d_params);
     assert(d_tables);
@@ -212,30 +208,35 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void *)gpu_compute_bondtable_forces_kernel);
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_bondtable_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( N / run_block_size + 1, 1, 1);
+    dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_compute_bondtable_forces_kernel), dim3(grid), dim3(threads), sizeof(Scalar4)*n_bond_type , 0, d_force,
-             d_virial,
-             virial_pitch,
-             N,
-             d_pos,
-             box,
-             blist,
-             pitch,
-             n_bonds_list,
-             n_bond_type,
-             d_tables,
-             d_params,
-             table_value,
-             d_flags);
+    hipLaunchKernelGGL((gpu_compute_bondtable_forces_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       sizeof(Scalar4) * n_bond_type,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       box,
+                       blist,
+                       pitch,
+                       n_bonds_list,
+                       n_bond_type,
+                       d_tables,
+                       d_params,
+                       table_value,
+                       d_flags);
 
     return hipSuccess;
     }

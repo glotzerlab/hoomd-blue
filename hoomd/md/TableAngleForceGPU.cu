@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: phillicl
 
 #include "TableAngleForceGPU.cuh"
@@ -14,7 +13,8 @@
 #define SMALL 0.001f
 
 /*! \file TableAngleForceGPU.cu
-    \brief Defines GPU kernel code for calculating the table angle forces. Used by TableAngleForceComputeGPU.
+    \brief Defines GPU kernel code for calculating the table angle forces. Used by
+   TableAngleForceComputeGPU.
 */
 
 /*!  This kernel is called to calculate the table angle forces on all triples this is defined or
@@ -37,21 +37,19 @@
     See TableAngleForceCompute for information on the memory layout.
 */
 __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
-                                     Scalar* d_virial,
-                                     const size_t virial_pitch,
-                                     const unsigned int N,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim box,
-                                     const group_storage<3> *alist,
-                                     const unsigned int *apos_list,
-                                     const unsigned int pitch,
-                                     const unsigned int *n_angles_list,
-                                     const Scalar2 *d_tables,
-                                     const Index2D table_value,
-                                     const Scalar delta_th)
+                                                      Scalar* d_virial,
+                                                      const size_t virial_pitch,
+                                                      const unsigned int N,
+                                                      const Scalar4* d_pos,
+                                                      const BoxDim box,
+                                                      const group_storage<3>* alist,
+                                                      const unsigned int* apos_list,
+                                                      const unsigned int pitch,
+                                                      const unsigned int* n_angles_list,
+                                                      const Scalar2* d_tables,
+                                                      const Index2D table_value,
+                                                      const Scalar delta_th)
     {
-
-
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -59,13 +57,12 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
         return;
 
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_angles =n_angles_list[idx];
+    int n_angles = n_angles_list[idx];
 
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    Scalar4 idx_postype = d_pos[idx];  // we can be either a, b, or c in the a-b-c triplet
+    Scalar4 idx_postype = d_pos[idx]; // we can be either a, b, or c in the a-b-c triplet
     Scalar3 idx_pos = make_scalar3(idx_postype.x, idx_postype.y, idx_postype.z);
-    Scalar3 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
-
+    Scalar3 a_pos, b_pos, c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
 
     // initialize the force to 0
     Scalar4 force_idx = make_scalar4(0.0, 0.0, 0.0, 0.0);
@@ -79,12 +76,12 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
 
     for (int angle_idx = 0; angle_idx < n_angles; angle_idx++)
         {
-        group_storage<3> cur_angle = alist[pitch*angle_idx + idx];
+        group_storage<3> cur_angle = alist[pitch * angle_idx + idx];
 
         int cur_angle_x_idx = cur_angle.idx[0];
         int cur_angle_y_idx = cur_angle.idx[1];
         int cur_angle_type = cur_angle.idx[2];
-        int cur_angle_abc = apos_list[pitch*angle_idx + idx];
+        int cur_angle_abc = apos_list[pitch * angle_idx + idx];
 
         // get the a-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 x_postype = d_pos[cur_angle_x_idx];
@@ -128,18 +125,20 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
         Scalar rcb = fast::sqrt(rsqcb);
 
         Scalar c_abbc = dot(dab, dcb);
-        c_abbc /= rab*rcb;
+        c_abbc /= rab * rcb;
 
-        if (c_abbc > Scalar(1.0)) c_abbc = Scalar(1.0);
-        if (c_abbc < -Scalar(1.0)) c_abbc = -Scalar(1.0);
+        if (c_abbc > Scalar(1.0))
+            c_abbc = Scalar(1.0);
+        if (c_abbc < -Scalar(1.0))
+            c_abbc = -Scalar(1.0);
 
-        Scalar s_abbc = fast::sqrt(Scalar(1.0)- c_abbc*c_abbc);
-        if (s_abbc < SMALL) s_abbc = SMALL;
-        s_abbc = Scalar(1.0)/s_abbc;
+        Scalar s_abbc = fast::sqrt(Scalar(1.0) - c_abbc * c_abbc);
+        if (s_abbc < SMALL)
+            s_abbc = SMALL;
+        s_abbc = Scalar(1.0) / s_abbc;
 
         // actually calculate the force
         Scalar theta = acosf(c_abbc);
-
 
         // precomputed term
         Scalar value_f = theta / delta_th;
@@ -147,7 +146,7 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
         // compute index into the table and read in values
         unsigned int value_i = value_f;
         Scalar2 VT0 = __ldg(d_tables + table_value(value_i, cur_angle_type));
-        Scalar2 VT1 = __ldg(d_tables + table_value(value_i+1, cur_angle_type));
+        Scalar2 VT1 = __ldg(d_tables + table_value(value_i + 1, cur_angle_type));
         // unpack the data
         Scalar V0 = VT0.x;
         Scalar V1 = VT1.x;
@@ -161,31 +160,30 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
         Scalar V = V0 + f * (V1 - V0);
         Scalar T = T0 + f * (T1 - T0);
 
-
         Scalar a = T * s_abbc;
-        Scalar a11 = a*c_abbc/rsqab;
-        Scalar a12 = -a / (rab*rcb);
-        Scalar a22 = a*c_abbc / rsqcb;
+        Scalar a11 = a * c_abbc / rsqab;
+        Scalar a12 = -a / (rab * rcb);
+        Scalar a22 = a * c_abbc / rsqcb;
 
-        fab[0] = a11*dab.x + a12*dcb.x;
-        fab[1] = a11*dab.y + a12*dcb.y;
-        fab[2] = a11*dab.z + a12*dcb.z;
+        fab[0] = a11 * dab.x + a12 * dcb.x;
+        fab[1] = a11 * dab.y + a12 * dcb.y;
+        fab[2] = a11 * dab.z + a12 * dcb.z;
 
-        fcb[0] = a22*dcb.x + a12*dab.x;
-        fcb[1] = a22*dcb.y + a12*dab.y;
-        fcb[2] = a22*dcb.z + a12*dab.z;
+        fcb[0] = a22 * dcb.x + a12 * dab.x;
+        fcb[1] = a22 * dcb.y + a12 * dab.y;
+        fcb[2] = a22 * dcb.z + a12 * dab.z;
 
         // compute 1/3 of the energy, 1/3 for each atom in the angle
-        Scalar angle_eng = V*Scalar(1.0/3.0);
+        Scalar angle_eng = V * Scalar(1.0 / 3.0);
 
         // upper triangular version of virial tensor
         Scalar angle_virial[6];
-        angle_virial[0] = Scalar(1./3.) * ( dab.x*fab[0] + dcb.x*fcb[0] );
-        angle_virial[1] = Scalar(1./3.) * ( dab.y*fab[0] + dcb.y*fcb[0] );
-        angle_virial[2] = Scalar(1./3.) * ( dab.z*fab[0] + dcb.z*fcb[0] );
-        angle_virial[3] = Scalar(1./3.) * ( dab.y*fab[1] + dcb.y*fcb[1] );
-        angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
-        angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
+        angle_virial[0] = Scalar(1. / 3.) * (dab.x * fab[0] + dcb.x * fcb[0]);
+        angle_virial[1] = Scalar(1. / 3.) * (dab.y * fab[0] + dcb.y * fcb[0]);
+        angle_virial[2] = Scalar(1. / 3.) * (dab.z * fab[0] + dcb.z * fcb[0]);
+        angle_virial[3] = Scalar(1. / 3.) * (dab.y * fab[1] + dcb.y * fcb[1]);
+        angle_virial[4] = Scalar(1. / 3.) * (dab.z * fab[1] + dcb.z * fcb[1]);
+        angle_virial[5] = Scalar(1. / 3.) * (dab.z * fab[2] + dcb.z * fcb[2]);
 
         if (cur_angle_abc == 0)
             {
@@ -214,10 +212,9 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
     d_force[idx] = force_idx;
-    for (unsigned int i = 0; i < 6 ; i++)
-        d_virial[i*virial_pitch + idx] = virial[i];
+    for (unsigned int i = 0; i < 6; i++)
+        d_virial[i * virial_pitch + idx] = virial[i];
     }
-
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -235,22 +232,23 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
     \param block_size Block size at which to run the kernel
     \param compute_capability Compute capability of the device (200, 300, 350, ...)
 
-    \note This is just a kernel driver. See gpu_compute_table_angle_forces_kernel for full documentation.
+    \note This is just a kernel driver. See gpu_compute_table_angle_forces_kernel for full
+   documentation.
 */
 hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
-                                     Scalar* d_virial,
-                                     const size_t virial_pitch,
-                                     const unsigned int N,
-                                     const Scalar4 *d_pos,
-                                     const BoxDim &box,
-                                     const group_storage<3> *alist,
-                                     const unsigned int *apos_list,
-                                     const unsigned int pitch,
-                                     const unsigned int *n_angles_list,
-                                     const Scalar2 *d_tables,
-                                     const unsigned int table_width,
-                                     const Index2D &table_value,
-                                     const unsigned int block_size)
+                                          Scalar* d_virial,
+                                          const size_t virial_pitch,
+                                          const unsigned int N,
+                                          const Scalar4* d_pos,
+                                          const BoxDim& box,
+                                          const group_storage<3>* alist,
+                                          const unsigned int* apos_list,
+                                          const unsigned int pitch,
+                                          const unsigned int* n_angles_list,
+                                          const Scalar2* d_tables,
+                                          const unsigned int table_width,
+                                          const Index2D& table_value,
+                                          const unsigned int block_size)
     {
     assert(d_tables);
     assert(table_width > 1);
@@ -262,31 +260,36 @@ hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, (const void *)gpu_compute_table_angle_forces_kernel);
+        hipFuncGetAttributes(&attr, (const void*)gpu_compute_table_angle_forces_kernel);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // setup the grid to run the kernel
-    dim3 grid( N / run_block_size + 1, 1, 1);
+    dim3 grid(N / run_block_size + 1, 1, 1);
     dim3 threads(run_block_size, 1, 1);
 
-    Scalar delta_th = Scalar(M_PI)/(Scalar)(table_width - 1);
+    Scalar delta_th = Scalar(M_PI) / (Scalar)(table_width - 1);
 
-    hipLaunchKernelGGL((gpu_compute_table_angle_forces_kernel), dim3(grid), dim3(threads ), 0, 0, d_force,
-             d_virial,
-             virial_pitch,
-             N,
-             d_pos,
-             box,
-             alist,
-             apos_list,
-             pitch,
-             n_angles_list,
-             d_tables,
-             table_value,
-             delta_th);
+    hipLaunchKernelGGL((gpu_compute_table_angle_forces_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       N,
+                       d_pos,
+                       box,
+                       alist,
+                       apos_list,
+                       pitch,
+                       n_angles_list,
+                       d_tables,
+                       table_value,
+                       delta_th);
 
     return hipSuccess;
     }
