@@ -225,10 +225,10 @@ void MuellerPlatheFlow::updateDomainDecomposition(void)
 
         // Create the communicator.
         const int min_color = this->hasMinSlab() ? 0 : MPI_UNDEFINED;
-        init_mpi_swap(&m_min_swap, min_color);
+        initMPISwap(&m_min_swap, min_color);
 
         const int max_color = this->hasMaxSlab() ? 0 : MPI_UNDEFINED;
-        init_mpi_swap(&m_max_swap, max_color);
+        initMPISwap(&m_max_swap, max_color);
         }
 #endif // ENABLE_MPI
     }
@@ -380,7 +380,7 @@ void MuellerPlatheFlow::verifyOrthorhombicBox(void)
 #ifdef ENABLE_MPI
 
 // Not performance optimized: could be slow. It is meant for init.
-void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP* ms, const int color)
+void MuellerPlatheFlow::initMPISwap(struct MPI_SWAP* ms, const int color)
     {
     if (ms->initialized && ms->rank != MPI_UNDEFINED)
         MPI_Comm_free(&(ms->comm));
