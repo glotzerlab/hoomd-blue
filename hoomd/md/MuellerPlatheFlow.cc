@@ -41,7 +41,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
         }
 
     m_pdata->getBoxChangeSignal()
-        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
+        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::forceOrthorhombicBoxCheck>(this);
 
     m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
     m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
@@ -62,7 +62,7 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
     {
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlow " << endl;
     m_pdata->getBoxChangeSignal()
-        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
+        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::forceOrthorhombicBoxCheck>(this);
     }
 
 void MuellerPlatheFlow::update(uint64_t timestep)

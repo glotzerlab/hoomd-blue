@@ -145,7 +145,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         m_flow_epsilon = flow_epsilon;
         }
     //! Trigger checks for orthorhombic checks.
-    void force_orthorhombic_box_check(void)
+    void forceOrthorhombicBoxCheck(void)
         {
         m_needs_orthorhombic_check = true;
         }
