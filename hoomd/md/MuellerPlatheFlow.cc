@@ -49,7 +49,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
     m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
 
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlow " << endl;
-    this->update_domain_decomposition();
+    this->updateDomainDecomposition();
     // m_exec_conf->msg->notice(0)<<m_exec_conf->getRank()<<": "<< m_max_swap.gbl_rank<<"
     // "<<m_min_swap.gbl_rank<<endl;
 
@@ -173,7 +173,7 @@ void MuellerPlatheFlow::setMinSlab(const unsigned int min_slab)
         throw runtime_error("ERROR: Invalid min_slab.\n");
         }
     if (min_slab != m_min_slab)
-        this->update_domain_decomposition();
+        this->updateDomainDecomposition();
     }
 
 void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
@@ -185,10 +185,10 @@ void MuellerPlatheFlow::setMaxSlab(const unsigned int max_slab)
         throw runtime_error("ERROR: Invalid max_slab.\n");
         }
     if (max_slab != m_max_slab)
-        this->update_domain_decomposition();
+        this->updateDomainDecomposition();
     }
 
-void MuellerPlatheFlow::update_domain_decomposition(void)
+void MuellerPlatheFlow::updateDomainDecomposition(void)
     {
 #ifdef ENABLE_MPI
     std::shared_ptr<DomainDecomposition> dec = m_pdata->getDomainDecomposition();
@@ -496,6 +496,6 @@ void export_MuellerPlatheFlow(py::module& m)
         // .def("setMinSlab",&MuellerPlatheFlow::setMinSlab)
         // .def("setMaxSlab",&MuellerPlatheFlow::setMaxSlab)
         // .def("swapMinMaxSlab",&MuellerPlatheFlow::swapMinMaxSlab)
-        // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
+        // .def("updateDomainDecomposition",&MuellerPlatheFlow::updateDomainDecomposition)
         ;
     }

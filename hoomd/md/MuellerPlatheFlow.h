@@ -55,11 +55,11 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         {
         return m_N_slabs;
         }
-    unsigned int get_min_slab(void) const
+    unsigned int getMinSlab(void) const
         {
         return m_min_slab;
         }
-    unsigned int get_max_slab(void) const
+    unsigned int getMaxSlab(void) const
         {
         return m_max_slab;
         }
@@ -133,7 +133,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         }
 
     //! Call function, if the domain decomposition has changed.
-    void update_domain_decomposition(void);
+    void updateDomainDecomposition(void);
     //! Get the ignored variance between flow target and summed flow.
     Scalar getFlowEpsilon(void) const
         {
