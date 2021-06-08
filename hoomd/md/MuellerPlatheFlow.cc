@@ -69,7 +69,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
     {
     Updater::update(timestep);
     if (m_needs_orthorhombic_check)
-        this->verify_orthorhombic_box();
+        this->verifyOrthorhombicBox();
 
     const BoxDim& box = m_pdata->getGlobalBox();
     double area = 1.; // Init to shut up compiler warning
@@ -360,7 +360,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
         m_prof->pop();
     }
 
-void MuellerPlatheFlow::verify_orthorhombic_box(void)
+void MuellerPlatheFlow::verifyOrthorhombicBox(void)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getGlobalBox();
