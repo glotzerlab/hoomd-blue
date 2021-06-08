@@ -65,14 +65,14 @@ C++/CUDA
 
 * Naming conventions:
 
-    * Namespaces: All lowercase ``somenamespace``
-    * Class names: ``UpperCamelCase``
-    * Methods: ``lowerCamelCase``
-    * Member variables: ``m_`` prefix followed by lowercase with words
-      separated by underscores ``m_member_variable``
-    * Constants: all upper-case with words separated by underscores
-      ``SOME_CONSTANT``
-    * Functions: ``lowerCamelCase``
+  * Namespaces: All lowercase ``somenamespace``
+  * Class names: ``UpperCamelCase``
+  * Methods: ``lowerCamelCase``
+  * Member variables: ``m_`` prefix followed by lowercase with words
+    separated by underscores ``m_member_variable``
+  * Constants: all upper-case with words separated by underscores
+    ``SOME_CONSTANT``
+  * Functions: ``lowerCamelCase``
 
 Tools
 ^^^^^
