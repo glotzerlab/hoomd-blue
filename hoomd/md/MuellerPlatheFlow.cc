@@ -487,9 +487,7 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("flow_target", &MuellerPlatheFlow::getFlowTarget)
         .def_property_readonly("slab_direction", &MuellerPlatheFlow::getSlabDirection)
         .def_property_readonly("flow_direction", &MuellerPlatheFlow::getFlowDirection)
-        .def_property("flow_epsilon",
-                      &MuellerPlatheFlow::getFlowEpsilon,
-                      &MuellerPlatheFlow::setFlowEpsilon)
+        .def_property_readonly("flow_epsilon", &MuellerPlatheFlow::getFlowEpsilon)
         .def_property_readonly("summed_exchanged_momentum",
                                &MuellerPlatheFlow::getSummedExchangedMomentum)
         // Functions not needed for python interface users.

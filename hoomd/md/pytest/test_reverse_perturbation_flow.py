@@ -74,10 +74,4 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
         # summed_exchanged_momentum cannot be set
         mpf.summed_exchanged_momentum = 1.5
 
-    sim.run(1)
-    flow_epsilon = mpf.flow_epsilon
-    flow_epsilon *= 2
-    mpf.flow_epsilon = flow_epsilon
-    assert mpf.flow_epsilon == flow_epsilon
-
     sim.run(10)
