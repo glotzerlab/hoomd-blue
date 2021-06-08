@@ -7,7 +7,7 @@
 from copy import deepcopy
 from enum import Flag, auto
 from itertools import count
-from functools import reduce
+from functools import reduce, wraps
 from hoomd.util import dict_map, _SafeNamespaceDict
 from hoomd.error import DataAccessError
 from collections.abc import Sequence
@@ -406,6 +406,7 @@ def log(func=None,
             LoggerCategories[category], default)
         if requires_attach:
 
+            @wraps(func)
             def wrapped_with_exception(self, *args, **kwargs):
                 if not self._attached:
                     raise DataAccessError(name)
