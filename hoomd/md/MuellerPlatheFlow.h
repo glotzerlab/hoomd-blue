@@ -218,7 +218,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     struct MPI_SWAP m_max_swap;
     void initMPISwap(struct MPI_SWAP* ms, const int color);
     void bcastVelToAll(struct MPI_SWAP* ms, Scalar3* vel, const MPI_Op op);
-    void mpi_exchange_velocity(void);
+    void mpiExchangeVelocity(void);
 #endif // ENABLE_MPI
     };
 

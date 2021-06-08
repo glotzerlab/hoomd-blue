@@ -115,7 +115,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         search_min_max_velocity();
 
 #ifdef ENABLE_MPI
-        mpi_exchange_velocity();
+        mpiExchangeVelocity();
 #endif // ENABLE_MPI
 
         if (m_last_max_vel.x == -INVALID_VEL
@@ -452,7 +452,7 @@ void MuellerPlatheFlow::bcastVelToAll(struct MPI_SWAP* ms, Scalar3* vel, const M
     bcast(vel->z, ms->gbl_rank, m_exec_conf->getMPICommunicator());
     }
 
-void MuellerPlatheFlow::mpi_exchange_velocity(void)
+void MuellerPlatheFlow::mpiExchangeVelocity(void)
     {
 #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
