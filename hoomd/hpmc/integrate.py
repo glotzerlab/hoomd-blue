@@ -403,8 +403,7 @@ class HPMCIntegrator(BaseIntegrator):
 
     @field.setter
     def field(self, new_field):
-        if not isinstance(
-                new_field, hoomd.hpmc.external.user.CPPExternalField):
+        if not isinstance(new_field, hoomd.hpmc.external.user.CPPExternalField):
             raise TypeError(
                 "External potentials should be an instance of CPPExternalField")
         if self._added:

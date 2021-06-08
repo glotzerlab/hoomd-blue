@@ -82,13 +82,12 @@ class CPPPotentialBase(_HOOMDBaseObject):
     """
 
     def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
-        self._cpu_llvm_ir = _compile.to_llvm_ir(
-            self._wrap_cpu_code(code), clang_exec)
+        self._cpu_llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
+                                                clang_exec)
         self._code = code
-        param_dict = ParameterDict(
-            r_cut=r_cut,
-            param_array=hoomd.data.typeconverter.Array(dtype=np.float32, ndim=1)
-        )
+        param_dict = ParameterDict(r_cut=r_cut,
+                                   param_array=hoomd.data.typeconverter.Array(
+                                       dtype=np.float32, ndim=1))
         param_dict['r_cut'] = r_cut
         if param_array is None:
             param_dict['param_array'] = np.array([])
@@ -227,13 +226,13 @@ class CPPPotential(CPPPotentialBase):
                 cpp_sys_def, device._cpp_exec_conf, self._cpu_llvm_ir,
                 self.r_cut, self.param_array, gpu_code,
                 "hpmc::gpu::kernel::hpmc_narrow_phase_patch",
-                gpu_settings["includes"],
-                gpu_settings["cuda_devrt_lib_path"],
+                gpu_settings["includes"], gpu_settings["cuda_devrt_lib_path"],
                 gpu_settings["max_arch"])
         else:
-            self._cpp_obj = _jit.PatchEnergyJIT(
-                cpp_sys_def, device._cpp_exec_conf, self._cpu_llvm_ir,
-                self.r_cut, self.param_array)
+            self._cpp_obj = _jit.PatchEnergyJIT(cpp_sys_def,
+                                                device._cpp_exec_conf,
+                                                self._cpu_llvm_ir, self.r_cut,
+                                                self.param_array)
         # attach patch object to the integrator
         super()._attach()
 
@@ -398,8 +397,8 @@ class _CPPUnionPotential(CPPPotentialBase):
         # compile code if provided
         if self._code_union is not None:
             cpp_function_union = self._wrap_cpu_code(self._code_union)
-            llvm_ir_union = _compile._to_llvm_ir(
-                cpp_function_union, self._clang_exec)
+            llvm_ir_union = _compile._to_llvm_ir(cpp_function_union,
+                                                 self._clang_exec)
         # fall back to LLVM IR file in case code is not provided
         elif self._llvm_ir_file_union is not None:
             # IR is a text file

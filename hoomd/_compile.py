@@ -43,7 +43,8 @@ def get_gpu_compilation_settings(gpu):
     """Helper function to set CUDA libraries for GPU execution. """
     includes = [
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
-        "-I" + os.path.dirname(hoomd.__file__) + '/include/hoomd/extern/HIP/include',
+        "-I" + os.path.dirname(hoomd.__file__)
+        + '/include/hoomd/extern/HIP/include',
         # order seems to matter; add cuda last
         "-I" + _jit.__cuda_include_path__,
     ]
@@ -53,7 +54,7 @@ def get_gpu_compilation_settings(gpu):
     compute_archs = _jit.__cuda_compute_archs__
     compute_capability = gpu._cpp_exec_conf.getComputeCapability(0)  # GPU 0
     compute_capability = str(compute_capability)
-    compute_major, compute_minor = compute_capability[0], compute_capability[1:]#.split('.')
+    compute_major, compute_minor = compute_capability[0], compute_capability[1:]  #.split('.')
     max_arch = 0
     for a in compute_archs.split('_'):
         if int(a) < int(compute_major) * 10 + int(compute_major):
@@ -63,4 +64,4 @@ def get_gpu_compilation_settings(gpu):
         "cuda_devrt_lib_path": cuda_devrt_lib_path,
         "compute_archs": compute_archs,
         "max_arch": max_arch
-        }
+    }

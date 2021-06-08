@@ -8,34 +8,28 @@ import hoomd
 import pytest
 import numpy as np
 
-
-valid_constructor_args = [
-    dict(code='return -1;',
-         clang_exec='/usr/bin/clang')
-]
-
+valid_constructor_args = [dict(code='return -1;', clang_exec='/usr/bin/clang')]
 
 # setable attributes before attach for CPPExternalField objects
-valid_attrs = [('code', 'return -1;'),
-               ('clang_exec', 'clang')
-]
-
+valid_attrs = [('code', 'return -1;'), ('clang_exec', 'clang')]
 
 # attributes that cannot be set after object is attached
-attr_error =  [('code', 'return -1.0;'),
-               ('clang_exec', '/usr/bin/clang')
-]
-
+attr_error = [('code', 'return -1.0;'), ('clang_exec', '/usr/bin/clang')]
 
 # (orientation of p1, orientation of p2, charge of both particles, expected result)
 electric_field_params = [
-        ([(1, 0, 0, 0), (0, np.sqrt(2)/2, np.sqrt(2)/2, 0)], 1, 0),
-        ([(1, 0, 0, 0),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, -1),
-        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2),(0, np.sqrt(2)/2, 0, np.sqrt(2)/2)], 1, 0),
-        ([(0, np.sqrt(2)/2, 0, np.sqrt(2)/2),(0, np.sqrt(2)/2,0, np.sqrt(2)/2)], 1, -2),
-        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], 1,  2),
-        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -1,  -2),
-        ([(0, np.sqrt(2)/2, 0, -np.sqrt(2)/2), (0, np.sqrt(2)/2, 0, -np.sqrt(2)/2)], -3,  -6),
+    ([(1, 0, 0, 0), (0, np.sqrt(2) / 2, np.sqrt(2) / 2, 0)], 1, 0),
+    ([(1, 0, 0, 0), (0, np.sqrt(2) / 2, 0, np.sqrt(2) / 2)], 1, -1),
+    ([(0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2),
+      (0, np.sqrt(2) / 2, 0, np.sqrt(2) / 2)], 1, 0),
+    ([(0, np.sqrt(2) / 2, 0, np.sqrt(2) / 2),
+      (0, np.sqrt(2) / 2, 0, np.sqrt(2) / 2)], 1, -2),
+    ([(0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2),
+      (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], 1, 2),
+    ([(0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2),
+      (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -1, -2),
+    ([(0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2),
+      (0, np.sqrt(2) / 2, 0, -np.sqrt(2) / 2)], -3, -6),
 ]
 
 
@@ -54,9 +48,9 @@ def test_valid_construction_cpp_external(device, constructor_args):
 @pytest.mark.cpu
 @pytest.mark.serial
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_and_attach_cpp_external(device, simulation_factory,
-                                       two_particle_snapshot_factory,
-                                       constructor_args):
+def test_valid_construction_and_attach_cpp_external(
+        device, simulation_factory, two_particle_snapshot_factory,
+        constructor_args):
     """Test that CPPExternalField can be attached with valid arguments."""
     # create objects
     ext = hoomd.hpmc.external.user.CPPExternalField(**constructor_args)
@@ -89,10 +83,9 @@ def test_valid_setattr_cpp_external(device, attr, value):
 
 @pytest.mark.cpu
 @pytest.mark.serial
-@pytest.mark.parametrize("attr,val",  attr_error)
-def test_raise_attr_error_cpp_external(device, attr, val,
-                                     simulation_factory,
-                                     two_particle_snapshot_factory):
+@pytest.mark.parametrize("attr,val", attr_error)
+def test_raise_attr_error_cpp_external(device, attr, val, simulation_factory,
+                                       two_particle_snapshot_factory):
     """Test that CPPExternalField raises AttributeError if we
        try to set certain attributes after attaching.
     """
@@ -162,10 +155,11 @@ def test_gravity(device, simulation_factory, lattice_snapshot_factory):
 
     # expand box and add gravity field
     old_box = sim.state.box
-    sim.state.box = hoomd.Box(Lx=1.5*old_box.Lx,
-                              Ly=1.5*old_box.Ly,
-                              Lz=20*old_box.Lz)
-    ext = hoomd.hpmc.external.user.CPPExternalField(code="return 1000*(r_i.z + box.getL().z/2);")
+    sim.state.box = hoomd.Box(Lx=1.5 * old_box.Lx,
+                              Ly=1.5 * old_box.Ly,
+                              Lz=20 * old_box.Lz)
+    ext = hoomd.hpmc.external.user.CPPExternalField(
+        code="return 1000*(r_i.z + box.getL().z/2);")
 
     old_avg_z = np.mean(sim.state.snapshot.particles.position[:, 2])
 

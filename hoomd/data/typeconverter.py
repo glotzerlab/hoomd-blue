@@ -253,8 +253,14 @@ class OnlyFrom(_HelpValidate):
 
 
 class Array(_HelpValidate):
-    def __init__(self, dtype, ndim=None, shape=None, preprocess=None,
-                 postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 dtype,
+                 ndim=None,
+                 shape=None,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.dtype = dtype
         self.ndim = ndim

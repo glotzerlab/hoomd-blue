@@ -74,7 +74,7 @@ class CPPExternalField(_HOOMDBaseObject):
         integrate.FacetedEllipsoid: _jit.ExternalFieldJITFacetedEllipsoid,
         integrate.Polyhedron: _jit.ExternalFieldJITPolyhedron,
         integrate.Sphinx: _jit.ExternalFieldJITSphinx
-        }
+    }
 
     def __init__(self, code, clang_exec='clang'):
         self._llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_(code))
@@ -124,10 +124,9 @@ class CPPExternalField(_HOOMDBaseObject):
         if cpp_cls is None:
             raise RuntimeError("Unsupported integrator.\n")
 
-        self._cpp_obj = cpp_cls(
-            self._simulation.state._cpp_sys_def,
-            self._simulation.device._cpp_exec_conf,
-            self._llvm_ir)
+        self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
+                                self._simulation.device._cpp_exec_conf,
+                                self._llvm_ir)
         super()._attach()
 
     @log
