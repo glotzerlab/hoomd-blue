@@ -124,8 +124,9 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
     }
 
     snapshot = make_filter_snapshot(n=100, particle_types=["A", "B", "C"])
-    snapshot.particles.typeid[50:100] = 2
-    snapshot.particles.body[50:100] = -1
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.typeid[50:100] = 2
+        snapshot.particles.body[50:100] = -1
     sim = simulation_factory(snapshot)
     rigid.create_bodies(sim.state)
 
