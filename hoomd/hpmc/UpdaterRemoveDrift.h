@@ -50,6 +50,18 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         setRefPositions(ref_positions);
         }
 
+    pybind11::object getReferencePositionsNP(pybind11::object self)
+        {
+        auto self_cpp = self.cast<RemoveDriftUpdater<Shape>*>();
+        // // mark as dirty when accessing internal data
+        // self_cpp->is_accel_set = false;
+
+        std::vector<size_t> dims(2);
+        dims[0] = self_cpp->m_ref_positions.size();
+        dims[1] = 3;
+        return pybind11::array(dims, (Scalar*)&self_cpp->m_ref_positions[0], self);
+        }
+
     //! Get reference positions as a python list of 3-tuples
     pybind11::list getRefPositions()
         {
