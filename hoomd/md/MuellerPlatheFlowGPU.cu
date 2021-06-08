@@ -174,13 +174,12 @@ hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
     return hipPeekAtLastError();
     }
 
-void __global__
-gpu_update_min_max_velocity_kernel(const unsigned int* const d_rtag,
-                                   Scalar4* const d_vel,
-                                   const unsigned int Ntotal,
-                                   const Scalar3 last_max_vel,
-                                   const Scalar3 last_min_vel,
-                                   const flow_enum::Direction flow_direction)
+void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_rtag,
+                                                   Scalar4* const d_vel,
+                                                   const unsigned int Ntotal,
+                                                   const Scalar3 last_max_vel,
+                                                   const Scalar3 last_min_vel,
+                                                   const flow_enum::Direction flow_direction)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= 1)

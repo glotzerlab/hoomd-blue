@@ -3,11 +3,11 @@
 
 #pragma once
 
+#include "MuellerPlatheFlowEnum.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleGroup.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Variant.h"
-#include "MuellerPlatheFlowEnum.h"
 #include <pybind11/pybind11.h>
 
 #include <cfloat>
