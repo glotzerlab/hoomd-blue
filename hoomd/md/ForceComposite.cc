@@ -651,6 +651,7 @@ void ForceComposite::createRigidBodies()
     if (m_pdata->getDomainDecomposition())
         {
         bcast(molecule_tag, 0, m_exec_conf->getMPICommunicator());
+        bcast(n_central_particles, 0, m_exec_conf->getMPICommunicator());
         }
 #endif
 
@@ -903,6 +904,7 @@ void ForceComposite::updateCompositeParticles(uint64_t timestep)
         {
         return;
         }
+
     // access molecule order (this needs to be on top because of ArrayHandle scope) and its
     // pervasive use across this function.
     ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(),

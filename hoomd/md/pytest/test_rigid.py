@@ -125,7 +125,7 @@ def test_create_bodies(simulation_factory, two_particle_snapshot_factory,
 
     rigid.create_bodies(sim.state)
     snapshot = sim.state.snapshot
-    if sim.device.communicator.rank == 0:
+    if snapshot.communicator.rank == 0:
         check_bodies(snapshot, valid_body_definition)
 
 
