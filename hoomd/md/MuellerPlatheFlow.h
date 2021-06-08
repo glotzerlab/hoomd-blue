@@ -46,7 +46,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Take one timestep forward
     virtual void update(uint64_t timestep);
 
-    Scalar summed_exchanged_momentum(void) const
+    Scalar getSummedExchangedMomentum(void) const
         {
         return m_exchanged_momentum;
         }

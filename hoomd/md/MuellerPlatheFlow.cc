@@ -85,14 +85,14 @@ void MuellerPlatheFlow::update(uint64_t timestep)
 
     // Determine switch direction for this update call
     // Switch outside while loop, to prevent oscillations around the target.
-    bool bigger_swap_needed = (*m_flow_target)(timestep) > this->summed_exchanged_momentum() / area;
+    bool bigger_swap_needed = (*m_flow_target)(timestep) > this->getSummedExchangedMomentum() / area;
     bigger_swap_needed &= this->get_min_slab() > this->get_max_slab();
     bool smaller_swap_needed
-        = (*m_flow_target)(timestep) < this->summed_exchanged_momentum() / area;
+        = (*m_flow_target)(timestep) < this->getSummedExchangedMomentum() / area;
     smaller_swap_needed &= this->get_min_slab() < this->get_max_slab();
 
     if ((bigger_swap_needed || smaller_swap_needed)
-        && (fabs((*m_flow_target)(timestep) - this->summed_exchanged_momentum() / area)
+        && (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
             > this->get_flow_epsilon()))
         {
         this->swap_min_max_slab();
@@ -102,7 +102,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
 
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
-    while (fabs((*m_flow_target)(timestep) - this->summed_exchanged_momentum() / area)
+    while (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
                > this->get_flow_epsilon()
            && counter < max_iteration)
         {
@@ -141,11 +141,11 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         stringstream s;
         s << " After " << counter
           << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
-          << " only " << this->summed_exchanged_momentum() / area << " could be achieved." << endl;
+          << " only " << this->getSummedExchangedMomentum() / area << " could be achieved." << endl;
         m_exec_conf->msg->warning() << s.str();
         }
     // stringstream s;
-    // s<<this->summed_exchanged_momentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
+    // s<<this->getSummedExchangedMomentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
     // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
 
@@ -491,7 +491,7 @@ void export_MuellerPlatheFlow(py::module& m)
                       &MuellerPlatheFlow::get_flow_epsilon,
                       &MuellerPlatheFlow::set_flow_epsilon)
         .def_property_readonly("summed_exchanged_momentum",
-                               &MuellerPlatheFlow::summed_exchanged_momentum)
+                               &MuellerPlatheFlow::getSummedExchangedMomentum)
         // Functions not needed for python interface users.
         // .def("setMinSlab",&MuellerPlatheFlow::set_min_slab)
         // .def("setMaxSlab",&MuellerPlatheFlow::set_max_slab)
