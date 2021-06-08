@@ -59,7 +59,7 @@ void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    if (!this->has_max_slab() and !this->has_min_slab())
+    if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
     if (m_prof)
         m_prof->push("MuellerPlatheFlowGPU::search");
