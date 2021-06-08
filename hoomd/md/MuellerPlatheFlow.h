@@ -135,12 +135,12 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Call function, if the domain decomposition has changed.
     void update_domain_decomposition(void);
     //! Get the ignored variance between flow target and summed flow.
-    Scalar get_flow_epsilon(void) const
+    Scalar getFlowEpsilon(void) const
         {
         return m_flow_epsilon;
         }
     //! Get the ignored variance between flow target and summed flow.
-    void set_flow_epsilon(const Scalar flow_epsilon)
+    void setFlowEpsilon(const Scalar flow_epsilon)
         {
         m_flow_epsilon = flow_epsilon;
         }

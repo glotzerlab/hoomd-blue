@@ -93,7 +93,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
 
     if ((bigger_swap_needed || smaller_swap_needed)
         && (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
-            > this->get_flow_epsilon()))
+            > this->getFlowEpsilon()))
         {
         this->swap_min_max_slab();
         }
@@ -103,7 +103,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
     while (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
-               > this->get_flow_epsilon()
+               > this->getFlowEpsilon()
            && counter < max_iteration)
         {
         counter++;
@@ -488,8 +488,8 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("slab_direction", &MuellerPlatheFlow::get_slab_direction)
         .def_property_readonly("flow_direction", &MuellerPlatheFlow::get_flow_direction)
         .def_property("flow_epsilon",
-                      &MuellerPlatheFlow::get_flow_epsilon,
-                      &MuellerPlatheFlow::set_flow_epsilon)
+                      &MuellerPlatheFlow::getFlowEpsilon,
+                      &MuellerPlatheFlow::setFlowEpsilon)
         .def_property_readonly("summed_exchanged_momentum",
                                &MuellerPlatheFlow::getSummedExchangedMomentum)
         // Functions not needed for python interface users.
