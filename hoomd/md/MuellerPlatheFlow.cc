@@ -256,20 +256,20 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 {
             case flow_enum::X:
                 index = (unsigned int)(((h_pos.data[j].x) / gl_box.getL().x + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
             case flow_enum::Y:
                 index = (unsigned int)(((h_pos.data[j].y) / gl_box.getL().y + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
             case flow_enum::Z:
                 index = (unsigned int)(((h_pos.data[j].z) / gl_box.getL().z + .5)
-                                       * this->get_N_slabs());
+                                       * this->getNSlabs());
                 break;
                 }
-            index %= this->get_N_slabs(); // border cases. wrap periodic box
+            index %= this->getNSlabs(); // border cases. wrap periodic box
             assert(index >= 0);
-            assert(index < this->get_N_slabs());
+            assert(index < this->getNSlabs());
             if (index == this->getMaxSlab() || index == this->getMinSlab())
                 {
                 Scalar vel = 0; // Init to shut up compiler warning
@@ -479,7 +479,7 @@ void export_MuellerPlatheFlow(py::module& m)
                       const unsigned int,
                       const unsigned int,
                       Scalar>())
-        .def_property_readonly("n_slabs", &MuellerPlatheFlow::get_N_slabs)
+        .def_property_readonly("n_slabs", &MuellerPlatheFlow::getNSlabs)
         .def_property_readonly("min_slab", &MuellerPlatheFlow::getMinSlab)
         .def_property_readonly("max_slab", &MuellerPlatheFlow::getMaxSlab)
         .def_property_readonly("has_min_slab", &MuellerPlatheFlow::hasMinSlab)

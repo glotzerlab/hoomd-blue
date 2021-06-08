@@ -51,7 +51,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         return m_exchanged_momentum;
         }
 
-    unsigned int get_N_slabs(void) const
+    unsigned int getNSlabs(void) const
         {
         return m_N_slabs;
         }
