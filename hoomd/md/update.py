@@ -223,12 +223,12 @@ class ReversePerturbationFlow(Updater):
             min_slab = 0
         if max_slab < 0:
             max_slab = n_slabs / 2
-        assert (max_slab > -1 and max_slab < n_slabs
-                ), "Invalid max_slab in [0," + str(n_slabs) + ")."
-        assert (min_slab > -1 and min_slab < n_slabs
-                ), "Invalid min_slab in [0," + str(n_slabs) + ")."
-        assert (min_slab !=
-                max_slab), "Invalid min/max slabs. Both have the same value."
+        if max_slab <= -1 or max_slab > n_slabs:
+            raise ValueError("Invalid max_slab in [0," + str(n_slabs) + ").")
+        if min_slab <= -1 or min_slab > n_slabs:
+            raise ValueError("Invalid min_slab in [0," + str(n_slabs) + ").")
+        if min_slab == max_slab:
+            raise ValueError("Invalid min/max slabs. Both have the same value.")
 
         params = ParameterDict(filter=hoomd.filter.ParticleFilter,
                                flow_target=hoomd.variant.Variant,
