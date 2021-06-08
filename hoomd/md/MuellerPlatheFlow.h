@@ -96,7 +96,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
             }
         }
 
-    enum flow_enum::Direction getDirectionFromString(std::string direction_str) const
+    static enum flow_enum::Direction getDirectionFromString(std::string direction_str)
         {
         if (direction_str == "X")
             {
