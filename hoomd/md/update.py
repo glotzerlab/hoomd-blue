@@ -271,19 +271,3 @@ class ReversePerturbationFlow(Updater):
             return self._cpp_obj.summed_exchanged_momentum
         else:
             return None
-
-    @property
-    def has_min_slab(self):
-        R"""Returns, whether this MPI instance is part of the min slab."""
-        if self._attached:
-            return self._cpp_obj.has_min_slab
-        else:
-            return None
-
-    @property
-    def has_max_slab(self):
-        R"""Returns, whether this MPI instance is part of the max slab."""
-        if self._attached:
-            return self._cpp_obj.has_max_slab
-        else:
-            return None
