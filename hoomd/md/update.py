@@ -154,7 +154,7 @@ class ReversePerturbationFlow(Updater):
             apply this updater.
 
         flow_target (`hoomd.variant.Variant`): Integrated target flow.
-            :math:`[mass \cdot length \cdot time^{-1}]`
+            :math:`[timesteps \cdot mass \cdot length \cdot time^{-1}]`
 
         slab_direction (str): Direction perpendicular to the slabs. Can be "X",
             "Y", or "Z"
