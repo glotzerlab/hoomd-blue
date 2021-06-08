@@ -33,14 +33,14 @@ class Triplet(Force):
 
         \begin{eqnarray}
         \vec{F_i}
-            =& -\nabla V(\vec default_r_{ij}, \vec default_r_{ik})
-             & default_r_{ij} < default_r_{\mathrm{cut}}
-                \textrm{ and } default_r_{ik} < default_r_{\mathrm{cut}} \\
+            =& -\nabla V(\vec r_{ij}, \vec default_r_{ik})
+             & default_r_{ij} < r_{\mathrm{cut}}
+                \textrm{ and } r_{ik} < r_{\mathrm{cut}} \\
            =& 0 & else
         \end{eqnarray}
 
     Where
-    :math:`\vec default_r_{\alpha \beta} = \vec default_r_{\alpha} - \vec default_r_{\beta}`.
+    :math:`\vec r_{\alpha \beta} = \vec r_{\alpha} - \vec r_{\beta}`.
 
     The following coefficients must be set per unique pair of particle types.
     See :class:`hoomd.md.many_body` for information on how to set coefficients.
@@ -149,10 +149,10 @@ class Tersoff(Triplet):
         \begin{equation}
             f_C(r) =
             \begin{cases}
-                1 & r < default_r_{\mathrm{cut}} - default_r_{CT} \\
+                1 & r < r_{\mathrm{cut}} - r_{CT} \\
                 \exp \left[-\alpha\frac{x(r)^3}{x(r)^3 - 1} \right]
-                  & default_r_{\mathrm{cut}} - default_r_{CT} < r < default_r_{\mathrm{cut}} \\
-                0 & r > default_r_{\mathrm{cut}}
+                  & r_{\mathrm{cut}} - r_{CT} < r < r_{\mathrm{cut}} \\
+                0 & r > r_{\mathrm{cut}}
             \end{cases}
         \end{equation}
 
@@ -165,7 +165,7 @@ class Tersoff(Triplet):
 
     .. math::
 
-        x(r) = \frac{r - (r_{\mathrm{cut}} - default_r_{CT})}{r_{CT}}
+        x(r) = \frac{r - (r_{\mathrm{cut}} - r_{CT})}{r_{CT}}
 
     which ensures continuity between the different regions of the potential. In
     the definition of :math:`b_{ij}`, there is a quantity :math:`\chi_{ij}`
@@ -174,7 +174,7 @@ class Tersoff(Triplet):
     .. math::
 
         \chi_{ij} = \sum_{k \neq i,j} f_C(r_{ik})
-                     \cdot e^{\lambda_3^3 |r_{ij} - default_r_{ik}|^3}
+                     \cdot e^{\lambda_3^3 |r_{ij} - r_{ik}|^3}
         \cdot g(\theta_{ijk})
 
         g(\theta_{ijk}) = 1 + \frac{c^2}{d^2}
@@ -296,9 +296,9 @@ class RevCross(Triplet):
             \begin{eqnarray*}
             \hat{v}^{ \left( 2b \right)}_{ij}\left(\vec{r}_{ij}\right) =
             \begin{cases}
-            1 & r \le default_r_{min} \\
+            1 & r \le r_{min} \\
             - \dfrac{v_{ij}\left(\vec{r}_{ij}\right)}{\epsilon}
-              & r > default_r_{min} \\
+              & r > r_{min} \\
             \end{cases}
             \end{eqnarray*}
 
@@ -406,7 +406,7 @@ class SquareDensity(Triplet):
 
     .. math::
 
-        w(x) = \frac{15}{2 \pi default_r_{c,\mathrm{weight}}^3}
+        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3}
                (1-r/r_{c,\mathrm{weight}})^2
 
     The local density at the location of particle *i* is defined as
@@ -414,7 +414,7 @@ class SquareDensity(Triplet):
     .. math::
 
         n_i = \sum\limits_{j\neq i} w_{ij}
-              \left(\big| \vec default_r_i - \vec default_r_j \big|\right)
+              \left(\big| \vec r_i - \vec r_j \big|\right)
 
     Use `params` dictionary to set potential coefficients. The coefficients must
     be set per unique pair of particle types.
