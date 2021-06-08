@@ -159,7 +159,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Group of particles, which are searched for the velocity exchange
     std::shared_ptr<ParticleGroup> m_group;
 
-    virtual void search_min_max_velocity(void);
+    virtual void searchMinMaxVelocity(void);
     virtual void update_min_max_velocity(void);
 
     //! Temporary variables to store last found min vel info.

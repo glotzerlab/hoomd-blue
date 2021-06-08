@@ -54,7 +54,7 @@ MuellerPlatheFlowGPU::~MuellerPlatheFlowGPU(void)
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlowGPU " << endl;
     }
 
-void MuellerPlatheFlowGPU::search_min_max_velocity(void)
+void MuellerPlatheFlowGPU::searchMinMaxVelocity(void)
     {
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)

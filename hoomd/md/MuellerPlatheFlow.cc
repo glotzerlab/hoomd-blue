@@ -112,7 +112,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
         m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
         m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
-        search_min_max_velocity();
+        searchMinMaxVelocity();
 
 #ifdef ENABLE_MPI
         mpiExchangeVelocity();
@@ -233,7 +233,7 @@ void MuellerPlatheFlow::updateDomainDecomposition(void)
 #endif // ENABLE_MPI
     }
 
-void MuellerPlatheFlow::search_min_max_velocity(void)
+void MuellerPlatheFlow::searchMinMaxVelocity(void)
     {
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
