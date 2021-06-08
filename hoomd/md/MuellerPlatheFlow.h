@@ -154,7 +154,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     //! Swap min and max slab for a reverse flow.
     //! More efficient than separate calls of setMinSlab() and setMaxSlab(),
     //! especially in MPI runs.
-    void swap_min_max_slab(void);
+    void swapMinMaxSlab(void);
 
     //! Group of particles, which are searched for the velocity exchange
     std::shared_ptr<ParticleGroup> m_group;

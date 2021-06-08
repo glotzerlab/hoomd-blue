@@ -95,7 +95,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         && (fabs((*m_flow_target)(timestep) - this->getSummedExchangedMomentum() / area)
             > this->getFlowEpsilon()))
         {
-        this->swap_min_max_slab();
+        this->swapMinMaxSlab();
         }
     // Sign for summed exchanged momentum depends on hierarchy of min and max slab.
     const int sign = this->getMaxSlab() > this->getMinSlab() ? 1 : -1;
@@ -149,7 +149,7 @@ void MuellerPlatheFlow::update(uint64_t timestep)
     // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
     }
 
-void MuellerPlatheFlow::swap_min_max_slab(void)
+void MuellerPlatheFlow::swapMinMaxSlab(void)
     {
     std::swap(m_max_slab, m_min_slab);
 
@@ -495,7 +495,7 @@ void export_MuellerPlatheFlow(py::module& m)
         // Functions not needed for python interface users.
         // .def("setMinSlab",&MuellerPlatheFlow::setMinSlab)
         // .def("setMaxSlab",&MuellerPlatheFlow::setMaxSlab)
-        // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
+        // .def("swapMinMaxSlab",&MuellerPlatheFlow::swapMinMaxSlab)
         // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         ;
     }
