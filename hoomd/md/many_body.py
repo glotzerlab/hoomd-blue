@@ -33,8 +33,8 @@ class Triplet(Force):
 
         \begin{eqnarray}
         \vec{F_i}
-            =& -\nabla V(\vec r_{ij}, \vec default_r_{ik})
-             & default_r_{ij} < r_{\mathrm{cut}}
+            =& -\nabla V(\vec r_{ij}, \vec r_{ik})
+             & r_{ij} < r_{\mathrm{cut}}
                 \textrm{ and } r_{ik} < r_{\mathrm{cut}} \\
            =& 0 & else
         \end{eqnarray}
