@@ -121,13 +121,13 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
 
     //! Determine, whether this part of the domain decomposition
     //! has particles in the min slab.
-    bool has_min_slab(void) const
+    bool hasMinSlab(void) const
         {
         return m_has_min_slab;
         }
     //! Determine, whether this part of the domain decomposition
     //! has particles in the max slab.
-    bool has_max_slab(void) const
+    bool hasMaxSlab(void) const
         {
         return m_has_max_slab;
         }

@@ -224,10 +224,10 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
             m_has_max_slab = true;
 
         // Create the communicator.
-        const int min_color = this->has_min_slab() ? 0 : MPI_UNDEFINED;
+        const int min_color = this->hasMinSlab() ? 0 : MPI_UNDEFINED;
         init_mpi_swap(&m_min_swap, min_color);
 
-        const int max_color = this->has_max_slab() ? 0 : MPI_UNDEFINED;
+        const int max_color = this->hasMaxSlab() ? 0 : MPI_UNDEFINED;
         init_mpi_swap(&m_max_swap, max_color);
         }
 #endif // ENABLE_MPI
@@ -238,7 +238,7 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
     const unsigned int group_size = m_group->getNumMembers();
     if (group_size == 0)
         return;
-    if (!this->has_max_slab() and !this->has_min_slab())
+    if (!this->hasMaxSlab() and !this->hasMinSlab())
         return;
     if (m_prof)
         m_prof->push("MuellerPlatheFlow::search");
@@ -287,13 +287,13 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                     }
                 const Scalar mass = h_vel.data[j].w;
                 vel *= mass; // Use momentum instead of velocity
-                if (index == this->get_max_slab() && m_last_max_vel.x < vel && this->has_max_slab())
+                if (index == this->get_max_slab() && m_last_max_vel.x < vel && this->hasMaxSlab())
                     {
                     m_last_max_vel.x = vel;
                     m_last_max_vel.y = mass;
                     m_last_max_vel.z = __int_as_scalar(h_tag.data[j]);
                     }
-                if (index == this->get_min_slab() && m_last_min_vel.x > vel && this->has_min_slab())
+                if (index == this->get_min_slab() && m_last_min_vel.x > vel && this->hasMinSlab())
                     {
                     m_last_min_vel.x = vel;
                     m_last_max_vel.y = mass;
@@ -482,8 +482,8 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("n_slabs", &MuellerPlatheFlow::get_N_slabs)
         .def_property_readonly("min_slab", &MuellerPlatheFlow::get_min_slab)
         .def_property_readonly("max_slab", &MuellerPlatheFlow::get_max_slab)
-        .def_property_readonly("has_min_slab", &MuellerPlatheFlow::has_min_slab)
-        .def_property_readonly("has_max_slab", &MuellerPlatheFlow::has_max_slab)
+        .def_property_readonly("has_min_slab", &MuellerPlatheFlow::hasMinSlab)
+        .def_property_readonly("has_max_slab", &MuellerPlatheFlow::hasMaxSlab)
         .def_property_readonly("flow_target", &MuellerPlatheFlow::getFlowTarget)
         .def_property_readonly("slab_direction", &MuellerPlatheFlow::getSlabDirection)
         .def_property_readonly("flow_direction", &MuellerPlatheFlow::getFlowDirection)
