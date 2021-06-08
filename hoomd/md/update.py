@@ -179,6 +179,9 @@ class ReversePerturbationFlow(Updater):
         * This updater works currently only with orthorhombic boxes.
 
 
+    Note:
+        The attributes of this updater are immutable once the updater is attached to a simulation.
+
     Examples::
 
         # const integrated flow with 0.1 slope for max 1e8 timesteps
