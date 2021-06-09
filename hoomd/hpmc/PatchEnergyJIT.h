@@ -9,9 +9,7 @@
 
 #include "EvalFactory.h"
 
-#ifndef __HIPCC__
 #include <pybind11/numpy.h>
-#endif
 
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy
