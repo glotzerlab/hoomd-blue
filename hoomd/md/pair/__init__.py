@@ -10,5 +10,5 @@ For anisotropic potentials see `hoomd.md.pair.aniso`
 from . import aniso
 from .pair import (Pair, LJ, Gauss, SLJ, Yukawa, Ewald, Morse, DPD,
                    DPDConservative, DPDLJ, ForceShiftedLJ, Moliere, ZBL, Mie,
-                   ExpandedMie ,ReactionField, DLVO, Buckingham, LJ1208, LJ0804,
+                   ExpandedMie, ReactionField, DLVO, Buckingham, LJ1208, LJ0804,
                    Fourier, OPP, TWF)

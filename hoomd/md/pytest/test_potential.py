@@ -255,9 +255,11 @@ def _invalid_params():
         "m": 6,
         "delta": 0.25
     }
-    expanded_mie_invalid_dicts = _make_invalid_param_dict(expanded_mie_valid_dict)
+    expanded_mie_invalid_dicts = _make_invalid_param_dict(
+        expanded_mie_valid_dict)
     invalid_params_list.extend(
-        _make_invalid_params(expanded_mie_invalid_dicts, md.pair.ExpandedMie, {}))
+        _make_invalid_params(expanded_mie_invalid_dicts, md.pair.ExpandedMie,
+                             {}))
 
     dpd_valid_dict = {"A": 0.5, "gamma": 0.0005}
     dpd_invalid_dicts = _make_invalid_param_dict(dpd_valid_dict)
