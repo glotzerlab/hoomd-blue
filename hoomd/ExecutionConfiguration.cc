@@ -259,16 +259,13 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
 #if defined(ENABLE_HIP)
 
-/*! \returns Compute capability of the GPU formatted as 210 (for compute 2.1 as an example)
-    \note Silently returns 0 if no GPU is being used
-*/
-unsigned int ExecutionConfiguration::getComputeCapability(unsigned int idev) const
+std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapability(unsigned int idev) const
     {
-    unsigned int result = 0;
+    auto result = std::make_pair(0, 0);
 
     if (exec_mode == GPU)
         {
-        result = m_dev_prop[idev].major * 100 + m_dev_prop[idev].minor * 10;
+        result = std::make_pair(m_dev_prop[idev].major, m_dev_prop[idev].minor);
         }
 
     return result;
