@@ -253,6 +253,15 @@ class GPU(Device):
     def gpu_error_checking(self, new_bool):
         self._cpp_exec_conf.setCUDAErrorChecking(new_bool)
 
+    @property
+    def compute_capability(self):
+        """tuple(int, int): Compute capability of the device.
+
+        The tuple includes the major and minor versions of the CUDA compute
+        capability: ``(major, minor)``.
+        """
+        return self._cpp_exec_conf.getComputeCapability(0)
+
     @staticmethod
     def is_available():
         """Test if the GPU device is available.
