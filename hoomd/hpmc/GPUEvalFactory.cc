@@ -29,7 +29,7 @@ void GPUEvalFactory::compileGPU(const std::string& code,
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_" + std::to_string(compute_arch),
         "--relocatable-device-code=true",
-        "--std=c++11",
+        "--std=c++14",
 #ifdef ENABLE_HPMC_MIXED_PRECISION
         "-DENABLE_HPMC_MIXED_PRECISION",
 #endif
