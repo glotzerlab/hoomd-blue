@@ -386,7 +386,7 @@ __global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
         float beta_delta_U = s_energy_new_group[group] - s_energy_old_group[group];
 
         // Metropolis-Hastings
-        hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoTrialMove, timestep, seed),
+        hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoPatch, timestep, seed),
                                      hoomd::Counter(idx, select, rank));
         bool accept = hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-beta_delta_U);
 
