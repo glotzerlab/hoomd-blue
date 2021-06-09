@@ -24,37 +24,37 @@ namespace kernel
     The energy evaluation function (EVAL_FN) is selected via a preprocessor define
  */
 template<unsigned int eval_threads, unsigned int max_threads>
-__launch_bounds__(max_threads)
-__global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
-                           const Scalar4 *d_orientation,
-                           const Scalar4 *d_trial_postype,
-                           const Scalar4 *d_trial_orientation,
-                           const unsigned *d_trial_move_type,
-                           const Scalar *d_charge,
-                           const Scalar *d_diameter,
-                           const unsigned int *d_excell_idx,
-                           const unsigned int *d_excell_size,
-                           const Index2D excli,
-                           const unsigned int *d_update_order_by_ptl,
-                           const unsigned int *d_reject_in,
-                           unsigned int *d_reject_out,
-                           const unsigned int seed,
-                           const uint64_t timestep,
-                           const unsigned int select,
-                           const unsigned int rank,
-                           const unsigned int num_types,
-                           const BoxDim box,
-                           const Scalar3 ghost_width,
-                           const uint3 cell_dim,
-                           const Index3D ci,
-                           const unsigned int N_local,
-                           Scalar r_cut_patch,
-                           const Scalar *d_additive_cutoff,
-                           const unsigned int *d_reject_out_of_cell,
-                           const unsigned int max_queue_size,
-                           const unsigned int work_offset,
-                           const unsigned int nwork,
-                           const unsigned int max_extra_bytes)
+__launch_bounds__(max_threads) __global__
+    void hpmc_narrow_phase_patch(const Scalar4* d_postype,
+                                 const Scalar4* d_orientation,
+                                 const Scalar4* d_trial_postype,
+                                 const Scalar4* d_trial_orientation,
+                                 const unsigned* d_trial_move_type,
+                                 const Scalar* d_charge,
+                                 const Scalar* d_diameter,
+                                 const unsigned int* d_excell_idx,
+                                 const unsigned int* d_excell_size,
+                                 const Index2D excli,
+                                 const unsigned int* d_update_order_by_ptl,
+                                 const unsigned int* d_reject_in,
+                                 unsigned int* d_reject_out,
+                                 const unsigned int seed,
+                                 const uint64_t timestep,
+                                 const unsigned int select,
+                                 const unsigned int rank,
+                                 const unsigned int num_types,
+                                 const BoxDim box,
+                                 const Scalar3 ghost_width,
+                                 const uint3 cell_dim,
+                                 const Index3D ci,
+                                 const unsigned int N_local,
+                                 Scalar r_cut_patch,
+                                 const Scalar* d_additive_cutoff,
+                                 const unsigned int* d_reject_out_of_cell,
+                                 const unsigned int max_queue_size,
+                                 const unsigned int work_offset,
+                                 const unsigned int nwork,
+                                 const unsigned int max_extra_bytes)
     {
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
@@ -386,8 +386,9 @@ __global__ void hpmc_narrow_phase_patch(const Scalar4 *d_postype,
         float beta_delta_U = s_energy_new_group[group] - s_energy_old_group[group];
 
         // Metropolis-Hastings
-        hoomd::RandomGenerator rng_i(hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoPatch, timestep, seed),
-                                     hoomd::Counter(idx, select, rank));
+        hoomd::RandomGenerator rng_i(
+            hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoPatch, timestep, seed),
+            hoomd::Counter(idx, select, rank));
         bool accept = hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-beta_delta_U);
 
         // update device memory

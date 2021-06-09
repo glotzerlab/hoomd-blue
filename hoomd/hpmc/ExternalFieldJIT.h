@@ -72,73 +72,108 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
         return m_eval(box, type, r_i, q_i, diameter, charge);
         }
 
-        //! Computes the total field energy of the system at the current state
-        virtual double computeEnergy(uint64_t timestep)
+    //! Computes the total field energy of the system at the current state
+    virtual double computeEnergy(uint64_t timestep)
+        {
+        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::read);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
+                                     access_location::host,
+                                     access_mode::read);
+
+        const BoxDim& box = this->m_pdata->getGlobalBox();
+
+        double total_energy = 0.0;
+        for (size_t i = 0; i < this->m_pdata->getN(); i++)
             {
-            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            unsigned int typ_i = __scalar_as_int(postype_i.w);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
-            const BoxDim& box = this->m_pdata->getGlobalBox();
-
-            double total_energy = 0.0;
-            for(size_t i = 0; i < this->m_pdata->getN(); i++)
-                {
-                // read in the current position and orientation
-                Scalar4 postype_i = h_postype.data[i];
-                unsigned int typ_i = __scalar_as_int(postype_i.w);
-                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-
-                total_energy += energy(box, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
-                }
-            return total_energy;
+            total_energy += energy(box,
+                                   typ_i,
+                                   pos_i,
+                                   quat<Scalar>(h_orientation.data[i]),
+                                   h_diameter.data[i],
+                                   h_charge.data[i]);
             }
+        return total_energy;
+        }
 
-        virtual double calculateDeltaE(const Scalar4 * const position_old_arg,
-                                       const Scalar4 * const orientation_old_arg,
-                                       const BoxDim * const box_old_arg
-                                       )
+    virtual double calculateDeltaE(const Scalar4* const position_old_arg,
+                                   const Scalar4* const orientation_old_arg,
+                                   const BoxDim* const box_old_arg)
+        {
+        ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(),
+                                           access_location::host,
+                                           access_mode::read);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(),
+                                       access_location::host,
+                                       access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(),
+                                     access_location::host,
+                                     access_mode::read);
+        const BoxDim& box_new = this->m_pdata->getGlobalBox();
+        const Scalar4 *position_old = position_old_arg, *orientation_old = orientation_old_arg;
+        const BoxDim* box_old = box_old_arg;
+        if (!position_old)
             {
-            ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
-            ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
-            const BoxDim& box_new = this->m_pdata->getGlobalBox();
-            const Scalar4 * position_old = position_old_arg, * orientation_old = orientation_old_arg;
-            const BoxDim * box_old = box_old_arg;
-            if( !position_old )
-                {
-                const Scalar4 * const position_new = h_postype.data;
-                position_old = position_new;
-                }
-            if( !orientation_old )
-                {
-                const Scalar4 * const orientation_new = h_orientation.data;
-                orientation_old = orientation_new;
-                }
-            if( !box_old )
-                {
-                box_old = &box_new;
-                }
-            double dE = 0.0;
-            for(size_t i = 0; i < this->m_pdata->getN(); i++)
-                {
-                // read in the current position and orientation
-                Scalar4 postype_i = h_postype.data[i];
-                unsigned int typ_i = __scalar_as_int(postype_i.w);
-                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                dE += energy(box_new, typ_i, pos_i, quat<Scalar>(h_orientation.data[i]), h_diameter.data[i], h_charge.data[i]);
-                dE -= energy(*box_old, typ_i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), h_diameter.data[i], h_charge.data[i]);
-                }
-            #ifdef ENABLE_MPI
-            if (this->m_pdata->getDomainDecomposition())
-                {
-                MPI_Allreduce(MPI_IN_PLACE, &dE, 1, MPI_HOOMD_SCALAR, MPI_SUM, this->m_exec_conf->getMPICommunicator());
-                }
-            #endif
-            return dE;
+            const Scalar4* const position_new = h_postype.data;
+            position_old = position_new;
             }
+        if (!orientation_old)
+            {
+            const Scalar4* const orientation_new = h_orientation.data;
+            orientation_old = orientation_new;
+            }
+        if (!box_old)
+            {
+            box_old = &box_new;
+            }
+        double dE = 0.0;
+        for (size_t i = 0; i < this->m_pdata->getN(); i++)
+            {
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            unsigned int typ_i = __scalar_as_int(postype_i.w);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+            dE += energy(box_new,
+                         typ_i,
+                         pos_i,
+                         quat<Scalar>(h_orientation.data[i]),
+                         h_diameter.data[i],
+                         h_charge.data[i]);
+            dE -= energy(*box_old,
+                         typ_i,
+                         vec3<Scalar>(*(position_old + i)),
+                         quat<Scalar>(*(orientation_old + i)),
+                         h_diameter.data[i],
+                         h_charge.data[i]);
+            }
+#ifdef ENABLE_MPI
+        if (this->m_pdata->getDomainDecomposition())
+            {
+            MPI_Allreduce(MPI_IN_PLACE,
+                          &dE,
+                          1,
+                          MPI_HOOMD_SCALAR,
+                          MPI_SUM,
+                          this->m_exec_conf->getMPICommunicator());
+            }
+#endif
+        return dE;
+        }
 
     //! method to calculate the energy difference for the proposed move.
     double energydiff(const unsigned int& index,
@@ -192,10 +227,12 @@ template<class Shape> class ExternalFieldJIT : public hpmc::ExternalFieldMono<Sh
 //! Exports the ExternalFieldJIT class to python
 template<class Shape> void export_ExternalFieldJIT(pybind11::module& m, std::string name)
     {
-    pybind11::class_<ExternalFieldJIT<Shape>, hpmc::ExternalFieldMono <Shape>, std::shared_ptr<ExternalFieldJIT<Shape> > >(m, name.c_str())
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-                                 std::shared_ptr<ExecutionConfiguration>,
-                                 const std::string& >())
-            .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
+    pybind11::class_<ExternalFieldJIT<Shape>,
+                     hpmc::ExternalFieldMono<Shape>,
+                     std::shared_ptr<ExternalFieldJIT<Shape>>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            const std::string&>())
+        .def("computeEnergy", &ExternalFieldJIT<Shape>::computeEnergy);
     }
 #endif // _EXTERNAL_FIELD_ENERGY_JIT_H_

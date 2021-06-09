@@ -70,6 +70,6 @@ void GPUEvalFactory::compileGPU(const std::string& code,
         m_program.push_back(m_cache[idev].program(code, 0, compile_options));
         }
 
-    #endif
+#endif
     }
 #endif

@@ -113,33 +113,33 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
                                                       block_size);
 
         CUresult res = launcher(args.d_postype,
-            args.d_orientation,
-            args.d_trial_postype,
-            args.d_trial_orientation,
-            args.d_trial_move_type,
-            args.d_charge,
-            args.d_diameter,
-            args.d_excell_idx,
-            args.d_excell_size,
-            args.excli,
-            args.d_update_order_by_ptl,
-            args.d_reject_in,
-            args.d_reject_out,
-            args.seed,
-            args.timestep,
-            args.num_types,
-            args.box,
-            args.ghost_width,
-            args.cell_dim,
-            args.ci,
-            args.N,
-            args.r_cut_patch,
-            args.d_additive_cutoff,
-            args.d_reject_out_of_cell,
-            max_queue_size,
-            range.first,
-            nwork,
-            max_extra_bytes);
+                                args.d_orientation,
+                                args.d_trial_postype,
+                                args.d_trial_orientation,
+                                args.d_trial_move_type,
+                                args.d_charge,
+                                args.d_diameter,
+                                args.d_excell_idx,
+                                args.d_excell_size,
+                                args.excli,
+                                args.d_update_order_by_ptl,
+                                args.d_reject_in,
+                                args.d_reject_out,
+                                args.seed,
+                                args.timestep,
+                                args.num_types,
+                                args.box,
+                                args.ghost_width,
+                                args.cell_dim,
+                                args.ci,
+                                args.N,
+                                args.r_cut_patch,
+                                args.d_additive_cutoff,
+                                args.d_reject_out_of_cell,
+                                max_queue_size,
+                                range.first,
+                                nwork,
+                                max_extra_bytes);
 
         if (res != CUDA_SUCCESS)
             {
@@ -158,15 +158,21 @@ void PatchEnergyJITUnionGPU::computePatchEnergyGPU(const gpu_args_t& args, hipSt
 
 void export_PatchEnergyJITUnionGPU(pybind11::module& m)
     {
-    pybind11::class_<PatchEnergyJITUnionGPU, PatchEnergyJITUnion, std::shared_ptr<PatchEnergyJITUnionGPU> >(m, "PatchEnergyJITUnionGPU")
-            .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-                                 std::shared_ptr<ExecutionConfiguration>,
-                                 const std::string&, Scalar, pybind11::array_t<float>,
-                                 const std::string&, Scalar, const unsigned int,
-                                 const std::string&, const std::string&,
-                                 const std::vector<std::string>&,
-                                 const std::string&,
-                                 unsigned int>())
-            ;
+    pybind11::class_<PatchEnergyJITUnionGPU,
+                     PatchEnergyJITUnion,
+                     std::shared_ptr<PatchEnergyJITUnionGPU>>(m, "PatchEnergyJITUnionGPU")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExecutionConfiguration>,
+                            const std::string&,
+                            Scalar,
+                            pybind11::array_t<float>,
+                            const std::string&,
+                            Scalar,
+                            const unsigned int,
+                            const std::string&,
+                            const std::string&,
+                            const std::vector<std::string>&,
+                            const std::string&,
+                            unsigned int>());
     }
 #endif

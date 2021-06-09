@@ -38,88 +38,72 @@ namespace detail
 struct hpmc_patch_args_t
     {
     //! Construct a hpmc_patch_args_t
-    hpmc_patch_args_t(const Scalar4 *_d_postype,
-                const Scalar4 *_d_orientation,
-                const Scalar4 *_d_trial_postype,
-                const Scalar4 *_d_trial_orientation,
-                const unsigned int *_d_trial_move_type,
-                const Index3D& _ci,
-                const uint3& _cell_dim,
-                const Scalar3& _ghost_width,
-                const unsigned int _N,
-                const uint16_t _seed,
-                const unsigned int _rank,
-                const uint64_t _timestep,
-                const unsigned int _select,
-                const unsigned int _num_types,
-                const BoxDim& _box,
-                const unsigned int *_d_excell_idx,
-                const unsigned int *_d_excell_size,
-                const Index2D& _excli,
-                const Scalar _r_cut_patch,
-                const Scalar *_d_additive_cutoff,
-                const unsigned int *_d_update_order_by_ptl,
-                const unsigned int *_d_reject_in,
-                unsigned int *_d_reject_out,
-                const Scalar *_d_charge,
-                const Scalar *_d_diameter,
-                const unsigned int *_d_reject_out_of_cell,
-                const GPUPartition& _gpu_partition)
-                : d_postype(_d_postype),
-                  d_orientation(_d_orientation),
-                  d_trial_postype(_d_trial_postype),
-                  d_trial_orientation(_d_trial_orientation),
-                  d_trial_move_type(_d_trial_move_type),
-                  ci(_ci),
-                  cell_dim(_cell_dim),
-                  ghost_width(_ghost_width),
-                  N(_N),
-                  seed(_seed),
-                  rank(_rank),
-                  timestep(_timestep),
-                  select(_select),
-                  num_types(_num_types),
-                  box(_box),
-                  d_excell_idx(_d_excell_idx),
-                  d_excell_size(_d_excell_size),
-                  excli(_excli),
-                  r_cut_patch(_r_cut_patch),
-                  d_additive_cutoff(_d_additive_cutoff),
-                  d_update_order_by_ptl(_d_update_order_by_ptl),
-                  d_reject_in(_d_reject_in),
-                  d_reject_out(_d_reject_out),
-                  d_charge(_d_charge),
-                  d_diameter(_d_diameter),
-                  d_reject_out_of_cell(_d_reject_out_of_cell),
-                  gpu_partition(_gpu_partition)
-        { }
+    hpmc_patch_args_t(const Scalar4* _d_postype,
+                      const Scalar4* _d_orientation,
+                      const Scalar4* _d_trial_postype,
+                      const Scalar4* _d_trial_orientation,
+                      const unsigned int* _d_trial_move_type,
+                      const Index3D& _ci,
+                      const uint3& _cell_dim,
+                      const Scalar3& _ghost_width,
+                      const unsigned int _N,
+                      const uint16_t _seed,
+                      const unsigned int _rank,
+                      const uint64_t _timestep,
+                      const unsigned int _select,
+                      const unsigned int _num_types,
+                      const BoxDim& _box,
+                      const unsigned int* _d_excell_idx,
+                      const unsigned int* _d_excell_size,
+                      const Index2D& _excli,
+                      const Scalar _r_cut_patch,
+                      const Scalar* _d_additive_cutoff,
+                      const unsigned int* _d_update_order_by_ptl,
+                      const unsigned int* _d_reject_in,
+                      unsigned int* _d_reject_out,
+                      const Scalar* _d_charge,
+                      const Scalar* _d_diameter,
+                      const unsigned int* _d_reject_out_of_cell,
+                      const GPUPartition& _gpu_partition)
+        : d_postype(_d_postype), d_orientation(_d_orientation), d_trial_postype(_d_trial_postype),
+          d_trial_orientation(_d_trial_orientation), d_trial_move_type(_d_trial_move_type), ci(_ci),
+          cell_dim(_cell_dim), ghost_width(_ghost_width), N(_N), seed(_seed), rank(_rank),
+          timestep(_timestep), select(_select), num_types(_num_types), box(_box),
+          d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
+          r_cut_patch(_r_cut_patch), d_additive_cutoff(_d_additive_cutoff),
+          d_update_order_by_ptl(_d_update_order_by_ptl), d_reject_in(_d_reject_in),
+          d_reject_out(_d_reject_out), d_charge(_d_charge), d_diameter(_d_diameter),
+          d_reject_out_of_cell(_d_reject_out_of_cell), gpu_partition(_gpu_partition)
+        {
+        }
 
-    const Scalar4 *d_postype;               //!< postype array
-    const Scalar4 *d_orientation;           //!< orientation array
-    const Scalar4 *d_trial_postype;         //!< New positions (and type) of particles
-    const Scalar4 *d_trial_orientation;     //!< New orientations of particles
-    const unsigned int *d_trial_move_type;  //!< 0=no move, 1/2 = translate/rotate
-    const Index3D& ci;                //!< Cell indexer
-    const uint3& cell_dim;            //!< Cell dimensions
-    const Scalar3& ghost_width;       //!< Width of the ghost layer
-    const unsigned int N;             //!< Number of particles
-    const uint16_t seed;              //!< RNG seed
-    const unsigned int rank;          //!< MPI Rank
-    const uint64_t timestep;          //!< Current timestep
+    const Scalar4* d_postype;              //!< postype array
+    const Scalar4* d_orientation;          //!< orientation array
+    const Scalar4* d_trial_postype;        //!< New positions (and type) of particles
+    const Scalar4* d_trial_orientation;    //!< New orientations of particles
+    const unsigned int* d_trial_move_type; //!< 0=no move, 1/2 = translate/rotate
+    const Index3D& ci;                     //!< Cell indexer
+    const uint3& cell_dim;                 //!< Cell dimensions
+    const Scalar3& ghost_width;            //!< Width of the ghost layer
+    const unsigned int N;                  //!< Number of particles
+    const uint16_t seed;                   //!< RNG seed
+    const unsigned int rank;               //!< MPI Rank
+    const uint64_t timestep;               //!< Current timestep
     const unsigned int select;
-    const unsigned int num_types;     //!< Number of particle types
-    const BoxDim& box;                //!< Current simulation box
-    const unsigned int *d_excell_idx;       //!< Expanded cell list
-    const unsigned int *d_excell_size;//!< Size of expanded cells
-    const Index2D& excli;             //!< Excell indexer
-    const Scalar r_cut_patch;        //!< Global cutoff radius
-    const Scalar *d_additive_cutoff; //!< Additive contribution to cutoff per type
-    const unsigned int *d_update_order_by_ptl; //!< Order of the update sequence
-    const unsigned int *d_reject_in; //!< Previous reject flags
-    unsigned int *d_reject_out;      //!< New reject flags
-    const Scalar *d_charge;          //!< Particle charges
-    const Scalar *d_diameter;        //!< Particle diameters
-    const unsigned int *d_reject_out_of_cell;   //!< Flag if a particle move has been rejected a priori
+    const unsigned int num_types;              //!< Number of particle types
+    const BoxDim& box;                         //!< Current simulation box
+    const unsigned int* d_excell_idx;          //!< Expanded cell list
+    const unsigned int* d_excell_size;         //!< Size of expanded cells
+    const Index2D& excli;                      //!< Excell indexer
+    const Scalar r_cut_patch;                  //!< Global cutoff radius
+    const Scalar* d_additive_cutoff;           //!< Additive contribution to cutoff per type
+    const unsigned int* d_update_order_by_ptl; //!< Order of the update sequence
+    const unsigned int* d_reject_in;           //!< Previous reject flags
+    unsigned int* d_reject_out;                //!< New reject flags
+    const Scalar* d_charge;                    //!< Particle charges
+    const Scalar* d_diameter;                  //!< Particle diameters
+    const unsigned int*
+        d_reject_out_of_cell;          //!< Flag if a particle move has been rejected a priori
     const GPUPartition& gpu_partition; //!< split particles among GPUs
     };
 #endif
@@ -141,24 +125,24 @@ struct hpmc_patch_args_t
 class PatchEnergy : public Compute
     {
     public:
-        PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef),  m_build_obb(false) { }
-        virtual ~PatchEnergy() { }
+    PatchEnergy(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_build_obb(false) { }
+    virtual ~PatchEnergy() { }
 
 #ifdef ENABLE_HIP
     //! A struct that contains the kernel arguments
     typedef detail::hpmc_patch_args_t gpu_args_t;
 #endif
 
-        virtual Scalar getRelevantRCut()
-            {
-            return 0;
-            }
+    virtual Scalar getRelevantRCut()
+        {
+        return 0;
+        }
 
-        //! Returns the geometric extent, per type
-        virtual Scalar getRCut()
-            {
-            return 0;
-            }
+    //! Returns the geometric extent, per type
+    virtual Scalar getRCut()
+        {
+        return 0;
+        }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual inline Scalar getAdditiveCutoff(unsigned int type)
@@ -202,301 +186,302 @@ class PatchEnergy : public Compute
         throw std::runtime_error("PatchEnergy (base class) does not support setAutotunerParams");
         }
 
-        //! Asynchronously launch the JIT kernel
-        /*! \param args Kernel arguments
-            \param hStream stream to execute on
-            */
-        virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
-            {
-            throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
-            }
-        #endif
+    //! Asynchronously launch the JIT kernel
+    /*! \param args Kernel arguments
+        \param hStream stream to execute on
+        */
+    virtual void computePatchEnergyGPU(const gpu_args_t& args, hipStream_t hStream)
+        {
+        throw std::runtime_error("PatchEnergy (base class) does not support launchKernel");
+        }
+#endif
 
-        //! Update the OBB tree  for union of particles
-        virtual void buildOBBTree()
-            {
-            }
+    //! Update the OBB tree  for union of particles
+    virtual void buildOBBTree() { }
 
     protected:
-
-        bool m_build_obb; //! Flag to update the OBB tree for union of particles
-
+    bool m_build_obb; //! Flag to update the OBB tree for union of particles
     };
 
 class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     {
     public:
-        //! Constructor
-        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
+    //! Constructor
+    IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef);
 
-        virtual ~IntegratorHPMC();
+    virtual ~IntegratorHPMC();
 
-        //! Take one timestep forward
-        virtual void update(uint64_t timestep)
+    //! Take one timestep forward
+    virtual void update(uint64_t timestep)
+        {
+        ArrayHandle<hpmc_counters_t> h_counters(m_count_total,
+                                                access_location::host,
+                                                access_mode::read);
+        m_count_step_start = h_counters.data[0];
+        }
+
+    //! Change maximum displacement
+    /*! \param typ Name of type to set
+     *! \param d new d to set
+     */
+    inline void setD(std::string name, Scalar d)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+
             {
-            ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
-            m_count_step_start = h_counters.data[0];
+            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
+            h_d.data[id] = d;
             }
 
-        //! Change maximum displacement
-        /*! \param typ Name of type to set
-         *! \param d new d to set
-        */
-        inline void setD(std::string name, Scalar d)
+        updateCellWidth();
+        }
+
+    //! Get maximum displacement (by type name)
+    inline Scalar getD(std::string name)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+        ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+        return h_d.data[id];
+        }
+
+    //! Get array of translation move sizes
+    const GPUArray<Scalar>& getDArray() const
+        {
+        return m_d;
+        }
+
+    //! Get the maximum particle translational move size
+    virtual Scalar getMaxTransMoveSize()
+        {
+        // access the type parameters
+        ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+        // for each type, create a temporary shape and return the maximum diameter
+        Scalar maxD = Scalar(0.0);
+        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
-            unsigned int id = this->m_pdata->getTypeByName(name);
-
-                {
-                ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
-                h_d.data[id] = d;
-                }
-
-            updateCellWidth();
+            maxD = std::max(maxD, h_d.data[typ]);
             }
 
-        //! Get maximum displacement (by type name)
-        inline Scalar getD(std::string name)
+        return maxD;
+        }
+
+    //! Get the minimum particle translational move size
+    virtual Scalar getMinTransMoveSize()
+        {
+        // access the type parameters
+        ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+
+        // for each type, create a temporary shape and return the maximum diameter
+        Scalar minD = h_d.data[0];
+        for (unsigned int typ = 1; typ < this->m_pdata->getNTypes(); typ++)
             {
-            unsigned int id = this->m_pdata->getTypeByName(name);
-            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-            return h_d.data[id];
+            minD = std::max(minD, h_d.data[typ]);
             }
 
-        //! Get array of translation move sizes
-        const GPUArray<Scalar>& getDArray() const
+        return minD;
+        }
+
+    //! Change maximum rotation
+    /*! \param name Type name to set
+     *! \param a new a to set
+     */
+    inline void setA(std::string name, Scalar a)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+        ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
+        h_a.data[id] = a;
+        }
+
+    //! Get maximum rotation by name
+    inline Scalar getA(std::string name)
+        {
+        unsigned int id = this->m_pdata->getTypeByName(name);
+        ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
+        return h_a.data[id];
+        }
+
+    //! Get array of rotation move sizes
+    const GPUArray<Scalar>& getAArray() const
+        {
+        return m_a;
+        }
+
+    //! Change translation move probability.
+    /*! \param translation_move_probability new translation_move_probability to set
+     */
+    void setTranslationMoveProbability(Scalar translation_move_probability)
+        {
+        m_translation_move_probability = unsigned(translation_move_probability * 65536);
+        }
+
+    //! Get translation move probability.
+    //! \returns Fraction of moves that are translation moves.
+    inline double getTranslationMoveProbability()
+        {
+        return m_translation_move_probability / 65536.0;
+        }
+
+    //! Set nselect
+    /*! \param nselect new nselect value to set
+     */
+    void setNSelect(unsigned int nselect)
+        {
+        m_nselect = nselect;
+        updateCellWidth();
+        }
+
+    //! Get nselect
+    //! \returns current value of nselect parameter
+    inline unsigned int getNSelect()
+        {
+        return m_nselect;
+        }
+
+    //! Get performance in moves per second
+    virtual double getMPS()
+        {
+        return m_mps;
+        }
+
+    //! Reset statistics counters
+    virtual void resetStats()
+        {
+        ArrayHandle<hpmc_counters_t> h_counters(m_count_total,
+                                                access_location::host,
+                                                access_mode::read);
+        m_count_run_start = h_counters.data[0];
+        m_clock = ClockSource();
+        }
+
+    //! Get the diameter of the largest circumscribing sphere for objects handled by this integrator
+    virtual Scalar getMaxCoreDiameter()
+        {
+        return 1.0;
+        }
+
+    //! Count the number of particle overlaps
+    /*! \param timestep current step
+        \param early_exit exit at first overlap found if true
+        \returns number of overlaps if early_exit=false, 1 if early_exit=true
+    */
+    virtual unsigned int countOverlaps(bool early_exit)
+        {
+        return 0;
+        }
+
+    //! Get the number of degrees of freedom granted to a given group
+    /*! \param group Group over which to count degrees of freedom.
+        \return a non-zero dummy value to suppress warnings.
+
+        MC does not integrate with the MD computations that use this value.
+    */
+    virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
+        {
+        return 1;
+        }
+
+    //! Check the particle data for non-normalized orientations
+    virtual bool checkParticleOrientations();
+
+    //! Get the current counter values
+    hpmc_counters_t getCounters(unsigned int mode = 0);
+
+    //! Communicate particles
+    /*! \param migrate Set to true to both migrate and exchange, set to false to only exchange
+
+        This method exists so that the python API can force MPI communication when needed, e.g.
+       before a count_overlaps call to ensure that particle data is up to date.
+
+        The base class does nothing and leaves derived classes to implement.
+    */
+    virtual void communicate(bool migrate) { }
+
+    //! Set extra ghost width
+    /*! \param extra Extra width to add to the ghost layer
+
+        This method is called by AnalyzerSDF when needed to note that an extra padding on the ghost
+       layer is needed
+    */
+    void setExtraGhostWidth(Scalar extra)
+        {
+        m_extra_ghost_width = extra;
+        updateCellWidth();
+        }
+    //! Method to scale the box
+    virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
+
+    //! Method to be called when number of types changes
+    virtual void slotNumTypesChange();
+
+    ExternalField* getExternalField()
+        {
+        return m_external_base;
+        }
+
+    //! Returns the patch energy interaction
+    std::shared_ptr<PatchEnergy> getPatchInteraction()
+        {
+        return m_patch;
+        }
+
+    //! Compute the energy due to patch interactions
+    /*! \param timestep the current time step
+     * \returns the total patch energy
+     */
+    virtual float computePatchEnergy(uint64_t timestep)
+        {
+        // base class method returns 0
+        return 0.0;
+        }
+
+    //! Prepare for the run
+    virtual void prepRun(uint64_t timestep)
+        {
+        m_past_first_run = true;
+        }
+
+    //! Set the patch energy
+    virtual void setPatchEnergy(std::shared_ptr<PatchEnergy> patch)
+        {
+        m_patch = patch;
+        }
+
+    //! Get the patch energy
+    std::shared_ptr<PatchEnergy> getPatchEnergy()
+        {
+        return m_patch;
+        }
+
+#ifdef ENABLE_MPI
+    //! Set the MPI communicator
+    /*! \param comm the communicator
+        This method is overridden so that we can register with the signal to set the ghost layer
+       width.
+    */
+    virtual void setCommunicator(std::shared_ptr<Communicator> comm)
+        {
+        if (!m_communicator_ghost_width_connected)
             {
-            return m_d;
+            // only add the migrate request on the first call
+            assert(comm);
+            comm->getGhostLayerWidthRequestSignal()
+                .connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+            m_communicator_ghost_width_connected = true;
+            }
+        if (!m_communicator_flags_connected)
+            {
+            // only add the migrate request on the first call
+            assert(comm);
+            comm->getCommFlagsRequestSignal()
+                .connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+            m_communicator_flags_connected = true;
             }
 
-        //! Get the maximum particle translational move size
-        virtual Scalar getMaxTransMoveSize()
-            {
-            // access the type parameters
-            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-
-            // for each type, create a temporary shape and return the maximum diameter
-            Scalar maxD = Scalar(0.0);
-            for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
-                {
-                maxD = std::max(maxD, h_d.data[typ]);
-                }
-
-            return maxD;
-            }
-
-        //! Get the minimum particle translational move size
-        virtual Scalar getMinTransMoveSize()
-            {
-            // access the type parameters
-            ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
-
-            // for each type, create a temporary shape and return the maximum diameter
-            Scalar minD = h_d.data[0];
-            for (unsigned int typ = 1; typ < this->m_pdata->getNTypes(); typ++)
-                {
-                minD = std::max(minD, h_d.data[typ]);
-                }
-
-            return minD;
-            }
-
-        //! Change maximum rotation
-        /*! \param name Type name to set
-         *! \param a new a to set
-        */
-        inline void setA(std::string name, Scalar a)
-            {
-            unsigned int id = this->m_pdata->getTypeByName(name);
-            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-            h_a.data[id] = a;
-            }
-
-        //! Get maximum rotation by name
-        inline Scalar getA(std::string name)
-            {
-            unsigned int id = this->m_pdata->getTypeByName(name);
-            ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-            return h_a.data[id];
-            }
-
-        //! Get array of rotation move sizes
-        const GPUArray<Scalar>& getAArray() const
-            {
-            return m_a;
-            }
-
-        //! Change translation move probability.
-        /*! \param translation_move_probability new translation_move_probability to set
-        */
-        void setTranslationMoveProbability(Scalar translation_move_probability)
-            {
-            m_translation_move_probability = unsigned(translation_move_probability*65536);
-            }
-
-        //! Get translation move probability.
-        //! \returns Fraction of moves that are translation moves.
-        inline double getTranslationMoveProbability()
-            {
-            return m_translation_move_probability/65536.0;
-            }
-
-        //! Set nselect
-        /*! \param nselect new nselect value to set
-        */
-        void setNSelect(unsigned int nselect)
-            {
-            m_nselect = nselect;
-            updateCellWidth();
-            }
-
-        //! Get nselect
-        //! \returns current value of nselect parameter
-        inline unsigned int getNSelect()
-            {
-            return m_nselect;
-            }
-
-        //! Get performance in moves per second
-        virtual double getMPS()
-            {
-            return m_mps;
-            }
-
-        //! Reset statistics counters
-        virtual void resetStats()
-            {
-            ArrayHandle<hpmc_counters_t> h_counters(m_count_total, access_location::host, access_mode::read);
-            m_count_run_start = h_counters.data[0];
-            m_clock = ClockSource();
-            }
-
-        //! Get the diameter of the largest circumscribing sphere for objects handled by this integrator
-        virtual Scalar getMaxCoreDiameter()
-            {
-            return 1.0;
-            }
-
-        //! Count the number of particle overlaps
-        /*! \param timestep current step
-            \param early_exit exit at first overlap found if true
-            \returns number of overlaps if early_exit=false, 1 if early_exit=true
-        */
-        virtual unsigned int countOverlaps(bool early_exit)
-            {
-            return 0;
-            }
-
-        //! Get the number of degrees of freedom granted to a given group
-        /*! \param group Group over which to count degrees of freedom.
-            \return a non-zero dummy value to suppress warnings.
-
-            MC does not integrate with the MD computations that use this value.
-        */
-        virtual Scalar getTranslationalDOF(std::shared_ptr<ParticleGroup> group)
-            {
-            return 1;
-            }
-
-        //! Check the particle data for non-normalized orientations
-        virtual bool checkParticleOrientations();
-
-        //! Get the current counter values
-        hpmc_counters_t getCounters(unsigned int mode=0);
-
-        //! Communicate particles
-        /*! \param migrate Set to true to both migrate and exchange, set to false to only exchange
-
-            This method exists so that the python API can force MPI communication when needed, e.g. before a
-            count_overlaps call to ensure that particle data is up to date.
-
-            The base class does nothing and leaves derived classes to implement.
-        */
-        virtual void communicate(bool migrate)
-            {
-            }
-
-        //! Set extra ghost width
-        /*! \param extra Extra width to add to the ghost layer
-
-            This method is called by AnalyzerSDF when needed to note that an extra padding on the ghost layer is needed
-        */
-        void setExtraGhostWidth(Scalar extra)
-            {
-            m_extra_ghost_width = extra;
-            updateCellWidth();
-
-            }
-        //! Method to scale the box
-        virtual bool attemptBoxResize(uint64_t timestep, const BoxDim& new_box);
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange();
-
-        ExternalField* getExternalField()
-            {
-            return m_external_base;
-            }
-
-        //! Returns the patch energy interaction
-        std::shared_ptr<PatchEnergy> getPatchInteraction()
-            {
-            return m_patch;
-            }
-
-        //! Compute the energy due to patch interactions
-        /*! \param timestep the current time step
-         * \returns the total patch energy
-         */
-        virtual float computePatchEnergy(uint64_t timestep)
-            {
-            // base class method returns 0
-            return 0.0;
-            }
-
-        //! Prepare for the run
-        virtual void prepRun(uint64_t timestep)
-            {
-            m_past_first_run = true;
-            }
-
-        //! Set the patch energy
-        virtual void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
-            {
-            m_patch = patch;
-            }
-
-        //! Get the patch energy
-        std::shared_ptr<PatchEnergy> getPatchEnergy()
-            {
-            return m_patch;
-            }
-
-        #ifdef ENABLE_MPI
-        //! Set the MPI communicator
-        /*! \param comm the communicator
-            This method is overridden so that we can register with the signal to set the ghost layer width.
-        */
-        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
-            {
-            if (! m_communicator_ghost_width_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-                m_communicator_ghost_width_connected = true;
-                }
-            if (! m_communicator_flags_connected)
-                {
-                // only add the migrate request on the first call
-                assert(comm);
-                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
-                m_communicator_flags_connected = true;
-                }
-
-            // set the member variable
-            Integrator::setCommunicator(comm);
-            }
-        #endif
+        // set the member variable
+        Integrator::setCommunicator(comm);
+        }
+#endif
 
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
@@ -517,7 +502,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
     ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be
                                     //! used in a more general setting.
 
-        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
+    std::shared_ptr<PatchEnergy> m_patch; //!< Patchy Interaction
 
     bool m_past_first_run; //!< Flag to test if the first run() has started
     //! Update the nominal width of the cells

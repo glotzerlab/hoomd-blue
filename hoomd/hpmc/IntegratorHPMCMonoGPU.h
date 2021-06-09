@@ -169,11 +169,10 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
         m_tuner_narrow->setPeriod(chain_length * period * this->m_nselect);
         m_tuner_narrow->setEnabled(enable);
 
-            if (this->m_patch)
-                {
-                this->m_patch->setAutotunerParams(enable,
-                    chain_length*period*this->m_nselect);
-                }
+        if (this->m_patch)
+            {
+            this->m_patch->setAutotunerParams(enable, chain_length * period * this->m_nselect);
+            }
 
         m_tuner_depletants->setPeriod(chain_length * period * this->m_nselect);
         m_tuner_depletants->setEnabled(enable);
@@ -1897,34 +1896,33 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                            access_mode::readwrite);
 
                     // future optimization opportunity: put patch on its own stream
-                    PatchEnergy::gpu_args_t patch_args(
-                        d_postype.data,
-                        d_orientation.data,
-                        d_trial_postype.data,
-                        d_trial_orientation.data,
-                        d_trial_move_type.data,
-                        this->m_cl->getCellIndexer(),
-                        this->m_cl->getDim(),
-                        ghost_width,
-                        this->m_pdata->getN(),
-                        this->m_sysdef->getSeed(),
-                        this->m_exec_conf->getRank(),
-                        timestep,
-                        i,
-                        this->m_pdata->getNTypes(),
-                        box,
-                        d_excell_idx.data,
-                        d_excell_size.data,
-                        m_excell_list_indexer,
-                        this->m_patch->getRCut(),
-                        d_additive_cutoff.data,
-                        d_update_order_by_ptl.data,
-                        d_reject.data,
-                        d_reject_out.data,
-                        d_charge.data,
-                        d_diameter.data,
-                        d_reject_out_of_cell.data,
-                        this->m_pdata->getGPUPartition());
+                    PatchEnergy::gpu_args_t patch_args(d_postype.data,
+                                                       d_orientation.data,
+                                                       d_trial_postype.data,
+                                                       d_trial_orientation.data,
+                                                       d_trial_move_type.data,
+                                                       this->m_cl->getCellIndexer(),
+                                                       this->m_cl->getDim(),
+                                                       ghost_width,
+                                                       this->m_pdata->getN(),
+                                                       this->m_sysdef->getSeed(),
+                                                       this->m_exec_conf->getRank(),
+                                                       timestep,
+                                                       i,
+                                                       this->m_pdata->getNTypes(),
+                                                       box,
+                                                       d_excell_idx.data,
+                                                       d_excell_size.data,
+                                                       m_excell_list_indexer,
+                                                       this->m_patch->getRCut(),
+                                                       d_additive_cutoff.data,
+                                                       d_update_order_by_ptl.data,
+                                                       d_reject.data,
+                                                       d_reject_out.data,
+                                                       d_charge.data,
+                                                       d_diameter.data,
+                                                       d_reject_out_of_cell.data,
+                                                       this->m_pdata->getGPUPartition());
 
                     // compute patch energy on default stream
                     this->m_patch->computePatchEnergyGPU(patch_args, 0);
