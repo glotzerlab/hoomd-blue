@@ -29,6 +29,7 @@
 #define JITIFY_PRINT_PTX 0
 #define JITIFY_PRINT_HEADER_PATHS 0
 
+#undef DEVICE
 #include "hoomd/extern/jitify.hpp"
 
 #endif
