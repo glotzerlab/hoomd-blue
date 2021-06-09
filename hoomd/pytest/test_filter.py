@@ -109,6 +109,8 @@ def test_tags_filter(make_filter_snapshot, simulation_factory, tag_indices):
 
 
 def test_rigid_filter(make_filter_snapshot, simulation_factory):
+    MPI = pytest.importorskip("mpi4py.MPI")
+
     rigid = md.constrain.Rigid()
     rigid.body["A"] = {
         "constituent_types": ["B", "B", "B", "B"],
@@ -130,31 +132,37 @@ def test_rigid_filter(make_filter_snapshot, simulation_factory):
     sim = simulation_factory(snapshot)
     rigid.create_bodies(sim.state)
 
+    def check_tags(filter_, state, expected_tags):
+        mpi_communicator = MPI.COMM_WORLD
+
+        local_tags = filter_(state)
+        all_tags = mpi_communicator.gather(local_tags, root=0)
+        if mpi_communicator.rank == 0:
+            # unique automatically sorts the items
+            all_tags = np.unique(np.concatenate(all_tags))
+            assert np.all(all_tags == expected_tags)
+
     only_centers = Rigid()
-    assert np.array_equal(np.sort(only_centers(sim.state)), np.arange(50))
+    check_tags(only_centers, sim.state, np.arange(50))
 
     only_free = Rigid(('free',))
-    assert np.array_equal(np.sort(only_free(sim.state)), np.arange(50, 100))
+    check_tags(only_free, sim.state, np.arange(50, 100))
 
     only_constituent = Rigid(('constituent',))
-    assert np.array_equal(np.sort(only_constituent(sim.state)),
-                          np.arange(100, 300))
+    check_tags(only_constituent, sim.state, np.arange(100, 300))
 
     free_and_centers = Rigid(('free', 'center'))
-    assert np.array_equal(np.sort(free_and_centers(sim.state)),
-                          np.arange(0, 100))
+    check_tags(free_and_centers, sim.state, np.arange(0, 100))
 
     constituent_and_centers = Rigid(('constituent', 'center'))
-    assert np.array_equal(
-        np.sort(constituent_and_centers(sim.state)),
-        np.concatenate((np.arange(0, 50), np.arange(100, 300))))
+    check_tags(constituent_and_centers, sim.state,
+               np.concatenate((np.arange(0, 50), np.arange(100, 300))))
 
     constituent_and_free = Rigid(('free', 'constituent'))
-    assert np.array_equal(np.sort(constituent_and_free(sim.state)),
-                          np.arange(50, 300))
+    check_tags(constituent_and_free, sim.state, np.arange(50, 300))
 
     all_ = Rigid(('free', 'constituent', 'center'))
-    assert np.array_equal(np.sort(all_(sim.state)), np.arange(0, 300))
+    check_tags(all_, sim.state, np.arange(0, 300))
 
 
 _set_indices = [([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
