@@ -96,7 +96,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairLJ1208.h
                 EvaluatorPairLJ0804.h
                 EvaluatorPairMie.h
-                EvaluatorPairSMie.h
+		EvaluatorPairExpandedMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
                 EvaluatorPairOPP.h
@@ -243,7 +243,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       GaussDriverPotentialPairGPU.cu
                       LJDriverPotentialPairGPU.cu
                       MieDriverPotentialPairGPU.cu
-		      SMieDriverPotentialPairGPU.cu
+		      ExpandedMieDriverPotentialPairGPU.cu
                       MoliereDriverPotentialPairGPU.cu
                       MorseDriverPotentialPairGPU.cu
                       OPPDriverPotentialPairGPU.cu

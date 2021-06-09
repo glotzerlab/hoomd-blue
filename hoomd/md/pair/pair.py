@@ -1165,8 +1165,8 @@ class Mie(Pair):
         self._add_typeparam(params)
 
 
-class SMie(Pair):
-    r"""Shifted Mie pair potential.
+class ExpandedMie(Pair):
+    r"""Expanded Mie pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
@@ -1174,8 +1174,9 @@ class SMie(Pair):
         r_on (float): Default turn-on radius (in distance units).
         mode (str): energy shifting/smoothing mode.
 
-    `SMie` specifies that a Mie pair potential should be applied between every
-    non-excluded particle pair in the simulation.
+    `ExpandedMie` specifies that a radially shifted Mie pair potential
+    should be applied between every non-excluded particle pair in the
+    simulation.
 
     .. math::
         :nowrap:
@@ -1210,21 +1211,21 @@ class SMie(Pair):
 
           * ``m`` (`float`, **required**) - :math:`m` (unitless)
 
-          * ``Delta`` (`float`, **required**) - :math:`\\Delta`
+          * ``delta`` (`float`, **required**) - :math:`\\Delta`
           (in distance units)
 
     Example::
 
         nl = nlist.Cell()
-        smie = pair.SMie(nlist=nl, r_cut=3.0)
+        expanded_mie = pair.ExpandedMie(nlist=nl, r_cut=3.0)
         mie.params[('A', 'B')] = \
-        dict(epsilon=1.0, sigma=1.0, n=12, m=6, Delta=0.5)
-        mie.r_cut[('A', 'B')] = 2**(1.0/6.0)
-        mie.r_on[('A', 'B')] = 2.0
-        mie.params[(['A', 'B'], ['C', 'D'])] = \
-        dict(epsilon=1.5, sigma=2.0, n=12, m=6, Delta=0.5))
+        dict(epsilon=1.0, sigma=1.0, n=12, m=6, delta=0.5)
+        expanded_mie.r_cut[('A', 'B')] = 2**(1.0/6.0)
+        expanded_mie.r_on[('A', 'B')] = 2.0
+        expanded_mie.params[(['A', 'B'], ['C', 'D'])] = \
+        dict(epsilon=1.5, sigma=2.0, n=12, m=6, delta=0.5))
     """
-    _cpp_class_name = "PotentialPairSMie"
+    _cpp_class_name = "PotentialPairExpandedMie"
 
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
 
@@ -1235,7 +1236,7 @@ class SMie(Pair):
                               sigma=float,
                               n=float,
                               m=float,
-                              Delta=float,
+                              delta=float,
                               len_keys=2))
 
         self._add_typeparam(params)
