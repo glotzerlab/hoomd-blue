@@ -15,14 +15,10 @@
 
 #include "HOOMDMath.h"
 
-#ifndef __HIPCC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#endif
 #include <hoomd/extern/random123/include/Random123/philox.h>
-#ifndef __HIPCC__
 #pragma GCC diagnostic pop
-#endif
 
 #include <limits>
 #include <type_traits>

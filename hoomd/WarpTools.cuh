@@ -14,14 +14,10 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef __CUDACC_RTC__
 #include <type_traits>
-#endif
 
-#ifndef __HIPCC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#endif
 
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hipcub/hipcub.hpp>
@@ -35,9 +31,7 @@
     #endif
 #endif
 
-#ifndef __HIPCC__
 #pragma GCC diagnostic pop
-#endif
 
 #define DEVICE __device__ __forceinline__
 
