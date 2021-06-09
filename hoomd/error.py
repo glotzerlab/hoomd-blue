@@ -5,11 +5,6 @@
 """HOOMD Errors."""
 
 
-class TypeConversionError(ValueError):
-    """Error when validatimg TypeConverter subclasses."""
-    pass
-
-
 class DataAccessError(RuntimeError):
     """Raised when data is inaccessible until the simulation is run."""
 
@@ -20,3 +15,8 @@ class DataAccessError(RuntimeError):
         """Returns the error message."""
         return (f'The property {self.data_name} is unavailable until the '
                 'simulation runs for 0 or more steps.')
+
+
+class TypeConversionError(ValueError):
+    """Error when validatimg TypeConverter subclasses fails."""
+    pass
