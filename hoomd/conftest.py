@@ -90,7 +90,7 @@ def two_particle_snapshot_factory(device):
         s = Snapshot(device.communicator)
         N = 2
 
-        if s.exists:
+        if s.communicator.rank == 0:
             box = [L, L, L, 0, 0, 0]
             if dimensions == 2:
                 box[2] = 0
@@ -132,7 +132,7 @@ def lattice_snapshot_factory(device):
         """
         s = Snapshot(device.communicator)
 
-        if s.exists:
+        if s.communicator.rank == 0:
             box = [n * a, n * a, n * a, 0, 0, 0]
             if dimensions == 2:
                 box[2] = 0
@@ -186,7 +186,7 @@ def fcc_snapshot_factory(device):
         """
         s = Snapshot(device.communicator)
 
-        if s.exists:
+        if s.communicator.rank == 0:
             # make one unit cell
             s.configuration.box = [a, a, a, 0, 0, 0]
             s.particles.N = 4
