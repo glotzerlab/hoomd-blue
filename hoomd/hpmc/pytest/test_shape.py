@@ -166,7 +166,7 @@ def test_overlaps_sphere(device, sphere_overlap_args, simulation_factory,
 
     # Should not overlap when spheres are larger than one diameter apart
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, diameter * 1.1, 0)
     sim.state.snapshot = s
@@ -174,7 +174,7 @@ def test_overlaps_sphere(device, sphere_overlap_args, simulation_factory,
 
     # Should barely overlap when spheres are exactly than one diameter apart
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, diameter * 0.9999, 0)
     sim.state.snapshot = s
@@ -199,7 +199,7 @@ def test_overlaps_ellipsoid(device, simulation_factory,
         # Should barely overlap when ellipsoids are exactly than one diameter
         # apart
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 0.9 * 2, abc[1] * 0.9 * 2,
                                        abc[2] * 0.9 * 2)
@@ -208,7 +208,7 @@ def test_overlaps_ellipsoid(device, simulation_factory,
 
         # Should not overlap when ellipsoids are larger than one diameter apart
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 1.15 * 2, abc[1] * 1.15 * 2,
                                        abc[2] * 1.15 * 2)
@@ -218,7 +218,7 @@ def test_overlaps_ellipsoid(device, simulation_factory,
     # Line up ellipsoids where they aren't overlapped, and then rotate one so
     # they overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (a * 1.1 * 2, 0, 0)
         s.particles.orientation[1] = tuple(
@@ -261,14 +261,14 @@ def test_overlaps_polygons(device, polygon_overlap_args, simulation_factory,
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (vert[0], vert[1], 0)
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.05, 0)
     sim.state.snapshot = s
@@ -276,7 +276,7 @@ def test_overlaps_polygons(device, polygon_overlap_args, simulation_factory,
 
     # Rotate one of the shapes so they will overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
     sim.state.snapshot = s
@@ -338,21 +338,21 @@ def test_overlaps_polyhedra(device, polyhedron_overlap_args, simulation_factory,
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = vert
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 0.9, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.1, 0)
     sim.state.snapshot = s
@@ -360,7 +360,7 @@ def test_overlaps_polyhedra(device, polyhedron_overlap_args, simulation_factory,
 
     # Rotate one of the polyhedra so they will overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
     sim.state.snapshot = s
     assert mc.overlaps > 0
@@ -394,7 +394,7 @@ def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (vert[0], vert[1], 0)
         sim.state.snapshot = s
@@ -402,14 +402,14 @@ def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
 
     # Place shapes where they wouldn't overlap w/o sweep radius
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.2, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.3, 0)
     sim.state.snapshot = s
@@ -417,7 +417,7 @@ def test_overlaps_spheropolygon(device, spheropolygon_overlap_args,
 
     # Rotate one of the shapes so they will overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(
             np.array([1, 0, 0, 0.45]) / (1.2025**0.5))
     sim.state.snapshot = s
@@ -452,21 +452,21 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
     # Place center of shape 2 on each of shape 1's vertices
     for vert in mc.shape["A"]["vertices"]:
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = vert
         sim.state.snapshot = s
         assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.2, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0, 1.5, 0)
     sim.state.snapshot = s
@@ -474,7 +474,7 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
 
     # Rotate one of the polyhedra so they will overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.orientation[1] = tuple(np.array([1, 1, 1, 0]) / (3**0.5))
     sim.state.snapshot = s
     assert mc.overlaps > 0
@@ -529,7 +529,7 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
     # Shapes are stacked in z direction
     for i in range(len(test_positions)):
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = test_positions[i]
             s.particles.orientation[1] = (1, 0, 0, 0)
@@ -537,7 +537,7 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
         assert mc.overlaps == 0
 
         # Slightly rotate union about x or y axis so they overlap
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.orientation[1] = test_orientations[i]
         sim.state.snapshot = s
 
@@ -545,7 +545,7 @@ def test_overlaps_union(device, union_overlap_args, simulation_factory,
 
     for pos in [(0.9, 0, 0), (0, 0.9, 0), (0, 0, 1.1)]:
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = pos
         sim.state.snapshot = s
@@ -578,7 +578,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
         # Should barely overlap when ellipsoids are exactly than one diameter
         # apart
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 0.9 * 2, abc[1] * 0.9 * 2,
                                        abc[2] * 0.9 * 2)
@@ -587,7 +587,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
 
         # Should not overlap when ellipsoids are larger than one diameter apart
         s = sim.state.snapshot
-        if s.exists:
+        if s.communicator.rank == 0:
             s.particles.position[0] = (0, 0, 0)
             s.particles.position[1] = (abc[0] * 1.15 * 2, abc[1] * 1.15 * 2,
                                        abc[2] * 1.15 * 2)
@@ -597,7 +597,7 @@ def test_overlaps_faceted_ellipsoid(device, simulation_factory,
     # Line up ellipsoids where they aren't overlapped, and then rotate one so
     # they overlap
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (a * 1.1 * 2, 0, 0)
         s.particles.orientation[1] = tuple(
@@ -618,14 +618,14 @@ def test_overlaps_sphinx(device, simulation_factory,
     assert mc.overlaps == 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0.74, 0, 0)
     sim.state.snapshot = s
     assert mc.overlaps > 0
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.position[0] = (0, 0, 0)
         s.particles.position[1] = (0.76, 0, 0)
     sim.state.snapshot = s

@@ -69,7 +69,7 @@ def test_basic_system_3d(simulation_factory, two_particle_snapshot_factory):
     filt = hoomd.filter.All()
     thermo = hoomd.md.compute.ThermodynamicQuantities(filt)
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.velocity[:] = [[-2, 0, 0], [2, 0, 0]]
     sim = simulation_factory(snap)
     sim.always_compute_pressure = True
@@ -94,7 +94,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'],
                                     dimensions=2,
                                     n=2)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.velocity[:] = [[-1, 0, 0], [2, 0, 0]] * 2
         snap.particles.typeid[:] = [0, 1, 0, 1]
     sim = simulation_factory(snap)
@@ -124,7 +124,7 @@ def test_basic_system_2d(simulation_factory, lattice_snapshot_factory):
 def test_system_rotational_dof(simulation_factory, device):
 
     snap = hoomd.Snapshot(device.communicator)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         box = [10, 10, 10, 0, 0, 0]
         snap.configuration.box = box
         snap.particles.N = 3

@@ -47,7 +47,7 @@ def test_logging(simulation_factory, two_particle_snapshot_factory):
     thermoHMA = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
         filt, T)
     snap = two_particle_snapshot_factory()
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.velocity[:] = [[-2, 0, 0], [2, 0, 0]]
     sim = simulation_factory(snap)
     sim.always_compute_pressure = True
