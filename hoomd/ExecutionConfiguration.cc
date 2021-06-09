@@ -670,6 +670,7 @@ void export_ExecutionConfiguration(py::module& m)
         .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
         .def_readonly("msg", &ExecutionConfiguration::msg)
 #if defined(ENABLE_HIP)
+        .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)
 #endif
