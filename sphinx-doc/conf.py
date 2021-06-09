@@ -33,6 +33,7 @@ autodoc_docstring_signature = True
 
 autodoc_mock_imports = [
     'hoomd._hoomd',
+    'hoomd.version_config',
     'hoomd.md._md',
     'hoomd.metal._metal',
     'hoomd.mpcd._mpcd',
