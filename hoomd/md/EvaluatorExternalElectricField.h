@@ -50,7 +50,7 @@ class EvaluatorExternalElectricField
 
         param_type(pybind11::dict params)
             {
-            pybind11::list py_E(params["E"]);
+            pybind11::tuple py_E(params["E"]);
             E.x = pybind11::cast<Scalar>(py_E[0]);
             E.y = pybind11::cast<Scalar>(py_E[1]);
             E.z = pybind11::cast<Scalar>(py_E[2]);
@@ -81,7 +81,7 @@ class EvaluatorExternalElectricField
                                           const BoxDim& box,
                                           const param_type& params,
                                           const field_type& field)
-        : m_pos(X), m_box(box), m_params(params)
+        : m_pos(X), m_box(box), m_E(params.E)
         {
         }
 
@@ -90,6 +90,7 @@ class EvaluatorExternalElectricField
         {
         return false;
         }
+
     //! Accept the optional diameter value
     /*! \param di Diameter of particle i
      */
@@ -100,6 +101,8 @@ class EvaluatorExternalElectricField
         {
         return true;
         }
+
+    //! Accept the optional charge value
     /*! \param qi Charge of particle i
      */
     DEVICE void setCharge(Scalar qi)
@@ -122,8 +125,8 @@ class EvaluatorExternalElectricField
     */
     DEVICE void evalForceEnergyAndVirial(Scalar3& F, Scalar& energy, Scalar* virial)
         {
-        F = m_qi * m_params.E;
-        energy = -m_qi * dot(m_params.E, m_pos);
+        F = m_qi * m_E;
+        energy = -m_qi * dot(m_E, m_pos);
 
         virial[0] = F.x * m_pos.x;
         virial[1] = F.x * m_pos.y;
@@ -147,7 +150,7 @@ class EvaluatorExternalElectricField
     Scalar3 m_pos;       //!< particle position
     BoxDim m_box;        //!< box dimensions
     Scalar m_qi;         //!< particle charge
-    param_type m_params; //!< the field vector
+    Scalar3 m_E;         //!< the field vector
     };
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__

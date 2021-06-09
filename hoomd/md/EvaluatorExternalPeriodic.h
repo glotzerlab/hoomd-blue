@@ -95,13 +95,9 @@ class EvaluatorExternalPeriodic
                                      const BoxDim& box,
                                      const param_type& params,
                                      const field_type& field)
-        : m_pos(X), m_box(box)
-        {
-        m_index = params.i;
-        m_orderParameter = params.A;
-        m_interfaceWidth = params.w;
-        m_periodicity = params.p;
-        }
+        : m_pos(X), m_box(box), m_index(params.i), m_orderParameter(params.A),
+        m_interfaceWidth(params.w), m_periodicity(params.p)
+        {}
 
     //! External Periodic doesn't need diameters
     DEVICE static bool needsDiameter()

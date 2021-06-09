@@ -38,9 +38,17 @@ template<class evaluator> class PotentialExternal : public ForceCompute
 
     //! Sets parameters of the evaluator
     pybind11::dict getParams(std::string type);
+
+    //! set the potential parameters via cpp arguments
     void setParams(unsigned int type, const param_type& params);
+
+    //! set the potential parameters via python arguments
     void setParamsPython(std::string typ, pybind11::dict params);
+
+    //! make sure the type index is within range
     void validateType(unsigned int type, std::string action);
+
+    //! set the field type of the evaluator
     void setField(field_type field);
 
     protected:
