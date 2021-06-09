@@ -33,23 +33,23 @@ def _evaluate_electric(snapshot, params):
     """Evaluate force and energy in python for ElectricField."""
     positions = snapshot.particles.position
     charges = snapshot.particles.charge
-    E_field = params['E']
+    E_field = params
     energies = -charges * np.dot(positions, E_field)
     forces = np.outer(charges, E_field)
     return forces, energies
 
 
 def _external_params():
-    """Each entry is a tuple (class_object, list(param dicts), eval func)."""
+    """Each entry is a tuple (class_object, param attribute, list(param values), eval func)."""
     list_ext_params = []
     list_ext_params.append(
-        (hoomd.md.external.Periodic,
+        (hoomd.md.external.Periodic, "params",
          list([dict(A=1.5, i=1, w=3.5, p=5),
                dict(A=10, i=0, w=3.4, p=2)]), _evaluate_periodic))
-    list_ext_params.append((hoomd.md.external.ElectricField,
+    list_ext_params.append((hoomd.md.external.ElectricField, "E",
                             list([
-                                dict(E=(1, 0, 0)),
-                                dict(E=(0, 2, 0)),
+                                (1, 0, 0),
+                                (0, 2, 0),
                             ]), _evaluate_electric))
     return list_ext_params
 
@@ -61,24 +61,26 @@ def external_params(request):
     return cp.deepcopy(request.param)
 
 
-def _assert_correct_params(external_obj, param_dict):
+def _assert_correct_params(external_obj, param_attr, params):
     """Assert the params of the external object match whats in the dict."""
-    for param in param_dict.keys():
-        npt.assert_allclose(external_obj.params['A'][param], param_dict[param])
-
+    if type(params) == dict:
+        for param in params.keys():
+            npt.assert_allclose(getattr(external_obj, param_attr)['A'][param], params[param])
+    if type(params) == tuple:
+        npt.assert_allclose(getattr(external_obj, param_attr)['A'], params)
 
 def test_get_set(simulation_factory, two_particle_snapshot_factory,
                  external_params):
     """Test we can get/set parameter while attached and while not attached."""
     # unpack parameters
-    cls_obj, list_param_dicts, evaluator = external_params
+    cls_obj, param_attr, list_params, evaluator = external_params
 
     # create class instance, get/set params when not attached
     obj_instance = cls_obj()
-    obj_instance.params['A'] = list_param_dicts[0]
-    _assert_correct_params(obj_instance, list_param_dicts[0])
-    obj_instance.params['A'] = list_param_dicts[1]
-    _assert_correct_params(obj_instance, list_param_dicts[1])
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+    _assert_correct_params(obj_instance, param_attr, list_params[0])
+    getattr(obj_instance, param_attr)['A'] = list_params[1]
+    _assert_correct_params(obj_instance, param_attr, list_params[1])
 
     # set up simulation
     snap = two_particle_snapshot_factory(d=3.7)
@@ -88,22 +90,22 @@ def test_get_set(simulation_factory, two_particle_snapshot_factory,
     sim.run(0)
 
     # get/set params while attached
-    obj_instance.params['A'] = list_param_dicts[0]
-    _assert_correct_params(obj_instance, list_param_dicts[0])
-    obj_instance.params['A'] = list_param_dicts[1]
-    _assert_correct_params(obj_instance, list_param_dicts[1])
+    getattr(obj_instance, param_attr)['A'] = list_params[0]
+    _assert_correct_params(obj_instance, param_attr, list_params[0])
+    getattr(obj_instance, param_attr)['A'] = list_params[1]
+    _assert_correct_params(obj_instance, param_attr, list_params[1])
 
 
 def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
                              external_params):
     """Run a small simulation and make sure forces/energies are correct."""
     # unpack parameters
-    cls_obj, list_param_dicts, evaluator = external_params
+    cls_obj, param_attr, list_params, evaluator = external_params
 
-    for param_dict in list_param_dicts:
+    for param in list_params:
         # create class instance
         obj_instance = cls_obj()
-        obj_instance.params['A'] = param_dict
+        getattr(obj_instance, param_attr)['A'] = param
 
         # set up simulation and run a bit
         snap = lattice_snapshot_factory(n=2)
@@ -120,6 +122,6 @@ def test_forces_and_energies(simulation_factory, lattice_snapshot_factory,
         forces = sim.operations.integrator.forces[0].forces
         energies = sim.operations.integrator.forces[0].energies
         if new_snap.communicator.rank == 0:
-            expected_forces, expected_energies = evaluator(new_snap, param_dict)
+            expected_forces, expected_energies = evaluator(new_snap, param)
             np.testing.assert_allclose(expected_forces, forces)
             np.testing.assert_allclose(expected_energies, energies)

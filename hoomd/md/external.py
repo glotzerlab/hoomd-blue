@@ -114,27 +114,25 @@ class ElectricField(External):
     vector. The field vector :math:`\\vec{E}` must be set per unique particle
     types.
 
-    .. py:attribute:: params
+    .. py:attribute:: E
 
-        The `ElectricField` potential parameters. The dictionary has the
-        following keys:
+        :math:`E` - The electric field vector as a tuple (i.e.
+        :math:`(E_x, E_y, E_z)`) (units: [energy] [distance^{-1}] [length^{-1}])
 
-        * ``E`` (`tuple` [`float`, `float`, `float`], **required**) -
-            The electric field vector :math:`\\vec{E}`.
-
-        Type: `TypeParameter` [``particle_type``, `dict`]
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
 
     Example::
 
         # Apply an electric field in the x-direction
         e_field = external.ElectricField()
-        e_field.params['A'] = dict(E=(1,0,0))
+        e_field.E['A'] = (1, 0, 0)
     """
 
     _cpp_class_name = "PotentialExternalElectricField"
 
     def __init__(self):
         params = TypeParameter(
-            'params', 'particle_types',
-            TypeParameterDict(E=(float, float, float), len_keys=1))
+            'E', 'particle_types',
+            TypeParameterDict((float, float, float), len_keys=1))
         self._add_typeparam(params)

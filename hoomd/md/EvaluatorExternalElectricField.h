@@ -48,18 +48,18 @@ class EvaluatorExternalElectricField
 #ifndef __HIPCC__
         param_type() : E(make_scalar3(0, 0, 0)) { }
 
-        param_type(pybind11::dict params)
+        param_type(pybind11::object params)
             {
-            pybind11::tuple py_E(params["E"]);
+            pybind11::tuple py_E(params);
             E.x = pybind11::cast<Scalar>(py_E[0]);
             E.y = pybind11::cast<Scalar>(py_E[1]);
             E.z = pybind11::cast<Scalar>(py_E[2]);
             }
 
-        pybind11::dict asDict()
+        pybind11::object asDict()
             {
-            pybind11::dict params;
-            params["E"] = pybind11::make_tuple(E.x, E.y, E.z);
+            pybind11::tuple params;
+            params = pybind11::make_tuple(E.x, E.y, E.z);
             return params;
             }
 #endif // ifndef __HIPCC__
