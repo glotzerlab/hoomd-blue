@@ -15,19 +15,17 @@
 
 #include "HOOMDMath.h"
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-#endif
-
 #ifndef __HIPCC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <hoomd/extern/random123/include/Random123/philox.h>
-#include <type_traits>
 #ifndef __HIPCC__
 #pragma GCC diagnostic pop
 #endif
+
+#include <limits>
+#include <type_traits>
 
 namespace r123
     {

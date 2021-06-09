@@ -11,6 +11,8 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/WarpTools.cuh"
 
+#include <cstdint>
+
 namespace hpmc
     {
 namespace gpu
