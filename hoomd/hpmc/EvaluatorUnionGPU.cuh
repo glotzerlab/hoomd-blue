@@ -3,12 +3,11 @@
 
 #pragma once
 
-#include "hoomd/hpmc/Evaluator.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
-#include "hoomd/hpmc/GPUTree.h"
 #include "hoomd/hpmc/Evaluator.cuh"
+#include "hoomd/hpmc/GPUTree.h"
 
 #ifdef __HIPCC__
 #define HOSTDEVICE __host__ __device__
