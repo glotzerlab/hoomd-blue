@@ -666,19 +666,14 @@ class DPD(Pair):
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
 
-    def __init__(self,
-                 nlist,
-                 kT,
-                 default_r_cut=None,
-                 default_r_on=0.):
+    def __init__(self, nlist, kT, default_r_cut=None, default_r_on=0.):
         super().__init__(nlist, default_r_cut, default_r_on, 'none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant,
-                          mode=OnlyFrom(['none']))
+        d = ParameterDict(kT=hoomd.variant.Variant, mode=OnlyFrom(['none']))
         self._param_dict.update(d)
         self.mode = 'none'
 
@@ -869,7 +864,6 @@ class DPDLJ(Pair):
         self._param_dict.update(d)
 
         self.kT = kT
-
 
     def _add(self, simulation):
         """Add the operation to a simulation.
