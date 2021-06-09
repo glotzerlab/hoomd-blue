@@ -78,6 +78,12 @@ def test_gpu_specific_properties(device):
     # make sure we can give a list of GPU ids to the constructor
     hoomd.device.GPU(gpu_ids=[0])
 
+    c = device.compute_capability
+    assert type(c) is tuple
+    assert len(c) == 2
+    assert c[0] > 0
+    assert c[1] > 0
+
 
 @pytest.mark.gpu
 def test_other_gpu_specifics(device):
