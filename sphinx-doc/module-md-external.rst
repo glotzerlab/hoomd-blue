@@ -8,6 +8,7 @@ md.external
 .. autosummary::
     :nosignatures:
 
+    External
     ElectricField
     Periodic
 
@@ -15,5 +16,6 @@ md.external
 
 .. automodule:: hoomd.md.external
     :synopsis: External potentials.
-    :members: ElectricField,
+    :members: External,
+        ElectricField,
         Periodic
