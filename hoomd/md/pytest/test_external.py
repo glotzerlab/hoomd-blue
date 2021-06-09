@@ -46,11 +46,11 @@ def _external_params():
         (hoomd.md.external.Periodic, "params",
          list([dict(A=1.5, i=1, w=3.5, p=5),
                dict(A=10, i=0, w=3.4, p=2)]), _evaluate_periodic))
-    list_ext_params.append((hoomd.md.external.ElectricField, "E",
-                            list([
-                                (1, 0, 0),
-                                (0, 2, 0),
-                            ]), _evaluate_electric))
+    list_ext_params.append(
+        (hoomd.md.external.ElectricField, "E", list([
+            (1, 0, 0),
+            (0, 2, 0),
+        ]), _evaluate_electric))
     return list_ext_params
 
 
@@ -65,9 +65,11 @@ def _assert_correct_params(external_obj, param_attr, params):
     """Assert the params of the external object match whats in the dict."""
     if type(params) == dict:
         for param in params.keys():
-            npt.assert_allclose(getattr(external_obj, param_attr)['A'][param], params[param])
+            npt.assert_allclose(
+                getattr(external_obj, param_attr)['A'][param], params[param])
     if type(params) == tuple:
         npt.assert_allclose(getattr(external_obj, param_attr)['A'], params)
+
 
 def test_get_set(simulation_factory, two_particle_snapshot_factory,
                  external_params):
