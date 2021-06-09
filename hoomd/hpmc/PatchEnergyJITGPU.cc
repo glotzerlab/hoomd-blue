@@ -39,7 +39,8 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
     unsigned int max_queue_size = n_groups * tpp;
 
-    const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
+    const unsigned int min_shared_bytes
+        = static_cast<unsigne dint>(args.num_types * sizeof(Scalar));
 
     unsigned int shared_bytes = static_cast<unsigned int>(
         n_groups
