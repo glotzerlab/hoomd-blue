@@ -82,7 +82,7 @@ def test_gpu_specific_properties(device):
     assert type(c) is tuple
     assert len(c) == 2
     assert c[0] > 0
-    assert c[1] > 0
+    assert c[1] >= 0
 
 
 @pytest.mark.gpu
