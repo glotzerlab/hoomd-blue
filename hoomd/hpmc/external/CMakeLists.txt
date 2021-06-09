@@ -1,4 +1,4 @@
-if (BUILD_JIT)
+if (ENABLE_LLVM)
   set(files __init__.py
             user.py
      )

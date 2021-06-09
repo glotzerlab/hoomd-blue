@@ -44,6 +44,12 @@ else()
     set(_mpcd_built "False")
 endif()
 
+if (ENABLE_LLVM)
+    set(_llvm_enabled "True")
+else()
+    set(_llvm_enabled "False")
+endif()
+
 configure_file (version_config.py.in ${HOOMD_BINARY_DIR}/hoomd/version_config.py)
 install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}

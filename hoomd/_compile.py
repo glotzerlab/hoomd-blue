@@ -52,6 +52,6 @@ def get_gpu_compilation_settings(gpu):
     print(compute_major, compute_minor)
     return {
         "includes": includes,
-        "cuda_devrt_lib_path": hoomd.version.cuda_devrt_lib,
+        "cuda_devrt_lib_path": hoomd.version.cuda_devrt_library,
         "max_arch": compute_major * 10 + compute_minor
     }

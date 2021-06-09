@@ -14,7 +14,7 @@ set(files __init__.py
           depletants_sphere.py
     )
 
-if (BUILD_JIT)
+if (ENABLE_LLVM)
     list(APPEND files test_pair_user.py test_external_user.py)
 endif()
 

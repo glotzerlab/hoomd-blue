@@ -74,7 +74,7 @@ else()
     add_library(CUDA::cudadevrt UNKNOWN IMPORTED)
 endif()
 
-if (BUILD_JIT)
+if (ENABLE_LLVM)
 if (HIP_PLATFORM STREQUAL "nvcc")
     find_library(CUDA_nvrtc_LIBRARY nvrtc HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_nvrtc_LIBRARY)

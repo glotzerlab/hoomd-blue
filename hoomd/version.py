@@ -47,15 +47,16 @@ from hoomd import _hoomd
 
 from hoomd.version_config import (
     compile_date,
-    git_branch,
-    git_sha1,
-    md_built,
-    hpmc_built,
-    dem_built,
-    mpcd_built,
-    metal_built,
     cuda_include_path,
     cuda_devrt_library,
+    dem_built,
+    git_branch,
+    git_sha1,
+    hpmc_built,
+    llvm_enabled,
+    md_built,
+    metal_built,
+    mpcd_built,
 )
 
 version = _hoomd.BuildInfo.getVersion()
