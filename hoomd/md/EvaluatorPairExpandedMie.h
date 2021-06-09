@@ -5,7 +5,7 @@
 // Maintainer: joaander
 
 #ifndef __PAIR_EVALUATOR_ExpandedMie_H__
-#define __PAIR_EVALUATOR_ExapndedMie_H__
+#define __PAIR_EVALUATOR_ExpandedMie_H__
 
 #ifndef __HIPCC__
 #include <string>
@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "EvaluatorPairLJ.h"
 
-/*! \file EvaluatorPairExapndedMie.h
+/*! \file EvaluatorPairExpandedMie.h
     \brief Defines the pair evaluator class for Expanded Mie potentials
 */
 
@@ -33,7 +33,7 @@
 
     <b>ExpandedMie specifics</b>
 
-    EvaluatorPairExapndedMie evaluates the function:
+    EvaluatorPairExpandedMie evaluates the function:
     \f{eqnarray*}
     V_{\mathrm{ExpMie}}(r)  = \left( \frac{n}{n-m} \right) {\left( \frac{n}{m} \right)}^{\frac{m}{n-m}} \varepsilon \left[ \left( \frac{\sigma}{r-\Delta} \right)^{n} -
                 \left( \frac{\sigma}{r-\Delta} \right)^{m} \right] r \l (r_{\mathrm{cut}} + \Delta)\\
