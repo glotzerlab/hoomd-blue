@@ -79,7 +79,8 @@ template<class Real> struct vec3
         case 2:
             return z;
         default:
-#ifdef __HIPCC__
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
             // This branch should not be reached, but must include something to avoid
             // compiler warnings on the GPU and it must be something that can be returned by
             // reference, so x is as good a choice as any.
@@ -104,7 +105,8 @@ template<class Real> struct vec3
         case 2:
             return z;
         default:
-#ifdef __HIPCC__
+// Just return x on GPU or when using JIT as exceptions are disabled on GPU and JIT code.
+#if defined(__HIPCC__) || defined(HOOMD_LLVMJIT_BUILD)
             // This branch should not be reached, but must include something to avoid
             // compiler warnings on the GPU and returning x matches the non-const version of the
             // operator.
