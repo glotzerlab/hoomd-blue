@@ -31,8 +31,9 @@ class AnisotropicPair(Pair):
 
     Args:
         nlist (hoomd.md.nlist.NList) : The neighbor list.
-        default_r_cut (`float`, optional) : The default cutoff for the potential,
-            defaults to ``None`` which means no cutoff (units: [length]).
+        default_r_cut (`float`, optional) : The default cutoff for the
+            potential, defaults to ``None`` which means no cutoff (units:
+            [length]).
         mode (`str`, optional) : the energy shifting mode, defaults to "none".
     """
 
