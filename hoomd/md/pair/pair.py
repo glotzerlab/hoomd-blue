@@ -468,7 +468,6 @@ class Ewald(Pair):
         nlist (`hoomd.md.nlist.NList`): Neighbor list.
         default_r_cut (float): Default cutoff radius (in distance units).
         default_r_on (float): Default turn-on radius (in distance units).
-        mode (str): Energy shifting/smoothing mode.
 
     `Ewald` specifies that a Ewald pair potential should be applied between
     every non-excluded particle pair in the simulation.
@@ -513,12 +512,17 @@ class Ewald(Pair):
     """
     _cpp_class_name = "PotentialPairEwald"
 
-    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
-        super().__init__(nlist, default_r_cut, default_r_on, mode)
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
+        super().__init__(nlist, default_r_cut, default_r_on, 'none')
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
+
         self._add_typeparam(params)
+
+        param_dict = ParameterDict(mode=OnlyFrom(['none']))
+        self._param_dict.update(param_dict)
+        self.mode = 'none'
 
 
 class Morse(Pair):
@@ -673,8 +677,10 @@ class DPD(Pair):
             TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant)
+        d = ParameterDict(kT=hoomd.variant.Variant,
+                          mode=OnlyFrom(['none']))
         self._param_dict.update(d)
+        self.mode = 'none'
 
         self.kT = kT
 
@@ -742,6 +748,10 @@ class DPDConservative(Pair):
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
+
+        param_dict = ParameterDict(mode=OnlyFrom(['none']))
+        self._param_dict.update(param_dict)
+        self.mode = 'none'
 
 
 class DPDLJ(Pair):
@@ -811,7 +821,6 @@ class DPDLJ(Pair):
     of the dpd thermostat pair force with other integrators will result in
     unphysical behavior.
 
-    DPDLJ does not support smoothing with ``mode="xplor"``.
     See `Pair` for details on how forces are calculated and the
     available energy shifting and smoothing modes.
 
@@ -856,12 +865,11 @@ class DPDLJ(Pair):
                               len_keys=2))
         self._add_typeparam(params)
 
-        d = ParameterDict(kT=hoomd.variant.Variant,
-                          mode=OnlyFrom(['none', 'shift']))
+        d = ParameterDict(kT=hoomd.variant.Variant)
         self._param_dict.update(d)
 
         self.kT = kT
-        self.mode = mode
+
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -908,8 +916,7 @@ class ForceShiftedLJ(Pair):
         \Delta V(r) = -(r - r_{\mathrm{cut}}) \frac{\partial
           V_{\mathrm{LJ}}}{\partial r}(r_{\mathrm{cut}})
 
-    See `Pair` for details on how forces are calculated and the available
-    energy shifting and smoothing modes.
+    See `Pair` for details on how forces are calculated.
 
     .. py:attribute:: params
 
@@ -938,6 +945,10 @@ class ForceShiftedLJ(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
+
+        param_dict = ParameterDict(mode=OnlyFrom(['none']))
+        self._param_dict.update(param_dict)
+        self.mode = 'none'
 
 
 class Moliere(Pair):
@@ -1089,6 +1100,10 @@ class ZBL(Pair):
             'params', 'particle_types',
             TypeParameterDict(qi=float, qj=float, aF=float, len_keys=2))
         self._add_typeparam(params)
+
+        param_dict = ParameterDict(mode=OnlyFrom(['none']))
+        self._param_dict.update(param_dict)
+        self.mode = 'none'
 
 
 class Mie(Pair):

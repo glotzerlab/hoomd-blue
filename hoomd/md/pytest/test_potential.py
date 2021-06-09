@@ -904,8 +904,7 @@ def test_force_energy_accuracy(simulation_factory,
 
     pot = forces_and_energies.pair_potential(**forces_and_energies.extra_args,
                                              nlist=md.nlist.Cell(),
-                                             default_r_cut=2.5,
-                                             mode='none')
+                                             default_r_cut=2.5)
     pot.params[('A', 'A')] = forces_and_energies.pair_potential_params
     snap = two_particle_snapshot_factory(particle_types=['A'], d=0.75)
     _update_snap(forces_and_energies.pair_potential, snap)
