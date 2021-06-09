@@ -407,12 +407,16 @@ def log(func=None,
         if requires_attach:
 
             @wraps(func)
-            def wrapped_with_exception(self, *args, **kwargs):
-                if not self._attached:
-                    raise DataAccessError(name)
-                return func(*args, **kwargs)
+            def wrap_with_exception(func):
 
-            func = wrapped_with_exception
+                def wrapped_func(self, *args, **kwargs):
+                    if not self._attached:
+                        raise DataAccessError(name)
+                    return func(self, *args, **kwargs)
+
+                return wrapped_func
+
+            func = wrap_with_exception(func)
         if is_property:
             return property(func)
         else:
