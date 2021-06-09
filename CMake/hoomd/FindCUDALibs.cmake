@@ -7,7 +7,7 @@ get_filename_component(CUDA_LIB_PATH "${CUDA_BIN_PATH}/../lib64/" ABSOLUTE)
 set(REQUIRED_CUDA_LIB_VARS "")
 if (HIP_PLATFORM STREQUAL "nvcc")
     # find libraries that go with this compiler
-    find_library(CUDA_cudart_LIBRARY cudart HINTS ${CUDA_LIB_PATH} /usr/local/cuda-11.1/compat)
+    find_library(CUDA_cudart_LIBRARY cudart HINTS ${CUDA_LIB_PATH})
     mark_as_advanced(CUDA_cudart_LIBRARY)
     if(CUDA_cudart_LIBRARY AND NOT TARGET CUDA::cudart)
       add_library(CUDA::cudart UNKNOWN IMPORTED)
@@ -95,7 +95,7 @@ endif()
 # libcuda.so in different locations as it installs with the driver, not the runtime
 if (HIP_PLATFORM STREQUAL "nvcc")
     # find libraries that go with this compiler
-    find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH})
+    find_library(CUDA_cuda_LIBRARY cuda HINTS ${CUDA_LIB_PATH} /usr/local/cuda-11.1/compat)
     mark_as_advanced(CUDA_cuda_LIBRARY)
     if(CUDA_cuda_LIBRARY AND NOT TARGET CUDA::cuda)
       add_library(CUDA::cuda UNKNOWN IMPORTED)
