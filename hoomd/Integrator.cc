@@ -43,39 +43,12 @@ Integrator::~Integrator()
 #endif
     }
 
-/** @param fc ForceCompute to add
- */
-void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
-    {
-    assert(fc);
-    m_forces.push_back(fc);
-    fc->setDeltaT(m_deltaT);
-    }
-
-/** @param fc ForceConstraint to add
- */
-void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
-    {
-    assert(fc);
-    m_constraint_forces.push_back(fc);
-    fc->setDeltaT(m_deltaT);
-    }
-
 /** @param hook HalfStepHook to set
  */
 void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
     {
     assert(hook);
     m_half_step_hook = hook;
-    }
-
-/** Call removeForceComputes() to completely wipe out the list of force computes
-    that the integrator uses to sum forces.
-*/
-void Integrator::removeForceComputes()
-    {
-    m_forces.clear();
-    m_constraint_forces.clear();
     }
 
 /** Call removeHalfStepHook() to unset the integrator's HalfStep hook
