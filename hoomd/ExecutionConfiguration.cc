@@ -259,7 +259,8 @@ ExecutionConfiguration::~ExecutionConfiguration()
 
 #if defined(ENABLE_HIP)
 
-std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapability(unsigned int idev) const
+std::pair<unsigned int, unsigned int>
+ExecutionConfiguration::getComputeCapability(unsigned int idev) const
     {
     auto result = std::make_pair(0, 0);
 
