@@ -55,9 +55,6 @@ PYBIND11_MODULE(_jit, m)
     export_ExternalFieldJIT<ShapeSphinx>(m, "ExternalFieldJITSphinx");
 
 #if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
-    m.attr("__cuda_devrt_library_path__") = std::string(CUDA_DEVRT_LIBRARY_PATH);
-    m.attr("__cuda_include_path__") = std::string(CUDA_INCLUDE_PATH);
-
     export_PatchEnergyJITGPU(m);
     export_PatchEnergyJITUnionGPU(m);
 #endif

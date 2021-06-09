@@ -13,8 +13,8 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 
-//! uncomment to debug JIT compilation errors
-#define DEBUG_JIT
+/// uncomment to debug JIT compilation errors
+// #define DEBUG_JIT
 
 #ifdef DEBUG_JIT
 #define JITIFY_PRINT_LOG 1

@@ -241,9 +241,6 @@ if (BUILD_JIT)
     add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
     if (ENABLE_HIP AND HIP_PLATFORM STREQUAL "nvcc")
-        # no device linking
-        target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_DEVRT_LIBRARY_PATH=\"${CUDA_cudadevrt_LIBRARY}\")
-        target_compile_definitions(_${PACKAGE_NAME} PUBLIC CUDA_INCLUDE_PATH=\"${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}\")
         target_link_libraries(_${PACKAGE_NAME} PUBLIC CUDA::cuda CUDA::nvrtc)
     endif ()
 

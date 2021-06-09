@@ -21,8 +21,7 @@ def to_llvm_ir(code, clang_exec):
 
     cmd = [
         clang_exec, '-O3', '--std=c++14', '-DHOOMD_LLVMJIT_BUILD', '-I',
-        hoomd_include_path, '-I', hoomd.version.source_dir, '-S', '-emit-llvm',
-        '-x', 'c++', '-o', '-', '-'
+        hoomd_include_path, '-S', '-emit-llvm', '-x', 'c++', '-o', '-', '-'
     ]
     p = subprocess.Popen(cmd,
                          stdin=subprocess.PIPE,
@@ -45,15 +44,14 @@ def get_gpu_compilation_settings(gpu):
         "-I" + os.path.dirname(hoomd.__file__) + '/include',
         "-I" + os.path.dirname(hoomd.__file__)
         + '/include/hoomd/extern/HIP/include',
-        "-I" + _jit.__cuda_include_path__,
+        "-I" + hoomd.version.cuda_include_path,
     ]
-    cuda_devrt_lib_path = _jit.__cuda_devrt_library_path__
 
     # compile JIT code for the current device
     compute_major, compute_minor = gpu.compute_capability
     print(compute_major, compute_minor)
     return {
         "includes": includes,
-        "cuda_devrt_lib_path": cuda_devrt_lib_path,
+        "cuda_devrt_lib_path": hoomd.version.cuda_devrt_lib,
         "max_arch": compute_major * 10 + compute_minor
     }
