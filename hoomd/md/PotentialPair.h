@@ -158,13 +158,13 @@ class PotentialPair : public ForceCompute
         {
         switch (m_shift_mode)
             {
-        case no_shift:
+            case no_shift:
             return "none";
-        case shift:
+            case shift:
             return "shift";
-        case xplor:
+            case xplor:
             return "xplor";
-        default:
+            default:
             throw std::runtime_error("Error setting shift mode.");
             }
         }
@@ -226,7 +226,7 @@ class PotentialPair : public ForceCompute
     virtual void computeForces(uint64_t timestep);
 
     // Extra steps to insert (used for alchemy)
-    virtual inline extra_pkg pkgInitialze(const uint64_t& timestep)
+    virtual inline extra_pkg pkgInitialize(const uint64_t& timestep)
         {
         return nullptr;
         };
@@ -238,6 +238,8 @@ class PotentialPair : public ForceCompute
                                        const bool in_rcut,
                                        evaluator& eval,
                                        extra_pkg&) {};
+
+    virtual inline void pkgFinalize(extra_pkg&) {};
 
     //! Method to be called when number of types changes
     virtual void slotNumTypesChange()
@@ -630,7 +632,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
     memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
     memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
-    extra_pkg pkg = pkgInitialze(timestep);
+    extra_pkg pkg = pkgInitialize(timestep);
 
     // for each particle
     for (int i = 0; i < (int)m_pdata->getN(); i++)
@@ -808,6 +810,7 @@ void PotentialPair<evaluator, extra_pkg>::computeForces(uint64_t timestep)
             h_virial.data[5 * m_virial_pitch + mem_idx] += virialzzi;
             }
         }
+    pkgFinalize(pkg);
 
     if (m_prof)
         m_prof->pop();
@@ -873,7 +876,7 @@ inline void PotentialPair<evaluator, extra_pkg>::computeEnergyBetweenSets(InputI
     energy = Scalar(0.0);
 
     // max value will be special timestep case for extra packages
-    extra_pkg pkg = pkgInitialze(UINT64_MAX);
+    extra_pkg pkg = pkgInitialize(UINT64_MAX);
 
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(),

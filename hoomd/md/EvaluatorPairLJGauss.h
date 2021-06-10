@@ -3,6 +3,7 @@
 #define __PAIR_EVALUATOR_LJGAUSS_H__
 
 #ifndef __HIPCC__
+#include <map>
 #include <string>
 #endif
 
@@ -43,6 +44,20 @@ class EvaluatorPairLJGauss
         Scalar epsilon;
         Scalar sigma2;
         Scalar r0;
+        Scalar operator[](int i) const
+            {
+            switch (i)
+                {
+                case 0:
+                return epsilon;
+                case 1:
+                return sigma2;
+                case 2:
+                return r0;
+                default:
+                return 0;
+                }
+            };
 
 #ifdef ENABLE_HIP
         //! Set CUDA memory hints
@@ -53,7 +68,7 @@ class EvaluatorPairLJGauss
 #endif
 
 #ifndef __HIPCC__
-        param_type() : epsilon(0), sigma2(0), r0(0) { }
+        param_type() : epsilon(0), sigma2(1.0), r0(0) { }
 
         param_type(pybind11::dict v)
             {
@@ -72,6 +87,8 @@ class EvaluatorPairLJGauss
             }
 #endif
         };
+
+    // static const std::map<unsigned int, std::string> param_order;
 
     //! Constructs the pair potential evaluator
     /*! \param _rsq Squared distance beteen the particles
@@ -198,5 +215,8 @@ class EvaluatorPairLJGauss
     Scalar sigma2;  //!< sigma^2 parameter extracted from the params passed to the constructor
     Scalar r0;      //!< r0 prarameter extracted from the params passed to the constructor
     };
+
+// const std::map<unsigned int, std::string> EvaluatorPairLJGauss::param_order
+//     = {{0, "epsilon"}, {1, "sigma2"}, {2, "r0"}};
 
 #endif // __PAIR_EVALUATOR_LJGAUSS_H__

@@ -75,6 +75,25 @@ class AlchemicalMDParticle : public AlchemicalParticle
         netForce /= Scalar(m_alchemical_derivatives.getNumElements());
         m_timestepNetForce.second = netForce;
         }
+        
+    void setNetForce(unsigned int N, Scalar norm_value)
+        {
+        Scalar netForce(0.0);
+        ArrayHandle<Scalar> h_forces(m_alchemical_derivatives,
+                                     access_location::host,
+                                     access_mode::read);
+        for (unsigned int i = 0; i < m_alchemical_derivatives.getNumElements(); i++)
+            netForce += h_forces.data[i];
+        m_exec_conf->msg->notice(10) << "alchForceSum:" << std::to_string(netForce) << std::endl;
+        netForce /= N;
+        m_timestepNetForce.second = netForce;
+        }
+    
+    void setNetForce(Scalar norm_value)
+        {
+        setNetForce();
+        m_timestepNetForce.second *= norm_value;
+        }
 
     Scalar getNetForce(uint64_t timestep)
         {

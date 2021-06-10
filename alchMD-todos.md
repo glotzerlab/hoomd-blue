@@ -9,7 +9,7 @@ than making issues.
 - [X] generalize the extra functions in PotentialPair?
 - [X] Figure out array access with derived class specialized add-ins
 - [ ] Decide where the order of the alchemical parameters will be stored
-  -  std::vector<std::string> in eval? 
+  -  std::vector<std::string> in eval?
   -  would be best to only check during compile time or through some test rather
      than take up space
 - [X] Enable alchemostat to be called directly before and directly after
@@ -32,6 +32,7 @@ than making issues.
   -  Full partition function in a fully coupled system would dictate a Beta value
   -  To handle different initial conditions in the same parameter space, can
     be useful to set it as inverse squared initial
+- [ ] implement reflection etc for constraining alpha to positive values?
 
 
 
@@ -52,7 +53,7 @@ than making issues.
 ## Tests
 - Alchemostat without thermostat actually computes alchemical forces
 - Alchemical time factor 0 causes error
-- 
+-
 
 # Design choices
 - When an alchemical particle is disabled, it must rewrite the associated parameters.
@@ -62,13 +63,13 @@ than making issues.
 - Store a pair (timestep,averaged netforce) when the compute is run in the
   alchemical data, should be able to use it to handle some cases where the time
   factor is changed
-- 
+-
 ## Ownership
 - Alchemical Force Computes
     - M_alpha (max number of alchemical variables implemented)
     - alchemy_used: Boolean array, shape M_types x M_types x M_alpha (should probably be renamed)
     - Parameters original values
-    - 1D arrays matching number and order of trues in used, length matches 
+    - 1D arrays matching number and order of trues in used, length matches
 
 - Alchemical Particle/ Alchemical Data
     - Alchemical Position (currently implemented in dimensionless alpha space
@@ -84,5 +85,3 @@ than making issues.
     - Alchemical Temperature
     - Alchemical Timestep
     - List of alchemical forces to integrate
-
-

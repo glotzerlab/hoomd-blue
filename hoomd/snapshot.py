@@ -358,6 +358,6 @@ class Snapshot:
             if gsd_snap.configuration.box is not None:
                 snap.configuration.box = gsd_snap.configuration.box
                 if gsd_snap.configuration.dimensions == 2:
-                    snap.configuration.box[2] = 0
+                    assert(snap.configuration.box[2] == 0)
 
         return snap
