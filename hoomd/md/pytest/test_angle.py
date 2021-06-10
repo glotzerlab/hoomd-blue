@@ -8,7 +8,7 @@ _harmonic_args = {
 }
 _harmonic_arg_list = [
     (hoomd.md.angle.Harmonic,
-     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+     dict(zip(_harmonic_args, val))) for val in zip(*_harmonic_args.values())
 ]
 
 _cosinesq_args = {
@@ -17,7 +17,7 @@ _cosinesq_args = {
 }
 _cosinesq_arg_list = [
     (hoomd.md.angle.Cosinesq,
-     dict(zip(_cosinesq_args, val)) for val in zip(*_cosinesq_args.values()))
+     dict(zip(_cosinesq_args, val))) for val in zip(*_cosinesq_args.values())
 ]
 
 

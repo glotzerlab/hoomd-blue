@@ -5,7 +5,7 @@ import numpy as np
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
 _harmonic_arg_list = [
     (hoomd.md.bond.Harmonic,
-     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+     dict(zip(_harmonic_args, val))) for val in zip(*_harmonic_args.values())
 ]
 
 _FENE_args = {
@@ -16,7 +16,7 @@ _FENE_args = {
 }
 _FENE_arg_list = [
     (hoomd.md.bond.FENE,
-     dict(zip(_FENE_args, val)) for val in zip(*_FENE_args.values()))
+     dict(zip(_FENE_args, val))) for val in zip(*_FENE_args.values())
 ]
 
 

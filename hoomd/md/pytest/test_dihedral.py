@@ -10,7 +10,7 @@ _harmonic_args = {
 }
 _harmonic_arg_list = [
     (hoomd.md.dihedral.Harmonic,
-     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+     dict(zip(_harmonic_args, val))) for val in zip(*_harmonic_args.values())
 ]
 
 _OPLS_args = {
@@ -21,7 +21,7 @@ _OPLS_args = {
 }
 _OPLS_arg_list = [
     (hoomd.md.dihedral.OPLS,
-     dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values()))
+     dict(zip(_OPLS_args, val))) for val in zip(*_OPLS_args.values())
 ]
 
 
