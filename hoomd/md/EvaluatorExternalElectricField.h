@@ -60,7 +60,7 @@ class EvaluatorExternalElectricField
             {
             pybind11::tuple params;
             params = pybind11::make_tuple(E.x, E.y, E.z);
-            return params;
+            return std::move(params);
             }
 #endif // ifndef __HIPCC__
         }
