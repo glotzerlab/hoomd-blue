@@ -40,7 +40,7 @@ def _evaluate_electric(snapshot, params):
 
 
 def _external_params():
-    """Each entry is a tuple (class_object, param attribute, list(param values), eval func)."""
+    """Each is tuple (cls_obj, param attr, lis(param values), eval func)."""
     list_ext_params = []
     list_ext_params.append(
         (hoomd.md.external.Periodic, "params",
