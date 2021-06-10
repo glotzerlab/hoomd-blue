@@ -323,8 +323,13 @@ class Snapshot:
             communicator (hoomd.communicator.Communicator): The MPI communicator
                 to use for the snapshot. This prevents the snapshot from being
                 stored on every rank.
+
+        Note:
+            `from_gsd_snapshot` only accesses the `gsd_snap` argument on rank 0.
+            In MPI simulations, avoid duplicating memory and file reads by
+            reading GSD files only on rank 0 and passing `gsd_snap=None` on
+            other ranks.
         """
-        gsd_snap.validate()
         snap = cls(communicator=communicator)
 
         def set_properties(snap_section, gsd_snap_section, properties,
@@ -339,6 +344,8 @@ class Snapshot:
                     getattr(snap_section, prop)[:] = gsd_prop
 
         if communicator.rank == 0:
+
+            gsd_snap.validate()
 
             set_properties(snap.particles, gsd_snap.particles, ('N', 'types'),
                            ('angmom', 'body', 'charge', 'diameter', 'image',
@@ -356,8 +363,11 @@ class Snapshot:
 
             # Set box attribute
             if gsd_snap.configuration.box is not None:
-                snap.configuration.box = gsd_snap.configuration.box
+                box = list(gsd_snap.configuration.box)
                 if gsd_snap.configuration.dimensions == 2:
-                    snap.configuration.box[2] = 0
+                    box[2] = 0
+                snap.configuration.box = box
+
+        snap._broadcast_box()
 
         return snap
