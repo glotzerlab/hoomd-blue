@@ -25,27 +25,24 @@ def get_angle_and_args():
 
 
 def get_angle_args_forces_and_energies():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    cosinesq_arg_list = [
-        dict(zip(_cosinesq_args, val)) for val in zip(*_cosinesq_args.values())
-    ]
     harmonic_forces = [-1.5708, 2.6180, 2.6180]
     harmonic_energies = [0.4112, 0.3427, 0.6854]
     cosinesq_forces = [-1.29904, 1.7936, 1.58494]
     cosinesq_energies = [0.375, 0.214466, 0.334936]
 
-    angle_args_forces_and_energies = []
+    harmonic_args_and_vals = []
+    cosinesq_args_and_vals = []
     for i in range(3):
-        angle_args_forces_and_energies.append(
-            (hoomd.md.angle.Harmonic, harmonic_arg_list[i], harmonic_forces[i],
-             harmonic_energies[i]))
-    for i in range(3):
-        angle_args_forces_and_energies.append(
-            (hoomd.md.angle.Cosinesq, cosinesq_arg_list[i], cosinesq_forces[i],
-             cosinesq_energies[i]))
-    return angle_args_forces_and_energies
+        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
+                                      _harmonic_arg_list[i][1],
+                                      harmonic_forces[i],
+                                      harmonic_energies[i])
+        cosinesq_args_and_vals.append(_cosinesq_arg_list[i][0],
+                                      _cosinesq_arg_list[i][1],
+                                      cosinesq_forces[i],
+                                      cosinesq_energies[i])
+
+    return harmonic_args_and_vals + cosinesq_args_and_vals
 
 
 @pytest.fixture(scope='session')
