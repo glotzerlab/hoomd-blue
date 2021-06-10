@@ -8,10 +8,9 @@ _harmonic_args = {
     'n': [2, 1, 3],
     'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
-_harmonic_arg_list = [
-    (hoomd.md.dihedral.Harmonic,
-     dict(zip(_harmonic_args, val))) for val in zip(*_harmonic_args.values())
-]
+_harmonic_arg_list = [(hoomd.md.dihedral.Harmonic,
+                       dict(zip(_harmonic_args, val)))
+                      for val in zip(*_harmonic_args.values())]
 
 _OPLS_args = {
     'k1': [1.0, 0.5, 2.0],
@@ -19,10 +18,8 @@ _OPLS_args = {
     'k3': [0.5, 1.5, 0.25],
     'k4': [0.75, 1.0, 3.5]
 }
-_OPLS_arg_list = [
-    (hoomd.md.dihedral.OPLS,
-     dict(zip(_OPLS_args, val))) for val in zip(*_OPLS_args.values())
-]
+_OPLS_arg_list = [(hoomd.md.dihedral.OPLS, dict(zip(_OPLS_args, val)))
+                  for val in zip(*_OPLS_args.values())]
 
 
 def get_dihedral_and_args():
@@ -38,14 +35,11 @@ def get_dihedral_args_forces_and_energies():
     harmonic_args_and_vals = []
     OPLS_args_and_vals = []
     for i in range(3):
-        harmonic_args_and_vals.append((_harmonic_arg_list[i][0],
-                                       _harmonic_arg_list[i][1],
-                                       harmonic_forces[i],
-                                       harmonic_energies[i]))
-        OPLS_args_and_vals.append((_OPLS_arg_list[i][0],
-                                   _OPLS_arg_list[i][1],
-                                   OPLS_forces[i],
-                                   OPLS_energies[i]))
+        harmonic_args_and_vals.append(
+            (_harmonic_arg_list[i][0], _harmonic_arg_list[i][1],
+             harmonic_forces[i], harmonic_energies[i]))
+        OPLS_args_and_vals.append((_OPLS_arg_list[i][0], _OPLS_arg_list[i][1],
+                                   OPLS_forces[i], OPLS_energies[i]))
 
     return harmonic_args_and_vals + OPLS_args_and_vals
 
@@ -82,7 +76,8 @@ def dihedral_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.mark.parametrize("dihedral_cls, potential_kwargs", get_dihedral_and_args())
+@pytest.mark.parametrize("dihedral_cls, potential_kwargs",
+                         get_dihedral_and_args())
 def test_before_attaching(dihedral_cls, potential_kwargs):
     dihedral_potential = dihedral_cls()
     dihedral_potential.params['dihedral'] = potential_kwargs
@@ -92,7 +87,8 @@ def test_before_attaching(dihedral_cls, potential_kwargs):
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("dihedral_cls, potential_kwargs", get_dihedral_and_args())
+@pytest.mark.parametrize("dihedral_cls, potential_kwargs",
+                         get_dihedral_and_args())
 def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
                          dihedral_cls, potential_kwargs):
     snap = dihedral_snapshot_factory(d=0.969, L=5)

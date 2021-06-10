@@ -6,19 +6,15 @@ _harmonic_args = {
     'k': [3.0, 10.0, 5.0],
     't0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
-_harmonic_arg_list = [
-    (hoomd.md.angle.Harmonic,
-     dict(zip(_harmonic_args, val))) for val in zip(*_harmonic_args.values())
-]
+_harmonic_arg_list = [(hoomd.md.angle.Harmonic, dict(zip(_harmonic_args, val)))
+                      for val in zip(*_harmonic_args.values())]
 
 _cosinesq_args = {
     'k': [3.0, 10.0, 5.0],
     't0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
-_cosinesq_arg_list = [
-    (hoomd.md.angle.Cosinesq,
-     dict(zip(_cosinesq_args, val))) for val in zip(*_cosinesq_args.values())
-]
+_cosinesq_arg_list = [(hoomd.md.angle.Cosinesq, dict(zip(_cosinesq_args, val)))
+                      for val in zip(*_cosinesq_args.values())]
 
 
 def get_angle_and_args():
@@ -34,14 +30,12 @@ def get_angle_args_forces_and_energies():
     harmonic_args_and_vals = []
     cosinesq_args_and_vals = []
     for i in range(3):
-        harmonic_args_and_vals.append((_harmonic_arg_list[i][0],
-                                       _harmonic_arg_list[i][1],
-                                       harmonic_forces[i],
-                                       harmonic_energies[i]))
-        cosinesq_args_and_vals.append((_cosinesq_arg_list[i][0],
-                                       _cosinesq_arg_list[i][1],
-                                       cosinesq_forces[i],
-                                       cosinesq_energies[i]))
+        harmonic_args_and_vals.append(
+            (_harmonic_arg_list[i][0], _harmonic_arg_list[i][1],
+             harmonic_forces[i], harmonic_energies[i]))
+        cosinesq_args_and_vals.append(
+            (_cosinesq_arg_list[i][0], _cosinesq_arg_list[i][1],
+             cosinesq_forces[i], cosinesq_energies[i]))
 
     return harmonic_args_and_vals + cosinesq_args_and_vals
 
@@ -64,11 +58,10 @@ def triplet_snapshot_factory(device):
             s.configuration.box = box
             s.particles.N = N
 
-            base_positions = np.array([
-                [-d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0],
-                [0.0, 0.0, 0.0],
-                [d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0]
-            ])
+            base_positions = np.array(
+                [[-d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0],
+                 [0.0, 0.0, 0.0],
+                 [d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0]])
             # move particles slightly in direction of MPI decomposition which
             # varies by simulation dimension
             nudge_dimension = 2 if dimensions == 3 else 1
