@@ -85,14 +85,13 @@ def triplet_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.mark.parametrize("angle_and_args", get_angle_and_args())
-def test_before_attaching(angle_and_args):
-    angle, args = angle_and_args
-    angle_potential = angle()
-    angle_potential.params['backbone'] = args
-    for key in args.keys():
+@pytest.mark.parametrize("angle_cls, potential_kwargs", get_angle_and_args())
+def test_before_attaching(angle_cls, potential_kwargs):
+    angle_potential = angle_cls()
+    angle_potential.params['backbone'] = potential_kwargs
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(angle_potential.params['backbone'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
