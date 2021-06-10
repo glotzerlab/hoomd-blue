@@ -190,7 +190,6 @@ void NeighborListGPUBinned::buildNlist(uint64_t timestep)
                              m_filter_body,
                              m_diameter_shift,
                              m_cl->getGhostWidth(),
-                             m_exec_conf->getComputeCapability() / 10,
                              m_pdata->getGPUPartition(),
                              m_use_index);
 

@@ -4,6 +4,7 @@ Credits
 The following people have contributed to the to HOOMD-blue:
 
 * Aaron Keys, University of Michigan
+* Alain Kadar, University of Michigan
 * Alex Travesset, Iowa State University and Ames Laboratory
 * Alex Yang, Vanderbilt University
 * Alexander Hudson
