@@ -85,7 +85,8 @@ void MuellerPlatheFlow::update(uint64_t timestep)
 
     // Determine switch direction for this update call
     // Switch outside while loop, to prevent oscillations around the target.
-    bool bigger_swap_needed = (*m_flow_target)(timestep) > this->getSummedExchangedMomentum() / area;
+    bool bigger_swap_needed
+        = (*m_flow_target)(timestep) > this->getSummedExchangedMomentum() / area;
     bigger_swap_needed &= this->getMinSlab() > this->getMaxSlab();
     bool smaller_swap_needed
         = (*m_flow_target)(timestep) < this->getSummedExchangedMomentum() / area;
