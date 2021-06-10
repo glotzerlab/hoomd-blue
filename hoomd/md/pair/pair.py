@@ -119,6 +119,10 @@ class Pair(force.Force):
         Type: `str`
     """
 
+    # The accepted modes for the potential. Should be reset by subclasses with
+    # restricted modes.
+    _accepted_modes = ("none", "shift", "xplor")
+
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         self._nlist = validate_nlist(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
@@ -131,7 +135,7 @@ class Pair(force.Force):
             tp_r_on.default = default_r_on
         self._extend_typeparam([tp_r_cut, tp_r_on])
         self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shift', 'xplor'])))
+            ParameterDict(mode=OnlyFrom(self._accepted_modes)))
         self.mode = mode
 
     def compute_energy(self, tags1, tags2):
@@ -511,6 +515,7 @@ class Ewald(Pair):
         ewald.r_cut[('A', 'B')] = 3.0
     """
     _cpp_class_name = "PotentialPairEwald"
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
         super().__init__(nlist, default_r_cut, default_r_on, 'none')
@@ -519,10 +524,6 @@ class Ewald(Pair):
             TypeParameterDict(kappa=float, alpha=0.0, len_keys=2))
 
         self._add_typeparam(params)
-
-        param_dict = ParameterDict(mode=OnlyFrom(['none']))
-        self._param_dict.update(param_dict)
-        self.mode = 'none'
 
 
 class Morse(Pair):
@@ -665,6 +666,7 @@ class DPD(Pair):
         dpd.params[(['A', 'B'], ['C', 'D'])] = dict(A=40.0, gamma=4.5)
     """
     _cpp_class_name = "PotentialPairDPDThermoDPD"
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, kT, default_r_cut=None, default_r_on=0.):
         super().__init__(nlist, default_r_cut, default_r_on, 'none')
@@ -672,11 +674,6 @@ class DPD(Pair):
             'params', 'particle_types',
             TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
-
-        d = ParameterDict(kT=hoomd.variant.Variant, mode=OnlyFrom(['none']))
-        self._param_dict.update(d)
-        self.mode = 'none'
-
         self.kT = kT
 
     def _add(self, simulation):
@@ -736,6 +733,7 @@ class DPDConservative(Pair):
         dpdc.params[(['A', 'B'], ['C', 'D'])] = dict(A=3.0)
     """
     _cpp_class_name = "PotentialPairDPD"
+    _accepted_modes = ("none,")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
         # initialize the base class
@@ -743,10 +741,6 @@ class DPDConservative(Pair):
         params = TypeParameter('params', 'particle_types',
                                TypeParameterDict(A=float, len_keys=2))
         self._add_typeparam(params)
-
-        param_dict = ParameterDict(mode=OnlyFrom(['none']))
-        self._param_dict.update(param_dict)
-        self.mode = 'none'
 
 
 class DPDLJ(Pair):
@@ -931,6 +925,7 @@ class ForceShiftedLJ(Pair):
         fslj.params[('A', 'A')] = dict(epsilon=1.0, sigma=1.0)
     """
     _cpp_class_name = "PotentialPairForceShiftedLJ"
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
         super().__init__(nlist, default_r_cut, default_r_on, 'none')
@@ -939,10 +934,6 @@ class ForceShiftedLJ(Pair):
             'params', 'particle_types',
             TypeParameterDict(epsilon=float, sigma=float, len_keys=2))
         self._add_typeparam(params)
-
-        param_dict = ParameterDict(mode=OnlyFrom(['none']))
-        self._param_dict.update(param_dict)
-        self.mode = 'none'
 
 
 class Moliere(Pair):
@@ -1086,6 +1077,7 @@ class ZBL(Pair):
         zbl.params[('A', 'B')] = dict(qi=Zi*e, qj=Zj*e, aF=aF)
     """
     _cpp_class_name = "PotentialPairZBL"
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
 
@@ -1094,10 +1086,6 @@ class ZBL(Pair):
             'params', 'particle_types',
             TypeParameterDict(qi=float, qj=float, aF=float, len_keys=2))
         self._add_typeparam(params)
-
-        param_dict = ParameterDict(mode=OnlyFrom(['none']))
-        self._param_dict.update(param_dict)
-        self.mode = 'none'
 
 
 class Mie(Pair):
@@ -1313,6 +1301,7 @@ class DLVO(Pair):
         dlvo.params[(['A', 'B'], ['C', 'D'])] = {"epsilon": 0.5, "kappa": 3.0}
     """
     _cpp_class_name = "PotentialPairDLVO"
+    _accepted_modes = ("none", "shift")
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
         if mode == 'xplor':
@@ -1323,12 +1312,6 @@ class DLVO(Pair):
             'params', 'particle_types',
             TypeParameterDict(kappa=float, Z=float, A=float, len_keys=2))
         self._add_typeparam(params)
-
-        # mode not allowed to be xplor, so re-do param dict entry without that
-        # option
-        param_dict = ParameterDict(mode=OnlyFrom(['none', 'shift']))
-        self._param_dict.update(param_dict)
-        self.mode = mode
 
         # this potential needs diameter shifting on
         self._nlist.diameter_shift = True
