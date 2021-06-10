@@ -86,7 +86,7 @@ def dihedral_snapshot_factory(device):
 def test_before_attaching(dihedral_cls, potential_kwargs):
     dihedral_potential = dihedral_cls()
     dihedral_potential.params['dihedral'] = potential_kwargs
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(dihedral_potential.params['dihedral'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
@@ -112,7 +112,7 @@ def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(dihedral_potential.params['dihedral'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
