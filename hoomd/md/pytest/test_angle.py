@@ -95,9 +95,9 @@ def test_before_attaching(angle_cls, potential_kwargs):
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("angle_and_args", get_angle_and_args())
+@pytest.mark.parametrize("angle_cls, potential_kwargs", get_angle_and_args())
 def test_after_attaching(triplet_snapshot_factory, simulation_factory,
-                         angle_and_args):
+                         angle_cls, potential_kwargs):
     snap = triplet_snapshot_factory()
     if snap.exists:
         snap.angles.N = 1
@@ -106,9 +106,8 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
         snap.angles.group[0] = (0, 1, 2)
     sim = simulation_factory(snap)
 
-    angle, args = angle_and_args
-    angle_potential = angle()
-    angle_potential.params['backbone'] = args
+    angle_potential = angle_cls()
+    angle_potential.params['backbone'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -121,9 +120,9 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in args.keys():
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(angle_potential.params['backbone'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
