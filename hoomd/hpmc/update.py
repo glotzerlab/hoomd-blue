@@ -10,7 +10,6 @@ from hoomd import _hoomd
 from hoomd.logging import log
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeparam import TypeParameter
-from hoomd.error import DataAccessError
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
@@ -414,69 +413,45 @@ class MuVT(Updater):
                                 integrator._cpp_obj, self.ngibbs)
         super()._attach()
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def insert_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         insertion moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.insert
 
-        if counter is None:
-            raise DataAccessError("insert_moves")
-        else:
-            return counter.insert
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def remove_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle removal \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.remove
 
-        if counter is None:
-            raise DataAccessError("remove_moves")
-        else:
-            return counter.remove
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def exchange_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle \
         exchange moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
+        counter = self._cpp_obj.getCounters(1)
+        return counter.exchange
 
-        if counter is None:
-            raise DataAccessError("exchange_moves")
-        else:
-            return counter.exchange
-
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def volume_moves(self):
         """tuple[int, int]: Count of the accepted and rejected paricle volume \
         moves.
 
         None when not attached
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
-
-        if counter is None:
-            raise DataAccessError("volume_moves")
-        else:
-            return counter.volume
+        counter = self._cpp_obj.getCounters(1)
+        return counter.volume
 
     @log(category='object')
     def N(self):  # noqa: N802 - allow N as a function name
@@ -650,20 +625,14 @@ class Clusters(Updater):
                                     integrator._cpp_obj)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def avg_cluster_size(self):
         """float: the typical size of clusters.
 
         None when not attached.
         """
-        counter = None
-        if self._attached:
-            counter = self._cpp_obj.getCounters(1)
-
-        if counter is None:
-            raise DataAccessError("avg_cluster_size")
-        else:
-            return counter.average_cluster_size
+        counter = self._cpp_obj.getCounters(1)
+        return counter.average_cluster_size
 
 
 class QuickCompress(Updater):

@@ -214,7 +214,7 @@ class HPMCIntegrator(BaseIntegrator):
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def map_overlaps(self):
         """list[tuple[int, int]]: List of overlapping particles.
 
@@ -225,9 +225,7 @@ class HPMCIntegrator(BaseIntegrator):
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
         """
-        if not self._attached:
-            raise DataAccessError("map_overlaps")
-        elif self._simulation.device.communicator.num_ranks > 1:
+        if self._simulation.device.communicator.num_ranks > 1:
             return None
 
         return self._cpp_obj.mapOverlaps()
@@ -260,11 +258,9 @@ class HPMCIntegrator(BaseIntegrator):
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
 
-    @log
+    @log(requires_run=True)
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
-        if not self._attached:
-            raise DataAccessError("overlaps")
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -314,7 +310,7 @@ class HPMCIntegrator(BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def translate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected translate moves.
 
@@ -322,12 +318,9 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).translate
-        else:
-            raise DataAccessError("translate_moves")
+        return self._cpp_obj.getCounters(1).translate
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def rotate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected rotate moves.
 
@@ -335,22 +328,16 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).rotate
-        else:
-            raise DataAccessError("rotate_moves")
+        return self._cpp_obj.getCounters(1).rotate
 
-    @log
+    @log(requires_run=True)
     def mps(self):
         """float: Number of trial moves performed per second.
 
         Note:
             The count is reset at the start of each `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getMPS()
-        else:
-            raise DataAccessError("mps")
+        return self._cpp_obj.getMPS()
 
     @property
     def counters(self):

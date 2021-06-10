@@ -11,7 +11,6 @@ from hoomd.operation import Compute
 from hoomd.hpmc import _hpmc
 from hoomd.hpmc import integrate
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.error import DataAccessError
 from hoomd.logging import log
 import hoomd
 
@@ -96,11 +95,8 @@ class FreeVolume(Compute):
 
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def free_volume(self):
         """Free volume available to the test particle."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.free_volume
-        else:
-            raise DataAccessError("free_volume")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.free_volume

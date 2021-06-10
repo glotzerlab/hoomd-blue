@@ -12,7 +12,6 @@ from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.error import DataAccessError
 from hoomd.filter import ParticleFilter
 from hoomd.md.constrain import ConstraintForce
 
@@ -45,54 +44,39 @@ class Force(_HOOMDBaseObject):
     Initializes some loggable quantities.
     """
 
-    @log(requires_attach=True)
+    @log(requires_run=True)
     def energy(self):
         """float: Sum of the energy of the whole system."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.calcEnergySum()
-        else:
-            raise DataAccessError("energy")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.calcEnergySum()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def energies(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The \
         energies for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getEnergies()
-        else:
-            raise DataAccessError("energies")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getEnergies()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def forces(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The \
         forces for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getForces()
-        else:
-            raise DataAccessError("forces")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getForces()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
         for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getTorques()
-        else:
-            raise DataAccessError("torques")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getTorques()
 
-    @log(category="particle")
+    @log(category="particle", requires_run=True)
     def virials(self):
         """(*N_particles*, ) `numpy.ndarray` of ``numpy.float64``: The virial \
         for all particles."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.getVirials()
-        else:
-            raise DataAccessError("virials")
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getVirials()
 
 
 class constant(Force):  # noqa - this will be renamed when it is ported to v3

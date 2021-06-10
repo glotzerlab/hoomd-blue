@@ -361,7 +361,7 @@ def log(func=None,
         is_property=True,
         category='scalar',
         default=True,
-        requires_attach=False):
+        requires_run=False):
     """Creates loggable quantities for classes of type Loggable.
 
     For users this should be used with `hoomd.custom.Action` for exposing
@@ -383,8 +383,8 @@ def log(func=None,
             quantities even when logging other quantities of that type. The
             default category allows for these to be pass over by
             `hoomd.logging.Logger` objects by default. Argument keyword only.
-        requires_attach (`bool`, optional): Whether this property requires
-            attachment before being accessible.
+        requires_run (`bool`, optional): Whether this property requires
+            the simulation to run before being accessible.
 
     Note:
         The namespace (where the loggable object is stored in the
@@ -404,7 +404,7 @@ def log(func=None,
                 "Multiple loggable quantities named {}.".format(name))
         Loggable._meta_export_dict[name] = _LoggableEntry(
             LoggerCategories[category], default)
-        if requires_attach:
+        if requires_run:
 
             @wraps(func)
             def wrap_with_exception(func):
