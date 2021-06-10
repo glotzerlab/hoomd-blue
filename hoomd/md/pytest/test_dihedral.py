@@ -82,26 +82,24 @@ def dihedral_snapshot_factory(device):
     return make_snapshot
 
 
-@pytest.mark.parametrize("dihedral_and_args", get_dihedral_and_args())
-def test_before_attaching(dihedral_and_args):
-    dihedral, args = dihedral_and_args
-    dihedral_potential = dihedral()
-    dihedral_potential.params['dihedral'] = args
-    for key in args.keys():
+@pytest.mark.parametrize("dihedral_cls, potential_kwargs", get_dihedral_and_args())
+def test_before_attaching(dihedral_cls, potential_kwargs):
+    dihedral_potential = dihedral_cls()
+    dihedral_potential.params['dihedral'] = potential_kwargs
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(dihedral_potential.params['dihedral'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("dihedral_and_args", get_dihedral_and_args())
+@pytest.mark.parametrize("dihedral_cls, potential_kwargs", get_dihedral_and_args())
 def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
-                         dihedral_and_args):
+                         dihedral_cls, potential_kwargs):
     snap = dihedral_snapshot_factory(d=0.969, L=5)
     sim = simulation_factory(snap)
 
-    dihedral, args = dihedral_and_args
-    dihedral_potential = dihedral()
-    dihedral_potential.params['dihedral'] = args
+    dihedral_potential = dihedral_cls()
+    dihedral_potential.params['dihedral'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -114,27 +112,26 @@ def test_after_attaching(dihedral_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in args.keys():
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(dihedral_potential.params['dihedral'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("dihedral_args_force_and_energy",
+@pytest.mark.parametrize("dihedral_cls, potential_kwargs, force, energy",
                          get_dihedral_args_forces_and_energies())
 def test_forces_and_energies(dihedral_snapshot_factory, simulation_factory,
-                             dihedral_args_force_and_energy):
+                             dihedral_cls, potential_kwargs, force, energy):
     phi_deg = 45
     phi_rad = phi_deg * (np.pi / 180)
     snap = dihedral_snapshot_factory(phi_deg=phi_deg)
     sim = simulation_factory(snap)
 
-    dihedral, args, force, energy = dihedral_args_force_and_energy
     # the dihedral angle is in yz plane, thus no force along x axis
     force_array = force * np.asarray(
         [0, np.sin(-phi_rad / 2), np.cos(-phi_rad / 2)])
-    dihedral_potential = dihedral()
-    dihedral_potential.params['dihedral'] = args
+    dihedral_potential = dihedral_cls()
+    dihedral_potential.params['dihedral'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
