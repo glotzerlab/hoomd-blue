@@ -43,20 +43,19 @@ def get_bond_args_forces_and_energies():
     return harmonic_args_and_vals + FENE_args_and_vals
 
 
-@pytest.mark.parametrize("bond_and_args", get_bond_and_args())
-def test_before_attaching(bond_and_args):
-    bond, args = bond_and_args
-    bond_potential = bond()
-    bond_potential.params['bond'] = args
-    for key in args.keys():
+@pytest.mark.parametrize("bond_cls, potential_kwargs", get_bond_and_args())
+def test_before_attaching(bond_cls, potential_kwargs):
+    bond_potential = bond_cls()
+    bond_potential.params['bond'] = potential_kwargs
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(bond_potential.params['bond'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("bond_and_args", get_bond_and_args())
+@pytest.mark.parametrize("bond_cls, potential_kwargs", get_bond_and_args())
 def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
-                         bond_and_args):
+                         bond_cls, potential_kwargs):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
     if snap.exists:
         snap.bonds.N = 1
@@ -65,9 +64,8 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
         snap.bonds.group[0] = (0, 1)
     sim = simulation_factory(snap)
 
-    bond, args = bond_and_args
-    bond_potential = bond()
-    bond_potential.params['bond'] = args
+    bond_potential = bond_cls()
+    bond_potential.params['bond'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -80,16 +78,16 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in args.keys():
+    for key in potential_kwargs.keys():
         np.testing.assert_allclose(bond_potential.params['bond'][key],
-                                   args[key],
+                                   potential_kwargs[key],
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("bond_args_force_and_energy",
+@pytest.mark.parametrize("bond_cls, potential_kwargs, force, energy",
                          get_bond_args_forces_and_energies())
 def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
-                             bond_args_force_and_energy):
+                             bond_cls, potential_kwargs, force, energy):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
     if snap.exists:
         snap.bonds.N = 1
@@ -100,9 +98,8 @@ def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
         snap.particles.diameter[1] = 0.5
     sim = simulation_factory(snap)
 
-    bond, args, force, energy = bond_args_force_and_energy
-    bond_potential = bond()
-    bond_potential.params['bond'] = args
+    bond_potential = bond_cls()
+    bond_potential.params['bond'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
