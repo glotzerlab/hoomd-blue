@@ -20,6 +20,7 @@ _cosinesq_arg_list = [
      dict(zip(_cosinesq_args, val)) for val in zip(*_cosinesq_args.values()))
 ]
 
+
 def get_angle_and_args():
     return _harmonic_arg_list + _cosinesq_arg_list
 

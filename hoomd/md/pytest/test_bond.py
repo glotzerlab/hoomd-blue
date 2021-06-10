@@ -19,6 +19,7 @@ _FENE_arg_list = [
      dict(zip(_FENE_args, val)) for val in zip(*_FENE_args.values()))
 ]
 
+
 def get_bond_and_args():
     return _harmonic_arg_list + _FENE_arg_list
 

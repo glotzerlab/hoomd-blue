@@ -24,32 +24,30 @@ _OPLS_arg_list = [
      dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values()))
 ]
 
+
 def get_dihedral_and_args():
     return _harmonic_arg_list + _OPLS_arg_list
 
 
 def get_dihedral_args_forces_and_energies():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    OPLS_arg_list = [
-        dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
-    ]
     harmonic_forces = [0.0, 5.0, 1.9411]
     harmonic_energies = [3.0, 5.0, 0.0852]
     OPLS_forces = [-0.616117, -0.732233, -0.0277282]
     OPLS_energies = [2.42678, 2.89645, 5.74372]
 
-    dihedral_args_forces_and_energies = []
+    harmonic_args_and_vals = []
+    OPLS_args_and_vals = []
     for i in range(3):
-        dihedral_args_forces_and_energies.append(
-            (hoomd.md.dihedral.Harmonic, harmonic_arg_list[i],
-             harmonic_forces[i], harmonic_energies[i]))
-    for i in range(3):
-        dihedral_args_forces_and_energies.append(
-            (hoomd.md.dihedral.OPLS, OPLS_arg_list[i], OPLS_forces[i],
-             OPLS_energies[i]))
-    return dihedral_args_forces_and_energies
+        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
+                                      _harmonic_arg_list[i][1],
+                                      harmonic_forces[i],
+                                      harmonic_energies[i])
+        OPLS_args_and_vals.append(_OPLS_arg_list[i][0],
+                                  _OPLS_arg_list[i][1],
+                                  OPLS_forces[i],
+                                  OPLS_energies[i])
+
+    return harmonic_args_and_vals + OPLS_args_and_vals
 
 
 @pytest.fixture(scope='session')
