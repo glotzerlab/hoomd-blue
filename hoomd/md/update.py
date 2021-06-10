@@ -132,7 +132,7 @@ class constraint_ellipsoid:
 
 
 class ReversePerturbationFlow(Updater):
-    """ Reverse Perturbation (Müller-Plathe) method to establish shear flow.
+    """Reverse Perturbation (Müller-Plathe) method to establish shear flow.
 
      "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium
      molecular dynamics: An easy way to calculate the shear viscosity of fluids.
@@ -154,7 +154,9 @@ class ReversePerturbationFlow(Updater):
             apply this updater.
 
         flow_target (`hoomd.variant.Variant`): Integrated target flow.
-            :math:`[timesteps \cdot mass \cdot length \cdot time^{-1}]`
+            :math:`[\\delta t \\cdot \\mathrm{mass} \\cdot \\mathrm{length}
+            \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
+            integrator step size.
 
         slab_direction (str): Direction perpendicular to the slabs. Can be "X",
             "Y", or "Z"
