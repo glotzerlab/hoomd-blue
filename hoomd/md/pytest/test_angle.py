@@ -62,24 +62,18 @@ def triplet_snapshot_factory(device):
                 box[2] = 0
             s.configuration.box = box
             s.particles.N = N
-            # shift particle positions slightly in z so MPI tests pass
-            s.particles.position[:] = [
-                [-d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.1],
-                [0.0, 0.0, 0.1],
-                [d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.1]
-            ]
+
+            base_positions = np.array([
+                [-d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0],
+                [0.0, 0.0, 0.0],
+                [d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2), 0.0]
+            ])
+            # move particles slightly in direction of MPI decomposition which
+            # varies by simulation dimension
+            nudge_dimension = 2 if dimensions == 3 else 1
+            base_positions[:, nudge_dimension] += 0.1
+            s.particles.position[:] = base_positions
             s.particles.types = particle_types
-            if dimensions == 2:
-                box[2] = 0
-                s.particles.position[:] = [[
-                    -d * np.sin(theta_rad / 2), d * np.cos(theta_rad / 2) + 0.1,
-                    0.0
-                ], [0.0, 0.1, 0.0],
-                                           [
-                                               d * np.sin(theta_rad / 2),
-                                               d * np.cos(theta_rad / 2) + 0.1,
-                                               0.0
-                                           ]]
             s.angles.N = 1
             s.angles.types = ['backbone']
             s.angles.typeid[0] = 0
