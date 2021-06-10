@@ -24,27 +24,23 @@ def get_bond_and_args():
 
 
 def get_bond_args_forces_and_energies():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    FENE_arg_list = [
-        dict(zip(_FENE_args, val)) for val in zip(*_FENE_args.values())
-    ]
     harmonic_forces = [-18.9300, -18.2750, -16.6200]
     harmonic_energies = [5.9724, 6.6795, 6.9056]
     FENE_forces = [282.296, 146.288, 88.8238]
     FENE_energies = [70.5638, 49.2476, 35.3135]
 
-    bond_args_forces_and_energies = []
+    harmonic_args_and_vals = []
+    FENE_args_and_vals = []
     for i in range(3):
-        bond_args_forces_and_energies.append(
-            (hoomd.md.bond.Harmonic, harmonic_arg_list[i], harmonic_forces[i],
-             harmonic_energies[i]))
-    for i in range(3):
-        bond_args_forces_and_energies.append(
-            (hoomd.md.bond.FENE, FENE_arg_list[i], FENE_forces[i],
-             FENE_energies[i]))
-    return bond_args_forces_and_energies
+        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
+                                      _harmonic_arg_list[i][1],
+                                      harmonic_forces[i],
+                                      harmonic_energies[i])
+        FENE_args_and_vals.append(_FENE_arg_list[i][0],
+                                  _FENE_arg_list[i][1],
+                                  FENE_forces[i],
+                                  FENE_energies[i])
+    return harmonic_args_and_vals + FENE_args_and_vals
 
 
 @pytest.mark.parametrize("bond_and_args", get_bond_and_args())
