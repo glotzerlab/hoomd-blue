@@ -3,6 +3,10 @@ import pytest
 import numpy as np
 
 _harmonic_args = {'k': [30.0, 25.0, 20.0], 'r0': [1.6, 1.7, 1.8]}
+_harmonic_arg_list = [
+    (hoomd.md.bond.Harmonic,
+     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+]
 
 _FENE_args = {
     'k': [30.0, 25.0, 20.0],
@@ -10,21 +14,13 @@ _FENE_args = {
     'epsilon': [0.9, 1.0, 1.1],
     'sigma': [1.1, 1.0, 0.9]
 }
-
+_FENE_arg_list = [
+    (hoomd.md.bond.FENE,
+     dict(zip(_FENE_args, val)) for val in zip(*_FENE_args.values()))
+]
 
 def get_bond_and_args():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    FENE_arg_list = [
-        dict(zip(_FENE_args, val)) for val in zip(*_FENE_args.values())
-    ]
-    bond_and_args = []
-    for args in harmonic_arg_list:
-        bond_and_args.append((hoomd.md.bond.Harmonic, args))
-    for args in FENE_arg_list:
-        bond_and_args.append((hoomd.md.bond.FENE, args))
-    return bond_and_args
+    return _harmonic_arg_list + _FENE_arg_list
 
 
 def get_bond_args_forces_and_energies():
