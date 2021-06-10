@@ -302,6 +302,13 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
 		      all_kernels_sphere_manifold.cu
 		      all_kernels_xyplane_manifold.cu
 		      all_kernels_zcylinder_manifold.cu
+		      all_kernels_active_diamond_manifold.cu
+		      all_kernels_active_ellipsoid_manifold.cu
+		      all_kernels_active_gyroid_manifold.cu
+		      all_kernels_active_primitive_manifold.cu
+		      all_kernels_active_sphere_manifold.cu
+		      all_kernels_active_xyplane_manifold.cu
+		      all_kernels_active_zcylinder_manifold.cu
                       )
 
 if (ENABLE_HIP)
