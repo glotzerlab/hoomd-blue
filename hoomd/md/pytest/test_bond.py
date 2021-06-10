@@ -33,14 +33,14 @@ def get_bond_args_forces_and_energies():
     harmonic_args_and_vals = []
     FENE_args_and_vals = []
     for i in range(3):
-        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
-                                      _harmonic_arg_list[i][1],
-                                      harmonic_forces[i],
-                                      harmonic_energies[i])
-        FENE_args_and_vals.append(_FENE_arg_list[i][0],
-                                  _FENE_arg_list[i][1],
-                                  FENE_forces[i],
-                                  FENE_energies[i])
+        harmonic_args_and_vals.append((_harmonic_arg_list[i][0],
+                                       _harmonic_arg_list[i][1],
+                                       harmonic_forces[i],
+                                       harmonic_energies[i]))
+        FENE_args_and_vals.append((_FENE_arg_list[i][0],
+                                   _FENE_arg_list[i][1],
+                                   FENE_forces[i],
+                                   FENE_energies[i]))
     return harmonic_args_and_vals + FENE_args_and_vals
 
 

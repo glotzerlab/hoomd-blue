@@ -38,14 +38,14 @@ def get_dihedral_args_forces_and_energies():
     harmonic_args_and_vals = []
     OPLS_args_and_vals = []
     for i in range(3):
-        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
-                                      _harmonic_arg_list[i][1],
-                                      harmonic_forces[i],
-                                      harmonic_energies[i])
-        OPLS_args_and_vals.append(_OPLS_arg_list[i][0],
-                                  _OPLS_arg_list[i][1],
-                                  OPLS_forces[i],
-                                  OPLS_energies[i])
+        harmonic_args_and_vals.append((_harmonic_arg_list[i][0],
+                                       _harmonic_arg_list[i][1],
+                                       harmonic_forces[i],
+                                       harmonic_energies[i]))
+        OPLS_args_and_vals.append((_OPLS_arg_list[i][0],
+                                   _OPLS_arg_list[i][1],
+                                   OPLS_forces[i],
+                                   OPLS_energies[i]))
 
     return harmonic_args_and_vals + OPLS_args_and_vals
 

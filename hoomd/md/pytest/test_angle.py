@@ -34,14 +34,14 @@ def get_angle_args_forces_and_energies():
     harmonic_args_and_vals = []
     cosinesq_args_and_vals = []
     for i in range(3):
-        harmonic_args_and_vals.append(_harmonic_arg_list[i][0],
-                                      _harmonic_arg_list[i][1],
-                                      harmonic_forces[i],
-                                      harmonic_energies[i])
-        cosinesq_args_and_vals.append(_cosinesq_arg_list[i][0],
-                                      _cosinesq_arg_list[i][1],
-                                      cosinesq_forces[i],
-                                      cosinesq_energies[i])
+        harmonic_args_and_vals.append((_harmonic_arg_list[i][0],
+                                       _harmonic_arg_list[i][1],
+                                       harmonic_forces[i],
+                                       harmonic_energies[i]))
+        cosinesq_args_and_vals.append((_cosinesq_arg_list[i][0],
+                                       _cosinesq_arg_list[i][1],
+                                       cosinesq_forces[i],
+                                       cosinesq_energies[i]))
 
     return harmonic_args_and_vals + cosinesq_args_and_vals
 
