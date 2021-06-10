@@ -113,10 +113,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             gpu_id.push_back((local_rank % dev_count));
             }
 
-#ifdef __HIP_PLATFORM_NVCC__
-        cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
-#endif
-
         if (!gpu_id.size())
             {
             // auto-detect a single GPU
@@ -328,16 +324,21 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
         throw runtime_error(s.str());
         }
 
-    // setup the flags
-    hipSetDeviceFlags(hipDeviceMapHost);
-
     if (gpu_id != -1)
         {
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaSetValidDevices(&s_capable_gpu_ids[gpu_id], 1);
+#endif
+        hipSetDeviceFlags(hipDeviceMapHost);
         hipSetDevice(s_capable_gpu_ids[gpu_id]);
         }
     else
         {
-        // initialize the default CUDA context
+        // initialize the default CUDA context from one of the capable GPUs
+#ifdef __HIP_PLATFORM_NVCC__
+        cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
+#endif
+        hipSetDeviceFlags(hipDeviceMapHost);
         hipFree(0);
         }
 
