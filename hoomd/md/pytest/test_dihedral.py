@@ -8,6 +8,10 @@ _harmonic_args = {
     'n': [2, 1, 3],
     'phi0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
+_harmonic_arg_list = [
+    (hoomd.md.dihedral.Harmonic,
+     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+]
 
 _OPLS_args = {
     'k1': [1.0, 0.5, 2.0],
@@ -15,21 +19,13 @@ _OPLS_args = {
     'k3': [0.5, 1.5, 0.25],
     'k4': [0.75, 1.0, 3.5]
 }
-
+_OPLS_arg_list = [
+    (hoomd.md.dihedral.OPLS,
+     dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values()))
+]
 
 def get_dihedral_and_args():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    OPLS_arg_list = [
-        dict(zip(_OPLS_args, val)) for val in zip(*_OPLS_args.values())
-    ]
-    dihedral_and_args = []
-    for args in harmonic_arg_list:
-        dihedral_and_args.append((hoomd.md.dihedral.Harmonic, args))
-    for args in OPLS_arg_list:
-        dihedral_and_args.append((hoomd.md.dihedral.OPLS, args))
-    return dihedral_and_args
+    return _harmonic_arg_list + _OPLS_arg_list
 
 
 def get_dihedral_args_forces_and_energies():
