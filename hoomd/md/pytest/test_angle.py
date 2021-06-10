@@ -93,7 +93,7 @@ def triplet_snapshot_factory(device):
 def test_before_attaching(angle_cls, potential_kwargs):
     angle_potential = angle_cls()
     angle_potential.params['backbone'] = potential_kwargs
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(angle_potential.params['backbone'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
@@ -119,7 +119,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(angle_potential.params['backbone'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
