@@ -478,7 +478,7 @@ void ExecutionConfiguration::setupStats()
                 m_concurrent = false;
                 }
 
-            m_active_device_descriptions.push_back(describeGPU(idev, m_dev_prop[idev]));
+            m_active_device_descriptions.push_back(describeGPU(m_gpu_id[idev], m_dev_prop[idev]));
             }
 
         // initialize dev_prop with device properties of first device for now
