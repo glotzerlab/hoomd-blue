@@ -147,10 +147,10 @@ class EvaluatorExternalElectricField
 #endif
 
     protected:
-    Scalar3 m_pos;       //!< particle position
-    BoxDim m_box;        //!< box dimensions
-    Scalar m_qi;         //!< particle charge
-    Scalar3 m_E;         //!< the field vector
+    Scalar3 m_pos; //!< particle position
+    BoxDim m_box;  //!< box dimensions
+    Scalar m_qi;   //!< particle charge
+    Scalar3 m_E;   //!< the field vector
     };
 
 #endif // __EVALUATOR_EXTERNAL_LAMELLAR_H__
