@@ -44,7 +44,7 @@ class ZeroMomentum(Updater):
         super()._attach()
 
 
-class constraint_ellipsoid:
+class constraint_ellipsoid:  # noqa: N801 (this will be removed)
     """Constrain particles to the surface of a ellipsoid.
 
     Args:
@@ -177,19 +177,25 @@ class ReversePerturbationFlow(Updater):
             for. If set < 0 the value is set to its default 0.
 
     Attention:
-        * This updater uses `hoomd.trigger.Periodic(1)` as a trigger, meaning it is applied every timestep.
+        * This updater uses `hoomd.trigger.Periodic(1)` as a trigger, meaning it
+          is applied every timestep.
         * This updater works currently only with orthorhombic boxes.
 
 
     Note:
-        The attributes of this updater are immutable once the updater is attached to a simulation.
+        The attributes of this updater are immutable once the updater is
+        attached to a simulation.
 
     Examples::
 
         # const integrated flow with 0.1 slope for max 1e8 timesteps
         ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
         # velocity gradient in z direction and shear flow in x direction.
-        mpf = hoomd.md.update.ReversePerturbationFlow(filter=hoomd.filter.All(), flow_target=ramp, slab_direction="Z", flow_direction="X", n_slabs=20)
+        mpf = hoomd.md.update.ReversePerturbationFlow(filter=hoomd.filter.All(),
+                                                      flow_target=ramp,
+                                                      slab_direction="Z",
+                                                      flow_direction="X",
+                                                      n_slabs=20)
 
         self._flow_target = hoomd.variant._setup_variant_input(flow_target)
 
