@@ -80,6 +80,10 @@ def triplet_snapshot_factory(device):
                                                d * np.cos(theta_rad / 2) + 0.1,
                                                0.0
                                            ]]
+            s.angles.N = 1
+            s.angles.types = ['backbone']
+            s.angles.typeid[0] = 0
+            s.angles.group[0] = (0, 1, 2)
         return s
 
     return make_snapshot
@@ -99,11 +103,6 @@ def test_before_attaching(angle_cls, potential_kwargs):
 def test_after_attaching(triplet_snapshot_factory, simulation_factory,
                          angle_cls, potential_kwargs):
     snap = triplet_snapshot_factory()
-    if snap.exists:
-        snap.angles.N = 1
-        snap.angles.types = ['backbone']
-        snap.angles.typeid[0] = 0
-        snap.angles.group[0] = (0, 1, 2)
     sim = simulation_factory(snap)
 
     angle_potential = angle_cls()
@@ -133,11 +132,6 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
     theta_deg = 60
     theta_rad = theta_deg * (np.pi / 180)
     snap = triplet_snapshot_factory(theta_deg=theta_deg)
-    if snap.exists:
-        snap.angles.N = 1
-        snap.angles.types = ['backbone']
-        snap.angles.typeid[0] = 0
-        snap.angles.group[0] = (0, 1, 2)
     sim = simulation_factory(snap)
 
     force_array = force * np.asarray(
