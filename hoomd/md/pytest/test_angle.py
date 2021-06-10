@@ -126,7 +126,7 @@ def test_after_attaching(triplet_snapshot_factory, simulation_factory,
                                    rtol=1e-6)
 
 
-@pytest.mark.parametrize("angle_args_force_and_energy",
+@pytest.mark.parametrize("angle_cls, potential_kwargs, force, energy",
                          get_angle_args_forces_and_energies())
 def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
                              angle_args_force_and_energy):
@@ -140,11 +140,10 @@ def test_forces_and_energies(triplet_snapshot_factory, simulation_factory,
         snap.angles.group[0] = (0, 1, 2)
     sim = simulation_factory(snap)
 
-    angle, args, force, energy = angle_args_force_and_energy
     force_array = force * np.asarray(
         [np.cos(theta_rad / 2), np.sin(theta_rad / 2), 0])
-    angle_potential = angle()
-    angle_potential.params['backbone'] = args
+    angle_potential = angle_cls()
+    angle_potential.params['backbone'] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
