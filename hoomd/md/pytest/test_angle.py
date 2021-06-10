@@ -6,26 +6,22 @@ _harmonic_args = {
     'k': [3.0, 10.0, 5.0],
     't0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
+_harmonic_arg_list = [
+    (hoomd.md.angle.Harmonic,
+     dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values()))
+]
 
 _cosinesq_args = {
     'k': [3.0, 10.0, 5.0],
     't0': [np.pi / 2, np.pi / 4, np.pi / 6]
 }
-
+_cosinesq_arg_list = [
+    (hoomd.md.angle.Cosinesq,
+     dict(zip(_cosinesq_args, val)) for val in zip(*_cosinesq_args.values()))
+]
 
 def get_angle_and_args():
-    harmonic_arg_list = [
-        dict(zip(_harmonic_args, val)) for val in zip(*_harmonic_args.values())
-    ]
-    cosinesq_arg_list = [
-        dict(zip(_cosinesq_args, val)) for val in zip(*_cosinesq_args.values())
-    ]
-    angle_and_args = []
-    for args in harmonic_arg_list:
-        angle_and_args.append((hoomd.md.angle.Harmonic, args))
-    for args in cosinesq_arg_list:
-        angle_and_args.append((hoomd.md.angle.Cosinesq, args))
-    return angle_and_args
+    return _harmonic_arg_list + _cosinesq_arg_list
 
 
 def get_angle_args_forces_and_energies():
