@@ -47,7 +47,7 @@ def get_bond_args_forces_and_energies():
 def test_before_attaching(bond_cls, potential_kwargs):
     bond_potential = bond_cls()
     bond_potential.params['bond'] = potential_kwargs
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(bond_potential.params['bond'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
@@ -78,7 +78,7 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in potential_kwargs.keys():
+    for key in potential_kwargs:
         np.testing.assert_allclose(bond_potential.params['bond'][key],
                                    potential_kwargs[key],
                                    rtol=1e-6)
