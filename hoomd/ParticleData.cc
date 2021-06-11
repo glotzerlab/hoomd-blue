@@ -1495,11 +1495,10 @@ ParticleData::takeSnapshot(SnapshotParticleData<Real>& snapshot)
 
                 if (rank_rtag_it == rank_rtag_map.end())
                     {
-                    m_exec_conf->msg->error()
-                        << endl
-                        << "Could not find particle " << tag << " on any processor. " << endl
-                        << endl;
-                    throw std::runtime_error("Error gathering ParticleData");
+                    ostringstream o;
+                    o << "Error gathering ParticleData: Could not find particle "
+                      << tag << " on any processor.";
+                    throw std::runtime_error(o.str());
                     }
 
                 // rank contains the processor rank on which the particle was found
