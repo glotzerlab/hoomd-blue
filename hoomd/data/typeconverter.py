@@ -191,6 +191,7 @@ class OnlyTypes(_HelpValidate):
 
     def __init__(self,
                  *types,
+                 disallow_types=None,
                  strict=False,
                  preprocess=None,
                  postprocess=None,
@@ -198,9 +199,15 @@ class OnlyTypes(_HelpValidate):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
         self.types = types
+        if disallow_types is None:
+            self.disallow_types = ()
+        else:
+            self.disallow_types = disallow_types
         self.strict = strict
 
     def _validate(self, value):
+        if isinstance(value, self.disallow_types):
+            raise ValueError(f"Value cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
