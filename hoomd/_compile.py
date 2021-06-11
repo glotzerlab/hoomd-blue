@@ -49,7 +49,6 @@ def get_gpu_compilation_settings(gpu):
 
     # compile JIT code for the current device
     compute_major, compute_minor = gpu.compute_capability
-    print(compute_major, compute_minor)
     return {
         "includes": includes,
         "cuda_devrt_lib_path": hoomd.version.cuda_devrt_library,
