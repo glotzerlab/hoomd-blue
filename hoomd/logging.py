@@ -406,9 +406,9 @@ def log(func=None,
             LoggerCategories[category], default)
         if requires_run:
 
-            @wraps(func)
             def wrap_with_exception(func):
 
+                @wraps(func)
                 def wrapped_func(self, *args, **kwargs):
                     if not self._attached:
                         raise DataAccessError(name)
