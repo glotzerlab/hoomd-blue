@@ -24,23 +24,16 @@ from hoomd import communicator
 from hoomd import util
 from hoomd import write
 from hoomd import _hoomd
-try:
+if version.md_built:
     from hoomd import md
-except ImportError:
-    pass
-try:
+if version.hpmc_built:
     from hoomd import hpmc
-except ImportError:
-    pass
-try:
+if version.dem_built:
     from hoomd import dem
-except ImportError:
-    pass
-# TODO: enable this import after updating MPCD to the new API
-# try:
+# if version.metal_built:
+#     from hoomd import metal
+# if version.mpcd_built:
 #     from hoomd import mpcd
-# except ImportError:
-#     pass
 
 from hoomd.simulation import Simulation
 from hoomd.state import State

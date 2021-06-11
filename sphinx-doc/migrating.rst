@@ -62,6 +62,17 @@ Here is a module level overview of features that have been moved or removed:
      - ``hoomd.hpmc.tune``
    * - ``hoomd.md.integrate.mode_standard``
      - `hoomd.md.Integrator`
+   * - ``hoomd.md.update.rescale_temp``
+     - `hoomd.State.thermalize_particle_momenta`
+   * - ``hoomd.md.update.enforce2d``
+     - *Removed.* This is not needed.
+   * - ``hoomd.md.constrain.sphere``
+     - `hoomd.md.manifold.Sphere`
+   * - ``hoomd.md.constrain.oneD``
+     - *Removed.*
+   * - ``hoomd.md.update.constraint_ellipsoid``
+     - `hoomd.md.manifold.Ellipsoid`
+
 
 Compiling
 ---------
@@ -71,7 +82,7 @@ Compiling
 * ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use
   ``git clone --recursive``, ``git submodule update`` and ``git submodule sync``
   as appropriate.
-* ``COPY_HEADERS`` no longer exists. Users must ``make install`` HOOMD for use
+* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use
   with external components.
 * ``CMAKE_INSTALL_PREFIX`` is set to the Python ``site-packages`` directory (if
   not explicitly set by the user).
@@ -126,3 +137,7 @@ Components
     per-type active forces and torques.
   - ``getProvidedLogQuantities`` and ``getLogQuantities`` have been removed. Provide loggable
     properties instead.
+  - Removed the Sphere, Ellipsoid, and oneD constraints. Replaced with the more general RATTLE
+    integration methods and Manifold classes.
+  - Removed the Enforce2D and TempRescale Updaters. Enforce2D is not needed for 2D simulations,
+    and TempRescale has been replaced by ``thermalize_`` methods.

@@ -13,7 +13,7 @@ from hoomd.data.typeparam import TypeParameter
 from hoomd.data.typeconverter import OnlyTypes
 from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
 from hoomd.filter import ParticleFilter
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.constrain import Constraint
 
 
 def _ellip_preprocessing(constraint):
@@ -335,7 +335,7 @@ class Active(Force):
         param_dict = ParameterDict(
             filter=ParticleFilter,
             rotation_diff=float(rotation_diff),
-            constraint=OnlyTypes(ConstraintForce,
+            constraint=OnlyTypes(Constraint,
                                  allow_none=True,
                                  preprocess=_ellip_preprocessing),
         )

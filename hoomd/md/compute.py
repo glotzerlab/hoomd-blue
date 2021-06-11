@@ -259,6 +259,14 @@ class ThermodynamicQuantities(_Thermo):
         """:math:`N`, number of particles in the group."""
         return self._cpp_obj.num_particles
 
+    @log
+    def volume(self):
+        """:math:`V`, volume of the simulation box (area in 2D)."""
+        if self._attached:
+            return self._cpp_obj.volume
+        else:
+            return None
+
 
 class HarmonicAveragedThermodynamicQuantities(Compute):
     """Compute harmonic averaged thermodynamic properties of particles.

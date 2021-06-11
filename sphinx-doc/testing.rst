@@ -20,8 +20,8 @@ may take several seconds.
 statistical ensembles. For example, validate the a Lennard-Jones simulation at a
 given density matches the pressure in the NIST reference. Validation tests
 should run long enough to ensure reasonable sampling, but not too long. These
-test run in a CI environment on every pull request. Try to keep validation tests
-under 10 minutes whenever possible.
+test run in a CI environment on every pull request. Individual validation tests
+should execute in less than 10 minutes.
 
 Running tests
 -------------
@@ -31,30 +31,33 @@ Execute the following commands to run the tests:
 * ``ctest`` - Executes C++ tests
 * ``python3 -m pytest hoomd``
 
-**ctest** must be run in the **build** directory. When you run **pytest**
-outside of the **build** directory, it will test the HOOMD installed by ``make
-install``.
+CTest_ must be run in the build directory. When you run pytest_ outside of the build
+directory, it will the test ``hoomd`` package that Python imports (which may not be the version just
+built).
 
-See the `pytest invocation docs <https://docs.pytest.org/en/latest/usage.html>`_
-for information on how to control **pytest** output, select specific tests, and
-more.
+.. seealso::
+
+    See the pytest_ documentation for information on how to control output, select specific tests,
+    and more.
+
+.. _CTest: https://cmake.org/cmake/help/latest/manual/ctest.1.html
+.. _pytest: https://docs.pytest.org/
 
 Running tests with MPI
 ----------------------
 
-When **ENABLE_MPI=ON**, **ctest** will execute some tests with ``mpirun -n 1``,
-some with ``-n 2`` and some with ``-n 8``. Make sure your test environment (e.g.
-interactive cluster job) is correctly configured before running ``ctest``.
+When ``ENABLE_MPI=ON``, CTest_ will execute some tests with ``mpirun -n 1``, some with ``-n 2``
+and some with ``-n 8``. Make sure your test environment (e.g. interactive cluster job) is correctly
+configured before running ``ctest``.
 
-**pytest** tests may also be executed with MPI with 2 ranks. **pytest** does not
-natively support MPI. Execute it with the provided wrapper script. In the
-**build** directory::
+pytest_ tests may also be executed with MPI with 2 ranks. pytest_ does not natively support
+MPI. Execute it with the provided wrapper script in the build directory::
 
     mpirun -n 2 hoomd/pytest/pytest-openmpi.sh -v -x hoomd
 
-The wrapper script displays the outout of rank 0 and redirects rank 1's output
-to a file. Inspect this file when a test fails on rank 1. This will result in an
-**MPI_ABORT** on rank 0 (assuming the ``-x`` argument is passed)::
+The wrapper script displays the outout of rank 0 and redirects rank 1's output to a file. Inspect
+this file when a test fails on rank 1. This will result in an ``MPI_ABORT`` on rank 0 (assuming the
+``-x`` argument is passed)::
 
     cat pytest.out.1
 
@@ -64,14 +67,15 @@ to a file. Inspect this file when a test fails on rank 1. This will result in an
 
 .. note::
 
-    The provided wrapper script supports **OpenMPI**. It will require
-    modifications to work with other MPI stacks.
+    The provided wrapper script supports OpenMPI_.
+
+.. _OpenMPI: https://www.open-mpi.org/
 
 Running validation tests
 ------------------------
 
-Longer running validation tests do not execute by default. Opt-in to run these
-with the ``--validate`` command line option to pytest::
+Longer running validation tests do not execute by default. Run these with the ``--validate`` command
+line option to pytest::
 
     $ python3 -m pytest hoomd --validate -m validate
     $ mpirun -n 2 hoomd/pytest/pytest-openmpi.sh hoomd -v -x -ra --validate -m validate
@@ -83,16 +87,13 @@ with the ``--validate`` command line option to pytest::
 Implementing tests
 ------------------
 
-Most tests should be implemented in pytest. See existing tests for some examples and the `pytest
-documentation <https://docs.pytest.org>`_ for more details. HOOMD's test rig provides a ``device``
-fixture that most tests should use to cache the execution device across multiple tests and reduce
-test execution time.
+Most tests should be implemented in pytest_. HOOMD's test rig provides a ``device`` fixture that
+most tests should use to cache the execution device across multiple tests and reduce test execution
+time.
 
-.. note::
+.. important::
 
-    Add any new ``test_*.py`` files to the list in the corresponding
-    ``CMAKELists.txt`` file.
+    Add any new ``test_*.py`` files to the list in the corresponding ``CMakeLists.txt`` file.
 
-Only add C++ tests for classes that have no Python interface or otherwise
-require low level testing. If you are unsure, please check with the lead
-developers prior to adding new C++ tests.
+Only add C++ tests for classes that have no Python interface or otherwise require low level testing.
+If you are unsure, please check with the lead developers prior to adding new C++ tests.
