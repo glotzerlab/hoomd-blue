@@ -104,7 +104,7 @@ class Dipole(AnisotropicPair):
         The dipole potential parameters. The dictionary has the following
         keys:
 
-        * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
+        * ``A`` (`float`, **required**) - :math:`A` - electrostatic energy
           scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
         * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
           screening length (units: [length]^-1)
@@ -126,7 +126,7 @@ class Dipole(AnisotropicPair):
         nl = nlist.Cell()
         dipole = md.pair.Dipole(nl, r_cut=3.0)
         dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
-        dipole.mu[('A', 'B')] = (4.0, 1.0, 0.0)
+        dipole.mu['A'] = (4.0, 1.0, 0.0)
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
