@@ -208,8 +208,6 @@ class HPMCIntegrator(BaseIntegrator):
             "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self._attached:
-            raise DataAccessError("type_shapes")
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
@@ -442,7 +440,7 @@ class Sphere(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -540,7 +538,7 @@ class ConvexPolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -642,7 +640,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -739,7 +737,7 @@ class SimplePolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -915,7 +913,7 @@ class Polyhedron(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1020,7 +1018,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1335,7 +1333,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1423,7 +1421,7 @@ class Ellipsoid(HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1545,7 +1543,7 @@ class SphereUnion(HPMCIntegrator):
                                          }))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
