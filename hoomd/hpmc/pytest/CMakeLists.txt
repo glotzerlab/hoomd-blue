@@ -14,6 +14,10 @@ set(files __init__.py
           depletants_sphere.py
     )
 
+if (ENABLE_LLVM)
+    list(APPEND files test_pair_user.py test_external_user.py)
+endif()
+
 install(FILES ${files}
         DESTINATION ${PYTHON_SITE_INSTALL_DIR}/hpmc/pytest
        )

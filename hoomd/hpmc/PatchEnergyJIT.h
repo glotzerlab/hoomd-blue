@@ -9,6 +9,8 @@
 
 #include "EvalFactory.h"
 
+#include <pybind11/numpy.h>
+
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy
    barriers for users to add custom interactions that execute with high performance. It provides a
@@ -38,15 +40,32 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
     //! Constructor
-    PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf,
+    PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ExecutionConfiguration> exec_conf,
                    const std::string& llvm_ir,
                    Scalar r_cut,
-                   const unsigned int array_size);
+                   pybind11::array_t<float> param_array);
+
+    virtual Scalar getRelevantRCut()
+        {
+        return m_r_cut;
+        }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
     virtual Scalar getRCut()
         {
         return m_r_cut;
+        }
+
+    //! Set the maximum r_ij radius beyond which energies are always 0
+    void setRCut(Scalar r_cut)
+        {
+        m_r_cut = r_cut;
+        }
+
+    unsigned int getArraySize()
+        {
+        return m_alpha_size;
         }
 
     //! Get the maximum r_ij radius beyond which energies are always 0
@@ -81,7 +100,7 @@ class PYBIND11_EXPORT PatchEnergyJIT : public hpmc::PatchEnergy
         return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
         }
 
-    static pybind11::object getAlphaNP(pybind11::object self)
+    static pybind11::object getParamArray(pybind11::object self)
         {
         auto self_cpp = self.cast<PatchEnergyJIT*>();
         return pybind11::array(self_cpp->m_alpha_size, self_cpp->m_factory->getAlphaArray(), self);

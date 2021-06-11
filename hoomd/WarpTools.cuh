@@ -8,33 +8,34 @@
  * \brief Wrappers around CUB primitives for warp-level parallel primitives.
  */
 
-#ifndef HOOMD_WARP_TOOLS_CUH_
-#define HOOMD_WARP_TOOLS_CUH_
+#pragma once
 
 #ifdef ENABLE_HIP
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef __CUDACC_RTC__
 #include <type_traits>
-#endif
 
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #if defined(__HIP_PLATFORM_HCC__)
 #include <hipcub/hipcub.hpp>
 #else
 #if __CUDACC_VER_MAJOR__ >= 11
-#include <cub/cub.cuh>
 #include <cub/warp/warp_reduce.cuh>
 #include <cub/warp/warp_scan.cuh>
 #else
-#include "hoomd/extern/cub/cub/cub.cuh"
 #include "hoomd/extern/cub/cub/warp/warp_reduce.cuh"
 #include "hoomd/extern/cub/cub/warp/warp_scan.cuh"
 #endif
 #endif
+
+#ifndef __CUDACC_RTC__
 #pragma GCC diagnostic pop
+#endif
 
 #define DEVICE __device__ __forceinline__
 
@@ -448,5 +449,3 @@ class WarpScan
     } // end namespace hoomd
 
 #undef DEVICE
-
-#endif // HOOMD_WARP_TOOLS_CUH_

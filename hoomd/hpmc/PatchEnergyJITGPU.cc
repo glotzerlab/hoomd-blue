@@ -39,13 +39,14 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
 
     unsigned int max_queue_size = n_groups * tpp;
 
-    const unsigned int min_shared_bytes = args.num_types * sizeof(Scalar);
+    const unsigned int min_shared_bytes
+        = static_cast<unsigned int>(args.num_types * sizeof(Scalar));
 
-    unsigned int shared_bytes
-        = n_groups
-              * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3)
-                 + 2 * sizeof(Scalar) + 2 * sizeof(float))
-          + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
+    unsigned int shared_bytes = static_cast<unsigned int>(
+        n_groups
+            * (sizeof(unsigned int) + 2 * sizeof(Scalar4) + 2 * sizeof(Scalar3) + 2 * sizeof(Scalar)
+               + 2 * sizeof(float))
+        + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes);
 
     if (min_shared_bytes >= devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
@@ -116,6 +117,7 @@ void PatchEnergyJITGPU::computePatchEnergyGPU(const gpu_args_t& args, hipStream_
                                 args.seed,
                                 args.timestep,
                                 args.select,
+                                args.rank,
                                 args.num_types,
                                 args.box,
                                 args.ghost_width,

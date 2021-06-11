@@ -10,12 +10,16 @@
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be
    called.
 */
-PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf,
+PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<ExecutionConfiguration> exec_conf,
                                const std::string& llvm_ir,
                                Scalar r_cut,
-                               const unsigned int array_size)
-    : m_exec_conf(exec_conf), m_r_cut(r_cut), m_alpha_size(array_size),
-      m_alpha(array_size, 0.0, managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
+                               pybind11::array_t<float> param_array)
+    : PatchEnergy(sysdef), m_exec_conf(exec_conf), m_r_cut(r_cut),
+      m_alpha_size(static_cast<unsigned int>(param_array.size())),
+      m_alpha(param_array.data(),
+              param_array.data() + param_array.size(),
+              managed_allocator<float>(m_exec_conf->isCUDAEnabled()))
     {
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
@@ -35,15 +39,21 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
 void export_PatchEnergyJIT(pybind11::module& m)
     {
     pybind11::class_<hpmc::PatchEnergy, std::shared_ptr<hpmc::PatchEnergy>>(m, "PatchEnergy")
-        .def(pybind11::init<>());
-    pybind11::class_<PatchEnergyJIT, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT>>(
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>());
+    pybind11::class_<PatchEnergyJIT, Compute, hpmc::PatchEnergy, std::shared_ptr<PatchEnergyJIT>>(
         m,
         "PatchEnergyJIT")
-        .def(pybind11::init<std::shared_ptr<ExecutionConfiguration>,
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ExecutionConfiguration>,
                             const std::string&,
                             Scalar,
-                            const unsigned int>())
-        .def("getRCut", &PatchEnergyJIT::getRCut)
+                            pybind11::array_t<float>>())
+        .def_property("r_cut", &PatchEnergyJIT::getRCut, &PatchEnergyJIT::setRCut)
+        .def_property_readonly("array_size", &PatchEnergyJIT::getArraySize)
         .def("energy", &PatchEnergyJIT::energy)
-        .def_property_readonly("alpha_iso", &PatchEnergyJIT::getAlphaNP);
+        .def_property_readonly("param_array", &PatchEnergyJIT::getParamArray)
+#ifdef ENABLE_MPI
+        .def("setCommunicator", &Compute::setCommunicator)
+#endif
+        ;
     }

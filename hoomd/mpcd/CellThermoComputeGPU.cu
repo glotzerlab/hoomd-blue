@@ -9,6 +9,8 @@
  *        for mpcd::CellThermoComputeGPU.
  */
 
+#include <hipcub/hipcub.hpp>
+
 #include "CellThermoComputeGPU.cuh"
 #include "CellThermoTypes.h"
 

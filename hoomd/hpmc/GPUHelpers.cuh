@@ -5,7 +5,6 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include <hip/hip_runtime.h>
 
 #pragma once
 namespace hpmc

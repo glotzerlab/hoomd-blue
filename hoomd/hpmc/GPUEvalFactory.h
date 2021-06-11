@@ -13,8 +13,8 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 
-//! uncomment to debug JIT compilation errors
-//#define DEBUG_JIT
+/// uncomment to debug JIT compilation errors
+// #define DEBUG_JIT
 
 #ifdef DEBUG_JIT
 #define JITIFY_PRINT_LOG 1
@@ -29,7 +29,8 @@
 #define JITIFY_PRINT_PTX 0
 #define JITIFY_PRINT_HEADER_PATHS 0
 
-#include "jitify.hpp"
+#undef DEVICE
+#include "hoomd/extern/jitify.hpp"
 
 #endif
 
@@ -40,7 +41,8 @@
 /*! This class encapsulates a JIT compiled kernel and provides the API necessary to query kernel
     parameters and launch the kernel into a stream.
 
-    Additionally, it allows access to pointers alpha_iso and alpha_union defined at global scope.
+    Additionally, it allows access to pointers param_array and alpha_union
+    defined at global scope.
  */
 class GPUEvalFactory
     {
@@ -174,7 +176,7 @@ class GPUEvalFactory
                     CUdeviceptr ptr = m_program[idev]
                                           .kernel(m_kernel_name)
                                           .instantiate(e, l)
-                                          .get_global_ptr("alpha_iso");
+                                          .get_global_ptr("param_array");
 
                     // copy the array pointer to the device
                     char* error;

@@ -29,7 +29,7 @@ void GPUEvalFactory::compileGPU(const std::string& code,
     std::vector<std::string> compile_options = {
         "--gpu-architecture=compute_" + std::to_string(compute_arch),
         "--relocatable-device-code=true",
-        "--std=c++11",
+        "--std=c++14",
 #ifdef ENABLE_HPMC_MIXED_PRECISION
         "-DENABLE_HPMC_MIXED_PRECISION",
 #endif
@@ -53,6 +53,11 @@ void GPUEvalFactory::compileGPU(const std::string& code,
                  compile_options[i].c_str());
         }
 
+    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
+    for (unsigned int i = 0; i < compile_options.size(); ++i)
+        {
+        m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
+        }
     m_exec_conf->msg->notice(5) << code << std::endl;
 
     // compile on each GPU, substituting common headers with fake headers
@@ -65,11 +70,6 @@ void GPUEvalFactory::compileGPU(const std::string& code,
         m_program.push_back(m_cache[idev].program(code, 0, compile_options));
         }
 
-    m_exec_conf->msg->notice(3) << "nvrtc options (notice level 5 shows code):" << std::endl;
-    for (unsigned int i = 0; i < compile_options.size(); ++i)
-        {
-        m_exec_conf->msg->notice(3) << " " << compileParams[i] << std::endl;
-        }
 #endif
     }
 #endif

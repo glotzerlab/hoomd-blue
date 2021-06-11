@@ -3,14 +3,15 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/VectorMath.h"
-#include "hoomd/jit/Evaluator.cuh"
-#include "hoomd/jit/EvaluatorUnionGPU.cuh"
+#include "hoomd/hpmc/Evaluator.cuh"
+#include "hoomd/hpmc/EvaluatorUnionGPU.cuh"
 
 #include "GPUHelpers.cuh"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/WarpTools.cuh"
+
+#include <cstdint>
 
 namespace hpmc
     {
@@ -40,6 +41,7 @@ __launch_bounds__(max_threads) __global__
                                  const unsigned int seed,
                                  const uint64_t timestep,
                                  const unsigned int select,
+                                 const unsigned int rank,
                                  const unsigned int num_types,
                                  const BoxDim box,
                                  const Scalar3 ghost_width,
@@ -384,11 +386,9 @@ __launch_bounds__(max_threads) __global__
         float beta_delta_U = s_energy_new_group[group] - s_energy_old_group[group];
 
         // Metropolis-Hastings
-        hoomd::RandomGenerator rng_i(hoomd::RNGIdentifier::HPMCMonoPatch,
-                                     seed,
-                                     idx,
-                                     select,
-                                     timestep);
+        hoomd::RandomGenerator rng_i(
+            hoomd::Seed(hoomd::RNGIdentifier::HPMCMonoPatch, timestep, seed),
+            hoomd::Counter(idx, select, rank));
         bool accept = hoomd::detail::generate_canonical<double>(rng_i) < slow::exp(-beta_delta_U);
 
         // update device memory
