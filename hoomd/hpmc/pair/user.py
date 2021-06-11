@@ -81,9 +81,17 @@ class CPPPotentialBase(_HOOMDBaseObject):
             however.
     """
 
-    def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
-        self._cpu_llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
-                                                clang_exec)
+    def __init__(self,
+                 r_cut,
+                 code,
+                 llvm_ir=None,
+                 clang_exec='clang',
+                 param_array=None):
+        if llvm_ir is not None:
+            self._cpu_llvm_ir = llvm_ir
+        else:
+            self._cpu_llvm_ir = _compile.to_llvm_ir(self._wrap_cpu_code(code),
+                                                    clang_exec)
         self._code = code
         param_dict = ParameterDict(r_cut=r_cut,
                                    param_array=hoomd.data.typeconverter.Array(
@@ -203,9 +211,15 @@ class CPPPotential(CPPPotentialBase):
             sim.run(1000)
     '''
 
-    def __init__(self, r_cut, code, clang_exec='clang', param_array=None):
+    def __init__(self,
+                 r_cut,
+                 code,
+                 llvm_ir=None,
+                 clang_exec='clang',
+                 param_array=None):
         super().__init__(r_cut=r_cut,
                          code=code,
+                         llvm_ir=llvm_ir,
                          clang_exec=clang_exec,
                          param_array=param_array)
 
