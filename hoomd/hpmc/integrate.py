@@ -878,8 +878,9 @@ class Polyhedron(HPMCIntegrator):
             * ``ignore_statistics`` (`bool`, **default:** `False`) - set to
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
-              sphere swept around the surface of the polyhedron :math:`[length]`.
-              Set a non-zero sweep_radius to create a spheropolyhedron.
+              sphere swept around the surface of the polyhedron
+              :math:`[length]`. Set a non-zero sweep_radius to create
+              a spheropolyhedron.
             * ``overlap`` (`list` [`int`], **default:** None) - Check for
               overlaps between faces when ``overlap [i] & overlap[j]`` is
               nonzero (``&`` is the bitwise AND operator). When not `None`,
@@ -888,8 +889,8 @@ class Polyhedron(HPMCIntegrator):
             * ``capacity`` (`int`, **default:** 4) - set the maximum number of
               particles per leaf node to adjust performance.
             * ``origin`` (`tuple` [`float`, `float`, `float`],
-              **default:** (0,0,0)) - a point strictly inside the shape, needed
-              for correctness of overlap checks.
+              **default:** (0,0,0)) - a point strictly inside the shape,
+              needed for correctness of overlap checks.
             * ``hull_only`` (`bool`, **default:** `False`) - When `True`, only
               check for intersections between the convex hulls.
 
