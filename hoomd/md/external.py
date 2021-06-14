@@ -66,17 +66,16 @@ class Periodic(External):
         The `Periodic` external potential parameters. The dictionary has the
         following keys:
 
-        * ``A`` (`float`, **required**) -
-            Ordering parameter :math:`A` (in energy units).
-        * ``i`` (`int`, **required**) -
-            :math:`\\vec{b}_i`, :math:`i=0, 1, 2`, is the simulation box's
-            reciprocal lattice vector in the :math:`i` direction (dimensionless).
-        * ``w`` (`float`, **required**) -
-            The interface width :math:`w` relative to the distance
-            :math:`2\\pi/|\\mathbf{b_i}|` between planes in the
-            :math:`i`-direction. (dimensionless).
-        * ``p`` (`int`, **required**) -
-            The periodicity :math:`p` of the modulation (dimensionless).
+        * ``A`` (`float`, **required**) - Ordering parameter :math:`A`
+            (in energy units).
+        * ``i`` (`int`, **required**) - :math:`\\vec{b}_i`, :math:`i=0, 1, 2`,
+            is the simulation box's reciprocal lattice vector in the :math:`i`
+            direction (dimensionless).
+        * ``w`` (`float`, **required**) - The interface width :math:`w`
+            relative to the distance :math:`2\\pi/|\\mathbf{b_i}|` between
+            planes in the :math:`i`-direction. (dimensionless).
+        * ``p`` (`int`, **required**) - The periodicity :math:`p` of the
+            modulation (dimensionless).
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
