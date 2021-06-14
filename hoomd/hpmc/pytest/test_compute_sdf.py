@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 import hoomd.hpmc.pytest.conftest
 
+
 def test_before_attaching():
     sdf = hoomd.hpmc.compute.SDF(xmax=0.02, dx=1e-4)
 
@@ -12,7 +13,8 @@ def test_before_attaching():
     assert sdf.betaP is None
 
 
-def test_after_attaching(valid_args, simulation_factory, lattice_snapshot_factory):
+def test_after_attaching(valid_args, simulation_factory,
+                         lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['A'])
     sim = simulation_factory(snap)
 

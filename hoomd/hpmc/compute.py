@@ -161,6 +161,7 @@ class SDF(Compute):
         dx (float): Bin width.
 
     """
+
     def __init__(self, xmax, dx):
         # store metadata
         param_dict = ParameterDict(xmax=float(xmax), dx=float(dx))
@@ -177,9 +178,7 @@ class SDF(Compute):
         cpp_cls = getattr(_hpmc, 'ComputeSDF' + integrator_name)
 
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj,
-                                self.xmax,
-                                self.dx)
+                                integrator._cpp_obj, self.xmax, self.dx)
 
         super()._attach()
 
