@@ -4,6 +4,7 @@ set (_header_files export_filters.h
                    ParticleFilter.h
                    ParticleFilterIntersection.h
                    ParticleFilterNull.h
+                   ParticleFilterRigid.h
                    ParticleFilterSetDifference.h
                    ParticleFilterTags.h
                    ParticleFilterType.h
@@ -18,6 +19,7 @@ set(files __init__.py
           filter_.py
           all_.py
           null.py
+          rigid.py
           set_.py
           tags.py
           type_.py

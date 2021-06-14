@@ -60,7 +60,7 @@ class LJ(SpecialPair):
         \begin{eqnarray*}
         V_{\mathrm{LJ}}(r)  = & 4 \varepsilon
             \left[ \left( \frac{\sigma}{r} \right)^{12} -
-            \alpha \left( \frac{\sigma}{r} \right)^{6} \right]
+                   \left( \frac{\sigma}{r} \right)^{6} \right]
                               & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}

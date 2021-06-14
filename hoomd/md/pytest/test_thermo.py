@@ -1,5 +1,7 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
+from hoomd.error import DataAccessError
+import pytest
 import numpy as np
 """ Each entry is a quantity and its type """
 _thermo_qtys = [
@@ -22,7 +24,8 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     group = hoomd.filter.All()
     thermo = hoomd.md.compute.ThermodynamicQuantities(group)
     for qty, typ in _thermo_qtys:
-        assert getattr(thermo, qty) is None
+        with pytest.raises(DataAccessError):
+            getattr(thermo, qty)
 
     # make simulation and test state of operations
     sim = simulation_factory(two_particle_snapshot_factory())
@@ -39,7 +42,8 @@ def test_attach_detach(simulation_factory, two_particle_snapshot_factory):
     sim.operations.remove(thermo)
     assert len(sim.operations.computes) == 0
     for qty, typ in _thermo_qtys:
-        assert getattr(thermo, qty) is None
+        with pytest.raises(DataAccessError):
+            getattr(thermo, qty)
 
 
 def _assert_thermo_properties(thermo, npart, rdof, tdof, pe, rke, tke, ke, p,

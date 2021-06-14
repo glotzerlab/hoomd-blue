@@ -80,7 +80,7 @@ class Harmonic(Dihedral):
             * ``k`` (`float`, **required**) - potential constant
               :math:`[\mathrm{energy}]`
             * ``d`` (`float`, **required**) - sign factor
-            * ``n`` (`float`, **required**) - angle scaling factor
+            * ``n`` (`int`, **required**) - angle multiplicity factor
             * ``phi0`` (`float`, **required**) - phase shift
               :math:`[\mathrm{radians}]`
 
@@ -95,8 +95,7 @@ class Harmonic(Dihedral):
     def __init__(self):
         params = TypeParameter(
             'params', 'dihedral_types',
-            TypeParameterDict(k=float, d=float, n=float, phi0=float,
-                              len_keys=1))
+            TypeParameterDict(k=float, d=float, n=int, phi0=float, len_keys=1))
         self._add_typeparam(params)
 
 

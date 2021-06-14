@@ -37,13 +37,13 @@
 
     EvaluatorPairLJ1208 evaluates the function:
     \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
-                                            \alpha \left( \frac{\sigma}{r} \right)^{8} \right] \f]
+                                            \left( \frac{\sigma}{r} \right)^{8} \right] \f]
     broken up as follows for efficiency
     \f[ V_{\mathrm{LJ}}(r) = r^{-8} \cdot \left( 4 \varepsilon \sigma^{12} \cdot r^{-4} -
-                                            4 \alpha \varepsilon \sigma^{8} \right) \f]
+                                            4 \varepsilon \sigma^{8} \right) \f]
     . Similarly,
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{LJ}}}{\partial r} = r^{-2} \cdot r^{-8} \cdot
-            \left( 12 \cdot 4 \varepsilon \sigma^{12} \cdot r^{-4} - 8 \cdot 4 \alpha \varepsilon
+            \left( 12 \cdot 4 \varepsilon \sigma^{12} \cdot r^{-4} - 8 \cdot 4 \varepsilon
    \sigma^{8} \right) \f]
 
     The LJ potential does not need diameter or charge. Two parameters are specified and stored in a
@@ -51,7 +51,7 @@
 
     These are related to the standard lj parameters sigma and epsilon by:
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,8.0);
+    - \a lj2 = 4.0 * epsilon * pow(sigma,8.0);
 
 */
 class EvaluatorPairLJ1208

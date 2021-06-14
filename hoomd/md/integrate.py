@@ -8,12 +8,12 @@ import itertools
 
 from hoomd.md import _md
 from hoomd.data.parameterdicts import ParameterDict
-from hoomd.data.typeconverter import OnlyFrom
+from hoomd.data.typeconverter import OnlyFrom, OnlyTypes
 from hoomd.integrate import BaseIntegrator
 from hoomd.data import syncedlist
 from hoomd.md.methods import Method
 from hoomd.md.force import Force
-from hoomd.md.constrain import ConstraintForce
+from hoomd.md.constrain import Constraint, Rigid
 
 
 def _preprocess_aniso(value):
@@ -32,7 +32,7 @@ def _set_synced_list(old_list, new_list):
 
 class _DynamicIntegrator(BaseIntegrator):
 
-    def __init__(self, forces, constraints, methods):
+    def __init__(self, forces, constraints, methods, rigid):
         forces = [] if forces is None else forces
         constraints = [] if constraints is None else constraints
         methods = [] if methods is None else methods
@@ -40,18 +40,32 @@ class _DynamicIntegrator(BaseIntegrator):
             Force, syncedlist._PartialGetAttr('_cpp_obj'), iterable=forces)
 
         self._constraints = syncedlist.SyncedList(
-            ConstraintForce,
+            OnlyTypes(Constraint, disallow_types=(Rigid,)),
             syncedlist._PartialGetAttr('_cpp_obj'),
             iterable=constraints)
 
         self._methods = syncedlist.SyncedList(
             Method, syncedlist._PartialGetAttr('_cpp_obj'), iterable=methods)
 
+        param_dict = ParameterDict(rigid=OnlyTypes(Rigid, allow_none=True))
+        if rigid is not None and rigid._added:
+            raise ValueError("Rigid object can only belong to one integrator.")
+        param_dict["rigid"] = rigid
+        self._param_dict.update(param_dict)
+
     def _attach(self):
         self.forces._sync(self._simulation, self._cpp_obj.forces)
         self.constraints._sync(self._simulation, self._cpp_obj.constraints)
         self.methods._sync(self._simulation, self._cpp_obj.methods)
         super()._attach()
+        if self.rigid is not None:
+            self.rigid._attach()
+            self._cpp_obj.rigid = self.rigid._cpp_obj
+
+    def _add(self, simulation):
+        super()._add(simulation)
+        if self.rigid is not None:
+            self.rigid._add(simulation)
 
     @property
     def forces(self):
@@ -89,6 +103,42 @@ class _DynamicIntegrator(BaseIntegrator):
 
         return children
 
+    def _getattr_param(self, attr):
+        if attr == "rigid":
+            return self._param_dict["rigid"]
+        return super()._getattr_param(attr)
+
+    def _setattr_param(self, attr, value):
+        if attr == "rigid":
+            self._set_rigid(value)
+            return
+        super()._setattr_param(attr, value)
+
+    def _set_rigid(self, value):
+        """Handles the adding and detaching of potential Rigid objects."""
+        # this generally only happens when attaching and we can ignore it since
+        # we attach the rigid body in _attach.
+        if value is self.rigid:
+            return
+
+        old_rigid = self.rigid
+        self._param_dict["rigid"] = value
+
+        if self.rigid is not None and self.rigid._added:
+            raise ValueError("Cannot add Rigid object to multiple integrators.")
+
+        if old_rigid is not None and self._attached:
+            old_rigid._detach()
+
+        if self._added:
+            if old_rigid is not None:
+                old_rigid._remove()
+            self.rigid._add(self._simulation)
+
+        if self._attached:
+            self.rigid._attach()
+            self._cpp_obj.rigid = value._cpp_obj
+
 
 class Integrator(_DynamicIntegrator):
     """Enables a variety of standard integration methods.
@@ -109,9 +159,14 @@ class Integrator(_DynamicIntegrator):
             (bool), default 'auto' (autodetect if there is anisotropic factor
             from any defined active or constraint forces).
 
-        constraints (Sequence[hoomd.md.constrain.ConstraintForce]): Sequence of
+        constraints (Sequence[hoomd.md.constrain.Constraint]): Sequence of
             constraint forces applied to the particles in the system.
-            The default value of ``None`` initializes an empty list.
+            The default value of ``None`` initializes an empty list. Rigid body
+            objects (i.e. `hoomd.md.constrain.Rigid`) are not allowed in the
+            list.
+
+        rigid (hoomd.md.constrain.Rigid): A rigid bodies object defining the
+            rigid bodies in the simulation.
 
 
     The following classes can be used as elements in `methods`
@@ -162,8 +217,11 @@ class Integrator(_DynamicIntegrator):
 
         aniso (str): Whether rotational degrees of freedom are integrated.
 
-        constraints (List[hoomd.md.constrain.ConstraintForce]): List of
+        constraints (List[hoomd.md.constrain.Constraint]): List of
             constraint forces applied to the particles in the system.
+
+        rigid (hoomd.md.constrain.Rigid): The rigid body definition for the
+            simulation associated with the integrator.
     """
 
     def __init__(self,
@@ -171,15 +229,16 @@ class Integrator(_DynamicIntegrator):
                  aniso='auto',
                  forces=None,
                  constraints=None,
-                 methods=None):
+                 methods=None,
+                 rigid=None):
 
-        super().__init__(forces, constraints, methods)
+        super().__init__(forces, constraints, methods, rigid)
 
-        self._param_dict = ParameterDict(dt=float(dt),
-                                         aniso=OnlyFrom(
-                                             ['true', 'false', 'auto'],
-                                             preprocess=_preprocess_aniso),
-                                         _defaults=dict(aniso="auto"))
+        self._param_dict.update(
+            ParameterDict(dt=float(dt),
+                          aniso=OnlyFrom(['true', 'false', 'auto'],
+                                         preprocess=_preprocess_aniso),
+                          _defaults={"aniso": "auto"}))
         if aniso is not None:
             self.aniso = aniso
 

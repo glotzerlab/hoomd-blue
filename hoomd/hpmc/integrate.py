@@ -8,6 +8,7 @@ from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
+from hoomd.error import DataAccessError
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
@@ -208,13 +209,11 @@ class HPMCIntegrator(BaseIntegrator):
             "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self._attached:
-            return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def map_overlaps(self):
         """list[tuple[int, int]]: List of overlapping particles.
 
@@ -225,9 +224,9 @@ class HPMCIntegrator(BaseIntegrator):
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
         """
-        if (not self._attached
-                or self._simulation.device.communicator.num_ranks > 1):
+        if self._simulation.device.communicator.num_ranks > 1:
             return None
+
         return self._cpp_obj.mapOverlaps()
 
     def map_energies(self):
@@ -258,11 +257,9 @@ class HPMCIntegrator(BaseIntegrator):
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
 
-    @log
+    @log(requires_run=True)
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
-        if not self._attached:
-            return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -312,7 +309,7 @@ class HPMCIntegrator(BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def translate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected translate moves.
 
@@ -320,12 +317,9 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).translate
-        else:
-            return None
+        return self._cpp_obj.getCounters(1).translate
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def rotate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected rotate moves.
 
@@ -333,22 +327,16 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).rotate
-        else:
-            return None
+        return self._cpp_obj.getCounters(1).rotate
 
-    @log
+    @log(requires_run=True)
     def mps(self):
         """float: Number of trial moves performed per second.
 
         Note:
             The count is reset at the start of each `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getMPS()
-        else:
-            return None
+        return self._cpp_obj.getMPS()
 
     @property
     def counters(self):
@@ -371,7 +359,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1)
         else:
-            return None
+            raise DataAccessError("counters")
 
 
 class Sphere(HPMCIntegrator):
@@ -453,7 +441,7 @@ class Sphere(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -551,7 +539,7 @@ class ConvexPolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -653,7 +641,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -750,7 +738,7 @@ class SimplePolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -928,7 +916,7 @@ class Polyhedron(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1034,7 +1022,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1352,7 +1340,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1440,7 +1428,7 @@ class Ellipsoid(HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1562,7 +1550,7 @@ class SphereUnion(HPMCIntegrator):
                                          }))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
