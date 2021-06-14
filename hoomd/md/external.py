@@ -87,6 +87,7 @@ class Periodic(External):
         periodic.params['B'] = dict(A=-1.0, i=0, w=0.02, p=3)
     """
     _cpp_class_name = "PotentialExternalPeriodic"
+
     def __init__(self):
         params = TypeParameter(
             'params', 'particle_types',
@@ -127,6 +128,7 @@ class ElectricField(External):
         e_field.E['A'] = (1, 0, 0)
     """
     _cpp_class_name = "PotentialExternalElectricField"
+
     def __init__(self):
         params = TypeParameter(
             'E', 'particle_types',
