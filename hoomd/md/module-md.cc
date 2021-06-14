@@ -212,6 +212,17 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
         .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
     }
 
+template<>
+void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m, const std::string& name)
+    {
+    pybind11::class_<PotentialExternalElectricField, ForceCompute,
+        std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
+        .def("setE", &PotentialExternalElectricField::setParamsPython)
+        .def("getE", &PotentialExternalElectricField::getParams)
+        .def("setField", &PotentialExternalElectricField::setField);
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.

@@ -241,8 +241,6 @@ template<class T> void export_PotentialExternal(pybind11::module& m, const std::
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &T::setParamsPython)
         .def("getParams", &T::getParams)
-        .def("setE", &T::setParamsPython)
-        .def("getE", &T::getParams)
         .def("setField", &T::setField);
     }
 
