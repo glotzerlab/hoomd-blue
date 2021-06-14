@@ -37,10 +37,10 @@
 
     \b Table memory layout
 
-    V(r) and F(r) are specified for each unique particle type pair. Three parameters need to be stored for each 
+    V(r) and F(r) are specified for each unique particle type pair. Three parameters need to be stored for each
     potential: rmin, rcut, and dr, the minimum r, maximum r, and spacing between r values in the table respectively.
-    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr*i where i is chosen 
-    such that r >= rmin and r < rcut. V(r) for r < rmin and >= rcut is 0. The same goes for F. Thus V and F are defined 
+    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr*i where i is chosen
+    such that r >= rmin and r < rcut. V(r) for r < rmin and >= rcut is 0. The same goes for F. Thus V and F are defined
     between the region [rmin, rcut).
 
     \b Interpolation

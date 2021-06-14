@@ -281,13 +281,14 @@ def _invalid_params():
     invalid_params_list.extend(
         _make_invalid_params(twf_invalid_dicts, hoomd.md.pair.TWF, {}))
 
-    table_valid_dict = {'V': np.arange(0, 20, 1) / 10,
-                        'F': np.asarray(20 * [-1.9 / 2.5]),
-                        'r_min': 0.0}
+    table_valid_dict = {
+        'V': np.arange(0, 20, 1) / 10,
+        'F': np.asarray(20 * [-1.9 / 2.5]),
+        'r_min': 0.0
+    }
     table_invalid_dicts = _make_invalid_param_dict(table_valid_dict)
-    invalid_params_list.extend(_make_invalid_params(table_invalid_dicts,
-                                                    hoomd.md.pair.Table,
-                                                    {}))
+    invalid_params_list.extend(
+        _make_invalid_params(table_invalid_dicts, hoomd.md.pair.Table, {}))
 
     tersoff_valid_dict = {
         'cutoff_thickness': 1.0,
@@ -575,19 +576,22 @@ def _valid_params(particle_types=['A', 'B']):
         paramtuple(hoomd.md.pair.TWF, dict(zip(combos, twf_valid_param_dicts)),
                    {}))
 
-    rs = [np.arange(0, 2.6, 0.1),
-          np.linspace(0.5, 2.5, 25),
-          np.arange(0.8, 2.6, 0.1)]
+    rs = [
+        np.arange(0, 2.6, 0.1),
+        np.linspace(0.5, 2.5, 25),
+        np.arange(0.8, 2.6, 0.1)
+    ]
     Vs = [r[::-1] * 5 for r in rs]
     Fs = [-1 * np.diff(V) / np.diff(r) for V, r in zip(Vs, rs)]
-    table_arg_dict = {'V': [V[:-1] for V in Vs],
-                      'F': Fs,
-                      'r_min': [r[0] for r in rs]}
+    table_arg_dict = {
+        'V': [V[:-1] for V in Vs],
+        'F': Fs,
+        'r_min': [r[0] for r in rs]
+    }
     table_valid_param_dicts = _make_valid_param_dicts(table_arg_dict)
-    valid_params_list.append(paramtuple(hoomd.md.pair.Table,
-                                        dict(zip(combos,
-                                                 table_valid_param_dicts)),
-                                        {}))
+    valid_params_list.append(
+        paramtuple(hoomd.md.pair.Table,
+                   dict(zip(combos, table_valid_param_dicts)), {}))
     return valid_params_list
 
 

@@ -592,14 +592,17 @@ class Table(Pair):
         table.params[('A', 'A')] = dict(V=V, F=F, r_min=r_min)
     """
     _cpp_class_name = "PotentialPairTable"
+
     def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
         super().__init__(nlist, r_cut, r_on, mode)
-        params = TypeParameter('params', 'particle_types',
-                               TypeParameterDict(r_min=float,
-                                                 V=numpy.ndarray,
-                                                 F=numpy.ndarray,
-                                                 len_keys=2))
+        params = TypeParameter(
+            'params', 'particle_types',
+            TypeParameterDict(r_min=float,
+                              V=numpy.ndarray,
+                              F=numpy.ndarray,
+                              len_keys=2))
         self._add_typeparam(params)
+
 
 class Morse(Pair):
     r"""Morse pair potential.
