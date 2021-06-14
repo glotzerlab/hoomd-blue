@@ -56,8 +56,8 @@ jobs:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     env:
       CXXFLAGS: '-Werror'
@@ -119,17 +119,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      # privileged is needed to access the GPU devices on the runners because the nvidia container
-      # toolkit is built without cgroups support:
-      # https://aur.archlinux.org/packages/nvidia-container-toolkit
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES --privileged=true
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -165,17 +162,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      # privileged is needed to access the GPU devices on the runners because the nvidia container
-      # toolkit is built without cgroups support:
-      # https://aur.archlinux.org/packages/nvidia-container-toolkit
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES --privileged=true
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     steps:
     - name: Clean workspace
@@ -204,17 +198,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      # privileged is needed to access the GPU devices on the runners because the nvidia container
-      # toolkit is built without cgroups support:
-      # https://aur.archlinux.org/packages/nvidia-container-toolkit
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES --privileged=true
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
         - {config: [clang11_py39, mpi, tbb, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc10_py39], runner: ubuntu-latest, docker_options: '' }
-        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
-        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda11_gcc9_py38, mpi], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
+        - {config: [cuda11_gcc9_py38], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
 
     if: ${{ contains(github.event.pull_request.labels.*.name, 'validate') }}
     steps:
@@ -244,7 +235,7 @@ jobs:
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
@@ -314,14 +305,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      # privileged is needed to access the GPU devices on the runners because the nvidia container
-      # toolkit is built without cgroups support:
-      # https://aur.archlinux.org/packages/nvidia-container-toolkit
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES --privileged=true
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
@@ -367,14 +355,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container:
       image: glotzerlab/ci:2021.05-${{ matrix.config[0] }}
-      # privileged is needed to access the GPU devices on the runners because the nvidia container
-      # toolkit is built without cgroups support:
-      # https://aur.archlinux.org/packages/nvidia-container-toolkit
-      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES --privileged=true
+      options: ${{ matrix.docker_options }} -e CUDA_VISIBLE_DEVICES
     strategy:
       matrix:
         include:
-        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all' }
+        - {config: [cuda10_gcc7_py37], runner: [self-hosted,GPU], docker_options: '--gpus=all --device /dev/nvidia0 --device /dev/nvidia1 --device /dev/nvidia-uvm --device /dev/nvidia-uvm-tools --device /dev/nvidiactl' }
         - {config: [clang10_py38, jit], runner: ubuntu-latest, docker_options: '' }
         - {config: [gcc9_py38], runner: ubuntu-latest, docker_options: '' }
         - {config: [clang9_py38, jit], runner: ubuntu-latest, docker_options: '' }
