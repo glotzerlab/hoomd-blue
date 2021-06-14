@@ -58,46 +58,6 @@ ParticleFilterBody::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) co
     }
 
 //////////////////////////////////////////////////////////////////////////////
-// ParticleFilterRigid
-
-/*! \param rigid true selects particles that are in rigid bodies, false selects particles that are
- * not part of a rigid body
- */
-ParticleFilterRigid::ParticleFilterRigid(bool rigid) : ParticleFilter(), m_rigid(rigid) { }
-
-/*! \param tag Tag of the particle to check
-    \returns true if the type of particle \a tag meets the rigid criteria selected
-*/
-std::vector<unsigned int>
-ParticleFilterRigid::getSelectedTags(std::shared_ptr<SystemDefinition> sysdef) const
-    {
-    std::vector<unsigned int> member_tags;
-    auto pdata = sysdef->getParticleData();
-
-    // loop through local particles and select those that match selection criterion
-    ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(pdata->getBodies(), access_location::host, access_mode::read);
-    for (unsigned int idx = 0; idx < pdata->getN(); ++idx)
-        {
-        unsigned int tag = h_tag.data[idx];
-
-        // get position of particle
-        unsigned int body = h_body.data[idx];
-
-        // see if it matches the criteria
-        bool result = false;
-        if (m_rigid && body < MIN_FLOPPY)
-            result = true;
-        if (!m_rigid && body >= MIN_FLOPPY)
-            result = true;
-
-        if (result)
-            member_tags.push_back(tag);
-        }
-    return member_tags;
-    }
-
-//////////////////////////////////////////////////////////////////////////////
 // ParticleFilterFloppy
 
 /*! \param floppy true selects particles that are in floppy bodies, false selects particles that are
