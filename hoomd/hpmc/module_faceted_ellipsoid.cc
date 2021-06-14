@@ -38,7 +38,7 @@ void export_faceted_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeFacetedEllipsoid >(m, "IntegratorHPMCMonoFacetedEllipsoid");
     export_ComputeFreeVolume< ShapeFacetedEllipsoid >(m, "ComputeFreeVolumeFacetedEllipsoid");
-    // export_ComputeSDF< ShapeFacetedEllipsoid >(m, "ComputeSDFFacetedEllipsoid");
+    export_ComputeSDF< ShapeFacetedEllipsoid >(m, "ComputeSDFFacetedEllipsoid");
     export_UpdaterMuVT< ShapeFacetedEllipsoid >(m, "UpdaterMuVTFacetedEllipsoid");
     export_UpdaterClusters< ShapeFacetedEllipsoid >(m, "UpdaterClustersFacetedEllipsoid");
 
