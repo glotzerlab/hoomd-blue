@@ -77,8 +77,7 @@ class EvaluatorExternalPeriodic
             return d;
             }
 #endif
-        }
-    __attribute__((aligned(16)));
+        } __attribute__((aligned(16)));
 
     typedef Scalar field_type; // dummy type
 

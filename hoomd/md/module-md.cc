@@ -216,10 +216,12 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
 // Electric field only has one parameter, so we can get its parameter from
 // python with by a name other than getParams and setParams
 template<>
-void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m, const std::string& name)
+void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m,
+                                                              const std::string& name)
     {
-    pybind11::class_<PotentialExternalElectricField, ForceCompute,
-        std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
+    pybind11::class_<PotentialExternalElectricField,
+                     ForceCompute,
+                     std::shared_ptr<PotentialExternalElectricField>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
         .def("setE", &PotentialExternalElectricField::setParamsPython)
         .def("getE", &PotentialExternalElectricField::getParams)

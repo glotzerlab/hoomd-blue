@@ -63,8 +63,7 @@ class EvaluatorExternalElectricField
             return std::move(params);
             }
 #endif // ifndef __HIPCC__
-        }
-    __attribute__((aligned(16)));
+        } __attribute__((aligned(16)));
 
     typedef Scalar3 field_type;
 
