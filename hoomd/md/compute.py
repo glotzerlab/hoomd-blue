@@ -54,6 +54,7 @@ class ThermodynamicQuantities(_Thermo):
     @log
     def kinetic_temperature(self):
         r""":math:`kT_k`, instantaneous thermal energy of the group.
+        
         :math:`[\mathrm{energy}]`
 
         Calculated as:
@@ -71,6 +72,7 @@ class ThermodynamicQuantities(_Thermo):
     @log
     def pressure(self):
         r""":math:`P`, instantaneous pressure of the group.
+        
         :math:`[\mathrm{pressure}]`
 
         Calculated as:
@@ -103,6 +105,7 @@ class ThermodynamicQuantities(_Thermo):
     @log(category='sequence')
     def pressure_tensor(self):
         r"""Instantaneous pressure tensor of the group.
+        
         :math:`[\mathrm{pressure}]`
 
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
@@ -126,6 +129,7 @@ class ThermodynamicQuantities(_Thermo):
     @log
     def kinetic_energy(self):
         r""":math:`K`, total kinetic energy of particles in the group.
+        
         :math:`[\mathrm{energy}]`
 
         .. math::
