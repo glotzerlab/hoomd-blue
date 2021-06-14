@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TwoStepBerendsen.h"
@@ -54,7 +53,8 @@ void TwoStepBerendsen::integrateStepOne(uint64_t timestep)
     if (m_aniso && !m_warned_aniso)
         {
         m_exec_conf->msg->warning() << "integrate.berendsen: this integrator "
-            "does not support anisotropic degrees of freedom" << endl;
+                                       "does not support anisotropic degrees of freedom"
+                                    << endl;
         m_warned_aniso = true;
         }
 
@@ -67,27 +67,36 @@ void TwoStepBerendsen::integrateStepOne(uint64_t timestep)
     Scalar curr_T = m_thermo->getTranslationalTemperature();
 
     // compute the value of lambda for the current timestep
-    Scalar lambda = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
+    Scalar lambda
+        = sqrt(Scalar(1.0) + m_deltaT / m_tau * ((*m_T)(timestep) / curr_T - Scalar(1.0)));
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
 
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
 
         // advance velocity forward by half a timestep and position forward by a full timestep
-        h_vel.data[j].x = lambda * (h_vel.data[j].x + h_accel.data[j].x * m_deltaT * Scalar(1.0 / 2.0));
+        h_vel.data[j].x
+            = lambda * (h_vel.data[j].x + h_accel.data[j].x * m_deltaT * Scalar(1.0 / 2.0));
         h_pos.data[j].x += h_vel.data[j].x * m_deltaT;
 
-        h_vel.data[j].y = lambda * (h_vel.data[j].y + h_accel.data[j].y * m_deltaT * Scalar(1.0 / 2.0));
+        h_vel.data[j].y
+            = lambda * (h_vel.data[j].y + h_accel.data[j].y * m_deltaT * Scalar(1.0 / 2.0));
         h_pos.data[j].y += h_vel.data[j].y * m_deltaT;
 
-        h_vel.data[j].z = lambda * (h_vel.data[j].z + h_accel.data[j].z * m_deltaT * Scalar(1.0 / 2.0));
+        h_vel.data[j].z
+            = lambda * (h_vel.data[j].z + h_accel.data[j].z * m_deltaT * Scalar(1.0 / 2.0));
         h_pos.data[j].z += h_vel.data[j].z * m_deltaT;
         }
 
@@ -116,12 +125,16 @@ void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
 
     // access the particle data for writing on the CPU
     assert(m_pdata);
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(),
+                                 access_location::host,
+                                 access_mode::readwrite);
 
     // access the force data
-    const GlobalArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle< Scalar4 > h_net_force(net_force, access_location::host, access_mode::read);
+    const GlobalArray<Scalar4>& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
     // profile this step
     if (m_prof)
@@ -143,19 +156,18 @@ void TwoStepBerendsen::integrateStepTwo(uint64_t timestep)
         h_vel.data[j].y += h_accel.data[j].y * m_deltaT / Scalar(2.0);
         h_vel.data[j].z += h_accel.data[j].z * m_deltaT / Scalar(2.0);
         }
-
     }
 
 void export_Berendsen(py::module& m)
     {
-    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen")
-        .def(py::init< std::shared_ptr<SystemDefinition>,
-                         std::shared_ptr<ParticleGroup>,
-                         std::shared_ptr<ComputeThermo>,
-                         Scalar,
-                         std::shared_ptr<Variant>
-                         >())
+    py::class_<TwoStepBerendsen, IntegrationMethodTwoStep, std::shared_ptr<TwoStepBerendsen>>(
+        m,
+        "TwoStepBerendsen")
+        .def(py::init<std::shared_ptr<SystemDefinition>,
+                      std::shared_ptr<ParticleGroup>,
+                      std::shared_ptr<ComputeThermo>,
+                      Scalar,
+                      std::shared_ptr<Variant>>())
         .def_property("kT", &TwoStepBerendsen::getT, &TwoStepBerendsen::setT)
-        .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau)
-        ;
+        .def_property("tau", &TwoStepBerendsen::getTau, &TwoStepBerendsen::setTau);
     }

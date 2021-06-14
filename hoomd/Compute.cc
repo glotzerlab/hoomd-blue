@@ -1,14 +1,12 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "Compute.h"
 #include "Communicator.h"
 
 namespace py = pybind11;
-
 
 #include <iostream>
 #include <stdexcept>
@@ -21,8 +19,9 @@ using namespace std;
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-        m_exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
+Compute::Compute(std::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
+      m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
     assert(m_sysdef);
@@ -92,7 +91,6 @@ bool Compute::shouldCompute(uint64_t timestep)
         return true;
         }
 
-
     // failing the above, we perform no computation
     return false;
     }
@@ -117,18 +115,16 @@ void Compute::forceCompute(uint64_t timestep)
     compute(timestep);
     }
 
-
-
 void export_Compute(py::module& m)
     {
-    py::class_<Compute, std::shared_ptr<Compute> >(m,"Compute")
-    .def(py::init< std::shared_ptr<SystemDefinition> >())
-    .def("compute", &Compute::compute)
-    .def("benchmark", &Compute::benchmark)
-    .def("setProfiler", &Compute::setProfiler)
-    .def("notifyDetach", &Compute::notifyDetach)
-    #ifdef ENABLE_MPI
-    .def("setCommunicator", &Compute::setCommunicator)
-    #endif
-    ;
+    py::class_<Compute, std::shared_ptr<Compute>>(m, "Compute")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
+        .def("compute", &Compute::compute)
+        .def("benchmark", &Compute::benchmark)
+        .def("setProfiler", &Compute::setProfiler)
+        .def("notifyDetach", &Compute::notifyDetach)
+#ifdef ENABLE_MPI
+        .def("setCommunicator", &Compute::setCommunicator)
+#endif
+        ;
     }

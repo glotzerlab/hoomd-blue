@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file Analyzer.cc
@@ -15,8 +14,8 @@ namespace py = pybind11;
 /*! \param sysdef System definition this analyzer will act on. Must not be NULL.
     \post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
-Analyzer::Analyzer(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
-    m_exec_conf(m_pdata->getExecConf())
+Analyzer::Analyzer(std::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf())
     {
     // sanity check
     assert(m_sysdef);
@@ -39,13 +38,13 @@ void Analyzer::setProfiler(std::shared_ptr<Profiler> prof)
 
 void export_Analyzer(py::module& m)
     {
-    py::class_<Analyzer, std::shared_ptr<Analyzer>>(m,"Analyzer")
-        .def(py::init< std::shared_ptr<SystemDefinition> >())
+    py::class_<Analyzer, std::shared_ptr<Analyzer>>(m, "Analyzer")
+        .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("analyze", &Analyzer::analyze)
         .def("setProfiler", &Analyzer::setProfiler)
         .def("notifyDetach", &Analyzer::notifyDetach)
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         .def("setCommunicator", &Analyzer::setCommunicator)
-    #endif
+#endif
         ;
     }

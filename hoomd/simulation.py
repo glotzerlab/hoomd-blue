@@ -92,7 +92,7 @@ class Simulation(metaclass=Loggable):
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
         """
-        if self.state is None or self._seed is None:
+        if self._state is None or self._seed is None:
             return self._seed
         else:
             return self._state._cpp_sys_def.getSeed()
@@ -161,13 +161,12 @@ class Simulation(metaclass=Loggable):
             frame (int): Index of the frame to read from the file. Negative
                 values index back from the last frame in the file.
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
-        filename = _hoomd.mpi_bcast_str(filename,
-                                        self.device._cpp_exec_conf)
+        filename = _hoomd.mpi_bcast_str(filename, self.device._cpp_exec_conf)
         # Grab snapshot and timestep
-        reader = _hoomd.GSDReader(self.device._cpp_exec_conf,
-                                  filename, abs(frame), frame < 0)
+        reader = _hoomd.GSDReader(self.device._cpp_exec_conf, filename,
+                                  abs(frame), frame < 0)
         snapshot = Snapshot._from_cpp_snapshot(reader.getSnapshot(),
                                                self.device.communicator)
 
@@ -190,7 +189,7 @@ class Simulation(metaclass=Loggable):
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         if isinstance(snapshot, Snapshot):
@@ -198,14 +197,12 @@ class Simulation(metaclass=Loggable):
             self._state = State(self, snapshot)
         elif _match_class_path(snapshot, 'gsd.hoomd.Snapshot'):
             # snapshot is gsd.hoomd.Snapshot
-            snapshot = Snapshot.from_gsd_snapshot(
-                    snapshot, self._device.communicator
-                    )
+            snapshot = Snapshot.from_gsd_snapshot(snapshot,
+                                                  self._device.communicator)
             self._state = State(self, snapshot)
         else:
             raise TypeError(
-                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot."
-            )
+                "Snapshot must be a hoomd.Snapshot or gsd.hoomd.Snapshot.")
 
         step = 0
         if self.timestep is not None:
@@ -260,7 +257,7 @@ class Simulation(metaclass=Loggable):
             The start time and step are reset at the beginning of each call to
             `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return None
         else:
             return self._cpp_sys.getLastTPS()
@@ -276,7 +273,7 @@ class Simulation(metaclass=Loggable):
         Note:
             `walltime` resets to 0 at the beginning of each call to `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return 0
         else:
             return self._cpp_sys.walltime
@@ -288,7 +285,7 @@ class Simulation(metaclass=Loggable):
         `final_timestep` is the timestep on which the currently executing `run`
         will complete.
         """
-        if self.state is None:
+        if self._state is None:
             return self.timestep
         else:
             return self._cpp_sys.final_timestep
@@ -367,12 +364,13 @@ class Simulation(metaclass=Loggable):
                     if writer.trigger(timestep):
                         writer.write(timestep)
 
-        This order of operations ensures that writers (such as `hoomd.dump.GSD`)
-        capture the final output of the last step of the run loop. For example,
-        a writer with a trigger ``hoomd.trigger.Periodic(period=100, phase=0)``
-        active during a ``run(500)`` would write on steps 100, 200, 300, 400,
-        and 500. Set ``write_at_start=True`` on the first
-        call to `run` to also obtain output at step 0.
+        This order of operations ensures that writers (such as
+        `hoomd.write.GSD`) capture the final output of the last step of the run
+        loop. For example, a writer with a trigger
+        ``hoomd.trigger.Periodic(period=100, phase=0)`` active during a
+        ``run(500)`` would write on steps 100, 200, 300, 400, and 500. Set
+        ``write_at_start=True`` on the first call to `run` to also obtain output
+        at step 0.
 
         Warning:
             Using ``write_at_start=True`` in subsequent
@@ -424,7 +422,8 @@ class Simulation(metaclass=Loggable):
             install_dir=hoomd.version.install_dir,
             mpi_enabled=hoomd.version.mpi_enabled,
             source_dir=hoomd.version.source_dir,
-            tbb_enabled=hoomd.version.tbb_enabled,)
+            tbb_enabled=hoomd.version.tbb_enabled,
+        )
 
         reasons = hoomd.device.GPU.get_unavailable_device_reasons()
 
@@ -442,7 +441,7 @@ class Simulation(metaclass=Loggable):
 
         # TODO: Domain decomposition
 
-        if self.state is not None:
+        if self._state is not None:
             debug_data['state'] = dict(
                 types=self.state.types,
                 N_particles=self.state.N_particles,

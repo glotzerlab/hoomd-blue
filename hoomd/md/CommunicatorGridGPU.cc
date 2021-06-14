@@ -24,8 +24,11 @@ typedef cufftComplex hipfftComplex;
  *  \param add_outer_layer_to_inner True if outer ghost layer should be added to inner cells
  */
 template<typename T>
-CommunicatorGridGPU<T>::CommunicatorGridGPU(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
-            uint3 embed, uint3 offset, bool add_outer_layer_to_inner)
+CommunicatorGridGPU<T>::CommunicatorGridGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                            uint3 dim,
+                                            uint3 embed,
+                                            uint3 offset,
+                                            bool add_outer_layer_to_inner)
     : CommunicatorGrid<T>(sysdef, dim, embed, offset, add_outer_layer_to_inner),
       m_n_unique_recv_cells(0)
     {
@@ -33,11 +36,12 @@ CommunicatorGridGPU<T>::CommunicatorGridGPU(std::shared_ptr<SystemDefinition> sy
     initGridCommGPU();
     }
 
-template<typename T>
-void CommunicatorGridGPU<T>::initGridCommGPU()
+template<typename T> void CommunicatorGridGPU<T>::initGridCommGPU()
     {
     // if we have multiple equal destination cells, group them by destination cell
-    ArrayHandle<unsigned int> h_recv_idx(this->m_recv_idx, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_recv_idx(this->m_recv_idx,
+                                         access_location::host,
+                                         access_mode::read);
     typedef std::multimap<unsigned int, unsigned int> map_t;
     typedef std::set<unsigned int> set_t;
 
@@ -64,14 +68,20 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
     m_cell_recv_end.swap(cell_recv_end);
 
     // write out sorted values according to cell idx
-    ArrayHandle<unsigned int> h_cell_recv(m_cell_recv, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_recv(m_cell_recv,
+                                          access_location::host,
+                                          access_mode::overwrite);
     unsigned int n = 0;
     for (map_t::iterator it = map.begin(); it != map.end(); ++it)
         h_cell_recv.data[n++] = it->second;
 
     // locate beginning and end of each cell
-    ArrayHandle<unsigned int> h_cell_recv_begin(m_cell_recv_begin, access_location::host, access_mode::overwrite);
-    ArrayHandle<unsigned int> h_cell_recv_end(m_cell_recv_end, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_recv_begin(m_cell_recv_begin,
+                                                access_location::host,
+                                                access_mode::overwrite);
+    ArrayHandle<unsigned int> h_cell_recv_end(m_cell_recv_end,
+                                              access_location::host,
+                                              access_mode::overwrite);
 
     n = 0;
     unsigned int last = UINT_MAX;
@@ -97,39 +107,50 @@ void CommunicatorGridGPU<T>::initGridCommGPU()
         }
     }
 
-template<typename T>
-void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
+template<typename T> void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
     {
-    assert(grid.getNumElements() >= this->m_embed.x*this->m_embed.y*this->m_embed.z);
+    assert(grid.getNumElements() >= this->m_embed.x * this->m_embed.y * this->m_embed.z);
 
         {
-        ArrayHandle<T> d_send_buf(this->m_send_buf, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_send_idx(this->m_send_idx, access_location::device, access_mode::read);
+        ArrayHandle<T> d_send_buf(this->m_send_buf,
+                                  access_location::device,
+                                  access_mode::overwrite);
+        ArrayHandle<unsigned int> d_send_idx(this->m_send_idx,
+                                             access_location::device,
+                                             access_mode::read);
         ArrayHandle<T> d_grid(grid, access_location::device, access_mode::read);
 
-        gpu_gridcomm_scatter_send_cells<T>(
-            (unsigned int)this->m_send_buf.getNumElements(),
-            d_send_idx.data,
-            d_grid.data,
-            d_send_buf.data);
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        gpu_gridcomm_scatter_send_cells<T>((unsigned int)this->m_send_buf.getNumElements(),
+                                           d_send_idx.data,
+                                           d_grid.data,
+                                           d_send_buf.data);
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
         {
-        // access send and recv buffers
-        #ifdef ENABLE_MPI_CUDA
-        ArrayHandle<T> send_buf_handle(this->m_send_buf, access_location::device, access_mode::read);
-        ArrayHandle<T> recv_buf_handle(this->m_recv_buf, access_location::device, access_mode::overwrite);
-        #else
+// access send and recv buffers
+#ifdef ENABLE_MPI_CUDA
+        ArrayHandle<T> send_buf_handle(this->m_send_buf,
+                                       access_location::device,
+                                       access_mode::read);
+        ArrayHandle<T> recv_buf_handle(this->m_recv_buf,
+                                       access_location::device,
+                                       access_mode::overwrite);
+#else
         ArrayHandle<T> send_buf_handle(this->m_send_buf, access_location::host, access_mode::read);
-        ArrayHandle<T> recv_buf_handle(this->m_recv_buf, access_location::host, access_mode::overwrite);
-        #endif
+        ArrayHandle<T> recv_buf_handle(this->m_recv_buf,
+                                       access_location::host,
+                                       access_mode::overwrite);
+#endif
 
         typedef std::map<unsigned int, unsigned int>::iterator it_t;
-        std::vector<MPI_Request> reqs(2*this->m_neighbors.size());
+        std::vector<MPI_Request> reqs(2 * this->m_neighbors.size());
 
         unsigned int n = 0;
-        for (std::set<unsigned int>::iterator it = this->m_neighbors.begin(); it != this->m_neighbors.end(); it++)
+        for (std::set<unsigned int>::iterator it = this->m_neighbors.begin();
+             it != this->m_neighbors.end();
+             it++)
             {
             it_t b = this->m_begin.find(*it);
             assert(b != this->m_begin.end());
@@ -139,10 +160,20 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
             unsigned int offs = b->second;
             unsigned int n_elem = e->second - b->second;
 
-            MPI_Isend(&send_buf_handle.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
-                this->m_exec_conf->getMPICommunicator(), &reqs[n++]);
-            MPI_Irecv(&recv_buf_handle.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
-                this->m_exec_conf->getMPICommunicator(), &reqs[n++]);
+            MPI_Isend(&send_buf_handle.data[offs],
+                      int(n_elem * sizeof(T)),
+                      MPI_BYTE,
+                      *it,
+                      0,
+                      this->m_exec_conf->getMPICommunicator(),
+                      &reqs[n++]);
+            MPI_Irecv(&recv_buf_handle.data[offs],
+                      int(n_elem * sizeof(T)),
+                      MPI_BYTE,
+                      *it,
+                      0,
+                      this->m_exec_conf->getMPICommunicator(),
+                      &reqs[n++]);
             }
 
         std::vector<MPI_Status> stat(reqs.size());
@@ -153,21 +184,29 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
         ArrayHandle<T> d_recv_buf(this->m_recv_buf, access_location::device, access_mode::read);
         ArrayHandle<T> d_grid(grid, access_location::device, access_mode::readwrite);
 
-        ArrayHandle<unsigned int> d_cell_recv(m_cell_recv, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_cell_recv_begin(m_cell_recv_begin, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_cell_recv_end(m_cell_recv_end, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_recv_idx(this->m_recv_idx, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_cell_recv(m_cell_recv,
+                                              access_location::device,
+                                              access_mode::read);
+        ArrayHandle<unsigned int> d_cell_recv_begin(m_cell_recv_begin,
+                                                    access_location::device,
+                                                    access_mode::read);
+        ArrayHandle<unsigned int> d_cell_recv_end(m_cell_recv_end,
+                                                  access_location::device,
+                                                  access_mode::read);
+        ArrayHandle<unsigned int> d_recv_idx(this->m_recv_idx,
+                                             access_location::device,
+                                             access_mode::read);
 
-        gpu_gridcomm_scatter_add_recv_cells<T>(
-            m_n_unique_recv_cells,
-            d_recv_buf.data,
-            d_grid.data,
-            d_cell_recv.data,
-            d_cell_recv_begin.data,
-            d_cell_recv_end.data,
-            d_recv_idx.data,
-            this->m_add_outer);
-        if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        gpu_gridcomm_scatter_add_recv_cells<T>(m_n_unique_recv_cells,
+                                               d_recv_buf.data,
+                                               d_grid.data,
+                                               d_cell_recv.data,
+                                               d_cell_recv_begin.data,
+                                               d_cell_recv_end.data,
+                                               d_recv_idx.data,
+                                               this->m_add_outer);
+        if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
     }
 
@@ -175,6 +214,6 @@ void CommunicatorGridGPU<T>::communicate(const GlobalArray<T>& grid)
 template class PYBIND11_EXPORT CommunicatorGridGPU<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
 template class PYBIND11_EXPORT CommunicatorGridGPU<hipfftComplex>;
-#endif //ENABLE_HIP
+#endif // ENABLE_HIP
 
 #endif // ENABLE_MPI

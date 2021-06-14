@@ -59,6 +59,7 @@ workflows all with Python code in your job.
     :caption: Getting started
 
     installation
+    building
     migrating
     changelog
     citing
@@ -84,6 +85,7 @@ workflows all with Python code in your job.
     :maxdepth: 1
     :caption: Developer guide
 
+    contributing
     style
     testing
     components

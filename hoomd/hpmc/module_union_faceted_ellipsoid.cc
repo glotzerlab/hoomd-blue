@@ -7,22 +7,22 @@
 #include "ComputeFreeVolume.h"
 #include "ComputeSDF.h"
 
-#include "ShapeUnion.h"
 #include "ShapeFacetedEllipsoid.h"
+#include "ShapeUnion.h"
 
 #include "ExternalField.h"
-#include "ExternalFieldWall.h"
-#include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalFieldLattice.h"
+#include "ExternalFieldWall.h"
 
-#include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
-#include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
+#include "UpdaterExternalFieldWall.h"
+#include "UpdaterMuVT.h"
+#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
-#include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterClustersGPU.h"
 #endif
 
@@ -33,31 +33,52 @@ using namespace hpmc;
 using namespace hpmc::detail;
 
 namespace hpmc
-{
-
+    {
 //! Export the base HPMCMono integrators
 void export_union_faceted_ellipsoid(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnion");
-    export_ComputeFreeVolume< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnion");
+    export_IntegratorHPMCMono<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "IntegratorHPMCMonoFacetedEllipsoidUnion");
+    export_ComputeFreeVolume<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "ComputeFreeVolumeFacetedEllipsoidUnion");
     export_ComputeSDF< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeSDFFacetedEllipsoidUnion");
-    export_UpdaterMuVT< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterMuVTFacetedEllipsoidUnion");
-    export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnion");
+    export_UpdaterMuVT<ShapeUnion<ShapeFacetedEllipsoid>>(m, "UpdaterMuVTFacetedEllipsoidUnion");
+    export_UpdaterClusters<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "UpdaterClustersFacetedEllipsoidUnion");
 
-    export_ExternalFieldInterface<ShapeUnion<ShapeFacetedEllipsoid> >(m, "ExternalFieldFacetedEllipsoidUnion");
-    export_LatticeField<ShapeUnion<ShapeFacetedEllipsoid> >(m, "ExternalFieldLatticeFacetedEllipsoidUnion");
-    export_ExternalFieldComposite<ShapeUnion<ShapeFacetedEllipsoid> >(m, "ExternalFieldCompositeFacetedEllipsoidUnion");
-    export_RemoveDriftUpdater<ShapeUnion<ShapeFacetedEllipsoid> >(m, "RemoveDriftUpdaterFacetedEllipsoidUnion");
-    export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid> >(m, "WallFacetedEllipsoidUnion");
-    export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterExternalFieldWallFacetedEllipsoidUnion");
+    export_ExternalFieldInterface<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "ExternalFieldFacetedEllipsoidUnion");
+    export_LatticeField<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "ExternalFieldLatticeFacetedEllipsoidUnion");
+    export_ExternalFieldComposite<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "ExternalFieldCompositeFacetedEllipsoidUnion");
+    export_RemoveDriftUpdater<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "RemoveDriftUpdaterFacetedEllipsoidUnion");
+    export_ExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(m, "WallFacetedEllipsoidUnion");
+    export_UpdaterExternalFieldWall<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "UpdaterExternalFieldWallFacetedEllipsoidUnion");
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
 
-    export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "IntegratorHPMCMonoFacetedEllipsoidUnionGPU");
-    export_ComputeFreeVolumeGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "ComputeFreeVolumeFacetedEllipsoidUnionGPU");
-    export_UpdaterClustersGPU< ShapeUnion<ShapeFacetedEllipsoid> >(m, "UpdaterClustersFacetedEllipsoidUnionGPU");
+    export_IntegratorHPMCMonoGPU<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "IntegratorHPMCMonoFacetedEllipsoidUnionGPU");
+    export_ComputeFreeVolumeGPU<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "ComputeFreeVolumeFacetedEllipsoidUnionGPU");
+    export_UpdaterClustersGPU<ShapeUnion<ShapeFacetedEllipsoid>>(
+        m,
+        "UpdaterClustersFacetedEllipsoidUnionGPU");
 
-    #endif
+#endif
     }
 
-}
+    } // namespace hpmc

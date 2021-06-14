@@ -2,33 +2,30 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
+#include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "ComputeFreeVolume.h"
 
 #include "ShapeSimplePolygon.h"
 #include "ComputeSDF.h"
 #include "ShapeUnion.h"
 
-#include "ExternalField.h"
-#include "ExternalFieldWall.h"
-#include "ExternalFieldLattice.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalCallback.h"
+#include "ExternalField.h"
+#include "ExternalFieldComposite.h"
+#include "ExternalFieldLattice.h"
+#include "ExternalFieldWall.h"
 
-#include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
-#include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
+#include "UpdaterExternalFieldWall.h"
+#include "UpdaterMuVT.h"
+#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
-#include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterClustersGPU.h"
 #endif
-
-
-
 
 namespace py = pybind11;
 using namespace hpmc;
@@ -36,8 +33,7 @@ using namespace hpmc;
 using namespace hpmc::detail;
 
 namespace hpmc
-{
-
+    {
 //! Export the base HPMCMono integrators
 void export_simple_polygon(py::module& m)
     {
@@ -52,14 +48,15 @@ void export_simple_polygon(py::module& m)
     export_ExternalFieldComposite<ShapeSimplePolygon>(m, "ExternalFieldCompositeSimplePolygon");
     export_RemoveDriftUpdater<ShapeSimplePolygon>(m, "RemoveDriftUpdaterSimplePolygon");
     // export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
-    // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m, "UpdaterExternalFieldWallSimplePolygon");
+    // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m,
+    // "UpdaterExternalFieldWallSimplePolygon");
     export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
-    #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoSimplePolygonGPU");
-    export_ComputeFreeVolumeGPU< ShapeSimplePolygon >(m, "ComputeFreeVolumeSimplePolygonGPU");
-    export_UpdaterClustersGPU< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygonGPU");
-    #endif
+#ifdef ENABLE_HIP
+    export_IntegratorHPMCMonoGPU<ShapeSimplePolygon>(m, "IntegratorHPMCMonoSimplePolygonGPU");
+    export_ComputeFreeVolumeGPU<ShapeSimplePolygon>(m, "ComputeFreeVolumeSimplePolygonGPU");
+    export_UpdaterClustersGPU<ShapeSimplePolygon>(m, "UpdaterClustersSimplePolygonGPU");
+#endif
     }
 
-}
+    } // namespace hpmc

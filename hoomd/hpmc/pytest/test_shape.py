@@ -1,5 +1,6 @@
 import hoomd
 from hoomd.conftest import operation_pickling_check
+from hoomd.error import DataAccessError
 import hoomd.hpmc
 import numpy as np
 import pytest
@@ -8,8 +9,7 @@ from copy import deepcopy
 
 
 def check_dict(shape_dict, args):
-    """
-    check_dict: Function to check that two dictionaries are equivalent
+    """Check that two dictionaries are equivalent.
 
     Arguments: shape_dict and args - dictionaries to test
 
@@ -70,7 +70,7 @@ def test_invalid_shape_params(invalid_args):
         integrator = integrator[1]
     args = invalid_args[1]
     mc = integrator()
-    with pytest.raises(hoomd.data.typeconverter.TypeConversionError):
+    with pytest.raises(hoomd.error.TypeConversionError):
         mc.shape["A"] = args
 
 
@@ -108,8 +108,11 @@ def test_moves(device, simulation_factory, lattice_snapshot_factory,
 
     sim = simulation_factory(lattice_snapshot_factory(dimensions=dims))
     sim.operations.add(mc)
-    assert sim.operations.integrator.translate_moves is None
-    assert sim.operations.integrator.rotate_moves is None
+
+    with pytest.raises(DataAccessError):
+        sim.operations.integrator.translate_moves
+    with pytest.raises(DataAccessError):
+        sim.operations.integrator.rotate_moves
     sim.operations._schedule()
 
     assert sum(sim.operations.integrator.translate_moves) == 0
@@ -481,21 +484,23 @@ def test_overlaps_spheropolyhedron(device, spheropolyhedron_overlap_args,
     assert mc.overlaps > 0
 
 
-_union_shapes = [({
-    'diameter': 1
-}, hoomd.hpmc.integrate.SphereUnion),
-                 ({
-                     "vertices": _tetrahedron_verts
-                 }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
-                 ({
-                     "normals": [(0, 0, 1)],
-                     "a": 0.5,
-                     "b": 0.5,
-                     "c": 1,
-                     "vertices": [],
-                     "origin": (0, 0, 0),
-                     "offsets": [0]
-                 }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),]
+_union_shapes = [
+    ({
+        'diameter': 1
+    }, hoomd.hpmc.integrate.SphereUnion),
+    ({
+        "vertices": _tetrahedron_verts
+    }, hoomd.hpmc.integrate.ConvexSpheropolyhedronUnion),
+    ({
+        "normals": [(0, 0, 1)],
+        "a": 0.5,
+        "b": 0.5,
+        "c": 1,
+        "vertices": [],
+        "origin": (0, 0, 0),
+        "offsets": [0]
+    }, hoomd.hpmc.integrate.FacetedEllipsoidUnion),
+]
 
 
 @pytest.fixture(scope="function", params=_union_shapes)

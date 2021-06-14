@@ -7,14 +7,13 @@
 #include "HOOMDMPI.h"
 #endif
 
-#include <iostream>
-#include <stdexcept>
 #include <algorithm>
 #include <cfloat>
+#include <iostream>
+#include <stdexcept>
 
 using namespace std;
 namespace py = pybind11;
-
 
 /*! \file Autotuner.cc
     \brief Definition of Autotuner
@@ -31,13 +30,15 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
                      unsigned int period,
                      const std::string& name,
                      std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_parameters(parameters),
-      m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0),
-      m_exec_conf(exec_conf), m_mode(mode_median)
+    : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
+      m_parameters(parameters), m_state(STARTUP), m_current_sample(0), m_current_element(0),
+      m_calls(0), m_exec_conf(exec_conf), m_mode(mode_median)
     {
-    m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " " << name << endl;
+    m_exec_conf->msg->notice(5) << "Constructing Autotuner " << nsamples << " " << period << " "
+                                << name << endl;
 
-    // ensure that m_nsamples is odd (so the median is easy to get). This also ensures that m_nsamples > 0.
+    // ensure that m_nsamples is odd (so the median is easy to get). This also ensures that
+    // m_nsamples > 0.
     if ((m_nsamples & 1) == 0)
         m_nsamples += 1;
 
@@ -57,16 +58,15 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
 
     m_current_param = m_parameters[m_current_element];
 
-    // create CUDA events
-    #ifdef ENABLE_HIP
+// create CUDA events
+#ifdef ENABLE_HIP
     hipEventCreate(&m_start);
     hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
-    #endif
+#endif
 
     m_sync = false;
     }
-
 
 /*! \param start first valid parameter
     \param end last valid parameter
@@ -76,7 +76,8 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
     \param name Descriptive name (used in messenger output)
     \param exec_conf Execution configuration
 
-    \post Valid parameters will be generated with a spacing of \a step in the range [start,end] inclusive.
+    \post Valid parameters will be generated with a spacing of \a step in the range [start,end]
+   inclusive.
 */
 Autotuner::Autotuner(unsigned int start,
                      unsigned int end,
@@ -85,12 +86,13 @@ Autotuner::Autotuner(unsigned int start,
                      unsigned int period,
                      const std::string& name,
                      std::shared_ptr<const ExecutionConfiguration> exec_conf)
-    : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name),
-      m_state(STARTUP), m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
+    : m_nsamples(nsamples), m_period(period), m_enabled(true), m_name(name), m_state(STARTUP),
+      m_current_sample(0), m_current_element(0), m_calls(0), m_current_param(0),
       m_exec_conf(exec_conf), m_mode(mode_median)
     {
-    m_exec_conf->msg->notice(5) << "Constructing Autotuner " << " " << start << " " << end << " " << step << " "
-                                << nsamples << " " << period << " " << name << endl;
+    m_exec_conf->msg->notice(5) << "Constructing Autotuner "
+                                << " " << start << " " << end << " " << step << " " << nsamples
+                                << " " << period << " " << name << endl;
 
     // initialize the parameters
     m_parameters.resize((end - start) / step + 1);
@@ -101,7 +103,8 @@ Autotuner::Autotuner(unsigned int start,
         cur_param += step;
         }
 
-    // ensure that m_nsamples is odd (so the median is easy to get). This also ensures that m_nsamples > 0.
+    // ensure that m_nsamples is odd (so the median is easy to get). This also ensures that
+    // m_nsamples > 0.
     if ((m_nsamples & 1) == 0)
         m_nsamples += 1;
 
@@ -121,12 +124,12 @@ Autotuner::Autotuner(unsigned int start,
 
     m_current_param = m_parameters[m_current_element];
 
-    // create CUDA events
-    #ifdef ENABLE_HIP
+// create CUDA events
+#ifdef ENABLE_HIP
     hipEventCreate(&m_start);
     hipEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
-    #endif
+#endif
 
     m_sync = false;
     }
@@ -134,11 +137,11 @@ Autotuner::Autotuner(unsigned int start,
 Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     hipEventDestroy(m_start);
     hipEventDestroy(m_stop);
     CHECK_CUDA_ERROR();
-    #endif
+#endif
     }
 
 void Autotuner::begin()
@@ -147,7 +150,7 @@ void Autotuner::begin()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
@@ -155,7 +158,7 @@ void Autotuner::begin()
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
     }
 
 void Autotuner::end()
@@ -164,20 +167,21 @@ void Autotuner::end()
     if (!m_enabled)
         return;
 
-    #ifdef ENABLE_HIP
+#ifdef ENABLE_HIP
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
         hipEventRecord(m_stop, 0);
         hipEventSynchronize(m_stop);
         hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
-        m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
-                                     << ") = " << m_samples[m_current_element][m_current_sample] << endl;
+        m_exec_conf->msg->notice(9)
+            << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
+            << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
-    #endif
+#endif
 
     // handle state data updates and transitions
     if (m_state == STARTUP)
@@ -191,7 +195,8 @@ void Autotuner::end()
             m_current_sample = 0;
             m_current_element++;
 
-            // if we hit the end of the elements, transition to the IDLE state and compute the optimal parameter
+            // if we hit the end of the elements, transition to the IDLE state and compute the
+            // optimal parameter
             if (m_current_element >= m_parameters.size())
                 {
                 m_current_element = 0;
@@ -210,8 +215,8 @@ void Autotuner::end()
         // move on to the next element
         m_current_element++;
 
-        // if we hit the end of the elements, transition to the IDLE state and compute the optimal parameter, and move
-        // on to the next sample for next time
+        // if we hit the end of the elements, transition to the IDLE state and compute the optimal
+        // parameter, and move on to the next sample for next time
         if (m_current_element >= m_parameters.size())
             {
             m_current_element = 0;
@@ -238,39 +243,41 @@ void Autotuner::end()
             // initialize a scan
             m_current_param = m_parameters[m_current_element];
             m_state = SCANNING;
-            m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " - beginning scan" << std::endl;
+            m_exec_conf->msg->notice(4)
+                << "Autotuner " << m_name << " - beginning scan" << std::endl;
             }
         }
     }
 
 /*! \returns The optimal parameter given the current data in m_samples
 
-    computeOptimalParameter computes the median time among all samples for a given element. It then chooses the
-    fastest time (with the lowest index breaking a tie) and returns the parameter that resulted in that time.
+    computeOptimalParameter computes the median time among all samples for a given element. It then
+   chooses the fastest time (with the lowest index breaking a tie) and returns the parameter that
+   resulted in that time.
 */
 unsigned int Autotuner::computeOptimalParameter()
     {
     bool is_root = true;
 
-    #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
     unsigned int nranks = 0;
     if (m_sync)
         {
         nranks = m_exec_conf->getNRanks();
         is_root = !m_exec_conf->getRank();
         }
-    #endif
+#endif
 
     // start by computing the median for each element
     std::vector<float> v;
     for (unsigned int i = 0; i < m_parameters.size(); i++)
         {
         v = m_samples[i];
-        #ifdef ENABLE_MPI
+#ifdef ENABLE_MPI
         if (m_sync && nranks)
             {
             // combine samples from all ranks on rank zero
-            std::vector< std::vector<float> > all_v;
+            std::vector<std::vector<float>> all_v;
             MPI_Barrier(m_exec_conf->getMPICommunicator());
             gather_v(v, all_v, 0, m_exec_conf->getMPICommunicator());
             if (is_root)
@@ -281,7 +288,7 @@ unsigned int Autotuner::computeOptimalParameter()
                     v.insert(v.end(), all_v[j].begin(), all_v[j].end());
                 }
             }
-        #endif
+#endif
         if (is_root)
             {
             if (m_mode == mode_avg)
@@ -290,7 +297,7 @@ unsigned int Autotuner::computeOptimalParameter()
                 float sum = 0.0f;
                 for (std::vector<float>::iterator it = v.begin(); it != v.end(); ++it)
                     sum += *it;
-                m_sample_median[i] = sum/float(v.size());
+                m_sample_median[i] = sum / float(v.size());
                 }
             else if (m_mode == mode_max)
                 {
@@ -308,7 +315,7 @@ unsigned int Autotuner::computeOptimalParameter()
                 {
                 // compute median
                 size_t n = v.size() / 2;
-                nth_element(v.begin(), v.begin()+n, v.end());
+                nth_element(v.begin(), v.begin() + n, v.end());
                 m_sample_median[i] = v[n];
                 }
             }
@@ -321,8 +328,8 @@ unsigned int Autotuner::computeOptimalParameter()
         // now find the minimum and maximum times in the medians
         float min = m_sample_median[0];
         unsigned int min_idx = 0;
-        //float max = m_sample_median[0];
-        //unsigned int max_idx = 0;
+        // float max = m_sample_median[0];
+        // unsigned int max_idx = 0;
 
         for (unsigned int i = 1; i < m_parameters.size(); i++)
             {
@@ -343,22 +350,29 @@ unsigned int Autotuner::computeOptimalParameter()
         // unsigned int percent = int(max/min * 100.0f)-100;
 
         // print stats
-        m_exec_conf->msg->notice(4) << "Autotuner " << m_name << " found optimal parameter " << opt << endl;
+        m_exec_conf->msg->notice(4)
+            << "Autotuner " << m_name << " found optimal parameter " << opt << endl;
         }
 
-    #ifdef ENABLE_MPI
-    if (m_sync && nranks) bcast(opt, 0, m_exec_conf->getMPICommunicator());
-    #endif
+#ifdef ENABLE_MPI
+    if (m_sync && nranks)
+        bcast(opt, 0, m_exec_conf->getMPICommunicator());
+#endif
     return opt;
     }
 
 void export_Autotuner(py::module& m)
     {
-    py::class_<Autotuner>(m,"Autotuner")
-    .def(py::init< unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const std::string&, std::shared_ptr<ExecutionConfiguration> >())
-    .def("getParam", &Autotuner::getParam)
-    .def("setEnabled", &Autotuner::setEnabled)
-    .def("setMoveRatio", &Autotuner::isComplete)
-    .def("setNSelect", &Autotuner::setPeriod)
-    ;
+    py::class_<Autotuner>(m, "Autotuner")
+        .def(py::init<unsigned int,
+                      unsigned int,
+                      unsigned int,
+                      unsigned int,
+                      unsigned int,
+                      const std::string&,
+                      std::shared_ptr<ExecutionConfiguration>>())
+        .def("getParam", &Autotuner::getParam)
+        .def("setEnabled", &Autotuner::setEnabled)
+        .def("setMoveRatio", &Autotuner::isComplete)
+        .def("setNSelect", &Autotuner::setPeriod);
     }

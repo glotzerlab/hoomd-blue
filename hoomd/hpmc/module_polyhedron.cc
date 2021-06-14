@@ -2,28 +2,28 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
+#include "ComputeFreeVolume.h"
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
-#include "ComputeFreeVolume.h"
 
 #include "ShapePolyhedron.h"
 #include "ShapeUnion.h"
 #include "ComputeSDF.h"
 
-#include "ExternalField.h"
-#include "ExternalFieldWall.h"
-#include "ExternalFieldLattice.h"
-#include "ExternalFieldComposite.h"
 #include "ExternalCallback.h"
+#include "ExternalField.h"
+#include "ExternalFieldComposite.h"
+#include "ExternalFieldLattice.h"
+#include "ExternalFieldWall.h"
 
-#include "UpdaterExternalFieldWall.h"
-#include "UpdaterRemoveDrift.h"
-#include "UpdaterMuVT.h"
 #include "UpdaterClusters.h"
+#include "UpdaterExternalFieldWall.h"
+#include "UpdaterMuVT.h"
+#include "UpdaterRemoveDrift.h"
 
 #ifdef ENABLE_HIP
-#include "IntegratorHPMCMonoGPU.h"
 #include "ComputeFreeVolumeGPU.h"
+#include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterClustersGPU.h"
 #endif
 
@@ -33,8 +33,7 @@ using namespace hpmc;
 using namespace hpmc::detail;
 
 namespace hpmc
-{
-
+    {
 //! Export the base HPMCMono integrators
 void export_polyhedron(py::module& m)
     {
@@ -52,11 +51,11 @@ void export_polyhedron(py::module& m)
     export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
     export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
-    #ifdef ENABLE_HIP
-    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedronGPU");
-    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedronGPU");
-    export_UpdaterClustersGPU< ShapePolyhedron >(m, "UpdaterClustersPolyhedronGPU");
-    #endif
+#ifdef ENABLE_HIP
+    export_IntegratorHPMCMonoGPU<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedronGPU");
+    export_ComputeFreeVolumeGPU<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedronGPU");
+    export_UpdaterClustersGPU<ShapePolyhedron>(m, "UpdaterClustersPolyhedronGPU");
+#endif
     }
 
-}
+    } // namespace hpmc

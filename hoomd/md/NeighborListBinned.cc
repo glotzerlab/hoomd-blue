@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 /*! \file NeighborListBinned.cc
@@ -14,12 +13,10 @@
 #include "hoomd/Communicator.h"
 #endif
 
-
 using namespace std;
 namespace py = pybind11;
 
-NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef,
-                                       Scalar r_buff)
+NeighborListBinned::NeighborListBinned(std::shared_ptr<SystemDefinition> sysdef, Scalar r_buff)
     : NeighborList(sysdef, r_buff), m_cl(std::make_shared<CellList>(sysdef))
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListBinned" << endl;
@@ -58,8 +55,12 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 
     // acquire the particle data and box dimension
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(),
+                                     access_location::host,
+                                     access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -68,14 +69,22 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
     ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::read);
 
     // access the cell list data arrays
-    ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_cell_adj(m_cl->getCellAdjArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cell_size(m_cl->getCellSizeArray(),
+                                          access_location::host,
+                                          access_mode::read);
+    ArrayHandle<Scalar4> h_cell_xyzf(m_cl->getXYZFArray(),
+                                     access_location::host,
+                                     access_mode::read);
+    ArrayHandle<unsigned int> h_cell_adj(m_cl->getCellAdjArray(),
+                                         access_location::host,
+                                         access_mode::read);
 
     // access the neighbor list data
     ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_conditions(m_conditions,
+                                           access_location::host,
+                                           access_mode::readwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
 
@@ -103,7 +112,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
         const unsigned int head_idx_i = h_head_list.data[i];
 
         // find the bin each particle belongs in
-        Scalar3 f = box.makeFraction(my_pos,ghost_width);
+        Scalar3 f = box.makeFraction(my_pos, ghost_width);
         int ib = (unsigned int)(f.x * dim.x);
         int jb = (unsigned int)(f.y * dim.y);
         int kb = (unsigned int)(f.z * dim.z);
@@ -117,7 +126,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
             kb = 0;
 
         // identify the bin
-        unsigned int my_cell = ci(ib,jb,kb);
+        unsigned int my_cell = ci(ib, jb, kb);
 
         // loop through all neighboring bins
         for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
@@ -133,7 +142,7 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 
                 // get the current neighbor type from the position data (will use tdb on the GPU)
                 unsigned int cur_neigh_type = __scalar_as_int(h_pos.data[cur_neigh].w);
-                Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i,cur_neigh_type)];
+                Scalar r_cut = h_r_cut.data[m_typpair_idx(type_i, cur_neigh_type)];
 
                 // automatically exclude particles without a distance check when:
                 // (1) they are the same particle, or
@@ -153,16 +162,17 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                 Scalar sqshift = Scalar(0.0);
                 if (m_diameter_shift)
                     {
-                    const Scalar delta = (diam_i + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
+                    const Scalar delta
+                        = (diam_i + h_diameter.data[cur_neigh]) * Scalar(0.5) - Scalar(1.0);
                     // r^2 < (r_list + delta)^2
                     // r^2 < r_listsq + delta^2 + 2*r_list*delta
                     sqshift = (delta + Scalar(2.0) * r_list) * delta;
                     }
 
-                Scalar dr_sq = dot(dx,dx);
+                Scalar dr_sq = dot(dx, dx);
 
                 // move the squared rlist by the diameter shift if necessary
-                Scalar r_listsq = h_r_listsq.data[m_typpair_idx(type_i,cur_neigh_type)];
+                Scalar r_listsq = h_r_listsq.data[m_typpair_idx(type_i, cur_neigh_type)];
                 if (dr_sq <= (r_listsq + sqshift) && !excluded)
                     {
                     if (m_storage_mode == full || i < (int)cur_neigh)
@@ -173,7 +183,8 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
                             h_nlist.data[head_idx_i + cur_n_neigh] = cur_neigh;
                             }
                         else
-                            h_conditions.data[type_i] = max(h_conditions.data[type_i], cur_n_neigh+1);
+                            h_conditions.data[type_i]
+                                = max(h_conditions.data[type_i], cur_n_neigh + 1);
 
                         cur_n_neigh++;
                         }
@@ -190,8 +201,11 @@ void NeighborListBinned::buildNlist(uint64_t timestep)
 
 void export_NeighborListBinned(py::module& m)
     {
-    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned> >(m, "NeighborListBinned")
-        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
-        .def_property("deterministic", &NeighborListBinned::getDeterministic, &NeighborListBinned::setDeterministic)
-        ;
+    py::class_<NeighborListBinned, NeighborList, std::shared_ptr<NeighborListBinned>>(
+        m,
+        "NeighborListBinned")
+        .def(py::init<std::shared_ptr<SystemDefinition>, Scalar>())
+        .def_property("deterministic",
+                      &NeighborListBinned::getDeterministic,
+                      &NeighborListBinned::setDeterministic);
     }

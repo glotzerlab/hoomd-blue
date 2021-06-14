@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "ConstraintSphereGPU.cuh"
@@ -12,7 +11,8 @@
 #include <assert.h>
 
 /*! \file ConstraintSphereGPU.cu
-    \brief Defines GPU kernel code for calculating sphere constraint forces. Used by ConstraintSphereGPU.
+    \brief Defines GPU kernel code for calculating sphere constraint forces. Used by
+   ConstraintSphereGPU.
 */
 
 //! Kernel for calculating sphere constraint forces on the GPU
@@ -29,19 +29,19 @@
     \param r radius of the sphere
     \param deltaT step size from the Integrator
 */
-extern "C" __global__
-void gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_vel,
-                                                 const Scalar4 *d_net_force,
-                                                 Scalar3 P,
-                                                 Scalar r,
-                                                 Scalar deltaT)
+extern "C" __global__ void
+gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
+                                            Scalar* d_virial,
+                                            const size_t virial_pitch,
+                                            const unsigned int* d_group_members,
+                                            unsigned int group_size,
+                                            const unsigned int N,
+                                            const Scalar4* d_pos,
+                                            const Scalar4* d_vel,
+                                            const Scalar4* d_net_force,
+                                            Scalar3 P,
+                                            Scalar r,
+                                            Scalar deltaT)
     {
     // start by identifying which particle we are to handle
     // determine which particle this thread works on
@@ -76,9 +76,8 @@ void gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
     // now that the force calculation is complete, write out the results
     d_force[idx] = make_scalar4(FC.x, FC.y, FC.z, Scalar(0.0));
     for (unsigned int i = 0; i < 6; i++)
-        d_virial[i*virial_pitch+idx] = virial[i];
+        d_virial[i * virial_pitch + idx] = virial[i];
     }
-
 
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
@@ -98,41 +97,46 @@ void gpu_compute_constraint_sphere_forces_kernel(Scalar4* d_force,
     \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
 */
 hipError_t gpu_compute_constraint_sphere_forces(Scalar4* d_force,
-                                                 Scalar* d_virial,
-                                                 const size_t virial_pitch,
-                                                 const unsigned int *d_group_members,
-                                                 unsigned int group_size,
-                                                 const unsigned int N,
-                                                 const Scalar4 *d_pos,
-                                                 const Scalar4 *d_vel,
-                                                 const Scalar4 *d_net_force,
-                                                 const Scalar3& P,
-                                                 Scalar r,
-                                                 Scalar deltaT,
-                                                 unsigned int block_size)
+                                                Scalar* d_virial,
+                                                const size_t virial_pitch,
+                                                const unsigned int* d_group_members,
+                                                unsigned int group_size,
+                                                const unsigned int N,
+                                                const Scalar4* d_pos,
+                                                const Scalar4* d_vel,
+                                                const Scalar4* d_net_force,
+                                                const Scalar3& P,
+                                                Scalar r,
+                                                Scalar deltaT,
+                                                unsigned int block_size)
     {
     assert(d_group_members);
     assert(d_net_force);
 
     // setup the grid to run the kernel
-    dim3 grid( group_size / block_size + 1, 1, 1);
+    dim3 grid(group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipMemset(d_force, 0, sizeof(Scalar4)*N);
-    hipMemset(d_virial, 0, 6*sizeof(Scalar)*virial_pitch);
-    hipLaunchKernelGGL((gpu_compute_constraint_sphere_forces_kernel), dim3(grid), dim3(threads), 0, 0, d_force,
-                                                                    d_virial,
-                                                                    virial_pitch,
-                                                                    d_group_members,
-                                                                    group_size,
-                                                                    N,
-                                                                    d_pos,
-                                                                    d_vel,
-                                                                    d_net_force,
-                                                                    P,
-                                                                    r,
-                                                                    deltaT);
+    hipMemset(d_force, 0, sizeof(Scalar4) * N);
+    hipMemset(d_virial, 0, 6 * sizeof(Scalar) * virial_pitch);
+    hipLaunchKernelGGL((gpu_compute_constraint_sphere_forces_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       0,
+                       0,
+                       d_force,
+                       d_virial,
+                       virial_pitch,
+                       d_group_members,
+                       group_size,
+                       N,
+                       d_pos,
+                       d_vel,
+                       d_net_force,
+                       P,
+                       r,
+                       deltaT);
 
     return hipSuccess;
     }

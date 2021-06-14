@@ -4,99 +4,128 @@ import pytest
 from copy import deepcopy
 from collections import namedtuple
 
-paramtuple = namedtuple('paramtuple',
-                        ['setup_params',
-                         'extra_params',
-                         'changed_params',
-                         'has_rattle',
-                         'method'])
+paramtuple = namedtuple(
+    'paramtuple',
+    ['setup_params', 'extra_params', 'changed_params', 'has_rattle', 'method'])
 
 
 def _method_base_params():
     method_base_params_list = []
     # Start with valid parameters to get the keys and placeholder values
 
-    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0) }
-    langevin_extra_params = {'alpha': None, 'tally_reservoir_energy': False }
-    langevin_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
-                      'alpha': None, 'tally_reservoir_energy': True }
+    langevin_setup_params = {'kT': hoomd.variant.Constant(2.0)}
+    langevin_extra_params = {'alpha': None, 'tally_reservoir_energy': False}
+    langevin_changed_params = {
+        'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+        'alpha': None,
+        'tally_reservoir_energy': True
+    }
     langevin_has_rattle = True
 
-    method_base_params_list.extend([paramtuple(langevin_setup_params,
-                                                    langevin_extra_params,
-                                                    langevin_changed_params,
-                                                    langevin_has_rattle,
-                                                    hoomd.md.methods.Langevin)])
+    method_base_params_list.extend([
+        paramtuple(langevin_setup_params, langevin_extra_params,
+                   langevin_changed_params, langevin_has_rattle,
+                   hoomd.md.methods.Langevin)
+    ])
 
-    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0) }
-    brownian_extra_params = {'alpha': None }
-    brownian_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
-                      'alpha': 0.125}
+    brownian_setup_params = {'kT': hoomd.variant.Constant(2.0)}
+    brownian_extra_params = {'alpha': None}
+    brownian_changed_params = {
+        'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+        'alpha': 0.125
+    }
     brownian_has_rattle = True
 
-    method_base_params_list.extend([paramtuple(brownian_setup_params,
-                                                    brownian_extra_params,
-                                                    brownian_changed_params,
-                                                    brownian_has_rattle,
-                                                    hoomd.md.methods.Brownian)])
+    method_base_params_list.extend([
+        paramtuple(brownian_setup_params, brownian_extra_params,
+                   brownian_changed_params, brownian_has_rattle,
+                   hoomd.md.methods.Brownian)
+    ])
 
-    constant_s = [hoomd.variant.Constant(1.0),
-                  hoomd.variant.Constant(2.0),
-                  hoomd.variant.Constant(3.0),
-                  hoomd.variant.Constant(0.125),
-                  hoomd.variant.Constant(.25),
-                  hoomd.variant.Constant(.5)]
+    constant_s = [
+        hoomd.variant.Constant(1.0),
+        hoomd.variant.Constant(2.0),
+        hoomd.variant.Constant(3.0),
+        hoomd.variant.Constant(0.125),
+        hoomd.variant.Constant(.25),
+        hoomd.variant.Constant(.5)
+    ]
 
-    ramp_s = [hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
-                  hoomd.variant.Ramp(.5, 4.0, 1000, 10000)]
+    ramp_s = [
+        hoomd.variant.Ramp(1.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(2.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(3.0, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(0.125, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.25, 4.0, 1000, 10000),
+        hoomd.variant.Ramp(.5, 4.0, 1000, 10000)
+    ]
 
-    npt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0, 'S': constant_s,
-            'tauS': 2.0, 'box_dof': [True,True,True,False,False,False], 'couple': 'xyz' }
-    npt_extra_params = {'rescale_all': False, 'gamma': 0.0, 'translational_thermostat_dof': (0.0,0.0),
-            'rotational_thermostat_dof': (0.0, 0.0), 'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0) }
-    npt_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0, 'S': ramp_s,
-            'tauS': 10.0, 'box_dof': [True,False,False,False,True,False], 'couple': 'none',
-            'rescale_all': True, 'gamma': 2.0, 'translational_thermostat_dof': (0.125, 0.5),
-            'rotational_thermostat_dof': (0.5, 0.25), 'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)}
+    npt_setup_params = {
+        'kT': hoomd.variant.Constant(2.0),
+        'tau': 2.0,
+        'S': constant_s,
+        'tauS': 2.0,
+        'box_dof': [True, True, True, False, False, False],
+        'couple': 'xyz'
+    }
+    npt_extra_params = {
+        'rescale_all': False,
+        'gamma': 0.0,
+        'translational_thermostat_dof': (0.0, 0.0),
+        'rotational_thermostat_dof': (0.0, 0.0),
+        'barostat_dof': (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    }
+    npt_changed_params = {
+        'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+        'tau': 10.0,
+        'S': ramp_s,
+        'tauS': 10.0,
+        'box_dof': [True, False, False, False, True, False],
+        'couple': 'none',
+        'rescale_all': True,
+        'gamma': 2.0,
+        'translational_thermostat_dof': (0.125, 0.5),
+        'rotational_thermostat_dof': (0.5, 0.25),
+        'barostat_dof': (1.0, 2.0, 4.0, 6.0, 8.0, 10.0)
+    }
     npt_has_rattle = False
 
-    method_base_params_list.extend([paramtuple(npt_setup_params,
-                                                    npt_extra_params,
-                                                    npt_changed_params,
-                                                    npt_has_rattle,
-                                                    hoomd.md.methods.NPT)])
+    method_base_params_list.extend([
+        paramtuple(npt_setup_params, npt_extra_params, npt_changed_params,
+                   npt_has_rattle, hoomd.md.methods.NPT)
+    ])
 
-    nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0 }
-    nvt_extra_params = { }
-    nvt_changed_params = {'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000), 'tau': 10.0,
-            'translational_thermostat_dof': (0.125, 0.5), 'rotational_thermostat_dof': (0.5, 0.25)}
+    nvt_setup_params = {'kT': hoomd.variant.Constant(2.0), 'tau': 2.0}
+    nvt_extra_params = {}
+    nvt_changed_params = {
+        'kT': hoomd.variant.Ramp(1, 2, 1000000, 2000000),
+        'tau': 10.0,
+        'translational_thermostat_dof': (0.125, 0.5),
+        'rotational_thermostat_dof': (0.5, 0.25)
+    }
     nvt_has_rattle = False
 
-    method_base_params_list.extend([paramtuple(nvt_setup_params,
-                                                    nvt_extra_params,
-                                                    nvt_changed_params,
-                                                    nvt_has_rattle,
-                                                    hoomd.md.methods.NVT)])
+    method_base_params_list.extend([
+        paramtuple(nvt_setup_params, nvt_extra_params, nvt_changed_params,
+                   nvt_has_rattle, hoomd.md.methods.NVT)
+    ])
 
-    nve_setup_params = { }
-    nve_extra_params = { }
-    nve_changed_params = { }
+    nve_setup_params = {}
+    nve_extra_params = {}
+    nve_changed_params = {}
     nve_has_rattle = True
 
-    method_base_params_list.extend([paramtuple(nve_setup_params,
-                                                    nve_extra_params,
-                                                    nve_changed_params,
-                                                    nve_has_rattle,
-                                                    hoomd.md.methods.NVE)])
+    method_base_params_list.extend([
+        paramtuple(nve_setup_params, nve_extra_params, nve_changed_params,
+                   nve_has_rattle, hoomd.md.methods.NVE)
+    ])
 
     return method_base_params_list
 
 
-@pytest.fixture(scope="function", params=_method_base_params(), ids=(lambda x: x[4].__name__))
+@pytest.fixture(scope="function",
+                params=_method_base_params(),
+                ids=(lambda x: x[4].__name__))
 def method_base_params(request):
     return deepcopy(request.param)
 
@@ -106,36 +135,35 @@ def check_instance_attrs(instance, attr_dict, set_attrs=False):
         if set_attrs:
             setattr(instance, attr, value)
         if hasattr(value, "__iter__") and not isinstance(value, str):
-            assert all(
-                v == instance_v
-                for v, instance_v in zip(value, getattr(instance, attr))
-            )
+            assert all(v == instance_v
+                       for v, instance_v in zip(value, getattr(instance, attr)))
         else:
             assert getattr(instance, attr) == value
 
 
 def test_attributes(method_base_params):
     all_ = hoomd.filter.All()
-    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_)
 
     assert method.filter is all_
 
-    check_instance_attrs(method,method_base_params.setup_params)
-    check_instance_attrs(method,method_base_params.extra_params)
+    check_instance_attrs(method, method_base_params.setup_params)
+    check_instance_attrs(method, method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     method.filter = type_A
     assert method.filter is type_A
 
-    check_instance_attrs(method,method_base_params.changed_params,True)
+    check_instance_attrs(method, method_base_params.changed_params, True)
 
 
-def test_attributes_attached(simulation_factory,
-                                two_particle_snapshot_factory,
-                                method_base_params):
+def test_attributes_attached(simulation_factory, two_particle_snapshot_factory,
+                             method_base_params):
 
     all_ = hoomd.filter.All()
-    method = method_base_params.method(**method_base_params.setup_params,filter=all_)
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
@@ -143,15 +171,15 @@ def test_attributes_attached(simulation_factory,
 
     assert method.filter is all_
 
-    check_instance_attrs(method,method_base_params.setup_params)
-    check_instance_attrs(method,method_base_params.extra_params)
+    check_instance_attrs(method, method_base_params.setup_params)
+    check_instance_attrs(method, method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
         # filter cannot be set after scheduling
         method.filter = type_A
 
-    check_instance_attrs(method,method_base_params.changed_params,True)
+    check_instance_attrs(method, method_base_params.changed_params, True)
 
 
 def test_rattle_attributes(method_base_params):
@@ -160,7 +188,9 @@ def test_rattle_attributes(method_base_params):
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_,
+                                       manifold_constraint=gyroid)
     assert method.manifold_constraint == gyroid
     assert method.tolerance == 1e-6
 
@@ -174,15 +204,17 @@ def test_rattle_attributes(method_base_params):
 
 
 def test_rattle_attributes_attached(simulation_factory,
-                                two_particle_snapshot_factory,
-                                method_base_params):
+                                    two_particle_snapshot_factory,
+                                    method_base_params):
 
     if not method_base_params.has_rattle:
         pytest.skip("RATTLE integrator is not implemented for this method")
 
     all_ = hoomd.filter.All()
     gyroid = hoomd.md.manifold.Gyroid(N=1)
-    method = method_base_params.method(**method_base_params.setup_params,filter=all_, manifold_constraint = gyroid)
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=all_,
+                                       manifold_constraint=gyroid)
 
     sim = simulation_factory(two_particle_snapshot_factory())
     sim.operations.integrator = hoomd.md.Integrator(0.005, methods=[method])
@@ -192,8 +224,8 @@ def test_rattle_attributes_attached(simulation_factory,
     assert method.manifold_constraint == gyroid
     assert method.tolerance == 1e-6
 
-    check_instance_attrs(method,method_base_params.setup_params)
-    check_instance_attrs(method,method_base_params.extra_params)
+    check_instance_attrs(method, method_base_params.setup_params)
+    check_instance_attrs(method, method_base_params.extra_params)
 
     type_A = hoomd.filter.Type(['A'])
     with pytest.raises(AttributeError):
@@ -209,7 +241,7 @@ def test_rattle_attributes_attached(simulation_factory,
     method.tolerance = 1e-5
     assert method.tolerance == 1e-5
 
-    check_instance_attrs(method,method_base_params.changed_params,True)
+    check_instance_attrs(method, method_base_params.changed_params, True)
 
 
 def test_rattle_missing_manifold(method_base_params):
@@ -218,7 +250,9 @@ def test_rattle_missing_manifold(method_base_params):
 
     all_ = hoomd.filter.All()
     with pytest.raises(TypeError):
-        method = method_base_params.method(**method_base_params.setup_params,filter=all_, tolerance = 1e-5)
+        method_base_params.method(**method_base_params.setup_params,
+                                  filter=all_,
+                                  tolerance=1e-5)
 
 
 def test_nph_attributes_attached_3d(simulation_factory,
@@ -292,7 +326,7 @@ def test_nph_attributes_attached_3d(simulation_factory,
 
 
 def test_npt_thermalize_thermostat_and_barostat_dof(
-    simulation_factory, two_particle_snapshot_factory):
+        simulation_factory, two_particle_snapshot_factory):
     """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant_t = hoomd.variant.Constant(2.0)
@@ -323,7 +357,7 @@ def test_npt_thermalize_thermostat_and_barostat_dof(
 
 
 def test_npt_thermalize_thermostat_and_barostat_aniso_dof(
-    simulation_factory, two_particle_snapshot_factory):
+        simulation_factory, two_particle_snapshot_factory):
     """Tests that NPT.thermalize_thermostat_and_barostat_dof can be called."""
     all_ = hoomd.filter.All()
     constant_t = hoomd.variant.Constant(2.0)
@@ -380,16 +414,17 @@ def test_nph_thermalize_barostat_dof(simulation_factory,
 
 
 def test_npt_attributes_attached_2d(simulation_factory,
-                                      two_particle_snapshot_factory):
+                                    two_particle_snapshot_factory):
     """Test attributes of the NPT integrator specific to 2D simulations."""
     all_ = hoomd.filter.All()
-    npt = hoomd.md.methods.NPT(filter = all_, kT=1.0, tau=2.0,
-                               S = 2.0,
-                               tauS = 2.0,
+    npt = hoomd.md.methods.NPT(filter=all_,
+                               kT=1.0,
+                               tau=2.0,
+                               S=2.0,
+                               tauS=2.0,
                                couple='xy')
 
-
-    assert npt.box_dof == [True,True,True,False,False,False]
+    assert npt.box_dof == [True, True, True, False, False, False]
     assert npt.couple == 'xy'
 
     sim = simulation_factory(two_particle_snapshot_factory(dimensions=2))
@@ -397,7 +432,7 @@ def test_npt_attributes_attached_2d(simulation_factory,
     sim.run(0)
 
     # after attaching in 2d, only some coupling modes and box dof are valid
-    assert npt.box_dof == [True,True,False,False,False,False]
+    assert npt.box_dof == [True, True, False, False, False, False]
     assert npt.couple == 'xy'
 
     with pytest.raises(ValueError):
@@ -464,8 +499,8 @@ def test_nvt_thermalize_thermostat_aniso_dof(simulation_factory,
 
 def test_pickling(method_base_params, simulation_factory,
                   two_particle_snapshot_factory):
-    method = method_base_params.method(
-        **method_base_params.setup_params, filter=hoomd.filter.All())
+    method = method_base_params.method(**method_base_params.setup_params,
+                                       filter=hoomd.filter.All())
 
     pickling_check(method)
     sim = simulation_factory(two_particle_snapshot_factory())

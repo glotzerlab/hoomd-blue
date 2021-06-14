@@ -11,6 +11,7 @@ def op_list():
 
 
 def test_init(op_list):
+
     def validate(x):
         return isinstance(x, DummyOperation)
 
@@ -30,7 +31,8 @@ def test_init(op_list):
     assert slist._to_synced_list_conversion(op) == 2
 
     # Test full initialziation
-    slist = SyncedList(validation=validate, to_synced_list=cpp_identity,
+    slist = SyncedList(validation=validate,
+                       to_synced_list=cpp_identity,
                        iterable=op_list)
     assert len(slist._list) == 3
     assert all(op._added for op in slist)
@@ -48,6 +50,7 @@ def slist(slist_empty, op_list):
 
 
 class OpInt(int):
+
     def _attach(self):
         self._cpp_obj = None
 
