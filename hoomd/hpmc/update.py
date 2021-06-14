@@ -498,69 +498,69 @@ class Shape(Updater):
     """Apply shape updates to the shape definitions defined in the integrator.
 
     Args:
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
 
-        move_ratio (:py:class:`float` or :py:mod:`hoomd.variant`): Fraction of steps to run the updater.
-
-        seed (int): Random number seed for shape move generators
+        move_ratio (float): Fraction of steps to run the updater.
 
         trigger (Trigger): Call the updater on triggered time steps.
 
-        pretend (bool): When True the updater will not actually make update the shape definitions, instead moves will be proposed and
-                        the acceptance statistics will be updated correctly
+        pretend (bool): When True the updater will not actually update the shape
+            definitions, instead moves will be proposed and the acceptance
+            statistics will be updated correctly.
 
-        nselect (int): Number of types to change every time the updater is called.
+        nselect (int): Number of types to change every time the updater is
+            called.
 
-        nsweeps (int): Number of times to change nselect types every time the updater is called.
+        nsweeps (int): Number of times to update shape definitions during each
+            triggered timesteps.
 
-        multi_phase (bool): When True MPI is enforced and shapes are updated together for two boxes.
+        multi_phase (bool): When True MPI is enforced and shapes are updated
+            together for two boxes.
 
-        num_phase (int): How many boxes are simulated at the same time, now support 2 and 3.
-
-    This class should not be instantiated directly - instead the Alchemy and ElasticShape 
-    classes should be. Each updater defines a specific statistical ensemble. Shape moves 
-    will update the shape definitions for every type. See the different updaters for 
-    documentation on the specific acceptance criteria and examples.
-
-    Note:
-        Only one of the Monte Carlo move types are applied to evolve the particle shape definition. By default, no moves are applied.
-        Activate desired move types using the following methods.
-
-        - :py:meth:`python_shape_move` - supply a python call back that will take a list of parameters between 0 and 1 and return a shape param object.
-        - :py:meth:`vertex_shape_move` - make changes to the the vertices of the shape definition. Currently only defined for convex polyhedra.
-        - :py:meth:`constant_shape_move` - make a single move to a shape i.e. shape_old -> shape_new. Useful when pretend is set to True.
-        - :py:meth:`elastic_shape_move` - scale and shear the particle definitions. Currently only defined for ellipsoids and convex polyhedra.
-
-        See the documentation for the individual moves for more usage information.
+        num_phase (int): How many boxes are simulated at the same time, now
+            support 2 and 3.
 
     Examples::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                       (-1, 1, -1)])
-        updater = hoomd.hpmc.update.Alchemy(mc=mc,
-                                            move_ratio=1.0,
-                                            seed=3832765,
-                                            trigger=hoomd.trigger.Periodic(1),
-                                            nselect=1)
+        mc.shape["A"] = dict(vertices=numpy.asarray([(1, 1, 1), (-1, -1, 1),
+                                                    (1, -1, -1), (-1, 1, -1)]) / 2)
+        vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
+                                                   param_ratio=0.2,
+                                                   volume=1.0)
+        updater = hoomd.hpmc.update.Shape(shape_move=vertex_move,
+                                          move_ratio=1.0,
+                                          trigger=hoomd.trigger.Periodic(1),
+                                          nselect=1,
+                                          nsweeps=1,
+                                          multi_phase=False,
+                                          num_phase=1)
 
     Attributes:
 
-        move_ratio (:py:class:`float` or :py:mod:`hoomd.variant`): Fraction of steps to run the updater.
+        shape_move (ShapeMove): Type of shape move to apply when updating shape
+            definitions
 
-        seed (int): Random number seed for shape move generators
+        move_ratio (float): Fraction of steps to run the updater.
 
         trigger (Trigger): Call the updater on triggered time steps.
 
-        pretend (bool): When True the updater will not actually make update the shape definitions, instead moves will be proposed and
-                        the acceptance statistics will be updated correctly
+        pretend (bool): When True the updater will not actually update the shape
+            definitions, instead moves will be proposed and the acceptance
+            statistics will be updated correctly.
 
-        nselect (int): Number of types to change every time the updater is called.
+        nselect (int): Number of types to change every time the updater is
+            called.
 
-        nsweeps (int): Number of times to change nselect types every time the updater is called.
+        nsweeps (int): Number of times to update shape definitions during each
+            triggered timesteps.
 
-        multi_phase (bool): When True MPI is enforced and shapes are updated together for two boxes.
+        multi_phase (bool): When True MPI is enforced and shapes are updated
+            together for two boxes.
 
-        num_phase (int): How many boxes are simulated at the same time, now support 2 and 3.
+        num_phase (int): How many boxes are simulated at the same time, now
+            support 2 and 3.
     """
     def __init__(self,
                  shape_move,
@@ -661,10 +661,9 @@ class Shape(Updater):
 
     @log(category='scalar')
     def particle_volume(self):
-        """float: Returns the total volume being occupied by particles.
+        """float: Total volume being occupied by particles.
 
-        Returns:
-            The current value of the total volume occupied by particles
+        None when not attached
         """
         if self._attached:
             return self._cpp_obj.particle_volume
@@ -673,10 +672,9 @@ class Shape(Updater):
 
     @log(category="scalar")
     def shape_move_energy(self):
-        """float: Energy of the shape resulting from shear moves
+        """float: Energy of the shape resulting from shear moves.
 
-        Returns:
-            The energy of the shape at the current timestep
+        None when not attached
         """
         if self._attached:
             return self._cpp_obj.getShapeMoveEnergy(self._simulation.timestep)
