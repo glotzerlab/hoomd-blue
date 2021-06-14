@@ -64,11 +64,7 @@ class EvaluatorExternalElectricField
             }
 #endif // ifndef __HIPCC__
         }
-#ifdef SINGLE_PRECISON
     __attribute__((aligned(16)));
-#else
-    __attribute__((aligned(32))); // TODO check if this is right
-#endif
 
     typedef Scalar3 field_type;
 

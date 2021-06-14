@@ -49,13 +49,13 @@ class EvaluatorExternalPeriodic
     //! type of parameters this external potential accepts
     struct param_type
         {
-        int i;
         Scalar A;
         Scalar w;
+        int i;
         int p;
 
 #ifndef __HIPCC__
-        param_type() : i(0), A(1.0), w(1.0), p(1) { }
+        param_type() : A(1.0), w(1.0), i(0), p(1) { }
 
         param_type(pybind11::dict params)
             {
@@ -65,7 +65,7 @@ class EvaluatorExternalPeriodic
             p = params["p"].cast<int>();
             }
 
-        param_type(int i_, Scalar A_, Scalar w_, int p_) : i(i_), A(A_), w(w_), p(p_) { }
+        param_type(int i_, Scalar A_, Scalar w_, int p_) : A(A_), w(w_), i(i_), p(p_) { }
 
         pybind11::dict asDict()
             {
@@ -78,11 +78,7 @@ class EvaluatorExternalPeriodic
             }
 #endif
         }
-#ifdef SINGLE_PRECISON
     __attribute__((aligned(16)));
-#else
-    __attribute__((aligned(32))); // TODO check if this is right
-#endif
 
     typedef Scalar field_type; // dummy type
 
