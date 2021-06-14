@@ -87,7 +87,6 @@ class Periodic(External):
         periodic.params['B'] = dict(A=-1.0, i=0, w=0.02, p=3)
     """
     _cpp_class_name = "PotentialExternalPeriodic"
-
     def __init__(self):
         params = TypeParameter(
             'params', 'particle_types',
@@ -115,7 +114,7 @@ class ElectricField(External):
 
     .. py:attribute:: E
 
-        :math:`E` - The electric field vector as a tuple (i.e.
+        The electric field vector, :math:`E`, as a tuple (i.e.
         :math:`(E_x, E_y, E_z)`) (units: [energy] [distance^{-1}] [length^{-1}])
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
@@ -127,9 +126,7 @@ class ElectricField(External):
         e_field = external.ElectricField()
         e_field.E['A'] = (1, 0, 0)
     """
-
     _cpp_class_name = "PotentialExternalElectricField"
-
     def __init__(self):
         params = TypeParameter(
             'E', 'particle_types',
