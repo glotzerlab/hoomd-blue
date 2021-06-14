@@ -212,6 +212,9 @@ void export_AnisoPotentialPair<AnisoPotentialPairDipole>(pybind11::module& m,
         .def("getTypeShapesPy", &AnisoPotentialPairDipole::getTypeShapesPy);
     }
 
+//! Export setParamsPython and getParams as a different name
+// Electric field only has one parameter, so we can get its parameter from
+// python with by a name other than getParams and setParams
 template<>
 void export_PotentialExternal<PotentialExternalElectricField>(pybind11::module& m, const std::string& name)
     {
