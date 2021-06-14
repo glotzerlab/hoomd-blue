@@ -4,7 +4,7 @@
 
 """Implement type conversion helpers."""
 
-from numpy import array, ndarray
+import numpy as np
 from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
@@ -293,6 +293,67 @@ class TypeConverter(ABC):
         pass
 
 
+class NDArrayValidator(_HelpValidate):
+    """Validates array and array-like structures.
+
+    Args:
+        dtype (numpy.dtype): The type of individual items in the array.
+        shape (`tuple` [`int`, ...], optional): The shape of the array. The
+            number of dimensions is specified by the length of the tuple and the
+            length of a dimension is specified by the value. A value of ``None``
+            in an index indicates any length is acceptable. Defaults to
+            ``(None,)``.
+        order (`str`, optional): The kind of ordering needed for the array.
+            Options are ``["C", "F", "K", "A"]``. See `numpy.array`
+            documentation for imformation about the orderings. Defaults to
+            `"K"`.
+        preprocess (callable, optional): An optional function like argument to
+            use to preprocess arrays before general validation. Defaults to
+            ``None`` which mean on preprocessing.
+        preprocess (callable, optional): An optional function like argument to
+            use to postprocess arrays after general validation. Defaults to
+            ``None`` which means no postprocessing.
+        allow_none (`bool`, optional): Whether to allow ``None`` as a valid
+            value. Defaults to ``None``.
+
+    The validation will attempt to convert array-like objects to arrays. We will
+    change the dtype and ordering if necessary, but do not reshape the given
+    arrays since this is non-trivial depending on the shape specification passed
+    in.
+    """
+
+    def __init__(self,
+                 dtype,
+                 shape=(None,),
+                 order="K",
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
+        """Create a NDArrayValidator object."""
+        super().__init__(preprocess, postprocess, allow_none)
+        self._dtype = dtype
+        self._shape = shape
+        self._order = order
+
+    def _validate(self, array):
+        """Validate an array or array-like object."""
+        typed_and_ordered = np.array(array,
+                                     dtype=self._dtype,
+                                     order=self._order)
+        if len(typed_and_ordered.shape) != len(self._shape):
+            raise ValueError(
+                f"Expected array of {len(self._shape)} dimensions, but "
+                f"recieved array of {len(typed_and_ordered.shape)} dimensions.")
+
+        for i, dim in enumerate(self._shape):
+            if dim is not None:
+                if typed_and_ordered.shape[i] != dim:
+                    raise ValueError(
+                        f"In dimension {i}, expected size {dim}, but got size "
+                        f"{typed_and_ordered.shape[i]}")
+        return typed_and_ordered
+
+
 class TypeConverterValue(TypeConverter):
     """Represents a scalar value of some kind.
 
@@ -328,11 +389,18 @@ class TypeConverterValue(TypeConverter):
             TypeConverterValue(OnlyTypes(int, postprocess=natural_number))
     """
     _conversion_func_dict = {
-        Variant: OnlyTypes(Variant, preprocess=variant_preprocessing),
-        ParticleFilter: OnlyTypes(ParticleFilter, CustomFilter, strict=True),
-        str: OnlyTypes(str, strict=True),
-        Trigger: OnlyTypes(Trigger, preprocess=trigger_preprocessing),
-        ndarray: OnlyTypes(ndarray, preprocess=array),
+        Variant:
+            OnlyTypes(Variant, preprocess=variant_preprocessing),
+        ParticleFilter:
+            OnlyTypes(ParticleFilter, CustomFilter, strict=True),
+        str:
+            OnlyTypes(str, strict=True),
+        Trigger:
+            OnlyTypes(Trigger, preprocess=trigger_preprocessing),
+        # arrays default to float of one dimension of arbitrary length and
+        # ordering
+        np.ndarray:
+            NDArrayValidator(float),
     }
 
     def __init__(self, value):
