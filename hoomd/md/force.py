@@ -80,6 +80,7 @@ class Force(_HOOMDBaseObject):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getVirials()
 
+
 class constant(Force):  # noqa - this will be renamed when it is ported to v3
     R"""Constant force.
 

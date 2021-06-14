@@ -220,6 +220,7 @@ class NVT(Method):
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getThermostatEnergy(self._simulation.timestep)
 
+
 class NPT(Method):
     r"""NPT Integration via MTK barostat-thermostat.
 
@@ -521,6 +522,7 @@ class NPT(Method):
         """Energy the barostat contributes to the Hamiltonian \
         :math:`[\\mathrm{energy}]`."""
         return self._cpp_obj.getBarostatEnergy(self._simulation.timestep)
+
 
 class NPH(Method):
     r"""NPH Integration via MTK barostat-thermostat.
