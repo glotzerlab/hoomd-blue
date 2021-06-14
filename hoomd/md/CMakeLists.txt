@@ -6,12 +6,10 @@ set(_md_sources module-md.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
-                   ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
                    CosineSqAngleForceCompute.cc
                    OneDConstraint.cc
-                   Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
                    ForceDistanceConstraint.cc
@@ -37,7 +35,6 @@ set(_md_sources module-md.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TablePotential.cc
-                   TempRescaleUpdater.cc
                    TwoStepBD.cc
                    TwoStepBerendsen.cc
                    TwoStepLangevinBase.cc
@@ -72,15 +69,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 ComputeThermoHMA.h
                 ComputeThermoTypes.h
                 ComputeThermoHMATypes.h
-                ConstExternalFieldDipoleForceCompute.h
                 ConstraintEllipsoidGPU.h
                 ConstraintEllipsoid.h
                 ConstraintSphereGPU.h
                 ConstraintSphere.h
                 CosineSqAngleForceComputeGPU.h
                 CosineSqAngleForceCompute.h
-                Enforce2DUpdaterGPU.h
-                Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
@@ -171,7 +165,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TableDihedralForceCompute.h
                 TablePotentialGPU.h
                 TablePotential.h
-                TempRescaleUpdater.h
                 TwoStepBDGPU.h
                 TwoStepRATTLEBDGPU.h
                 TwoStepRATTLEBDGPU.cuh
@@ -207,7 +200,6 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
                            OneDConstraintGPU.cc
-                           Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
                            ForceDistanceConstraintGPU.cc
@@ -267,7 +259,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       ConstraintSphereGPU.cu
                       OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
-                      Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
                       ForceDistanceConstraintGPU.cu

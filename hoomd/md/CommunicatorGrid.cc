@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: jglaser
 
 #ifdef ENABLE_MPI
@@ -28,22 +27,20 @@ typedef cufftComplex hipfftComplex;
  *  \param add_outer_layer_to_inner True if outer ghost layer should be added to inner cells
  */
 template<typename T>
-CommunicatorGrid<T>::CommunicatorGrid(std::shared_ptr<SystemDefinition> sysdef, uint3 dim,
-            uint3 embed, uint3 offset, bool add_outer_layer_to_inner)
-    : m_pdata(sysdef->getParticleData()),
-      m_exec_conf(m_pdata->getExecConf()),
-      m_dim(dim),
-      m_embed(embed),
-      m_offset(offset),
-      m_add_outer(add_outer_layer_to_inner)
+CommunicatorGrid<T>::CommunicatorGrid(std::shared_ptr<SystemDefinition> sysdef,
+                                      uint3 dim,
+                                      uint3 embed,
+                                      uint3 offset,
+                                      bool add_outer_layer_to_inner)
+    : m_pdata(sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()), m_dim(dim),
+      m_embed(embed), m_offset(offset), m_add_outer(add_outer_layer_to_inner)
     {
     m_exec_conf->msg->notice(5) << "Constructing CommunicatorGrid" << std::endl;
 
     initGridComm();
     }
 
-template<typename T>
-void CommunicatorGrid<T>::initGridComm()
+template<typename T> void CommunicatorGrid<T>::initGridComm()
     {
     typedef std::multimap<unsigned int, unsigned int> map_t;
     map_t idx_map;
@@ -53,7 +50,8 @@ void CommunicatorGrid<T>::initGridComm()
     unsigned int n = 0;
     Index3D di = m_pdata->getDomainDecomposition()->getDomainIndexer();
     ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(),
-        access_location::host, access_mode::read);
+                                           access_location::host,
+                                           access_mode::read);
 
     uint3 my_pos = m_pdata->getDomainDecomposition()->getGridPos();
 
@@ -64,9 +62,9 @@ void CommunicatorGrid<T>::initGridComm()
         for (int ny = 0; ny < (int)m_embed.y; ny++)
             for (int nz = 0; nz < (int)m_embed.z; nz++)
                 {
-                if (nx >= (int)m_offset.x && nx < (int)(m_dim.x+m_offset.x) &&
-                    ny >= (int)m_offset.y && ny < (int)(m_dim.y+m_offset.y) &&
-                    nz >= (int)m_offset.z && nz < (int)(m_dim.z+m_offset.z))
+                if (nx >= (int)m_offset.x && nx < (int)(m_dim.x + m_offset.x)
+                    && ny >= (int)m_offset.y && ny < (int)(m_dim.y + m_offset.y)
+                    && nz >= (int)m_offset.z && nz < (int)(m_dim.z + m_offset.z))
                     continue; // inner cell;
 
                 int ix = 0;
@@ -74,17 +72,17 @@ void CommunicatorGrid<T>::initGridComm()
                 int iz = 0;
                 if (nx < (int)m_offset.x)
                     ix = -1;
-                else if (nx >= (int)(m_dim.x+m_offset.x))
+                else if (nx >= (int)(m_dim.x + m_offset.x))
                     ix = 1;
 
                 if (ny < (int)m_offset.y)
                     iy = -1;
-                else if (ny >= (int)(m_dim.y+m_offset.y))
+                else if (ny >= (int)(m_dim.y + m_offset.y))
                     iy = 1;
 
                 if (nz < (int)m_offset.z)
                     iz = -1;
-                else if (nz >= (int)(m_dim.z+m_offset.z))
+                else if (nz >= (int)(m_dim.z + m_offset.z))
                     iz = 1;
 
                 assert(ix || iy || iz);
@@ -109,29 +107,32 @@ void CommunicatorGrid<T>::initGridComm()
                 else if (k >= (int)di.getD())
                     k -= di.getD();
 
-                unsigned int neigh_rank = h_cart_ranks.data[di(i,j,k)];
+                unsigned int neigh_rank = h_cart_ranks.data[di(i, j, k)];
 
                 // add to neighbor set
                 m_neighbors.insert(neigh_rank);
 
                 // corresponding inner cell
                 unsigned int inner_nx = nx - ix * m_offset.x;
-                if (di.getW() <= 2) inner_nx -= ix*(m_dim.x-m_offset.x);
+                if (di.getW() <= 2)
+                    inner_nx -= ix * (m_dim.x - m_offset.x);
                 unsigned int inner_ny = ny - iy * m_offset.y;
-                if (di.getH() <= 2) inner_ny -= iy*(m_dim.y-m_offset.y);
+                if (di.getH() <= 2)
+                    inner_ny -= iy * (m_dim.y - m_offset.y);
                 unsigned int inner_nz = nz - iz * m_offset.z;
-                if (di.getD() <= 2) inner_nz -= iz*(m_dim.z-m_offset.z);
+                if (di.getD() <= 2)
+                    inner_nz -= iz * (m_dim.z - m_offset.z);
 
                 // index of receiving cell
-                unsigned int ridx,sidx;
+                unsigned int ridx, sidx;
                 if (m_add_outer)
                     {
                     ridx = inner_nx + m_embed.x * (inner_ny + m_embed.y * inner_nz);
-                    sidx = nx + m_embed.x * (ny + m_embed.y* nz);
+                    sidx = nx + m_embed.x * (ny + m_embed.y * nz);
                     }
                 else
                     {
-                    ridx = nx + m_embed.x * (ny + m_embed.y* nz);
+                    ridx = nx + m_embed.x * (ny + m_embed.y * nz);
                     sidx = inner_nx + m_embed.x * (inner_ny + m_embed.y * inner_nz);
                     }
 
@@ -167,8 +168,8 @@ void CommunicatorGrid<T>::initGridComm()
         {
         map_t::iterator lower = idx_map.lower_bound(*it);
         map_t::iterator upper = idx_map.upper_bound(*it);
-        m_begin.insert(std::make_pair(*it,std::distance(idx_map.begin(),lower)));
-        m_end.insert(std::make_pair(*it,std::distance(idx_map.begin(),upper)));
+        m_begin.insert(std::make_pair(*it, std::distance(idx_map.begin(), lower)));
+        m_end.insert(std::make_pair(*it, std::distance(idx_map.begin(), upper)));
         }
 
     // resize recv and send buffers
@@ -179,10 +180,9 @@ void CommunicatorGrid<T>::initGridComm()
     m_recv_buf.swap(recv_buf);
     }
 
-template<typename T>
-void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
+template<typename T> void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
     {
-    assert(grid.getNumElements() >= m_embed.x*m_embed.y*m_embed.z);
+    assert(grid.getNumElements() >= m_embed.x * m_embed.y * m_embed.z);
 
         {
         ArrayHandle<T> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
@@ -201,10 +201,11 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
         ArrayHandle<T> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
 
         typedef std::map<unsigned int, unsigned int>::iterator it_t;
-        std::vector<MPI_Request> reqs(2*m_neighbors.size());
+        std::vector<MPI_Request> reqs(2 * m_neighbors.size());
 
         unsigned int n = 0;
-        for (std::set<unsigned int>::iterator it = m_neighbors.begin(); it != m_neighbors.end(); it++)
+        for (std::set<unsigned int>::iterator it = m_neighbors.begin(); it != m_neighbors.end();
+             it++)
             {
             it_t b = m_begin.find(*it);
             assert(b != m_begin.end());
@@ -214,10 +215,20 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
             unsigned int offs = b->second;
             unsigned int n_elem = e->second - b->second;
 
-            MPI_Isend(&h_send_buf.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
-                m_exec_conf->getMPICommunicator(), &reqs[n++]);
-            MPI_Irecv(&h_recv_buf.data[offs], int(n_elem*sizeof(T)), MPI_BYTE, *it, 0,
-                m_exec_conf->getMPICommunicator(), &reqs[n++]);
+            MPI_Isend(&h_send_buf.data[offs],
+                      int(n_elem * sizeof(T)),
+                      MPI_BYTE,
+                      *it,
+                      0,
+                      m_exec_conf->getMPICommunicator(),
+                      &reqs[n++]);
+            MPI_Irecv(&h_recv_buf.data[offs],
+                      int(n_elem * sizeof(T)),
+                      MPI_BYTE,
+                      *it,
+                      0,
+                      m_exec_conf->getMPICommunicator(),
+                      &reqs[n++]);
             }
 
         std::vector<MPI_Status> stat(reqs.size());
@@ -226,14 +237,17 @@ void CommunicatorGrid<T>::communicate(const GlobalArray<T>& grid)
 
         {
         ArrayHandle<T> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_recv_idx(m_recv_idx, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_idx(m_recv_idx,
+                                             access_location::host,
+                                             access_mode::overwrite);
         ArrayHandle<T> h_grid(grid, access_location::host, access_mode::readwrite);
 
         // scatter recv buf into grid
         unsigned int n = (unsigned int)m_send_buf.getNumElements();
         if (m_add_outer)
             for (unsigned int i = 0; i < n; ++i)
-                h_grid.data[h_recv_idx.data[i]] = h_grid.data[h_recv_idx.data[i]] + h_recv_buf.data[i];
+                h_grid.data[h_recv_idx.data[i]]
+                    = h_grid.data[h_recv_idx.data[i]] + h_recv_buf.data[i];
         else
             for (unsigned int i = 0; i < n; ++i)
                 h_grid.data[h_recv_idx.data[i]] = h_recv_buf.data[i];
@@ -245,7 +259,7 @@ template class PYBIND11_EXPORT CommunicatorGrid<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGrid<unsigned int>;
 
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline kiss_fft_cpx operator + (kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
+inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
     {
     kiss_fft_cpx res;
     res.r = lhs.r + rhs.r;
@@ -257,7 +271,7 @@ template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
 #ifdef ENABLE_HIP
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline hipfftComplex operator + (hipfftComplex& lhs, hipfftComplex& rhs)
+inline hipfftComplex operator+(hipfftComplex& lhs, hipfftComplex& rhs)
     {
     hipfftComplex res;
     res.x = lhs.x + rhs.x;
@@ -268,4 +282,4 @@ inline hipfftComplex operator + (hipfftComplex& lhs, hipfftComplex& rhs)
 template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
 #endif
 
-#endif //ENABLE_MPI
+#endif // ENABLE_MPI

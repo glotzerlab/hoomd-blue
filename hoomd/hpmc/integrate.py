@@ -8,12 +8,12 @@ from hoomd import _hoomd
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
 from hoomd.data.typeconverter import OnlyIf, to_type_converter
 from hoomd.data.typeparam import TypeParameter
+from hoomd.error import DataAccessError
 from hoomd.hpmc import _hpmc
 from hoomd.integrate import BaseIntegrator
 from hoomd.logging import log
 import hoomd
 import json
-import math
 
 
 class HPMCIntegrator(BaseIntegrator):
@@ -94,11 +94,11 @@ class HPMCIntegrator(BaseIntegrator):
             is temporary and will be removed in the release version.
 
         depletant_ntrial (`TypeParameter` [``particle type``, `int`]):
-            Multiplicative factor for the number of times a depletant is inserted.
-            This factor is accounted for in the acceptance criterion so that detailed
-            balance is unchanged. Higher values of ntrial (than one) can be used
-            to reduce the variance of the free energy estimate and
-            improve the acceptance rate of the Markov chain.
+            Multiplicative factor for the number of times a depletant is
+            inserted. This factor is accounted for in the acceptance criterion
+            so that detailed balance is unchanged. Higher values of ntrial (than
+            one) can be used to reduce the variance of the free energy estimate
+            and improve the acceptance rate of the Markov chain.
 
         interaction_matrix (`TypeParameter` [\
                             `tuple` [``particle type``, ``particle type``],\
@@ -141,23 +141,22 @@ class HPMCIntegrator(BaseIntegrator):
         typeparam_fugacity = TypeParameter('depletant_fugacity',
                                            type_kind='particle_types',
                                            param_dict=TypeParameterDict(
-                                               0., len_keys=2)
-                                           )
+                                               0., len_keys=2))
 
         typeparam_ntrial = TypeParameter('depletant_ntrial',
-                                           type_kind='particle_types',
-                                           param_dict=TypeParameterDict(
-                                               1, len_keys=2)
-                                           )
+                                         type_kind='particle_types',
+                                         param_dict=TypeParameterDict(
+                                             1, len_keys=2))
 
         typeparam_inter_matrix = TypeParameter('interaction_matrix',
                                                type_kind='particle_types',
                                                param_dict=TypeParameterDict(
                                                    True, len_keys=2))
 
-        self._extend_typeparam([typeparam_d, typeparam_a,
-                                typeparam_fugacity, typeparam_ntrial,
-                                typeparam_inter_matrix])
+        self._extend_typeparam([
+            typeparam_d, typeparam_a, typeparam_fugacity, typeparam_ntrial,
+            typeparam_inter_matrix
+        ])
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -191,11 +190,11 @@ class HPMCIntegrator(BaseIntegrator):
         super()._attach()
 
     # Set the external field
-    def set_external(self, ext):
+    def set_external(self, ext):  # noqa - to be rewritten
         self._cpp_obj.setExternalField(ext.cpp_compute)
 
     # Set the patch
-    def set_PatchEnergyEvaluator(self, patch):
+    def set_PatchEnergyEvaluator(self, patch):  # noqa - to be rewritten
         self._cpp_obj.setPatchEnergy(patch.cpp_evaluator)
 
     # TODO need to validate somewhere that quaternions are normalized
@@ -209,13 +208,11 @@ class HPMCIntegrator(BaseIntegrator):
             "hoomd.hpmc.integrate.HPMCIntegrator.get_type_shapes function.")
 
     def _return_type_shapes(self):
-        if not self._attached:
-            return None
         type_shapes = self._cpp_obj.getTypeShapesPy()
         ret = [json.loads(json_string) for json_string in type_shapes]
         return ret
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def map_overlaps(self):
         """list[tuple[int, int]]: List of overlapping particles.
 
@@ -226,9 +223,9 @@ class HPMCIntegrator(BaseIntegrator):
         Attention:
             `map_overlaps` does not support MPI parallel simulations.
         """
-        if (not self._attached
-                or self._simulation.device.communicator.num_ranks > 1):
+        if self._simulation.device.communicator.num_ranks > 1:
             return None
+
         return self._cpp_obj.mapOverlaps()
 
     def map_energies(self):
@@ -259,11 +256,9 @@ class HPMCIntegrator(BaseIntegrator):
         energy_map = self.cpp_integrator.mapEnergies()
         return list(zip(*[iter(energy_map)] * N))
 
-    @log
+    @log(requires_run=True)
     def overlaps(self):
         """int: Number of overlapping particle pairs."""
-        if not self._attached:
-            return None
         self._cpp_obj.communicate(True)
         return self._cpp_obj.countOverlaps(False)
 
@@ -313,7 +308,7 @@ class HPMCIntegrator(BaseIntegrator):
         return self._cpp_obj.py_test_overlap(ti, tj, rij, qi, qj, use_images,
                                              exclude_self)
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def translate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected translate moves.
 
@@ -321,12 +316,9 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).translate
-        else:
-            return None
+        return self._cpp_obj.getCounters(1).translate
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def rotate_moves(self):
         """tuple[int, int]: Count of the accepted and rejected rotate moves.
 
@@ -334,22 +326,16 @@ class HPMCIntegrator(BaseIntegrator):
             The counts are reset to 0 at the start of each
             `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getCounters(1).rotate
-        else:
-            return None
+        return self._cpp_obj.getCounters(1).rotate
 
-    @log
+    @log(requires_run=True)
     def mps(self):
         """float: Number of trial moves performed per second.
 
         Note:
             The count is reset at the start of each `hoomd.Simulation.run`.
         """
-        if self._attached:
-            return self._cpp_obj.getMPS()
-        else:
-            return None
+        return self._cpp_obj.getMPS()
 
     @property
     def counters(self):
@@ -372,7 +358,7 @@ class HPMCIntegrator(BaseIntegrator):
         if self._attached:
             return self._cpp_obj.getCounters(1)
         else:
-            return None
+            raise DataAccessError("counters")
 
 
 class Sphere(HPMCIntegrator):
@@ -454,7 +440,7 @@ class Sphere(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -552,7 +538,7 @@ class ConvexPolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -654,7 +640,7 @@ class ConvexSpheropolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -751,7 +737,7 @@ class SimplePolygon(HPMCIntegrator):
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -909,24 +895,25 @@ class Polyhedron(HPMCIntegrator):
         # initialize base class
         super().__init__(d, a, translation_move_probability, nselect)
 
-        typeparam_shape = TypeParameter(
-            'shape',
-            type_kind='particle_types',
-            param_dict=TypeParameterDict(vertices=[(float, float, float)],
-                                         faces=[(int, int, int)],
-                                         sweep_radius=0.0,
-                                         capacity=4,
-                                         origin=(0., 0., 0.),
-                                         hull_only=False,
-                                         overlap=OnlyIf(to_type_converter(
-                                             [bool]), allow_none=True),
-                                         ignore_statistics=False,
-                                         len_keys=1,
-                                         _defaults={'overlap': None}))
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            vertices=[(float, float, float)],
+                                            faces=[(int, int, int)],
+                                            sweep_radius=0.0,
+                                            capacity=4,
+                                            origin=(0., 0., 0.),
+                                            hull_only=False,
+                                            overlap=OnlyIf(to_type_converter(
+                                                [bool]),
+                                                           allow_none=True),
+                                            ignore_statistics=False,
+                                            len_keys=1,
+                                            _defaults={'overlap': None}))
 
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1031,7 +1018,7 @@ class ConvexPolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1164,22 +1151,22 @@ class FacetedEllipsoid(HPMCIntegrator):
         # initialize base class
         super().__init__(d, a, translation_move_probability, nselect)
 
-        typeparam_shape = TypeParameter(
-            'shape',
-            type_kind='particle_types',
-            param_dict=TypeParameterDict(normals=[(float, float, float)],
-                                         offsets=[float],
-                                         a=float,
-                                         b=float,
-                                         c=float,
-                                         vertices=OnlyIf(
-                                             to_type_converter(
-                                                 [(float, float, float)]),
-                                             allow_none=True),
-                                         origin=(0.0, 0.0, 0.0),
-                                         ignore_statistics=False,
-                                         len_keys=1,
-                                         _defaults={'vertices': None}))
+        typeparam_shape = TypeParameter('shape',
+                                        type_kind='particle_types',
+                                        param_dict=TypeParameterDict(
+                                            normals=[(float, float, float)],
+                                            offsets=[float],
+                                            a=float,
+                                            b=float,
+                                            c=float,
+                                            vertices=OnlyIf(to_type_converter([
+                                                (float, float, float)
+                                            ]),
+                                                            allow_none=True),
+                                            origin=(0.0, 0.0, 0.0),
+                                            ignore_statistics=False,
+                                            len_keys=1,
+                                            _defaults={'vertices': None}))
         self._add_typeparam(typeparam_shape)
 
 
@@ -1346,7 +1333,7 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
                                             len_keys=1))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1434,7 +1421,7 @@ class Ellipsoid(HPMCIntegrator):
 
         self._extend_typeparam([typeparam_shape])
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1533,32 +1520,30 @@ class SphereUnion(HPMCIntegrator):
         # initialize base class
         super().__init__(d, a, translation_move_probability, nselect)
 
-        typeparam_shape = TypeParameter('shape',
-                                        type_kind='particle_types',
-                                        param_dict=TypeParameterDict(
-                                            shapes=[
-                                                dict(diameter=float,
-                                                     ignore_statistics=False,
-                                                     orientable=False)
-                                            ],
-                                            positions=[(float, float, float)],
-                                            orientations=OnlyIf(
-                                                to_type_converter(
-                                                    [(float, float, float,
-                                                      float)]),
-                                                allow_none=True),
-                                            capacity=4,
-                                            overlap=OnlyIf(to_type_converter(
-                                                [int]), allow_none=True),
-                                            ignore_statistics=False,
-                                            len_keys=1,
-                                            _defaults={
-                                                'orientations': None,
-                                                'overlap': None
-                                            }))
+        typeparam_shape = TypeParameter(
+            'shape',
+            type_kind='particle_types',
+            param_dict=TypeParameterDict(shapes=[
+                dict(diameter=float, ignore_statistics=False, orientable=False)
+            ],
+                                         positions=[(float, float, float)],
+                                         orientations=OnlyIf(to_type_converter([
+                                             (float, float, float, float)
+                                         ]),
+                                                             allow_none=True),
+                                         capacity=4,
+                                         overlap=OnlyIf(to_type_converter([int
+                                                                           ]),
+                                                        allow_none=True),
+                                         ignore_statistics=False,
+                                         len_keys=1,
+                                         _defaults={
+                                             'orientations': None,
+                                             'overlap': None
+                                         }))
         self._add_typeparam(typeparam_shape)
 
-    @log(category='object')
+    @log(category='object', requires_run=True)
     def type_shapes(self):
         """list[dict]: Description of shapes in ``type_shapes`` format.
 
@@ -1673,17 +1658,21 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
                      sweep_radius=0.0,
                      ignore_statistics=False)
             ],
-                positions=[(float, float, float)],
-                orientations=OnlyIf(to_type_converter(
-                    [(float, float, float, float)]), allow_none=True),
-                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
-                ignore_statistics=False,
-                capacity=4,
-                len_keys=1,
-                _defaults={
-                'orientations': None,
-                'overlap': None
-            }))
+                                         positions=[(float, float, float)],
+                                         orientations=OnlyIf(to_type_converter([
+                                             (float, float, float, float)
+                                         ]),
+                                                             allow_none=True),
+                                         overlap=OnlyIf(to_type_converter([int
+                                                                           ]),
+                                                        allow_none=True),
+                                         ignore_statistics=False,
+                                         capacity=4,
+                                         len_keys=1,
+                                         _defaults={
+                                             'orientations': None,
+                                             'overlap': None
+                                         }))
 
         self._add_typeparam(typeparam_shape)
         # meta data
@@ -1816,15 +1805,19 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
                      origin=tuple,
                      ignore_statistics=False)
             ],
-                positions=[(float, float, float)],
-                orientations=OnlyIf(to_type_converter(
-                    [(float, float, float, float)]), allow_none=True),
-                overlap=OnlyIf(to_type_converter([int]), allow_none=True),
-                ignore_statistics=False,
-                capacity=4,
-                len_keys=1,
-                _defaults={
-                'orientations': None,
-                'overlap': None
-            }))
+                                         positions=[(float, float, float)],
+                                         orientations=OnlyIf(to_type_converter([
+                                             (float, float, float, float)
+                                         ]),
+                                                             allow_none=True),
+                                         overlap=OnlyIf(to_type_converter([int
+                                                                           ]),
+                                                        allow_none=True),
+                                         ignore_statistics=False,
+                                         capacity=4,
+                                         len_keys=1,
+                                         _defaults={
+                                             'orientations': None,
+                                             'overlap': None
+                                         }))
         self._add_typeparam(typeparam_shape)

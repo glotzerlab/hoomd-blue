@@ -4,8 +4,8 @@
 // Maintainer: mspells
 
 #ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
+#pragma warning(push)
+#pragma warning(disable : 4103 4244)
 #endif
 
 #include "DEM2DForceCompute.h"
@@ -33,9 +33,9 @@ template<typename Real, typename Real4, typename Potential>
 DEM2DForceCompute<Real, Real4, Potential>::DEM2DForceCompute(
     std::shared_ptr<SystemDefinition> sysdef,
     std::shared_ptr<NeighborList> nlist,
-    Real r_cut, Potential potential)
-    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),
-      m_evaluator(potential), m_shapes()
+    Real r_cut,
+    Potential potential)
+    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_evaluator(potential), m_shapes()
     {
     m_exec_conf->msg->notice(5) << "Constructing DEM2DForceCompute" << endl;
 
@@ -57,10 +57,13 @@ DEM2DForceCompute<Real, Real4, Potential>::~DEM2DForceCompute()
     }
 
 template<typename Real, typename Real4, typename Potential>
-void DEM2DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(std::shared_ptr<GSDDumpWriter> writer)
+void DEM2DForceCompute<Real, Real4, Potential>::connectDEMGSDShapeSpec(
+    std::shared_ptr<GSDDumpWriter> writer)
     {
     typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec, this, std::placeholders::_1);
+    auto func = std::bind(&DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec,
+                          this,
+                          std::placeholders::_1);
     std::shared_ptr<hoomd::detail::SignalSlot> pslot(new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
@@ -69,19 +72,25 @@ template<typename Real, typename Real4, typename Potential>
 int DEM2DForceCompute<Real, Real4, Potential>::slotWriteDEMGSDShapeSpec(gsd_handle& handle) const
     {
     GSDShapeSpecWriter shapespec(m_exec_conf);
-    m_exec_conf->msg->notice(10) << "DEM3DForceCompute writing particle shape information to GSD file in chunk: " << shapespec.getName() << std::endl;
-    int retval = shapespec.write(handle, this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius()));
+    m_exec_conf->msg->notice(10)
+        << "DEM3DForceCompute writing particle shape information to GSD file in chunk: "
+        << shapespec.getName() << std::endl;
+    int retval
+        = shapespec.write(handle, this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius()));
     return retval;
     }
 
 template<typename Real, typename Real4, typename Potential>
-std::string DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec2<Real>> &verts, const Real &radius) const
+std::string
+DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::vector<vec2<Real>>& verts,
+                                                        const Real& radius) const
     {
     std::ostringstream shapedef;
     size_t nverts = verts.size();
     if (nverts == 1)
         {
-        shapedef << "{\"type\": \"Sphere\", " << "\"diameter\": " << Real(2)*radius << "}";
+        shapedef << "{\"type\": \"Sphere\", "
+                 << "\"diameter\": " << Real(2) * radius << "}";
         }
     else if (nverts == 2)
         {
@@ -89,28 +98,33 @@ std::string DEM2DForceCompute<Real, Real4, Potential>::getTypeShape(const std::v
         }
     else
         {
-        shapedef << "{\"type\": \"Polygon\", " << "\"rounding_radius\": " << radius <<
-                    ", \"vertices\": "  << encodeVertices(verts) << "}";
+        shapedef << "{\"type\": \"Polygon\", "
+                 << "\"rounding_radius\": " << radius << ", \"vertices\": " << encodeVertices(verts)
+                 << "}";
         }
     return shapedef.str();
     }
 
 template<typename Real, typename Real4, typename Potential>
-std::string DEM2DForceCompute<Real, Real4, Potential>::encodeVertices(const std::vector<vec2<Real>> &verts) const
+std::string DEM2DForceCompute<Real, Real4, Potential>::encodeVertices(
+    const std::vector<vec2<Real>>& verts) const
     {
     std::ostringstream vertstr;
     size_t nverts = verts.size();
     vertstr << "[";
-    for (size_t i = 0; i < nverts-1; i++)
+    for (size_t i = 0; i < nverts - 1; i++)
         {
         vertstr << "[" << verts[i].x << ", " << verts[i].y << "], ";
         }
-    vertstr << "[" << verts[nverts-1].x << ", " << verts[nverts-1].y << "]" << "]";
+    vertstr << "[" << verts[nverts - 1].x << ", " << verts[nverts - 1].y << "]"
+            << "]";
     return vertstr.str();
     }
 
 template<typename Real, typename Real4, typename Potential>
-std::vector<std::string> DEM2DForceCompute<Real, Real4, Potential>::getTypeShapeMapping(const std::vector<std::vector<vec2<Real>>> &verts, const Real &radius) const
+std::vector<std::string> DEM2DForceCompute<Real, Real4, Potential>::getTypeShapeMapping(
+    const std::vector<std::vector<vec2<Real>>>& verts,
+    const Real& radius) const
     {
     std::vector<std::string> type_shape_mapping(verts.size());
     for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
@@ -123,7 +137,8 @@ std::vector<std::string> DEM2DForceCompute<Real, Real4, Potential>::getTypeShape
 template<typename Real, typename Real4, typename Potential>
 pybind11::list DEM2DForceCompute<Real, Real4, Potential>::getTypeShapesPy()
     {
-    std::vector<std::string> type_shape_mapping = this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius());
+    std::vector<std::string> type_shape_mapping
+        = this->getTypeShapeMapping(m_shapes, m_evaluator.getRadius());
     pybind11::list type_shapes;
     for (unsigned int i = 0; i < type_shape_mapping.size(); i++)
         type_shapes.append(type_shape_mapping[i]);
@@ -135,27 +150,27 @@ pybind11::list DEM2DForceCompute<Real, Real4, Potential>::getTypeShapesPy()
   \param vertices Python list of 2D vertices specifying a polygon
 */
 template<typename Real, typename Real4, typename Potential>
-void DEM2DForceCompute<Real, Real4, Potential>::setParams(
-    unsigned int type, const pybind11::list &vertices)
+void DEM2DForceCompute<Real, Real4, Potential>::setParams(unsigned int type,
+                                                          const pybind11::list& vertices)
     {
     if (type >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() <<
-            "dem: Trying to set params for a non existent type! " << type << endl;
+        m_exec_conf->msg->error() << "dem: Trying to set params for a non existent type! " << type
+                                  << endl;
         throw runtime_error("Error setting parameters in DEM2DForceCompute");
         }
 
-    for(size_t i(type - m_shapes.size()); i >= 0; --i)
-        m_shapes.push_back(vector<vec2<Real> >(0));
+    for (size_t i(type - m_shapes.size()); i >= 0; --i)
+        m_shapes.push_back(vector<vec2<Real>>(0));
 
     // build a vector of points
-    vector<vec2<Real> > points;
+    vector<vec2<Real>> points;
 
-    for(size_t i(0); i < (size_t) pybind11::len(vertices); i++)
+    for (size_t i(0); i < (size_t)pybind11::len(vertices); i++)
         {
         const pybind11::tuple pyPoint = pybind11::cast<pybind11::tuple>(vertices[i]);
 
-        if(pybind11::len(pyPoint) != 2)
+        if (pybind11::len(pyPoint) != 2)
             throw runtime_error("Non-2D vertex given for DEM2DForceCompute::setParams");
 
         const Real x = pybind11::cast<Real>(pyPoint[0]);
@@ -179,12 +194,13 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     m_nlist->compute(timestep);
 
     // start the profile for this compute
-    if (m_prof) m_prof->push("DEM2D pair");
+    if (m_prof)
+        m_prof->push("DEM2D pair");
 
     // grab handles for particle data
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     const size_t virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
@@ -193,24 +209,36 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
     assert(h_virial.data);
 
     // Zero data for force calculation.
-    memset((void*)h_force.data,0,sizeof(Scalar4)*m_force.getNumElements());
-    memset((void*)h_torque.data,0,sizeof(Scalar4)*m_torque.getNumElements());
-    memset((void*)h_virial.data,0,sizeof(Scalar)*m_virial.getNumElements());
+    memset((void*)h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());
+    memset((void*)h_torque.data, 0, sizeof(Scalar4) * m_torque.getNumElements());
+    memset((void*)h_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 
     // access the neighbor list
-    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(),
+                                        access_location::host,
+                                        access_mode::read);
+    ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(),
+                                      access_location::host,
+                                      access_mode::read);
+    ArrayHandle<unsigned int> h_head_list(m_nlist->getHeadList(),
+                                          access_location::host,
+                                          access_mode::read);
 
     // access the particle data
-    ArrayHandle< Scalar4 > h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_velocity(m_pdata->getVelocities(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host,access_mode::read);
-    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host,access_mode::read);
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_velocity(m_pdata->getVelocities(),
+                                    access_location::host,
+                                    access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(),
+                                   access_location::host,
+                                   access_mode::read);
     // sanity check
     assert(h_pos.data != NULL);
 
@@ -249,13 +277,14 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
             }
 
         vec3<Scalar> vi;
-        if(Potential::needsVelocity())
+        if (Potential::needsVelocity())
             vi = vec3<Scalar>(h_velocity.data[i]);
 
         // Make a local copy for the rotated vertices for particle i
-        vector<vec2<Real> > vertices_i(m_shapes[typei]);
-        for(typename vector<vec2<Real> >::iterator vertIter(vertices_i.begin());
-            vertIter != vertices_i.end(); ++vertIter)
+        vector<vec2<Real>> vertices_i(m_shapes[typei]);
+        for (typename vector<vec2<Real>>::iterator vertIter(vertices_i.begin());
+             vertIter != vertices_i.end();
+             ++vertIter)
             *vertIter = rotate(quati, *vertIter);
 
         // loop over all of the neighbors of this particle
@@ -281,21 +310,21 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
             // sanity check
             assert(typej < m_pdata->getNTypes());
 
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
+            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the
+            // 2nd is taken and the add is done)
             dx3 = vec3<Scalar>(box.minImage(vec_to_scalar3(dx3)));
             vec2<Real> dx(dx3.x, dx3.y);
 
-            // If the evaluator needs the diameters of the particles to evaluate, grab particle_j's and
-            // pass in the diameters of the particles here
-            // MEM TRANSFER (1 scalar)
+            // If the evaluator needs the diameters of the particles to evaluate, grab particle_j's
+            // and pass in the diameters of the particles here MEM TRANSFER (1 scalar)
             Scalar dj;
             if (Potential::needsDiameter())
                 {
                 dj = h_diameter.data[k];
-                m_evaluator.setDiameter(di,dj);
+                m_evaluator.setDiameter(di, dj);
                 }
 
-            if(Potential::needsVelocity())
+            if (Potential::needsVelocity())
                 m_evaluator.setVelocity(vi - vec3<Scalar>(h_velocity.data[k]));
 
             // start computing the force
@@ -303,71 +332,105 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
             Scalar rsq = dot(dx, dx);
 
             // only compute the force if the particles are closer than the cutoff (FLOPS: 1)
-            if (m_evaluator.withinCutoff(rsq,r_cut_sq))
+            if (m_evaluator.withinCutoff(rsq, r_cut_sq))
                 {
                 // local forces and torques for particles i and j
                 vec2<Real> forceij, forceji;
                 Real torqueij(0), torqueji(0), potentialij(0);
 
                 // Make a local copy for the rotated vertices for particle j
-                vector<vec2<Real> > vertices_j(m_shapes[typej]);
-                for(typename vector<vec2<Real> >::iterator vertIter(vertices_j.begin());
-                    vertIter != vertices_j.end(); ++vertIter)
+                vector<vec2<Real>> vertices_j(m_shapes[typej]);
+                for (typename vector<vec2<Real>>::iterator vertIter(vertices_j.begin());
+                     vertIter != vertices_j.end();
+                     ++vertIter)
                     *vertIter = rotate(quatj, *vertIter);
 
                 // Iterate over each vertex of particle i, if particle j has any edges
-                if (vertices_j.size()>1)
+                if (vertices_j.size() > 1)
                     {
-                    for(typename vector<vec2<Real> >::const_iterator viIter(vertices_i.begin());
-                        viIter != vertices_i.end(); ++viIter)
+                    for (typename vector<vec2<Real>>::const_iterator viIter(vertices_i.begin());
+                         viIter != vertices_i.end();
+                         ++viIter)
                         {
                         // iterate over each edge of particle j
-                        for(typename vector<vec2<Real> >::const_iterator vjIter(vertices_j.begin());
-                            vjIter + 1 != vertices_j.end(); ++vjIter)
+                        for (typename vector<vec2<Real>>::const_iterator vjIter(vertices_j.begin());
+                             vjIter + 1 != vertices_j.end();
+                             ++vjIter)
                             {
-                            m_evaluator.vertexEdge(dx, *viIter, *vjIter, *(vjIter + 1),
-                                potentialij, forceij, torqueij,
-                                forceji, torqueji);
+                            m_evaluator.vertexEdge(dx,
+                                                   *viIter,
+                                                   *vjIter,
+                                                   *(vjIter + 1),
+                                                   potentialij,
+                                                   forceij,
+                                                   torqueij,
+                                                   forceji,
+                                                   torqueji);
                             }
                         // evaluate for the last edge, but only if we
                         // didn't just evaluate that edge (i.e. the
                         // shape isn't a spherocylinder)
-                        if(vertices_j.size() > 2)
-                            m_evaluator.vertexEdge(dx, *viIter, vertices_j.back(), vertices_j.front(),
-                                potentialij, forceij, torqueij,
-                                forceji, torqueji);
+                        if (vertices_j.size() > 2)
+                            m_evaluator.vertexEdge(dx,
+                                                   *viIter,
+                                                   vertices_j.back(),
+                                                   vertices_j.front(),
+                                                   potentialij,
+                                                   forceij,
+                                                   torqueij,
+                                                   forceji,
+                                                   torqueji);
                         }
                     }
                 // iterate over each vertex of particle j, if vi has any edges
-                if (vertices_i.size()>1)
+                if (vertices_i.size() > 1)
                     {
-                    for(typename vector<vec2<Real> >::const_iterator vjIter(vertices_j.begin());
-                        vjIter != vertices_j.end(); ++vjIter)
+                    for (typename vector<vec2<Real>>::const_iterator vjIter(vertices_j.begin());
+                         vjIter != vertices_j.end();
+                         ++vjIter)
                         {
                         // iterate over each edge of particle i
-                        for(typename vector<vec2<Real> >::const_iterator viIter(vertices_i.begin());
-                            viIter + 1 != vertices_i.end(); ++viIter)
+                        for (typename vector<vec2<Real>>::const_iterator viIter(vertices_i.begin());
+                             viIter + 1 != vertices_i.end();
+                             ++viIter)
                             {
-                            m_evaluator.vertexEdge(-dx, *vjIter, *viIter, *(viIter + 1),
-                                potentialij, forceji, torqueji,
-                                forceij, torqueij);
+                            m_evaluator.vertexEdge(-dx,
+                                                   *vjIter,
+                                                   *viIter,
+                                                   *(viIter + 1),
+                                                   potentialij,
+                                                   forceji,
+                                                   torqueji,
+                                                   forceij,
+                                                   torqueij);
                             }
                         // evaluate for the last edge, but only if we
                         // didn't just evaluate that edge (i.e. the
                         // shape isn't a spherocylinder)
-                        if(vertices_i.size() > 2)
-                            m_evaluator.vertexEdge(-dx, *vjIter, vertices_i.back(), vertices_i.front(),
-                                potentialij, forceji, torqueji,
-                                forceij, torqueij);
+                        if (vertices_i.size() > 2)
+                            m_evaluator.vertexEdge(-dx,
+                                                   *vjIter,
+                                                   vertices_i.back(),
+                                                   vertices_i.front(),
+                                                   potentialij,
+                                                   forceji,
+                                                   torqueji,
+                                                   forceij,
+                                                   torqueij);
                         }
                     }
                 // if i doesn't have any edges and j doesn't have any
                 // edges, both are disks
-                else if(vertices_j.size() <= 1)
+                else if (vertices_j.size() <= 1)
                     {
-                    m_evaluator.vertexVertex(dx, vertices_i[0], dx + vertices_j[0],
-                        potentialij, forceij, torqueij,
-                        forceji, torqueji);
+                    m_evaluator.vertexVertex(dx,
+                                             vertices_i[0],
+                                             dx + vertices_j[0],
+                                             potentialij,
+                                             forceij,
+                                             torqueij,
+                                             forceji,
+                                             torqueji);
                     }
 
                 // compute the pair energy and virial (FLOPS: 6)
@@ -389,39 +452,43 @@ void DEM2DForceCompute<Real, Real4, Potential>::computeForces(uint64_t timestep)
                 viriali[1] += pair_virial[1];
                 viriali[3] += pair_virial[3];
 
-                // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
+                // add the force to particle j if we are using the third law (MEM TRANSFER: 10
+                // scalars / FLOPS: 8)
                 if (third_law && k < m_pdata->getN())
                     {
-                    h_force.data[k].x  += forceji.x;
-                    h_force.data[k].y  += forceji.y;
-                    h_force.data[k].w  += potentialij;
+                    h_force.data[k].x += forceji.x;
+                    h_force.data[k].y += forceji.y;
+                    h_force.data[k].w += potentialij;
                     h_torque.data[k].z += torqueji;
-                    h_virial.data[0*virial_pitch + k] += pair_virial[0];
-                    h_virial.data[1*virial_pitch + k] += pair_virial[1];
-                    h_virial.data[3*virial_pitch + k] += pair_virial[3];
+                    h_virial.data[0 * virial_pitch + k] += pair_virial[0];
+                    h_virial.data[1 * virial_pitch + k] += pair_virial[1];
+                    h_virial.data[3 * virial_pitch + k] += pair_virial[3];
                     }
                 }
-
             }
 
         // finally, increment the force, potential energy and virial for particle i
         // (MEM TRANSFER: 10 scalars / FLOPS: 5)
-        h_force.data[i].x  += fi.x;
-        h_force.data[i].y  += fi.y;
-        h_force.data[i].w  += pei;
+        h_force.data[i].x += fi.x;
+        h_force.data[i].y += fi.y;
+        h_force.data[i].w += pei;
         h_torque.data[i].z += ti;
-        h_virial.data[0*virial_pitch + i] += viriali[0];
-        h_virial.data[1*virial_pitch + i] += viriali[1];
-        h_virial.data[3*virial_pitch + i] += viriali[3];
+        h_virial.data[0 * virial_pitch + i] += viriali[0];
+        h_virial.data[1 * virial_pitch + i] += viriali[1];
+        h_virial.data[3 * virial_pitch + i] += viriali[3];
         }
 
-    int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+14+6+8);
-    if (third_law) flops += n_calc * 8;
-    int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
-    if (third_law) mem_transfer += n_calc*10*sizeof(Scalar);
-    if (m_prof) m_prof->pop(flops, mem_transfer);
+    int64_t flops = m_pdata->getN() * 5 + n_calc * (3 + 5 + 9 + 1 + 14 + 6 + 8);
+    if (third_law)
+        flops += n_calc * 8;
+    int64_t mem_transfer
+        = m_pdata->getN() * (5 + 4 + 10) * sizeof(Scalar) + n_calc * (1 + 3 + 1) * sizeof(Scalar);
+    if (third_law)
+        mem_transfer += n_calc * 10 * sizeof(Scalar);
+    if (m_prof)
+        m_prof->pop(flops, mem_transfer);
     }
 
 #ifdef WIN32
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

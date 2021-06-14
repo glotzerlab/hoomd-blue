@@ -3,8 +3,8 @@
 
 // Maintainer: mphoward
 
-#include "hoomd/mpcd/StreamingGeometry.h"
 #include "hoomd/mpcd/ConfinedStreamingMethod.h"
+#include "hoomd/mpcd/StreamingGeometry.h"
 #ifdef ENABLE_HIP
 #include "hoomd/mpcd/ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_HIP
@@ -18,7 +18,7 @@ HOOMD_UP_MAIN()
 template<class SM>
 void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
     snap->global_box = BoxDim(10.0);
     snap->particle_data.type_mapping.push_back("A");
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
@@ -50,7 +50,9 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     stream->stream(2);
     std::shared_ptr<mpcd::ParticleData> pdata_2 = mpcd_sys->getParticleData();
         {
-        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
         CHECK_CLOSE(h_pos.data[0].y, 4.85, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.0, tol);
@@ -64,7 +66,9 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     UP_ASSERT(stream->peekStream(3));
     stream->stream(3);
         {
-        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.1, tol);
         CHECK_CLOSE(h_pos.data[0].y, 4.95, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.1, tol);
@@ -80,7 +84,9 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     UP_ASSERT(stream->peekStream(5));
     stream->stream(5);
         {
-        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.2, tol);
         CHECK_CLOSE(h_pos.data[0].y, -4.95, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.2, tol);
@@ -94,7 +100,9 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     stream->setDeltaT(0.1);
     stream->stream(7);
         {
-        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos(pdata_2->getPositions(),
+                                   access_location::host,
+                                   access_mode::read);
         CHECK_CLOSE(h_pos.data[0].x, 1.4, tol);
         CHECK_CLOSE(h_pos.data[0].y, -4.75, tol);
         CHECK_CLOSE(h_pos.data[0].z, 3.4, tol);
@@ -106,16 +114,18 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     }
 
 //! basic test case for MPCD StreamingMethod class
-UP_TEST( mpcd_streaming_method_basic )
+UP_TEST(mpcd_streaming_method_basic)
     {
     typedef mpcd::ConfinedStreamingMethod<mpcd::detail::BulkGeometry> method;
-    streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    streaming_method_basic_test<method>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_HIP
 //! basic test case for MPCD StreamingMethod class
-UP_TEST( mpcd_streaming_method_setup )
+UP_TEST(mpcd_streaming_method_setup)
     {
     typedef mpcd::ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry> method;
-    streaming_method_basic_test<method>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    streaming_method_basic_test<method>(
+        std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_HIP

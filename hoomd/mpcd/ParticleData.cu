@@ -24,11 +24,11 @@
 #pragma GCC diagnostic pop
 
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Kernel to partition particle data
 /*!
  * \param d_out Packed output buffer
@@ -43,18 +43,19 @@ namespace kernel
  * Particles are removed using the result of cub::DevicePartition, which constructs
  * a list of particles to keep and remove.
  */
-__global__ void remove_particles(mpcd::detail::pdata_element *d_out,
-                                 Scalar4 *d_pos,
-                                 Scalar4 *d_vel,
-                                 unsigned int *d_tag,
-                                 unsigned int *d_comm_flags,
-                                 const unsigned int *d_remove_ids,
+__global__ void remove_particles(mpcd::detail::pdata_element* d_out,
+                                 Scalar4* d_pos,
+                                 Scalar4* d_vel,
+                                 unsigned int* d_tag,
+                                 unsigned int* d_comm_flags,
+                                 const unsigned int* d_remove_ids,
                                  const unsigned int n_remove,
                                  const unsigned int N)
     {
     // one thread per particle
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    if (idx >= n_remove) return;
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= n_remove)
+        return;
     const unsigned int pid = d_remove_ids[idx];
 
     // pack a comm element
@@ -67,7 +68,8 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
 
     // now fill myself back in with another particle if that exists
     idx += n_remove;
-    if (idx >= N) return;
+    if (idx >= N)
+        return;
     const unsigned int take_pid = d_remove_ids[idx];
 
     d_pos[pid] = d_pos[take_pid];
@@ -86,20 +88,21 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
  * Any communication flags that are bitwise AND with \a mask are transformed to
  * a 1 and stored in \a d_remove_flags, otherwise a 0 is set.
  */
-__global__ void mark_removed_particles(unsigned char *d_remove_flags,
-                                       const unsigned int *d_comm_flags,
+__global__ void mark_removed_particles(unsigned char* d_remove_flags,
+                                       const unsigned int* d_comm_flags,
                                        const unsigned int mask,
                                        const unsigned int N)
     {
     // one thread per particle
-    const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    if (idx >= N) return;
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N)
+        return;
 
     d_remove_flags[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
     }
-} // end namespace kernel
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace kernel
+    } // end namespace gpu
+    } // end namespace mpcd
 
 /*!
  * \param d_remove_flags Flag to remove (1) or keep (0) a particle (output)
@@ -110,8 +113,8 @@ __global__ void mark_removed_particles(unsigned char *d_remove_flags,
  *
  * \sa mpcd::gpu::kernel::mark_removed_particles
  */
-cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
-                                              const unsigned int *d_comm_flags,
+cudaError_t mpcd::gpu::mark_removed_particles(unsigned char* d_remove_flags,
+                                              const unsigned int* d_comm_flags,
                                               const unsigned int mask,
                                               const unsigned int N,
                                               const unsigned int block_size)
@@ -153,16 +156,21 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
  * the kept particles are put into a reverse order at the end of the array.
  * The number of particles to keep is stored into \a d_num_remove.
  */
-cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
+cudaError_t mpcd::gpu::partition_particles(void* d_tmp,
                                            size_t& tmp_bytes,
-                                           const unsigned char *d_remove_flags,
-                                           unsigned int *d_remove_ids,
-                                           unsigned int *d_num_remove,
+                                           const unsigned char* d_remove_flags,
+                                           unsigned int* d_remove_ids,
+                                           unsigned int* d_num_remove,
                                            const unsigned int N)
     {
-
     cub::CountingInputIterator<unsigned int> ids(0);
-    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, ids, d_remove_flags, d_remove_ids, d_num_remove, N);
+    cub::DevicePartition::Flagged(d_tmp,
+                                  tmp_bytes,
+                                  ids,
+                                  d_remove_flags,
+                                  d_remove_ids,
+                                  d_num_remove,
+                                  N);
     return cudaSuccess;
     }
 
@@ -185,12 +193,12 @@ cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
  *
  * \sa mpcd::gpu::kernel::remove_particles
  */
-cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
-                                        Scalar4 *d_pos,
-                                        Scalar4 *d_vel,
-                                        unsigned int *d_tag,
-                                        unsigned int *d_comm_flags,
-                                        unsigned int *d_remove_ids,
+cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element* d_out,
+                                        Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        unsigned int* d_tag,
+                                        unsigned int* d_comm_flags,
+                                        unsigned int* d_remove_ids,
                                         const unsigned int n_remove,
                                         const unsigned int N,
                                         const unsigned int block_size)
@@ -216,13 +224,12 @@ cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
     return cudaSuccess;
     }
 
-
 namespace mpcd
-{
+    {
 namespace gpu
-{
+    {
 namespace kernel
-{
+    {
 //! Kernel to partition particle data
 /*!
  * \param old_nparticles old local particle count
@@ -239,16 +246,17 @@ namespace kernel
  */
 __global__ void add_particles(unsigned int old_nparticles,
                               unsigned int num_add_ptls,
-                              Scalar4 *d_pos,
-                              Scalar4 *d_vel,
-                              unsigned int *d_tag,
-                              unsigned int *d_comm_flags,
-                              const mpcd::detail::pdata_element *d_in,
+                              Scalar4* d_pos,
+                              Scalar4* d_vel,
+                              unsigned int* d_tag,
+                              unsigned int* d_comm_flags,
+                              const mpcd::detail::pdata_element* d_in,
                               const unsigned int mask)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= num_add_ptls) return;
+    if (idx >= num_add_ptls)
+        return;
 
     mpcd::detail::pdata_element p = d_in[idx];
 
@@ -258,9 +266,9 @@ __global__ void add_particles(unsigned int old_nparticles,
     d_tag[add_idx] = p.tag;
     d_comm_flags[add_idx] = p.comm_flag & ~mask;
     }
-} // end namespace kernel
-} // end namespace gpu
-} // end namespace mpcd
+    } // end namespace kernel
+    } // end namespace gpu
+    } // end namespace mpcd
 
 /*!
  * \param old_nparticles old local particle count
@@ -278,11 +286,11 @@ __global__ void add_particles(unsigned int old_nparticles,
  */
 void mpcd::gpu::add_particles(unsigned int old_nparticles,
                               unsigned int num_add_ptls,
-                              Scalar4 *d_pos,
-                              Scalar4 *d_vel,
-                              unsigned int *d_tag,
-                              unsigned int *d_comm_flags,
-                              const mpcd::detail::pdata_element *d_in,
+                              Scalar4* d_pos,
+                              Scalar4* d_vel,
+                              unsigned int* d_tag,
+                              unsigned int* d_comm_flags,
+                              const mpcd::detail::pdata_element* d_in,
                               const unsigned int mask,
                               const unsigned int block_size)
     {

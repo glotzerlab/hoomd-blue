@@ -21,37 +21,32 @@
 #endif // __HIPCC__
 
 namespace mpcd
-{
-
+    {
 //! Operators
 /*!
  * The ops namespace contains functors for the CPU and GPU for doing things
  * like reductions, etc.
  */
 namespace ops
-{
-
+    {
 //! Summed reduction
 struct Sum
     {
-    template<typename T>
-    HOSTDEVICE T operator()(const T& a, const T& b) const
+    template<typename T> HOSTDEVICE T operator()(const T& a, const T& b) const
         {
         return (a + b);
         }
     };
 
-template<>
-HOSTDEVICE inline Scalar4 Sum::operator()(const Scalar4& a, const Scalar4& b) const
+template<> HOSTDEVICE inline Scalar4 Sum::operator()(const Scalar4& a, const Scalar4& b) const
     {
-    return make_scalar4(a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w);
+    return make_scalar4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
     }
 
 //! Max reduction
 struct Max
     {
-    template<typename T>
-    HOSTDEVICE T operator()(const T& a, const T& b) const
+    template<typename T> HOSTDEVICE T operator()(const T& a, const T& b) const
         {
         return (a > b) ? a : b;
         }
@@ -60,8 +55,7 @@ struct Max
 //! Min reduction
 struct Min
     {
-    template<typename T>
-    HOSTDEVICE T operator()(const T& a, const T& b) const
+    template<typename T> HOSTDEVICE T operator()(const T& a, const T& b) const
         {
         return (a < b) ? a : b;
         }
@@ -69,17 +63,16 @@ struct Min
 
 struct BitwiseOr
     {
-    template<typename T>
-    HOSTDEVICE T operator()(const T&a, const T& b) const
+    template<typename T> HOSTDEVICE T operator()(const T& a, const T& b) const
         {
         static_assert(std::is_integral<T>::value, "Integer required for binary operators");
         return (a | b);
         }
     };
 
-} // end namespace ops
+    } // end namespace ops
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #undef HOSTDEVICE
 

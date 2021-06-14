@@ -1,5 +1,4 @@
 from hoomd.snapshot import Snapshot
-from hoomd.simulation import Simulation
 import hoomd
 import numpy
 import pytest
@@ -25,70 +24,81 @@ def snap(device):
         s.particles.angmom[:] = numpy.random.uniform(-1, 1, size=(N, 4))
         s.particles.types = ['A', 'B', 'C', 'D']
 
-        s.bonds.N = N-1
+        s.bonds.N = N - 1
         for i in range(s.bonds.N):
-            s.bonds.group[i, :] = [i, i+1]
+            s.bonds.group[i, :] = [i, i + 1]
 
         s.bonds.typeid[:] = numpy.random.randint(0, 3, size=s.bonds.N)
         s.bonds.types = ['bondA', 'bondB', 'bondC', 'bondD']
 
-        s.angles.N = N-2
+        s.angles.N = N - 2
         for i in range(s.angles.N):
-            s.angles.group[i, :] = [i, i+1, i+2]
+            s.angles.group[i, :] = [i, i + 1, i + 2]
 
         s.angles.typeid[:] = numpy.random.randint(0, 3, size=s.angles.N)
         s.angles.types = ['angleA', 'angleB', 'angleC', 'angleD']
 
-        s.dihedrals.N = N-3
+        s.dihedrals.N = N - 3
         for i in range(s.dihedrals.N):
-            s.dihedrals.group[i, :] = [i, i+1, i+2, i+3]
+            s.dihedrals.group[i, :] = [i, i + 1, i + 2, i + 3]
 
         s.dihedrals.typeid[:] = numpy.random.randint(0, 3, size=s.dihedrals.N)
         s.dihedrals.types = ['dihedralA', 'dihedralB', 'dihedralC', 'dihedralD']
 
-        s.impropers.N = N-3
+        s.impropers.N = N - 3
         for i in range(s.impropers.N):
-            s.impropers.group[i, :] = [i, i+1, i+2, i+3]
+            s.impropers.group[i, :] = [i, i + 1, i + 2, i + 3]
 
         s.impropers.typeid[:] = numpy.random.randint(0, 3, size=s.impropers.N)
         s.impropers.types = ['improperA', 'improperB', 'improperC', 'improperD']
 
-        s.pairs.N = N-1
+        s.pairs.N = N - 1
         for i in range(s.pairs.N):
-            s.pairs.group[i, :] = [i, i+1]
+            s.pairs.group[i, :] = [i, i + 1]
 
         s.pairs.typeid[:] = numpy.random.randint(0, 3, size=s.pairs.N)
         s.pairs.types = ['pairA', 'pairB', 'pairC', 'pairD']
 
-        s.constraints.N = N-1
+        s.constraints.N = N - 1
         for i in range(s.constraints.N):
-            s.constraints.group[i, :] = [i, i+1]
+            s.constraints.group[i, :] = [i, i + 1]
 
-        s.constraints.value[:] = numpy.random.uniform(1, 10, size=s.constraints.N)
+        s.constraints.value[:] = numpy.random.uniform(1,
+                                                      10,
+                                                      size=s.constraints.N)
 
     return s
 
 
 def assert_snapshots_equal(s1, s2):
     if s1.exists:
-        numpy.testing.assert_allclose(s1.configuration.box, s2.configuration.box)
-        numpy.testing.assert_allclose(s1.configuration.dimensions, s2.configuration.dimensions)
+        numpy.testing.assert_allclose(s1.configuration.box,
+                                      s2.configuration.box)
+        numpy.testing.assert_allclose(s1.configuration.dimensions,
+                                      s2.configuration.dimensions)
 
         assert s1.particles.N == s2.particles.N
         assert s1.particles.types == s2.particles.types
-        numpy.testing.assert_allclose(s1.particles.position, s2.particles.position)
-        numpy.testing.assert_allclose(s1.particles.velocity, s2.particles.velocity)
-        numpy.testing.assert_allclose(s1.particles.acceleration, s2.particles.acceleration)
+        numpy.testing.assert_allclose(s1.particles.position,
+                                      s2.particles.position)
+        numpy.testing.assert_allclose(s1.particles.velocity,
+                                      s2.particles.velocity)
+        numpy.testing.assert_allclose(s1.particles.acceleration,
+                                      s2.particles.acceleration)
         numpy.testing.assert_equal(s1.particles.typeid, s2.particles.typeid)
         numpy.testing.assert_allclose(s1.particles.mass, s2.particles.mass)
         numpy.testing.assert_allclose(s1.particles.charge, s2.particles.charge)
-        numpy.testing.assert_allclose(s1.particles.diameter, s2.particles.diameter)
+        numpy.testing.assert_allclose(s1.particles.diameter,
+                                      s2.particles.diameter)
         numpy.testing.assert_equal(s1.particles.image, s2.particles.image)
         numpy.testing.assert_equal(s1.particles.body, s2.particles.body)
-        numpy.testing.assert_allclose(s1.particles.orientation, s2.particles.orientation)
-        numpy.testing.assert_allclose(s1.particles.moment_inertia, s2.particles.moment_inertia)
+        numpy.testing.assert_allclose(s1.particles.orientation,
+                                      s2.particles.orientation)
+        numpy.testing.assert_allclose(s1.particles.moment_inertia,
+                                      s2.particles.moment_inertia)
         numpy.testing.assert_allclose(s1.particles.angmom, s2.particles.angmom)
-        numpy.testing.assert_allclose(s1.particles.diameter, s2.particles.diameter)
+        numpy.testing.assert_allclose(s1.particles.diameter,
+                                      s2.particles.diameter)
 
         assert s1.bonds.N == s2.bonds.N
         assert s1.bonds.types == s2.bonds.types
@@ -116,8 +126,10 @@ def assert_snapshots_equal(s1, s2):
         numpy.testing.assert_equal(s1.pairs.group, s2.pairs.group)
 
         assert s1.constraints.N == s2.constraints.N
-        numpy.testing.assert_allclose(s1.constraints.value, s2.constraints.value)
+        numpy.testing.assert_allclose(s1.constraints.value,
+                                      s2.constraints.value)
         numpy.testing.assert_equal(s1.constraints.group, s2.constraints.group)
+
 
 def test_create_from_snapshot(simulation_factory, snap):
     sim = simulation_factory(snap)
@@ -132,6 +144,7 @@ def test_create_from_snapshot(simulation_factory, snap):
         # TODO: test box, dimensions
         # assert
         # TODO: what other state properties should be accessible and valid here?
+
 
 def test_get_snapshot(simulation_factory, snap):
     sim = simulation_factory()
@@ -164,8 +177,7 @@ def test_thermalize_particle_velocity(simulation_factory,
                                       lattice_snapshot_factory):
     snap = lattice_snapshot_factory()
     sim = simulation_factory(snap)
-    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5)
+    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:
@@ -183,18 +195,16 @@ def test_thermalize_particle_velocity(simulation_factory,
         assert K > expected_K * 3 / 4 and K < expected_K * 4 / 3
 
 
-
 def test_thermalize_angular_momentum(simulation_factory,
                                      lattice_snapshot_factory):
     snap = lattice_snapshot_factory()
-    I = [1, 2, 3]
+    I = [1, 2, 3]  # noqa: E741 - allow ambiguous variable name
 
     if snap.exists:
         snap.particles.moment_inertia[:] = I
 
     sim = simulation_factory(snap)
-    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(),
-                                          kT=1.5)
+    sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
     snapshot = sim.state.snapshot
     if snapshot.exists:

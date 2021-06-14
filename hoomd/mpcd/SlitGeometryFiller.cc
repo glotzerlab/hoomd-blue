@@ -9,8 +9,8 @@
  */
 
 #include "SlitGeometryFiller.h"
-#include "hoomd/RandomNumbers.h"
 #include "hoomd/RNGIdentifiers.h"
+#include "hoomd/RandomNumbers.h"
 
 mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                                              Scalar density,
@@ -34,7 +34,8 @@ void mpcd::SlitGeometryFiller::computeNumFill()
     const Scalar cell_size = m_cl->getCellSize();
     if (!m_geom->validateBox(global_box, cell_size))
         {
-        m_exec_conf->msg->error() << "Invalid slit geometry for global box, cannot fill virtual particles." << std::endl;
+        m_exec_conf->msg->error()
+            << "Invalid slit geometry for global box, cannot fill virtual particles." << std::endl;
         throw std::runtime_error("Invalid slit geometry for global box");
         }
 
@@ -45,7 +46,8 @@ void mpcd::SlitGeometryFiller::computeNumFill()
     const Scalar H = m_geom->getH();
 
     // default is not to fill anything
-    m_z_min = -H; m_z_max = H;
+    m_z_min = -H;
+    m_z_max = H;
     m_N_hi = m_N_lo = 0;
 
     /*
@@ -57,14 +59,14 @@ void mpcd::SlitGeometryFiller::computeNumFill()
     const Scalar global_lo = global_box.getLo().z;
     if (box.getHi().z >= H)
         {
-        m_z_max = cell_size * std::ceil((H-global_lo)/cell_size) + global_lo + max_shift;
+        m_z_max = cell_size * std::ceil((H - global_lo) / cell_size) + global_lo + max_shift;
         m_N_hi = (unsigned int)std::round((m_z_max - H) * A * m_density);
         }
 
     if (box.getLo().z <= -H)
         {
-        m_z_min = cell_size * std::floor((-H-global_lo)/cell_size) + global_lo - max_shift;
-        m_N_lo = (unsigned int)std::round((-H-m_z_min) * A * m_density);
+        m_z_min = cell_size * std::floor((-H - global_lo) / cell_size) + global_lo - max_shift;
+        m_N_lo = (unsigned int)std::round((-H - m_z_min) * A * m_density);
         }
 
     // total number of fill particles
@@ -76,9 +78,15 @@ void mpcd::SlitGeometryFiller::computeNumFill()
  */
 void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
     {
-    ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(),
+                                    access_location::host,
+                                    access_mode::readwrite);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 lo = box.getLo();
@@ -90,19 +98,22 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
 
     // index to start filling from
     const unsigned int first_idx = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual() - m_N_fill;
-    for (unsigned int i=0; i < m_N_fill; ++i)
+    for (unsigned int i = 0; i < m_N_fill; ++i)
         {
         const unsigned int tag = m_first_tag + i;
-        hoomd::RandomGenerator rng(hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
-                                   hoomd::Counter(tag));
+        hoomd::RandomGenerator rng(
+            hoomd::Seed(hoomd::RNGIdentifier::SlitGeometryFiller, timestep, seed),
+            hoomd::Counter(tag));
         signed char sign = (char)((i >= m_N_lo) - (i < m_N_lo));
         if (sign == -1) // bottom
             {
-            lo.z = m_z_min; hi.z = -m_geom->getH();
+            lo.z = m_z_min;
+            hi.z = -m_geom->getH();
             }
         else // top
             {
-            lo.z = m_geom->getH(); hi.z = m_z_max;
+            lo.z = m_geom->getH();
+            hi.z = m_z_max;
             }
 
         const unsigned int pidx = first_idx + i;
@@ -115,7 +126,8 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
         Scalar3 vel;
         gen(vel.x, vel.y, rng);
         vel.z = gen(rng);
-        // TODO: should these be given zero net-momentum contribution (relative to the frame of reference?)
+        // TODO: should these be given zero net-momentum contribution (relative to the frame of
+        // reference?)
         h_vel.data[pidx] = make_scalar4(vel.x + sign * m_geom->getVelocity(),
                                         vel.y,
                                         vel.z,
@@ -130,13 +142,13 @@ void mpcd::SlitGeometryFiller::drawParticles(uint64_t timestep)
 void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFiller, mpcd::VirtualParticleFiller, std::shared_ptr<mpcd::SlitGeometryFiller>>
-        (m, "SlitGeometryFiller")
+    py::class_<mpcd::SlitGeometryFiller,
+               mpcd::VirtualParticleFiller,
+               std::shared_ptr<mpcd::SlitGeometryFiller>>(m, "SlitGeometryFiller")
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
                       std::shared_ptr<::Variant>,
                       std::shared_ptr<const mpcd::detail::SlitGeometry>>())
-        .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry)
-        ;
+        .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry);
     }

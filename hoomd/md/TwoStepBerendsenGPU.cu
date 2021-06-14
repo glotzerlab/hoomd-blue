@@ -2,7 +2,6 @@
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
 // Maintainer: joaander
 
 #include "TwoStepBerendsenGPU.cuh"
@@ -28,16 +27,15 @@
     This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__
-void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
-                                   Scalar4 *d_vel,
-                                   const Scalar3 *d_accel,
-                                   int3 *d_image,
-                                   unsigned int *d_group_members,
-                                   const unsigned int group_size,
-                                   const BoxDim box,
-                                   const Scalar lambda,
-                                   const Scalar deltaT)
+extern "C" __global__ void gpu_berendsen_step_one_kernel(Scalar4* d_pos,
+                                                         Scalar4* d_vel,
+                                                         const Scalar3* d_accel,
+                                                         int3* d_image,
+                                                         unsigned int* d_group_members,
+                                                         const unsigned int group_size,
+                                                         const BoxDim box,
+                                                         const Scalar lambda,
+                                                         const Scalar deltaT)
     {
     // determine the particle index for this thread
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -83,13 +81,12 @@ void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
     This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
-extern "C" __global__
-void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
-                                   Scalar3 *d_accel,
-                                   unsigned int *d_group_members,
-                                   const unsigned int group_size,
-                                   const Scalar4 *d_net_force,
-                                   const Scalar deltaT)
+extern "C" __global__ void gpu_berendsen_step_two_kernel(Scalar4* d_vel,
+                                                         Scalar3* d_accel,
+                                                         unsigned int* d_group_members,
+                                                         const unsigned int group_size,
+                                                         const Scalar4* d_net_force,
+                                                         const Scalar deltaT)
     {
     // determine the particle index for this thread
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -105,7 +102,8 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
 
         // read in the net force and calculate the acceleration
         Scalar4 net_force_energy = d_net_force[idx];
-        Scalar3 net_force = make_scalar3(net_force_energy.x, net_force_energy.y, net_force_energy.z);
+        Scalar3 net_force
+            = make_scalar3(net_force_energy.x, net_force_energy.y, net_force_energy.z);
         Scalar3 accel = net_force / mass;
 
         // integrate the velocity
@@ -117,54 +115,64 @@ void gpu_berendsen_step_two_kernel(Scalar4 *d_vel,
         }
     }
 
-hipError_t gpu_berendsen_step_one(Scalar4 *d_pos,
-                                   Scalar4 *d_vel,
-                                   const Scalar3 *d_accel,
-                                   int3 *d_image,
-                                   unsigned int *d_group_members,
-                                   unsigned int group_size,
-                                   const BoxDim& box,
-                                   unsigned int block_size,
-                                   Scalar lambda,
-                                   Scalar deltaT)
+hipError_t gpu_berendsen_step_one(Scalar4* d_pos,
+                                  Scalar4* d_vel,
+                                  const Scalar3* d_accel,
+                                  int3* d_image,
+                                  unsigned int* d_group_members,
+                                  unsigned int group_size,
+                                  const BoxDim& box,
+                                  unsigned int block_size,
+                                  Scalar lambda,
+                                  Scalar deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( (group_size / block_size) + 1, 1, 1);
+    dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_berendsen_step_one_kernel), dim3(grid), dim3(threads), block_size * sizeof(Scalar) , 0, d_pos,
-                                                                                   d_vel,
-                                                                                   d_accel,
-                                                                                   d_image,
-                                                                                   d_group_members,
-                                                                                   group_size,
-                                                                                   box,
-                                                                                   lambda,
-                                                                                   deltaT);
+    hipLaunchKernelGGL((gpu_berendsen_step_one_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       block_size * sizeof(Scalar),
+                       0,
+                       d_pos,
+                       d_vel,
+                       d_accel,
+                       d_image,
+                       d_group_members,
+                       group_size,
+                       box,
+                       lambda,
+                       deltaT);
 
     return hipSuccess;
     }
 
-hipError_t gpu_berendsen_step_two(Scalar4 *d_vel,
-                                   Scalar3 *d_accel,
-                                   unsigned int *d_group_members,
-                                   unsigned int group_size,
-                                   Scalar4 *d_net_force,
-                                   unsigned int block_size,
-                                   Scalar deltaT)
+hipError_t gpu_berendsen_step_two(Scalar4* d_vel,
+                                  Scalar3* d_accel,
+                                  unsigned int* d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4* d_net_force,
+                                  unsigned int block_size,
+                                  Scalar deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( (group_size / block_size) + 1, 1, 1);
+    dim3 grid((group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_berendsen_step_two_kernel), dim3(grid), dim3(threads), block_size * sizeof(Scalar) , 0, d_vel,
-                                                                                   d_accel,
-                                                                                   d_group_members,
-                                                                                   group_size,
-                                                                                   d_net_force,
-                                                                                   deltaT);
+    hipLaunchKernelGGL((gpu_berendsen_step_two_kernel),
+                       dim3(grid),
+                       dim3(threads),
+                       block_size * sizeof(Scalar),
+                       0,
+                       d_vel,
+                       d_accel,
+                       d_group_members,
+                       group_size,
+                       d_net_force,
+                       deltaT);
 
     return hipSuccess;
     }

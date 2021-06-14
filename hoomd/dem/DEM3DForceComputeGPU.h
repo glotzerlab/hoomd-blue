@@ -6,8 +6,8 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <pybind11/pybind11.h>
 #include <memory>
+#include <pybind11/pybind11.h>
 
 #include "DEM3DForceCompute.h"
 
@@ -31,32 +31,33 @@
   \ingroup computes
 */
 template<typename Real, typename Real4, typename Potential>
-class DEM3DForceComputeGPU: public DEM3DForceCompute<Real, Real4, Potential>
+class DEM3DForceComputeGPU : public DEM3DForceCompute<Real, Real4, Potential>
     {
     public:
-        //! Constructs the compute
-        DEM3DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
-            std::shared_ptr<NeighborList> nlist,
-            Real r_cut, Potential potential);
+    //! Constructs the compute
+    DEM3DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<NeighborList> nlist,
+                         Real r_cut,
+                         Potential potential);
 
-        //! Destructor
-        virtual ~DEM3DForceComputeGPU();
+    //! Destructor
+    virtual ~DEM3DForceComputeGPU();
 
-        //! Set parameters for the builtin autotuner
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set parameters for the builtin autotuner
+    virtual void setAutotunerParams(bool enable, unsigned int period)
+        {
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
-        //! Find the maximum number of GPU threads (2*vertices + edges) among all shapes
-        size_t maxGPUThreads() const;
+    //! Find the maximum number of GPU threads (2*vertices + edges) among all shapes
+    size_t maxGPUThreads() const;
 
     protected:
-        std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+    std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
-        //! Actually compute the forces
-        virtual void computeForces(uint64_t timestep);
+    //! Actually compute the forces
+    virtual void computeForces(uint64_t timestep);
     };
 
 #include "DEM3DForceComputeGPU.cc"

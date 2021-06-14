@@ -3,15 +3,15 @@
 
 // Maintainer: mphoward
 
-#include "hip/hip_runtime.h"
 #include "NeighborListGPUTree.cuh"
+#include "hip/hip_runtime.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <hipcub/hipcub.hpp>
 #include <thrust/execution_policy.h>
 #include <thrust/fill.h>
 #include <thrust/remove.h>
-#include <hipcub/hipcub.hpp>
 #pragma GCC diagnostic pop
 
 #include <neighbor/neighbor.h>
@@ -38,11 +38,11 @@
  * The last position of each particle is also saved during this kernel, which is used to later
  * check for when the neighbor list should be rebuilt.
  */
-__global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
-                                            unsigned int *d_indexes,
-                                            unsigned int *d_lbvh_errors,
-                                            Scalar4 *d_last_pos,
-                                            const Scalar4 *d_pos,
+__global__ void gpu_nlist_mark_types_kernel(unsigned int* d_types,
+                                            unsigned int* d_indexes,
+                                            unsigned int* d_lbvh_errors,
+                                            Scalar4* d_last_pos,
+                                            const Scalar4* d_pos,
                                             const unsigned int N,
                                             const unsigned int nghosts,
                                             const BoxDim box,
@@ -52,7 +52,7 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
     const unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     // one thread per particle
-    if (idx >= N+nghosts)
+    if (idx >= N + nghosts)
         return;
 
     // acquire particle data
@@ -68,14 +68,14 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
      * check if the particle is inside the unit cell + ghost layer.
      * we silently ignore ghosts outside of this width, since they could be in bonds, etc.
      */
-    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
-        (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
-        (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)))
+    if ((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001))
+        || (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001))
+        || (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001)))
         {
         // error for owned particle
         if (idx < N)
             {
-            atomicMax(d_lbvh_errors,idx+1);
+            atomicMax(d_lbvh_errors, idx + 1);
             return;
             }
         else // silent for ghosts
@@ -107,16 +107,16 @@ __global__ void gpu_nlist_mark_types_kernel(unsigned int *d_types,
  *
  * \sa gpu_nlist_mark_types_kernel
  */
-hipError_t gpu_nlist_mark_types(unsigned int *d_types,
-                                 unsigned int *d_indexes,
-                                 unsigned int *d_lbvh_errors,
-                                 Scalar4 *d_last_pos,
-                                 const Scalar4 *d_pos,
-                                 const unsigned int N,
-                                 const unsigned int nghosts,
-                                 const BoxDim& box,
-                                 const Scalar3 ghost_width,
-                                 const unsigned int block_size)
+hipError_t gpu_nlist_mark_types(unsigned int* d_types,
+                                unsigned int* d_indexes,
+                                unsigned int* d_lbvh_errors,
+                                Scalar4* d_last_pos,
+                                const Scalar4* d_pos,
+                                const unsigned int N,
+                                const unsigned int nghosts,
+                                const BoxDim& box,
+                                const Scalar3 ghost_width,
+                                const unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -126,17 +126,22 @@ hipError_t gpu_nlist_mark_types(unsigned int *d_types,
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    const unsigned int run_block_size = min(block_size,max_block_size);
-    const unsigned int num_blocks = ((N+nghosts) + run_block_size - 1)/run_block_size;
-    hipLaunchKernelGGL(gpu_nlist_mark_types_kernel, dim3(num_blocks), dim3(run_block_size), 0, 0, d_types,
-                                                                d_indexes,
-                                                                d_lbvh_errors,
-                                                                d_last_pos,
-                                                                d_pos,
-                                                                N,
-                                                                nghosts,
-                                                                box,
-                                                                ghost_width);
+    const unsigned int run_block_size = min(block_size, max_block_size);
+    const unsigned int num_blocks = ((N + nghosts) + run_block_size - 1) / run_block_size;
+    hipLaunchKernelGGL(gpu_nlist_mark_types_kernel,
+                       dim3(num_blocks),
+                       dim3(run_block_size),
+                       0,
+                       0,
+                       d_types,
+                       d_indexes,
+                       d_lbvh_errors,
+                       d_last_pos,
+                       d_pos,
+                       N,
+                       nghosts,
+                       box,
+                       ghost_width);
     return hipSuccess;
     }
 
@@ -156,12 +161,12 @@ hipError_t gpu_nlist_mark_types(unsigned int *d_types,
  * lie in \a d_sorted_* because of the double buffers, but this sorting seems to be more efficient.
  * The user should accordingly swap the input and output arrays if the returned values are true.
  */
-uchar2 gpu_nlist_sort_types(void *d_tmp,
-                            size_t &tmp_bytes,
-                            unsigned int *d_types,
-                            unsigned int *d_sorted_types,
-                            unsigned int *d_indexes,
-                            unsigned int *d_sorted_indexes,
+uchar2 gpu_nlist_sort_types(void* d_tmp,
+                            size_t& tmp_bytes,
+                            unsigned int* d_types,
+                            unsigned int* d_sorted_types,
+                            unsigned int* d_indexes,
+                            unsigned int* d_sorted_indexes,
                             const unsigned int N,
                             const unsigned int num_bits)
     {
@@ -171,10 +176,11 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
     // we counted number of bits to sort, so the range of bit indexes is [0,num_bits)
     hipcub::DeviceRadixSort::SortPairs(d_tmp, tmp_bytes, d_keys, d_vals, N, 0, num_bits);
 
-    uchar2 swap = make_uchar2(0,0);
+    uchar2 swap = make_uchar2(0, 0);
     if (d_tmp != NULL)
         {
-        // mark that the gpu arrays should be flipped if the final result is not in the sorted array (1)
+        // mark that the gpu arrays should be flipped if the final result is not in the sorted array
+        // (1)
         swap.x = (d_keys.selector == 0);
         swap.y = (d_vals.selector == 0);
         }
@@ -198,9 +204,9 @@ uchar2 gpu_nlist_sort_types(void *d_tmp,
  * NeighborListTypeSentinel for \a d_first and 0 for \a d_last so that the default (if no
  * particle of a given type is found) is that there are 0 of them in the list.
  */
-__global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
-                                             unsigned int *d_last,
-                                             const unsigned int *d_types,
+__global__ void gpu_nlist_count_types_kernel(unsigned int* d_first,
+                                             unsigned int* d_last,
+                                             const unsigned int* d_types,
                                              const unsigned int ntypes,
                                              const unsigned int N)
     {
@@ -214,16 +220,18 @@ __global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
     // my type
     const unsigned int type = d_types[idx];
     // look to left if not first
-    const unsigned int left = (idx > 0) ? d_types[idx-1] : NeighborListTypeSentinel;
+    const unsigned int left = (idx > 0) ? d_types[idx - 1] : NeighborListTypeSentinel;
     // look to right if not last
-    const unsigned int right = (idx < N-1) ? d_types[idx+1] : NeighborListTypeSentinel;
+    const unsigned int right = (idx < N - 1) ? d_types[idx + 1] : NeighborListTypeSentinel;
 
-    // if left is not same as self (or idx == 0 by use of sentinel), this is the first index in the type
+    // if left is not same as self (or idx == 0 by use of sentinel), this is the first index in the
+    // type
     if (left != type && type < ntypes)
         {
         d_first[type] = idx;
         }
-    // if right is not the same as self (or idx == N-1 by use of sentinel), this is the last index in the type
+    // if right is not the same as self (or idx == N-1 by use of sentinel), this is the last index
+    // in the type
     if (right != type && type < ntypes)
         {
         d_last[type] = idx + 1;
@@ -240,17 +248,17 @@ __global__ void gpu_nlist_count_types_kernel(unsigned int *d_first,
  *
  * \sa gpu_nlist_count_types_kernel
  */
-hipError_t gpu_nlist_count_types(unsigned int *d_first,
-                                  unsigned int *d_last,
-                                  const unsigned int *d_types,
-                                  const unsigned int ntypes,
-                                  const unsigned int N,
-                                  const unsigned int block_size)
+hipError_t gpu_nlist_count_types(unsigned int* d_first,
+                                 unsigned int* d_last,
+                                 const unsigned int* d_types,
+                                 const unsigned int ntypes,
+                                 const unsigned int N,
+                                 const unsigned int block_size)
 
     {
     // initially, fill all types as empty
-    thrust::fill(thrust::device, d_first, d_first+ntypes, NeighborListTypeSentinel);
-    hipMemset(d_last, 0, sizeof(unsigned int)*ntypes);
+    thrust::fill(thrust::device, d_first, d_first + ntypes, NeighborListTypeSentinel);
+    hipMemset(d_last, 0, sizeof(unsigned int) * ntypes);
 
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
@@ -260,12 +268,17 @@ hipError_t gpu_nlist_count_types(unsigned int *d_first,
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    int run_block_size = min(block_size,max_block_size);
-    hipLaunchKernelGGL(gpu_nlist_count_types_kernel, dim3(N/run_block_size + 1), dim3(run_block_size), 0, 0, d_first,
-                                                                           d_last,
-                                                                           d_types,
-                                                                           ntypes,
-                                                                           N);
+    int run_block_size = min(block_size, max_block_size);
+    hipLaunchKernelGGL(gpu_nlist_count_types_kernel,
+                       dim3(N / run_block_size + 1),
+                       dim3(run_block_size),
+                       0,
+                       0,
+                       d_first,
+                       d_last,
+                       d_types,
+                       ntypes,
+                       N);
     return hipSuccess;
     }
 
@@ -279,9 +292,9 @@ hipError_t gpu_nlist_count_types(unsigned int *d_first,
  * The primitive index for this thread is first loaded. It is then mapped back
  * to its original particle index, which is stored for subsequent traversal.
  */
-__global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
-                                                 const unsigned int *d_indexes,
-                                                 const unsigned int *d_primitives,
+__global__ void gpu_nlist_copy_primitives_kernel(unsigned int* d_traverse_order,
+                                                 const unsigned int* d_indexes,
+                                                 const unsigned int* d_primitives,
                                                  const unsigned int N)
     {
     // one thread per particle
@@ -302,25 +315,31 @@ __global__ void gpu_nlist_copy_primitives_kernel(unsigned int *d_traverse_order,
  *
  * \sa gpu_nlist_copy_primitives_kernel
  */
-hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
-                                      const unsigned int *d_indexes,
-                                      const unsigned int *d_primitives,
-                                      const unsigned int N,
-                                      const unsigned int block_size)
+hipError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
+                                     const unsigned int* d_indexes,
+                                     const unsigned int* d_primitives,
+                                     const unsigned int N,
+                                     const unsigned int block_size)
     {
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
         hipFuncAttributes attr;
-        hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
+        hipFuncGetAttributes(&attr,
+                             reinterpret_cast<const void*>(gpu_nlist_copy_primitives_kernel));
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    int run_block_size = min(block_size,max_block_size);
-    hipLaunchKernelGGL(gpu_nlist_copy_primitives_kernel, dim3(N/run_block_size + 1), dim3(run_block_size), 0, 0, d_traverse_order,
-                                                                               d_indexes,
-                                                                               d_primitives,
-                                                                               N);
+    int run_block_size = min(block_size, max_block_size);
+    hipLaunchKernelGGL(gpu_nlist_copy_primitives_kernel,
+                       dim3(N / run_block_size + 1),
+                       dim3(run_block_size),
+                       0,
+                       0,
+                       d_traverse_order,
+                       d_indexes,
+                       d_primitives,
+                       N);
     return hipSuccess;
     }
 
@@ -339,7 +358,7 @@ hipError_t gpu_nlist_copy_primitives(unsigned int *d_traverse_order,
 struct SkippableBoundingSphere : public neighbor::BoundingSphere
     {
     //! Default constructor, always skip
-    DEVICE SkippableBoundingSphere() : skip(true) {}
+    DEVICE SkippableBoundingSphere() : skip(true) { }
 
     //! Constructor
     /*!
@@ -351,7 +370,7 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
      * the radius.
      */
     DEVICE SkippableBoundingSphere(const Scalar3& o, const Scalar r)
-        : neighbor::BoundingSphere(o,r)
+        : neighbor::BoundingSphere(o, r)
         {
         skip = !(r > Scalar(0));
         }
@@ -374,7 +393,7 @@ struct SkippableBoundingSphere : public neighbor::BoundingSphere
             }
         }
 
-    bool skip;  //!< Flag to skip traversal of sphere
+    bool skip; //!< Flag to skip traversal of sphere
     };
 
 //! Insert operation for a point under a mapping.
@@ -392,9 +411,10 @@ struct PointMapInsertOp
      * \param map_ Map of the nominal index to the index in \a points_.
      * \param N_ Number of primitives to insert.
      */
-    PointMapInsertOp(const Scalar4 *points_, const unsigned int *map_, unsigned int N_)
+    PointMapInsertOp(const Scalar4* points_, const unsigned int* map_, unsigned int N_)
         : points(points_), map(map_), N(N_)
-        {}
+        {
+        }
 
     //! Construct bounding box
     /*!
@@ -407,7 +427,7 @@ struct PointMapInsertOp
         const Scalar3 p = make_scalar3(point.x, point.y, point.z);
 
         // construct the bounding box for a point
-        return neighbor::BoundingBox(p,p);
+        return neighbor::BoundingBox(p, p);
         }
 
     __host__ DEVICE unsigned int size() const
@@ -416,7 +436,7 @@ struct PointMapInsertOp
         }
 
     const Scalar4* points;
-    const unsigned int *map;    //!< Map of particle indexes.
+    const unsigned int* map; //!< Map of particle indexes.
     const unsigned int N;
     };
 
@@ -438,8 +458,7 @@ struct PointMapInsertOp
  * The particles are traversed using a \a map. Ghost particles can be included
  * in this map, and they will be neglected during traversal.
  */
-template<bool use_body, bool use_diam>
-struct ParticleQueryOp
+template<bool use_body, bool use_diam> struct ParticleQueryOp
     {
     //! Constructor
     /*!
@@ -452,18 +471,19 @@ struct ParticleQueryOp
      * \param rcut_ Cutoff radius for the spheres.
      * \param rlist_ Total search radius for the spheres (differs under shifting).
      */
-    ParticleQueryOp(const Scalar4 *positions_,
-                    const unsigned int *bodies_,
-                    const Scalar *diams_,
+    ParticleQueryOp(const Scalar4* positions_,
+                    const unsigned int* bodies_,
+                    const Scalar* diams_,
                     const unsigned int* map_,
                     unsigned int N_,
                     unsigned int Nown_,
                     const Scalar rcut_,
                     const Scalar rlist_,
                     const BoxDim& box_)
-        : positions(positions_), bodies(bodies_), diams(diams_), map(map_),
-          N(N_), Nown(Nown_), rcut(rcut_), rlist(rlist_), box(box_)
-          {}
+        : positions(positions_), bodies(bodies_), diams(diams_), map(map_), N(N_), Nown(Nown_),
+          rcut(rcut_), rlist(rlist_), box(box_)
+        {
+        }
 
     //! Data stored per thread for traversal
     /*!
@@ -473,17 +493,15 @@ struct ParticleQueryOp
      */
     struct ThreadData
         {
-        DEVICE ThreadData(Scalar3 position_,
-                              int idx_,
-                              unsigned int body_,
-                              Scalar diam_)
+        DEVICE ThreadData(Scalar3 position_, int idx_, unsigned int body_, Scalar diam_)
             : position(position_), idx(idx_), body(body_), diam(diam_)
-            {}
+            {
+            }
 
-        Scalar3 position;   //!< Particle position
-        int idx;            //!< True particle index
-        unsigned int body;  //!< Particle body tag (may be invalid)
-        Scalar diam;        //!< Particle diameter (may be invalid)
+        Scalar3 position;  //!< Particle position
+        int idx;           //!< True particle index
+        unsigned int body; //!< Particle body tag (may be invalid)
+        Scalar diam;       //!< Particle diameter (may be invalid)
         };
 
     // specify that the traversal Volume is a bounding sphere
@@ -530,7 +548,7 @@ struct ParticleQueryOp
      */
     DEVICE Volume get(const ThreadData& q, const Scalar3& image) const
         {
-        return Volume(q.position+image, (q.idx < Nown) ? rlist : -1.0);
+        return Volume(q.position + image, (q.idx < Nown) ? rlist : -1.0);
         }
 
     //! Perform the overlap test with the LBVH
@@ -578,12 +596,12 @@ struct ParticleQueryOp
 
             // compute factor to add to base rc
             const Scalar delta = (q.diam + diam) * Scalar(0.5) - Scalar(1.0);
-            Scalar rc2 = (rcut+delta);
+            Scalar rc2 = (rcut + delta);
             rc2 *= rc2;
 
             // compute distance and wrap back into box
             const Scalar3 dr = box.minImage(r - q.position);
-            const Scalar drsq = dot(dr,dr);
+            const Scalar drsq = dot(dr, dr);
 
             // exclude if outside the sphere
             exclude |= drsq > rc2;
@@ -598,17 +616,16 @@ struct ParticleQueryOp
         return N;
         }
 
-    const Scalar4 *positions;   //!< Particle positions
-    const unsigned int *bodies; //!< Particle bodies
-    const Scalar *diams;        //!< Particle diameters
-    const unsigned int *map;    //!< Mapping of particles to read
+    const Scalar4* positions;   //!< Particle positions
+    const unsigned int* bodies; //!< Particle bodies
+    const Scalar* diams;        //!< Particle diameters
+    const unsigned int* map;    //!< Mapping of particles to read
     unsigned int N;             //!< Total number of particles in map
     unsigned int Nown;          //!< Number of particles owned by the local rank
     Scalar rcut;                //!< True cutoff radius + buffer
     Scalar rlist;               //!< Maximum cutoff (may include shifting)
     const BoxDim box;           //!< Box dimensions
     };
-
 
 //! Operation to write the neighbor list
 /*!
@@ -634,8 +651,8 @@ struct NeighborListOp
                    unsigned int* new_max_neigh_,
                    const unsigned int* first_neigh_,
                    unsigned int max_neigh_)
-        : nneigh(nneigh_), new_max_neigh(new_max_neigh_),
-          first_neigh(first_neigh_), max_neigh(max_neigh_)
+        : nneigh(nneigh_), new_max_neigh(new_max_neigh_), first_neigh(first_neigh_),
+          max_neigh(max_neigh_)
         {
         neigh_list = reinterpret_cast<uint4*>(neigh_list_);
         }
@@ -643,7 +660,8 @@ struct NeighborListOp
     //! Thread-local data
     /*!
      * The thread-local data constitutes a stack of neighbors to write, the index of the current
-     * primitive, the first index to write into, and the current number of neighbors found for this thread.
+     * primitive, the first index to write into, and the current number of neighbors found for this
+     * thread.
      */
     struct ThreadData
         {
@@ -652,7 +670,8 @@ struct NeighborListOp
          * \param idx_ The index of this particle.
          * \param first_ The first neighbor index of this particle.
          * \param num_neigh_ The current number of neighbors of this particle.
-         * \param stack_ The initial values for the stack (can be all 0s if \a num_neigh_ is aligned to 4).
+         * \param stack_ The initial values for the stack (can be all 0s if \a num_neigh_ is aligned
+         * to 4).
          */
         DEVICE ThreadData(const unsigned int idx_,
                           const unsigned int first_,
@@ -701,12 +720,12 @@ struct NeighborListOp
          */
         if (num_neigh % 4 != 0)
             {
-            uint4 stack = neigh_list[(first+num_neigh-1)/4];
+            uint4 stack = neigh_list[(first + num_neigh - 1) / 4];
             return ThreadData(q.idx, first, num_neigh, stack);
             }
         else
             {
-            return ThreadData(q.idx, first, num_neigh, make_uint4(0,0,0,0));
+            return ThreadData(q.idx, first, num_neigh, make_uint4(0, 0, 0, 0));
             }
         }
 
@@ -729,7 +748,8 @@ struct NeighborListOp
             // coalesce writes into chunks of 4
             if (offset == 3)
                 {
-                neigh_list[(t.first+t.num_neigh)/4] = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
+                neigh_list[(t.first + t.num_neigh) / 4]
+                    = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
                 }
             }
         ++t.num_neigh;
@@ -754,16 +774,18 @@ struct NeighborListOp
         else if (t.num_neigh % 4 != 0)
             {
             // write partial (leftover) stack, counting is now post-increment so need to shift by 1
-            // only need to do this if didn't overflow, since all neighbors were already written due to alignment of max
-            neigh_list[(t.first+t.num_neigh-1)/4] = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
+            // only need to do this if didn't overflow, since all neighbors were already written due
+            // to alignment of max
+            neigh_list[(t.first + t.num_neigh - 1) / 4]
+                = make_uint4(t.stack[0], t.stack[1], t.stack[2], t.stack[3]);
             }
         }
 
-    uint4* neigh_list;                  //!< Neighbors of each sphere
-    unsigned int* nneigh;               //!< Number of neighbors per search sphere
-    unsigned int* new_max_neigh;        //!< New maximum number of neighbors
-    const unsigned int* first_neigh;    //!< Index of first neighbor
-    unsigned int max_neigh;             //!< Maximum number of neighbors allocated
+    uint4* neigh_list;               //!< Neighbors of each sphere
+    unsigned int* nneigh;            //!< Number of neighbors per search sphere
+    unsigned int* new_max_neigh;     //!< New maximum number of neighbors
+    const unsigned int* first_neigh; //!< Index of first neighbor
+    unsigned int max_neigh;          //!< Maximum number of neighbors allocated
     };
 
 //! Host function to convert a double to a float in round-down mode
@@ -832,16 +854,16 @@ void LBVHWrapper::build(const Scalar4* points,
                         hipStream_t stream,
                         unsigned int block_size)
     {
-    #ifndef SINGLE_PRECISION
+#ifndef SINGLE_PRECISION
     float3 lof = make_float3(double2float_rd(lo.x), double2float_rd(lo.y), double2float_rd(lo.z));
     float3 hif = make_float3(double2float_ru(hi.x), double2float_ru(hi.y), double2float_ru(hi.z));
-    #else
+#else
     float3 lof = lo;
     float3 hif = hi;
-    #endif
+#endif
 
     PointMapInsertOp insert(points, map, N);
-    lbvh_->build(neighbor::LBVH::LaunchParameters(block_size,stream), insert, lof, hif);
+    lbvh_->build(neighbor::LBVH::LaunchParameters(block_size, stream), insert, lof, hif);
     }
 
 unsigned int LBVHWrapper::getN() const
@@ -876,9 +898,7 @@ LBVHTraverserWrapper::LBVHTraverserWrapper()
  * \param lbvh LBVH to traverse
  * \param stream CUDA stream for execution
  */
-void LBVHTraverserWrapper::setup(const unsigned int* map,
-                                 neighbor::LBVH& lbvh,
-                                 hipStream_t stream)
+void LBVHTraverserWrapper::setup(const unsigned int* map, neighbor::LBVH& lbvh, hipStream_t stream)
     {
     neighbor::MapTransformOp mapop(map);
     trav_->setup(stream, lbvh, mapop);
@@ -922,8 +942,26 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
 
     if (args.bodies == NULL && args.diams == NULL)
         {
-        ParticleQueryOp<false,false> query(args.positions,
-                                           NULL,
+        ParticleQueryOp<false, false> query(args.positions,
+                                            NULL,
+                                            NULL,
+                                            args.order,
+                                            args.N,
+                                            args.Nown,
+                                            args.rcut,
+                                            args.rlist,
+                                            args.box);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
+                        lbvh,
+                        query,
+                        nlist_op,
+                        translate,
+                        map);
+        }
+    else if (args.bodies != NULL && args.diams == NULL)
+        {
+        ParticleQueryOp<true, false> query(args.positions,
+                                           args.bodies,
                                            NULL,
                                            args.order,
                                            args.N,
@@ -931,25 +969,35 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                            args.rcut,
                                            args.rlist,
                                            args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
-        }
-    else if (args.bodies != NULL && args.diams == NULL)
-        {
-        ParticleQueryOp<true,false> query(args.positions,
-                                          args.bodies,
-                                          NULL,
-                                          args.order,
-                                          args.N,
-                                          args.Nown,
-                                          args.rcut,
-                                          args.rlist,
-                                          args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
+                        lbvh,
+                        query,
+                        nlist_op,
+                        translate,
+                        map);
         }
     else if (args.bodies == NULL && args.diams != NULL)
         {
-        ParticleQueryOp<false,true> query(args.positions,
-                                          NULL,
+        ParticleQueryOp<false, true> query(args.positions,
+                                           NULL,
+                                           args.diams,
+                                           args.order,
+                                           args.N,
+                                           args.Nown,
+                                           args.rcut,
+                                           args.rlist,
+                                           args.box);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
+                        lbvh,
+                        query,
+                        nlist_op,
+                        translate,
+                        map);
+        }
+    else
+        {
+        ParticleQueryOp<true, true> query(args.positions,
+                                          args.bodies,
                                           args.diams,
                                           args.order,
                                           args.N,
@@ -957,20 +1005,12 @@ void LBVHTraverserWrapper::traverse(TraverserArgs& args,
                                           args.rcut,
                                           args.rlist,
                                           args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
-        }
-    else
-        {
-        ParticleQueryOp<true,true> query(args.positions,
-                                         args.bodies,
-                                         args.diams,
-                                         args.order,
-                                         args.N,
-                                         args.Nown,
-                                         args.rcut,
-                                         args.rlist,
-                                         args.box);
-        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size,stream), lbvh, query, nlist_op, translate, map);
+        trav_->traverse(neighbor::LBVHTraverser::LaunchParameters(block_size, stream),
+                        lbvh,
+                        query,
+                        nlist_op,
+                        translate,
+                        map);
         }
     }
 

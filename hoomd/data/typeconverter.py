@@ -1,9 +1,16 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Implement type conversion helpers."""
+
 from numpy import array, ndarray
 from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from inspect import isclass
-from hoomd.util import is_iterable
+from hoomd.error import TypeConversionError
+from hoomd.util import _is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
 from hoomd.filter import ParticleFilter, CustomFilter
@@ -11,16 +18,15 @@ import hoomd
 
 
 class RequiredArg:
-    pass
-
-
-class TypeConversionError(ValueError):
-    """An error class for errors in the validation of TypeConverter subclasses.
-    """
+    """Define a parameter as required."""
     pass
 
 
 def trigger_preprocessing(trigger):
+    """Process triggers.
+
+    Convert integers to periodic triggers.
+    """
     if isinstance(trigger, Trigger):
         return trigger
     else:
@@ -31,6 +37,10 @@ def trigger_preprocessing(trigger):
 
 
 def variant_preprocessing(variant):
+    """Process variants.
+
+    Convert floats to constant variants.
+    """
     if isinstance(variant, Variant):
         return variant
     else:
@@ -42,18 +52,22 @@ def variant_preprocessing(variant):
 
 
 def box_preprocessing(box):
+    """Process boxes.
+
+    Convert values that `Box.from_box` handles.
+    """
     if isinstance(box, hoomd.Box):
         return box
     else:
         try:
             return hoomd.Box.from_box(box)
         except Exception:
-            raise ValueError(
-                "{} is not convertible into a hoomd.Box object. "
-                "using hoomd.Box.from_box".format(box))
+            raise ValueError("{} is not convertible into a hoomd.Box object. "
+                             "using hoomd.Box.from_box".format(box))
 
 
 def positive_real(number):
+    """Ensure that a value is positive."""
     try:
         float_number = float(number)
     except Exception as err:
@@ -65,6 +79,7 @@ def positive_real(number):
 
 
 def nonnegative_real(number):
+    """Ensure that a value is not negative."""
     try:
         float_number = float(number)
     except Exception as err:
@@ -76,6 +91,7 @@ def nonnegative_real(number):
 
 
 def identity(value):
+    """Return the given value."""
     return value
 
 
@@ -87,6 +103,7 @@ class _HelpValidate(ABC):
     `TypeConverterValue` if validation fails, else it should return the
     validated/transformed value.
     """
+
     def __init__(self, preprocess=None, postprocess=None, allow_none=False):
         self._preprocess = identity if preprocess is None else preprocess
         self._postprocess = identity if postprocess is None else postprocess
@@ -116,6 +133,7 @@ class Either(_HelpValidate):
 
     would allow either value to pass.
     """
+
     def __init__(self, specs, preprocess=None, postprocess=None):
         super().__init__(preprocess, postprocess)
         self.specs = specs
@@ -130,6 +148,7 @@ class Either(_HelpValidate):
             value, [str(spec) for spec in self.specs]))
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "Either({})".format([str(spec) for spec in self.specs])
 
 
@@ -139,8 +158,12 @@ class OnlyIf(_HelpValidate):
     Not strictly necessary, but keeps the theme of the other classes, and allows
     pre/post-processing and optionally allows None.
     """
-    def __init__(self, cond,
-                 preprocess=None, postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 cond,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.cond = cond
 
@@ -148,6 +171,7 @@ class OnlyIf(_HelpValidate):
         return self.cond(value)
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "OnlyIf({})".format(str(self.cond))
 
 
@@ -160,20 +184,31 @@ class OnlyTypes(_HelpValidate):
     provided and ``strict`` is ``False``, conversions will be attempted in the
     order of the ``types`` sequence.
     """
-    def __init__(self, *types, strict=False,
-                 preprocess=None, postprocess=None, allow_none=False):
+
+    def __init__(self,
+                 *types,
+                 disallow_types=None,
+                 strict=False,
+                 preprocess=None,
+                 postprocess=None,
+                 allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         # Handle if a class is passed rather than an iterable of classes
         self.types = types
+        if disallow_types is None:
+            self.disallow_types = ()
+        else:
+            self.disallow_types = disallow_types
         self.strict = strict
 
     def _validate(self, value):
+        if isinstance(value, self.disallow_types):
+            raise ValueError(f"Value cannot be of type {type(value)}")
         if isinstance(value, self.types):
             return value
         elif self.strict:
             raise ValueError(
-                f"Value {value} not instance of any of {self.types}."
-            )
+                f"Value {value} not instance of any of {self.types}.")
         else:
             for type_ in self.types:
                 try:
@@ -182,10 +217,10 @@ class OnlyTypes(_HelpValidate):
                     pass
             raise ValueError(
                 f"Value {value} is not convertable into any of these types "
-                f"{self.types}"
-            )
+                f"{self.types}")
 
     def __str__(self):
+        """str: String representation of the validator."""
         return f"OnlyTypes({str(self.types)})"
 
 
@@ -196,7 +231,10 @@ class OnlyFrom(_HelpValidate):
     that generator expressions are fine.
     """
 
-    def __init__(self, options,preprocess=None, postprocess=None,
+    def __init__(self,
+                 options,
+                 preprocess=None,
+                 postprocess=None,
                  allow_none=False):
         super().__init__(preprocess, postprocess, allow_none)
         self.options = set(options)
@@ -205,18 +243,21 @@ class OnlyFrom(_HelpValidate):
         if value in self:
             return value
         else:
-            raise ValueError("Value {} not in options: {}".format(value,
-                                                                  self.options))
+            raise ValueError("Value {} not in options: {}".format(
+                value, self.options))
 
     def __contains__(self, value):
+        """bool: True when value is in the options."""
         return value in self.options
 
     def __str__(self):
+        """str: String representation of the validator."""
         return "OnlyFrom[{}]".format(self.options)
 
 
 class SetOnce:
     """Used to make properties read-only after setting."""
+
     def __init__(self, validation):
         if isclass(validation):
             self._validation = OnlyTypes(validation)
@@ -224,6 +265,7 @@ class SetOnce:
             self._validation = validation
 
     def __call__(self, value):
+        """Handle setting values."""
         if self._validation is not None:
             val = self._validation(value)
             self._validation = None
@@ -243,17 +285,19 @@ class TypeConverter(ABC):
         Subclasses should not be instantiated directly. Instead use
         `to_type_converter`.
     """
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         pass
 
     @abstractmethod
     def __call__(self, value):
+        """Called when values are set."""
         pass
 
 
 class TypeConverterValue(TypeConverter):
-    """Represents a scalar value of some kind (or not represented structures.)
+    """Represents a scalar value of some kind.
 
     Parameters:
         value (Any): Whatever defines the validation. Many ways to specify the
@@ -321,6 +365,7 @@ class TypeConverterValue(TypeConverter):
             self.converter = OnlyTypes(type(value))
 
     def __call__(self, value):
+        """Called when the value is set."""
         try:
             return self.converter(value)
         except (TypeError, ValueError, TypeConversionError) as err:
@@ -328,8 +373,8 @@ class TypeConverterValue(TypeConverter):
                 raise TypeConversionError("Value is a required argument")
             raise TypeConversionError(
                 "Value {} of type {} cannot be converted using {}. Raised "
-                "error: {}".format(
-                    value, type(value), str(self.converter), str(err)))
+                "error: {}".format(value, type(value), str(self.converter),
+                                   str(err)))
 
 
 class TypeConverterSequence(TypeConverter):
@@ -358,11 +403,13 @@ class TypeConverterSequence(TypeConverter):
             # All elements should be in a float int ordering
             TypeConverterSequence([float, int])
     """
+
     def __init__(self, sequence):
         self.converter = [to_type_converter(item) for item in sequence]
 
     def __call__(self, sequence):
-        if not is_iterable(sequence):
+        """Called when the value is set."""
+        if not _is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a sequence like instance. Received {} of type {}."
                 "".format(sequence, type(sequence)))
@@ -372,12 +419,12 @@ class TypeConverterSequence(TypeConverter):
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
-                raise TypeConversionError(
-                    "In list item number {}: {}"
-                    "".format(i, str(err)))
+                raise TypeConversionError("In list item number {}: {}"
+                                          "".format(i, str(err)))
             return new_sequence
 
     def __iter__(self):
+        """Iterate over converters in the sequence."""
         if len(self.converter) == 1:
             yield from repeat(self.converter[0])
         else:
@@ -407,11 +454,13 @@ class TypeConverterFixedLengthSequence(TypeConverter):
             # a string followed for a float and int
             TypeConverterFixedLengthSequence((string, float, int))
     """
+
     def __init__(self, sequence):
         self.converter = tuple([to_type_converter(item) for item in sequence])
 
     def __call__(self, sequence):
-        if not is_iterable(sequence):
+        """Called when the value is set."""
+        if not _is_iterable(sequence):
             raise TypeConversionError(
                 "Expected a tuple like object. Received {} of type {}."
                 "".format(sequence, type(sequence)))
@@ -425,12 +474,12 @@ class TypeConverterFixedLengthSequence(TypeConverter):
                 for i, (v, c) in enumerate(zip(sequence, self)):
                     new_sequence.append(c(v))
             except (TypeConversionError) as err:
-                raise TypeConversionError(
-                    "In tuple item number {}: {}"
-                    "".format(i, str(err)))
+                raise TypeConversionError("In tuple item number {}: {}"
+                                          "".format(i, str(err)))
             return tuple(new_sequence)
 
     def __iter__(self):
+        """Iterate over converters in the sequence."""
         yield from self.converter
 
 
@@ -461,11 +510,14 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
             # invalid
             t({'new_key': None})
     """
+
     def __init__(self, mapping):
-        self.converter = {key: to_type_converter(value)
-                          for key, value in mapping.items()}
+        self.converter = {
+            key: to_type_converter(value) for key, value in mapping.items()
+        }
 
     def __call__(self, mapping):
+        """Called when the value is set."""
         if not isinstance(mapping, Mapping):
             raise TypeConversionError(
                 "Expected a dict like value. Recieved {} of type {}."
@@ -484,18 +536,23 @@ class TypeConverterMapping(TypeConverter, MutableMapping):
         return new_mapping
 
     def __iter__(self):
+        """Iterate over converters in the mapping."""
         yield from self.converter
 
     def __getitem__(self, key):
+        """Get a converter by key."""
         return self.converter[key]
 
     def __setitem__(self, key, value):
+        """Set a converter by key."""
         self.converter[key] = value
 
     def __delitem__(self, key):
+        """Remove a converter by key."""
         del self.converter[key]
 
     def __len__(self):
+        """int: Number of converters."""
         return len(self.converter)
 
 
@@ -513,7 +570,7 @@ def to_type_converter(value):
     """
     if isinstance(value, tuple):
         return TypeConverterFixedLengthSequence(value)
-    if is_iterable(value):
+    if _is_iterable(value):
         return TypeConverterSequence(value)
     elif isinstance(value, Mapping):
         return TypeConverterMapping(value)

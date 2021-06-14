@@ -21,16 +21,16 @@
 #include "ParticleData.h"
 #include "SystemData.h"
 
-#include "hoomd/HOOMDMath.h"
+#include "hoomd/Autotuner.h"
+#include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
-#include "hoomd/DomainDecomposition.h"
-#include "hoomd/Autotuner.h"
+#include "hoomd/HOOMDMath.h"
 
-#include <memory>
-#include <vector>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <memory>
 #include <pybind11/pybind11.h>
+#include <vector>
 
 //! Forward declarations for some classes
 class SystemDefinition;
@@ -39,8 +39,7 @@ struct BoxDim;
 class ParticleData;
 
 namespace mpcd
-{
-
+    {
 //! MPI communication of MPCD particle data
 /*!
  * This class implements the communication algorithms for mpcd::ParticleData that
@@ -58,165 +57,165 @@ namespace mpcd
 class PYBIND11_EXPORT Communicator
     {
     public:
-        //! Constructor
-        Communicator(std::shared_ptr<mpcd::SystemData> system_data);
+    //! Constructor
+    Communicator(std::shared_ptr<mpcd::SystemData> system_data);
 
-        //! Destructor
-        virtual ~Communicator();
+    //! Destructor
+    virtual ~Communicator();
 
-        //! \name accessor methods
-        //@{
+    //! \name accessor methods
+    //@{
 
-        //! Get the number of unique neighbors
-        unsigned int getNUniqueNeighbors() const
-            {
-            return m_n_unique_neigh;
-            }
+    //! Get the number of unique neighbors
+    unsigned int getNUniqueNeighbors() const
+        {
+        return m_n_unique_neigh;
+        }
 
-        //! Get the array of unique neighbors
-        const GPUArray<unsigned int>& getUniqueNeighbors() const
-            {
-            return m_unique_neighbors;
-            }
+    //! Get the array of unique neighbors
+    const GPUArray<unsigned int>& getUniqueNeighbors() const
+        {
+        return m_unique_neighbors;
+        }
 
-        //! Set autotuner parameters
-        /*!
-         * \param enable Enable/disable autotuning
-         * \param period period (approximate) in time steps when returning occurs
-         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            { }
+    //! Set autotuner parameters
+    /*!
+     * \param enable Enable/disable autotuning
+     * \param period period (approximate) in time steps when returning occurs
+     */
+    virtual void setAutotunerParams(bool enable, unsigned int period) { }
 
-        //! Set the profiler.
-        /*!
-         * \param prof Profiler to use with this class
-         */
-        void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            m_prof = prof;
-            }
+    //! Set the profiler.
+    /*!
+     * \param prof Profiler to use with this class
+     */
+    void setProfiler(std::shared_ptr<Profiler> prof)
+        {
+        m_prof = prof;
+        }
 
-        //@}
+    //@}
 
-        //! \name communication methods
-        //@{
+    //! \name communication methods
+    //@{
 
-        //! Interface to the communication methods
-        /*!
-         * This method is supposed to be called every time step and automatically performs all necessary
-         * communication steps.
-         */
-        void communicate(uint64_t timestep);
+    //! Interface to the communication methods
+    /*!
+     * This method is supposed to be called every time step and automatically performs all necessary
+     * communication steps.
+     */
+    void communicate(uint64_t timestep);
 
-        //! Migrate particle data to local domain
-        /*!
-         * This methods finds all the particles that are no longer inside the domain
-         * boundaries and transfers them to neighboring processors.
-         *
-         * Particles sent to a neighbor are deleted from the local particle data.
-         * Particles received from a neighbor in one of the six communication steps
-         * are added to the local particle data, and are also considered for forwarding to a neighbor
-         * in the subsequent communication steps.
-         *
-         * \post Every particle on every processor can be found inside the local domain boundaries.
-         */
-        virtual void migrateParticles(uint64_t timestep);
+    //! Migrate particle data to local domain
+    /*!
+     * This methods finds all the particles that are no longer inside the domain
+     * boundaries and transfers them to neighboring processors.
+     *
+     * Particles sent to a neighbor are deleted from the local particle data.
+     * Particles received from a neighbor in one of the six communication steps
+     * are added to the local particle data, and are also considered for forwarding to a neighbor
+     * in the subsequent communication steps.
+     *
+     * \post Every particle on every processor can be found inside the local domain boundaries.
+     */
+    virtual void migrateParticles(uint64_t timestep);
 
-        //! Migration signal type
-        typedef Nano::Signal<bool (uint64_t timestep)> MigrateSignal;
+    //! Migration signal type
+    typedef Nano::Signal<bool(uint64_t timestep)> MigrateSignal;
 
-        //! Get the migrate request signal
-        /*!
-         * \returns A signal that subscribers can attach a callback to request particle migration
-         *          at the current timestep.
-         */
-        MigrateSignal& getMigrateRequestSignal()
-            {
-            return m_migrate_requests;
-            }
+    //! Get the migrate request signal
+    /*!
+     * \returns A signal that subscribers can attach a callback to request particle migration
+     *          at the current timestep.
+     */
+    MigrateSignal& getMigrateRequestSignal()
+        {
+        return m_migrate_requests;
+        }
 
-        //! Force a particle migration to occur on the next call to communicate()
-        void forceMigrate()
-            {
-            m_force_migrate = true;
-            }
-        //@}
+    //! Force a particle migration to occur on the next call to communicate()
+    void forceMigrate()
+        {
+        m_force_migrate = true;
+        }
+    //@}
 
     protected:
-        //! Set the communication flags for the particle data
-        virtual void setCommFlags(const BoxDim& box);
+    //! Set the communication flags for the particle data
+    virtual void setCommFlags(const BoxDim& box);
 
-        //! Checks for overdecomposition
-        void checkDecomposition();
+    //! Checks for overdecomposition
+    void checkDecomposition();
 
-        //! Get the wrapping box for this rank
-        BoxDim getWrapBox(const BoxDim& box);
+    //! Get the wrapping box for this rank
+    BoxDim getWrapBox(const BoxDim& box);
 
-        //! Returns true if we are communicating particles along a given direction
-        /*!
-         * \param dir Direction to return dimensions for
-         */
-        bool isCommunicating(mpcd::detail::face dir) const
-            {
-            const Index3D& di = m_decomposition->getDomainIndexer();
-            bool res = true;
-            if ((dir == mpcd::detail::face::east || dir == mpcd::detail::face::west) && di.getW() == 1)
-                res = false;
-            if ((dir == mpcd::detail::face::north || dir == mpcd::detail::face::south) && di.getH() == 1)
-                res = false;
-            if ((dir == mpcd::detail::face::up || dir == mpcd::detail::face::down) && di.getD() == 1)
-                res = false;
+    //! Returns true if we are communicating particles along a given direction
+    /*!
+     * \param dir Direction to return dimensions for
+     */
+    bool isCommunicating(mpcd::detail::face dir) const
+        {
+        const Index3D& di = m_decomposition->getDomainIndexer();
+        bool res = true;
+        if ((dir == mpcd::detail::face::east || dir == mpcd::detail::face::west) && di.getW() == 1)
+            res = false;
+        if ((dir == mpcd::detail::face::north || dir == mpcd::detail::face::south)
+            && di.getH() == 1)
+            res = false;
+        if ((dir == mpcd::detail::face::up || dir == mpcd::detail::face::down) && di.getD() == 1)
+            res = false;
 
-            return res;
-            }
+        return res;
+        }
 
-        std::shared_ptr<mpcd::SystemData> m_mpcd_sys;               //!< MPCD system data
-        std::shared_ptr<SystemDefinition> m_sysdef;                 //!< HOOMD system definition
-        std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
-        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
-        std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;           //!< MPCD particle data
-        const MPI_Comm m_mpi_comm;                                  //!< MPI communicator
-        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
-        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
+    std::shared_ptr<mpcd::SystemData> m_mpcd_sys;              //!< MPCD system data
+    std::shared_ptr<SystemDefinition> m_sysdef;                //!< HOOMD system definition
+    std::shared_ptr<::ParticleData> m_pdata;                   //!< HOOMD particle data
+    std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
+    std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;          //!< MPCD particle data
+    const MPI_Comm m_mpi_comm;                                 //!< MPI communicator
+    std::shared_ptr<DomainDecomposition> m_decomposition;      //!< Domain decomposition information
+    std::shared_ptr<Profiler> m_prof;                          //!< Profiler
 
-        bool m_is_communicating;               //!< Whether we are currently communicating
-        bool m_check_decomposition; //!< Flag to check the simulation box decomposition
+    bool m_is_communicating;    //!< Whether we are currently communicating
+    bool m_check_decomposition; //!< Flag to check the simulation box decomposition
 
-        const static unsigned int neigh_max;           //!< Maximum number of neighbor ranks
-        GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
-        GPUArray<unsigned int> m_unique_neighbors;     //!< Neighbor ranks w/duplicates removed
-        GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
-        unsigned int m_nneigh;                         //!< Number of neighbors
-        unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
-        std::map<unsigned int, unsigned int> m_unique_neigh_map; //!< Reverse mapping of the unique neighbors
+    const static unsigned int neigh_max;       //!< Maximum number of neighbor ranks
+    GPUArray<unsigned int> m_neighbors;        //!< Neighbor ranks
+    GPUArray<unsigned int> m_unique_neighbors; //!< Neighbor ranks w/duplicates removed
+    GPUArray<unsigned int> m_adj_mask;         //!< Adjacency mask for every neighbor
+    unsigned int m_nneigh;                     //!< Number of neighbors
+    unsigned int m_n_unique_neigh;             //!< Number of unique neighbors
+    std::map<unsigned int, unsigned int>
+        m_unique_neigh_map; //!< Reverse mapping of the unique neighbors
 
-        //! Helper function to initialize adjacency arrays
-        void initializeNeighborArrays();
+    //! Helper function to initialize adjacency arrays
+    void initializeNeighborArrays();
 
-        MPI_Datatype m_pdata_element;                       //!< MPI struct for pdata_element
-        GPUVector<mpcd::detail::pdata_element> m_sendbuf;   //!< Buffer for particles that are sent
-        GPUVector<mpcd::detail::pdata_element> m_recvbuf;   //!< Buffer for particles that are received
-        std::vector<MPI_Request> m_reqs;    //!< MPI requests
+    MPI_Datatype m_pdata_element;                     //!< MPI struct for pdata_element
+    GPUVector<mpcd::detail::pdata_element> m_sendbuf; //!< Buffer for particles that are sent
+    GPUVector<mpcd::detail::pdata_element> m_recvbuf; //!< Buffer for particles that are received
+    std::vector<MPI_Request> m_reqs;                  //!< MPI requests
 
     private:
-        //! Notify communicator that box has changed and so decomposition needs to be checked
-        void slotBoxChanged()
-            {
-            m_check_decomposition = true;
-            }
+    //! Notify communicator that box has changed and so decomposition needs to be checked
+    void slotBoxChanged()
+        {
+        m_check_decomposition = true;
+        }
 
-        MigrateSignal m_migrate_requests;   //!< Signal to request migration
-        bool m_force_migrate;               //!< If true, force particle migration
+    MigrateSignal m_migrate_requests; //!< Signal to request migration
+    bool m_force_migrate;             //!< If true, force particle migration
     };
 
-
 namespace detail
-{
+    {
 //! Export mpcd::Communicator to python
 void export_Communicator(pybind11::module& m);
-} // end namespace detail
+    } // end namespace detail
 
-} // end namespace mpcd
+    } // end namespace mpcd
 
 #endif // MPCD_COMMUNICATOR_H_
 #endif // ENABLE_MPI

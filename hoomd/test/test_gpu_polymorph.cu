@@ -3,13 +3,14 @@
 
 // Maintainer: mphoward
 
-#include "test_gpu_polymorph.cuh"
 #include "hoomd/GPUPolymorph.cuh"
+#include "test_gpu_polymorph.cuh"
 
 __global__ void test_operator_kernel(int* result, const ArithmeticOperator* op, unsigned int N)
     {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= N) return;
+    if (idx >= N)
+        return;
 
     result[idx] = op->call(idx);
     }
@@ -17,8 +18,15 @@ __global__ void test_operator_kernel(int* result, const ArithmeticOperator* op, 
 void test_operator(int* result, const ArithmeticOperator* op, unsigned int N)
     {
     const unsigned int block_size = 32;
-    const unsigned int num_blocks = (N + block_size - 1)/block_size;
-    hipLaunchKernelGGL((test_operator_kernel), dim3(num_blocks), dim3(block_size), 0, 0, result, op, N);
+    const unsigned int num_blocks = (N + block_size - 1) / block_size;
+    hipLaunchKernelGGL((test_operator_kernel),
+                       dim3(num_blocks),
+                       dim3(block_size),
+                       0,
+                       0,
+                       result,
+                       op,
+                       N);
     }
 
 template AdditionOperator* hoomd::gpu::device_new(int);

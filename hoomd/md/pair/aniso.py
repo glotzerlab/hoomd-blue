@@ -1,3 +1,11 @@
+# Copyright (c) 2009-2021 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
+
+"""Anisotropic potentials."""
+
+import json
+
 from hoomd import md
 from hoomd.md.pair.pair import Pair
 from hoomd.logging import log
@@ -7,7 +15,7 @@ from hoomd.data.typeconverter import OnlyTypes, OnlyFrom, positive_real
 
 
 class AnisotropicPair(Pair):
-    R"""Generic anisotropic pair potential.
+    r"""Generic anisotropic pair potential.
 
     Users should not instantiate `AnisotropicPair` directly. It is a base
     class that provides common features to all anisotropic pair forces.
@@ -31,12 +39,10 @@ class AnisotropicPair(Pair):
     def __init__(self, nlist, r_cut=None, mode="none"):
         self._nlist = OnlyTypes(md.nlist.NList, strict=True)(nlist)
         tp_r_cut = TypeParameter('r_cut', 'particle_types',
-                                 TypeParameterDict(positive_real, len_keys=2)
-                                 )
+                                 TypeParameterDict(positive_real, len_keys=2))
         if r_cut is not None:
             tp_r_cut.default = r_cut
-        self._param_dict.update(
-            ParameterDict(mode=OnlyFrom(['none', 'shift'])))
+        self._param_dict.update(ParameterDict(mode=OnlyFrom(['none', 'shift'])))
         self.mode = mode
         self._add_typeparam(tp_r_cut)
 
@@ -47,7 +53,7 @@ class AnisotropicPair(Pair):
 
 
 class Dipole(AnisotropicPair):
-    R""" Screened dipole-dipole interactions.
+    r"""Screened dipole-dipole interactions.
 
     Implements the force and energy calculations for both magnetic and
     electronic dipole-dipole interactions. When particles have charge as well as
@@ -93,28 +99,34 @@ class Dipole(AnisotropicPair):
     Note:
        All units are given for electronic dipole moments.
 
-    Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The dipole potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``A`` (`float`, **optional**) - :math:`A` - electrostatic energy
-              scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+        The dipole potential parameters. The dictionary has the following
+        keys:
 
+        * ``A`` (`float`, **required**) - :math:`A` - electrostatic energy
+          scale (*default*: 1.0) (units: [energy] [length] [charge]^-2)
+        * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
+          screening length (units: [length]^-1)
 
-            * ``kappa`` (`float`, **required**) - :math:`\kappa` - inverse
-              screening length (units: [length]^-1)
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
 
-        mu (TypeParameter[``particle_type``, tuple[float, float, float]):
-            :math:`\mu` - the magnetic magnitude of the particle local reference
-            frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
-            [charge] [length]).
+    .. py:attribute:: mu
+
+        :math:`\mu` - the magnetic magnitude of the particle local reference
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`) (units:
+        [charge] [length]).
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
+
     Example::
 
         nl = nlist.Cell()
         dipole = md.pair.Dipole(nl, r_cut=3.0)
         dipole.params[('A', 'B')] = dict(A=1.0, kappa=4.0)
-        dipole.mu[('A', 'B')] = (4.0, 1.0, 0.0)
+        dipole.mu['A'] = (4.0, 1.0, 0.0)
     """
     _cpp_class_name = "AnisoPotentialPairDipole"
 
@@ -123,14 +135,13 @@ class Dipole(AnisotropicPair):
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(A=float, kappa=float, len_keys=2))
-        mu = TypeParameter(
-            'mu', 'particle_types',
-            TypeParameterDict((float, float, float), len_keys=1))
+        mu = TypeParameter('mu', 'particle_types',
+                           TypeParameterDict((float, float, float), len_keys=1))
         self._extend_typeparam((params, mu))
 
 
 class GayBerne(AnisotropicPair):
-    R""" Gay-Berne anisotropic pair potential.
+    r"""Gay-Berne anisotropic pair potential.
 
     Warning: The code has yet to be updated to the current API.
 
@@ -144,10 +155,12 @@ class GayBerne(AnisotropicPair):
     particles.
 
     This version of the Gay-Berne potential supports identical pairs of uniaxial
-    ellipsoids, with orientation-independent energy-well depth.
+    ellipsoids, with orientation-independent energy-well depth. The potential
+    comes from the following paper Allen et. al. 2006 `paper link`_.
+
+    .. _paper link: http://dx.doi.org/10.1080/00268970601075238
 
     The interaction energy for this anisotropic pair potential is
-    (`Allen et. al. 2006 <http://dx.doi.org/10.1080/00268970601075238>`_):
 
     .. math::
         :nowrap:
@@ -185,19 +198,21 @@ class GayBerne(AnisotropicPair):
     Use ``params`` dictionary to set potential coefficients. The coefficients
     must be set per unique pair of particle types.
 
-    Attributes:
-        params (TypeParameter[tuple[``particle_type``, ``particle_type``], dict]):
-            The Gay-Berne potential parameters. The dictionary has the following
-            keys:
+    .. py:attribute:: params
 
-            * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
-              [energy])
+        The Gay-Berne potential parameters. The dictionary has the following
+        keys:
 
-            * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
-              [length])
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` (units:
+          [energy])
+        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp` (units:
+          [length])
+        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
+          [length])
 
-            * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel` (units:
-              [length])
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+
 
     Example::
 

@@ -8,7 +8,7 @@ hoomd.device
 .. autosummary::
     :nosignatures:
 
-    Device 
+    Device
     CPU
     GPU
     auto_select
