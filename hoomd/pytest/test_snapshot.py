@@ -20,7 +20,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
     differences in the way the two snapshots handle the dimensions of empty
     boxes. This function returns ``True`` when not on the root rank.
     """
-    if not hoomd_snap.exists:
+    if not hoomd_snap.communicator.rank == 0:
         return True
     for attr in dir(hoomd_snap):
         if attr[0] == '_' or attr in ['exists', 'replicate', 'communicator']:
@@ -64,7 +64,7 @@ def s():
 
 
 def test_empty_snapshot(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         numpy.testing.assert_allclose(s.configuration.box, [0, 0, 0, 0, 0, 0],
                                       atol=1e-7)
         assert s.configuration.dimensions == 3
@@ -115,7 +115,7 @@ def test_empty_snapshot(s):
 
 
 def test_configuration(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         numpy.testing.assert_allclose(s.configuration.box,
                                       [10, 12, 7, 0.1, 0.4, 0.2])
@@ -126,7 +126,7 @@ def test_configuration(s):
 
 
 def test_particles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.particles.N = 5
 
         assert s.particles.N == 5
@@ -173,7 +173,7 @@ def test_particles(s):
 
 
 def test_bonds(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.bonds.N = 3
 
         assert s.bonds.N == 3
@@ -190,7 +190,7 @@ def test_bonds(s):
 
 
 def test_angles(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.angles.N = 3
 
         assert s.angles.N == 3
@@ -207,7 +207,7 @@ def test_angles(s):
 
 
 def test_dihedrals(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.dihedrals.N = 3
 
         assert s.dihedrals.N == 3
@@ -224,7 +224,7 @@ def test_dihedrals(s):
 
 
 def test_impropers(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.impropers.N = 3
 
         assert s.impropers.N == 3
@@ -241,7 +241,7 @@ def test_impropers(s):
 
 
 def test_pairs(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.pairs.N = 3
 
         assert s.pairs.N == 3
@@ -258,7 +258,7 @@ def test_pairs(s):
 
 
 def test_constraints(s):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.constraints.N = 3
 
         assert s.constraints.N == 3
@@ -280,7 +280,7 @@ def test_from_gsd_snapshot_empty(s, device):
 
 @skip_gsd
 def test_from_gsd_snapshot_populated(s, device):
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [10, 12, 7, 0.1, 0.4, 0.2]
         for section in ('particles', 'bonds', 'angles', 'dihedrals',
                         'impropers', 'pairs'):
@@ -319,7 +319,7 @@ def test_invalid_particle_typeids(simulation_factory, lattice_snapshot_factory):
     snap = lattice_snapshot_factory(particle_types=['A', 'B'])
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = 2
 
     with pytest.raises(RuntimeError):
@@ -358,7 +358,7 @@ def test_invalid_bond_typeids(
     snap = lattice_snapshot_factory()
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         group = getattr(snap, group_name)
         group.types = ['A']
         group.N = 1
@@ -372,7 +372,7 @@ def test_invalid_bond_typeids(
     snap = lattice_snapshot_factory()
 
     # assign invalid type ids
-    if snap.exists:
+    if snap.communicator.rank == 0:
         group = getattr(snap, group_name)
         group.types = []
         group.N = 0

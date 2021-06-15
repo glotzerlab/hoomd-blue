@@ -1,6 +1,6 @@
 import pytest
 from hoomd.filter import (Type, Tags, SetDifference, Union, Intersection, All,
-                          Null, CustomFilter)
+                          Null, CustomFilter, Rigid)
 from hoomd.snapshot import Snapshot
 import hoomd.md as md
 from copy import deepcopy
@@ -14,7 +14,7 @@ def make_filter_snapshot(device):
 
     def filter_snapshot(n=10, particle_types=['A']):
         s = Snapshot(device.communicator)
-        if s.exists:
+        if s.communicator.rank == 0:
             s.configuration.box = [20, 20, 20, 0, 0, 0]
             s.particles.N = n
             s.particles.position[:] = np.random.uniform(-10, 10, size=(n, 3))
@@ -72,7 +72,7 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
     assert B_filter(sim.state) == []
 
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, range(N), particle_types, "B")
     sim.state.snapshot = s
     assert A_filter(sim.state) == []
@@ -80,7 +80,7 @@ def test_type_filter(make_filter_snapshot, simulation_factory, type_indices):
 
     A_inds, B_inds = type_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
     sim.state.snapshot = s
@@ -108,6 +108,63 @@ def test_tags_filter(make_filter_snapshot, simulation_factory, tag_indices):
     assert tag_filter(sim.state) == inds
 
 
+def test_rigid_filter(make_filter_snapshot, simulation_factory):
+    MPI = pytest.importorskip("mpi4py.MPI")
+
+    rigid = md.constrain.Rigid()
+    rigid.body["A"] = {
+        "constituent_types": ["B", "B", "B", "B"],
+        "positions": [
+            [1, 0, -1 / (2**(1. / 2.))],
+            [-1, 0, -1 / (2**(1. / 2.))],
+            [0, -1, 1 / (2**(1. / 2.))],
+            [0, 1, 1 / (2**(1. / 2.))],
+        ],
+        "orientations": [(1.0, 0.0, 0.0, 0.0)] * 4,
+        "charges": [0.0, 1.0, 2.0, 3.5],
+        "diameters": [1.0, 1.5, 0.5, 1.0]
+    }
+
+    snapshot = make_filter_snapshot(n=100, particle_types=["A", "B", "C"])
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.typeid[50:100] = 2
+        snapshot.particles.body[50:100] = -1
+    sim = simulation_factory(snapshot)
+    rigid.create_bodies(sim.state)
+
+    def check_tags(filter_, state, expected_tags):
+        mpi_communicator = MPI.COMM_WORLD
+
+        local_tags = filter_(state)
+        all_tags = mpi_communicator.gather(local_tags, root=0)
+        if mpi_communicator.rank == 0:
+            # unique automatically sorts the items
+            all_tags = np.unique(np.concatenate(all_tags))
+            assert np.all(all_tags == expected_tags)
+
+    only_centers = Rigid()
+    check_tags(only_centers, sim.state, np.arange(50))
+
+    only_free = Rigid(('free',))
+    check_tags(only_free, sim.state, np.arange(50, 100))
+
+    only_constituent = Rigid(('constituent',))
+    check_tags(only_constituent, sim.state, np.arange(100, 300))
+
+    free_and_centers = Rigid(('free', 'center'))
+    check_tags(free_and_centers, sim.state, np.arange(0, 100))
+
+    constituent_and_centers = Rigid(('constituent', 'center'))
+    check_tags(constituent_and_centers, sim.state,
+               np.concatenate((np.arange(0, 50), np.arange(100, 300))))
+
+    constituent_and_free = Rigid(('free', 'constituent'))
+    check_tags(constituent_and_free, sim.state, np.arange(50, 300))
+
+    all_ = Rigid(('free', 'constituent', 'center'))
+    check_tags(all_, sim.state, np.arange(0, 300))
+
+
 _set_indices = [([0, 3, 8], [1, 6, 7, 9], [2, 4, 5]),
                 ([2, 3, 5, 7, 8], [0, 1, 4], [6, 9]),
                 ([3], [0, 7, 8], [1, 2, 4, 5, 6, 9])]
@@ -131,7 +188,7 @@ def test_intersection(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -156,7 +213,7 @@ def test_union(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -177,7 +234,7 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
     sim = simulation_factory(filter_snapshot)
     A_inds, B_inds, C_inds = set_indices
     s = sim.state.snapshot
-    if s.exists:
+    if s.communicator.rank == 0:
         set_types(s, A_inds, particle_types, "A")
         set_types(s, B_inds, particle_types, "B")
         set_types(s, C_inds, particle_types, "C")
@@ -198,11 +255,24 @@ def test_difference(make_filter_snapshot, simulation_factory, set_indices):
         assert difference_filter(sim.state) == combo_filter(sim.state)
 
 
-_filter_classes = [All, Tags, Type, SetDifference, Union, Intersection]
+_filter_classes = [
+    All,
+    Tags,
+    Type,
+    Rigid,
+    SetDifference,
+    Union,
+    Intersection,
+]
 
 _constructor_args = [
-    tuple(), ([1, 2, 3],), ({'a', 'b'},), (Tags([1, 4, 5]), Type({'a'})),
-    (Tags([1, 4, 5]), Type({'a'})), (Tags([1, 4, 5]), Type({'a'}))
+    (),
+    ([1, 2, 3],),
+    ({'a', 'b'},),
+    (('center', 'free'),),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'})),
+    (Tags([1, 4, 5]), Type({'a'})),
 ]
 
 
@@ -268,7 +338,7 @@ def test_custom_filter(make_filter_snapshot, simulation_factory):
     sim.operations += md.Integrator(0.005, methods=[langevin])
     sim.run(100)
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         assert not np.allclose(snap.particles.position[negative_charge_ind],
                                original_positions)
         assert np.allclose(snap.particles.position[positive_charge_tags],
