@@ -370,7 +370,10 @@ class Box:
 
     @property
     def volume(self):
-        """float: Volume of the box (area in 2D).
+        """float: Volume of the box.
+
+        :math:`[\\mathrm{length}^{2}]` in 2D and
+        :math:`[\\mathrm{length}^{3}]` in 3D.
 
         When setting volume the aspect ratio of the box is maintained while the
         lengths are changed.

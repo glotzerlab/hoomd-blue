@@ -867,7 +867,7 @@ class Polyhedron(HPMCIntegrator):
               `True` to ignore tracked statistics.
             * ``sweep_radius`` (`float`, **default:** 0.0) - radius of the
               sphere swept around the surface of the polyhedron
-              :math:`[length]`. Set a non-zero sweep_radius to create
+              :math:`[\\mathrm{length}]`. Set a non-zero sweep_radius to create
               a spheropolyhedron.
             * ``overlap`` (`list` [`int`], **default:** None) - Check for
               overlaps between faces when ``overlap [i] & overlap[j]`` is
@@ -1498,6 +1498,7 @@ class SphereUnion(HPMCIntegrator):
               for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each sphere in the union.
+              :math:`[\\mathrm{length}]`
             * ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,\
               `float`]], **default:** `None`) -
               Orientation of each sphere in the union. When not `None`,
@@ -1628,6 +1629,7 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
               `ConvexSpheropolyhedron.shape` for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each spheropolyhedron in the union.
+              :math:`[\\mathrm{length}]`
             * ``orientations`` (`list[ `tuple[`float`, `float`, `float`,\
               `float`]], **default:** None) - Orientation of each
               spheropolyhedron in the union. When not `None`,
@@ -1770,6 +1772,7 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
               `FacetedEllipsoid.shape` for the accepted parameters.
             * ``positions`` (`list` [`tuple` [`float`, `float`, `float`]],
               **required**) - Position of each faceted ellipsoid in the union.
+              :math:`[\\mathrm{length}]`
             * ``orientations`` (`list` [`tuple` [`float`, `float`, `float`,
               `float`]], **default:** `None`) - Orientation of each faceted
               ellipsoid in the union. When not `None`, ``orientations``
