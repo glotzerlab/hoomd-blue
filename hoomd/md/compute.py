@@ -54,7 +54,8 @@ class ThermodynamicQuantities(_Thermo):
     @log(requires_run=True)
     def kinetic_temperature(self):
         r""":math:`kT_k`, instantaneous thermal energy of the group. \
-        :math:`[\mathrm{energy}]`
+        
+        :math:`[\mathrm{energy}]`.
 
         Calculated as:
 
