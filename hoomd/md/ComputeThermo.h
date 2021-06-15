@@ -320,6 +320,12 @@ class PYBIND11_EXPORT ComputeThermo : public Compute
         return m_properties;
         }
 
+    /// Get the box volume (or area in 2D)
+    const Scalar getVolume()
+        {
+        return m_sysdef->getParticleData()->getGlobalBox().getVolume();
+        }
+
     protected:
     std::shared_ptr<ParticleGroup> m_group; //!< Group to compute properties for
     GlobalArray<Scalar> m_properties;       //!< Stores the computed properties
