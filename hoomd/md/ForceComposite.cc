@@ -545,7 +545,6 @@ void ForceComposite::createRigidBodies()
 
     // take a snapshot on rank 0
     m_pdata->takeSnapshot(snap);
-    unsigned int ntypes = m_pdata->getNTypes();
     bool remove_existing_bodies = false;
     unsigned int n_constituent_particles = 0;
     unsigned int n_free_bodies = 0;
