@@ -104,7 +104,7 @@ gpu_compute_mie_forces(const pair_args_t& args, const EvaluatorPairMie::param_ty
 //! Compute expanded mie potential pair forces on the GPU with PairEvaluatorExpandedMie
 hipError_t __attribute__((visibility("default")))
 gpu_compute_expanded_mie_forces(const pair_args_t& args,
-                                EvaluatorPairExpandedMie::param_type* d_params);
+                                const EvaluatorPairExpandedMie::param_type* d_params);
 
 //! Compute reaction field potential pair forces on the GPU with PairEvaluatorReactionField
 hipError_t __attribute__((visibility("default")))
