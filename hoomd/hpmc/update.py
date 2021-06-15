@@ -20,8 +20,8 @@ class BoxMC(Updater):
 
     Args:
         betaP (`float` or :py:mod:`hoomd.variant.Variant`):
-            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{area}^{-1}]`
-            in 2D or :math:`[\mathrm{volume}^{-1}]` in 3D.
+            :math:`\frac{p}{k_{\mathrm{B}}T}` :math:`[\mathrm{length}^{-2}]`
+            in 2D or :math:`[\mathrm{length}^{-3}]` in 3D.
         trigger (hoomd.trigger.Trigger): Select the timesteps to perform box
             trial moves.
 

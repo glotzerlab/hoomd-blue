@@ -583,7 +583,7 @@ class DPD(Pair):
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
         kT (`hoomd.variant` or `float`): Temperature of
-          thermostat :math:`[energy]`.
+          thermostat :math:`[\mathrm{energy}]`.
         r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
 

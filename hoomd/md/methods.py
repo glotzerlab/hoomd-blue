@@ -379,10 +379,10 @@ class NPT(Method):
         S (List[hoomd.variant.Variant]): Stress components set
             point for the barostat.
             In Voigt notation,
-            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. Stress
-            can be reset after method object is created. For example, An
-            isoropic pressure can be set by ``npt.S = 4.``
-            :math:`[\mathrm{pressure}]`
+            :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+            :math:`[\mathrm{pressure}]`. Stress can be reset after the method
+            object is created. For example, An isoropic pressure can be set by
+            ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat.
             :math:`[\mathrm{time}]`
@@ -533,10 +533,11 @@ class NPH(Method):
 
         S: Stress components set point for the barostat.
            In Voigt notation:
-           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`. In case
-           of isotropic pressure P (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
+           :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
+           :math:`[\mathrm{pressure}]`. In case of isotropic pressure P
+           (:math:`[p, p, p, 0, 0, 0]`), use ``S = p``.
            Accepts: `tuple` [ `hoomd.variant.Variant` or `float`, ... ] or
-           `hoomd.variant.Variant` or `float` . :math:`[\mathrm{pressure}]`
+           `hoomd.variant.Variant` or `float`.
 
         tauS (float): Coupling constant for the barostat.
            :math:`[\mathrm{time}]`
@@ -1164,7 +1165,8 @@ class Brownian(MethodRATTLE):
             The rotational drag coefficient can be set. The type of ``gamma_r``
             parameter is a tuple of three float. The type of each element of
             tuple is either positive float or zero.
-            :math:`[\mathrm{mass} \cdot \mathrm{time}^{-1}]`
+            :math:`[\mathrm{force} \cdot \mathrm{length} \cdot
+            \mathrm{radian}^{-1} \cdot \mathrm{time}^{-1}]`
     """
 
     def __init__(self,

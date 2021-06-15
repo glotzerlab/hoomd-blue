@@ -47,7 +47,7 @@ class Triplet(Force):
 
     .. py:attribute:: r_cut
 
-        *r_cut* :math:`[length]`, *optional*: defaults to the value
+        *r_cut* :math:`[\mathrm{length}]`, *optional*: defaults to the value
         ``r_cut`` specified on construction.
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -190,7 +190,7 @@ class Tersoff(Triplet):
 
         * ``magnitudes`` (tuple[`float`, `float`]) - :math:`(A_1, A_2)` -
           Magnitudes of the repulsive and attractive
-          terms (*default*: (1.0, 1.0)) :math:`[\mathrm{dimensionless}]`
+          terms (*default*: (1.0, 1.0)) :math:`[\mathrm{energy}]`
         * ``exp_factors`` (tuple[`float`, `float`]) -
           :math:`(\lambda_1, \lambda_2)` - exponential factors of the
           repulsive and attractive

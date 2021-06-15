@@ -68,8 +68,7 @@ class Force(_HOOMDBaseObject):
     @log(category="particle", requires_run=True)
     def torques(self):
         """(*N_particles*, 3) `numpy.ndarray` of ``numpy.float64``: The torque \
-        for all \
-         particles :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
+        for all particles :math:`[\\mathrm{force} \\cdot \\mathrm{length}]`."""
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getTorques()
 

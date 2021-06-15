@@ -69,7 +69,7 @@ class Cylinder(Manifold):
         r (`float`): radius of the cylinder constraint.
           :math:`[\mathrm{length}]`
         P (`tuple` [`float`, `float`, `float`]): point defining position of
-            the cylinder axis (default origin).
+            the cylinder axis (default origin). :math:`[\mathrm{length}]`
 
     :py:class:`Cylinder` specifies that a cylindric manifold is defined as
     a constraint.
@@ -171,14 +171,14 @@ class Ellipsoid(Manifold):
     r"""Ellipsoid manifold.
 
     Args:
-        a (`float`): length of the a-axis of the ellipsoidal constraint.
-            :math:`[\mathrm{length}]`
-        b (`float`): length of the b-axis of the ellipsoidal constraint.
-            :math:`[\mathrm{length}]`
-        c (`float`): length of the c-axis of the ellipsoidal constraint.
-            :math:`[\mathrm{length}]`
-        P (`tuple` [`float`, `float`, `float`]): center of the ellipsoidal제
-            constraint (default origin).
+        a (`float`): length of the a-axis of the ellipsoidal constraint
+            :math:`[\mathrm{length}]`.
+        b (`float`): length of the b-axis of the ellipsoidal constraint
+            :math:`[\mathrm{length}]`.
+        c (`float`): length of the c-axis of the ellipsoidal constraint
+            :math:`[\mathrm{length}]`.
+        P (`tuple` [`float`, `float`, `float`]): center of the ellipsoidal
+            constraint (default origin). :math:`[\mathrm{length}]`
 
     :py:class:`Ellipsoid` specifies that a ellipsoidal manifold is defined as a
     constraint.
@@ -281,7 +281,7 @@ class Plane(Manifold):
     r"""Plane manifold.
 
     Args:
-        shift (`float`): z-shift of the xy-plane. :math:`[\mathrm{length}]`
+        shift (`float`): z-shift of the xy-plane :math:`[\mathrm{length}]`.
 
     :py:class:`Plane` specifies that a xy-plane manifold is defined as
     a constraint.
@@ -370,10 +370,10 @@ class Sphere(Manifold):
     """Sphere manifold.
 
     Args:
-        r (`float`): radius of the a-axis of the spherical constraint.
-          :math:`[\\mathrm{length}]`
+        r (`float`): radius of the a-axis of the spherical constraint
+          :math:`[\\mathrm{length}]`.
         P (`tuple` [`float`, `float`, `float`] ): center of the spherical
-            constraint (default origin).
+            constraint (default origin). :math:`[\\mathrm{length}]`
 
     :py:class:`Sphere` specifies that a spherical manifold is defined as
     a constraint.
