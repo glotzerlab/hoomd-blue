@@ -373,7 +373,7 @@ class Sphere(Manifold):
         r (`float`): radius of the a-axis of the spherical constraint
           :math:`[\\mathrm{length}]`.
         P (`tuple` [`float`, `float`, `float`] ): center of the spherical
-            constraint (default origin). :math:`[\\mathrm{length}]`
+            constraint (default origin). :math:`[\\mathrm{length}]`.
 
     :py:class:`Sphere` specifies that a spherical manifold is defined as
     a constraint.

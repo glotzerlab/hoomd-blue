@@ -264,8 +264,7 @@ class Box:
     @property
     def Lx(self):  # noqa: N802: Allow function name
         """float: The length of the box in the x dimension\
-        :math:`[\\mathrm{length}]`.
-        """
+        :math:`[\\mathrm{length}]`."""
         return self.L[0]
 
     @Lx.setter
@@ -277,8 +276,7 @@ class Box:
     @property
     def Ly(self):  # noqa: N802: Allow function name
         """float: The length of the box in the y dimension\
-        :math:`[\\mathrm{length}].`
-        """
+        :math:`[\\mathrm{length}]`."""
         return self.L[1]
 
     @Ly.setter
@@ -290,8 +288,7 @@ class Box:
     @property
     def Lz(self):  # noqa: N802: Allow function name
         """float: The length of the box in the z dimension\
-        :math:`[\\mathrm{length}].`
-        """
+        :math:`[\\mathrm{length}]`."""
         return self.L[2]
 
     @Lz.setter
