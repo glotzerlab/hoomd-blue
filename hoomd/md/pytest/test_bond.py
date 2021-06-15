@@ -51,7 +51,7 @@ def test_before_attaching(bond_cls, potential_kwargs):
 def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
                          bond_cls, potential_kwargs):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.bonds.N = 1
         snap.bonds.types = ['bond']
         snap.bonds.typeid[0] = 0
@@ -83,7 +83,7 @@ def test_after_attaching(two_particle_snapshot_factory, simulation_factory,
 def test_forces_and_energies(two_particle_snapshot_factory, simulation_factory,
                              bond_cls, potential_kwargs, force, energy):
     snap = two_particle_snapshot_factory(d=0.969, L=5)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.bonds.N = 1
         snap.bonds.types = ['bond']
         snap.bonds.typeid[0] = 0
