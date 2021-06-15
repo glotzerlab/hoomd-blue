@@ -1166,13 +1166,13 @@ class Mie(Pair):
 
 
 class ExpandedMie(Pair):
-    r"""Expanded Mie pair potential.
+    """Expanded Mie pair potential.
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius (in distance units).
-        r_on (float): Default turn-on radius (in distance units).
-        mode (str): energy shifting/smoothing mode.
+        r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
+        r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
 
     `ExpandedMie` specifies that a radially shifted Mie pair potential
     should be applied between every non-excluded particle pair in the
@@ -1191,28 +1191,23 @@ class ExpandedMie(Pair):
         \\end{eqnarray*}
 
     `Pair` for details on how forces are calculated and the available energy
-    shifting and smoothing modes. Use the `params` dictionary to set potential
-    coefficients. The coefficients must be set per unique pair of particle
-    types.
+    shifting and smoothing modes.
 
     Attributes:
         params (`TypeParameter` [\
           `tuple` [``particle_type``, ``particle_type``],\
           `dict`]):
           The potential parameters. The dictionary has the following keys:
-
-          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon` (in units
-            of energy)
-
-          * ``sigma`` (`float`, **required**) - :math:`\\sigma` (in distance
-          units)
-
-          * ``n`` (`float`, **required**) - :math:`n` (unitless)
-
-          * ``m`` (`float`, **required**) - :math:`m` (unitless)
-
-          * ``delta`` (`float`, **required**) - :math:`\\Delta`
-          (in distance units)
+          * ``epsilon`` (`float`, **required**) - :math:`\\varepsilon`
+          :math:`[\\mathrm{energy}]`
+          * ``sigma`` (`float`, **required**) - :math:`\\sigma`
+          :math:`[\\mathrm{length}]`.
+          * ``n`` (`float`, **required**) -
+          :math:`n` :math:`[\\mathrm{dimensionless}]`.
+          * ``m`` (`float`, **required**) -
+          :math:`m` :math:`[\\mathrm{dimensionless}]`.
+          * ``delta`` (`float`, **required**) -
+          :math:`\\delta :math:`[\\mathrm{length}]`.
 
     Example::
 

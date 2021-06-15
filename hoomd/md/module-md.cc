@@ -333,7 +333,9 @@ PYBIND11_MODULE(_md, m)
         m,
         "PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
-    export_PotentialPairGPU<PotentialPairExpandedMieGPU, PotentialPairExpandedMie>(m, "PotentialPairExpandedMieGPU");
+    export_PotentialPairGPU<PotentialPairExpandedMieGPU, PotentialPairExpandedMie>(
+        m,
+        "PotentialPairExpandedMieGPU");
     export_PotentialPairGPU<PotentialPairOPPGPU, PotentialPairOPP>(m, "PotentialPairOPPGPU");
     export_PotentialPairGPU<PotentialPairTWFGPU, PotentialPairTWF>(m, "PotentialPairTWFGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD>(

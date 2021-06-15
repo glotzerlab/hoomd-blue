@@ -11,6 +11,7 @@
 #include "EvaluatorPairDPDLJThermo.h"
 #include "EvaluatorPairDPDThermo.h"
 #include "EvaluatorPairEwald.h"
+#include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairFourier.h"
 #include "EvaluatorPairGauss.h"
@@ -23,7 +24,6 @@
 #include "EvaluatorPairOPP.h"
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairSLJ.h"
-#include "EvaluatorPairExpandedMie.h"
 #include "EvaluatorPairTWF.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairZBL.h"
@@ -127,7 +127,8 @@ typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_
 //! Pair potential force compute for Mie potential
 typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairMieGPU;
 //! Pair potential force compute for shifted Mie potential on the GPU
-typedef PotentialPairGPU<EvaluatorPairExpandedMie, gpu_compute_expanded_mie_forces> PotentialPairExpandedMieGPU;
+typedef PotentialPairGPU<EvaluatorPairExpandedMie, gpu_compute_expanded_mie_forces>
+    PotentialPairExpandedMieGPU;
 //! Pair potential force compute for reaction field forces on the GPU
 typedef PotentialPairGPU<EvaluatorPairReactionField, gpu_compute_reaction_field_forces>
     PotentialPairReactionFieldGPU;

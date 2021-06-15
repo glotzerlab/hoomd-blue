@@ -5,12 +5,11 @@
     \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
-#include "EvaluatorPairExpandedMie.h"
 #include "AllDriverPotentialPairGPU.cuh"
+#include "EvaluatorPairExpandedMie.h"
 
 hipError_t gpu_compute_smie_forces(const pair_args_t& pair_args,
-                                      const EvaluatorPairExpandedMie::param_type *d_params)
+                                   const EvaluatorPairExpandedMie::param_type* d_params)
     {
-    return gpu_compute_pair_forces<EvaluatorPairExpandedMie>(pair_args,
-                                                    d_params);
+    return gpu_compute_pair_forces<EvaluatorPairExpandedMie>(pair_args, d_params);
     }
