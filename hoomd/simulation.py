@@ -92,7 +92,7 @@ class Simulation(metaclass=Loggable):
         unique identifying values as needed to sample uncorrelated values:
         ``random_value = f(seed, timestep, ...)``
         """
-        if self.state is None or self._seed is None:
+        if self._state is None or self._seed is None:
             return self._seed
         else:
             return self._state._cpp_sys_def.getSeed()
@@ -161,7 +161,7 @@ class Simulation(metaclass=Loggable):
             frame (int): Index of the frame to read from the file. Negative
                 values index back from the last frame in the file.
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
         filename = _hoomd.mpi_bcast_str(filename, self.device._cpp_exec_conf)
         # Grab snapshot and timestep
@@ -189,7 +189,7 @@ class Simulation(metaclass=Loggable):
         When `timestep` is `None` before calling, `create_state_from_snapshot`
         sets `timestep` to 0.
         """
-        if self.state is not None:
+        if self._state is not None:
             raise RuntimeError("Cannot initialize more than once\n")
 
         if isinstance(snapshot, Snapshot):
@@ -257,7 +257,7 @@ class Simulation(metaclass=Loggable):
             The start time and step are reset at the beginning of each call to
             `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return None
         else:
             return self._cpp_sys.getLastTPS()
@@ -273,7 +273,7 @@ class Simulation(metaclass=Loggable):
         Note:
             `walltime` resets to 0 at the beginning of each call to `run`.
         """
-        if self.state is None:
+        if self._state is None:
             return 0
         else:
             return self._cpp_sys.walltime
@@ -285,7 +285,7 @@ class Simulation(metaclass=Loggable):
         `final_timestep` is the timestep on which the currently executing `run`
         will complete.
         """
-        if self.state is None:
+        if self._state is None:
             return self.timestep
         else:
             return self._cpp_sys.final_timestep
@@ -441,7 +441,7 @@ class Simulation(metaclass=Loggable):
 
         # TODO: Domain decomposition
 
-        if self.state is not None:
+        if self._state is not None:
             debug_data['state'] = dict(
                 types=self.state.types,
                 N_particles=self.state.N_particles,

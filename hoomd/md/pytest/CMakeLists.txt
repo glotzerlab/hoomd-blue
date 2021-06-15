@@ -2,8 +2,10 @@
 set(files __init__.py
     aniso_forces_and_energies.json
     test_active.py
+    test_angle.py
     test_aniso_pair.py
-    test_bond_FENE.py
+    test_bond.py
+    test_dihedral.py
     test_flags.py
     test_lj_equation_of_state.py
     test_potential.py

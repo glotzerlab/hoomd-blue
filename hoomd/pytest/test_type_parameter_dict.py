@@ -2,7 +2,8 @@ from hoomd.conftest import pickling_check
 from hoomd.data.parameterdicts import (TypeParameterDict,
                                        AttachedTypeParameterDict)
 from hoomd.pytest.dummy import DummyCppObj, DummySimulation
-from hoomd.data.typeconverter import TypeConversionError, RequiredArg
+from hoomd.data.typeconverter import RequiredArg
+from hoomd.error import TypeConversionError
 from pytest import fixture, raises
 
 
