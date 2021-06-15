@@ -9,6 +9,7 @@ from itertools import repeat, cycle
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping
 from inspect import isclass
+from hoomd.error import TypeConversionError
 from hoomd.util import _is_iterable
 from hoomd.variant import Variant, Constant
 from hoomd.trigger import Trigger, Periodic
@@ -18,11 +19,6 @@ import hoomd
 
 class RequiredArg:
     """Define a parameter as required."""
-    pass
-
-
-class TypeConversionError(ValueError):
-    """Error when validatimg TypeConverter subclasses."""
     pass
 
 

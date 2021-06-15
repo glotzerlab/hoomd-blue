@@ -212,8 +212,8 @@ class PYBIND11_EXPORT ExecutionConfiguration
 #ifdef ENABLE_HIP
     hipDeviceProp_t dev_prop; //!< Cached device properties of the first GPU
 
-    //! Get the compute capability of the GPU
-    unsigned int getComputeCapability(unsigned int igpu = 0) const;
+    /// Compute capability of the GPU formatted as a tuple (major, minor)
+    std::pair<unsigned int, unsigned int> getComputeCapability(unsigned int igpu = 0) const;
 
     //! Handle cuda error message
     void handleCUDAError(hipError_t err, const char* file, unsigned int line) const;

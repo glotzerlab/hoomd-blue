@@ -12,7 +12,7 @@ import pytest
 import hoomd
 from hoomd.conftest import pickling_check
 from hoomd import md
-from hoomd.data.typeconverter import TypeConversionError
+from hoomd.error import TypeConversionError
 
 
 def _equivalent_data_structures(struct_1, struct_2):
@@ -56,7 +56,7 @@ def make_two_particle_simulation(two_particle_snapshot_factory,
         snap = two_particle_snapshot_factory(dimensions=dimensions,
                                              d=d,
                                              particle_types=types)
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.charge[:] = 1.
             snap.particles.moment_inertia[0] = [1., 1., 1.]
             snap.particles.moment_inertia[1] = [1., 2., 1.]
@@ -310,7 +310,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
                                     n=7,
                                     a=1.7,
                                     r=0.01)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -323,7 +323,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, pair_potential):
         old_snap = sim.state.snapshot
         sim.run(nsteps)
         new_snap = sim.state.snapshot
-        if new_snap.exists:
+        if new_snap.communicator.rank == 0:
             assert not np.allclose(new_snap.particles.position,
                                    old_snap.particles.position)
 
@@ -361,7 +361,7 @@ def test_aniso_force_computes(make_two_particle_simulation,
             orientation) in enumerate(zip(particle_distances, orientations)):
         snap = sim.state.snapshot
         # Set up proper distances and orientations
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, distance + .1]
             snap.particles.orientation[1] = orientation
