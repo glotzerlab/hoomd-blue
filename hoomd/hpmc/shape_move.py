@@ -7,38 +7,66 @@ from hoomd.logging import log
 
 
 class ShapeMove(_HOOMDBaseObject):
+    """Base class for all shape moves.
+
+    A shape move is used as an argument to hoomd.hpmc.update.Shape to specify
+    how to alter shape definitions
+
+    Note:
+        This class should not be instantiated by users. The class can be used
+        for `isinstance` or `issubclass` checks.
+    """
     def _attach(self):
         self._apply_param_dict()
         self._apply_typeparam_dict(self._cpp_obj, self._simulation)
 
 
 class Callback(_HOOMDBaseObject):
+    """Base class for callbacks used in Python shape moves.
+
+    Note:
+        This class should not be instantiated by users. User-defined callbacks
+        should inherit from this class, defining a __call__ method that takes
+        a list of floats as an input and returns a shape definition
+
+    Examples::
+
+        class ExampleCallback(hoomd.hpmc.shape_move.Callback):
+            def __call__(self, params):
+                # do something with params and define verts
+                return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
+    """
     def __init__(self):
         pass
 
 
 class Constant(ShapeMove):
-    R"""
-    Enable constant shape move and set parameters. Changes a particle shape by
-    the same way every time the updater is called. This is useful for calculating
-    a specific transition probability and derived thermodynamic quantities.
+    """Apply a transition to a specified shape, changing a particle shape by
+    the same way every time the updater is called.
+
+    Note:
+        This is useful for calculating a specific transition probability and
+        derived thermodynamic quantities.
 
     Args:
-        shape_params: Arguments required to define the :py:mod:`hoomd.hpmc.integrate' reference shape. 
+        shape_params (dict): Arguments defining the shape to transition to
 
-    Example::
+    Examples::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                       (-1, 1, -1)])
-        shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-        # convex_polyhedron
-        shape_up.constant_shape_move(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                               (-1, 1, -1)])
+        tetrahedron_verts = [(1, 1, 1), (-1, -1, 1),
+                             (1, -1, -1), (-1, 1, -1)]
+        mc.shape["A"] = dict(vertices=tetrahedron_verts)
+        cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
+                      (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
+        constant_move = hoomd.hpmc.shape_move.Constant(shape_params=cube_verts)
+
+    Attributes:
+
+        shape_params (dict): Arguments defining the shape to transition to
 
     See Also:
-        :py:mod:`hoomd.hpmc.integrate` for required shape parameters.
-
+        hoomd.hpmc.integrate for required shape parameters.
     """
     def __init__(self, shape_params):
         self._param_dict.update(ParameterDict(shape_params=dict(shape_params)))
@@ -70,22 +98,38 @@ class Constant(ShapeMove):
 
 
 class Elastic(ShapeMove):
-    R"""
-    Enable scale and shear shape move and set parameters. Changes a particle shape by
-    scaling the particle and shearing the particle.
+    """Apply scale and shear shape moves to particles.
 
     Args:
+        stiffness (Variant): Spring stiffness when shearing particles.
+
+        reference (dict): Arguments defining the shape to reference
+            the spring to.
+
         stepsize (float): Largest scaling/shearing factor used.
+
         param_ratio (float): Fraction of scale to shear moves.
 
     Example::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                       (-1, 1, -1)])
-        shape_up = hpmc.update.Alchemy(mc, param_ratio=0.25, seed=9876)
-        shape_up.elastic_shape_move(stepsize=0.01)
+        verts = [(1, 1, 1), (-1, -1, 1), (1, -1, -1), (-1, 1, -1)]
+        mc.shape["A"] = dict(vertices=verts)
+        elastic_move = hoomd.hpmc.shape_move.Elastic(stiffness=hoomd.variant.Constant(1.0),
+                                                     reference=dict(vertices=verts),
+                                                     stepsize=0.05,
+                                                     param_ratio=0.2)
 
+    Attributes:
+
+        stiffness (Variant): Spring stiffness when shearing particles.
+
+        reference (dict): Arguments defining the shape to reference
+            the spring to.
+
+        stepsize (float): Largest scaling/shearing factor used.
+
+        param_ratio (float): Fraction of scale to shear moves.
     """
     def __init__(self, stiffness, reference, stepsize, param_ratio):
         param_dict = ParameterDict(stiffness=hoomd.variant.Variant,
@@ -144,47 +188,63 @@ class Elastic(ShapeMove):
 
     @log(category="scalar")
     def shape_move_stiffness(self):
-        """float: Stiffness of the shape used to calculate shape energy
+        """float: Stiffness of the shape used to calculate shape energy.
 
-        Returns:
-            The stiffness of the shape at the current timestep
+        None when not attached
         """
         return self.stiffness
 
 
 class Python(ShapeMove):
-    R"""Enable python shape move and) set parameters.
-    All python shape moves must be callable object that take a single list
-    of parameters between 0 and 1 as the call arguments and returns a
-    shape parameter definition.
+    """Apply custom shape moves to particles through a Python callback.
 
     Args:
-        callback (callable): The python function that will be called each update.
-        params (dict): Dictionary of types and the corresponding list parameters (ex: {'A' : [1.0], 'B': [0.0]})
-        stepsize (float): Step size in parameter space.
-        param_ratio (float): Average fraction of parameters to change each update
+        callback (Callback): The python class that will be called
+            to update the particle shapes
+
+        params (dict): Dictionary of types and the corresponding list
+            of initial parameters to pass to the callback
+            (ex: {'A' : [1.0], 'B': [0.0]})
+
+        stepsize (dict): Dictionary of types and the corresponding step size
+            to use when changing parameter values
+
+        param_ratio (float): Average fraction of parameters to change during
+            each shape move
 
     Note:
-        Parameters must be given for every particle type. Callback should rescale the particle to have constant
-        volume if necessary/desired.
+        Parameters must be given for every particle type. The callback should
+        rescale the particle to have constant volume if desired.
 
     Example::
 
+        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
+        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1),
+                                       (1, -1, -1), (-1, 1, -1)])
         # example callback
-        class convex_polyhedron_callback:
-            def __init__(self, mc):
-                self.mc = mc;
+        class ExampleCallback(hoomd.hpmc.shape_move.Callback):
             def __call__(self, params):
                 # do something with params and define verts
                 return hoomd.hpmc._hpmc.PolyhedronVertices(verts)
-        mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                       (-1, 1, -1)])
+        python_move = hoomd.hpmc.shape_move.Python(callback=ExampleCallback,
+                                                   params={'A': [1.0]},
+                                                   stepsize={'A': 0.05},
+                                                   param_ratio=1.0)
 
-        # now set up the updater
-        shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-        shape_up.python_shape_move(callback=convex_polyhedron_callback(mc), params={'A': [0.5]}, stepsize=0.001, param_ratio=0.5)
+    Attributes:
 
+        callback (Callback): The python class that will be called
+            to update the particle shapes
+
+        params (dict): Dictionary of types and the corresponding list
+            of initial parameters to pass to the callback
+            (ex: {'A' : [1.0], 'B': [0.0]})
+
+        stepsize (dict): Dictionary of types and the corresponding step size
+            to use when changing parameter values
+
+        param_ratio (float): Average fraction of parameters to change during
+            each shape move
     """
     def __init__(self, callback, params, stepsize, param_ratio):
         param_dict = ParameterDict(callback=Callback,
@@ -226,33 +286,52 @@ class Python(ShapeMove):
 
     @log(category='object')
     def shape_param(self):
-        """float: Returns the shape parameter value being used in :py:mod:`python_shape_move`. Returns 0 if another shape move is being used.
+        """float: Shape parameter values being used.
 
-        Returns:
-            The current value of the shape parameter in the user-specified callback
+        None when not attached
         """
         return self.params
 
 
 class Vertex(ShapeMove):
-    R"""
-    Enable vertex shape move and set parameters. Changes a particle shape by
-    translating vertices and rescaling to have constant volume. The shape definition
-    corresponds to the convex hull of the vertices.
+    """Apply shape moves where particle vertices are translated.
 
     Args:
-        stepsize (float): Stepsize for each vertex move
-        param_ratio (float): Average fraction of vertices to change each update
+        stepsize (dict): Dictionary of types and the corresponding step size
+            to use when changing parameter values
+
+        param_ratio (float): Average fraction of vertices to change during
+            each shape move
+
         volume (float): Volume of the particles to hold constant
+
+    Note:
+        Vertices are rescaled during each shape move to ensure that the shape
+        maintains a constant volume
+
+    Note:
+        The shape definition used corresponds to the convex hull of the
+        vertices.
 
     Example::
 
         mc = hoomd.hpmc.integrate.ConvexPolyhedron(23456)
-        mc.shape["A"] = dict(vertices=[(1, 1, 1), (-1, -1, 1), (1, -1, -1),
-                                       (-1, 1, -1)])
-        shape_up = hpmc.update.Alchemy(mc, move_ratio=0.25, seed=9876)
-        shape_up.vertex_shape_move(stepsize=0.001, param_ratio=0.25, volume=1.0)
+        cube_verts = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1),
+                      (1, -1, -1), (-1, 1, -1), (-1, -1, 1), (-1, -1, -1)])
+        mc.shape["A"] = dict(vertices=numpy.asarray(cube_verts) / 2)
+        vertex_move = hoomd.hpmc.shape_move.Vertex(stepsize={'A': 0.01},
+                                                   param_ratio=0.125,
+                                                   volume=1.0)
 
+    Attributes:
+
+        stepsize (dict): Dictionary of types and the corresponding step size
+            to use when changing parameter values
+
+        param_ratio (float): Average fraction of vertices to change during
+            each shape move
+
+        volume (float): Volume of the particles to hold constant
     """
     def __init__(self, stepsize, param_ratio, volume):
         param_dict = ParameterDict(stepsize=dict(stepsize),
