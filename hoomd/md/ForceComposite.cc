@@ -605,7 +605,7 @@ void ForceComposite::createRigidBodies()
         unsigned int central_particle_tag = 0;
         for (unsigned int particle_tag = 0; particle_tag < n_without_constituent; ++particle_tag)
             {
-            assert(snap.type[particle_tag] < ntypes);
+            assert(snap.type[particle_tag] < m_pdata->getNTypes());
             assert(snap.body[particle_tag] == NO_BODY);
 
             // If the length of the body definition is zero it must be a free body because all
