@@ -43,54 +43,39 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     //! Constructor
     RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                       pybind11::list ref_positions)
+                       pybind11::array_t<Scalar> ref_positions)
         : Updater(sysdef), m_mc(mc)
         {
         m_ref_positions.resize(m_pdata->getN());
-        setRefPositions(ref_positions);
+        setReferencePositions(ref_positions);
         }
 
-    pybind11::object getReferencePositionsNP(pybind11::object self)
+    //! Set reference positions from a Nx3 numpy array
+    void setReferencePositions(pybind11::array_t<Scalar> ref_pos)
         {
-        auto self_cpp = self.cast<RemoveDriftUpdater<Shape>*>();
-        std::vector<size_t> dims(2);
-        dims[0] = self_cpp->m_ref_positions.size();
-        dims[1] = 3;
-        return pybind11::array(dims, (Scalar*)&self_cpp->m_ref_positions[0], self);
-        }
-
-    //! Get reference positions as a python list of 3-tuples
-    pybind11::list getRefPositions()
-        {
-        unsigned int N = (unsigned int)m_ref_positions.size();
-        pybind11::list ret;
-        for (unsigned int i = 0; i < N; i++)
-            {
-            pybind11::tuple ref_pos_i = pybind11::make_tuple(m_ref_positions[i].x,
-                                                             m_ref_positions[i].y,
-                                                             m_ref_positions[i].z);
-            ret.append(ref_pos_i);
-            }
-        return ret;
-        }
-
-    //! Set reference positions from a python list of 3-tuples
-    //! to std vector of vec3's
-    void setRefPositions(pybind11::list ref_positions)
-        {
-        unsigned int N = (unsigned int)len(ref_positions);
-        if (N != this->m_pdata->getN())
+        unsigned int N = (unsigned int) ref_pos.request().shape[0];
+        unsigned int dim = (unsigned int) ref_pos.request().shape[1];
+        if (N != this->m_pdata->getN() || dim != 3)
             {
             throw std::runtime_error(
-                "The lenght of the list must be equal to the number of particles.\n");
+                "The array must be of shape Nx3. \n");
             }
+        Scalar * rawdata = (Scalar *) ref_pos.request().ptr;
         for (unsigned int i = 0; i < N; i++)
             {
-            pybind11::tuple ref_positions_i = ref_positions[i];
-            m_ref_positions[i].x = ref_positions_i[0].cast<Scalar>();
-            m_ref_positions[i].y = ref_positions_i[1].cast<Scalar>();
-            m_ref_positions[i].z = ref_positions_i[2].cast<Scalar>();
+            this->m_ref_positions[i].x = rawdata[3*i];
+            this->m_ref_positions[i].y = rawdata[3*i+1];
+            this->m_ref_positions[i].z = rawdata[3*i+2];
             }
+        }
+
+    //! Get reference positions as a Nx3 numpy array
+    pybind11::array_t<Scalar> getReferencePositions()
+        {
+        std::vector<size_t> dims(2);
+        dims[0] = this->m_ref_positions.size();
+        dims[1] = 3;
+        return pybind11::array_t<Scalar>(dims, (Scalar*)&this->m_ref_positions[0]);
         }
 
     //! Take one timestep forward
@@ -167,12 +152,11 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                      std::shared_ptr<RemoveDriftUpdater<Shape>>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>,
                             std::shared_ptr<IntegratorHPMCMono<Shape>>,
-                            pybind11::list>())
-        .def_property("ref_positions",
-                      &RemoveDriftUpdater<Shape>::getRefPositions,
-                      &RemoveDriftUpdater<Shape>::setRefPositions)
-        .def_property_readonly("reference_positions",
-                      &RemoveDriftUpdater<Shape>::getReferencePositionsNP);
+                            pybind11::array_t<Scalar>>())
+        .def_property("reference_positions",
+                      &RemoveDriftUpdater<Shape>::getReferencePositions,
+                      &RemoveDriftUpdater<Shape>::setReferencePositions)
+        ;
     }
     } // namespace hpmc
 

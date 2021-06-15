@@ -13,6 +13,7 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
+import numpy
 
 
 class BoxMC(Updater):
@@ -494,24 +495,24 @@ class RemoveDrift(Updater):
     """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
-        ref_positions (`list` [`tuple` [`float`, `float`]], **required**) - the
+        reference_positions ((*N*, 3) `numpy.ndarray` of ``numpy.float32``): the
             reference positions of the lattice.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 
     During the time steps specified by *trigger*, particle positions are
     modified such that the their center of mass coincides with that of
-    *ref_positions*.
+    *reference_positions*.
 
     Examples::
 
-        rd = hpmc.update.RemoveDrift(ref_positions=[(0, 0, 0), (1, 1, 1)],
+        rd = hpmc.update.RemoveDrift(reference_positions=[(0, 0, 0), (1, 1, 1)],
                                      trigger=hoomd.trigger.Periodic(100))
     """
 
-    def __init__(self, ref_positions, trigger=1):
+    def __init__(self, reference_positions, trigger=1):
         super().__init__(trigger)
-        _param_dict = dict(ref_positions=list(ref_positions), trigger=trigger)
-        self._param_dict.update(_param_dict)
+        self._param_dict.update(dict(reference_positions=numpy.array))
+        self.reference_positions = reference_positions
 
     def _add(self, simulation):
         """Add the operation to a simulation.
@@ -533,7 +534,7 @@ class RemoveDrift(Updater):
         cpp_cls_name += integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
-                                integrator._cpp_obj, self.ref_positions)
+                                integrator._cpp_obj, self.reference_positions)
         super()._attach()
 
 
