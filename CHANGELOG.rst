@@ -34,6 +34,10 @@ v3.0.0-beta.7 (not yet released)
 - Don't initialize contexts on extra GPUs on MPI ranks.
 - Support 2D inputs in ``from_gsd_snapshot``.
 
+*Deprecated*
+
+- `Snapshot.exists` - use `Snapshot.communicator.rank == 0` instead.
+
 *Removed*
 
 - [developers] C++ implementations of ``rescale_temp`` and ``enforce2d``.
