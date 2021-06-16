@@ -503,7 +503,8 @@ class RemoveDrift(Updater):
             raise RuntimeError("Integrator is not attached yet.")
 
         if isinstance(self._simulation.device, hoomd.device.GPU):
-            raise RuntimeError("GPU not supported.")
+            self._simulation.device._cpp_msg.warning(
+                "Falling back on CPU. No GPU implementation available.\n")
 
         cpp_cls_name = "RemoveDriftUpdater"
         cpp_cls_name += integrator.__class__.__name__
