@@ -299,12 +299,15 @@ class Active(Force):
             all particles in the group
             :math:`[\mathrm{radian}^{2} \cdot \mathrm{time}^{-1}]`.
         active_force (tuple): active force vector in reference to the
-            orientation of a particle. It is defined per particle type and
-            stays constant during the simulation. :math:`[\mathrm{force}]`
+            orientation of a particle :math:`[\mathrm{force}]`.
+            It is defined per particle type and stays constant during
+            the simulation.
         active_torque (tuple): active torque vector in reference to the
-            orientation of a particle. It is defined per particle type and
-            stays constant during the simulation.
-            :math:`[\mathrm{force} \cdot \mathrm{length}]`
+            orientation of a particle
+            :math:`[\mathrm{force} \cdot \mathrm{length}]`.
+            It is defined per particle type and stays constant
+            during the simulation.
+
 
     :py:class:`Active` specifies that an active force should be added to all
     particles.  Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where

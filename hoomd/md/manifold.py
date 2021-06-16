@@ -66,10 +66,10 @@ class Cylinder(Manifold):
     r"""Cylinder manifold.
 
     Args:
-        r (`float`): radius of the cylinder constraint.
-          :math:`[\mathrm{length}]`
+        r (`float`): radius of the cylinder constraint
+          :math:`[\mathrm{length}]`.
         P (`tuple` [`float`, `float`, `float`]): point defining position of
-            the cylinder axis (default origin). :math:`[\mathrm{length}]`
+            the cylinder axis (default origin) :math:`[\mathrm{length}]`.
 
     :py:class:`Cylinder` specifies that a cylindric manifold is defined as
     a constraint.

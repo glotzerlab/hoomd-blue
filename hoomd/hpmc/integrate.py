@@ -78,7 +78,8 @@ class HPMCIntegrator(BaseIntegrator):
 
     Attributes:
         a (`TypeParameter` [``particle type``, `float`]):
-            Maximum size of rotation trial moves.
+            Maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         d (`TypeParameter` [``particle type``, `float`]):
             Maximum size of displacement trial moves
@@ -369,7 +370,8 @@ class Sphere(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -462,7 +464,8 @@ class ConvexPolygon(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -558,7 +561,8 @@ class ConvexSpheropolygon(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -660,7 +664,8 @@ class SimplePolygon(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -757,7 +762,8 @@ class Polyhedron(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -936,7 +942,8 @@ class ConvexPolyhedron(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1042,7 +1049,8 @@ class FacetedEllipsoid(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\mathrm{arbitrary \ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1182,7 +1190,8 @@ class Sphinx(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1253,7 +1262,8 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1360,7 +1370,8 @@ class Ellipsoid(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1446,7 +1457,8 @@ class SphereUnion(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1576,7 +1588,8 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
@@ -1695,7 +1708,8 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
         d (float): Default maximum size of displacement trial moves
             :math:`[\\mathrm{length}]`.
 
-        a (float): Default maximum size of rotation trial moves.
+        a (float): Default maximum size of rotation trial moves
+            :math:`[\\mathrm{arbitrary \\ unit}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.

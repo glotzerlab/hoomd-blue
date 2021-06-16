@@ -251,7 +251,7 @@ class RevCross(Triplet):
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        r_cut (float): Default cutoff radius. :math:`[\mathrm{length}]`
+        r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     :py:class:`RevCross` specifies that the revcross three-body potential
     should be applied to every non-bonded particle pair in the simulation.
@@ -385,7 +385,7 @@ class SquareDensity(Triplet):
 
     Args:
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
-        r_cut (float): Default cutoff radius. :math:`[\mathrm{length}]`
+        r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
 
     :py:class:`SquareDensity` specifies that the three-body potential should be
     applied to every non-bonded particle pair in the simulation, that is
@@ -427,10 +427,12 @@ class SquareDensity(Triplet):
         following keys:
 
         * ``A`` (`float`, **required**) - :math:`A` - mean density
-          (*default*:0) :math:`[\mathrm{volume}^{-1}]`
+          (*default*:0) :math:`[\mathrm{length}^{-2}]` in 2D and
+          :math:`[\mathrm{length}^{-3}]` in 3D
         * ``B`` (`float`, **required**) - :math:`B` - coefficient of the
           harmonic density term
-          :math:`[\mathrm{energy} \cdot \mathrm{volume}^2]`
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^4]` in 2D and
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^6]` in 3D
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]

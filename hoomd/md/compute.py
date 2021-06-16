@@ -282,11 +282,11 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
     Args:
         filter (``hoomd.filter``): Particle filter to compute thermodynamic
             properties for.
-        kT (float): Temperature of the system. :math:`[\\mathrm{energy}]`
-        harmonic_pressure (float): Harmonic contribution to the pressure.
-            If ommitted, the HMA pressure can still be computed, but will be
-            similar in precision to the conventional pressure.
-            :math:`[\\mathrm{pressure}]`
+        kT (float): Temperature of the system :math:`[\\mathrm{energy}]`.
+        harmonic_pressure (float): Harmonic contribution to the pressure
+            :math:`[\\mathrm{pressure}]`. If ommitted, the HMA pressure can
+            still be computed, but will be similar in precision to
+            the conventional pressure.
 
     :py:class:`HarmonicAveragedThermodynamicQuantities` acts on a given group
     of particles and calculates harmonically mapped average (HMA) properties
@@ -314,11 +314,11 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         filter (hoomd.filter.ParticleFilter): Subset of particles compute
             thermodynamic properties for.
 
-        kT (hoomd.variant.Variant): Temperature of the system.
-            :math:`[\\mathrm{energy}]`
+        kT (hoomd.variant.Variant): Temperature of the system
+            :math:`[\\mathrm{energy}]`.
 
-        harmonic_pressure (float): Harmonic contribution to the pressure.
-            :math:`[\\mathrm{pressure}]`
+        harmonic_pressure (float): Harmonic contribution to the pressure
+            :math:`[\\mathrm{pressure}]`.
     """
 
     def __init__(self, filter, kT, harmonic_pressure=0):
