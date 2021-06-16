@@ -46,7 +46,6 @@ template<class Shape> class RemoveDriftUpdater : public Updater
                        pybind11::array_t<Scalar> ref_positions)
         : Updater(sysdef), m_mc(mc)
         {
-        m_ref_positions.resize(m_pdata->getN());
         setReferencePositions(ref_positions);
         }
 
@@ -59,12 +58,13 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             {
             throw std::runtime_error("The array must be of shape Nx3. \n");
             }
-        Scalar* rawdata = (Scalar*)ref_pos.request().ptr;
+        Scalar* rawdata = static_cast<Scalar*>(ref_pos.request().ptr);
+        m_ref_positions.resize(m_pdata->getN());
         for (unsigned int i = 0; i < N; i++)
             {
-            this->m_ref_positions[i].x = rawdata[3 * i];
-            this->m_ref_positions[i].y = rawdata[3 * i + 1];
-            this->m_ref_positions[i].z = rawdata[3 * i + 2];
+            const size_t array_index = i * 3;
+            this->m_ref_positions[i] = vec3<Scalar>(
+                rawdata[array_index], rawdata[array_index + 1], rawdata[array_index + 2]);
             }
         }
 
@@ -74,7 +74,15 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         std::vector<size_t> dims(2);
         dims[0] = this->m_ref_positions.size();
         dims[1] = 3;
-        return pybind11::array_t<Scalar>(dims, (Scalar*)&this->m_ref_positions[0]);
+        // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
+        // padding. This also makes a copy so, modifications of this array do not effect the
+        // original reference positions.
+        const auto reference_array = pybind11::array_t<Scalar>(
+            dims, reinterpret_cast<Scalar*>(&(this->m_ref_positions[0])));
+        // This is necessary to expose the array in a read only fashion through C++
+        reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags &=
+            ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+        return reference_array;
         }
 
     //! Take one timestep forward
