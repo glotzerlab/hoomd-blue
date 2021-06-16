@@ -388,7 +388,6 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
                                  + L.y * L.z * (double)(nx_try - 1);
 
                     }
-                std::cout << "nx_try = " << nx_try << "; ny_try = " << ny_try << "; surface_area = " << surface_area << std::endl;
                 if (surface_area < min_surface_area || !found_decomposition)
                     {
                     nx = nx_try;
