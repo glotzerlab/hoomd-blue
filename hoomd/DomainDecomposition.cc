@@ -383,8 +383,8 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
                 else
                     {
                     surface_area = L.x * L.y * (double)(nz_try - 1)
-                                  + L.x * L.z * (double)(ny_try - 1)
-                                  + L.y * L.z * (double)(nx_try - 1);
+                                   + L.x * L.z * (double)(ny_try - 1)
+                                   + L.y * L.z * (double)(nx_try - 1);
 
                     }
                 if (surface_area < min_surface_area || !found_decomposition)
