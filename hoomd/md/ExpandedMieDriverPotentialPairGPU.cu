@@ -8,7 +8,7 @@
 #include "AllDriverPotentialPairGPU.cuh"
 #include "EvaluatorPairExpandedMie.h"
 
-hipError_t gpu_compute_smie_forces(const pair_args_t& pair_args,
+hipError_t gpu_compute_expanded_mie_forces(const pair_args_t& pair_args,
                                    const EvaluatorPairExpandedMie::param_type* d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairExpandedMie>(pair_args, d_params);
