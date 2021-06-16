@@ -487,8 +487,8 @@ class RemoveDrift(Updater):
 
     def __init__(self, reference_positions, trigger=1):
         super().__init__(trigger)
-        self._param_dict.update(dict(reference_positions=numpy.array))
-        self.reference_positions = reference_positions
+        self._param_dict.update({"reference_positions":
+            hoomd.data.typeconverter.NDArrayValidator(float, (None, 3))})
 
     def _add(self, simulation):
         """Add the operation to a simulation."""
@@ -506,8 +506,7 @@ class RemoveDrift(Updater):
             self._simulation.device._cpp_msg.warning(
                 "Falling back on CPU. No GPU implementation available.\n")
 
-        cpp_cls_name = "RemoveDriftUpdater"
-        cpp_cls_name += integrator.__class__.__name__
+        cpp_cls_name = "RemoveDriftUpdater" + integrator.__class__.__name__
         cpp_cls = getattr(_hpmc, cpp_cls_name)
         self._cpp_obj = cpp_cls(self._simulation.state._cpp_sys_def,
                                 integrator._cpp_obj, self.reference_positions)

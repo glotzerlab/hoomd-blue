@@ -57,7 +57,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         unsigned int dim = (unsigned int)ref_pos.request().shape[1];
         if (N != this->m_pdata->getN() || dim != 3)
             {
-            throw std::runtime_error("The array must be of shape Nx3. \n");
+            throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
         Scalar* rawdata = (Scalar*)ref_pos.request().ptr;
         for (unsigned int i = 0; i < N; i++)
