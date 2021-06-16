@@ -247,7 +247,7 @@ class Box:
     # Length based properties
     @property
     def L(self):  # noqa: N802 - allow function name
-        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]``\
+        """(3) `numpy.ndarray` of `float`: The box lengths, ``[Lx, Ly, Lz]`` \
         :math:`[\\mathrm{length}]`.
 
         Can be set with a float which sets all lengths, or a length 3 vector.
@@ -263,7 +263,7 @@ class Box:
 
     @property
     def Lx(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the x dimension\
+        """float: The length of the box in the x dimension \
         :math:`[\\mathrm{length}]`."""
         return self.L[0]
 
@@ -275,7 +275,7 @@ class Box:
 
     @property
     def Ly(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the y dimension\
+        """float: The length of the box in the y dimension \
         :math:`[\\mathrm{length}]`."""
         return self.L[1]
 
@@ -287,7 +287,7 @@ class Box:
 
     @property
     def Lz(self):  # noqa: N802: Allow function name
-        """float: The length of the box in the z dimension\
+        """float: The length of the box in the z dimension \
         :math:`[\\mathrm{length}]`."""
         return self.L[2]
 

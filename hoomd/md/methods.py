@@ -381,7 +381,7 @@ class NPT(Method):
             In Voigt notation,
             :math:`[S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}]`
             :math:`[\mathrm{pressure}]`. Stress can be reset after the method
-            object is created. For example, An isoropic pressure can be set by
+            object is created. For example, an isoropic pressure can be set by
             ``npt.S = 4.``
 
         tauS (float): Coupling constant for the barostat.
