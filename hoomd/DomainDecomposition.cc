@@ -344,7 +344,7 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
     // Calculate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
     bool is2D = L.z == 0.0;
-    double min_surface_area;  // surface area in 3D, perimeter length in 2D
+    double min_surface_area; // surface area in 3D, perimeter length in 2D
     if (is2D)
         min_surface_area = L.x * (double)(nranks - 1);
     else
@@ -360,7 +360,6 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
     nx = 1;
     ny = nranks;
     nz = 1;
-
 
     for (unsigned int nx_try = 1; nx_try <= nranks; nx_try++)
         {
@@ -384,8 +383,8 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
                 else
                     {
                     surface_area = L.x * L.y * (double)(nz_try - 1)
-                                 + L.x * L.z * (double)(ny_try - 1)
-                                 + L.y * L.z * (double)(nx_try - 1);
+                                  + L.x * L.z * (double)(ny_try - 1)
+                                  + L.y * L.z * (double)(nx_try - 1);
 
                     }
                 if (surface_area < min_surface_area || !found_decomposition)
