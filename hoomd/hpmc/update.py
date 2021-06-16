@@ -489,6 +489,7 @@ class RemoveDrift(Updater):
         super().__init__(trigger)
         self._param_dict.update({"reference_positions":
             hoomd.data.typeconverter.NDArrayValidator(float, (None, 3))})
+        self.reference_positions = reference_positions
 
     def _add(self, simulation):
         """Add the operation to a simulation."""
