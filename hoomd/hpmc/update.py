@@ -491,8 +491,7 @@ class RemoveDrift(Updater):
         self.reference_positions = reference_positions
 
     def _add(self, simulation):
-        """Add the operation to a simulation.
-        """
+        """Add the operation to a simulation."""
         super()._add(simulation)
 
     def _attach(self):

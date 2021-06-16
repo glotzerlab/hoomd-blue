@@ -53,19 +53,18 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     //! Set reference positions from a Nx3 numpy array
     void setReferencePositions(pybind11::array_t<Scalar> ref_pos)
         {
-        unsigned int N = (unsigned int) ref_pos.request().shape[0];
-        unsigned int dim = (unsigned int) ref_pos.request().shape[1];
+        unsigned int N = (unsigned int)ref_pos.request().shape[0];
+        unsigned int dim = (unsigned int)ref_pos.request().shape[1];
         if (N != this->m_pdata->getN() || dim != 3)
             {
-            throw std::runtime_error(
-                "The array must be of shape Nx3. \n");
+            throw std::runtime_error("The array must be of shape Nx3. \n");
             }
-        Scalar * rawdata = (Scalar *) ref_pos.request().ptr;
+        Scalar* rawdata = (Scalar*)ref_pos.request().ptr;
         for (unsigned int i = 0; i < N; i++)
             {
-            this->m_ref_positions[i].x = rawdata[3*i];
-            this->m_ref_positions[i].y = rawdata[3*i+1];
-            this->m_ref_positions[i].z = rawdata[3*i+2];
+            this->m_ref_positions[i].x = rawdata[3 * i];
+            this->m_ref_positions[i].y = rawdata[3 * i + 1];
+            this->m_ref_positions[i].z = rawdata[3 * i + 2];
             }
         }
 
@@ -155,8 +154,7 @@ template<class Shape> void export_RemoveDriftUpdater(pybind11::module& m, std::s
                             pybind11::array_t<Scalar>>())
         .def_property("reference_positions",
                       &RemoveDriftUpdater<Shape>::getReferencePositions,
-                      &RemoveDriftUpdater<Shape>::setReferencePositions)
-        ;
+                      &RemoveDriftUpdater<Shape>::setReferencePositions);
     }
     } // namespace hpmc
 
