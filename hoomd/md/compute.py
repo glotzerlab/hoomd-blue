@@ -53,29 +53,28 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def kinetic_temperature(self):
-        r""":math:`kT_k`, instantaneous thermal energy of the group.
-
-        :math:`[\mathrm{energy}]`
+        """:math:`kT_k`, instantaneous thermal energy of the group \
+        :math:`[\\mathrm{energy}]`.
 
         Calculated as:
 
           .. math::
 
-            kT_k = 2 \cdot \frac{K}{N_{\mathrm{dof}}}
+            kT_k = 2 \\cdot \\frac{K}{N_{\\mathrm{dof}}}
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.kinetic_temperature
 
     @log(requires_run=True)
     def pressure(self):
-        r""":math:`P`, instantaneous pressure of the group\
-        :math:`[\mathrm{pressure}]`.
+        """:math:`P`, instantaneous pressure of the group \
+        :math:`[\\mathrm{pressure}]`.
 
         Calculated as:
 
         .. math::
 
-            P = \frac{ 2 \cdot K_{\mathrm{trans}} + W }{D \cdot V},
+            P = \\frac{ 2 \\cdot K_{\\mathrm{trans}} + W }{D \\cdot V},
 
         where :math:`D` is the dimensionality of the system, :math:`V` is the
         total volume of the simulation box (or area in 2D), and :math:`W` is
@@ -83,12 +82,12 @@ class ThermodynamicQuantities(_Thermo):
 
         .. math::
 
-            W = \frac{1}{2} \sum_{i \in \mathrm{filter}} \sum_{j}
-            \vec{F}_{ij} \cdot \vec{r_{ij}} + \sum_{k} \vec{F}_{k} \cdot
-            \vec{r_{k}},
+            W = \\frac{1}{2} \\sum_{i \\in \\mathrm{filter}} \\sum_{j}
+            \\vec{F}_{ij} \\cdot \\vec{r_{ij}} + \\sum_{k} \\vec{F}_{k} \\cdot
+            \\vec{r_{k}},
 
-        where :math:`i` and :math:`j` are particle tags, :math:`\vec{F}_{ij}`
-        are pairwise forces between particles and :math:`\vec{F}_k` are forces
+        where :math:`i` and :math:`j` are particle tags, :math:`\\vec{F}_{ij}`
+        are pairwise forces between particles and :math:`\\vec{F}_k` are forces
         due to explicit constraints, implicit rigid body constraints, external
         walls, and fields.
         """
@@ -97,18 +96,18 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(category='sequence', requires_run=True)
     def pressure_tensor(self):
-        r"""Instantaneous pressure tensor of the group\
-        :math:`[\mathrm{pressure}]`.
+        """Instantaneous pressure tensor of the group \
+        :math:`[\\mathrm{pressure}]`.
 
         (:math:`P_{xx}`, :math:`P_{xy}`, :math:`P_{xz}`, :math:`P_{yy}`,
         :math:`P_{yz}`, :math:`P_{zz}`). calculated as:
 
           .. math::
 
-              P_{ij} = \left[  \sum_{k \in \mathrm{filter}} m_k v_{k,i}
-              v_{k,j} + \sum_{k \in \mathrm{filter}} \sum_{l} \frac{1}{2}
-              \left(\vec{r}_{kl,i} \vec{F}_{kl,j} + \vec{r}_{kl,j}
-              \vec{F}_{kl, i} \right) \right]/V
+              P_{ij} = \\left[  \\sum_{k \\in \\mathrm{filter}} m_k v_{k,i}
+              v_{k,j} + \\sum_{k \\in \\mathrm{filter}} \\sum_{l} \\frac{1}{2}
+              \\left(\\vec{r}_{kl,i} \\vec{F}_{kl,j} + \\vec{r}_{kl,j}
+              \\vec{F}_{kl, i} \\right) \\right]/V
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
@@ -117,12 +116,12 @@ class ThermodynamicQuantities(_Thermo):
 
     @log(requires_run=True)
     def kinetic_energy(self):
-        r""":math:`K`, total kinetic energy of particles in the group\
-        :math:`[\mathrm{energy}]`.
+        """:math:`K`, total kinetic energy of particles in the group \
+        :math:`[\\mathrm{energy}]`.
 
         .. math::
 
-            K = K_{\mathrm{rot}} + K_{\mathrm{trans}}
+            K = K_{\\mathrm{rot}} + K_{\\mathrm{trans}}
 
         """
         self._cpp_obj.compute(self._simulation.timestep)
