@@ -346,9 +346,13 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
     bool is2D = L.z == 0.0;
     double min_surface_area; // surface area in 3D, perimeter length in 2D
     if (is2D)
+        {
         min_surface_area = L.x * (double)(nranks - 1);
+        }
     else
+        {
         min_surface_area = L.x * L.z * (double)(nranks - 1);
+        }
 
     unsigned int nx_in = nx;
     unsigned int ny_in = ny;
@@ -358,8 +362,16 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
 
     // initial guess
     nx = 1;
-    ny = nranks;
-    nz = 1;
+    if (is2D)
+        {
+        ny = nranks;
+        nz = 1;
+        }
+    else
+        {
+        ny = 1;
+        nz = nranks;
+        }
 
     for (unsigned int nx_try = 1; nx_try <= nranks; nx_try++)
         {
@@ -379,13 +391,14 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks,
                     continue;
                 double surface_area;
                 if (is2D)
+                    {
                     surface_area = L.x * (ny_try - 1) + L.y * (nx_try - 1);
+                    }
                 else
                     {
                     surface_area = L.x * L.y * (double)(nz_try - 1)
                                    + L.x * L.z * (double)(ny_try - 1)
                                    + L.y * L.z * (double)(nx_try - 1);
-
                     }
                 if (surface_area < min_surface_area || !found_decomposition)
                     {
