@@ -198,8 +198,6 @@ class ReversePerturbationFlow(Updater):
                                                       flow_direction="X",
                                                       n_slabs=20)
 
-        self._flow_target = hoomd.variant._setup_variant_input(flow_target)
-
     Attributes:
         filter (hoomd.filter.ParticleFilter): Subset of particles on which to
             apply this updater.
