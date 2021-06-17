@@ -230,17 +230,19 @@ class ReversePerturbationFlow(Updater):
                  min_slab=-1):
 
         if n_slabs < 0:
-            raise ValueError("Negative number of slabs.")
+            raise ValueError(f"The number of slabs is negative, \
+                              n_slabs = {n_slabs}")
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
             max_slab = n_slabs / 2
         if max_slab <= -1 or max_slab > n_slabs:
-            raise ValueError("Invalid max_slab in [0," + str(n_slabs) + ").")
+            raise ValueError(f"Invalid max_slab of {max_slab}")
         if min_slab <= -1 or min_slab > n_slabs:
-            raise ValueError("Invalid min_slab in [0," + str(n_slabs) + ").")
+            raise ValueError(f"Invalid min_slab of {min_slab}")
         if min_slab == max_slab:
-            raise ValueError("Invalid min/max slabs. Both have the same value.")
+            raise ValueError(f"Min and max slab are equal. \
+                              min_slab = max_slab = {min_slab}")
 
         params = ParameterDict(filter=hoomd.filter.ParticleFilter,
                                flow_target=hoomd.variant.Variant,
