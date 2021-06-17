@@ -229,7 +229,8 @@ class ReversePerturbationFlow(Updater):
                  max_slab=-1,
                  min_slab=-1):
 
-        assert (n_slabs > 0), "Invalid negative number of slabs."
+        if n_slabs < 0:
+            raise ValueError("Negative number of slabs.")
         if min_slab < 0:
             min_slab = 0
         if max_slab < 0:
