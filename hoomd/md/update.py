@@ -16,6 +16,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.logging import log
 
 
@@ -245,8 +246,12 @@ class ReversePerturbationFlow(Updater):
 
         params = ParameterDict(filter=hoomd.filter.ParticleFilter,
                                flow_target=hoomd.variant.Variant,
-                               slab_direction=str,
-                               flow_direction=str,
+                               slab_direction=OnlyTypes(str,
+                                                        strict=True,
+                                                        postprocessing=self._to_str),
+                               flow_direction=OnlyTypes(str,
+                                                        strict=True,
+                                                        postprocessing=self._to_str),
                                n_slabs=int(n_slabs),
                                max_slab=int(max_slab),
                                min_slab=int(min_slab),
@@ -260,6 +265,9 @@ class ReversePerturbationFlow(Updater):
 
         # This updater has to be applied every timestep
         super().__init__(hoomd.trigger.Periodic(1))
+
+    def _to_lowercase(self, letter):
+        return letter.lower()
 
     def _attach(self):
         group = self._simulation.state._get_group(self.filter)
