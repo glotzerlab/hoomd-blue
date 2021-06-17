@@ -41,18 +41,35 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
 
 template<class Real> void SnapshotSystemData<Real>::wrap()
     {
-    vec3<double> new_pos;
-    vec3<double> old_pos;
+    vec3<double> frac;
+    vec3<double> wrapped;
+    vec3<double> pos;
+    vec3<double> fin;
+    int3 img;
+
     for (unsigned int i = 0; i < particle_data.size; i++)
         {
-        do
-        {
-        new_pos = particle_data.pos[i];
-        old_pos = new_pos;
-        global_box.wrap(new_pos, particle_data.image[i]);
-        particle_data.pos[i] = new_pos;
-        }
-        while (new_pos != old_pos);
+        pos = particle_data.pos[i];
+        frac = global_box.makeFraction(particle_data.pos[i]);
+        wrapped = vec3<double>(
+            fmod(fmod(frac.x, 1.0) + 1.0, 1.0),
+            fmod(fmod(frac.y, 1.0) + 1.0, 1.0),
+            fmod(fmod(frac.z, 1.0) + 1.0, 1.0)
+            );
+        fin = global_box.makeCoordinates(wrapped);
+        particle_data.pos[i] = fin;
+        img.x = static_cast<int>(frac.x);
+        img.y = static_cast<int>(frac.y);
+        img.z = static_cast<int>(frac.z);
+        particle_data.image[i] = img;
+        // TODO: test image update
+
+        std::cout << "Particle " << '[' << pos.x << ", " << pos.y << ", " << pos.z << "] --> ";
+        std::cout << "[" << fin.x << ", " << fin.y << ", " << fin.z << "]\n";
+        std::cout << "Fraction [" << frac.x << ", " << frac.y << ", " << frac.z << "]\n";
+        std::cout << "Image [" << img.x << ", " << img.y << ", " << img.z << "]\n";
+        std::cout << "Fraction wrapped is [" << wrapped.x << ", " << wrapped.y << ", " << wrapped.z << "]\n\n";
+
         }
     }
 
