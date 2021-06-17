@@ -16,6 +16,7 @@ from hoomd.md import _md
 import hoomd
 from hoomd.operation import Updater
 from hoomd.data.parameterdicts import ParameterDict
+from hoomd.logging import log
 
 
 class ZeroMomentum(Updater):
@@ -277,10 +278,7 @@ class ReversePerturbationFlow(Updater):
                 self.flow_epsilon)
         super()._attach()
 
-    @property
+    @log(category="scalar")
     def summed_exchanged_momentum(self):
         R"""Returned the summed up exchanged velocity of the full simulation."""
-        if self._attached:
-            return self._cpp_obj.summed_exchanged_momentum
-        else:
-            return None
+        return self._cpp_obj.summed_exchanged_momentum
