@@ -141,15 +141,15 @@ class ReversePerturbationFlow(Updater):
      Phys. Rev. E, 59:4894-4898, May 1999."
 
     The simulation box is divided in a number of slabs.  Two distinct slabs of
-    those are chosen. The "max" slab searched for the max.  velocity component
-    in flow direction, the "min" is searched for the min.  velocity component.
-    Afterward, both velocity components are swapped.
+    those are chosen. The "max" slab searches for the maximum velocity component
+    in flow direction while the "min" slab searches for the minimum velocity
+    component. Afterward, both velocity components are swapped.
 
     This introduces a momentum flow, which drives the flow. The strength of this
     flow, can be controlled by the flow_target variant, which defines the
     integrated target momentum flow. The searching and swapping is repeated
     until the target is reached. Depending on the target sign, the "max" and
-    "min" slap might be swapped.
+    "min" slab might be swapped.
 
     Args:
         filter (`hoomd.filter.ParticleFilter`): Subset of particles on which to
@@ -160,11 +160,11 @@ class ReversePerturbationFlow(Updater):
             \\cdot \\mathrm{time}^{-1}]` - where :math:`\\delta t` is the
             integrator step size.
 
-        slab_direction (str): Direction perpendicular to the slabs. Can be "X",
-            "Y", or "Z"
+        slab_direction (str): Direction perpendicular to the slabs. Can be "x",
+            "y", or "z"
 
-        flow_direction (str): Direction of the flow. Can be "X",
-            "Y", or "Z"
+        flow_direction (str): Direction of the flow. Can be "x",
+            "y", or "z"
 
         n_slabs (int): Number of slabs used to divide the simulation box along
             the shear gradient. Using too few slabs will lead to a larger volume
