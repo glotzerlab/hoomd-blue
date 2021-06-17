@@ -19,9 +19,10 @@ if ((pathlib.Path(__file__).parent / 'CMakeLists.txt').exists()
     print("""Compile the package and import from the build directory or install
 the package and import from the Python environment.
 
-To run pytest, compile and execute `python3 -m pytest <build-directory>/hoomd`
-or install and execute, ensure your current working directory is outside the
-hoomd source directory and run `python3 -m pytest --pyargs hoomd`.
+To run pytest, either:
+(1) compile then execute `python3 -m pytest <build-directory>/hoomd` or
+(2) compile and install. Then, ensuring your current working directory is outside the
+hoomd source directory, execute `python3 -m pytest --pyargs hoomd`.
 """,
           file=sys.stderr)
 
