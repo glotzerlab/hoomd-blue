@@ -13,10 +13,10 @@ def test_before_attaching(slab_direction, flow_direction):
     mpf = hoomd.md.update.ReversePerturbationFlow(filt, ramp, slab_direction,
                                                   flow_direction, n_slabs)
 
-    assert mpf.filter is filt
-    assert mpf.flow_target is ramp
-    assert mpf.slab_direction is slab_direction
-    assert mpf.flow_direction is flow_direction
+    assert mpf.filter == filt
+    assert mpf.flow_target == ramp
+    assert mpf.slab_direction == slab_direction
+    assert mpf.flow_direction == flow_direction
     assert mpf.n_slabs == n_slabs
     assert mpf.max_slab == n_slabs / 2
     assert mpf.min_slab == 0
@@ -40,7 +40,7 @@ def test_after_attaching(simulation_factory, two_particle_snapshot_factory,
     sim.operations.add(mpf)
     sim.run(0)
 
-    assert mpf.flow_target is ramp
+    assert mpf.flow_target == ramp
     assert mpf.slab_direction == slab_direction
     assert mpf.flow_direction == flow_direction
     assert mpf.n_slabs == n_slabs
