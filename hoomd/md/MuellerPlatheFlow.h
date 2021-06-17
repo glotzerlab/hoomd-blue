@@ -67,11 +67,11 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         {
         return m_flow_target;
         }
-    std::string getSlabDirection(void) const
+    std::string getSlabDirectionPython(void) const
         {
         return getStringFromDirection(m_slab_direction);
         }
-    std::string getFlowDirection(void) const
+    std::string getFlowDirectionPython(void) const
         {
         return getStringFromDirection(m_flow_direction);
         }
