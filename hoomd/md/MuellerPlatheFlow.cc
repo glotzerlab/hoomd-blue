@@ -491,10 +491,5 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("flow_epsilon", &MuellerPlatheFlow::getFlowEpsilon)
         .def_property_readonly("summed_exchanged_momentum",
                                &MuellerPlatheFlow::getSummedExchangedMomentum)
-        // Functions not needed for python interface users.
-        // .def("setMinSlab",&MuellerPlatheFlow::setMinSlab)
-        // .def("setMaxSlab",&MuellerPlatheFlow::setMaxSlab)
-        // .def("swapMinMaxSlab",&MuellerPlatheFlow::swapMinMaxSlab)
-        // .def("updateDomainDecomposition",&MuellerPlatheFlow::updateDomainDecomposition)
         ;
     }
