@@ -80,39 +80,39 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         {
         if (direction == flow_enum::Direction::X)
             {
-            return "X";
+            return "x";
             }
         else if (direction == flow_enum::Direction::Y)
             {
-            return "Y";
+            return "y";
             }
         else if (direction == flow_enum::Direction::Z)
             {
-            return "Z";
+            return "z";
             }
         else
             {
-            throw std::runtime_error("Direction must be X, Y, or Z");
+            throw std::runtime_error("Direction must be x, y, or z");
             }
         }
 
     static enum flow_enum::Direction getDirectionFromString(std::string direction_str)
         {
-        if (direction_str == "X")
+        if (direction_str == "x")
             {
             return flow_enum::Direction::X;
             }
-        else if (direction_str == "Y")
+        else if (direction_str == "y")
             {
             return flow_enum::Direction::Y;
             }
-        else if (direction_str == "Z")
+        else if (direction_str == "z")
             {
             return flow_enum::Direction::Z;
             }
         else
             {
-            throw std::runtime_error("Direction must be X, Y, or Z");
+            throw std::runtime_error("Direction must be x, y, or z");
             }
         }
 

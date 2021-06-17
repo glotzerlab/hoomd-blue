@@ -2,7 +2,7 @@ import hoomd
 import pytest
 from itertools import permutations
 
-_directions = list(permutations(['X', 'Y', 'Z'], 2))
+_directions = list(permutations(['x', 'y', 'z'], 2))
 
 
 @pytest.mark.parametrize("slab_direction, flow_direction", _directions)
