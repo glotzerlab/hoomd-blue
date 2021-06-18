@@ -733,7 +733,7 @@ class DPDConservative(Pair):
         dpdc.params[(['A', 'B'], ['C', 'D'])] = dict(A=3.0)
     """
     _cpp_class_name = "PotentialPairDPD"
-    _accepted_modes = ("none,")
+    _accepted_modes = ("none",)
 
     def __init__(self, nlist, default_r_cut=None, default_r_on=0.):
         # initialize the base class
