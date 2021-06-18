@@ -295,6 +295,7 @@ PYBIND11_MODULE(_md, m)
     m.def("make_wall_field_params", &make_wall_field_params);
     export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
     export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
+    // TODO: Port walls to HOOMD v3
     // export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
     // export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
     // export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
