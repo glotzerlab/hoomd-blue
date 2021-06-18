@@ -87,8 +87,8 @@ class State:
         information is desired in a single object. When accessed, data across
         all MPI ranks and from GPUs is gathered on the root MPI rank's memory.
         When accessing data in MPI simulations, it is recommended to use a
-        ``if snapshot.exists:`` conditional to prevent attempting to access data
-        on a non-root rank.
+        ``if snapshot.communicator.rank == 0:`` conditional to prevent
+        attempting to access data on a non-root rank.
 
         This property can be set to replace the system state with the given
         `hoomd.Snapshot` object.  Example use cases in which a simulation's

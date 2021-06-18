@@ -584,11 +584,12 @@ def test_valid_params(valid_params):
 
 
 def _update_snap(pair_potential, snap):
-    if (any(name in str(pair_potential) for name in ['Ewald']) and snap.exists):
+    if (any(name in str(pair_potential) for name in ['Ewald'])
+            and snap.communicator.rank == 0):
         snap.particles.charge[:] = 1.
-    if 'SLJ' in str(pair_potential) and snap.exists:
+    if 'SLJ' in str(pair_potential) and snap.communicator.rank == 0:
         snap.particles.diameter[:] = 2
-    if 'DLVO' in str(pair_potential) and snap.exists:
+    if 'DLVO' in str(pair_potential) and snap.communicator.rank == 0:
         snap.particles.diameter[0] = 0.2
         snap.particles.diameter[1] = 0.5
 
@@ -617,7 +618,7 @@ def test_attached_params(simulation_factory, lattice_snapshot_factory,
                                     r=0.01)
 
     _update_snap(valid_params.pair_potential, snap)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -642,7 +643,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
                                     n=7,
                                     a=1.7,
                                     r=0.01)
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.typeid[:] = np.random.randint(0,
                                                      len(snap.particles.types),
                                                      snap.particles.N)
@@ -658,7 +659,7 @@ def test_run(simulation_factory, lattice_snapshot_factory, valid_params):
     old_snap = sim.state.snapshot
     sim.run(2)
     new_snap = sim.state.snapshot
-    if new_snap.exists:
+    if new_snap.communicator.rank == 0:
         assert not np.allclose(new_snap.particles.position,
                                old_snap.particles.position)
 
@@ -699,7 +700,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
         E_r = sum(energies)
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r_cut + .1]
     sim.state.snapshot = snap
@@ -717,7 +718,7 @@ def test_energy_shifting(simulation_factory, two_particle_snapshot_factory):
     sim.run(0)
 
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[0] = [0, 0, .1]
         snap.particles.position[1] = [0, 0, r + .1]
     sim.state.snapshot = snap
@@ -752,13 +753,13 @@ def _calculate_force(sim):
     Finds the negative derivative of energy divided by inter-particle distance
     """
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         initial_pos = snap.particles.position
         snap.particles.position[1] = initial_pos[1] * 0.99999999
     sim.state.snapshot = snap
     E0 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         pos = snap.particles.position
         r0 = pos[0] - pos[1]
         mag_r0 = np.linalg.norm(r0)
@@ -768,17 +769,17 @@ def _calculate_force(sim):
     sim.state.snapshot = snap
     E1 = sim.operations.integrator.forces[0].energies
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         pos = snap.particles.position
         mag_r1 = np.linalg.norm(pos[0] - pos[1])
 
         Fa = -1 * ((E1[0] - E0[0]) / (mag_r1 - mag_r0)) * 2 * direction
         Fb = -1 * ((E1[1] - E0[1]) / (mag_r1 - mag_r0)) * 2 * direction * -1
     snap = sim.state.snapshot
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.position[1] = initial_pos[1]
     sim.state.snapshot = snap
-    if sim.state.snapshot.exists:
+    if sim.state.snapshot.communicator.rank == 0:
         return Fa, Fb
     else:
         return 0, 0  # return dummy values if not on rank 1
@@ -812,7 +813,7 @@ def test_force_energy_relationship(simulation_factory,
     sim.run(0)
     for pair in valid_params.pair_potential_params:
         snap = sim.state.snapshot
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.typeid[0] = particle_types.index(pair[0])
             snap.particles.typeid[1] = particle_types.index(pair[1])
         sim.state.snapshot = snap
@@ -918,7 +919,7 @@ def test_force_energy_accuracy(simulation_factory,
         d = particle_distances[i]
         r = np.array([0, 0, d]) / d
         snap = sim.state.snapshot
-        if snap.exists:
+        if snap.communicator.rank == 0:
             snap.particles.position[0] = [0, 0, .1]
             snap.particles.position[1] = [0, 0, d + .1]
         sim.state.snapshot = snap
