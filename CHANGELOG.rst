@@ -4,8 +4,8 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.7 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.7 (2021-06-16)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
@@ -36,7 +36,7 @@ v3.0.0-beta.7 (not yet released)
 
 *Deprecated*
 
-- `Snapshot.exists` - use `Snapshot.communicator.rank == 0` instead.
+- ``Snapshot.exists`` - use ``Snapshot.communicator.rank == 0`` instead.
 
 *Removed*
 
