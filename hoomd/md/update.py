@@ -244,18 +244,19 @@ class ReversePerturbationFlow(Updater):
             raise ValueError(f"Min and max slab are equal. \
                               min_slab = max_slab = {min_slab}")
 
-        params = ParameterDict(filter=hoomd.filter.ParticleFilter,
-                               flow_target=hoomd.variant.Variant,
-                               slab_direction=OnlyTypes(str,
-                                                        strict=True,
-                                                        postprocess=self._to_lowercase),
-                               flow_direction=OnlyTypes(str,
-                                                        strict=True,
-                                                        postprocess=self._to_lowercase),
-                               n_slabs=int(n_slabs),
-                               max_slab=int(max_slab),
-                               min_slab=int(min_slab),
-                               flow_epsilon=float(1e-2))
+        params = ParameterDict(
+            filter=hoomd.filter.ParticleFilter,
+            flow_target=hoomd.variant.Variant,
+            slab_direction=OnlyTypes(str,
+                                     strict=True,
+                                     postprocess=self._to_lowercase),
+            flow_direction=OnlyTypes(str,
+                                     strict=True,
+                                     postprocess=self._to_lowercase),
+            n_slabs=int(n_slabs),
+            max_slab=int(max_slab),
+            min_slab=int(min_slab),
+            flow_epsilon=float(1e-2))
         params.update(
             dict(filter=filter,
                  flow_target=flow_target,
