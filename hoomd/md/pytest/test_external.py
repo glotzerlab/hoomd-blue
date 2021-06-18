@@ -43,11 +43,11 @@ def _external_params():
     """Each is tuple (cls_obj, param attr, lis(param values), eval func)."""
     list_ext_params = []
     list_ext_params.append(
-        (hoomd.md.external.Periodic, "params",
+        (hoomd.md.external.field.Periodic, "params",
          list([dict(A=1.5, i=1, w=3.5, p=5),
                dict(A=10, i=0, w=3.4, p=2)]), _evaluate_periodic))
     list_ext_params.append(
-        (hoomd.md.external.ElectricField, "E", list([
+        (hoomd.md.external.field.Electric, "E", list([
             (1, 0, 0),
             (0, 2, 0),
         ]), _evaluate_electric))

@@ -5,23 +5,22 @@
 # Maintainer: joaander / All Developers are free to add commands for new
 # features
 
-R"""External forces.
+R"""External potentials.
 
 Apply an external force to all particles in the simulation. This module
 organizes all external forces. As an example, a force derived from a `Periodic`
 potential can be used to induce a concentration modulation in the system.
 """
 
+import hoomd
 from hoomd.md import _md
 from hoomd.md import force
-import hoomd
-
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 
 
-class External(force.Force):
-    """Common External potential documentation.
+class Field(force.Force):
+    """Common external potential documentation.
 
     Users should not invoke `External` directly. Documentation common to all
     external potentials is located here. External potentials represent forces
@@ -38,7 +37,7 @@ class External(force.Force):
         super()._attach()
 
 
-class Periodic(External):
+class Periodic(Field):
     """One-dimension periodic potential.
 
     `Periodic` specifies that an external force should be added to every
@@ -92,10 +91,10 @@ class Periodic(External):
         self._add_typeparam(params)
 
 
-class ElectricField(External):
+class Electric(Field):
     """Electric field.
 
-    `ElectricField` specifies that an external force should be added to every
+    `Electric` specifies that an external force should be added to every
     particle in the simulation that results from an electric field.
 
     The external potential :math:`V(\\vec{r})` is implemented using the
