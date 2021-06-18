@@ -21,10 +21,9 @@ def test_before_attaching(slab_direction, flow_direction):
     assert mpf.max_slab == n_slabs / 2
     assert mpf.min_slab == 0
     assert mpf.trigger == hoomd.trigger.Periodic(1)
-    with pytest.raises(AttributeError):
-        # summed_exchanged_momentum cannot be set
-        mpf.summed_exchanged_momentum = 1.5
     assert mpf.flow_epsilon == 1e-2
+    with pytest.raises(hoomd.error.DataAccessError):
+        mpf.summed_exchanged_momentum
 
 
 @pytest.mark.parametrize("slab_direction, flow_direction", _directions)
