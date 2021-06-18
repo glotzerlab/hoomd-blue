@@ -1,30 +1,27 @@
 # Copyright (c) 2009-2021 The Regents of the University of Michigan
-# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause
+# License.
 
-# Maintainer: joaander / All Developers are free to add commands for new features
+# Maintainer: joaander / All Developers are free to add commands for new
+# features
 
-R""" External forces.
+R"""External forces.
 
 Apply an external force to all particles in the simulation. This module
 organizes all external forces. As an example, a force derived from a `Periodic`
 potential can be used to induce a concentration modulation in the system.
 """
 
-from hoomd import _hoomd
 from hoomd.md import _md
 from hoomd.md import force
 import hoomd
-
-import sys
-import math
 
 from hoomd.data.parameterdicts import TypeParameterDict
 from hoomd.data.typeparam import TypeParameter
 
 
 class External(force.Force):
-    """
-    Common External potential documentation.
+    """Common External potential documentation.
 
     Users should not invoke `External` directly. Documentation common to all
     external potentials is located here. External potentials represent forces
@@ -42,7 +39,7 @@ class External(force.Force):
 
 
 class Periodic(External):
-    """ One-dimension periodic potential.
+    """One-dimension periodic potential.
 
     `Periodic` specifies that an external force should be added to every
     particle in the simulation to induce a periodic modulation in the particle
@@ -51,8 +48,8 @@ class Periodic(External):
     parameters can be set on a per particle type basis. This potential can, for
     example, be used to induce an ordered phase in a block-copolymer melt.
 
-    The external potential :math:`V(\\vec{r})` is implemented using the following
-    formula:
+    The external potential :math:`V(\\vec{r})` is implemented using the
+    following formula:
 
     .. math::
 
@@ -66,16 +63,16 @@ class Periodic(External):
         The `Periodic` external potential parameters. The dictionary has the
         following keys:
 
-        * ``A`` (`float`, **required**) - Ordering parameter :math:`A`
-            (in energy units).
+        * ``A`` (`float`, **required**) - Ordering parameter :math:`A` \
+            :math:`[\\mathrm{energy}]`.
         * ``i`` (`int`, **required**) - :math:`\\vec{b}_i`, :math:`i=0, 1, 2`,
             is the simulation box's reciprocal lattice vector in the :math:`i`
-            direction (dimensionless).
+            direction :math:`[\\mathrm{dimensionless}]`.
         * ``w`` (`float`, **required**) - The interface width :math:`w`
             relative to the distance :math:`2\\pi/|\\mathbf{b_i}|` between
-            planes in the :math:`i`-direction. (dimensionless).
+            planes in the :math:`i`-direction :math:`[\\mathrm{dimensionless}]`.
         * ``p`` (`int`, **required**) - The periodicity :math:`p` of the
-            modulation (dimensionless).
+            modulation :math:`[\\mathrm{dimensionless}]`.
 
         Type: `TypeParameter` [``particle_type``, `dict`]
 
@@ -96,13 +93,13 @@ class Periodic(External):
 
 
 class ElectricField(External):
-    """ Electric field.
+    """Electric field.
 
     `ElectricField` specifies that an external force should be added to every
     particle in the simulation that results from an electric field.
 
-    The external potential :math:`V(\\vec{r})` is implemented using the following
-    formula:
+    The external potential :math:`V(\\vec{r})` is implemented using the
+    following formula:
 
     .. math::
 
@@ -116,7 +113,8 @@ class ElectricField(External):
     .. py:attribute:: E
 
         The electric field vector, :math:`E`, as a tuple (i.e.
-        :math:`(E_x, E_y, E_z)`) (units: [energy] [distance^{-1}] [length^{-1}])
+        :math:`(E_x, E_y, E_z)`) \
+        :math:`[\\mathrm{energy} \\cdot \\mathrm{length^{-1}}]`.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
