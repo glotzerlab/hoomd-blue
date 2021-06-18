@@ -92,10 +92,11 @@ pybind11::dict OPLSDihedralForceCompute::getParams(std::string type)
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
     auto val = h_params.data[typ];
     pybind11::dict params;
-    params["k1"] = val.x;
-    params["k2"] = val.y;
-    params["k3"] = val.z;
-    params["k4"] = val.w;
+    // note: the values stored in params are precomputed k/2 values
+    params["k1"] = val.x * 2;
+    params["k2"] = val.y * 2;
+    params["k3"] = val.z * 2;
+    params["k4"] = val.w * 2;
     return params;
     }
 
@@ -370,5 +371,5 @@ void export_OPLSDihedralForceCompute(py::module& m)
         "OPLSDihedralForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>>())
         .def("setParams", &OPLSDihedralForceCompute::setParamsPython)
-        .def("getParams", &OPLSDihedralForceCompute::setParams);
+        .def("getParams", &OPLSDihedralForceCompute::getParams);
     }

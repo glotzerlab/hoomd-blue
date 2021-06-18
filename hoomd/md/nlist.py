@@ -104,17 +104,14 @@ class NList(_HOOMDBaseObject):
                                _defaults={'exclusions': exclusions})
         self._param_dict.update(params)
 
-    @log
+    @log(requires_run=True)
     def shortest_rebuild(self):
         """int: The shortest period between neighbor list rebuilds.
 
         `shortest_rebuild` is the smallest number of time steps between neighbor
         list rebuilds during the previous `Simulation.run`.
         """
-        if not self._attached:
-            return None
-        else:
-            return self._cpp_obj.getSmallestRebuild()
+        return self._cpp_obj.getSmallestRebuild()
 
     # TODO need to add tuning Updater for NList
 

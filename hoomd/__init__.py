@@ -17,6 +17,7 @@ from hoomd.box import Box
 from hoomd import data
 from hoomd import filter
 from hoomd import device
+from hoomd import error
 from hoomd import update
 from hoomd import integrate
 from hoomd import communicator

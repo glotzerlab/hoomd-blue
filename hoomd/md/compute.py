@@ -51,7 +51,7 @@ class ThermodynamicQuantities(_Thermo):
         self._cpp_obj = thermo_cls(self._simulation.state._cpp_sys_def, group)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def kinetic_temperature(self):
         r""":math:`kT_k`, instantaneous thermal energy of the group [energy].
 
@@ -61,13 +61,10 @@ class ThermodynamicQuantities(_Thermo):
 
             kT_k = 2 \cdot \frac{K}{N_{\mathrm{dof}}}
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.kinetic_temperature
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.kinetic_temperature
 
-    @log
+    @log(requires_run=True)
     def pressure(self):
         r""":math:`P`, instantaneous pressure of the group (in pressure units).
 
@@ -92,13 +89,10 @@ class ThermodynamicQuantities(_Thermo):
         due to explicit constraints, implicit rigid body constraints, external
         walls, and fields.
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.pressure
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.pressure
 
-    @log(category='sequence')
+    @log(category='sequence', requires_run=True)
     def pressure_tensor(self):
         r"""Instantaneous pressure tensor of the group [pressure].
 
@@ -114,13 +108,10 @@ class ThermodynamicQuantities(_Thermo):
 
         where :math:`V` is the total simulation box volume (or area in 2D).
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.pressure_tensor
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.pressure_tensor
 
-    @log
+    @log(requires_run=True)
     def kinetic_energy(self):
         r""":math:`K`, total kinetic energy of particles in the group [energy].
 
@@ -129,13 +120,10 @@ class ThermodynamicQuantities(_Thermo):
             K = K_{\mathrm{rot}} + K_{\mathrm{trans}}
 
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.kinetic_energy
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.kinetic_energy
 
-    @log
+    @log(requires_run=True)
     def translational_kinetic_energy(self):
         r""":math:`K_{\mathrm{trans}}`.
 
@@ -147,13 +135,10 @@ class ThermodynamicQuantities(_Thermo):
             m_i|\vec{v}_i|^2
 
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.translational_kinetic_energy
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.translational_kinetic_energy
 
-    @log
+    @log(requires_run=True)
     def rotational_kinetic_energy(self):
         r""":math:`K_{\mathrm{rot}}`.
 
@@ -170,13 +155,10 @@ class ThermodynamicQuantities(_Thermo):
         where :math:`I` is the moment of inertia and :math:`L` is the angular
         momentum in the (diagonal) reference frame of the particle.
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.rotational_kinetic_energy
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.rotational_kinetic_energy
 
-    @log
+    @log(requires_run=True)
     def potential_energy(self):
         r""":math:`U`.
 
@@ -223,13 +205,10 @@ class ThermodynamicQuantities(_Thermo):
         potentials are summed similar to the other terms using per-particle
         contributions.
         """
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.potential_energy
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.potential_energy
 
-    @log
+    @log(requires_run=True)
     def degrees_of_freedom(self):
         r""":math:`N_{\mathrm{dof}}`.
 
@@ -243,12 +222,9 @@ class ThermodynamicQuantities(_Thermo):
             N_{\mathrm{dof}} = N_{\mathrm{dof, trans}}
                                 + N_{\mathrm{dof, rot}}
         """
-        if self._attached:
-            return self._cpp_obj.degrees_of_freedom
-        else:
-            return None
+        return self._cpp_obj.degrees_of_freedom
 
-    @log
+    @log(requires_run=True)
     def translational_degrees_of_freedom(self):
         r""":math:`N_{\mathrm{dof, trans}}`.
 
@@ -267,30 +243,21 @@ class ThermodynamicQuantities(_Thermo):
             of all particles, the removed degrees of freedom are spread
             proportionately.
         """
-        if self._attached:
-            return self._cpp_obj.translational_degrees_of_freedom
-        else:
-            return None
+        return self._cpp_obj.translational_degrees_of_freedom
 
-    @log
+    @log(requires_run=True)
     def rotational_degrees_of_freedom(self):
         r""":math:`N_{\mathrm{dof, rot}}`.
 
         Number of rotational degrees of freedom given to the group by its
         integration method.
         """
-        if self._attached:
-            return self._cpp_obj.rotational_degrees_of_freedom
-        else:
-            return None
+        return self._cpp_obj.rotational_degrees_of_freedom
 
-    @log
+    @log(requires_run=True)
     def num_particles(self):
         """:math:`N`, number of particles in the group."""
-        if self._attached:
-            return self._cpp_obj.num_particles
-        else:
-            return None
+        return self._cpp_obj.num_particles
 
     @log
     def volume(self):
@@ -365,20 +332,14 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
                                       group, self.kT, self.harmonic_pressure)
         super()._attach()
 
-    @log
+    @log(requires_run=True)
     def potential_energy(self):
         """Average potential energy [energy]."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.potential_energy
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.potential_energy
 
-    @log
+    @log(requires_run=True)
     def pressure(self):
         """Average pressure [pressure]."""
-        if self._attached:
-            self._cpp_obj.compute(self._simulation.timestep)
-            return self._cpp_obj.pressure
-        else:
-            return None
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.pressure

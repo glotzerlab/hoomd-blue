@@ -9,7 +9,7 @@ def snap(device):
     s = Snapshot(device.communicator)
     N = 1000
 
-    if s.exists:
+    if s.communicator.rank == 0:
         s.configuration.box = [20, 20, 20, 0, 0, 0]
 
         s.particles.N = N
@@ -71,7 +71,7 @@ def snap(device):
 
 
 def assert_snapshots_equal(s1, s2):
-    if s1.exists:
+    if s1.communicator.rank == 0:
         numpy.testing.assert_allclose(s1.configuration.box,
                                       s2.configuration.box)
         numpy.testing.assert_allclose(s1.configuration.dimensions,
@@ -134,7 +134,7 @@ def assert_snapshots_equal(s1, s2):
 def test_create_from_snapshot(simulation_factory, snap):
     sim = simulation_factory(snap)
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         assert sim.state.particle_types == snap.particles.types
         assert sim.state.bond_types == snap.bonds.types
         assert sim.state.angle_types == snap.angles.types
@@ -158,7 +158,7 @@ def test_modify_snapshot(simulation_factory, snap):
     sim = simulation_factory()
     sim.create_state_from_snapshot(snap)
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.N = snap.particles.N // 2
         snap.bonds.N = snap.bonds.N // 4
         snap.angles.N = snap.angles.N // 4
@@ -180,7 +180,7 @@ def test_thermalize_particle_velocity(simulation_factory,
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
     snapshot = sim.state.snapshot
-    if snapshot.exists:
+    if snapshot.communicator.rank == 0:
         v = snapshot.particles.velocity[:]
         m = snapshot.particles.mass[:]
         p = m * v.T
@@ -200,14 +200,14 @@ def test_thermalize_angular_momentum(simulation_factory,
     snap = lattice_snapshot_factory()
     I = [1, 2, 3]  # noqa: E741 - allow ambiguous variable name
 
-    if snap.exists:
+    if snap.communicator.rank == 0:
         snap.particles.moment_inertia[:] = I
 
     sim = simulation_factory(snap)
     sim.state.thermalize_particle_momenta(filter=hoomd.filter.All(), kT=1.5)
 
     snapshot = sim.state.snapshot
-    if snapshot.exists:
+    if snapshot.communicator.rank == 0:
         # Note: this conversion assumes that all particles have (1, 0, 0, 0)
         # orientations.
         L = snapshot.particles.angmom[:, 1:4] / 2

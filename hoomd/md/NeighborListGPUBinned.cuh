@@ -55,7 +55,6 @@ hipError_t gpu_compute_nlist_binned(unsigned int* d_nlist,
                                     bool filter_body,
                                     bool diameter_shift,
                                     const Scalar3& ghost_width,
-                                    const unsigned int compute_capability,
                                     const GPUPartition& gpu_partition,
                                     bool use_index);
 #endif
