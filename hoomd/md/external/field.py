@@ -61,10 +61,10 @@ class Periodic(Field):
         * ``A`` (`float`, **required**) - Ordering parameter :math:`A` \
             :math:`[\\mathrm{energy}]`.
         * ``i`` (`int`, **required**) - :math:`\\vec{b}_i`, :math:`i=0, 1, 2`, \
-            is the simulation box's reciprocal lattice vector in the :math:`i`
+            is the simulation box's reciprocal lattice vector in the :math:`i` \
             direction :math:`[\\mathrm{dimensionless}]`.
         * ``w`` (`float`, **required**) - The interface width :math:`w` \
-            relative to the distance :math:`2\\pi/|\\mathbf{b_i}|` between
+            relative to the distance :math:`2\\pi/|\\mathbf{b_i}|` between \
             planes in the :math:`i`-direction :math:`[\\mathrm{dimensionless}]`.
         * ``p`` (`int`, **required**) - The periodicity :math:`p` of the \
             modulation :math:`[\\mathrm{dimensionless}]`.
