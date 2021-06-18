@@ -5,17 +5,9 @@ md.external
 
 .. py:currentmodule:: hoomd.md.external
 
-.. autosummary::
-    :nosignatures:
+.. rubric:: Modules
 
-    External
-    ElectricField
-    Periodic
+.. toctree::
+   :maxdepth: 3
 
-.. rubric:: Details
-
-.. automodule:: hoomd.md.external
-    :synopsis: External potentials.
-    :members: External,
-        ElectricField,
-        Periodic
+    module-md-external-field
