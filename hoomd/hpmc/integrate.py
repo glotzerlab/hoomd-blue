@@ -1050,7 +1050,7 @@ class FacetedEllipsoid(HPMCIntegrator):
             :math:`[\mathrm{length}]`.
 
         a (float): Default maximum size of rotation trial moves
-            :math:`[\mathrm{arbitrary \ unit}]`.
+            :math:`[\mathrm{dimensionless}]`.
 
         translation_move_probability (float): Fraction of moves that are
             translation moves.
