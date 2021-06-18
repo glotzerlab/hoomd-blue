@@ -109,7 +109,7 @@ class Electric(Field):
 
         The electric field vector, :math:`E`, as a tuple (i.e.
         :math:`(E_x, E_y, E_z)`) \
-        :math:`[\\mathrm{energy} \\cdot \\mathrm{length^{-1}}]`.
+        :math:`[\\mathrm{energy} \\cdot \\mathrm{charge}^{-1} \\cdot \\mathrm{length^{-1}}]`.
 
         Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
         `float`]]
