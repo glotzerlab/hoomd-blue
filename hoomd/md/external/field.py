@@ -74,7 +74,7 @@ class Periodic(Field):
     Example::
 
         # Apply a periodic composition modulation along the first lattice vector
-        periodic = external.Periodic()
+        periodic = external.field.Periodic()
         periodic.params['A'] = dict(A=1.0, i=0, w=0.02, p=3)
         periodic.params['B'] = dict(A=-1.0, i=0, w=0.02, p=3)
     """
@@ -117,7 +117,7 @@ class Electric(Field):
     Example::
 
         # Apply an electric field in the x-direction
-        e_field = external.ElectricField()
+        e_field = external.field.Electric()
         e_field.E['A'] = (1, 0, 0)
     """
     _cpp_class_name = "PotentialExternalElectricField"
