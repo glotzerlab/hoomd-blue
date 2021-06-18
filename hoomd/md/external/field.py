@@ -19,7 +19,7 @@ class Field(force.Force):
 
     Users should not invoke `Field` directly. Documentation common to all
     external field potentials is located here. External potentials represent
-    forces which are applied to all particle in the simulation by an external
+    forces which are applied to all particles in the simulation by an external
     agent.
     """
 
