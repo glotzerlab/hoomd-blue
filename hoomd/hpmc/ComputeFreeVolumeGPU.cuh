@@ -392,10 +392,10 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
     dim3 threads(args.stride, args.group_size, n_groups);
     dim3 grid(args.n_sample / n_groups + 1, 1, 1);
 
-    unsigned int shared_bytes
-        = (unsigned int)(args.num_types * sizeof(typename Shape::param_type)
+    size_t shared_bytes
+        = args.num_types * sizeof(typename Shape::param_type)
                          + n_groups * sizeof(unsigned int)
-                         + args.overlap_idx.getNumElements() * sizeof(unsigned int));
+                         + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     unsigned int max_extra_bytes = static_cast<unsigned int>(args.devprop.sharedMemPerBlock
                                                              - attr.sharedSizeBytes - shared_bytes);
@@ -407,7 +407,7 @@ hipError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args,
         {
         d_params[i].allocate_shared(ptr, available_bytes);
         }
-    unsigned int extra_bytes = max_extra_bytes - available_bytes;
+    const unsigned int extra_bytes = max_extra_bytes - available_bytes;
 
     shared_bytes += extra_bytes;
 

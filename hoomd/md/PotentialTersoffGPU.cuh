@@ -937,19 +937,19 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
 
             // size shared bytes
             Index2D typpair_idx(pair_args.ntypes);
-            unsigned int shared_bytes
-                = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+            size_t shared_bytes
+                = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                      * typpair_idx.getNumElements()
-                                 + pair_args.ntypes * run_block_size * sizeof(Scalar));
+                                 + pair_args.ntypes * run_block_size * sizeof(Scalar);
 
             while (shared_bytes + kernel_shared_bytes >= pair_args.devprop.sharedMemPerBlock)
                 {
                 run_block_size -= pair_args.devprop.warpSize;
 
                 shared_bytes
-                    = (unsigned int)((sizeof(Scalar) + sizeof(typename evaluator::param_type))
+                    = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
                                          * typpair_idx.getNumElements()
-                                     + pair_args.ntypes * run_block_size * sizeof(Scalar));
+                                     + pair_args.ntypes * run_block_size * sizeof(Scalar);
                 }
 
             // zero the forces
