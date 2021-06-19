@@ -411,7 +411,7 @@ struct PairForceComputeKernel
             Index2D typpair_idx(pair_args.ntypes);
             const size_t shared_bytes
                 = (2 * sizeof(Scalar) + sizeof(typename evaluator::param_type))
-                                 * typpair_idx.getNumElements();
+                  * typpair_idx.getNumElements();
 
             static unsigned int max_block_size = UINT_MAX;
             if (max_block_size == UINT_MAX)

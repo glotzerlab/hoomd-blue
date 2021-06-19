@@ -414,7 +414,7 @@ void narrow_phase_launcher(const hpmc_args_t& args,
 
         size_t shared_bytes
             = n_groups * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-                             + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
+              + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
@@ -438,7 +438,7 @@ void narrow_phase_launcher(const hpmc_args_t& args,
             max_queue_size = n_groups * tpp;
 
             shared_bytes = n_groups * (2 * sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3))
-                + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
+                           + max_queue_size * 2 * sizeof(unsigned int) + min_shared_bytes;
             }
 
         // determine dynamically allocated shared memory size

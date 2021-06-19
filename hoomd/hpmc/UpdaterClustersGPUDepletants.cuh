@@ -835,8 +835,8 @@ void clusters_depletants_launcher(const cluster_args_t& args,
                                         + args.overlap_idx.getNumElements() * sizeof(unsigned int));
 
         size_t shared_bytes = n_groups * (sizeof(Scalar4) + sizeof(Scalar3) + sizeof(unsigned int))
-            + max_queue_size * 2 * sizeof(unsigned int)
-            + max_depletant_queue_size * sizeof(unsigned int) + min_shared_bytes;
+                              + max_queue_size * 2 * sizeof(unsigned int)
+                              + max_depletant_queue_size * sizeof(unsigned int) + min_shared_bytes;
 
         if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of "
