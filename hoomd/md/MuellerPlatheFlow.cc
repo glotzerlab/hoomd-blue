@@ -137,14 +137,13 @@ void MuellerPlatheFlow::update(uint64_t timestep)
             m_exchanged_momentum += sign * (m_last_max_vel.x - m_last_min_vel.x);
             }
         }
-    // if (counter >= max_iteration)
-    //     {
-    //     stringstream s;
-    //     s << " After " << counter
-    //       << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
-    //       << " only " << this->getSummedExchangedMomentum() / area << " could be achieved." << endl;
-    //     m_exec_conf->msg->warning() << s.str();
-    //     }
+    if (counter >= max_iteration)
+        {
+        m_exec_conf->msg->warning()
+            << " After " << counter
+            << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
+            << " only " << this->getSummedExchangedMomentum() / area << " could be achieved." << endl;
+        }
     // stringstream s;
     // s<<this->getSummedExchangedMomentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
     // m_exec_conf->msg->collectiveNoticeStr(0,s.str());
