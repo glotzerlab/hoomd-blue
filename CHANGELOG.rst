@@ -4,20 +4,44 @@ Change Log
 v3.x
 ----
 
-v3.0.0-beta.7 (not yet released)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+v3.0.0-beta.7 (2021-06-16)
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
+- ``md.constrain.Rigid`` - Rigid body constraints.
+- ``dem_built``, ``hpmc_built``, ``md_built``, and ``mpcd_built`` to ``hoomd.version`` - flags that
+  indicate when optional submodules have been built.
+- ``GPU.compute_capability`` property.
 - [developers] pre-commit enforced style guidelines for the codebase.
+- [developers] Validation tests for MD Lennard-Jones simulations.
+- [developers] Unit tests for bond, angle, and dihedral potentials.
 
 *Changed*
+
+- Improved documentation on compiling HOOMD.
+- Operations raise a ``DataAccessError`` when accessing properties that are not available because
+  ``Simulation.run`` has not been called.
+- ``TypeConversionError`` is now in the ``hoomd.error`` package.
+- ``from_gsd_snapshot`` only accesses the GSD snapshot on MPI rank 0.
 
 *Fixed*
 
 - Some broken references in the documentation.
+- Missing documentation for ``md.pair.TWF``.
+- Inconsistent documentation in ``md.pair``.
+- Correctly identify GPUs by ID in ``GPU.devices``.
+- Don't initialize contexts on extra GPUs on MPI ranks.
+- Support 2D inputs in ``from_gsd_snapshot``.
+
+*Deprecated*
+
+- ``Snapshot.exists`` - use ``Snapshot.communicator.rank == 0`` instead.
 
 *Removed*
+
+- [developers] C++ implementations of ``rescale_temp`` and ``enforce2d``.
+- [developers] Unused methods of ``Integrator``.
 
 v3.0.0-beta.6 (2021-05-17)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
