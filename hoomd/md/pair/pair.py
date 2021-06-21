@@ -1223,6 +1223,7 @@ class ExpandedMie(Pair):
         dict(epsilon=1.5, sigma=2.0, n=12, m=6, delta=0.5))
     """
     _cpp_class_name = "PotentialPairExpandedMie"
+
     def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
 
         super().__init__(nlist, default_r_cut, default_r_on, mode)

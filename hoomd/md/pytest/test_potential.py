@@ -574,10 +574,11 @@ def _valid_params(particle_types=['A', 'B']):
         'm': [6, 8, 10],
         'delta': [.1, .2, .3]
     }
-    expanded_mie_valid_param_dicts = _make_valid_param_dicts(expanded_mie_arg_dict)
+    expanded_mie_valid_param_dicts = _make_valid_param_dicts(
+        expanded_mie_arg_dict)
     valid_params_list.append(
-        paramtuple(hoomd.md.pair.ExpandedMie, dict(zip(combos,
-            expanded_mie_valid_param_dicts)),{}))
+        paramtuple(hoomd.md.pair.ExpandedMie,
+                   dict(zip(combos, expanded_mie_valid_param_dicts)), {}))
 
     twf_arg_dict = {
         'sigma': [0.1, 0.2, 0.5],
