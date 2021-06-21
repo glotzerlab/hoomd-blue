@@ -31,16 +31,16 @@ valid_attrs = [('trigger', hoomd.trigger.Periodic(10000)),
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
 def test_valid_construction(device, constructor_args):
     """Test that RemoveDrift can be constructed with valid arguments."""
-    cl = hoomd.hpmc.update.RemoveDrift(**constructor_args)
+    remove_drift = hoomd.hpmc.update.RemoveDrift(**constructor_args)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert np.all(getattr(cl, attr) == value)
+        assert np.all(getattr(remove_drift, attr) == value)
 
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("constructor_args", valid_constructor_args)
-def test_valid_construction_and_attach(device, simulation_factory,
+def test_valid_construction_and_attach(simulation_factory,
                                        two_particle_snapshot_factory,
                                        constructor_args, valid_args):
     """Test that RemoveDrift can be attached with valid arguments."""
@@ -59,38 +59,38 @@ def test_valid_construction_and_attach(device, simulation_factory,
     mc.shape["A"] = args
     mc.shape["B"] = args
 
-    cl = hoomd.hpmc.update.RemoveDrift(**constructor_args)
+    remove_drift = hoomd.hpmc.update.RemoveDrift(**constructor_args)
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
                                       d=2,
                                       L=50))
-    sim.operations.updaters.append(cl)
+    sim.operations.updaters.append(remove_drift)
     sim.operations.integrator = mc
 
     sim.run(0)
 
     # validate the params were set properly
     for attr, value in constructor_args.items():
-        assert np.all(getattr(cl, attr) == value)
+        assert np.all(getattr(remove_drift, attr) == value)
 
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
 def test_valid_setattr(device, attr, value):
     """Test that RemoveDrift can get and set attributes."""
-    cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
-                                       reference_positions=[(0, 0, 1),
-                                                            (-1, 0, 1)])
+    remove_drift = hoomd.hpmc.update.RemoveDrift(
+        trigger=hoomd.trigger.Periodic(10),
+        reference_positions=[(0, 0, 1), (-1, 0, 1)])
 
-    setattr(cl, attr, value)
-    assert np.all(getattr(cl, attr) == value)
+    setattr(remove_drift, attr, value)
+    assert np.all(getattr(remove_drift, attr) == value)
 
 
 @pytest.mark.cpu
 @pytest.mark.parametrize("attr,value", valid_attrs)
-def test_valid_setattr_attached(device, attr, value, simulation_factory,
+def test_valid_setattr_attached(attr, value, simulation_factory,
                                 two_particle_snapshot_factory, valid_args):
     """Test that RemoveDrift can get and set attributes while attached."""
     integrator = valid_args[0]
@@ -108,22 +108,22 @@ def test_valid_setattr_attached(device, attr, value, simulation_factory,
     mc.shape["A"] = args
     mc.shape["B"] = args
 
-    cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(10),
-                                       reference_positions=[(0, 0, 1),
-                                                            (-1, 0, 1)])
+    remove_drift = hoomd.hpmc.update.RemoveDrift(
+        trigger=hoomd.trigger.Periodic(10),
+        reference_positions=[(0, 0, 1), (-1, 0, 1)])
     dim = 2 if 'polygon' in integrator.__name__.lower() else 3
     sim = simulation_factory(
         two_particle_snapshot_factory(particle_types=['A', 'B'],
                                       dimensions=dim,
                                       d=2,
                                       L=50))
-    sim.operations.updaters.append(cl)
+    sim.operations.updaters.append(remove_drift)
     sim.operations.integrator = mc
 
     sim.run(0)
 
-    setattr(cl, attr, value)
-    assert np.all(getattr(cl, attr) == value)
+    setattr(remove_drift, attr, value)
+    assert np.all(getattr(remove_drift, attr) == value)
 
 
 @pytest.mark.cpu
@@ -135,7 +135,7 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
     mc.shape['B'] = dict(diameter=1.3)
     sim.operations.integrator = mc
 
-    cl = hoomd.hpmc.update.RemoveDrift(trigger=hoomd.trigger.Periodic(5),
-                                       reference_positions=[(0, 0, 1),
-                                                            (-1, 0, 1)])
-    operation_pickling_check(cl, sim)
+    remove_drift = hoomd.hpmc.update.RemoveDrift(
+        trigger=hoomd.trigger.Periodic(5),
+        reference_positions=[(0, 0, 1), (-1, 0, 1)])
+    operation_pickling_check(remove_drift, sim)
