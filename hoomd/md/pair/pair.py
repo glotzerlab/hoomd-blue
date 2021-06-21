@@ -1069,7 +1069,7 @@ class ZBL(Pair):
     Example::
 
         nl = nlist.Cell()
-        zbl = pair.ZBL(r_cut = 3.0, nlist=nl)
+        zbl = pair.ZBL(default_r_cut=3.0, nlist=nl)
 
         Zi = 54
         Zj = 7
@@ -1299,8 +1299,7 @@ class DLVO(Pair):
         nl = nlist.cell()
         dlvo = hoomd.md.pair.DLVO(nlist=nl)
         dlvo.params[('A', 'A')] = {"epsilon": 1.0, "kappa": 1.0}
-        dlvo.params[('A', 'B')] = {
-            "epsilon": 2.0, "kappa": 0.5, "r_cut": 3.0, "r_on": 2.0}
+        dlvo.params[('A', 'B')] = {"epsilon": 2.0, "kappa": 0.5,}
         dlvo.params[(['A', 'B'], ['C', 'D'])] = {"epsilon": 0.5, "kappa": 3.0}
     """
     _cpp_class_name = "PotentialPairDLVO"
