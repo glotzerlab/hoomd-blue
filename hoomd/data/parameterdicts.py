@@ -350,8 +350,8 @@ class ParameterDict(MutableMapping):
         """int: The number of keys."""
         if not isinstance(other, ParameterDict):
             return NotImplemented
-        return (set(self.keys()) == set(other.keys())
-                and np.all(np.all(self[key] == other[key]) for key in self.keys()))
+        return (set(self.keys()) == set(other.keys()) and np.all(
+            np.all(self[key] == other[key]) for key in self.keys()))
 
     def update(self, other):
         """Add keys and values to the dictionary."""
