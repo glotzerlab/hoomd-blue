@@ -44,17 +44,16 @@
     where  \f$ \Delta is specified by the user, conventionally calcualted as, \f$ \Delta = (d_i +
    d_j)/2 - \sigma \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 
-    The ExpandedMie potential needs neither charge nor diameter. Two parameters are specified and
-   stored in a Scalar5. \a rep \a att \a npow \a mpow \a delta are stored in \a params.x \a params.y
-   \a params.z and \a params.w \a params.v respectively.
+   The ExpandedMie potential needs neither charge nor diameter. Five parameters are specified and
+   stored in a Scalar5. \a repulsive \a attractive \a n_pow \a m_pow \a delta are stored in \a params
 
 
     These are related to the standard lj parameters sigma and epsilon and the variable exponents n
    and m by:
-    - \a rep = epsilon * pow(sigma,n) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a att = epsilon * pow(sigma,m) * (n/(n-m)) * power(n/m,m/(n-m))
-    - \a npow = n
-    - \a mpow = m
+    - \a repulsive = epsilon * pow(sigma,n) * (n/(n-m)) * power(n/m,m/(n-m))
+    - \a attractive = epsilon * pow(sigma,m) * (n/(n-m)) * power(n/m,m/(n-m))
+    - \a n_pow = n
+    - \a m_pow = m
     - \a delta = delta
 
     Due to the way that ExpandedMie modifies the cutoff condition, it will not function properly
@@ -66,10 +65,10 @@ class EvaluatorPairExpandedMie
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar rep;
-        Scalar att;
-        Scalar npow;
-        Scalar mpow;
+        Scalar repulsive;
+        Scalar attractive;
+        Scalar n_pow;
+        Scalar m_pow;
         Scalar delta;
 
 #ifndef ENABLE_HIP
@@ -78,32 +77,32 @@ class EvaluatorPairExpandedMie
 #endif
 
 #ifndef __HIPCC__
-        param_type() : rep(0), att(0), npow(0), mpow(0), delta(0) { }
+        param_type() : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0) { }
 
-        param_type(pybind11::dict v)
+        param_type(const pybind11::dict v)
             {
-            npow = v["n"].cast<Scalar>();
-            mpow = v["m"].cast<Scalar>();
+            n_pow = v["n"].cast<Scalar>();
+            m_pow = v["m"].cast<Scalar>();
 
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
 
-            Scalar outFront = (npow / (npow - mpow)) * fast::pow(npow / mpow, mpow / (npow - mpow));
-            rep = outFront * epsilon * fast::pow(sigma, npow);
-            att = outFront * epsilon * fast::pow(sigma, mpow);
+            Scalar prefactor = (n_pow / (n_pow - m_pow)) * fast::pow(n_pow / m_pow, m_pow / (n_pow - m_pow));
+            repulsive = prefactor * epsilon * fast::pow(sigma, n_pow);
+            attractive = prefactor * epsilon * fast::pow(sigma, m_pow);
 
             delta = v["delta"].cast<Scalar>();
             }
 
-        pybind11::dict asDict()
+        pybind11::dict asDict() const
             {
             pybind11::dict v;
-            v["n"] = npow;
-            v["m"] = mpow;
+            v["n"] = n_pow;
+            v["m"] = m_pow;
 
-            Scalar sigma = fast::pow(rep / att, 1 / (npow - mpow));
-            Scalar epsilon = rep / fast::pow(sigma, npow) * (npow - mpow) / npow
-                             * fast::pow(npow / mpow, mpow / (mpow - npow));
+            Scalar sigma = fast::pow(repulsive / attractive, 1 / (n_pow - m_pow));
+            Scalar epsilon = repulsive / fast::pow(sigma, n_pow) * (n_pow - m_pow) / n_pow
+                             * fast::pow(n_pow / m_pow, m_pow / (m_pow - n_pow));
 
             v["epsilon"] = epsilon;
             v["sigma"] = sigma;
@@ -123,13 +122,13 @@ class EvaluatorPairExpandedMie
         \param _delta Horizontal shift in r
     */
     DEVICE EvaluatorPairExpandedMie(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), rep(_params.rep), att(_params.att), npow(_params.npow),
-          mpow(_params.mpow), delta(_params.delta)
+        : rsq(_rsq), rcutsq(_rcutsq), repulsive(_params.repulsive), attractive(_params.attractive), n_pow(_params.n_pow),
+          m_pow(_params.m_pow), delta(_params.delta)
         {
         }
 
     //! ExpandedMie doesn't use diameter
-    DEVICE static bool needsDiameter()
+    DEVICE static bool needsDiameter() const
         {
         return false;
         }
@@ -137,10 +136,10 @@ class EvaluatorPairExpandedMie
     /*! \param di Diameter of particle i
         \param dj Diameter of particle j
     */
-    DEVICE void setDiameter(Scalar di, Scalar dj) { }
+    DEVICE void setDiameter(Scalar di, Scalar dj) const { }
 
     //! ExpandedMie doesn't use charge
-    DEVICE static bool needsCharge()
+    DEVICE static bool needsCharge() const
         {
         return false;
         }
@@ -148,7 +147,7 @@ class EvaluatorPairExpandedMie
     /*! \param qi Charge of particle i
         \param qj Charge of particle j
     */
-    DEVICE void setCharge(Scalar qi, Scalar qj) { }
+    DEVICE void setCharge(Scalar qi, Scalar qj) const { }
 
     //! Evaluate the force and energy
     /*! \param force_divr Output parameter to write the computed force divided by r.
@@ -159,29 +158,28 @@ class EvaluatorPairExpandedMie
 
         \return True if they are evaluated or false if they are not because we are beyond the cutoff
     */
-    DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+    DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift) const
         {
         // precompute some quantities
-        Scalar r = fast::sqrt(rsq);
-        Scalar rinv = fast::rsqrt(rsq);
+        const Scalar r = fast::sqrt(rsq);
+        const Scalar rinv = fast::rsqrt(rsq);
 
         // compute the force divided by r in force_divr
-        if (rsq < rcutsq && rep != 0)
+        if (rsq < rcutsq && repulsive != 0)
             {
             Scalar rmd = r - delta;
             Scalar rmdinv = Scalar(1.0) / rmd;
             Scalar rmd2inv = rmdinv * rmdinv;
-            Scalar rmdninv = fast::pow(rmd2inv, npow / Scalar(2.0));
-            Scalar rmdminv = fast::pow(rmd2inv, mpow / Scalar(2.0));
-            force_divr = rinv * rmdinv * (npow * rep * rmdninv - mpow * att * rmdminv);
+            Scalar rmdninv = fast::pow(rmd2inv, n_pow / Scalar(2.0));
+            force_divr = rinv * rmdinv * (n_pow * repulsive * rmdninv - m_pow * attractive * rmdminv);
 
-            pair_eng = rep * rmdninv - att * rmdminv;
+            pair_eng = repulsive * rmdninv - attractive * rmdminv;
 
             if (energy_shift)
                 {
-                Scalar rcutninv = fast::pow(rcutsq, -npow / Scalar(2.0));
-                Scalar rcutminv = fast::pow(rcutsq, -mpow / Scalar(2.0));
-                pair_eng -= rep * rcutninv - att * rcutminv;
+                Scalar rcutninv = fast::pow(rcutsq, -n_pow / Scalar(2.0));
+                Scalar rcutminv = fast::pow(rcutsq, -m_pow / Scalar(2.0));
+                pair_eng -= repulsive * rcutninv - attractive * rcutminv;
                 }
             return true;
             }
@@ -194,7 +192,7 @@ class EvaluatorPairExpandedMie
     /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
        will be logged as via analyze.log.
     */
-    static std::string getName()
+    static std::string getName() const
         {
         return std::string("expanded_mie");
         }
@@ -208,10 +206,10 @@ class EvaluatorPairExpandedMie
     protected:
     Scalar rsq;    //!< Stored rsq from the constructor
     Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar rep;    //!< mie1 parameter extracted from the params passed to the constructor
-    Scalar att;    //!< mie2 parameter extracted from the params passed to the constructor
-    Scalar npow;   //!< mie3 parameter extracted from the params passed to the constructor
-    Scalar mpow;   //!< mie4 parameter extracted from the params passed to the constructor
+    Scalar repulsive;    //!< Lumped repulsive term calculated from params passed to constructor
+    Scalar attractive;    //!< Lumped attractive term calculated from params passed to constructor
+    Scalar n_pow;   //!< Higher power parameter extracted from the params passed to the constructor
+    Scalar m_pow;   //!< Lower power parameter extracted from the params passed to the constructor
     Scalar delta;  //!< delta parameter extracted from the call to setDiameter
     };
 

@@ -1170,8 +1170,10 @@ class ExpandedMie(Pair):
 
     Args:
         nlist (`hoomd.md.nlist.NList`): Neighbor list
-        r_cut (float): Default cutoff radius :math:`[\\mathrm{length}]`.
-        r_on (float): Default turn-on radius :math:`[\\mathrm{length}]`.
+        default_r_cut (float): Default cutoff radius
+        :math:`[\\mathrm{length}]`.
+        defult_r_on (float): Default turn-on radius
+        :math:`[\\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
     `ExpandedMie` specifies that a radially shifted Mie pair potential
@@ -1212,19 +1214,18 @@ class ExpandedMie(Pair):
     Example::
 
         nl = nlist.Cell()
-        expanded_mie = pair.ExpandedMie(nlist=nl, r_cut=3.0)
+        expanded_mie = pair.ExpandedMie(nlist=nl, default_r_cut=3.0)
         mie.params[('A', 'B')] = \
         dict(epsilon=1.0, sigma=1.0, n=12, m=6, delta=0.5)
-        expanded_mie.r_cut[('A', 'B')] = 2**(1.0/6.0)
-        expanded_mie.r_on[('A', 'B')] = 2.0
+        expanded_mie.default_r_cut[('A', 'B')] = 2**(1.0/6.0)
+        expanded_mie.default_r_on[('A', 'B')] = 2.0
         expanded_mie.params[(['A', 'B'], ['C', 'D'])] = \
         dict(epsilon=1.5, sigma=2.0, n=12, m=6, delta=0.5))
     """
     _cpp_class_name = "PotentialPairExpandedMie"
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0., mode='none'):
 
-    def __init__(self, nlist, r_cut=None, r_on=0., mode='none'):
-
-        super().__init__(nlist, r_cut, r_on, mode)
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
         params = TypeParameter(
             'params', 'particle_types',
             TypeParameterDict(epsilon=float,
