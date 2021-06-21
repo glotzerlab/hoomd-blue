@@ -837,6 +837,7 @@ class DPDLJ(Pair):
         dpdlj.r_cut[('B', 'B')] = 2.0**(1.0/6.0)
     """
     _cpp_class_name = "PotentialPairDPDLJThermoDPD"
+    _accepted_modes = ("none", "shifted")
 
     def __init__(self,
                  nlist,
