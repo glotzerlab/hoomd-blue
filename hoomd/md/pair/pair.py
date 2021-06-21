@@ -674,7 +674,9 @@ class DPD(Pair):
             'params', 'particle_types',
             TypeParameterDict(A=float, gamma=float, len_keys=2))
         self._add_typeparam(params)
-        self.kT = kT
+        param_dict = ParameterDict(kT=hoomd.variant.Variant)
+        param_dict["kT"] = kT
+        self._param_dict.update(param_dict)
 
     def _add(self, simulation):
         """Add the operation to a simulation.
