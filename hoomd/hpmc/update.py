@@ -471,7 +471,7 @@ class RemoveDrift(Updater):
     """Remove the center of mass drift from a system restrained on a lattice.
 
     Args:
-        reference_positions ((*N*, 3) `numpy.ndarray` of ``numpy.float32``): the
+        reference_positions ((*N*, 3) `numpy.ndarray` of ``numpy.float64``): the
             reference positions of the lattice.
         trigger (`hoomd.trigger.Trigger`): Select the timesteps to remove drift.
 

@@ -50,7 +50,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     //! Set reference positions from a Nx3 numpy array
-    void setReferencePositions(pybind11::array_t<Scalar> ref_pos)
+    void setReferencePositions(pybind11::array_t<double> ref_pos)
         {
         unsigned int N = (unsigned int)ref_pos.request().shape[0];
         unsigned int dim = (unsigned int)ref_pos.request().shape[1];
@@ -58,7 +58,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
-        Scalar* rawdata = static_cast<Scalar*>(ref_pos.request().ptr);
+        double* rawdata = static_cast<double*>(ref_pos.request().ptr);
         m_ref_positions.resize(m_pdata->getN());
         for (unsigned int i = 0; i < N; i++)
             {
@@ -69,7 +69,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     //! Get reference positions as a Nx3 numpy array
-    pybind11::array_t<Scalar> getReferencePositions()
+    pybind11::array_t<double> getReferencePositions()
         {
         std::vector<size_t> dims(2);
         dims[0] = this->m_ref_positions.size();
@@ -77,8 +77,8 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
-        const auto reference_array = pybind11::array_t<Scalar>(
-            dims, reinterpret_cast<Scalar*>(&(this->m_ref_positions[0])));
+        const auto reference_array = pybind11::array_t<double>(
+            dims, reinterpret_cast<double*>(&(this->m_ref_positions[0])));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags &=
             ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
