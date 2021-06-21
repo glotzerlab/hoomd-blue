@@ -50,17 +50,17 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     //! Set reference positions from a Nx3 numpy array
-    void setReferencePositions(pybind11::array_t<double> ref_pos)
+    void setReferencePositions(const pybind11::array_t<double> ref_pos)
         {
-        unsigned int N = (unsigned int)ref_pos.request().shape[0];
-        unsigned int dim = (unsigned int)ref_pos.request().shape[1];
-        if (N != m_pdata->getNGlobal() || dim != 3)
+        const size_t N = ref_pos.request().shape[0];
+        const size_t dim = ref_pos.request().shape[1];
+        if (N != this->m_pdata->getN() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
-        double* rawdata = static_cast<double*>(ref_pos.request().ptr);
-        m_ref_positions.resize(m_pdata->getNGlobal());
-        for (unsigned int i = 0; i < N; i++)
+        const double* rawdata = static_cast<double*>(ref_pos.request().ptr);
+        m_ref_positions.resize(m_pdata->getN());
+        for (size_t i = 0; i < N; i++)
             {
             const size_t array_index = i * 3;
             this->m_ref_positions[i] = vec3<Scalar>(rawdata[array_index],
@@ -70,7 +70,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         }
 
     //! Get reference positions as a Nx3 numpy array
-    pybind11::array_t<double> getReferencePositions()
+    pybind11::array_t<double> getReferencePositions() const
         {
         std::vector<size_t> dims(2);
         dims[0] = this->m_ref_positions.size();
@@ -78,9 +78,9 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
-        const auto reference_array
-            = pybind11::array_t<double>(dims,
-                                        reinterpret_cast<double*>(&(this->m_ref_positions[0])));
+        const auto reference_array = pybind11::array_t<double>(
+            dims,
+            reinterpret_cast<const double*>(&(this->m_ref_positions[0])));
         // This is necessary to expose the array in a read only fashion through C++
         reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
             &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
@@ -100,7 +100,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
                                   access_location::host,
                                   access_mode::readwrite);
         const BoxDim& box = this->m_pdata->getGlobalBox();
-        vec3<Scalar> origin(this->m_pdata->getOrigin());
+        const vec3<Scalar> origin(this->m_pdata->getOrigin());
         vec3<Scalar> rshift;
         rshift.x = rshift.y = rshift.z = 0.0f;
 
@@ -111,7 +111,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             vec3<Scalar> postype_i = vec3<Scalar>(h_postype.data[i]) - origin;
             int3 tmp_image = make_int3(0, 0, 0);
             box.wrap(postype_i, tmp_image);
-            vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
+            const vec3<Scalar> dr = postype_i - m_ref_positions[tag_i];
             rshift += vec3<Scalar>(box.minImage(vec_to_scalar3(dr)));
             }
 
@@ -137,7 +137,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
             {
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
-            vec3<Scalar> r_i = vec3<Scalar>(postype_i);
+            const vec3<Scalar> r_i = vec3<Scalar>(postype_i);
             h_postype.data[i] = vec_to_scalar4(r_i - rshift, postype_i.w);
             box.wrap(h_postype.data[i], h_image.data[i]);
             }
