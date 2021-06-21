@@ -175,9 +175,9 @@ class EvaluatorPairExpandedMie
             Scalar rmd2inv = rmdinv * rmdinv;
             Scalar rmdninv = fast::pow(rmd2inv, n_pow / Scalar(2.0));
             force_divr
-                = rinv * rmdinv * (n_pow * repulsive * rmdninv - m_pow * attractive * rmdminv);
+                = rinv * rmdinv * (n_pow * repulsive * rmdninv - m_pow * attractive * rmdninv);
 
-            pair_eng = repulsive * rmdninv - attractive * rmdminv;
+            pair_eng = repulsive * rmdninv - attractive * rmdninv;
 
             if (energy_shift)
                 {
