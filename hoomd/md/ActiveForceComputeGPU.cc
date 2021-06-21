@@ -20,8 +20,7 @@ using namespace std;
    non-point-like anisotropic particles. /param orientation_reverse_link When True, the particle's
    orientation is set to match the active force vector. Useful for for using a particle's
    orientation to log the active force vector. Not recommended for anisotropic particles \param
-   rotation_diff rotational diffusion constant for all particles. \param constraint specifies a
-   constraint surface, to which particles are confined, such as update.constraint_ellipsoid.
+   rotation_diff rotational diffusion constant for all particles.
 */
 ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                              std::shared_ptr<ParticleGroup> group,

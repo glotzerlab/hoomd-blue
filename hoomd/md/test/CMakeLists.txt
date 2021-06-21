@@ -3,7 +3,6 @@
 set(TEST_LIST
     test_berendsen_integrator
     test_bondtable_bond_force
-    test_constraint_sphere
     test_enforce2d_updater
     test_external_periodic
     test_fenebond_force
