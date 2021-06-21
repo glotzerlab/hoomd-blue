@@ -1,7 +1,7 @@
 Units
 +++++
 
-HOOMD-blue follow self-consistent units. This means that users are free to define the units (e.g. meters versus centimeters for length) of HOOMD-blue's base units, and units of all derived quantities can be determined from the user selected units. For instance if the base length is chosen to be 1 meter, energy 1 Joule, and mass 1 kilogram, then velocity is in meters per second, but if one nanometer is chosen for length, kilojoules per mole for energy, and 1 amu for mass then velocity is in nanometers per picosecond.
+HOOMD-blue does not adopt any particular system of units, but instead follows a self-consistent system of units. Users are free to define HOOMD-Blue's base units (e.g. meters versus centimeters for length), and units of all derived quantities can be determined from the base units. For instance if the base units are chosen to be 1 meter, 1 Joule, and 1 kilogram, then velocity is in meters per second, but if one choses nanometers for length, kilojoules per mole for energy, and 1 amu for mass then velocity is in nanometers per picosecond.
 
 Base Units
 ============
