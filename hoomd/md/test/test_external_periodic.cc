@@ -57,16 +57,12 @@ void periodic_force_particle_test(periodicforce_creator periodic_creator,
     Scalar orderParameter = 0.5;
     Scalar interfaceWidth = 0.5;
     unsigned int periodicity = 2;
-    fc_3->setParams(0,
-                    make_scalar4(__int_as_scalar(index),
-                                 orderParameter,
-                                 interfaceWidth,
-                                 __int_as_scalar(periodicity)));
-    fc_3->setParams(1,
-                    make_scalar4(__int_as_scalar(index),
-                                 -orderParameter,
-                                 interfaceWidth,
-                                 __int_as_scalar(periodicity)));
+    fc_3->setParams(
+        0,
+        PotentialExternalPeriodic::param_type(index, orderParameter, interfaceWidth, periodicity));
+    fc_3->setParams(
+        1,
+        PotentialExternalPeriodic::param_type(index, -orderParameter, interfaceWidth, periodicity));
 
     // compute the forces
     fc_3->compute(0);

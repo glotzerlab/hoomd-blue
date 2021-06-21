@@ -86,12 +86,26 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// Get needed pdata flags
     virtual PDataFlags getRequestedPDataFlags();
 
+    /// helper function to compute net force/virial
+    virtual void computeNetForce(uint64_t timestep);
+
+#ifdef ENABLE_HIP
+    /// helper function to compute net force/virial on the GPU
+    virtual void computeNetForceGPU(uint64_t timestep);
+#endif
+
 #ifdef ENABLE_MPI
     /// Set the communicator to use
     /** \param comm The Communicator
      */
     virtual void setCommunicator(std::shared_ptr<Communicator> comm);
+
+    /// helper function to determine the ghost communication flags
+    virtual CommFlags determineFlags(uint64_t timestep);
 #endif
+
+    /// Check if any forces introduce anisotropic degrees of freedom
+    virtual bool getAnisotropic();
 
     /// Updates the rigid body constituent particles
     virtual void updateRigidBodies(uint64_t timestep);
@@ -102,6 +116,17 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// (Re-)initialize the integration method
     void initializeIntegrationMethods();
 
+    /// Getter and setter for accessing rigid body objects in Python
+    std::shared_ptr<ForceComposite> getRigid()
+        {
+        return m_rigid_bodies;
+        }
+
+    void setRigid(std::shared_ptr<ForceComposite> new_rigid)
+        {
+        m_rigid_bodies = new_rigid;
+        }
+
     protected:
     /// Helper method to test if all added methods have valid restart information
     bool isValidRestart();
@@ -109,12 +134,11 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     std::vector<std::shared_ptr<IntegrationMethodTwoStep>>
         m_methods; //!< List of all the integration methods
 
+    std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
+
     bool m_prepared;              //!< True if preprun has been called
     bool m_gave_warning;          //!< True if a warning has been given about no methods added
     AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
-
-    std::vector<std::shared_ptr<ForceComposite>>
-        m_composite_forces; //!< A list of active composite forces
     };
 
 /// Exports the IntegratorTwoStep class to python

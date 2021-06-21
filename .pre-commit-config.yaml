@@ -47,7 +47,6 @@ repos:
         ^hoomd/md/wall.py|
         ^hoomd/md/update.py|
         ^hoomd/md/impropers.py|
-        ^hoomd/md/external.py|
         ^hoomd/md/constrain.py|
         ^hoomd/hpmc/analyze.py|
         ^hoomd/hpmc/field.py|

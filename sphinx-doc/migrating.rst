@@ -82,7 +82,7 @@ Compiling
 * ``UPDATE_SUBMODULES`` no longer exists. Users and developers should use
   ``git clone --recursive``, ``git submodule update`` and ``git submodule sync``
   as appropriate.
-* ``COPY_HEADERS`` no longer exists. Users must ``make install`` HOOMD for use
+* ``COPY_HEADERS`` no longer exists. Users must install HOOMD for use
   with external components.
 * ``CMAKE_INSTALL_PREFIX`` is set to the Python ``site-packages`` directory (if
   not explicitly set by the user).

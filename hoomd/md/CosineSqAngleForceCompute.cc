@@ -274,5 +274,6 @@ void export_CosineSqAngleForceCompute(py::module& m)
         m,
         "CosineSqAngleForceCompute")
         .def(py::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &CosineSqAngleForceCompute::setParams);
+        .def("getParams", &CosineSqAngleForceCompute::getParams)
+        .def("setParams", &CosineSqAngleForceCompute::setParamsPython);
     }

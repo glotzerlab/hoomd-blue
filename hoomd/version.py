@@ -45,27 +45,18 @@ Attributes:
 """
 from hoomd import _hoomd
 
-try:
-    import hoomd.version_config
-
-    compile_date = hoomd.version_config.compile_date
-    git_branch = hoomd.version_config.git_branch
-    git_sha1 = hoomd.version_config.git_sha1
-    md_built = hoomd.version_config.md_built
-    hpmc_built = hoomd.version_config.hpmc_built
-    dem_built = hoomd.version_config.dem_built
-    mpcd_built = hoomd.version_config.mpcd_built
-    metal_built = hoomd.version_config.metal_built
-except ImportError:
-    # Allow sphinx docs to build when missing CMake generated python files
-    compile_date = "n/a"
-    git_branch = "n/a"
-    git_sha1 = "n/a"
-    md_built = "n/a"
-    hpmc_built = "n/a"
-    dem_built = "n/a"
-    mpcd_built = "n/a"
-    metal_built = "n/a"
+from hoomd.version_config import (
+    compile_date,
+    git_branch,
+    git_sha1,
+    md_built,
+    hpmc_built,
+    dem_built,
+    mpcd_built,
+    metal_built,
+    cuda_include_path,
+    cuda_devrt_library,
+)
 
 version = _hoomd.BuildInfo.getVersion()
 compile_flags = _hoomd.BuildInfo.getCompileFlags()
