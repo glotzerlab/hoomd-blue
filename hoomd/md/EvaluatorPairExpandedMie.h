@@ -121,14 +121,14 @@ class EvaluatorPairExpandedMie
         \param _params Per type pair parameters of this potential
         \param _delta Horizontal shift in r
     */
-    DEVICE EvaluatorPairExpandedMie(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+    DEVICE EvaluatorPairExpandedMie(const Scalar _rsq, const Scalar _rcutsq, const param_type& _params)
         : rsq(_rsq), rcutsq(_rcutsq), repulsive(_params.repulsive), attractive(_params.attractive), n_pow(_params.n_pow),
           m_pow(_params.m_pow), delta(_params.delta)
         {
         }
 
     //! ExpandedMie doesn't use diameter
-    DEVICE static bool needsDiameter() const
+    DEVICE static bool needsDiameter()
         {
         return false;
         }
@@ -139,7 +139,7 @@ class EvaluatorPairExpandedMie
     DEVICE void setDiameter(Scalar di, Scalar dj) const { }
 
     //! ExpandedMie doesn't use charge
-    DEVICE static bool needsCharge() const
+    DEVICE static bool needsCharge()
         {
         return false;
         }
@@ -192,7 +192,7 @@ class EvaluatorPairExpandedMie
     /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
        will be logged as via analyze.log.
     */
-    static std::string getName() const
+    static std::string getName()
         {
         return std::string("expanded_mie");
         }
