@@ -65,11 +65,11 @@ class EvaluatorPairExpandedMie
     //! Define the parameter type used by this pair potential evaluator
     struct param_type
         {
-        Scalar repulsive;
-        Scalar attractive;
-        Scalar n_pow;
-        Scalar m_pow;
-        Scalar delta;
+        Scalar repulsive;  //!< Lumped repulsive term to simplify/speed up computation
+        Scalar attractive; //!< Lumped attractive term to simplify/speed up computation
+        Scalar n_pow;      //!< Higher exponent for potential
+        Scalar m_pow;      //!< Lower exponent for potential
+        Scalar delta;      //!< shift in radial distance for use in Mie potential
 
 #ifndef ENABLE_HIP
         //! set CUDA memory hints
@@ -204,13 +204,13 @@ class EvaluatorPairExpandedMie
 #endif
 
     protected:
-    Scalar rsq;    //!< Stored rsq from the constructor
-    Scalar rcutsq; //!< Stored rcutsq from the constructor
-    Scalar repulsive;    //!< Lumped repulsive term calculated from params passed to constructor
-    Scalar attractive;    //!< Lumped attractive term calculated from params passed to constructor
-    Scalar n_pow;   //!< Higher power parameter extracted from the params passed to the constructor
-    Scalar m_pow;   //!< Lower power parameter extracted from the params passed to the constructor
-    Scalar delta;  //!< delta parameter extracted from the call to setDiameter
+    Scalar rsq;        //!< distance between particles squared
+    Scalar rcutsq;     //!< the cutoff radius of the potential squared
+    Scalar repulsive;  //!< Lumped repulsive term to simplify/speed up computation
+    Scalar attractive; //!< Lumped attractive term to simplify/speed up computation
+    Scalar n_pow;      //!< Higher exponent for potential
+    Scalar m_pow;      //!< Lower exponent for potential
+    Scalar delta;      //!< shift in radial distance for use in Mie potential
     };
 
 #endif // __PAIR_EVALUATOR_EXPANDEDMIE_H__
