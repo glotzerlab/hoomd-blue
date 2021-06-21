@@ -14,6 +14,7 @@ from hoomd.data.typeconverter import (to_type_converter, RequiredArg,
 from hoomd.data.smart_default import (_to_base_defaults, _to_default,
                                       _SmartDefault, _NoDefault)
 from hoomd.error import TypeConversionError
+import numpy as np
 
 
 def has_str_elems(obj):
@@ -344,6 +345,13 @@ class ParameterDict(MutableMapping):
     def __len__(self):
         """int: The number of keys."""
         return len(self._dict)
+
+    def __eq__(self, other):
+        """int: The number of keys."""
+        if not isinstance(other, ParameterDict):
+            return NotImplemented
+        return (set(self.keys()) == set(other.keys())
+                and np.all(np.all(self[key] == other[key]) for key in self.keys()))
 
     def update(self, other):
         """Add keys and values to the dictionary."""
