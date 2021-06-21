@@ -63,8 +63,9 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         for (unsigned int i = 0; i < N; i++)
             {
             const size_t array_index = i * 3;
-            this->m_ref_positions[i] = vec3<Scalar>(
-                rawdata[array_index], rawdata[array_index + 1], rawdata[array_index + 2]);
+            this->m_ref_positions[i] = vec3<Scalar>(rawdata[array_index],
+                                                    rawdata[array_index + 1],
+                                                    rawdata[array_index + 2]);
             }
         }
 
@@ -77,11 +78,12 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         // the cast from vec3<Scalar>* to Scalar* is safe since vec3 is tightly packed without any
         // padding. This also makes a copy so, modifications of this array do not effect the
         // original reference positions.
-        const auto reference_array = pybind11::array_t<double>(
-            dims, reinterpret_cast<double*>(&(this->m_ref_positions[0])));
+        const auto reference_array
+            = pybind11::array_t<double>(dims,
+                                        reinterpret_cast<double*>(&(this->m_ref_positions[0])));
         // This is necessary to expose the array in a read only fashion through C++
-        reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags &=
-            ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+        reinterpret_cast<pybind11::detail::PyArray_Proxy*>(reference_array.ptr())->flags
+            &= ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
         return reference_array;
         }
 

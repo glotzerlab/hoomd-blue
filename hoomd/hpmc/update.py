@@ -13,7 +13,6 @@ from hoomd.data.typeparam import TypeParameter
 import hoomd.data.typeconverter
 from hoomd.operation import Updater
 import hoomd
-import numpy
 
 
 class BoxMC(Updater):
