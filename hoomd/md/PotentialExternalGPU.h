@@ -141,7 +141,6 @@ void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
     pybind11::class_<T, base, std::shared_ptr<T>>(m, name.c_str())
         .def(pybind11::init<std::shared_ptr<SystemDefinition>>())
-        .def("setParams", &T::setParams)
         .def("setField", &T::setField);
     }
 
