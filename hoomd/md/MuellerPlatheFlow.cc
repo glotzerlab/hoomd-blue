@@ -142,7 +142,8 @@ void MuellerPlatheFlow::update(uint64_t timestep)
         m_exec_conf->msg->warning()
             << " After " << counter
             << " MuellerPlatheFlow could not achieve the target: " << (*m_flow_target)(timestep)
-            << " only " << this->getSummedExchangedMomentum() / area << " could be achieved." << endl;
+            << " only " << this->getSummedExchangedMomentum() / area << " could be achieved."
+            << endl;
         }
     // stringstream s;
     // s<<this->getSummedExchangedMomentum()/area<<"\t"<<m_flow_target->getValue(timestep)<<endl;
@@ -489,6 +490,5 @@ void export_MuellerPlatheFlow(py::module& m)
         .def_property_readonly("flow_direction", &MuellerPlatheFlow::getFlowDirectionPython)
         .def_property_readonly("flow_epsilon", &MuellerPlatheFlow::getFlowEpsilon)
         .def_property_readonly("summed_exchanged_momentum",
-                               &MuellerPlatheFlow::getSummedExchangedMomentum)
-        ;
+                               &MuellerPlatheFlow::getSummedExchangedMomentum);
     }
