@@ -45,7 +45,8 @@
    d_j)/2 - \sigma \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 
    The ExpandedMie potential needs neither charge nor diameter. Five parameters are specified and
-   stored in a Scalar5. \a repulsive \a attractive \a n_pow \a m_pow \a delta are stored in \a params
+   stored in a Scalar5. \a repulsive \a attractive \a n_pow \a m_pow \a delta are stored in \a
+   params
 
 
     These are related to the standard lj parameters sigma and epsilon and the variable exponents n
@@ -87,7 +88,8 @@ class EvaluatorPairExpandedMie
             auto sigma(v["sigma"].cast<Scalar>());
             auto epsilon(v["epsilon"].cast<Scalar>());
 
-            Scalar prefactor = (n_pow / (n_pow - m_pow)) * fast::pow(n_pow / m_pow, m_pow / (n_pow - m_pow));
+            Scalar prefactor
+                = (n_pow / (n_pow - m_pow)) * fast::pow(n_pow / m_pow, m_pow / (n_pow - m_pow));
             repulsive = prefactor * epsilon * fast::pow(sigma, n_pow);
             attractive = prefactor * epsilon * fast::pow(sigma, m_pow);
 
@@ -121,9 +123,10 @@ class EvaluatorPairExpandedMie
         \param _params Per type pair parameters of this potential
         \param _delta Horizontal shift in r
     */
-    DEVICE EvaluatorPairExpandedMie(const Scalar _rsq, const Scalar _rcutsq, const param_type& _params)
-        : rsq(_rsq), rcutsq(_rcutsq), repulsive(_params.repulsive), attractive(_params.attractive), n_pow(_params.n_pow),
-          m_pow(_params.m_pow), delta(_params.delta)
+    DEVICE
+    EvaluatorPairExpandedMie(const Scalar _rsq, const Scalar _rcutsq, const param_type& _params)
+        : rsq(_rsq), rcutsq(_rcutsq), repulsive(_params.repulsive), attractive(_params.attractive),
+          n_pow(_params.n_pow), m_pow(_params.m_pow), delta(_params.delta)
         {
         }
 
@@ -171,7 +174,8 @@ class EvaluatorPairExpandedMie
             Scalar rmdinv = Scalar(1.0) / rmd;
             Scalar rmd2inv = rmdinv * rmdinv;
             Scalar rmdninv = fast::pow(rmd2inv, n_pow / Scalar(2.0));
-            force_divr = rinv * rmdinv * (n_pow * repulsive * rmdninv - m_pow * attractive * rmdminv);
+            force_divr
+                = rinv * rmdinv * (n_pow * repulsive * rmdninv - m_pow * attractive * rmdminv);
 
             pair_eng = repulsive * rmdninv - attractive * rmdminv;
 
