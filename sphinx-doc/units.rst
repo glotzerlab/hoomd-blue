@@ -3,6 +3,14 @@ Units
 
 HOOMD-blue does not adopt any particular system of units, but instead follows a self-consistent system of units. Users are free to define HOOMD-Blue's base units (e.g. meters versus centimeters for length), and units of all derived quantities can be determined from the base units. For instance if the base units are chosen to be 1 meter, 1 Joule, and 1 kilogram, then velocity is in meters per second, but if one choses nanometers for length, kilojoules per mole for energy, and 1 amu for mass then velocity is in nanometers per picosecond.
 
+Note:
+    In HPMC, the primary unit is that of length. Mass is factored out of the partition function and
+    does not enter into the simulation. In addition, the scale of energy is irrelevant in athermal
+    HPMC systems where overlapping energies are infinite and valid configurations have
+    zero potential energy. However, energy does appear implicitly in derived units like
+    :math:`[\mathrm{pressure}] = \left(\frac{\mathrm{[energy]}}{\mathrm{[length]}^3}\right)`.  In
+    HPMC, :math:`kT` is assumed to be 1 unit of energy.
+
 Base Units
 ============
 
