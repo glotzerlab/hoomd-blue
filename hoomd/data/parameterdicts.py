@@ -347,7 +347,7 @@ class ParameterDict(MutableMapping):
         return len(self._dict)
 
     def __eq__(self, other):
-        """int: The number of keys."""
+        """Equality betwen ParameterDict objects"""
         if not isinstance(other, ParameterDict):
             return NotImplemented
         return (set(self.keys()) == set(other.keys()) and np.all(
