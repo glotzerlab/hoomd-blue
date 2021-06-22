@@ -43,7 +43,7 @@ template<class Shape> class RemoveDriftUpdater : public Updater
     //! Constructor
     RemoveDriftUpdater(std::shared_ptr<SystemDefinition> sysdef,
                        std::shared_ptr<IntegratorHPMCMono<Shape>> mc,
-                       pybind11::array_t<Scalar> ref_positions)
+                       pybind11::array_t<double> ref_positions)
         : Updater(sysdef), m_mc(mc)
         {
         setReferencePositions(ref_positions);
@@ -54,12 +54,12 @@ template<class Shape> class RemoveDriftUpdater : public Updater
         {
         unsigned int N = (unsigned int)ref_pos.request().shape[0];
         unsigned int dim = (unsigned int)ref_pos.request().shape[1];
-        if (N != this->m_pdata->getN() || dim != 3)
+        if (N != m_pdata->getNGlobal() || dim != 3)
             {
             throw std::runtime_error("The array must be of shape (N_particles, 3).");
             }
         double* rawdata = static_cast<double*>(ref_pos.request().ptr);
-        m_ref_positions.resize(m_pdata->getN());
+        m_ref_positions.resize(m_pdata->getNGlobal());
         for (unsigned int i = 0; i < N; i++)
             {
             const size_t array_index = i * 3;
