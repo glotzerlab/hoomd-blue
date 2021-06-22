@@ -42,7 +42,8 @@ namespace detail
     \param newCollisionPlaneVector Gives a normal on the final portal
     \returns positive for two particles that collide in a given distance, negative for error values. -1: resultNoCollision, -2: resultNoForwardCollisionOrOverlapping, -3: resultOverlapping
 
-    XenoSweep is an extension of the XenoCollide algorithm. Described in arXiv:xxxx.xxxxx | [insert-paper-here]
+    XenoSweep is an extension of the XenoCollide algorithm. Described in
+    arxiv:2104.06829 https://arxiv.org/abs/2104.06829
 
     We try to find the surface element of the minkowski difference, that will be hit by the origin.
     It works well for polyhedra. As spherical/round shapes do not have a defined surface element that we can find, convergence is slow and way less efficient.
