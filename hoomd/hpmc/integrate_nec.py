@@ -2,8 +2,7 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
-import hoomd
-import sys
+"""Newtonain Event-Chain Integrators for Hard Particle Monte Carlo."""
 
 from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.data.parameterdicts import TypeParameterDict, ParameterDict
@@ -14,7 +13,7 @@ from hoomd.logging import log
 
 
 class HPMCNECIntegrator(HPMCIntegrator):
-    """ HPMC Chain Integrator Meta Class
+    """HPMC Chain Integrator Meta Class.
 
     Insert Doc-string here.
     """
@@ -94,7 +93,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
 
     @log
     def virial_pressure(self):
-        """float: virial pressure
+        """float: virial pressure.
 
         Note:
             The statistics are reset at every timestep.
@@ -106,14 +105,15 @@ class HPMCNECIntegrator(HPMCIntegrator):
 
     @log
     def particles_per_chain(self):
-        """float: particles per chain
+        """float: particles per chain.
 
         Note:
             The statistics are reset at every `hoomd.Simulation.run`.
         """
         if self._attached:
             necCounts = self._cpp_obj.getNECCounters(1)
-            return necCounts.chain_at_collision_count * 1.0 / necCounts.chain_start_count
+            return (necCounts.chain_at_collision_count * 1.0
+                    / necCounts.chain_start_count)
         else:
             return None
 
@@ -135,7 +135,7 @@ class HPMCNECIntegrator(HPMCIntegrator):
 
 
 class Sphere(HPMCNECIntegrator):
-    R""" HPMC chain integration for spheres (2D/3D).
+    """HPMC chain integration for spheres (2D/3D).
 
     Args:
         d (float): Maximum move displacement, Scalar to set for all types,
@@ -149,7 +149,6 @@ class Sphere(HPMCNECIntegrator):
     Sphere parameters: (see sphere)
 
     Example:
-
         cpu = hoomd.device.CPU()
         sim = hoomd.Simulation(device=cpu)
         sim.create_state_from_gsd(filename='start.gsd')
@@ -210,7 +209,7 @@ class Sphere(HPMCNECIntegrator):
 
 
 class ConvexPolyhedron(HPMCNECIntegrator):
-    R""" HPMC integration for convex polyhedra (3D) with nec.
+    """HPMC integration for convex polyhedra (3D) with nec.
 
     Args:
         d (float): Maximum move displacement, Scalar to set for all types,
@@ -232,7 +231,6 @@ class ConvexPolyhedron(HPMCNECIntegrator):
         will result if they are violated.
 
     Example:
-
         cpu = hoomd.device.CPU()
         sim = hoomd.Simulation(device=cpu)
         sim.create_state_from_gsd(filename='start.gsd')

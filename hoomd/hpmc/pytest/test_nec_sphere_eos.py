@@ -11,10 +11,11 @@ import hoomd.hpmc.tune
 import pytest
 import math
 
-## from test_sphere_eos.py for hoomd-2.9
+# from test_sphere_eos.py for hoomd-2.9
+# see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
 _phi_p_ref = [(0.29054, 0.1), (0.91912, 0.2), (2.2768, 0.3), (5.29102, 0.4),
               (8.06553, 0.45), (9.98979, 0.475)]
-rel_err_cs = 0.0015  # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
+rel_err_cs = 0.0015
 
 
 @pytest.mark.parametrize("betap,phi", _phi_p_ref)
@@ -52,7 +53,7 @@ def test_sphere_eos_nec(betap, phi, simulation_factory,
                                                          gamma=20.0)
     sim.operations.tuners.append(tune_nec_ct)
 
-    #equilibrate
+    # equilibrate
     sim.run(1000)
     sim.operations.tuners.clear()
 

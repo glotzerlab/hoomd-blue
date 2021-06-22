@@ -319,26 +319,26 @@ DEVICE inline OverlapReal sweep_distance(const vec3<Scalar>& r_ab,
                                  vec3<Scalar>& collisionPlaneVector
 )
     {
-    double sumR   =   a.params.radius + b.params.radius;
-    double distSQ = dot(r_ab,r_ab);
+    OverlapReal sumR   =   a.params.radius + b.params.radius;
+    OverlapReal distSQ =  OverlapReal(dot(r_ab,r_ab));
 
-    double d_parallel =  dot(r_ab, direction);
+    OverlapReal d_parallel =  OverlapReal(dot(r_ab, direction));
     if( d_parallel   <= 0 ) // Moving apart
         {
         return -1.0;
-        }; 
+        };
 
-    double discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
+    OverlapReal discriminant = sumR*sumR - distSQ + d_parallel*d_parallel;
     if( discriminant < 0 ) // orthogonal distance larger than sum of radii
         {
         return -2.0;
-        }; 
+        };
 
-    double newDist = d_parallel - fast::sqrt( discriminant );
+    OverlapReal newDist = d_parallel - fast::sqrt( discriminant );
 
     if( newDist > 0)
         {
-        collisionPlaneVector = r_ab - direction * newDist ;
+        collisionPlaneVector = r_ab - direction * Scalar(newDist) ;
         return newDist;
         }
     else

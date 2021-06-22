@@ -2,15 +2,14 @@
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause
 # License.
 
+"""Implement ChainTime."""
+
 from hoomd.custom import _InternalAction
-from hoomd.data.parameterdicts import ParameterDict, TypeParameterDict
-from hoomd.data.typeparam import TypeParameter
-from hoomd.data.typeconverter import (OnlyFrom, OnlyTypes, OnlyIf,
-                                      to_type_converter)
+from hoomd.data.parameterdicts import ParameterDict
+from hoomd.data.typeconverter import OnlyTypes
 from hoomd.tune import _InternalCustomTuner
 from hoomd.tune.attr_tuner import (_TuneDefinition, SolverStep, ScaleSolver,
                                    SecantSolver)
-from hoomd.hpmc.integrate import HPMCIntegrator
 from hoomd.hpmc.integrate_nec import HPMCNECIntegrator
 
 
@@ -35,13 +34,15 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         chain_start = statistics.chain_start_count
 
         # We return None when no chains are recorded since we don't want
-        # the chain time to be updated. Likewise, when we do not have a previous
-        # recorded number of particles in a chain we return None since what
-        # happened previous timesteps may not be indicative of the current system.
+        # the chain time to be updated. Likewise, when we do not have a
+        # previous recorded number of particles in a chain we return None
+        # since what happened previous timesteps may not be indicative of
+        # the current system.
         #
-        # None in the hoomd solver infrastructure means that the value either cannot be
-        # computed or would be inaccurate at the current time. It informs the
-        # `SolverStep` object to skip tuning this attribute for now.
+        # None in the hoomd solver infrastructure means that the value
+        # either cannot be computed or would be inaccurate at the current
+        # time. It informs the `SolverStep` object to skip tuning this
+        # attribute for now.
         if self.previous_start is None or chain_start == 0:
             self.previous_hit = chain_hit
             self.previous_start = chain_start
@@ -55,12 +56,15 @@ class _ChainTimeTuneDefinition(_TuneDefinition):
         # If we have recorded a previous total larger than the current one
         # then this condition implies a new run call. We should be able to
         # tune here as we have no other indication the system has changed.
-        elif (self.previous_start > chain_start
-              or self.previous_hit > chain_hit):
+        elif ((self.previous_start > chain_start)
+              or (self.previous_hit > chain_hit)):
             particles_per_chain = chain_hit / chain_start
         else:
-            particles_per_chain = ((chain_hit - self.previous_hit) /
-                                   (chain_start - self.previous_start))
+            # flake8 does not allow a single-line calculation
+            # W504 line break after binary operator
+            delta_prev = chain_hit - self.previous_hit
+            delta_start = chain_start - self.previous_start
+            particles_per_chain = delta_prev / delta_start
 
         # We store the previous information becuase this lets us find the
         # acceptance rate since this has last been called which allows for us to
@@ -95,10 +99,10 @@ class _InternalChainTime(_InternalAction):
         # A counter when tuned reaches 1 it means that the tuner has reported
         # being tuned one time in a row. However, as the first run of the tuner
         # is likely at timestep 0 which means that the counters are (0, 0) and
-        # _ChainTimeTuneDefinition returns y == target for that case, we need two
-        # rounds of tuning to be sure that we have converged. Since, in general,
-        # solvers do not do much if any work on already tuned tunables, this is
-        # not a performance problem.
+        # _ChainTimeTuneDefinition returns y == target for that case, we need
+        # two rounds of tuning to be sure that we have converged. Since, in
+        # general, solvers do not do much if any work on already tuned tunables,
+        # this is not a performance problem.
         self._tuned = 0
         self._is_attached = False
 
@@ -127,7 +131,8 @@ class _InternalChainTime(_InternalAction):
         if 0 <= target:
             pass
         else:
-            raise ValueError("Chain time {} should be between 0 and 1000.".format(target))
+            raise ValueError(
+                "Chain time {} should be between 0 and 1000.".format(target))
         self._tuned = 0
         return target
 
@@ -136,7 +141,8 @@ class _InternalChainTime(_InternalAction):
         if 0 <= target <= 1000:
             pass
         else:
-            raise ValueError("Value {} should be between 0 and 1000.".format(target))
+            raise ValueError(
+                "Value {} should be between 0 and 1000.".format(target))
 
         self._chain_time_def.target = target
         self._tuned = 0
@@ -171,7 +177,7 @@ class _InternalChainTime(_InternalAction):
         """Tune chain time.
 
         Args:
-            timestep (:obj:`int`, optional): Current simulation timestep. Is
+            timestep (`int`, optional): Current simulation timestep. Is
                 currently ignored.
         """
         if self._is_attached:
@@ -187,8 +193,8 @@ class _InternalChainTime(_InternalAction):
 class ChainTime(_InternalCustomTuner):
     """Tunes HPMCNECIntegrator chain time to targeted mean particles per chain.
 
-    For most common creation of a `ChainTime` tuner see `ChainTime.secant_solver`
-    and `ChainTime.scale_solver` respectively.
+    For most common creation of a `ChainTime` tuner see
+    `ChainTime.secant_solver` and `ChainTime.scale_solver` respectively.
 
     Args:
         trigger (hoomd.trigger.Trigger): ``Trigger`` to determine when to run
