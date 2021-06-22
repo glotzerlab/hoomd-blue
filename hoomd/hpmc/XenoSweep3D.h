@@ -169,10 +169,14 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         // check if origin is inside (or overlapping, or behind, or touching)
         // the = is important, because in an MC simulation you are guaranteed
         // to find cases where edges and or vertices touch exactly.
-        if (dot(v1, n) <= OverlapReal(0.0))
+        //
+        // Only return in the first iteration (we may assume, that we search
+        // in the wrong direction) or a few steps later, such that the portal
+        // describes the intersection well.
+        if (dot(v1, n) <= OverlapReal(0.0) and (count == 1 or count > 3))
             {
             collisionPlaneVector = n;
-            return resultNoForwardCollisionOrOverlapping - OverlapReal(count + 1);
+            return resultNoForwardCollisionOrOverlapping - OverlapReal(count);
             }
 
         // ----
@@ -186,8 +190,8 @@ DEVICE inline OverlapReal xenosweep_3d(const SupportFuncA& sa,
         d = dot((v1 - v4) * tol_multiplier , n);
         OverlapReal tol = precision_tol * tol_multiplier * R * fast::sqrt(dot(n,n));
 
-        // First, check if v4 is on plane (v2,v1,v3) or "behind"
-        if (d < tol)
+        // First, check if v4 is on plane (v2,v1,v3)
+        if (-tol < d and d < tol)
             {
             collisionPlaneVector = n;
             return dot(n,v4) / dot(n,v0);
