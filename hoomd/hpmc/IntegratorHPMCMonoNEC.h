@@ -113,15 +113,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             return m_update_fraction;
             }
 
-
-        /** \returns empty list. (obsolete; used to return a list of provided quantities)
-        */
-        std::vector< std::string > getProvidedLogQuantities()
-            {
-            std::vector< std::string > result;
-            return result;
-            }
-
         //! Get pressure from virial expression
         //! We follow the equations of Isobe and Krauth, Journal of Chemical Physics 143, 084509 (2015)
         //! \returns pressure
@@ -129,11 +120,6 @@ class IntegratorHPMCMonoNEC : public IntegratorHPMCMono<Shape>
             {
             return (1+count_pressurevirial/count_movelength)*this->m_pdata->getN()/this->m_pdata->getBox().getVolume();
             }
-
-
-
-        //! Get the value of a logged quantity
-        virtual Scalar getLogValue(const std::string& quantity, uint64_t timestep);
 
         //! Get the current counter values for NEC
         hpmc_nec_counters_t getNECCounters(unsigned int mode=0);
@@ -1228,17 +1214,6 @@ double IntegratorHPMCMonoNEC< Shape >::sweepDistance(vec3<Scalar>& direction,
         } // end loop over images
 
     return sweepableDistance;
-    }
-
-
-/*! \param quantity Name of the log quantity to get
-    \param timestep Current time step of the simulation
-    \return 0 (obsolete; used to return the requested log quantity.)
-*/
-template<class Shape>
-Scalar IntegratorHPMCMonoNEC<Shape>::getLogValue(const std::string& quantity, uint64_t timestep)
-    {
-    return 0;
     }
 
 
